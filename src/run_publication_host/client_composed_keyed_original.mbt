@@ -19,17 +19,23 @@ pub fn select_client_effect_composed_model_keyed_acquisition(
   prepared : PreparedClientEffectComputation,
   plan : ClientInferPlanGraph,
 ) -> Result[ClientKeyedAcquisition?, ClientKeyedAcquisitionIssue] {
-  guard client_infer_occurrence_matches_effect(plan.occurrence, prepared) else { return Err(ForeignPipeline) }
+  guard client_infer_occurrence_matches_effect(plan.occurrence, prepared) else {
+    return Err(ForeignPipeline)
+  }
   let checked = @strategy.graph_program(plan.owner.graph)
   let mut selected = None
   let count = @checked.source_execution_count(checked)
-  if count > 1000000 { return Err(WorkLimit) }
+  if count > 1000000 {
+    return Err(WorkLimit)
+  }
   for index in 0..<count {
     let check = @checked.source_execution_at(checked, index).unwrap()
     if @checked.source_execution_kind(check) is @checked.KeyedRequest(binding) {
       let subject = @checked.source_execution_subject(check)
       let step = @acquisition.keyed_join_step(binding.join)
-      if selected is Some(_) || subject.stage != plan.stage || step >= plan.source_ordinal {
+      if selected is Some(_) ||
+        subject.stage != plan.stage ||
+        step >= plan.source_ordinal {
         return Err(ForeignPipeline)
       }
       selected = Some((subject.stage, subject.input, step))
@@ -37,9 +43,14 @@ pub fn select_client_effect_composed_model_keyed_acquisition(
   }
   match selected {
     None => Ok(None)
-    Some((stage, input, join)) => prepare_client_effect_keyed_acquisition(
-      prepared, stage, input, 1000000, join_step=Some(join),
-    ).map(Some)
+    Some((stage, input, join)) =>
+      prepare_client_effect_keyed_acquisition(
+        prepared,
+        stage,
+        input,
+        1000000,
+        join_step=Some(join),
+      ).map(value => Some(value))
   }
 }
 
@@ -49,7 +60,8 @@ fn client_keyed_left_single_source_matches(
   source : @query.CapturedInputSource,
 ) -> Bool {
   left.composed is None &&
-  left.source is Some(original) && physical_equal(original, source)
+  left.source is Some(original) &&
+  physical_equal(original, source)
 }
 
 ///|
@@ -62,7 +74,8 @@ fn client_keyed_left_source_matches(
   if client_keyed_left_single_source_matches(left, source) {
     return true
   }
-  left.source is None && left.composed is Some(original) &&
+  left.source is None &&
+  left.composed is Some(original) &&
   original.sources.any(value => physical_equal(value, source)) &&
   client_composed_keyed_original_current(original)
 }
@@ -86,8 +99,14 @@ pub fn borrow_client_original_composed_keyed_ledger(
     physical_equal(allowed.compilation.owner, effect) &&
     physical_equal(keyed.owner, plan.occurrence.preparation) &&
     client_keyed_acquisition_coordinates(keyed) is Some((stage, task, join)) &&
-    stage == plan.stage && task == plan.task && join < plan.source_ordinal &&
-    @strategy.graph_keyed_model_plan_inputs_complete(owner.graph, task, plan.source_ordinal) &&
+    stage == plan.stage &&
+    task == plan.task &&
+    join < plan.source_ordinal &&
+    @strategy.graph_keyed_model_plan_inputs_complete(
+      owner.graph,
+      task,
+      plan.source_ordinal,
+    ) &&
     sources.length() == @strategy.graph_captured_prefix(owner.graph) &&
     sources.length() == 2 else {
     return Err(ForeignRun)
@@ -101,17 +120,32 @@ pub fn borrow_client_original_composed_keyed_ledger(
   }
   // Liveness can reenter. The actual census after those callbacks owns the
   // loan; no usage snapshot or successful quote can replace this witness.
-  if !@resources.original_ledger_captured_preparation_available(scope.identity, prefix~) {
+  if !@resources.original_ledger_captured_preparation_available(
+      scope.identity,
+      prefix~,
+    ) {
     return Err(Resource(@resources.ChangedOriginalState))
   }
   Ok(scope.ledger)
 }
 
 ///|
-fn client_composed_keyed_original_current(value : ClientComposedKeyedOriginal) -> Bool {
-  client_model_origin_matches(value.scope.origin, value.compiled, value.definition, value.plan) &&
+fn client_composed_keyed_original_current(
+  value : ClientComposedKeyedOriginal,
+) -> Bool {
+  client_model_origin_matches(
+    value.scope.origin,
+    value.compiled,
+    value.definition,
+    value.plan,
+  ) &&
   @resources.reservation_open(value.prefix) &&
-  @execution.completed_segment_inputs_output(value.completed, value.sequence, value.inputs) is Some(_) &&
+  @execution.completed_segment_inputs_output(
+    value.completed,
+    value.sequence,
+    value.inputs,
+  )
+  is Some(_) &&
   value.sources.all(@query.captured_source_available) &&
   @resources.original_ledger_inventory_available(value.scope.identity)
 }
@@ -134,11 +168,15 @@ pub fn client_composed_keyed_lookup_matches_model_parent(
   plan : ClientInferPlanGraph,
   ledger : @resources.Ledger,
 ) -> Bool {
-  lookup.left.source is None && lookup.left.composed is Some(original) &&
+  lookup.left.source is None &&
+  lookup.left.composed is Some(original) &&
   physical_equal(original.compiled, compiled) &&
-  physical_equal(original.definition, definition) && physical_equal(original.plan, plan) &&
-  physical_equal(lookup.ledger, ledger) && physical_equal(original.scope.ledger, ledger) &&
-  physical_equal(original.keyed, lookup.left.acquisition) && !lookup.closed &&
+  physical_equal(original.definition, definition) &&
+  physical_equal(original.plan, plan) &&
+  physical_equal(lookup.ledger, ledger) &&
+  physical_equal(original.scope.ledger, ledger) &&
+  physical_equal(original.keyed, lookup.left.acquisition) &&
+  !lookup.closed &&
   client_composed_keyed_original_current(original)
 }
 
@@ -153,11 +191,18 @@ pub fn client_composed_keyed_request_matches_model_parent(
   client_keyed_request_matches_acquisition(request, request.left.acquisition) &&
   request.assembly_accounting is Some(lookup) &&
   physical_equal(request.left, lookup.left) &&
-  lookup.selected_request is Some(selected) && physical_equal(selected, request) &&
-  lookup.selected_index == Some(-1) && request.row == lookup.accepted &&
-  request.attempts == 0L && !request.io_complete && lookup.completed is None &&
-  lookup.copying is None && lookup.preparation is None &&
-  client_composed_keyed_lookup_matches_model_parent(lookup, compiled, definition, plan, ledger)
+  lookup.selected_request is Some(selected) &&
+  physical_equal(selected, request) &&
+  lookup.selected_index == Some(-1) &&
+  request.row == lookup.accepted &&
+  request.attempts == 0L &&
+  !request.io_complete &&
+  lookup.completed is None &&
+  lookup.copying is None &&
+  lookup.preparation is None &&
+  client_composed_keyed_lookup_matches_model_parent(
+    lookup, compiled, definition, plan, ledger,
+  )
 }
 
 ///|
@@ -172,8 +217,11 @@ pub fn client_composed_keyed_request_retained_model_parent(
   ledger : @resources.Ledger,
 ) -> Bool {
   client_keyed_request_matches_acquisition(request, request.left.acquisition) &&
-  request.assembly_accounting is Some(lookup) && physical_equal(request.left, lookup.left) &&
-  client_composed_keyed_lookup_matches_model_parent(lookup, compiled, definition, plan, ledger)
+  request.assembly_accounting is Some(lookup) &&
+  physical_equal(request.left, lookup.left) &&
+  client_composed_keyed_lookup_matches_model_parent(
+    lookup, compiled, definition, plan, ledger,
+  )
 }
 
 ///|
@@ -187,12 +235,17 @@ pub fn client_composed_keyed_request_model_rows(
   plan : ClientInferPlanGraph,
   ledger : @resources.Ledger,
 ) -> Int? {
-  guard client_composed_keyed_request_retained_model_parent(request, compiled, definition, plan, ledger) else {
+  guard client_composed_keyed_request_retained_model_parent(
+    request, compiled, definition, plan, ledger,
+  ) else {
     return None
   }
   let rows = @execution.producer_read_row_count(request.left.read)
-  guard request.row >= 0 && request.row < rows &&
-    client_composed_keyed_request_retained_model_parent(request, compiled, definition, plan, ledger) else {
+  guard request.row >= 0 &&
+    request.row < rows &&
+    client_composed_keyed_request_retained_model_parent(
+      request, compiled, definition, plan, ledger,
+    ) else {
     return None
   }
   Some(rows)
@@ -204,14 +257,19 @@ pub fn client_composed_keyed_lookup_sources_match(
   occurrence : ClientInferOccurrence,
   sources : Array[@query.CapturedInputSource],
 ) -> Bool {
-  guard lookup.left.source is None && lookup.left.composed is Some(original) &&
+  guard lookup.left.source is None &&
+    lookup.left.composed is Some(original) &&
     physical_equal(original.keyed, lookup.left.acquisition) &&
     physical_equal(lookup.ledger, original.scope.ledger) &&
     client_infer_occurrence_matches_plan(occurrence, original.plan) &&
     sources.length() == original.sources.length() &&
-    client_composed_keyed_original_current(original) else { return false }
+    client_composed_keyed_original_current(original) else {
+    return false
+  }
   for index, source in sources {
-    if !physical_equal(source, original.sources[index]) { return false }
+    if !physical_equal(source, original.sources[index]) {
+      return false
+    }
   }
   true
 }
@@ -222,8 +280,14 @@ pub fn client_composed_keyed_lookup_sources(
   occurrence : ClientInferOccurrence,
 ) -> Array[@query.CapturedInputSource]? {
   guard lookup.left.composed is Some(original) &&
-    client_composed_keyed_lookup_sources_match(lookup, occurrence, original.sources) &&
-    client_keyed_lookup_input_identity(lookup) is Some(_) else { return None }
+    client_composed_keyed_lookup_sources_match(
+      lookup,
+      occurrence,
+      original.sources,
+    ) &&
+    client_keyed_lookup_input_identity(lookup) is Some(_) else {
+    return None
+  }
   Some(original.sources.copy())
 }
 
@@ -233,10 +297,20 @@ pub fn client_composed_keyed_lookup_input_slot(
   occurrence : ClientInferOccurrence,
 ) -> Int? {
   guard lookup.left.composed is Some(original) &&
-    client_composed_keyed_lookup_sources_match(lookup, occurrence, original.sources) else { return None }
+    client_composed_keyed_lookup_sources_match(
+      lookup,
+      occurrence,
+      original.sources,
+    ) else {
+    return None
+  }
   let subject = @checked.source_execution_subject(original.keyed.check)
   let pipeline = @lower.pipeline(@lower.bound_preparation(original.keyed.owner))
-  match @pipeline.lookup(pipeline, @acquisition.declaration(subject.source).input_name) {
+  match
+    @pipeline.lookup(
+      pipeline,
+      @acquisition.declaration(subject.source).input_name,
+    ) {
     Some(@pipeline.Input(index)) => Some(index)
     _ => None
   }
@@ -256,8 +330,11 @@ pub fn prepare_client_original_composed_keyed_inputs(
   max_entries : Int,
   max_name_bytes : Int,
 ) -> Result[Array[(Int, Int, @execution.ProducerRead)], ClientKeyedRequestIssue] {
-  guard borrow_client_original_composed_keyed_ledger(scope, compiled, definition, plan, keyed, sources)
-    is Ok(_) && physical_equal(@execution.generated_sequence_owner(sequence), keyed.owner) else {
+  guard borrow_client_original_composed_keyed_ledger(
+      scope, compiled, definition, plan, keyed, sources,
+    )
+    is Ok(_) &&
+    physical_equal(@execution.generated_sequence_owner(sequence), keyed.owner) else {
     return Err(ForeignLeft)
   }
   let graph = plan.owner.graph
@@ -267,25 +344,45 @@ pub fn prepare_client_original_composed_keyed_inputs(
     let node = @lower.node_at(@lower.bound_preparation(keyed.owner), step).unwrap()
     for port in 0..<@lower.node_input_count(node) {
       let target = @lower.node_input_target(node, port).unwrap()
-      if target is @pipeline.Step(previous) && previous < step { continue }
+      if target is @pipeline.Step(previous) && previous < step {
+        continue
+      }
       let mut selected = None
       for index in 0..<@strategy.graph_data_count(graph) {
         let edge = @strategy.graph_data_at(graph, index).unwrap()
-        if @strategy.data_edge_consumer(edge) != plan.task { continue }
+        if @strategy.data_edge_consumer(edge) != plan.task {
+          continue
+        }
         let source_input = @strategy.data_edge_input(edge)
         if target == @pipeline.Input(source_input) {
-          if selected is Some(_) { return Err(ForeignLeft) }
+          if selected is Some(_) {
+            return Err(ForeignLeft)
+          }
           selected = Some(@strategy.data_edge_producer(edge))
         }
       }
-      guard selected is Some(task) && task == inputs.length() && task < sources.length() else {
+      guard selected is Some(task) &&
+        task == inputs.length() &&
+        task < sources.length() else {
         return Err(ForeignLeft)
       }
-      let bound = match @query.bind_captured_source_operation(sources[task], keyed.owner, step, port) {
+      let bound = match
+        @query.bind_captured_source_operation(
+          sources[task],
+          keyed.owner,
+          step,
+          port,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(Capture(issue))
       }
-      let read = match @execution.prepare_producer_read(keyed.owner, bound, max_entries, max_name_bytes) {
+      let read = match
+        @execution.prepare_producer_read(
+          keyed.owner,
+          bound,
+          max_entries,
+          max_name_bytes,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(Read(issue))
       }
@@ -293,8 +390,12 @@ pub fn prepare_client_original_composed_keyed_inputs(
     }
   }
   guard inputs.length() == sources.length() &&
-    borrow_client_original_composed_keyed_ledger(scope, compiled, definition, plan, keyed, sources)
-    is Ok(_) else { return Err(ForeignLeft) }
+    borrow_client_original_composed_keyed_ledger(
+      scope, compiled, definition, plan, keyed, sources,
+    )
+    is Ok(_) else {
+    return Err(ForeignLeft)
+  }
   Ok(inputs)
 }
 
@@ -316,15 +417,24 @@ pub fn prepare_client_original_composed_keyed_left(
   max_entries : Int,
   max_name_bytes : Int,
 ) -> Result[ClientKeyedLeftRead, ClientKeyedRequestIssue] {
-  let _ = match borrow_client_original_composed_keyed_ledger(
-    scope, compiled, definition, plan, keyed, sources, prefix=Some(prefix),
-  ) {
+  let _ = match
+    borrow_client_original_composed_keyed_ledger(
+      scope,
+      compiled,
+      definition,
+      plan,
+      keyed,
+      sources,
+      prefix=Some(prefix),
+    ) {
     Ok(value) => value
     Err(_) => return Err(ForeignLeft)
   }
   guard inputs.length() == sources.length() &&
     physical_equal(@execution.generated_sequence_owner(sequence), keyed.owner) &&
-    @execution.retain_completed_segment_inputs(output, sequence, inputs, max_entries)
+    @execution.retain_completed_segment_inputs(
+      output, sequence, inputs, max_entries,
+    )
     is Some(completed) else {
     return Err(ForeignLeft)
   }
@@ -333,24 +443,65 @@ pub fn prepare_client_original_composed_keyed_left(
       return Err(ForeignLeft)
     }
   }
-  let bound = match @execution.bind_completed_operation_input(
-    keyed.owner, @acquisition.keyed_join_step(keyed.binding.join), 0, keyed.owner, output,
-  ) {
+  let bound = match
+    @execution.bind_completed_operation_input(
+      keyed.owner,
+      @acquisition.keyed_join_step(keyed.binding.join),
+      0,
+      keyed.owner,
+      output,
+    ) {
     Ok(value) => value
     Err(_) => return Err(ForeignLeft)
   }
-  let read = match @execution.prepare_producer_read(keyed.owner, bound, max_entries, max_name_bytes) {
+  let read = match
+    @execution.prepare_producer_read(
+      keyed.owner,
+      bound,
+      max_entries,
+      max_name_bytes,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Read(issue))
   }
-  let original = {scope, compiled, definition, plan, keyed, sources: sources.copy(),
-    sequence, inputs: inputs.copy(), completed, prefix,}
+  let original = {
+    scope,
+    compiled,
+    definition,
+    plan,
+    keyed,
+    sources: sources.copy(),
+    sequence,
+    inputs: inputs.copy(),
+    completed,
+    prefix,
+  }
   guard client_composed_keyed_original_current(original) &&
     borrow_client_original_composed_keyed_ledger(
-      scope, compiled, definition, plan, keyed, sources, prefix=Some(prefix),
-    ) is Ok(_) else { return Err(ForeignLeft) }
-  Ok({acquisition: keyed, source: None, composed: Some(original), read,
-    requests: 0L, attempts: 0L, request_bytes: 0L, response_bytes: 0L,
-    decoded_bytes: 0L, started_ms: None, observed_ms: 0L, lookup_issue: None,
-    assembly_started: false,})
+      scope,
+      compiled,
+      definition,
+      plan,
+      keyed,
+      sources,
+      prefix=Some(prefix),
+    )
+    is Ok(_) else {
+    return Err(ForeignLeft)
+  }
+  Ok({
+    acquisition: keyed,
+    source: None,
+    composed: Some(original),
+    read,
+    requests: 0L,
+    attempts: 0L,
+    request_bytes: 0L,
+    response_bytes: 0L,
+    decoded_bytes: 0L,
+    started_ms: None,
+    observed_ms: 0L,
+    lookup_issue: None,
+    assembly_started: false,
+  })
 }

@@ -272,6 +272,8 @@ pub fn borrow_client_effect_command_content_workspace(ClientEffectCommandContent
 
 pub fn borrow_client_original_captured_prefix_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
+pub fn borrow_client_original_composed_keyed_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@execution_query.CapturedInputSource], prefix? : @physical_resources.Reservation?) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
+
 pub fn borrow_client_original_keyed_captured_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, @execution_query.CapturedInputSource, prefix? : @physical_resources.Reservation?) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
 pub fn borrow_client_original_keyed_child(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, ClientKeyedLookupInput, ClientKeyedRequest, prefix? : @physical_resources.Reservation?) -> Result[(@physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, @sourceview_resolution.KeyedRowRequest), ClientKeyedRequestIssue]
@@ -411,6 +413,20 @@ pub fn client_compiled_run_source_free_result_policy_body(ClientCompiledRun) -> 
 pub fn client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientCompiledRunPlanIssue]
 
 pub fn client_compiled_run_template(ClientCompiledRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_composed_keyed_lookup_input_slot(ClientKeyedLookupInput, ClientInferOccurrence) -> Int?
+
+pub fn client_composed_keyed_lookup_matches_model_parent(ClientKeyedLookupInput, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger) -> Bool
+
+pub fn client_composed_keyed_lookup_sources(ClientKeyedLookupInput, ClientInferOccurrence) -> Array[@execution_query.CapturedInputSource]?
+
+pub fn client_composed_keyed_lookup_sources_match(ClientKeyedLookupInput, ClientInferOccurrence, Array[@execution_query.CapturedInputSource]) -> Bool
+
+pub fn client_composed_keyed_request_matches_model_parent(ClientKeyedRequest, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger) -> Bool
+
+pub fn client_composed_keyed_request_model_rows(ClientKeyedRequest, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger) -> Int?
+
+pub fn client_composed_keyed_request_retained_model_parent(ClientKeyedRequest, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger) -> Bool
 
 pub fn client_direct_acquisition_occurrence_at(ClientDirectAcquisitionOccurrences, Int) -> (Int, Int, Int)?
 
@@ -1910,6 +1926,10 @@ pub fn prepare_client_node_model_read_layout(ClientModelReadScope, ClientCompile
 
 pub fn prepare_client_node_model_read_state(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, Int, Int, Int) -> Result[ClientNodeModelStateWriter, ClientNodeModelStateIssue]
 
+pub fn prepare_client_original_composed_keyed_inputs(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@execution_query.CapturedInputSource], @execution_relation.GeneratedSequence, Int, Int) -> Result[Array[(Int, Int, @execution_relation.ProducerRead)], ClientKeyedRequestIssue]
+
+pub fn prepare_client_original_composed_keyed_left(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@execution_query.CapturedInputSource], @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedOutput, @physical_resources.Reservation, Int, Int) -> Result[ClientKeyedLeftRead, ClientKeyedRequestIssue]
+
 pub fn prepare_client_query_acquisition(PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, ClientAcquisitionIssue]
 
 pub fn prepare_client_query_acquisition_at_query_time(PreparedClientProgram, Int, Int, ClientQueryTimePreparation, ClientRequestIdentity) -> Result[@sourceview_resolution.QueryAcquisition, ClientAcquisitionIssue]
@@ -2253,6 +2273,8 @@ pub fn seal_client_requested_effect_stop(ClientRequestedEffectStop, @checkpoint_
 pub fn seal_client_requested_effect_stop_body(ClientRequestedEffectStop, String, String, @checkpoint_runtime.WireLimits) -> Result[String, ClientRequestedEffectStopIssue]
 
 pub fn select_client_direct_acquisition_occurrences(PreparedClientProgram, Int) -> Result[ClientDirectAcquisitionOccurrences, ClientDirectAcquisitionOccurrenceIssue]
+
+pub fn select_client_effect_composed_model_keyed_acquisition(PreparedClientEffectComputation, ClientInferPlanGraph) -> Result[ClientKeyedAcquisition?, ClientKeyedAcquisitionIssue]
 
 pub fn select_client_effect_direct_acquisition_occurrences(PreparedClientEffectComputation, Int) -> Result[ClientDirectAcquisitionOccurrences, ClientDirectAcquisitionOccurrenceIssue]
 

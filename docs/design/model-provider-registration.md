@@ -612,6 +612,15 @@ ordinary held reads, while acquisition selection and capture ownership remain
 absent. Row Source publication selections retain this common lifecycle entry
 alongside preparation retirement; provider-specific surface lists cannot hide it.
 
+A keyed read below a composed Model borrows the original planned Effect/Model
+parent and its actual Ledger. Its selected request must match the original
+completed prefix, Scope, compilation, definition and Model graph. The actual
+left-read row count bounds the cumulative child history; retiring a child does
+not return its request occurrence. Row limits use the existing installed keyed
+limits constructor. After selection advances, child operations retain the
+same original parent proof without requiring a pristine, unattempted request.
+Source, prefix and Scope currentness and physical cleanup remain required.
+
 A composed input does not itself select a scheduler. The original installed
 single-Unit caller also supplies the same checked Program. The existing opaque
 compiled-owner check and immutable one-task/one-acquisition shape bind this

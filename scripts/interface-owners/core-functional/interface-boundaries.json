@@ -53174,7 +53174,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_managed_run_bridge.mbt",
-      "sha256": "b992f2fc2f979f74e33b8335fa2b2732df7b46a72c20dc1cf1d17b19448f3158",
+      "sha256": "161eec6eff9c6ae12f90d248dbefd1671ab371a21d770a426f99f0a2a8fabf13",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed managed Run and Model original bounds consumer",
@@ -53223,6 +53223,10 @@
         {
           "name": "client_program_installed_managed_keyed_source_read",
           "declaration": "client_program_installed_managed_keyed_source_read ( value : @ client_local_host . ClientInstalledManagedRun , keyed : @ publication_host . ClientKeyedAcquisition , request : @ publication_host . ClientKeyedRequest , declaration : @ client_row_source_host . RowDeclaration , ) - > Result [ @ client_local_host . ClientInstalledKeyedSourceRead , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        },
+        {
+          "name": "client_program_installed_managed_model_keyed_source_read",
+          "declaration": "client_program_installed_managed_model_keyed_source_read ( value : @ client_local_host . ClientInstalledManagedRun , keyed : @ publication_host . ClientKeyedAcquisition , request : @ publication_host . ClientKeyedRequest , declaration : @ client_row_source_host . RowDeclaration , max_page_bytes : Int , max_text_bytes : Int , max_work : Int , ) - > Result [ @ client_local_host . ClientInstalledKeyedSourceRead , @ client_local_host . ClientInstalledSourceReadIssue , ]"
         },
         {
           "name": "client_program_installed_managed_run_begin",
@@ -53319,7 +53323,8 @@
             "client_program_prepare_infer_original_read",
             "client_program_prepared_installed_managed_source_free_requirements",
             "combine_installed_mock_model_run_requirements",
-            "client_program_installed_managed_run_quiesce"
+            "client_program_installed_managed_run_quiesce",
+            "client_program_installed_managed_model_keyed_source_read"
           ],
           "exports": [],
           "attributes": {

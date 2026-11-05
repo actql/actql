@@ -378,6 +378,31 @@ pub fn client_program_installed_managed_keyed_source_read(
 }
 
 ///|
+#export_name("clientProgramInstalledManagedModelKeyedSourceRead")
+pub fn client_program_installed_managed_model_keyed_source_read(
+  value : @client_local_host.ClientInstalledManagedRun,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  request : @publication_host.ClientKeyedRequest,
+  declaration : @client_row_source_host.RowDeclaration,
+  max_page_bytes : Int,
+  max_text_bytes : Int,
+  max_work : Int,
+) -> Result[
+  @client_local_host.ClientInstalledKeyedSourceRead,
+  @client_local_host.ClientInstalledSourceReadIssue,
+] {
+  @client_local_host.begin_installed_managed_model_keyed_source_read(
+    value,
+    keyed,
+    request,
+    declaration,
+    @client_local_host.installed_keyed_row_limits(
+      max_page_bytes, max_text_bytes, max_work,
+    ),
+  )
+}
+
+///|
 #export_name("clientProgramInstalledKeyedSourceReadCheckCurrent")
 pub fn client_program_installed_keyed_source_read_check_current(
   value : @client_local_host.ClientInstalledKeyedSourceRead,

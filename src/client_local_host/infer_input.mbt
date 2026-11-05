@@ -302,23 +302,36 @@ pub fn start_client_composed_infer_input(
     )
   }
   if keyed is Some(lookup) {
-    let composed = @publication_host.client_composed_keyed_lookup_sources(lookup, occurrence)
+    let composed = @publication_host.client_composed_keyed_lookup_sources(
+      lookup, occurrence,
+    )
     let originals_match = match composed {
       None => inputs.is_empty()
       Some(sources) => {
         guard inputs.length() == sources.length() + 1 &&
-          @publication_host.client_composed_keyed_lookup_input_slot(lookup, occurrence) is Some(slot) &&
+          @publication_host.client_composed_keyed_lookup_input_slot(
+            lookup, occurrence,
+          )
+          is Some(slot) &&
           slot == sources.length() &&
-          @publication_host.finish_client_keyed_lookup_input(lookup) is Ok(original) else {
+          @publication_host.finish_client_keyed_lookup_input(lookup)
+          is Ok(original) else {
           return Err(UnsupportedProgram)
         }
         let mut matched = true
         for index, input in inputs {
           match input {
             @local.RelationInput(read) if index < sources.length() =>
-              if !@query.captured_source_matches_segment_input(sources[index], read) { matched = false }
+              if !@query.captured_source_matches_segment_input(
+                  sources[index],
+                  read,
+                ) {
+                matched = false
+              }
             @local.SuppliedRelationInput(read) if index == slot =>
-              if !physical_equal(read, original) { matched = false }
+              if !physical_equal(read, original) {
+                matched = false
+              }
             _ => matched = false
           }
         }
