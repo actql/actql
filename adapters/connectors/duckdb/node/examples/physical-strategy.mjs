@@ -166,6 +166,7 @@ export async function prepareExampleText({database, environmentCid, programText,
     managedOutput ?? retainedOutput,
   );
   const transportLimits = data ? {...limits,
+    maxSourceRows: data.source_rows,
     // One session reads one table-metadata cell, validation and selected output.
     // Metadata is outside the receipts but still consumes transport capacity.
     // Do not reset usage between statements or borrow a spare data row for it.
