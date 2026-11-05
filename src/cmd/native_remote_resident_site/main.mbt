@@ -1917,7 +1917,7 @@ fn run_control(
         orphan_reconciliation ||
         recovery.val is Some(_) ||
         pending_custody is Some(_) ||
-        !ended_holder_can_leave_window(current, slot) {
+        !ended_holder_can_leave_window(current, slot, slot_progress) {
         return true
       }
       if current.startability is Some(true) {

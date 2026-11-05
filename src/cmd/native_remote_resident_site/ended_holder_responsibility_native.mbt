@@ -212,6 +212,7 @@ fn observe_ended_holder(
 fn ended_holder_can_leave_window(
   original : EndedHolderResponsibility,
   slot : @slot.NativeExecutorSlot,
+  slot_progress : Ref[ControlTerminalClose],
 ) -> Bool {
   guard original.original.releases.is_empty() &&
     original.channel is ChannelDescriptorsRetired &&
@@ -221,7 +222,14 @@ fn ended_holder_can_leave_window(
     return false
   }
   guard retire_ended_holder_process(original) else { return false }
-  slot.try_acquire() == Ok(true) && slot.verify_current_hold() == Ok(())
+  guard slot.try_acquire() == Ok(true) && slot.verify_current_hold() == Ok(()) else {
+    return false
+  }
+  // Return this exact controller descriptor after its current stop fence.
+  // Stopped recovery owns a separate descriptor for the same named Slot;
+  // retaining this lock would prevent it from discharging saved cancellation.
+  // A failed close preserves both the ended responsibility and its progress.
+  retry_control_slot_close(slot, slot_progress)
 }
 
 ///|
@@ -412,7 +420,7 @@ fn retry_control_ended_holder_lifetime(
       original.client,
       original.observation_url,
     )
-    !ended_holder_can_leave_window(ended, original.slot)
+    !ended_holder_can_leave_window(ended, original.slot, original.slot_progress)
   })
   original.ended.clear()
   original.ended.append(remaining)

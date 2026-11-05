@@ -69,7 +69,9 @@ test "adversarial report ACK cannot discard an unclosed original Channel" {
     journal: Ref(None),
     process_retirement: HolderStopPending,
   }
-  assert_false(ended_holder_can_leave_window(original, probe))
+  assert_false(
+    ended_holder_can_leave_window(original, probe, Ref(ControlSlotPending)),
+  )
   assert_true(physical_equal(original.original.channel, holder.channel))
   assert_true(holder.channel.close())
   assert_true(probe.close())
@@ -92,7 +94,9 @@ test "child exit and adversarial report ACK do not prove inherited descendant st
     process_retirement: HolderStopPending,
   }
   assert_true(probe.try_acquire() == Ok(false))
-  assert_false(ended_holder_can_leave_window(original, probe))
+  assert_false(
+    ended_holder_can_leave_window(original, probe, Ref(ControlSlotPending)),
+  )
   // This test makes no cleanup ACK from waiting/termination or this status.
   assert_true(holder.child.wait(false).unwrap() is Some(_))
   // Release the owned descendant's explicit fixture gate only after the
@@ -116,8 +120,12 @@ test "child exit and adversarial report ACK do not prove inherited descendant st
   assert_true(stopped)
   assert_true(probe.try_acquire() == Ok(true))
   assert_true(probe.verify_current_hold() is Ok(_))
-  assert_true(ended_holder_can_leave_window(original, probe))
-  assert_true(probe.close())
+  let progress = Ref(ControlSlotPending)
+  assert_true(ended_holder_can_leave_window(original, probe, progress))
+  assert_true(
+    progress.val is ControlHandlesRetired(same) && physical_equal(same, probe),
+  )
+  assert_false(probe.is_open())
   finish_ended_holder_physical_fixture(holder)
 }
 
@@ -140,7 +148,9 @@ test "unreadable original execution record never becomes startable from status A
   assert_true(probe.try_acquire() == Ok(true))
   assert_true(probe.verify_current_hold() is Ok(_))
   assert_true(original.startability is None)
-  assert_false(ended_holder_can_leave_window(original, probe))
+  assert_false(
+    ended_holder_can_leave_window(original, probe, Ref(ControlSlotPending)),
+  )
   assert_true(original.startability is None)
   assert_true(probe.close())
   finish_ended_holder_physical_fixture(holder)
@@ -173,14 +183,18 @@ test "ended holder observation reuses its original Journal before any replacemen
   )
   assert_true(original.report_evidence is OriginalStatusPending)
   assert_true(original.startability is None)
-  assert_false(ended_holder_can_leave_window(original, probe))
+  assert_false(
+    ended_holder_can_leave_window(original, probe, Ref(ControlSlotPending)),
+  )
   assert_true(retry_control_replay_journal_cleanup(original.journal))
   assert_true(original.journal.val is None)
   // Deliberate report input is a refusal counterexample, not a transport ACK.
   original.report_evidence = OriginalStatusAcknowledged
   assert_true(open_ended_holder_observation_journal(original, foreign) is None)
   assert_true(original.journal.val is None)
-  assert_false(ended_holder_can_leave_window(original, probe))
+  assert_false(
+    ended_holder_can_leave_window(original, probe, Ref(ControlSlotPending)),
+  )
   assert_true(probe.close())
   finish_ended_holder_physical_fixture(holder)
 }
@@ -222,7 +236,9 @@ test "ended holder failed Journal open retains original cleanup before status ob
   )
   assert_true(original.report_evidence is OriginalStatusPending)
   assert_true(original.startability is None)
-  assert_false(ended_holder_can_leave_window(original, probe))
+  assert_false(
+    ended_holder_can_leave_window(original, probe, Ref(ControlSlotPending)),
+  )
   assert_true(retry_control_replay_journal_cleanup(original.journal))
   assert_true(original.journal.val is None)
   assert_true(failure.issue() is @journal.Physical(@sqlite.DatabaseOpen(_)))
