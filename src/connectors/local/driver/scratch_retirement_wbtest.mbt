@@ -155,3 +155,66 @@ test "managed input writes cannot repopulate settled or disposed scratch" {
     }
   }
 }
+
+///|
+test "completed provider scratch keeps its same pending cleanup owner" {
+  let stopped = Ref(false)
+  let retained = Ref(false)
+  let cleaned = Ref(false)
+  let cleanup_error = Ref(false)
+  let checks = Ref(0)
+  let owner = @local.managed_provider_execution_with_retained_completion(
+    _ => Ok(@local.managed_provider_stopped_poll(0L, 0L)),
+    () => false,
+    () => stopped.val,
+    () => {
+      if cleanup_error.val {
+        Err(@connector.InvalidLimits)
+      } else {
+        Ok(cleaned.val)
+      }
+    },
+    () => {
+      checks.val += 1
+      retained.val
+    },
+  )
+  let provider : Ref[@local.ManagedProviderExecution?] = Ref(Some(owner))
+  let detached = Ref(false)
+  let work : Ref[Result[Int64, @local.ManagedProviderWorkIssue]] = Ref(Ok(0L))
+  assert_false(
+    release_local_managed_provider_scratch(provider, detached, true, work),
+  )
+  assert_eq(checks.val, 0)
+  stopped.val = true
+  assert_false(
+    release_local_managed_provider_scratch(provider, detached, true, work),
+  )
+  retained.val = true
+  assert_false(
+    release_local_managed_provider_scratch(provider, detached, false, work),
+  )
+  cleanup_error.val = true
+  assert_false(
+    release_local_managed_provider_scratch(provider, detached, true, work),
+  )
+  assert_false(detached.val)
+  cleanup_error.val = false
+  assert_true(
+    release_local_managed_provider_scratch(provider, detached, true, work),
+  )
+  assert_true(detached.val)
+  assert_true(provider.val is Some(same) && physical_equal(same, owner))
+  assert_false(@local.cleanup_managed_provider(owner).unwrap())
+  assert_eq(work.val, Ok(0L))
+  // A later cancellation does not turn this scratch fact into full cleanup.
+  assert_false(
+    release_local_managed_provider_scratch(provider, detached, false, work),
+  )
+  assert_true(provider.val is Some(_))
+  cleaned.val = true
+  assert_true(
+    release_local_managed_provider_scratch(provider, detached, false, work),
+  )
+  assert_true(provider.val is None)
+}
