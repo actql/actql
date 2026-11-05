@@ -3,7 +3,7 @@
 import {runtimeField, runtimeTriple} from '../host-common/compiler-binding.generated.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {recordCheckpointApproval} from '../host-common/checkpoint-approval.mjs';
+import {recordCheckpointApproval, checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {validInstallationBinding} from './ordinary-source-binding.mjs';
@@ -76,7 +76,8 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       if (typeof state.gate.assertCurrent !== 'function') fail('SourceCurrentAuthorityUnavailable');
       state.gate.assertCurrent();
     }
-    if (!currentApproval(state.checkpointCid)) fail('ApprovalExpired');
+    if (!currentApproval(state.checkpointCid) ||
+        state.earlierCheckpointCids?.some(cid=>!currentApproval(cid))) fail('ApprovalExpired');
     originalCurrent();
   };
   const sourceCurrent = state => {
@@ -179,6 +180,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
         schema_cid: runtimeField(originalFacts, 0), rows_cid: runtimeField(originalFacts, 1), rows: runtimeField(originalFacts, 2)}}),
       source_evidence_wire: sourceEvidenceWire,
       ...(state.checkpointCid === undefined ? {} : {checkpoint_cid: state.checkpointCid}),
+      ...(state.earlierCheckpointCids === undefined ? {} : {earlier_checkpoint_cids: state.earlierCheckpointCids}),
       capture_started_at: startedAt, capture_completed_at: completedAt};
     const wire = canonicalJson(record);
     if (Buffer.byteLength(wire) > 2_000_000) fail('SourceCaptureRetentionLimitExceeded');
@@ -235,7 +237,10 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
             state === undefined || !same(record.scope, state.scope) ||
             state.record !== undefined ||
             state.captureCid !== undefined && state.captureCid !== captureCid ||
-            !currentApproval(record.checkpoint_cid)) fail('HeldAcquisitionChanged');
+            !currentApproval(record.checkpoint_cid) ||
+            record.earlier_checkpoint_cids !== undefined && (!Array.isArray(record.earlier_checkpoint_cids) ||
+              record.earlier_checkpoint_cids.some(cid=>typeof cid!=='string'||!currentApproval(cid)))) fail('HeldAcquisitionChanged');
+        state.earlierCheckpointCids = record.earlier_checkpoint_cids;
         state.captureCid = captureCid;
         state.record = record;
         state.checkpointCid = record.checkpoint_cid;
@@ -342,9 +347,29 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       state.captured = captured;
       return {captured, sourceEvidenceWire: record.source_evidence_wire};
     },
-    async captured(source, captured, sourceEvidenceWire, startedAt, completedAt) {
+    async captured(source, captured, sourceEvidenceWire, startedAt, completedAt, originalApproval) {
       const state = states.get(source.occurrence.task);
       sourceCurrent(state);
+      if (originalApproval !== undefined) {
+        const facts = checkpointApprovalFacts(originalApproval);
+        const matches = (left, right) => left === undefined || right === undefined
+          ? left === right : same(left, right);
+        if (originalApproval.action !== 'dispatch' || originalApproval.boundary !== 'acquisition' ||
+            facts === undefined || typeof facts.checkpointCid !== 'string' ||
+            facts.principalId !== principalId || !matches(facts.readTuple, state.scope.readTuple) ||
+            !matches(facts.checkedSource, state.scope.checkedSource) ||
+            !matches(facts.physicalBinding, state.scope.physicalBinding) ||
+            !matches(facts.installationBinding, state.scope.installationBinding) ||
+            facts.occurrence !== undefined && ['stage','input','task'].some(name=>facts.occurrence[name]!==source.occurrence[name]) ||
+            facts.earlierCheckpointCids !== undefined && (!Array.isArray(facts.earlierCheckpointCids) ||
+              facts.earlierCheckpointCids.some(cid=>typeof cid!=='string'))) fail('HeldAcquisitionChanged');
+        // Preserve the original Checkpoint issuer's exact read approval. A
+        // copied decision or an arbitrary approved CID cannot enter this path.
+        state.checkpointCid = facts.checkpointCid;
+        state.earlierCheckpointCids = facts.earlierCheckpointCids;
+        facts.assertCurrent?.();
+        sourceCurrent(state);
+      }
       state.captured = captured;
       state.material = {captured, sourceEvidenceWire, startedAt, completedAt};
       captureStartedAt ??= startedAt;

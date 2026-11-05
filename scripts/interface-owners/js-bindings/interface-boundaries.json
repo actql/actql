@@ -32707,7 +32707,7 @@
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "8c41827c3d9108274b722d9f1427031f0699aebc66ca76b458527cbb30d62e80",
+      "sha256": "13bf601f5b91e86b696d0e8a9a96865120735f896796d40c0405f8f4c56a82e0",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32847,9 +32847,32 @@
             "captured",
             "sourceEvidenceWire",
             "startedAt",
-            "completedAt"
+            "completedAt",
+            "originalApproval"
           ],
           "async": true
+        },
+        {
+          "name": "acquiredEffectContinuation/init:captured/init:captured/init:captured",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:captured/init:captured/init:captured#2",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:captured/init:captured/matches/matches",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
         },
         {
           "name": "acquiredEffectContinuation/init:close/init:close",
@@ -32867,6 +32890,13 @@
           "name": "acquiredEffectContinuation/init:prepared/init:prepared/init:prepared",
           "parameters": [
             "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:prepared/init:prepared/init:prepared#2",
+          "parameters": [
+            "cid"
           ],
           "async": false
         },
@@ -32970,6 +33000,13 @@
           "async": false
         },
         {
+          "name": "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent/sourceOriginalCurrent",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
           "name": "bindingFor/bindingFor",
           "parameters": [
             "runDefinitionCid",
@@ -33043,7 +33080,12 @@
             "acquiredEffectContinuation/originalCurrent/originalCurrent/originalCurrent",
             "acquiredEffectContinuation/persistSource",
             "acquiredEffectContinuation/sourceCurrent/sourceCurrent",
-            "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent"
+            "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent",
+            "acquiredEffectContinuation/init:captured/init:captured/init:captured",
+            "acquiredEffectContinuation/init:captured/init:captured/init:captured#2",
+            "acquiredEffectContinuation/init:captured/init:captured/matches/matches",
+            "acquiredEffectContinuation/init:prepared/init:prepared/init:prepared#2",
+            "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent/sourceOriginalCurrent"
           ],
           "exports": [
             "acquiredEffectContinuation"
@@ -59556,7 +59598,8 @@
           "parameters": [
             "preparedProgram",
             "occurrence",
-            "retain"
+            "retain",
+            "sourceCoordinates"
           ],
           "async": false
         },
@@ -62581,7 +62624,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "8a4e4f18eabbbdb2440daff6083eb2c375cf46ca4af3ff84c4fd5076968afb79"
+      "sha256": "636a7d2b078ec9d008ee0122a29478a48049e5edbd0424ef7241d52ef4d4f126"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -70439,7 +70482,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "44048e8f41c7178b4432696801f0e11d11fe9515983ee57bc426e3786027c024",
+      "sha256": "0314179d5828b7834b92d056dbb3aaeaf030c548fcdb4f94614745d124eb390e",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -70601,6 +70644,11 @@
           "async": false
         },
         {
+          "name": "installNodeInferRun/run/run/current/current#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installNodeInferRun/run/run/declaredResults/declaredResults",
           "parameters": [
             "_",
@@ -70610,6 +70658,14 @@
         },
         {
           "name": "installNodeInferRun/run/run/declaredResults/declaredResults#2",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/declaredResults/declaredResults#3",
           "parameters": [
             "_",
             "index"
@@ -70721,7 +70777,9 @@
         },
         {
           "name": "installNodeInferRun/run/run/run#13",
-          "parameters": [],
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
@@ -70746,16 +70804,26 @@
         },
         {
           "name": "installNodeInferRun/run/run/run#18",
-          "parameters": [
-            "issuance",
-            "modelEvidence"
-          ],
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/run#19",
+          "parameters": [],
           "async": false
         },
         {
           "name": "installNodeInferRun/run/run/run#2",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/run#20",
+          "parameters": [
+            "issuance",
+            "modelEvidence"
           ],
           "async": false
         },
@@ -71010,7 +71078,11 @@
             "installNodeInferRun/run/run/run#7",
             "installNodeInferRun/run/run/run#8",
             "installNodeInferRun/run/run/run#9",
-            "installNodeInferRun/run/run/settle"
+            "installNodeInferRun/run/run/settle",
+            "installNodeInferRun/run/run/current/current#2",
+            "installNodeInferRun/run/run/declaredResults/declaredResults#3",
+            "installNodeInferRun/run/run/run#19",
+            "installNodeInferRun/run/run/run#20"
           ],
           "exports": [
             "installNodeInferRun"

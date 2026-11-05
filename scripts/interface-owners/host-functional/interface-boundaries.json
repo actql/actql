@@ -20567,7 +20567,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5970f428c3e21a74317773543839d790b08d7c50c3081ad0d63e040afaa4595d",
+      "sha256": "911b6a85254a74080848eabf30749fc3e6f0a7de706062bb867ad4289889f9ab",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -20979,6 +20979,25 @@
           "async": false
         },
         {
+          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvalCurrent",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvedNow/approvedNow",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
           "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize",
           "parameters": [
             "boundary",
@@ -20988,17 +21007,20 @@
           "async": true
         },
         {
-          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/approvedNow/approvedNow",
+          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/init:authorize",
           "parameters": [
             "cid"
           ],
           "async": false
         },
         {
-          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/valid/valid",
-          "parameters": [
-            "cid"
-          ],
+          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/init:originalCheckpointApproval/init:originalCheckpointApproval",
+          "parameters": [],
           "async": false
         },
         {
@@ -22159,8 +22181,6 @@
             "installRemoteCheckpoints/init:acceptRun/init:acceptRun/init:acceptRun",
             "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess",
             "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/approvedNow/approvedNow",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/valid/valid",
             "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/same/same",
             "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/same/same/same",
             "installRemoteCheckpoints/init:attestResolution/init:attestResolution",
@@ -22308,7 +22328,13 @@
             "principals/principals",
             "trustedReviewers",
             "without/without",
-            "without/without/without"
+            "without/without/without",
+            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent",
+            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvalCurrent",
+            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvedNow/approvedNow",
+            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/init:assertCurrent/init:assertCurrent",
+            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/init:authorize",
+            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/init:originalCheckpointApproval/init:originalCheckpointApproval"
           ],
           "exports": [
             "MAX_MODEL_INPUT_BYTES",

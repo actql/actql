@@ -253,3 +253,97 @@ test('Model and capture child acknowledgements precede Source continuation and r
   assert(f.events.lastIndexOf('cleanup-model-continuation') < f.events.indexOf('close-source-continuation'));
   assert(f.events.indexOf('close-source-continuation') < f.events.indexOf('retire-original-scope'));
 });
+
+// Execute the fresh single-Unit producer with its existing adapter/Source
+// originals as explicit ports. No upstream read, Scope issuer or Store ACK.
+function freshSingletonFixture(options = {}) {
+  const {failAt} = options;
+  const failure = Object.hasOwn(options,'failure') ? options.failure : new Error('OriginalSourceFailure');
+  const prepared = {}, graph = {}, compiled = {}, occurrence = Object.freeze({stage: 4, input: 6, task: 0});
+  const definition = {identity: 'original-definition', wire: '{"run_id":"original-run"}'};
+  const selected = {graph, occurrence, computePrefix: {}}, plan = {compiled, runDefinition: definition, inferGraph: graph};
+  const originalApproval = {}, captured = {}, preparedSource = {}, adapter = {}, access = {originalCheckpointApproval() {return originalApproval;}}, sourceEvidence = {}, sourceWire = 'original-evidence';
+  const closure = Object.freeze({sources: Object.freeze([{task: 0, capture: 'original-private-material'}])});
+  const acquired = {captured, preparedSource, adapter, sourceAccess: access, occurrence, sourceEvidence,
+    sourceEvidenceWire: sourceWire, captureStartedAt: 'start', captureCompletedAt: 'end', managedRun: {}};
+  const submission = {}, checkpoints = {}, scope = {}, read = {}, prefix = {}, sources = {}, events = [];
+  const controllerOptions = [], waiting = {status: 'waiting_checkpoint'};
+  let owner, sourceClosed = false, scopeClosed = false, operation;
+  const current = () => {if (failAt === 'current') throw failure;};
+  const original = {control: undefined, compiled, runDefinition: definition, scope, selection: selected,
+    component: {bindOriginal() {assert.fail('single-Unit kernel is not the DAG component');}},
+    openCapturedHost() {assert.fail('no replacement Host');},
+    assertRuntimeCurrent: current,
+    retain() {events.push('retain-original');},
+    prepareRead() {events.push('prepare-original-read');return read;},
+    async retire() {assert(sourceClosed);scopeClosed = true;events.push('retire-scope');return true;},
+  };
+  const control = {admitComposedInferSources(o, captures, evidence) {
+    assert.equal(o,occurrence);assert.deepEqual(captures,[captured]);assert.deepEqual(evidence,[sourceEvidence]);return sources;
+  }};original.control = control;
+  const model = {};
+  const moon = {clientProgramAcquisitionCount: () => 1,clientProgramTaskCount: () => 1,
+    clientProgramInferPlanBoundary: () => [0],clientProgramResultCount: () => 1,clientProgramResultName: () => 'answer',
+    clientProgramInstalledManagedRunModelInputPrefix(run, actual) {assert.equal(run,acquired.managedRun);assert.equal(actual,prepared);return {$tag:1,_0:prefix};},
+  };
+  const install = compileFunction(`return (${source.slice(declaration.start,declaration.end)});`,[
+    'runtimeField','checked','sourceFreeModelPreparation','acquiredEffectContinuation','openNodeInferOperation','openNodeInferCaptureCustody',
+  ])((value,index) => value[index],checked,
+    (m,c,p,actualPlan,s,actualModel,a) => {
+      assert.equal(m,moon);assert.equal(c,control);assert.equal(p,prepared);assert.equal(actualPlan,plan);
+      assert.equal(s,selected);assert.equal(actualModel,model);assert.equal(a,acquired);return original;
+    }, options => {
+      assert(owner,'retain existing cleanup before Source preparation');assert.equal(options.checkpoints,checkpoints);
+      assert.equal(options.submission,submission);assert.equal(options.acquired.prepared,prepared);
+      assert.equal(options.acquired.runDefinition,definition);assert.equal(options.restore,undefined);
+      return {
+        accessFor(actual,actualOccurrence) {assert.equal(actual,access);assert.equal(actualOccurrence,occurrence);events.push('original-access');},
+        async prepared(items) {
+          assert.equal(items.length,1);assert.equal(items[0].preparedSource,preparedSource);assert.equal(items[0].adapter,adapter);
+          assert.equal(items[0].occurrence,occurrence);events.push('original-source');if(failAt==='prepared')throw failure;
+        },
+        async captured(item,actual,wire,start,end,approval) {
+          assert.equal(approval,originalApproval);assert.equal(item.preparedSource,preparedSource);assert.equal(actual,captured);assert.equal(wire,sourceWire);
+          assert.equal(start,'start');assert.equal(end,'end');events.push('same-capture');if(failAt==='captured')throw failure;
+        },
+        async retainAll() {events.push('retain-closure');if(failAt==='retain')throw failure;return closure;},
+        async close() {sourceClosed=true;events.push('close-source');},
+        beforeRead() {assert.fail('no second Source authorization/read');},restore() {assert.fail('no replacement capture');},
+      };
+    }, options => {
+      assert.equal(options.originalPreparation,read);assert.equal(options.composedInput.prefix,prefix);
+      assert.equal(options.composedInput.sources,sources);
+      operation={bindRun(){},run:async()=>({status:'waiting',preparedCallSet:{}}),pendingSettlement(){},physicalStopped:()=>true};
+      options.retainOperation(operation);return operation;
+    }, () => ({configureModelJournal(){},persistStoppedAttempts(){},custody:{close:async()=>true,cleanup:async()=>true,cleanupPending:()=>false}}));
+  const run=install({moon,core:{publicationControl:control},selections:new Map([[prepared,selected]]),checkpoints,
+    prepareOriginalModelRun:()=>model,modelController:{discover:()=>[],release(){},unresolved:()=>false,
+      async open(options) {
+        controllerOptions.push(options);assert.equal(options.sourceContinuation,closure,'Persist exactly the original Source closure with Model input');
+        return {observe(){},entry(){},authorize:async()=>waiting,close:async()=>true,cleanup:async()=>true,cleanupPending:()=>false};
+      }},
+  });
+  return {events,closure,controllerOptions,failure,waiting,owner:()=>owner,scopeClosed:()=>scopeClosed,
+    run:()=>run({preparedProgram:prepared,plan,acquiredInfer:acquired,preparationHolder:{},submission,
+      principalId:'original-principal',signal:new AbortController().signal,assertCurrent:current,
+      retainExecution(actual){owner=actual;},beginPhysicalWork(){}})};
+}
+
+test('fresh single-Unit Model retains its original Source closure before storing the Model checkpoint', async () => {
+  const f=freshSingletonFixture();assert.equal(await f.run(),f.waiting);
+  assert.equal(f.controllerOptions.length,1);assert.equal(f.controllerOptions[0].sourceContinuation,f.closure);
+  assert(f.events.indexOf('same-capture') < f.events.indexOf('retain-closure'));
+  assert.equal(await f.owner().cleanup(),true);assert.equal(f.scopeClosed(),true);
+  assert(f.events.indexOf('close-source') < f.events.indexOf('retire-scope'));
+});
+
+test('fresh singleton Source retention failures preserve the original failure and close before its Scope', async () => {
+  for (const failAt of ['prepared','captured','retain']) for (const failure of [undefined,new Error('OriginalSourceRefusal')]) {
+    const f=freshSingletonFixture({failAt,failure});
+    let caught=false;
+    try {await f.run();} catch(actual) {caught=true;assert.equal(actual,f.failure);}
+    assert.equal(caught,true);assert.equal(f.controllerOptions.length,0);
+    assert.equal(await f.owner().cleanup(),true);assert.equal(f.scopeClosed(),true);
+    assert(f.events.indexOf('close-source') < f.events.indexOf('retire-scope'));
+  }
+});

@@ -114,3 +114,32 @@ test('failed restored budget projection is retained before Scope entry and canno
   assert.ok(f.model()); assert.equal(f.calls.filter(value => value === 'same Request Scope').length, 0);
   assert.equal(f.calls.filter(value => value === 'original bounds').length, 1);
 });
+
+test('single Model request keeps its original checked Source coordinates at selection before capture', () => {
+  let requestNode;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type==='VariableDeclarator' && node.id.name==='requestOf') requestNode=node.init;
+    for(const value of Object.values(node)) {
+      if(Array.isArray(value))value.forEach(visit);
+      else if(value&&typeof value==='object')visit(value);
+    }
+  })(parse(source,{ecmaVersion:'latest',sourceType:'module'}));
+  assert(requestNode);
+  const prepared={},identity={},occurrence={},selectedSource={},coordinates=Object.freeze([Object.freeze([4,6,0])]);
+  let selected=0;
+  const ports={prepareSubmit:{assertOwned(actual){assert.equal(actual,prepared);},kindOf:()=> 'effect_free'},
+    moon:{clientProgramAcquisitionCount:()=>1,clientProgramSelectSingleKeyedAcquisition:()=>({$tag:1,_0:undefined}),
+      clientProgramSelectedSourceInputKind:()=> 'query',clientProgramSelectedSourceInputRef:()=> 'original-source',
+      clientProgramComposedInferOccurrences:()=>({$tag:1,_0:[occurrence]}),clientProgramResultCount:()=>1,clientProgramResultName:()=> 'answer'},
+    checked:value=>value._0,sourceProfile:{},originalSourceFreeRequest:()=>identity,earlyContentPlans:new WeakMap(),
+    preparation:{managedModelSourceCoordinates:()=>coordinates,selectManagedDomainSourceInput(runtime,p,request,stage,input) {
+      assert.equal(p,prepared);assert.equal(request,identity);assert.equal(stage,4);assert.equal(input,6);return selectedSource;
+    }},installedSourceFor:()=>({}),runtimeIsOkRequired:value=>value.$tag===1,runtimeField:value=>value._0,
+    inferSelections:new WeakMap(),prepareInferSelection(p,o,retain,actualCoordinates) {
+      assert.equal(p,prepared);assert.equal(o,occurrence);assert.equal(retain,true);assert.equal(actualCoordinates,coordinates);selected++;
+    },clientOperationError:code=>new Error(code)};
+  const requestOf=Function(...Object.keys(ports),'return ('+source.slice(requestNode.start,requestNode.end)+');')(...Object.values(ports));
+  const result=requestOf({preparedProgram:prepared,requestId:'original-request'});
+  assert.equal(result.requested,identity);assert.equal(selected,1);
+});
