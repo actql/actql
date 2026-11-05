@@ -29,6 +29,10 @@
         {
           "name": "child_work_issue",
           "type": "() -> ManagedProviderWorkIssue?"
+        },
+        {
+          "name": "retained_completion",
+          "type": "(() -> Bool)?"
         }
       ]
     },

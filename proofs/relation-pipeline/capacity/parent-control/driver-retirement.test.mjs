@@ -32,9 +32,9 @@ test('current driver/common owner source and additive Native overlay are admitte
   const {overlay,boundary} = retirementOverlay(read,snapshot(root));
   assert(boundary.compilation.omittedTests > 0);
   assert.equal(boundary.compilation.repositoryTestsRemoved,false);
-  assert.match(overlay[driverPath],/println\(driver_retirement_probe\(provider_execution, 0, 3\)\)/);
-  assert.equal((overlay[driverPath].match(/cleanup_managed_provider\(active\)/g)??[]).length,
-    (read(driverPath).toString().match(/cleanup_managed_provider\(active\)/g)??[]).length);
+  assert.match(overlay[scratchRetirementPath],/println\(driver_retirement_probe\(provider, 0, 3\)\)/);
+  assert.equal((overlay[scratchRetirementPath].match(/cleanup_managed_provider\(active\)/g)??[]).length,
+    (read(scratchRetirementPath).toString().match(/cleanup_managed_provider\(active\)/g)??[]).length);
   assert.equal(overlay['src/query_integration/moon.pkg'].split('options(').length,2, 'Reuse existing package options');
   assert.match(overlay['src/query_integration/moon.pkg'], /cc-link-flags/);
   // Cleanup observers reuse the existing provider Ref and add no setup capture.
@@ -196,15 +196,18 @@ for (const source of ['test "bad" {', 'test fn x() {}', 'fn x() { "unterminated 
 for (const [name,path,from,to,anchor] of [
   ['retirement progress stops advancing',scratchRetirementPath,'cursor.steps += 1L','cursor.steps += 0L'],
   ['retirement loses actual value reclamation work',driverPath,'finalization_reclamation_steps.val = @execution.managed_output_values_reclamation_steps(\n        values,\n      )','finalization_reclamation_steps.val = 0L','let release_owned_scratch = fn()'],
-  ['ignore cleanup error',driverPath,'!@local.cleanup_managed_provider(active).unwrap_or(false)','false'],
-  ['ignore physical stop',driverPath,'!@local.managed_provider_stopped(active) ||','false ||'],
-  ['retain provider forever',driverPath,'        provider_execution.val = None','        provider_execution.val = Some(active)'],
-  ['drop root before pending return',driverPath,'          return false\n        }\n        final_provider_work.val','          provider_execution.val = None\n          return false\n        }\n        final_provider_work.val'],
-  ['scratch witness accepts live root',driverPath,'scratch_uses.val == 0 && provider_execution.val is None','scratch_uses.val == 0'],
+  ['ignore cleanup error',scratchRetirementPath,'Err(_) => false','Err(_) => true','fn release_local_managed_provider_scratch('],
+  ['ignore physical stop',scratchRetirementPath,'if !@local.managed_provider_stopped(active) {','if false {','fn release_local_managed_provider_scratch('],
+  ['retain provider forever',scratchRetirementPath,'provider.val = None','provider.val = Some(active)','fn release_local_managed_provider_scratch('],
+  ['drop root before pending return',scratchRetirementPath,'return false','provider.val = None\nreturn false','if !@local.managed_provider_stopped(active)'],
+  ['scratch witness accepts live root',driverPath,'(provider_execution.val is None || provider_completion_retained.val) &&','true &&','scratch_released: fn()'],
+  ['pending provider fabricates retained completion',scratchRetirementPath,'@local.managed_provider_retained_completion(active)','true','fn release_local_managed_provider_scratch('],
+  ['failed task uses completed provider handoff',scratchRetirementPath,'if completed &&','if true &&','fn release_local_managed_provider_scratch('],
+  ['whole retention accepts scratch handoff',driverPath,'provider_execution.val is None &&','(provider_execution.val is None || provider_completion_retained.val) &&','retention_released: fn()'],
   ['scratch witness skips partial retirement',driverPath,'scratch_retirement.phase == Retired &&','true &&'],
   ['driver starts with retired cursor',driverPath,'let scratch_retirement = local_managed_scratch_retirement()','let scratch_retirement = {phase: Retired, index: 0}'],
   ['retirement skips active callback check',driverPath,'      scratch_uses.val != 0 ||','      false ||','let release_owned_scratch = fn()'],
-  ['retirement skips physical provider custody',driverPath,'      provider_execution.val is Some(_) ||','      false ||','let release_owned_scratch = fn()'],
+  ['retirement skips physical provider custody',driverPath,'(provider_execution.val is Some(_) && !provider_completion_retained.val) ||','false ||','let release_owned_scratch = fn()'],
   ['retirement skips pending input revocation',driverPath,'(!live.val && input_stop.phase != Stopped)','false'],
   ['retirement drops pending admission owner',driverPath,'if !@execution.managed_output_values_scratch_released(values) {','if false {'],
   ['scratch witness skips pending input revocation',driverPath,'(live.val || input_stop.phase == Stopped) &&','true &&'],
@@ -245,7 +248,7 @@ function records() {
   return ['current_filter','current_edge_filter'].flatMap((variant,i)=> {
     const root=String(100+i),provider=String(900+i);
     const rootRecord=(phase,p)=>'ACTQL_DRIVER_ROOT:'+JSON.stringify({task:phase >= 2 ? 0 : 3,phase,root,rootRequestedBytes:16,provider:p});
-    const ledger=(phase,execution)=>'ACTQL_DRIVER_LEDGER:'+JSON.stringify({phase,execution,retention:20,held:40,transfer:0});
+    const ledger=(phase,execution)=>'ACTQL_DRIVER_LEDGER:'+JSON.stringify({phase,execution,retention:20,held:phase==='pending'?40:24,transfer:0,retiredHoldingBytes:16,liveOutputBytes:20});
     return ['ACTQL_DRIVER_CASE:'+variant,rootRecord(0,null),rootRecord(1,provider),
       rootRecord(2,provider),rootRecord(2,provider),ledger('pending',100),rootRecord(3,null),
       ledger('cleaned',60),rootRecord(4,null),ledger('repeated',60),'ACTQL_DRIVER_CASE_DONE:'+variant];
@@ -262,7 +265,10 @@ for (const [name,mutate] of [
   ['missing successful clear',a=>{a.splice(6,1);}],
   ['same-size replacement root',a=>{a[6]=a[6].replace('"root":"100"','"root":"101"');}],
   ['duplicate scratch credit',a=>{a[9]=a[9].replace('"execution":60','"execution":59');}],
-  ['unrelated holding release',a=>{a[7]=a[7].replace('"held":40','"held":39');}],
+  ['unrelated holding release',a=>{a[7]=a[7].replace('"held":24','"held":23');}],
+  ['replaced original holding quote',a=>{a[7]=a[7].replace('"retiredHoldingBytes":16','"retiredHoldingBytes":15');}],
+  ['lost live output backing',a=>{for(let i=0;i<a.length;i++)a[i]=a[i].replace('"liveOutputBytes":20','"liveOutputBytes":25');}],
+  ['missing original holding quote',a=>{a[5]=a[5].replace(',"retiredHoldingBytes":16','');}],
   ['missing second Host completion',a=>{a.pop();}],
   ['wrong ABI extent',a=>{a[1]=a[1].replace('"rootRequestedBytes":16','"rootRequestedBytes":24');}],
 ]) test('observation rejects '+name,()=>{

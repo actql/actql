@@ -15,23 +15,39 @@ export function blockAfter(source,anchor) {
   }
   assert.fail('Unbalanced owner boundary');
 }
+// The caller may return Local scratch while the SAME provider keeps an
+// independently accepted completion. Full cleanup and retention are distinct.
 const release=`{
-    match provider_execution.val {
-      None => true
-      Some(active) => {
-        if !@local.managed_provider_stopped(active) ||
-          !@local.cleanup_managed_provider(active).unwrap_or(false) {
-          return false
-        }
-        final_provider_work.val = @local.managed_provider_cumulative_work(active)
-        provider_execution.val = None
-        true
-      }
+  release_local_managed_provider_scratch(provider_execution,
+    provider_completion_retained,
+    live.val && settled.val && (ordinary.val is Some(_) || carrier.val is Some(_)),
+    final_provider_work,)
+}`;
+const providerScratch=`{
+  guard provider.val is Some(active) else { return true }
+  if !@local.managed_provider_stopped(active) { return false }
+  match @local.cleanup_managed_provider(active) {
+    Ok(true) => {
+      final_work.val = @local.managed_provider_cumulative_work(active)
+      provider.val = None
+      true
     }
-  }`;
+    Ok(false) => if completed && (retained_completion.val ||
+      @local.managed_provider_retained_completion(active)) {
+      final_work.val = @local.managed_provider_cumulative_work(active)
+      retained_completion.val = true
+      true
+    } else { false }
+    Err(_) => false
+  }
+}`;
+const retainedCompletion=`{
+  (execution.stopped)() &&
+  execution.retained_completion.map(check => check()).unwrap_or(false)
+}`;
 const scratch=`{
     ( disposed.val || (settled.val && finalization_ready.val) || (settled.val && carrier.val is Some(_)) ) &&
-    scratch_uses.val == 0 && provider_execution.val is None &&
+    scratch_uses.val == 0 && (provider_execution.val is None || provider_completion_retained.val) &&
     (live.val || input_stop.phase == Stopped) &&
     scratch_retirement.phase == Retired &&
     ( !disposed.val || retained.val is Some(_) ||
@@ -42,7 +58,7 @@ const scratch=`{
   }`;
 const ownedScratch=`{
   if !(disposed.val || (settled.val && (finalization_ready.val || carrier.val is Some(_)))) ||
-    scratch_uses.val != 0 || provider_execution.val is Some(_) ||
+    scratch_uses.val != 0 || (provider_execution.val is Some(_) && !provider_completion_retained.val) ||
     relation_snapshot_cancel.val is Some(_) ||
     (!live.val && input_stop.phase != Stopped) {
     return
@@ -342,6 +358,13 @@ export function checkDriverRetirementSource(read) {
   const bridge=read(bridgeReclamationPath).toString();
   const importer=read(importReclamationPath).toString();
   assert.equal(clean(blockAfter(driver,'let release_provider_scratch = fn()')),clean(release),'Changed provider stop/cleanup/work/root retirement ordering');
+  assert.equal(clean(blockAfter(roots,'fn release_local_managed_provider_scratch(')),clean(providerScratch),'Changed same-provider pending/error/retained-completion custody');
+  const provider=read('src/connectors/local/managed_provider.mbt').toString();
+  assert.equal(clean(blockAfter(provider,'pub fn managed_provider_retained_completion(')),clean(retainedCompletion),'Changed stopped same-provider retained-completion observation');
+  assert.match(driver,/let provider_completion_retained = Ref\(false\)/,'Completion handoff must start absent');
+  const retention=clean(blockAfter(driver,'retention_released: fn()'));
+  assert(retention.includes('provider_execution.valisNone&&relation_released&&'), 'Retained completion cannot acknowledge whole provider cleanup');
+
   assert.equal(clean(blockAfter(driver,'scratch_released: fn()')),clean(scratch),'Changed installed driver scratch witness');
   assert.equal(clean(blockAfter(driver,'let release_owned_scratch = fn()')),clean(ownedScratch),'Changed installed incremental root retirement guard');
   assert.equal(clean(blockAfter(driver,'let stop_owned_inputs = fn()')),clean(stopInputs),'Changed installed input revocation boundary');
@@ -374,9 +397,10 @@ export function checkDriverRetirementSource(read) {
   assert.equal(clean(blockAfter(strategy,'fn release_task_execution(')),clean(retirementObservation),'Changed common cleanup reentry/refusal observation boundary');
   assert.equal(clean(blockAfter(strategy,'fn release_task_execution_owned(')),clean(retirement),'Changed common reservation retirement boundary');
   assert.match(driver.replace(/\s+/g,' '),/let provider_execution : Ref\[@local\.ManagedProviderExecution\?\] = Ref\(None\)/);
-  assert.deepEqual([...driver.matchAll(/provider_execution\.val\s*=\s*([^\n]+)/g)].map(m=>m[1].trim()),['None','Some(started)'],'Unreviewed provider root replacement');
+  assert.deepEqual([...driver.matchAll(/provider_execution\.val\s*=\s*([^\n]+)/g)].map(m=>m[1].trim()),['Some(started)'],'Unreviewed provider root replacement');
   return {scope:'exact reviewed driver scratch-root and common reservation retirement boundaries',
     retainsProviderUntilStoppedAndCleanupSuccess:true,clearsProviderAfterCleanupSuccess:true,
+    retainedCompletionKeepsSameCleanupOwner:true,retentionRequiresProviderAbsent:true,
     cachesFinalProviderWorkBeforeDroppingRoot:true,incrementalScratchRootRetirement:true,
     retainsAccountingRefusalAcrossPending:true,fencesSynchronousCleanupReentry:true,
     settlesOwnedHoldingsBeforeClearingTask:true,

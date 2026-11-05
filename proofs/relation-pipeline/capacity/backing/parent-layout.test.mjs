@@ -6,9 +6,9 @@ const fact=()=>({kind:'startup',count:2,state:{requestedBytes:56},
   environments:[{requestedBytes:80}],callbacks:[96,40,24,48,24].map(requestedBytes=>({requestedBytes}))});
 test('current source/ABI requests include aggregated state and padded captures',()=>{
   const model=parentStartupLayout();
-  assert.equal(model.references,64);assert.equal(model.blocks.state,56);
+  assert.equal(model.blocks.owner,64);assert.equal(model.references,64);assert.equal(model.blocks.state,56);
   assert.equal(model.blocks.startEnvironment,80);assert.equal(model.blocks.advance,96);
-  assert.equal(model.startupLower,592);
+  assert.equal(model.startupLower,600);
   const result=inspectParentStartup(fact(),'native');
   assert(result.componentBoundContradicted);assert.equal(result.totalReservationViolationProven,false);
 });

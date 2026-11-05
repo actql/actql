@@ -12,7 +12,7 @@ const read=p=>readFileSync(join(root,p));
 // remains unchanged at its original execution revision and is not relabelled.
 const records=()=>currentChainSyntheticFixture().records;
 test('conditional core uses five Refs plus state and input-derived overlap',()=>{
-  assert.equal(retainedParentCoreBound(2).bytes,808n);assert.equal(retainedParentCoreBound(10).bytes,1064n);
+  assert.equal(retainedParentCoreBound(2).bytes,816n);assert.equal(retainedParentCoreBound(10).bytes,1072n);
   assert(retainedParentCoreBound(2147483647).bytes<9223372036854775807n);
   for(const n of [0,1,-1,2147483648,1.5])assert.throws(()=>retainedParentCoreBound(n));
   assert.equal(retainedParentCoreBound(2).fullParentUpper,false);
