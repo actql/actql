@@ -64922,7 +64922,7 @@
     },
     {
       "module": "src/physical_strategy_host/checked_graph.mbt",
-      "sha256": "dfc6d45261130c964448670aafc9233715f04510acccaf8a076639284722f0c0",
+      "sha256": "34828f53de7f884c060d95624ec1eb119bd3fb0181ffde1a3d9bce251c7202e7",
       "exports": [],
       "operations": [
         {
@@ -64945,6 +64945,10 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "The existing RowRun has a complete-input alternative"
+              },
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "The corresponding Model plan predicate is in `ordered_inputs.mbt`"
               }
             ],
             "inputsOutputs": [
@@ -64999,6 +65003,10 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "focused Core and explicit-port Node cases"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_deferred_keyed_model_plan_wbtest.mbt",
+                "anchor": "test \"README deferred keyed producer completes a Model plan without claiming live Source input\" {"
               }
             ]
           }
