@@ -225,6 +225,11 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       }
       captureStartedAt = saved.capture_started_at ?? undefined;
       captureCompletedAt = saved.capture_completed_at ?? undefined;
+      // The actual checked source-free Program never issued a Source capture
+      // ledger. Its validated empty closure is not a missing acquired Source.
+      // Model/Effect evidence and their original cleanup remain independent.
+      if (restore !== undefined && states.size === 0 &&
+          moon.clientProgramEffectAcquisitionCount(acquired.prepared) === 0) return;
       const references = await checkpoints.computationSourceReferences(restoring.view);
       current();
       if (references.length > states.size) fail('DuplicateRetainedSourceCapture');

@@ -125,3 +125,45 @@ test('legacy binding-free row scope is not upgraded from a current installation'
   assert.equal(JSON.stringify(saved), original);
   assert.equal(f.calls.source, 0); assert.equal(f.calls.captureRestore, 0);
 });
+
+function sourceFreeModelRestoreFixture({checkedCount = 0, changeSaved} = {}) {
+  const prepared = {}, submission = {requestId: 'same-original-submission'};
+  let reads = 0;
+  const unavailable = Object.assign(new Error('ContinuationEvidenceNotFound'), {code: 'ContinuationEvidenceNotFound'});
+  const checkpoints = {async computationSourceReferences() {reads++; throw unavailable;}};
+  const options = {checkpoints, moon: {clientProgramEffectAcquisitionCount(value) {
+    assert.strictEqual(value, prepared); return checkedCount;
+  }}, acquired: {prepared, runDefinition: {identity: 'same-definition'},
+    control: {runDefinitionRunId: () => 'same-run'}}, submission, unitId: 'same-unit', declaredResults: []};
+  return {async restore() {
+    const fresh = acquiredEffectContinuation(options);
+    await fresh.prepared([]);
+    const saved = await fresh.retainAll();
+    changeSaved?.(saved);
+    const restored = acquiredEffectContinuation({...options,
+      restore: {view: {kind: 'model_invocation', prepareAttemptId: null}, continuation: saved}});
+    await restored.prepared([]);
+    return restored;
+  }, unavailable, reads: () => reads};
+}
+
+test('source-free Model restoration retains its actual empty Source inventory without opening an unissued Source ledger', async () => {
+  const f = sourceFreeModelRestoreFixture();
+  const restored = await f.restore();
+  assert.equal(restored.restoringModel, true); assert.equal(f.reads(), 0);
+});
+
+test('source-free Model restoration still validates its exact saved Source closure before skipping Source storage', async () => {
+  for (const changeSaved of [saved => {saved.run_definition_cid = 'foreign';},
+    saved => {saved.sources.push({scope: {task: 0}});}, saved => {saved.pending_task = 0;}]) {
+    const f = sourceFreeModelRestoreFixture({changeSaved});
+    await assert.rejects(f.restore(), {code: 'HeldAcquisitionChanged'});
+    assert.equal(f.reads(), 0);
+  }
+});
+
+test('a nonzero checked Source inventory never treats an absent Source ledger as source-free Model recovery', async () => {
+  const f = sourceFreeModelRestoreFixture({checkedCount: 1});
+  await assert.rejects(f.restore(), error => error === f.unavailable);
+  assert.equal(f.reads(), 1);
+});
