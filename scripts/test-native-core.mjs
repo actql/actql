@@ -34,6 +34,14 @@ for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file'
 const bundle = nativeCompletedRestorationBundle();
 const args = process.argv.slice(2);
 const full = !['focused', 'reporting'].includes(classifyMoon('test', args).classification);
+// Select the test-only compiler once before either original checkpoint
+// producer. Changing its executable PATH before the full child invalidates the
+// same release/strip test C cache. Every phase keeps the original backend,
+// environment, Moon IR, runtime allocator, package C++/stub and product flags.
+const testCompiler = full && args.lastIndexOf('--release') >
+    Math.max(args.lastIndexOf('--debug'), args.lastIndexOf('-g'))
+  ? nativeCoreCCompiler(root, namespace) : {};
+const compilerEnvironment = {...process.env, ...testCompiler};
 const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_client'))
   ? nativeProjectConfigurationFixture(namespace)
   : {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: undefined};
@@ -43,7 +51,7 @@ const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/
   // Match optimization, debug and warning modes before the original producers
   // populate the cache. Changing the mode afterwards invalidates their Core
   // dependencies even when the physical test source has not changed.
-  ? nativeClientCheckpointFixture(root, process.env,
+  ? nativeClientCheckpointFixture(root, compilerEnvironment,
     args.lastIndexOf('--strip') > args.lastIndexOf('--no-strip'),
     args.includes('--deny-warn') || args.includes('-d'), args.includes('--release')) : {};
 // Only the final Native test child receives the injection environment. The
@@ -63,13 +71,6 @@ if (full || args.some(arg => arg.includes('platform_native/remote_journal'))) {
     throw new Error(`Native WAL fixture compilation failed: ${compiled.error?.message ?? compiled.signal ?? compiled.status}`);
   }
 }
-// Prepare the original checkpoint/Reader/WAL fixtures with their unchanged
-// compiler settings. Only the final complete release test child uses O0 C;
-// the same optimized Moon IR and every Native test remain selected. Re-running
-// the C optimizer over these large test units otherwise exhausts the CI budget.
-const testCompiler = full && args.lastIndexOf('--release') >
-    Math.max(args.lastIndexOf('--debug'), args.lastIndexOf('-g'))
-  ? nativeCoreCCompiler(root, namespace) : {};
 // The full suite includes real target-observation tests. Provision their
 // private HTTPS/credential fixture instead of treating missing inputs as passes.
 const result = spawnSync(full ? process.execPath : 'moon', full

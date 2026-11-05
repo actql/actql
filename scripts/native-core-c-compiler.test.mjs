@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {spawnSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
 import {chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, delimiter} from 'node:path';
@@ -170,4 +170,51 @@ test('Native Core compiler retains the logical compiler companion without realpa
     error.code === 'ENOENT' && error.path === join(selected, 'ar'));
   assert.equal(existsSync(join(missing, 'test-c-compiler')), false);
   assert.deepEqual(nativeCoreCCompiler(root, missing, {...env, MOON_CC: compiler}), {});
+});
+
+
+test('same selected Native Core compiler reuses actual release test C from prerequisite to complete tiny selection', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-core-cache-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const tools = join(root, 'tools'), scratch = join(root, 'scratch'), pkg = join(root, 'pkg');
+  for (const path of [tools, scratch, pkg]) mkdirSync(path);
+  writeFileSync(join(root, 'moon.mod'), 'name = "fixture/native_core_cache"\nversion = "0.0.0"\n');
+  writeFileSync(join(pkg, 'moon.pkg'), '');
+  writeFileSync(join(pkg, 'library.mbt'), 'pub fn original() -> Int { 7 }\n');
+  writeFileSync(join(pkg, 'case_wbtest.mbt'), 'test "original prerequisite" { assert_eq(original(), 7) }\n');
+  writeFileSync(join(pkg, 'case_test.mbt'), 'test "independent remaining case" { assert_eq(2 + 3, 5) }\n');
+  const compiler = execFileSync('/bin/sh', ['-c', 'command -v cc'], {encoding:'utf8'}).trim();
+  const archiver = execFileSync('/bin/sh', ['-c', 'command -v ar'], {encoding:'utf8'}).trim();
+  const observations = join(root, 'compiler-inputs.jsonl');
+  // Observe operands/flags only, then run the actual selected C compiler.
+  // Never read the generated C, object, module, executable or private state.
+  writeFileSync(join(tools, 'cc'), '#!' + process.execPath + '\n' +
+    'const {spawnSync}=require("node:child_process");const{appendFileSync}=require("node:fs");' +
+    'const args=process.argv.slice(2),inputs=args.filter(x=>/\\.(?:internal|whitebox|blackbox)_test\\.c$/.test(x));' +
+    'if(inputs.length)appendFileSync(' + JSON.stringify(observations) +
+    ',JSON.stringify({inputs,flags:args.filter(x=>/^-O[0-3]$/.test(x)),backend:process.env.MOONBIT_NEW_NATIVE})+"\\n");' +
+    'const result=spawnSync(' + JSON.stringify(compiler) + ',args,{stdio:"inherit"});' +
+    'if(result.error)throw result.error;if(result.signal)process.kill(process.pid,result.signal);process.exitCode=result.status??1;\n',
+    {mode:0o700});
+  symlinkSync(archiver, join(tools, 'ar'));
+  const env = {...process.env, PATH: tools + delimiter + process.env.PATH, MOONBIT_NEW_NATIVE:'0'};
+  delete env.MOON_CC; delete env.CXX;
+  const profile = nativeCoreCCompiler(root, scratch, env), selected = {...env, ...profile};
+  const run = tail => {
+    const result = spawnSync(join(selected.MOON_HOME, 'bin/moon'),
+      ['test', '--target', 'native', '--release', '--strip', '--deny-warn', '-j', '2', '--no-parallelize', ...tail],
+      {cwd:root, env:selected, encoding:'utf8', timeout:30000, maxBuffer:2*1024**2});
+    assert.ifError(result.error); assert.equal(result.signal,null); assert.equal(result.status,0,result.stderr);
+    return result.stdout;
+  };
+  assert.match(run(['pkg/case_wbtest.mbt', '--index', '0']), /Total tests: 1, passed: 1, failed: 0\./u);
+  const before = readFileSync(observations,'utf8').trim().split('\n').map(JSON.parse);
+  const whitebox = values => values.filter(row => row.inputs.some(input => input.endsWith('.whitebox_test.c')));
+  assert(whitebox(before).length > 0);
+  assert.match(run([]), /Total tests: 2, passed: 2, failed: 0\./u);
+  const after = readFileSync(observations,'utf8').trim().split('\n').map(JSON.parse);
+  assert.deepEqual(whitebox(after), whitebox(before), 'the full selection must not recompile its original prerequisite');
+  assert(after.some(row => row.inputs.some(input => input.endsWith('.blackbox_test.c'))),
+    'the remaining independent test must still be compiled and executed');
+  for (const row of after) { assert.deepEqual(row.flags, ['-O0']); assert.equal(row.backend, '0'); }
 });

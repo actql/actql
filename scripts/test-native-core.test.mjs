@@ -696,7 +696,8 @@ assert.deepEqual(process.argv.slice(2, 5), ['test', '--target', 'native']);
 if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
   require('node:fs').appendFileSync(process.env.ACTQL_FIXTURE_NATIVE_COMMANDS,
     JSON.stringify({args:process.argv.slice(2),path:process.env.PATH,
-      allocator:process.env.MOONBIT_ALLOCATOR,compiler:process.env.MOON_CC}) + '\\n');
+      allocator:process.env.MOONBIT_ALLOCATOR,compiler:process.env.MOON_CC,
+      backend:process.env.MOONBIT_NEW_NATIVE}) + '\\n');
 }
 if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
      'src/platform_native/client_host/run_effect_receipt_wbtest.mbt'].some(file => process.argv.includes(file)) &&
@@ -1124,7 +1125,7 @@ test('strict Native checkpoint producers share the full release child compilatio
   const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
     '--deny-warn', '--release', '--strip', '-j', '3', '--verbose'], {
     cwd: f.checkout, encoding: 'utf8', timeout: 10000,
-    env: {...f.env, ACTQL_FIXTURE_NATIVE_COMMANDS: commands},
+    env: {...f.env, ACTQL_FIXTURE_NATIVE_COMMANDS: commands, MOONBIT_NEW_NATIVE:'0'},
   });
   assert.ifError(result.error);
   assert.equal(result.signal, null);
@@ -1132,13 +1133,15 @@ test('strict Native checkpoint producers share the full release child compilatio
   const records = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
   const calls = records.map(record => record.args);
   assert.equal(calls.length, 3);
+  assert.deepEqual(records.map(record => record.backend), ['0', '0', '0']);
   const compilation = args => args.filter(arg =>
     ['--target', 'native', '--strip', '--deny-warn', '--release'].includes(arg)).sort();
   assert.deepEqual(calls[2], ['test', '--target', 'native',
     '--deny-warn', '--release', '--strip', '-j', '3', '--verbose']);
   assert(records[0].path === records[1].path);
-  assert.equal(records[0].path, f.env.PATH);
-  assert.match(records[2].path, /\/test-c-compiler:/u);
+  assert.equal(records[0].path, records[2].path,
+    'the same selected compiler executable must populate and reuse the test cache');
+  assert.match(records[0].path, /\/test-c-compiler:/u);
   assert.equal(records[2].compiler, records[0].compiler);
   assert.equal(records[2].allocator, records[0].allocator);
   for (const [index, file] of [
@@ -1187,4 +1190,30 @@ test('failed Native project child retains its own fixtures and cannot adopt call
   assert.match(result.stderr, /original native child failure/u);
   assert.match(result.stderr, /test failed; scratch kept:/u);
   f.verifyExternal();
+});
+
+
+test('Native checkpoint and full child keep the selected backend and explicit compiler profile', t => {
+  for (const backend of ['0', '1']) {
+    const f = fixture(t), commands = join(f.root, 'native-commands.jsonl');
+    const compiler = join(f.bin, 'explicit-original-cc');
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
+      '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose'], {
+      cwd: f.checkout, encoding: 'utf8', timeout: 10000,
+      env: {...f.env, ACTQL_FIXTURE_NATIVE_COMMANDS: commands,
+        MOONBIT_NEW_NATIVE: backend, MOON_CC: compiler},
+    });
+    assert.ifError(result.error); assert.equal(result.signal, null); assert.equal(result.status, 0, result.stderr);
+    const records = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
+    assert.equal(records.length, 3);
+    for (const record of records) {
+      assert.equal(record.backend, backend);
+      assert.equal(record.compiler, compiler);
+      assert.equal(record.path, f.env.PATH);
+      assert.equal(record.allocator, records[0].allocator);
+    }
+    assert.deepEqual(records[2].args, ['test', '--target', 'native',
+      '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose']);
+    f.verifyExternal();
+  }
 });
