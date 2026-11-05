@@ -646,6 +646,38 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // Retained cleanup precedes the original Source admission and read. A
       // refusal keeps this same Scope; there is no unowned/standalone fallback.
       directRequestModel.retain();
+      const occurrence = acquiredInfer.occurrence ?? acquiredInfer.preparedSource?.occurrence;
+      if (checkpoints === undefined || acquiredInfer.preparedSource === undefined || acquiredInfer.adapter === undefined ||
+          occurrence === undefined || ['stage', 'input', 'task'].some(name =>
+            !Number.isSafeInteger(occurrence[name]) || occurrence[name] < 0)) {
+        throw new Error('ModelSourceClosureCustodyUnavailable');
+      }
+      const current = () => {
+        assertCurrent?.();
+        directRequestModel.assertRuntimeCurrent();
+        signal.throwIfAborted();
+      };
+      current();
+      const declaredResults = Array.from({length: moon.clientProgramResultCount(preparedProgram)},
+        (_, index) => moon.clientProgramResultName(preparedProgram, index));
+      // Retain this SAME already captured Source before the Model checkpoint
+      // stores its input. No acquisition, replacement capture or new grant.
+      sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
+        acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+        submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
+        currentRun: () => {try {current();return true;} catch {return false;}}});
+      const source = {occurrence, preparedSource: acquiredInfer.preparedSource, adapter: acquiredInfer.adapter};
+      sourceContinuation.accessFor(acquiredInfer.sourceAccess, occurrence);
+      await sourceContinuation.prepared([source]);
+      current();
+      const approvalOriginal = acquiredInfer.sourceAccess?.originalCheckpointApproval;
+      if (approvalOriginal !== undefined && typeof approvalOriginal !== 'function') {
+        throw new Error('ModelSourceClosureCustodyUnavailable');
+      }
+      await sourceContinuation.captured(source, acquiredInfer.captured, acquiredInfer.sourceEvidenceWire,
+        acquiredInfer.captureStartedAt, acquiredInfer.captureCompletedAt,
+        approvalOriginal === undefined ? undefined : Reflect.apply(approvalOriginal, acquiredInfer.sourceAccess, []));
+      current();
       const admitted = control.admitComposedInferSources(selected.occurrence,
         [acquiredInfer.captured], [acquiredInfer.sourceEvidence], authorityScopeCid,
         acquiredInfer.captureStartedAt, acquiredInfer.captureCompletedAt);
@@ -893,7 +925,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             continuation = await modelController.open({operation, preparedCallSet: boundary.preparedCallSet,
               plan, selected, principalId, declaredResults, submission, signal,
               existing: existingModel, inputToken: token, claim: modelClaim,
-              originalPreparation});
+              originalPreparation,
+              ...(sourceContinuation === undefined || restoredInput !== undefined ? {}
+                : {sourceContinuation: await sourceContinuation.retainAll()})});
             captureOwner.configureModelJournal({observe: continuation.observe, entry: continuation.entry});
             // Saved/unknown records first re-enter the same normal owner without
             // any fresh permission. A still-unsent slot yields Waiting again.

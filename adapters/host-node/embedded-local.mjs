@@ -2902,10 +2902,15 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
   };
   const missingModelExecutionRefusals = new WeakSet();
-  const prepareInferSelection = (preparedProgram, occurrence, retain = true) => {
+  const prepareInferSelection = (preparedProgram, occurrence, retain = true, sourceCoordinates) => {
     // The Effect compiler retains this exact graph for the saved admission.
     // Current account/egress callbacks are checked again by physical dispatch.
-    if (retain && occurrence !== undefined && inferSelections.has(preparedProgram)) return;
+    if (retain && occurrence !== undefined && inferSelections.has(preparedProgram)) {
+      if (sourceCoordinates !== undefined && inferSelections.get(preparedProgram).sourceCoordinates !== sourceCoordinates) {
+        throw clientOperationError('ForeignInstalledModelSourceCoordinates');
+      }
+      return;
+    }
     const restoredRun = prepareSubmit.originalInferRun(preparedProgram);
     const restoredInfer = restoredRun === undefined ? undefined
       : selectRestoredInferOccurrence({moon, control, preparedProgram, restored: restoredRun, occurrence});
@@ -3043,7 +3048,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         preparation !== undefined
           ? (providerId, installation, contract, configuration) => preparation.prepareManagedModelBinding(
             moon, preparedProgram, providerId, installation, contract, configuration) : undefined);
-        const selection = Object.freeze({localMock: true, originalMockInstallation, step: selectedStep,
+        const selection = Object.freeze({localMock: true, originalMockInstallation, step: selectedStep, sourceCoordinates,
           occurrence, graph, computePrefix: segments === undefined ? undefined
             : effectful ? runtimeField(segments, 0) : runtimeOptionalField(segments, 0),
           computeSuffix: segments === undefined ? undefined
@@ -3193,7 +3198,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             preparation !== undefined
               ? (id, installation, contract, configuration) => preparation.prepareManagedModelBinding(
                 moon, preparedProgram, id, installation, contract, configuration) : undefined) : undefined;
-        const selection = Object.freeze({step, graph, computeSuffix, serializationGraph, selectedBounds,
+        const selection = Object.freeze({step, graph, computeSuffix, serializationGraph, selectedBounds, sourceCoordinates,
           ...(restoredRun === undefined ? {} : {restoredRun}),
           occurrence, computePrefix: runtimeOptionalField(segments, 0),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
@@ -3474,7 +3479,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // The single occurrence can still belong to a multi-task/multi-Source
     // graph. Keep its compiler-owned identity instead of falling back to the
     // legacy single-task step lookup, which would miss that Model boundary.
-    } else prepareInferSelection(preparedProgram, occurrences[0]);
+    } else prepareInferSelection(preparedProgram, occurrences[0], true, modelCoordinates);
     const resultNames = [];
     for (let index = 0;
       index < moon.clientProgramResultCount(preparedProgram); index++) {

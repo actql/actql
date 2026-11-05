@@ -882,7 +882,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
-      "sha256": "8c41827c3d9108274b722d9f1427031f0699aebc66ca76b458527cbb30d62e80",
+      "sha256": "13bf601f5b91e86b696d0e8a9a96865120735f896796d40c0405f8f4c56a82e0",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -1020,9 +1020,32 @@
             "captured",
             "sourceEvidenceWire",
             "startedAt",
-            "completedAt"
+            "completedAt",
+            "originalApproval"
           ],
           "async": true
+        },
+        {
+          "name": "acquiredEffectContinuation/init:captured/init:captured/init:captured",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:captured/init:captured/init:captured#2",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:captured/init:captured/matches/matches",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
         },
         {
           "name": "acquiredEffectContinuation/init:close/init:close",
@@ -1040,6 +1063,13 @@
           "name": "acquiredEffectContinuation/init:prepared/init:prepared/init:prepared",
           "parameters": [
             "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:prepared/init:prepared/init:prepared#2",
+          "parameters": [
+            "cid"
           ],
           "async": false
         },
@@ -1143,6 +1173,13 @@
           "async": false
         },
         {
+          "name": "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent/sourceOriginalCurrent",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
           "name": "bindingFor/bindingFor",
           "parameters": [
             "runDefinitionCid",
@@ -1223,7 +1260,12 @@
             "bindingFor/bindingFor",
             "fail/fail",
             "same/same",
-            "sourceScope/sourceScope"
+            "sourceScope/sourceScope",
+            "acquiredEffectContinuation/init:captured/init:captured/init:captured",
+            "acquiredEffectContinuation/init:captured/init:captured/init:captured#2",
+            "acquiredEffectContinuation/init:captured/init:captured/matches/matches",
+            "acquiredEffectContinuation/init:prepared/init:prepared/init:prepared#2",
+            "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent/sourceOriginalCurrent"
           ],
           "exports": [
             "acquiredEffectContinuation"
@@ -19369,7 +19411,8 @@
           "parameters": [
             "preparedProgram",
             "occurrence",
-            "retain"
+            "retain",
+            "sourceCoordinates"
           ],
           "async": false
         },
@@ -22394,7 +22437,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "8a4e4f18eabbbdb2440daff6083eb2c375cf46ca4af3ff84c4fd5076968afb79"
+      "sha256": "636a7d2b078ec9d008ee0122a29478a48049e5edbd0424ef7241d52ef4d4f126"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

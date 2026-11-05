@@ -580,6 +580,18 @@ its Source scan, copying rows or introducing another cleanup owner. The full
 prefix with an empty input set remains invalid, as do foreign or retired
 captures. The original Source stays live until its own reader retires.
 
+Before storing a fresh single-Unit Model checkpoint, the same caller retains
+that captured Source through the existing Source continuation. It passes the
+original checked Source coordinates and the nominal read approval, without
+another read or authorization. The approval must match the original principal,
+read tuple, Source, physical and installation bindings; an optional occurrence
+matches its stage/input/task coordinates. Cancellation and every earlier
+approval remain current requirements. The private retained record preserves
+that approval chain for restoration; a process-local Host permit without a
+checkpoint CID supplies no durable approval. Saved input consumes this retained
+closure rather than issuing a replacement, and cleanup retires it before the
+original Model Scope.
+
 A composed input does not itself select a scheduler. The original installed
 single-Unit caller also supplies the same checked Program. The existing opaque
 compiled-owner check and immutable one-task/one-acquisition shape bind this

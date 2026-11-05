@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
-import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
+import {checkpointApprovalFacts,recordCheckpointApproval} from '../host-common/checkpoint-approval.mjs';
 
 // Composition-only fixtures. These exercise the original owner's synchronous
 // assertion across real adapter awaits; they do not prove runtime admission,
@@ -549,4 +549,46 @@ test('Source access current hook reuses the same original installation and accou
   f.gate.assertCurrent = () => {};
   f.revoke();
   assert.throws(f.access.assertCurrent, expected);
+});
+
+
+test('retained fresh Source carries its original approved decision into cold current authorization without a new read', async () => {
+  const f=fixture(), scope=f.record.scope;
+  const approval=recordCheckpointApproval(Object.freeze({action:'dispatch',boundary:'acquisition'}),{
+    checkpointCid:'original-source-checkpoint',earlierCheckpointCids:Object.freeze(['earlier-source-checkpoint']),principalId:'principal',readTuple:scope.readTuple,
+    checkedSource:scope.checkedSource,physicalBinding:scope.physicalBinding,
+    occurrence:{...f.source.occurrence,requirement_cid:'original-requirement',selection_cid:'original-selection'}});
+  let stored;
+  f.checkpoints.retainComputationSource=async(run,definition,wire)=>{stored=JSON.parse(wire);return 'retained';};
+  await f.prepare();await f.continuation.captured(f.source,f.captured,'evidence',1,2,approval);
+  const closure=await f.continuation.retainAll();
+  assert.equal(stored.checkpoint_cid,'original-source-checkpoint');assert.deepEqual(stored.earlier_checkpoint_cids,['earlier-source-checkpoint']);assert.equal(closure.sources[0].capture_cid,'retained');
+  assert.equal(f.calls.includes('base-authorize'),false,'No second original authorization at retention');
+  const cold=fixture({restoring:'model'});
+  cold.checkpoints.readComputationSource=async()=>Buffer.from(JSON.stringify(stored));
+  cold.base.authorization.authorize=async()=>({action:'waiting'});
+  let current=true, earlierCurrent=true; cold.checkpoints.journal.committedApprovalAt=cid=>{assert(['original-source-checkpoint','earlier-source-checkpoint'].includes(cid));return {current:cid==='earlier-source-checkpoint'?earlierCurrent:current};};
+  await cold.prepare();assert.equal((await cold.continuation.beforeRead(cold.source)).retained.checkpoint_cid,'original-source-checkpoint');
+  assert.equal(cold.calls.includes('resume'),false);assert.equal(cold.calls.includes('authorize'),false);
+  earlierCurrent=false;await assert.rejects(cold.continuation.beforeRead(cold.source),{code:'ApprovalExpired'});earlierCurrent=true;
+  current=false;await assert.rejects(cold.continuation.beforeRead(cold.source),{code:'ApprovalExpired'});
+  current=true;await cold.continuation.close();await f.continuation.close();
+});
+
+test('fresh Source closure refuses copied or foreign original approval facts before persistence', async () => {
+  for(const changed of ['copy','tuple','source','binding','principal','installation','occurrence']) {
+    const f=fixture(),scope=f.record.scope;
+    const facts={checkpointCid:'original-source-checkpoint',principalId:'principal',readTuple:scope.readTuple,
+      checkedSource:scope.checkedSource,physicalBinding:scope.physicalBinding};
+    if(changed==='tuple')facts.readTuple={source:'foreign'};
+    if(changed==='source')facts.checkedSource={sourceDataPolicyCid:'foreign'};
+    if(changed==='binding')facts.physicalBinding={binding:'foreign'};
+    if(changed==='principal')facts.principalId='foreign';
+    if(changed==='installation')facts.installationBinding={binding:'foreign'};
+    if(changed==='occurrence')facts.occurrence={stage:1,input:0,task:1};
+    const original=recordCheckpointApproval(Object.freeze({action:'dispatch',boundary:'acquisition'}),facts);
+    const approval=changed==='copy'?Object.freeze({...original}):original;
+    await f.prepare();await assert.rejects(f.continuation.captured(f.source,f.captured,'evidence',1,2,approval),{code:'HeldAcquisitionChanged'});
+    assert.equal(f.calls.includes('retain'),false);await f.continuation.close();
+  }
 });
