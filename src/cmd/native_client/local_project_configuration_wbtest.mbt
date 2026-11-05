@@ -620,7 +620,7 @@ test "saved default selection never replaces explicit Remote or reference-file r
     arguments in [
       ["--mode", "remote", "result", "original-run"],
       ["--endpoint", "https://example.invalid", "status", "original-run"],
-      ["result", "--ref-file", "original.json"],
+      ["status", "--ref-file", "original.json"],
       ["status", "--submission-ref-file", "original.json"],
     ] {
     let matches = command().parse(argv=arguments[:], env=Map([]))
