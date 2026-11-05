@@ -45,10 +45,13 @@ const testCompiler = full && args.lastIndexOf('--release') >
 const compilerEnvironment = {...process.env, ...testCompiler};
 // Keep the original full classification and fixture/budget decisions. These
 // compiler-selected directories omit only packages with no Native test cases.
-const selection = full ? nativeCoreTestSelection(root, args, {env: compilerEnvironment}) : undefined;
-const selectedArgs = selection?.args ?? args;
+const selection = full ? nativeCoreTestSelection(root, args,
+  {env: compilerEnvironment, partitionProfiles: true}) : undefined;
 if (selection) console.log('Native test selection: ' + JSON.stringify({cases: selection.cases,
-  packages: selection.packages, prunedDrivers: selection.prunedDrivers}));
+  packages: selection.packages, prunedDrivers: selection.prunedDrivers,
+  profiles: {ordinary: selection.profiles.ordinary.cases,
+    scoped: selection.profiles.scoped.cases, physical: selection.profiles.physicalCases,
+    repeatedGeometry: selection.profiles.repeatedGeometryCases}}));
 const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_client'))
   ? nativeProjectConfigurationFixture(namespace)
   : {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: undefined};
@@ -78,18 +81,13 @@ if (full || args.some(arg => arg.includes('platform_native/remote_journal'))) {
     throw new Error(`Native WAL fixture compilation failed: ${compiled.error?.message ?? compiled.signal ?? compiled.status}`);
   }
 }
-// The full suite includes real target-observation tests. Provision their
-// private HTTPS/credential fixture instead of treating missing inputs as passes.
-const result = spawnSync(full ? process.execPath : 'moon', full
-  ? ['scripts/test-native-salesforce-effect-preview.mjs', '--core-test-json', JSON.stringify(selectedArgs)]
-  : ['test', '--target', 'native', ...args], {cwd: root, stdio: 'inherit', env: {
+const fixtureEnvironment = {
   ...process.env,
   ...bundle,
   ...clientCheckpoint,
   ...privateHost,
   ...readerCustody,
   ...projectConfiguration,
-  ...testCompiler,
   ...(walFixture ? {ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE: walFixture} : {}),
   ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: join(namespace, 'standard'),
   ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: join(namespace, 'bundles'),
@@ -106,11 +104,50 @@ const result = spawnSync(full ? process.execPath : 'moon', full
     process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
     (process.platform === 'darwin' ? '/usr/lib/libsqlite3.dylib' : 'libsqlite3.so.0'),
   ACTQL_TEST_NATIVE_SQLITE_ROOT: namespace,
-}});
-if (result.error) throw result.error;
-if (result.status !== 0) {
-  if (result.signal) console.error(`Native core test stopped by ${result.signal}`);
-  process.exit(result.status ?? 1);
+};
+const checkChild = result => {
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    if (result.signal) console.error(`Native core test stopped by ${result.signal}`);
+    process.exit(result.status ?? 1);
+  }
+};
+if (full) {
+  // Both configurations execute their original compiler-owned cases. The
+  // ordinary configuration also checks that no physical provider was selected;
+  // physical custody cases must instead run with the real scoped provider.
+  const runProfile = (profile, environment) => {
+    if (profile.args === null) return;
+    console.log(`Native Core profile: ${profile.cases} required cases`);
+    checkChild(spawnSync(process.execPath, ['scripts/test-native-salesforce-effect-preview.mjs',
+      '--core-test-json', JSON.stringify(profile.args), '--core-test-count', String(profile.cases)],
+    {cwd: root, stdio: 'inherit', env: environment}));
+  };
+  runProfile(selection.profiles.ordinary, {...fixtureEnvironment, ...testCompiler});
+  if (selection.profiles.scoped.args !== null) {
+    const scopedScratch = await createOwnedScratch({parent: join(root, '_build', 'native-core-scoped'),
+      prefix: 'profile-', label: 'Native Core scoped compiler', preserve: true});
+    const {prepareNativeCoreScopedProfile} = await import('./native-core-scoped-profile.mjs');
+    // Start from the original PATH, not the ordinary test-only compiler shim.
+    const scoped = prepareNativeCoreScopedProfile(root, scopedScratch.path,
+      ['--target', 'native', ...selection.profiles.scoped.args], {env: fixtureEnvironment});
+    // These physical cases use the SQLite/Reader fixtures above. Salesforce's
+    // request/response oracle belongs to the ordinary selection and remains
+    // required there; the selected cases must not pretend to execute it again.
+    const scopedArgs = ['--target', 'native', ...selection.profiles.scoped.args,
+      '--target-dir', scoped.targetDirectory];
+    console.log(`Native Core scoped profile: ${selection.profiles.scoped.cases} required cases`);
+    checkChild(spawnSync(process.execPath, ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+      "process.exitCode = runFocusedTests('moon', " + JSON.stringify(scopedArgs) +
+      ", {timeout: 3600000, expectedTests: " + selection.profiles.scoped.cases +
+      ", evidenceScratch: " + JSON.stringify(scopedScratch.path) + "});"],
+    {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment}}));
+    scopedScratch.passed();
+  }
+} else {
+  checkChild(spawnSync('moon', ['test', '--target', 'native', ...args],
+    {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...testCompiler}}));
 }
-// spawnSync has reaped the only child; within-run database reopen is unchanged.
+// spawnSync has reaped every child; within-run database reopen is unchanged.
 scratch.passed();

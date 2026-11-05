@@ -55,6 +55,54 @@ test('Native metadata discovery preserves original compiler failures and refuses
   assert.throws(() => nativeCoreTestSelection(root, [], {execute:()=>''}), /No compiler-owned Native test drivers/u);
 });
 
+test('actual Native profile partition executes every original and both geometry configurations', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-test-profiles-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const directory = 'src/cmd/native_client';
+  mkdirSync(join(root, directory), {recursive: true});
+  writeFileSync(join(root, 'moon.mod'), 'name = "fixture/native_profiles"\nversion = "0.0.0"\n');
+  writeFileSync(join(root, directory, 'moon.pkg'), '');
+  writeFileSync(join(root, directory, 'main.mbt'), 'pub fn answer() -> Int { 7 }\n');
+  for (const [file, name] of [
+    ['ordinary_wbtest.mbt', 'ordinary profile original'],
+    ['local_command_business_cleanup_wbtest.mbt', 'physical profile original'],
+    ['local_command_business_wbtest.mbt', 'both geometry configurations'],
+  ]) writeFileSync(join(root, directory, file),
+    `test "${name}" { assert_eq(answer(), 7) }\n`);
+  const env = {...process.env, MOONBIT_NEW_NATIVE: '0'};
+  const moon = join(env.MOON_HOME, 'bin/moon');
+  const args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose'];
+  const selected = nativeCoreTestSelection(root, args, {env, partitionProfiles: true});
+  assert.equal(selected.cases, 3);
+  assert.deepEqual(selected.profiles, {
+    ordinary: {args: [...args, directory+'/ordinary_wbtest.mbt',
+      directory+'/local_command_business_wbtest.mbt'], cases: 2},
+    scoped: {args: [...args, directory+'/local_command_business_wbtest.mbt',
+      directory+'/local_command_business_cleanup_wbtest.mbt'], cases: 2},
+    physicalCases: 1, repeatedGeometryCases: 1, uniqueCases: 3,
+  });
+  // These tiny programs test real compiler file selection, not a provider or
+  // physical acceptance. A case count alone cannot detect equal-sized swaps.
+  const execute = profile => {
+    const result = spawnSync(moon, ['test', '--target', 'native', ...profile.args],
+      {cwd: root, env, encoding: 'utf8', timeout: 30000, maxBuffer: 2*1024**2});
+    assert.ifError(result.error);
+    assert.equal(result.signal, null);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(assertTestExecution('moon', moon,
+      ['test', '--target', 'native', ...profile.args], result).counts.passed, profile.cases);
+    return result.stdout;
+  };
+  const ordinary = execute(selected.profiles.ordinary);
+  assert.match(ordinary, /ordinary profile original/u);
+  assert.match(ordinary, /both geometry configurations/u);
+  assert.doesNotMatch(ordinary, /physical profile original/u);
+  const scoped = execute(selected.profiles.scoped);
+  assert.match(scoped, /physical profile original/u);
+  assert.match(scoped, /both geometry configurations/u);
+  assert.doesNotMatch(scoped, /ordinary profile original/u);
+});
+
 test('actual Native package selection preserves full WB/BB/inline/doc outline and execution while omitting an empty executable', t => {
   const root = fixture(t);
   writeFileSync(join(root, 'moon.mod'), 'name = "fixture/native_selection"\nversion = "0.0.0"\n');
@@ -79,6 +127,12 @@ test('actual Native package selection preserves full WB/BB/inline/doc outline an
   const selected = nativeCoreTestSelection(root, args, {env});
   assert.equal(selected.cases,4);assert.equal(selected.packages,1);assert.equal(selected.prunedDrivers,2);
   assert.deepEqual(selected.args,[...args,'active']);
+  const profiled = nativeCoreTestSelection(root, args, {env, partitionProfiles: true});
+  assert.deepEqual(profiled.profiles, {
+    ordinary: {args: selected.args, cases: 4},
+    scoped: {args: null, cases: 0},
+    physicalCases: 0, repeatedGeometryCases: 0, uniqueCases: 4,
+  });
   const outline = run([...selected.args,'--outline']);
   assert.equal(outline.stdout,full.stdout,'compiler-owned outline identity and order must remain exact');
   const actual = run(selected.args);

@@ -25,6 +25,10 @@ const residentEffectRuntimeCapture = process.argv.includes('--resident-effect-ru
 const residentProposals = residentPreview || residentEffectRuntimeCapture || process.argv.includes('--resident-proposals');
 const coreIndex = process.argv.indexOf('--core-test-json');
 const coreArgs = coreIndex < 0 ? undefined : JSON.parse(process.argv[coreIndex + 1]);
+const countIndex = process.argv.indexOf('--core-test-count');
+const coreExpectedTests = countIndex < 0 ? undefined : Number(process.argv[countIndex + 1]);
+assert(coreExpectedTests === undefined || (coreArgs !== undefined &&
+  Number.isSafeInteger(coreExpectedTests) && coreExpectedTests > 0), 'Invalid Native core test count');
 assert(!directLocalClaimCustody || (!originalLocalReview && !residentProposals && coreArgs === undefined),
   'Direct Local claim custody requires its own finite fixture selection');
 if (coreArgs !== undefined) {
@@ -314,7 +318,8 @@ try {
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', " + JSON.stringify(moonArgs) + ", " +
-    "{timeout: " + (originalLocalReview ? 600000 : coreArgs === undefined ? 180000 : 3600000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
+    "{timeout: " + (originalLocalReview ? 600000 : coreArgs === undefined ? 180000 : 3600000) +
+    ", expectedTests: " + JSON.stringify(coreExpectedTests) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
 
   {env: testEnv, stdio: compilerDriver ? ['inherit', 'pipe', 'pipe'] : 'inherit'});
   if (compilerDriver) {

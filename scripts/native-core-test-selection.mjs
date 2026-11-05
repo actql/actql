@@ -7,8 +7,52 @@ import {readFileSync, realpathSync} from 'node:fs';
 import {basename, dirname, relative, resolve, sep} from 'node:path';
 import {parseCommands} from './verification-actions.mjs';
 
+// These existing physical cases require the selected read provider. Ordinary
+// Core deliberately also tests the absence of that provider, so its allocator
+// must not be replaced globally. Both profiles remain required.
+export const nativeScopedTestFiles = Object.freeze([
+  'src/cmd/native_client/local_command_business_cleanup_wbtest.mbt',
+  'src/platform_native/installed_arena_control/initial_preparation_physical_scoped_wbtest.mbt',
+  'src/platform_native/installed_arena_control/local_host_crypto_physical_scoped_wbtest.mbt',
+  'src/platform_native/installed_arena_control/original_read_consumer_phases_scoped_wbtest.mbt',
+  'src/platform_native/installed_arena_control/original_read_consumer_scoped_wbtest.mbt',
+  'src/platform_native/installed_arena_control/original_read_root_binding_scoped_wbtest.mbt',
+  'src/platform_native/installed_arena_control/retained_execution_physical_scoped_wbtest.mbt',
+  'src/platform_native/installed_arena_control/store_operation_reentry_physical_scoped_wbtest.mbt',
+  'src/platform_native/installed_arena_control/store_result_return_physical_scoped_wbtest.mbt',
+  'src/platform_native/installed_arena_control/store_wal_original_physical_scoped_wbtest.mbt',
+]);
+const selectedGeometryFiles = new Set([
+  'src/cmd/native_client/local_command_business_wbtest.mbt',
+  'src/cmd/native_client/local_command_installed_profile_wbtest.mbt',
+]);
+
+function partitionProfiles(args, records) {
+  const scopedFiles = new Set(nativeScopedTestFiles);
+  const physical = records.filter(record => scopedFiles.has(record.source));
+  const ordinary = records.filter(record => !scopedFiles.has(record.source));
+  const geometry = ordinary.filter(record => selectedGeometryFiles.has(record.source));
+  assert.equal(ordinary.length + physical.length, records.length);
+  const affected = new Set(physical.map(record => record.directory));
+  const ordinaryPaths = [...new Set(ordinary.map(record =>
+    affected.has(record.directory) ? record.source : record.directory))];
+  const selectedPaths = [...new Set(records.filter(record =>
+    scopedFiles.has(record.source) || selectedGeometryFiles.has(record.source))
+    .map(record => record.source))];
+  // Empty PATH would run the whole project, never an empty profile.
+  return {
+    ordinary: {args: ordinaryPaths.length ? [...args, ...ordinaryPaths] : null,
+      cases: ordinary.length},
+    scoped: {args: selectedPaths.length ? [...args, ...selectedPaths] : null,
+      cases: physical.length + geometry.length},
+    physicalCases: physical.length,
+    repeatedGeometryCases: geometry.length,
+    uniqueCases: records.length,
+  };
+}
+
 export function nativeCoreTestSelection(repository, args, {
-  env = process.env, execute = execFileSync,
+  env = process.env, execute = execFileSync, partitionProfiles: splitProfiles = false,
 } = {}) {
   repository = realpathSync(repository);
   const deadline = Date.now() + 60000;
@@ -43,7 +87,7 @@ export function nativeCoreTestSelection(repository, args, {
     assert(drivers.size > 0, 'No compiler-owned Native test drivers');
     return drivers;
   };
-  const full = discover([]), packages = new Set(), cases = [];
+  const full = discover([]), packages = new Set(), cases = [], records = [];
   for (const [key, driver] of full) {
     // Never execute the other dry-run commands: no package build, C or link.
     run(driver.command.slice(1));
@@ -59,7 +103,12 @@ export function nativeCoreTestSelection(repository, args, {
       const directory = relative(repository, dirname(realpathSync(resolve(repository, originals[0]))));
       assert(directory !== '..' && !directory.startsWith('..' + sep));
       packages.add(directory || '.');
-      for (const test of tests) driver.cases.push([key, file, test]);
+      const source = relative(repository, realpathSync(resolve(repository, originals[0]))).split(sep).join('/');
+      for (const test of tests) {
+        const entry = [key, file, test];
+        driver.cases.push(entry);
+        records.push({entry, source, directory: directory || '.'});
+      }
     }
     cases.push(...driver.cases);
   }
@@ -73,6 +122,8 @@ export function nativeCoreTestSelection(repository, args, {
     selectedCases.push(...original.cases);
   }
   assert.deepEqual(selectedCases, cases, 'Native selection changed case identity or order');
-  return {args: [...args, ...paths], cases: cases.length, packages: paths.length,
+  const result = {args: [...args, ...paths], cases: cases.length, packages: paths.length,
     prunedDrivers: full.size - selected.size};
+  if (splitProfiles) result.profiles = partitionProfiles(args, records);
+  return result;
 }
