@@ -943,4 +943,7 @@ pub fn close_native_compute_runtime(runtime : NativeComputeRuntime) -> Unit {
     runtime.database.close()
     runtime.database_closed = true
   }
+  // The closed attempt retains its transport verifier and this same authority.
+  // Retire only that managed back-reference after the existing close sequence.
+  runtime.authority.settled = None
 }

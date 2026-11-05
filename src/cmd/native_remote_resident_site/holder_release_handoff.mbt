@@ -12,7 +12,7 @@ fn remember_holder_release(
   if retained.contains(identity) {
     return true
   }
-  guard max_tasks > 0 && retained.size() < max_tasks else { return false }
+  guard max_tasks > 0 && retained.length() < max_tasks else { return false }
   retained[identity] = request
   true
 }
@@ -116,7 +116,7 @@ fn finish_stopped_control_release(
 }
 
 ///|
-/// This array belongs to the same ended-holder carrier, including terminal
+/// This request map belongs to the same ended-holder carrier, including terminal
 /// handoff. Only the actual same-request Released report ACK removes a duty.
 fn finish_ended_holder_releases(
   original : EndedHolderResponsibility,
