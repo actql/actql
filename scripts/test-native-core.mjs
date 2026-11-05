@@ -12,6 +12,7 @@ import {nativeClientCheckpointFixture} from './native-client-checkpoint-fixture.
 import {nativePrivateHostFixture} from './native-private-host-fixture.mjs';
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
+import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -33,6 +34,9 @@ for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file'
 const bundle = nativeCompletedRestorationBundle();
 const args = process.argv.slice(2);
 const full = !['focused', 'reporting'].includes(classifyMoon('test', args).classification);
+const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_client'))
+  ? nativeProjectConfigurationFixture(namespace)
+  : {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: undefined};
 const privateHost = full || args.some(arg => arg.includes('platform_native/filesystem'))
   ? nativePrivateHostFixture(namespace) : {};
 const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/client_host'))
@@ -76,6 +80,7 @@ const result = spawnSync(full ? process.execPath : 'moon', full
   ...clientCheckpoint,
   ...privateHost,
   ...readerCustody,
+  ...projectConfiguration,
   ...testCompiler,
   ...(walFixture ? {ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE: walFixture} : {}),
   ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: join(namespace, 'standard'),

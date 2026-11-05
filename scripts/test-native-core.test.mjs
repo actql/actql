@@ -668,7 +668,7 @@ function fixture(t) {
     'native-core-c-compiler.mjs',
     'native-client-checkpoint-fixture.mjs', 'native-private-host-fixture.mjs',
     'native-filesystem-observation-fixture.mjs',
-    'native-runtime-reader-custody-fixture.mjs',
+    'native-runtime-reader-custody-fixture.mjs', 'native-project-configuration-fixture.mjs',
     'local-checks.mjs', 'local-checks-guard.mjs', 'local-checks-supervisor.mjs',
     'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
@@ -717,6 +717,20 @@ if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
 }
 const root = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT;
 console.log('CHILD_ROOT=' + root);
+if (process.env.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT) {
+  const project = process.env.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT;
+  assert.equal(project, join(root, 'project-configuration'));
+  assert.equal(statSync(project).mode & 0o777, 0o700);
+  assert.equal(JSON.parse(require('node:fs').readFileSync(join(project, 'actql.config.json'), 'utf8')).version, 'actql-config/0.1');
+  assert.equal(statSync(join(project, 'nearer/child')).isDirectory(), true);
+  assert.equal(statSync(join(project, 'oversize/actql.config.json')).size, 65537);
+  assert.equal(readlinkSync(join(project, 'symlink/actql.config.json')), '../actql.config.json');
+  assert.equal(existsSync(join(project, 'missing-bindings/connectors.json')), false);
+  assert.equal(JSON.parse(require('node:fs').readFileSync(join(project, 'plain/connectors.json'), 'utf8')).version, 'actql-connectors/0.1');
+  assert.equal(JSON.parse(require('node:fs').readFileSync(join(project, 'plain/model-tasks.json'), 'utf8')).version, 'actql-model-tasks/0.1');
+  assert.equal(existsSync(join(project, 'never-created')), false);
+  console.log('PROJECT_CONFIGURATION_FIXTURE_PROVISIONED');
+}
 if (process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT) {
   assert.equal(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT, root);
   for (const name of ['runtime-constructor-pending', 'runtime-constructor-acked']) {
@@ -1128,5 +1142,42 @@ test('strict Native checkpoint producers share the full release child compilatio
       'original producer must not invalidate the full child compilation cache');
     assert.deepEqual(calls[index].slice(-3), [file, '--index', '0']);
   }
+  f.verifyExternal();
+});
+
+
+test('Native project configuration inputs belong only to the selected fresh child', t => {
+  const f = fixture(t);
+  for (const args of [[], ['--deny-warn', 'src/cmd/native_client/local_project_configuration_wbtest.mbt']]) {
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs', ...args], {
+      cwd: f.checkout, encoding: 'utf8', timeout: 10000,
+      env: {...f.env, ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: f.parent},
+    });
+    assert.ifError(result.error); assert.equal(result.signal, null);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /PROJECT_CONFIGURATION_FIXTURE_PROVISIONED/u);
+    const owned = /CHILD_ROOT=(.*)/u.exec(result.stdout)?.[1];
+    assert(owned); assert.equal(existsSync(owned), false);
+    assert.equal(existsSync(join(f.parent, 'project-configuration')), false);
+    f.verifyExternal();
+  }
+  const unrelated = run(f, {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: f.parent});
+  assert.equal(unrelated.status, 0, unrelated.stderr);
+  assert.doesNotMatch(unrelated.stdout, /PROJECT_CONFIGURATION_FIXTURE_PROVISIONED/u);
+  f.verifyExternal();
+});
+
+test('failed Native project child retains its own fixtures and cannot adopt caller input', t => {
+  const f = fixture(t);
+  const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
+    '--deny-warn', 'src/cmd/native_client/local_project_configuration_wbtest.mbt'], {
+    cwd: f.checkout, encoding: 'utf8', timeout: 10000,
+    env: {...f.env, PROBE_MODE: 'failed', ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: f.parent},
+  });
+  assert.ifError(result.error); assert.equal(result.signal, null); assert.equal(result.status, 7);
+  const owned = /CHILD_ROOT=(.*)/u.exec(result.stdout)?.[1];
+  assert(owned); assert.equal(existsSync(join(owned, 'project-configuration/actql.config.json')), true);
+  assert.match(result.stderr, /original native child failure/u);
+  assert.match(result.stderr, /test failed; scratch kept:/u);
   f.verifyExternal();
 });
