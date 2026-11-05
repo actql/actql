@@ -659,7 +659,7 @@ const historicalFixtureWriters = new WeakMap();
 
 async function remoteHost(t, authorization, {directory,
   effectInstallation, sourceProfilePath, sourceProfilePaths, resolveSourceSecret, beforeDispatch,
-  hostCapacityPolicy, httpObserver} = {}) {
+  hostCapacityPolicy, httpObserver, singleRequestConnections = false} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   let dispatches = 0;
   const openHost = () => openInstalledRemoteHttpHost({
@@ -712,6 +712,7 @@ async function remoteHost(t, authorization, {directory,
         path: request.url, status: response.statusCode}));
       return host.handler(request, response);
     });
+  if (singleRequestConnections) server.maxRequestsPerSocket = 1;
   try { httpObserver?.server(server); }
   catch { /* Optional diagnostics do not change the original server. */ }
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -1767,7 +1768,10 @@ test(`acquired Effect second Source approval restores the first ${realization} c
       accountConfiguration: canonicalJson(configuration), resumeAfterAnswer: false,
       observe: (name, detail) => diagnostics.push({name, detail}),
     });
+    // Host execution and the client share this event loop. Keep idle socket expiry
+    // out of these Source-restoration assertions when synchronous execution is slow.
     const options = {directory, sourceProfilePaths, effectInstallation, httpObserver: httpPhase,
+      singleRequestConnections: true,
       resolveSourceSecret() { assert.fail('UnusedSourceSecret'); }};
     let host = await remoteHost(t, account(), options);
     const client = await host.as('owner-token');
