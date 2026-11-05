@@ -1810,14 +1810,17 @@ export async function createInstalledRowSource({moon, declaration, commands,
 
   // A declared keyed response port is selected before observing any left
   // rows. It is not a fabricated Direct requirement or an individual GET.
-  async function prepareKeyed({preparedProgram, keyedAcquisition, requestIdentity,
+  async function prepareKeyed({preparedProgram, preparedEffect, keyedAcquisition, requestIdentity,
     sourceAccess: access = sourceAccess}) {
     // This selected declaration covers the Direct reader only, not a keyed
     // child or listing report. Other original profiles retain their behavior.
     if (originalReader !== undefined) fail('InstalledProviderSourceUnavailable');
-    if (requestIdentity === undefined ||
-        moon.clientProgramMatchesRequestIdentity(preparedProgram, requestIdentity) !== true ||
-        moon.clientProgramKeyedAcquisitionMatchesProgram(keyedAcquisition, preparedProgram) !== true) {
+    if ((preparedProgram === undefined) === (preparedEffect === undefined) || requestIdentity === undefined ||
+        (preparedEffect === undefined
+          ? moon.clientProgramMatchesRequestIdentity(preparedProgram, requestIdentity) !== true ||
+            moon.clientProgramKeyedAcquisitionMatchesProgram(keyedAcquisition, preparedProgram) !== true
+          : moon.clientProgramEffectRequestScope(preparedEffect, requestIdentity) === undefined ||
+            moon.clientProgramKeyedAcquisitionMatchesEffectProgram(keyedAcquisition, preparedEffect) !== true)) {
       fail('InstalledSourceProgramMismatch');
     }
     const capacity = checked(moon.clientProgramKeyedRowPrepareCapacity(keyedAcquisition,
@@ -1853,7 +1856,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     });
     const decision = await decideRead(prepared, access);
     if (decision?.action === 'deny') fail(authorizationRuntimeCode(decision), decision);
-    keyedPreparations.set(prepared, {preparedProgram, keyedAcquisition, access,
+    keyedPreparations.set(prepared, {preparedProgram, preparedEffect, keyedAcquisition, access,
       physicalBindingCid: valueCid(prepared.physicalBinding)});
     return Object.freeze({prepared, occurrence: Object.freeze({stage, input, task})});
   }
@@ -2131,7 +2134,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     // capture or issuer between current authorization and row admission.
     return Object.freeze({capture, referenceIssuer: issuer});
   };
-  async function openKeyed({preparedProgram, preparedEffect, keyedAcquisition,
+  async function openKeyed({preparedProgram, preparedEffect, managedRun, keyedAcquisition,
     request, ledger, signal, preparedKeyed, chargeVerification, capturedResourcePath,
     keyedContent,
     sourceAccess: access = sourceAccess}) {
@@ -2181,12 +2184,13 @@ export async function createInstalledRowSource({moon, declaration, commands,
         fail('InstalledSourceEvidenceFactsUnavailable');
       }
       if (prepareKeyedSourceRead !== undefined) {
-        if (preparedEffect !== undefined || preparedKeyed === undefined ||
-            !keyedPreparations.has(preparedKeyed)) fail('InstalledSourcePreparationMismatch');
+        if (preparedKeyed === undefined || !keyedPreparations.has(preparedKeyed) ||
+            preparedEffect !== undefined && managedRun === undefined) fail('InstalledSourcePreparationMismatch');
         // The same installing Source retains its physical-child duty before
         // returning this Core original. Preserve it before current/getter use.
         originalKeyedRead = prepareKeyedSourceRead(Object.freeze({
-          checkedOwner: preparedProgram, keyedAcquisition, request, declaration}));
+          checkedOwner: preparedEffect ?? preparedProgram, keyedAcquisition, request, declaration,
+          ...(managedRun === undefined ? {} : {managedRun})}));
         checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(originalKeyedRead));
       }
       const acquisition = checked(originalKeyedRead === undefined
@@ -2198,7 +2202,8 @@ export async function createInstalledRowSource({moon, declaration, commands,
       const physicalBinding = physicalTarget(resource, columns);
       const scope = preparedKeyed === undefined ? undefined : keyedPreparations.get(preparedKeyed);
       if (preparedKeyed !== undefined && (scope === undefined ||
-          scope.preparedProgram !== preparedProgram || scope.keyedAcquisition !== keyedAcquisition ||
+          scope.preparedProgram !== preparedProgram || scope.preparedEffect !== preparedEffect ||
+          scope.keyedAcquisition !== keyedAcquisition ||
           scope.access !== access || valueCid(physicalBinding) !== valueCid(preparedKeyed.physicalBinding))) {
         fail('InstalledSourcePreparationMismatch');
       }
@@ -2377,7 +2382,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
   // Exact-key sharing changes physical reads, not original left multiplicity.
   // This assembles a right Relation input; it is not Source/task evidence.
   async function openKeyedLookup({preparedProgram, preparedEffect,
-    keyedAcquisition, left, ledger, signal, preparedKeyed, originalCapture,
+    keyedAcquisition, left, ledger, signal, preparedKeyed, originalCapture, originalCaptures, managedRun,
     keyedContent,
     sourceAccess: access = sourceAccess, maxWork = 1000000, quantum = 64}) {
     if (originalReader !== undefined) fail('InstalledProviderSourceUnavailable');
@@ -2470,14 +2475,22 @@ export async function createInstalledRowSource({moon, declaration, commands,
         let acquired;
         try {
           acquired = await openKeyed({preparedProgram, preparedEffect,
-            keyedContent,
+            keyedContent, managedRun,
             keyedAcquisition, request, ledger, signal, preparedKeyed, sourceAccess: access,
             capturedResourcePath: async (verifyRead, activeSignal) => {
-              if (typeof originalCapture?.originalRead !== 'function') fail('InstalledFileLocatorUnavailable');
-              const read = originalCapture.originalRead();
-              if (read === undefined) fail('InstalledFileLocatorUnavailable');
-              const locator = checked(moon.clientProgramKeyedFileLocatorStart(lookup, request,
-                originalCapture.source(), read));
+              let locator;
+              if (originalCaptures !== undefined) {
+                if (!Array.isArray(originalCaptures) || originalCaptures.length !== 2) fail('InstalledFileLocatorUnavailable');
+                locator = checked(moon.clientProgramComposedKeyedFileLocatorStart(lookup, request,
+                  originalCaptures.map(capture => capture.source()),
+                  originalCaptures.map(capture => capture.originalRead?.())));
+              } else {
+                if (typeof originalCapture?.originalRead !== 'function') fail('InstalledFileLocatorUnavailable');
+                const read = originalCapture.originalRead();
+                if (read === undefined) fail('InstalledFileLocatorUnavailable');
+                locator = checked(moon.clientProgramKeyedFileLocatorStart(lookup, request,
+                  originalCapture.source(), read));
+              }
               try {
                 for (;;) {
                   await verifyRead();

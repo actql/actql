@@ -9,8 +9,11 @@ struct ClientOriginalComposedKeyedPrefix {
   plan : @publication_host.ClientInferPlanGraph
   keyed : @publication_host.ClientKeyedAcquisition
   sources : Array[@query.CapturedInputSource]
+  captures : @row_source_host.RowCapturedInputs
   sequence : @execution.GeneratedSequence
   inputs : Array[(Int, Int, @execution.ProducerRead)]
+  mut output : @execution.CompletedOutput?
+  mut left : @publication_host.ClientKeyedLeftRead?
 }
 
 ///|
@@ -20,13 +23,13 @@ pub fn start_client_original_composed_keyed_prefix(
   definition : @publication.PublicationContract,
   plan : @publication_host.ClientInferPlanGraph,
   keyed : @publication_host.ClientKeyedAcquisition,
-  sources : Array[@query.CapturedInputSource],
+  rows : Array[@row_source_host.RowSourceCapture],
   input_prefix : @execution.GeneratedSequence,
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue] {
-  let ledger = match @publication_host.borrow_client_original_composed_keyed_ledger(
-    scope, compiled, definition, plan, keyed, sources,
+  let (ledger, captures, sources) = match @publication_host.retain_client_original_composed_keyed_captures(
+    scope, compiled, definition, plan, keyed, rows,
   ) {
     Ok(value) => value
     Err(issue) => return Err(Original(issue))
@@ -42,7 +45,7 @@ pub fn start_client_original_composed_keyed_prefix(
     return Err(Unavailable)
   }
   let inputs = match @publication_host.prepare_client_original_composed_keyed_inputs(
-    scope, compiled, definition, plan, keyed, sources, sequence,
+    scope, compiled, definition, plan, keyed, sources, captures, sequence,
     execution.rows.operation_entries, measurement.max_bytes,
   ) {
     Ok(value) => value
@@ -53,7 +56,8 @@ pub fn start_client_original_composed_keyed_prefix(
   // provider. Both actual inputs stay borrowed until its real cleanup ACK.
   start_serialization_prefix_provider(sequence, provider, capacity, actual,
     execution, measurement, ledger, None).map(prefix => {
-    prefix, scope, compiled, definition, plan, keyed, sources: sources.copy(), sequence, inputs,
+    prefix, scope, compiled, definition, plan, keyed, sources: sources.copy(), captures, sequence, inputs,
+    output: None, left: None,
   })
 }
 
@@ -63,15 +67,39 @@ pub fn client_original_composed_keyed_prefix_execution(
 ) -> ClientSerializationPrefix { value.prefix }
 
 ///|
+pub fn advance_client_original_composed_keyed_prefix(
+  value : ClientOriginalComposedKeyedPrefix,
+  quantum : Int,
+) -> Result[@local.ManagedProviderPoll, @connector.FixedComputeIssue] {
+  let poll = match advance_client_serialization_prefix(value.prefix, quantum) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if poll is @local.Complete(output, ..) {
+    guard @execution.retain_completed_segment_inputs(output, value.sequence, value.inputs, 100000)
+      is Some(retained) && @execution.completed_segment_inputs_output(
+        retained, value.sequence, value.inputs,
+      ) is Some(actual) else { return Err(@connector.Execution(@execution.InputSet)) }
+    value.output = Some(actual)
+  }
+  Ok(poll)
+}
+
+///|
 pub fn complete_client_original_composed_keyed_prefix(
   value : ClientOriginalComposedKeyedPrefix,
-  output : @execution.CompletedOutput,
   max_entries : Int,
   max_name_bytes : Int,
 ) -> Result[@publication_host.ClientKeyedLeftRead, @publication_host.ClientKeyedRequestIssue] {
+  if value.left is Some(_) { return Err(Assembly("original_prefix_already_bound")) }
+  guard value.output is Some(output) else { return Err(ForeignLeft) }
+  let work = match client_serialization_prefix_work(value.prefix) {
+    Ok(value) => value
+    Err(_) => return Err(Assembly("prefix_work_unavailable"))
+  }
   @publication_host.prepare_client_original_composed_keyed_left(
     value.scope, value.compiled, value.definition, value.plan, value.keyed,
-    value.sources, value.sequence, value.inputs, output, value.prefix.reservation,
+    value.sources, value.captures, value.sequence, value.inputs, output, value.prefix.reservation, work,
     max_entries, max_name_bytes,
-  )
+  ).map(left => { value.left = Some(left); left })
 }

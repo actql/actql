@@ -94,6 +94,28 @@ fn row_captured_inputs_current(value : RowCapturedInputs) -> Bool {
 }
 
 ///|
+// Lifetime observation after the exact Row allocation is handed to its SAME
+// DAG. New-construction helpers above retain their stricter no-DAG census.
+pub fn row_captured_inputs_live(value : RowCapturedInputs, ledger : @resources.Ledger) -> Bool {
+  if !physical_equal(value.ledger, ledger) { return false }
+  for capture in value.captures {
+    if row_capture_source(capture) is Err(_) { return false }
+  }
+  for index, capture in value.captures {
+    let (reservation, original) = value.originals[index]
+    guard !capture.run.closed && capture.run.physical is Some(physical) &&
+      physical_equal(physical.ledger, ledger) && physical_equal(physical.reservation, reservation) else { return false }
+    match (physical.dag, physical.holding) {
+      (None, Some(holding)) => if !physical_equal(holding, original) { return false }
+      (Some((dag, task)), None) =>
+        if !@strategy.captured_task_allocation_matches(dag, task, original) { return false }
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
 // Exact whole-input check after all callbacks, before the existing Local
 // prefix reserves. Equal requirements cannot replace physical capture custody.
 pub fn row_captures_original_prefix_available(

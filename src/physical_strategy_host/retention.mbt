@@ -829,6 +829,19 @@ pub fn retain_captured_task_allocation(
 }
 
 ///|
+// A borrowed current observation of the SAME allocation transferred by Row.
+// It issues neither a holding nor cleanup permission.
+pub fn captured_task_allocation_matches(
+  run : CapturedDAG,
+  task : Int,
+  holding : @resources.Holding,
+) -> Bool {
+  run.resources.get(task).bind(value => value).bind(resource => resource.holding)
+  .map(original => physical_equal(original, holding) && @resources.holding_available(run.ledger, holding))
+  .unwrap_or(false)
+}
+
+///|
 /// Poll the original attached physical-release checks after Host cleanup.
 /// This does not close any result, acknowledge cleanup, or replace its check.
 /// Already disposed executions retain their original reservation until their

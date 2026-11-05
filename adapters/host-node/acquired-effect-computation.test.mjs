@@ -669,7 +669,7 @@ function inferOriginalComponentFixture({refusal} = {}) {
     }, openNodeComposedInferProvider(context) {
       assert.strictEqual(context.sources, admitted); assert.strictEqual(context.plan.compiled, compiled);
       assert.strictEqual(context.control, control); calls.push('provider'); context.retainOperation(operation); return operation;
-    }, originalModelComponent: undefined};
+    }, originalModelComponent: undefined, keyedFamily: undefined};
   const actual = inferSourceText.slice(inferComponentNode[0].init.start, inferComponentNode[0].init.end);
   const invoke = new Function(...Object.keys(ports), 'let modelPlan,inferOperation,inferCapture;return (' + actual + ')();');
   return {invoke: () => invoke(...Object.values(ports)), operation, calls};
