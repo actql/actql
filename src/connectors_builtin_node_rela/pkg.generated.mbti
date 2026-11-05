@@ -520,6 +520,8 @@ pub fn client_program_complete_request_model_preparation(@client_local_host.Clie
 
 pub fn client_program_complete_request_serialization_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedSerializationPreparation) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
+pub fn client_program_composed_infer_sources_match(@run_publication_host.ClientInferComposedSources, @run_publication_host.ClientInferOccurrence) -> Bool
+
 pub fn client_program_confirmed_cancelled_unpublished_run_state(String, String, Array[String], Int, Int, Int) -> Result[String, @run_publication.RunStateIssue]
 
 pub fn client_program_construct_program_json_preparation(@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit]) -> Result[Unit, @client_local_host.ClientProgramJsonPreparationIssue]

@@ -5108,7 +5108,7 @@
     },
     {
       "module": "src/run_publication_host/client_infer_call_scope.mbt",
-      "sha256": "a682d4daacca457092c6e2828b01164d2cfd53f8ef99c205683696a5dd72af49",
+      "sha256": "2a960409697f5ccfee898bb84d0a6f9c00afabb793690f2be968a7f2e71cb99c",
       "exports": [],
       "operations": [
         {

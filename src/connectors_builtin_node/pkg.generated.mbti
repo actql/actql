@@ -820,6 +820,8 @@ pub fn client_program_composed_infer_occurrences(@run_publication_host.PreparedC
 
 pub fn client_program_composed_infer_retained_limits(@client_infer_host.Limits) -> Array[Int64]
 
+pub fn client_program_composed_infer_sources_match(@run_publication_host.ClientInferComposedSources, @run_publication_host.ClientInferOccurrence) -> Bool
+
 pub fn client_program_composed_keyed_file_locator_start(@run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequest, Array[@execution_query.CapturedInputSource], Array[@execution_relation.SuppliedRelationRead?]) -> Result[@run_publication_host.ClientKeyedFileLocator, @run_publication_host.ClientKeyedRequestIssue]
 
 pub fn client_program_confirmed_cancelled_unpublished_run_state(String, String, Array[String], Int, Int, Int) -> Result[String, @run_publication.RunStateIssue]

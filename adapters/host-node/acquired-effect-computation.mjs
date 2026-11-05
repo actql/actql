@@ -919,6 +919,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     bind(context) {
       ({captures, evidence, captureStartedAt, captureCompletedAt, keyedFamily} = context);
       const sourceEvidence = evidence.map(value => value.sourceEvidence);
+      const sourceClosures = [];
       for (const child of children) {
         same();
         if (child.restoredInput !== undefined && captures.length === 2 && checked(
@@ -930,15 +931,24 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
               restoredKeyed.logicalRelationCid !== original.logicalRelationCid)) throw new Error('RestoredModelSourceOriginalsUnavailable');
           restoredKeyed = original;
         }
-        const sources = child.restoredInput !== undefined || captures.length === 0 || context.contentFamily !== undefined ? undefined
-          : acquired.control.admitComposedInferSources(child.selection.occurrence, captures, sourceEvidence,
-            acquired.authorityScopeCid, captureStartedAt, captureCompletedAt, keyedFamily?.observation);
+        const ownsKeyed = keyedFamily !== undefined && checked(
+          moon.clientProgramEffectComposedModelKeyedAcquisition(acquired.prepared, child.selection.graph)) !== undefined;
+        let sources;
+        if (child.restoredInput === undefined && captures.length !== 0 && context.contentFamily === undefined) {
+          const inherited = sourceClosures.filter(original =>
+            acquired.control.composedInferSourcesFor(child.selection.occurrence, original) === original);
+          if (inherited.length > 1) throw new Error('ForeignInstalledEffectModelSources');
+          sources = inherited[0] ?? acquired.control.admitComposedInferSources(
+            child.selection.occurrence, captures, sourceEvidence, acquired.authorityScopeCid,
+            captureStartedAt, captureCompletedAt, ownsKeyed ? keyedFamily.observation : undefined);
+          if (!sourceClosures.includes(sources)) sourceClosures.push(sources);
+        }
         child.component.bindOriginal({moon, selected: child.selection, sources, control: acquired.control, plan,
           originalPreparation: child.originalPreparation, assertRuntimeCurrent: child.originalPreparation.assertRuntimeCurrent,
           principalId, signal, now, durableCalls: true, restoredInput: child.restoredInput,
           ...(context.contentFamily === undefined ? {} : {generatedInput: {
             generation: () => context.contentFamily.generation(), recovery: () => context.contentFamily.recovery()}}),
-          capturedInput: keyedFamily?.capturedInput,
+          capturedInput: ownsKeyed ? keyedFamily.capturedInput : undefined,
           retainOperation(operation) {
             child.operation = operation;
             child.capture = openNodeInferCaptureCustody({moon, control: acquired.control, operation, plan, store,

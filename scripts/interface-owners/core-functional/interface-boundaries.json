@@ -2364,7 +2364,8 @@
             "siteControl/siteControl#3",
             "tuplePair/tuplePair",
             "usageKeys/usageKeys",
-            "usageKeys/usageKeys/usageKeys"
+            "usageKeys/usageKeys/usageKeys",
+            "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor"
           ],
           "exports": [
             "contentCaptureControl",
@@ -9848,6 +9849,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
+          "parameters": [
+            "occurrence",
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:defineCheckedClientCompiledRun/init:defineCheckedClientCompiledRun",
           "parameters": [
             "compiled",
@@ -15086,7 +15095,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fdce9a2c9931e3a9f484ccef47a2c849f23daaa353e59a9f60a183f36d64d134"
+      "sha256": "6f465b192e79ce83f63fcb9df0cd8114e6bf2df8b71ae8d0b2214a76a66e42ef"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",

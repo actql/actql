@@ -626,6 +626,13 @@ fn infer_scope_expected_sources(
   if count < 1 || count > 2 || occurrence.task < count {
     return Err(UnsupportedBindings)
   }
+  guard client_infer_composed_source_origin(occurrence) is Some(original) else {
+    return Err(ForeignInput)
+  }
+  if client_infer_occurrence_coordinates(original) !=
+    client_infer_occurrence_coordinates(occurrence) {
+    return infer_scope_expected_sources(original)
+  }
   let pipeline = @lower.pipeline(
     @lower.bound_preparation(occurrence.preparation),
   )
@@ -658,6 +665,36 @@ fn infer_scope_expected_sources(
       return Err(ForeignInput)
     }
     expected.push((name, facts))
+  }
+  match client_composed_keyed_source_coordinates(owner) {
+    Ok(None) => ()
+    Ok(Some((stage, input, join))) => {
+      guard stage == occurrence.stage &&
+        join < occurrence.step &&
+        prepare_client_keyed_acquisition(
+          owner,
+          stage,
+          input,
+          1000000,
+          join_step=Some(join),
+        )
+        is Ok(keyed) &&
+        client_keyed_acquisition_coordinates(keyed) is Some((_, task, _)) &&
+        task == occurrence.task &&
+        @planning.keyed_source_evidence_facts(keyed.facts) is Some(facts) else {
+        return Err(ForeignInput)
+      }
+      // Source declaration ordinals and lowered input slots are distinct. Use
+      // the same original declared name as the live composed lookup projection.
+      let subject = @checked.source_execution_subject(keyed.check)
+      let name = @acquisition.declaration(subject.source).input_name
+      guard @pipeline.lookup(pipeline, name) is Some(@pipeline.Input(_)) &&
+        !expected.any(item => item.0 == name) else {
+        return Err(ForeignInput)
+      }
+      expected.push((name, facts))
+    }
+    Err(_) => return Err(ForeignInput)
   }
   Ok(expected)
 }

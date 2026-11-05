@@ -955,7 +955,7 @@ test('saved non-keyed Model preserves the ordinary Host route without projecting
 
 // Execute the actual private group continuation with explicit nominal ports.
 // These are ownership/routing controls, not Model dispatch or Store admission.
-function effectModelGroupFixture({foreignRecord = false, pendingSecond = false} = {}) {
+function effectModelGroupFixture({foreignRecord = false, pendingSecond = false, keyed = false} = {}) {
   const fn = inferSourceNodes.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'acquiredEffectModelGroup');
   assert(fn);
   const selections = Object.freeze([0, 1].map(index => Object.freeze({graph: {index}, occurrence: {},
@@ -969,6 +969,7 @@ function effectModelGroupFixture({foreignRecord = false, pendingSecond = false} 
     component: components[index], scope: {}, control: {}, compiled: plan.compiled, runDefinition: plan.runDefinition})));
   const originalPreparation = Object.freeze({components: preparations});
   const captures = [{capture: {}}], sourceEvidence = {}, evidence = [{sourceEvidence}];
+  const sourceClosureOriginal = {}, keyedObservation = {}, capturedInput = {};
   const continuation = index => ({entry: slot => slot === index ? {index} : undefined,
     async authorize() {events.push(['authorize', index]); return {status: 'waiting_checkpoint', checkpoint: index};},
     async close() {events.push(['close-journal', index]); return true;},
@@ -983,12 +984,23 @@ function effectModelGroupFixture({foreignRecord = false, pendingSecond = false} 
     }};
   const sourceClosure = {}, sourceContinuation = {async retainAll() {events.push(['source-closure']); return sourceClosure;}};
   const moon = {clientProgramInferPlanBoundary(graph) {return {_0: graph.index};},
-    clientProgramEffectCompilationResultNames: () => ['answer']};
+    clientProgramEffectCompilationResultNames: () => ['answer'],
+    clientProgramEffectComposedModelKeyedAcquisition(prepared, graph) {
+      assert(selections.some(selection => selection.graph === graph));
+      return {$tag:1, _0: graph === selections[0].graph ? keyedObservation : undefined};
+    }};
   const control = {runDefinitionRunId: () => 'component-run',
-    admitComposedInferSources(occurrence, actualCaptures, originals, scope, start, end) {
+    composedInferSourcesFor(occurrence, original) {
+      assert.strictEqual(original, sourceClosureOriginal);
+      assert.strictEqual(occurrence, selections[1].occurrence);
+      return keyed ? original : undefined;
+    },
+    admitComposedInferSources(occurrence, actualCaptures, originals, scope, start, end, lookup) {
       assert(selections.some(selection => selection.occurrence === occurrence));
       assert.strictEqual(actualCaptures, captures); assert.strictEqual(originals[0], sourceEvidence);
-      assert.deepEqual([scope, start, end], ['scope', 'start', 'end']); events.push(['sources']); return {};
+      assert.deepEqual([scope, start, end], ['scope', 'start', 'end']);
+      assert.strictEqual(lookup, keyed && occurrence === selections[0].occurrence ? keyedObservation : undefined);
+      events.push(['sources']); return sourceClosureOriginal;
     }};
   const ports = {canonicalJson: value => JSON.stringify(value), runtimeField: (value, index) => value[`_${index}`],
     checked: value => {assert.equal(value.$tag, 1); return value._0;},
@@ -1006,9 +1018,10 @@ function effectModelGroupFixture({foreignRecord = false, pendingSecond = false} 
     infer: {components: selections}, originalModelComponents: components,
     originalModelSelection: {components: selections}, originalPreparation, plan, modelController,
     sourceContinuation, current() {if (invalid) throw new Error('OriginalCurrentLost');}});
-  return {group, contexts, events, prime: () => group.prime(),
+  return {group, contexts, events, sourceClosureOriginal, capturedInput, prime: () => group.prime(),
     bind() {
-      group.bind({captures, evidence, captureStartedAt: 'start', captureCompletedAt: 'end'});
+      group.bind({captures, evidence, captureStartedAt: 'start', captureCompletedAt: 'end',
+        ...(keyed ? {keyedFamily: {observation:keyedObservation, capturedInput, evidence:{source:sourceEvidence}}} : {})});
       for (const [index, context] of contexts.entries()) context.retainOperation({index,
         preparedCallSet: () => ({}), pendingSettlement: () => ({index}), settlementSlot: () => index});
     }, settle() {secondClosed = true;}, revoke() {invalid = true;}};
@@ -1033,4 +1046,15 @@ test('plural Effect rejects foreign saved inventory and lost current before jour
   const changed = effectModelGroupFixture(); await changed.prime(); changed.bind(); changed.revoke();
   await assert.rejects(changed.group.handlePause({task: 0, slot: 0, status: 'waiting'}), /OriginalCurrentLost/u);
   assert.equal(changed.events.some(event => event[0] === 'journal'), false);
+});
+
+
+test('plural Effect downstream Model retains original Source provenance and consumes its own Result rather than an earlier keyed input', async () => {
+  const f = effectModelGroupFixture({keyed:true}); await f.prime(); f.bind();
+  assert.equal(f.events.filter(event => event[0] === 'sources').length, 1);
+  assert.strictEqual(f.contexts[0].sources, f.sourceClosureOriginal);
+  assert.strictEqual(f.contexts[1].sources, f.sourceClosureOriginal);
+  assert.strictEqual(f.contexts[0].capturedInput, f.capturedInput);
+  assert.equal(f.contexts[1].capturedInput, undefined);
+  assert.equal(await f.group.cleanup(true), true);
 });

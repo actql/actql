@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "07cb72fc4cde7ea4951e6c8f9fe11630387abf1bf157ccd6377b12c1503b6366",
+      "sha256": "b76a5b1ac9ad9ff300ab8507e493d1dd1aec2c5a1412c0b1e9b63c3644d9e937",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -121,6 +121,13 @@
           "name": "acquiredEffectModelGroup/init:bind/init:bind",
           "parameters": [
             "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -779,7 +786,8 @@
             "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted",
             "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted#2",
             "acquiredEffectModelGroup/same/same",
-            "acquiredEffectModelGroup/same/same/same"
+            "acquiredEffectModelGroup/same/same/same",
+            "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited"
           ],
           "exports": [
             "openAcquiredEffectComputation"

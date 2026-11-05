@@ -18102,7 +18102,8 @@
             "publicationControl/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
-            "publicationControl/token/token"
+            "publicationControl/token/token",
+            "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor"
           ],
           "exports": [],
           "attributes": {
@@ -26246,6 +26247,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
+          "parameters": [
+            "occurrence",
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:defineCheckedClientCompiledRun/init:defineCheckedClientCompiledRun",
           "parameters": [
             "compiled",
@@ -31484,7 +31493,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fdce9a2c9931e3a9f484ccef47a2c849f23daaa353e59a9f60a183f36d64d134"
+      "sha256": "6f465b192e79ce83f63fcb9df0cd8114e6bf2df8b71ae8d0b2214a76a66e42ef"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -32110,7 +32119,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "07cb72fc4cde7ea4951e6c8f9fe11630387abf1bf157ccd6377b12c1503b6366",
+      "sha256": "b76a5b1ac9ad9ff300ab8507e493d1dd1aec2c5a1412c0b1e9b63c3644d9e937",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32225,6 +32234,13 @@
           "name": "acquiredEffectModelGroup/init:bind/init:bind",
           "parameters": [
             "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -32880,7 +32896,8 @@
             "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted",
             "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted#2",
             "acquiredEffectModelGroup/same/same",
-            "acquiredEffectModelGroup/same/same/same"
+            "acquiredEffectModelGroup/same/same/same",
+            "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited"
           ],
           "exports": [
             "openAcquiredEffectComputation"
