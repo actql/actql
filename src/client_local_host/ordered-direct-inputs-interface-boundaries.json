@@ -28,6 +28,7 @@
             "installed_managed_run_accounting",
             "installed_managed_run_accounting_values",
             "installed_managed_run_compilation_original",
+            "installed_managed_run_model_input_prefix",
             "installed_managed_run_invocation_original",
             "installed_managed_run_owner",
             "installed_managed_run_purpose_supported",
@@ -231,6 +232,10 @@
           "declaration": "installed_managed_run_invocation_original ( run : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
         },
         {
+          "name": "installed_managed_run_model_input_prefix",
+          "declaration": "installed_managed_run_model_input_prefix ( run : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ @ execution . GeneratedSequence , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "installed_managed_run_owner",
           "declaration": "installed_managed_run_owner ( value : ClientInstalledManagedRun , ) - > Result [ ClientLocalSequenceOwner , ClientInstalledManagedRunIssue ]"
         },
@@ -315,7 +320,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "a68472acccbfb8a2baaef515ea1ab4d99ca9b36bf03129d2684614423d928be7"
+      "sha256": "68893a4e6e79fd222351c814c40dd7f643bd5d5cff299321b12bef6a55fcea54"
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",

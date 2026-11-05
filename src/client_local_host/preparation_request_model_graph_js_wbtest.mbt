@@ -3517,3 +3517,113 @@ test "native protocol preflight sizes a long String as one node and retains old 
     )
   }
 }
+
+///|
+// Real Request/module/Plan/adoption originals, explicit Resource/provider
+// component ports. This getter proves no normal physical capacity or IO.
+test "adopted captured Model reads only its retained original prefix before payload retirement" {
+  let ticks = Ref(0)
+  let f = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+    current=() => {
+      ticks.val += 1
+      true
+    },
+  )
+  let provider = @execution.execution_capacity(7L, 9L).unwrap()
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => [],
+    providers=Some([Some(provider)]),
+  ).unwrap()
+  let expected = prepared_request_model_input_prefix(original).unwrap()
+  let plan = prepare_installed_mock_model_capture_plan_binding(
+    original,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+  ).unwrap()
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  assert_true(physical_equal(run.captured_preparation.unwrap(), original))
+  let work = @resources.ledger_usage(f.parent.ledger)
+  let quantities = @resources.quantity_usage(f.parent.ledger)
+  let calls = ticks.val
+  for _ in 0..<2 {
+    assert_true(
+      physical_equal(
+        installed_managed_run_model_input_prefix(run, f.prepared).unwrap(),
+        expected,
+      ),
+    )
+  }
+  assert_eq(ticks.val, calls)
+  assert_eq(@resources.ledger_usage(f.parent.ledger), work)
+  assert_eq(@resources.quantity_usage(f.parent.ledger), quantities)
+  let other = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+  )
+  assert_true(
+    installed_managed_run_model_input_prefix(run, other.prepared)
+    is Err(ForeignOriginal),
+  )
+  // Equal-looking DATA cannot change this adopted Run's Request association.
+  let copied_request = @publication_host.prepare_source_free_client_request_identity(
+    f.prepared,
+    "sha256:" + "a".repeat(64),
+    "copied-model-prefix-request",
+  ).unwrap()
+  run.captured_preparation = Some({ ..original, request: copied_request, })
+  assert_true(
+    installed_managed_run_model_input_prefix(run, f.prepared)
+    is Err(ForeignOriginal),
+  )
+  run.captured_preparation = Some(original)
+  assert_true(
+    physical_equal(
+      installed_managed_run_model_input_prefix(run, f.prepared).unwrap(),
+      expected,
+    ),
+  )
+  assert_false(@resources.return_preparation_body_borrow(other.holder).unwrap())
+  abort_request_preparation_after_cleanup(other.parent).unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_true(
+    installed_managed_run_model_input_prefix(run, f.prepared)
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}

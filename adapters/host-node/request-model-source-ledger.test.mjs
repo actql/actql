@@ -433,6 +433,10 @@ function directCapturedModelFixture({taskCount = 1, retireBeforeRead = false, re
   const originalSources = {};
   const moon = {clientProgramAcquisitionCount: p => {assert.strictEqual(p, prepared); return 1;},
     clientProgramTaskCount: p => {assert.strictEqual(p, prepared); return taskCount;},
+    clientProgramInstalledManagedRunModelInputPrefix(run, p) {
+      assert.strictEqual(run, parent); assert.strictEqual(p, prepared);
+      calls.push('same original prefix'); return {$tag: 1, _0: prefix};
+    },
     clientProgramSelectSingleKeyedAcquisition: () => ({$tag: 1, _0: undefined}),
     clientProgramInferPlanBoundary: g => {assert.strictEqual(g, graph); return {_0: 0};}};
   managed.runtime = moon;
@@ -468,7 +472,7 @@ function directCapturedModelFixture({taskCount = 1, retireBeforeRead = false, re
 test('same-stage acquired Model uses its original kernel instead of publishing a captured DAG root', async () => {
   const f = directCapturedModelFixture();
   await assert.rejects(f.run(), error => error === f.primary);
-  assert.deepEqual(f.calls, ['same Source evidence', 'same read', 'same original kernel']);
+  assert.deepEqual(f.calls, ['same Source evidence', 'same original prefix', 'same read', 'same original kernel']);
   assert.equal(await f.cleanup().close(), true);
   assert.deepEqual(f.calls.slice(-2), ['same read retirement', 'same Scope finish']);
   assert.equal(f.cleanup().cleanupPending(), false);

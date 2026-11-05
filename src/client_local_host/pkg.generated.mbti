@@ -484,6 +484,8 @@ pub fn installed_managed_run_compilation_original(ClientInstalledManagedRun, @ru
 
 pub fn installed_managed_run_invocation_original(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?
 
+pub fn installed_managed_run_model_input_prefix(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[@execution_relation.GeneratedSequence, ClientInstalledManagedRunIssue]
+
 pub fn installed_managed_run_requirements(@run_publication_host.PreparedClientProgram, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
 
 pub fn installed_managed_source_input_kind(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[String, ClientInstalledManagedRunIssue]

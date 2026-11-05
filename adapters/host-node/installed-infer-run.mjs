@@ -565,8 +565,13 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       const admitted = control.admitComposedInferSources(selected.occurrence,
         [acquiredInfer.captured], [acquiredInfer.sourceEvidence], authorityScopeCid,
         acquiredInfer.captureStartedAt, acquiredInfer.captureCompletedAt);
-      composedInput = {occurrence: selected.occurrence, prefix: selected.computePrefix,
-        inputs: [], sources: admitted};
+      directRequestModel.assertRuntimeCurrent();
+      // The module compiled this prefix once before adoption. Read its SAME
+      // native Run/Request original; the early selection intentionally has no
+      // independently prepared segments. No Plan alias is recreated in JS.
+      composedInput = {occurrence: selected.occurrence,
+        prefix: checked(moon.clientProgramInstalledManagedRunModelInputPrefix(
+          acquiredInfer.managedRun, preparedProgram)), inputs: [], sources: admitted};
       originalPreparation = directRequestModel.prepareRead();
     }
     if (originalInstallation !== undefined) {

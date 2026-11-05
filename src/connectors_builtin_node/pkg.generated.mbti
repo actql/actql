@@ -1758,6 +1758,8 @@ pub fn client_program_installed_managed_run_invocation_original(@client_local_ho
 
 pub fn client_program_installed_managed_run_issue_is_unsupported(@client_local_host.ClientInstalledManagedRunIssue) -> Bool
 
+pub fn client_program_installed_managed_run_model_input_prefix(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[@execution_relation.GeneratedSequence, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_managed_run_prepare_ledger(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[@physical_resources.Ledger, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_run_quiesce(@client_local_host.ClientInstalledManagedRun) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
