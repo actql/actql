@@ -21,6 +21,10 @@ export function validateLimits(limits) {
       throw new DuckDBTransportError('InvalidLimits');
     }
   }
+  if (limits.maxSourceRows !== undefined &&
+      (!Number.isSafeInteger(limits.maxSourceRows) || limits.maxSourceRows < 0)) {
+    throw new DuckDBTransportError('InvalidLimits');
+  }
   return Object.freeze(limits);
 }
 
@@ -32,7 +36,7 @@ export function prepareDuckDBStrategyConfiguration({
   const validated = validateLimits(transportLimits);
   const transport = Object.freeze(Object.fromEntries([
     'maxRows', 'maxCells', 'maxTransportBytes', 'maxSqlBytes', 'maxParameters',
-    'maxColumns', 'memoryBytes', 'threads', 'cancelWaitMs', 'maxChunkRows', 'maxChunkBytes',
+    'maxColumns', 'memoryBytes', 'threads', 'cancelWaitMs', 'maxChunkRows', 'maxChunkBytes', 'maxSourceRows',
   ].map(key => [key, validated[key]])));
   const imports = Object.freeze({maxRows: importLimits?.maxRows, maxCells: importLimits?.maxCells});
   for (const value of Object.values(imports)) {

@@ -99,7 +99,8 @@ test('native coordinator requires both exact settled receipts and revokes failed
     const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
     const events = [];
     let transferred = 0;
-    const captured = await runNativeQuery(grant, factory(events, 'success'), limits, undefined, {
+    const captured = await runNativeQuery(grant, factory(events, 'success'),
+      {...limits, maxSourceRows: 3}, undefined, {
       started() { assert.deepEqual(events, []); },
       chargeTransfer(bytes) { transferred += bytes; assert(!events.includes('complete')); },
       settled(confirmed) {
@@ -116,6 +117,26 @@ test('native coordinator requires both exact settled receipts and revokes failed
     captured.close(); captured.close();
     assert.throws(() => captured.bindInput(false), { code: 'IssuerClosed' });
     assert.equal(events.filter(event => event === 'close').length, 1);
+    const sourceRefused = [];
+    const sourceLimits = {...limits, maxSourceRows: 2};
+    const prepareSourceRefusal = verify => {
+      const same = factory(sourceRefused, 'success')(verify);
+      return {...same, port: {...same.port,
+        acceptMetadata(...args) {
+          sourceLimits.maxSourceRows = 3;
+          return same.port.acceptMetadata(...args);
+        },
+        nativeSql() { assert.fail('Source overflow must precede native filtering'); },
+      }};
+    };
+    await assert.rejects(runNativeQuery(grant, prepareSourceRefusal, sourceLimits), error => {
+      assert.equal(error.code, 'SourceRows');
+      assert.equal(acquisitionOutcome(error).outcome, 'stopped');
+      return true;
+    });
+    assert.deepEqual(sourceRefused.slice(-2), ['attempt-abort', 'close']);
+    assert(!sourceRefused.includes('native_result-begin'));
+    assert(!sourceRefused.includes('complete'));
     for (const mode of ['foreign-validation_scan', 'foreign-native_result',
       'cancel-validation_scan', 'cancel-native_result', 'completion-failure', 'async-completion']) {
       const failed = [];
