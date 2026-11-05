@@ -3088,7 +3088,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             memberIndex: member.memberIndex, perRow: false, rowIndex: 0,
             operationIndex: selected.operationIndex, operation,
             ...(selected.inputExtent === undefined ? {} : {inputExtent: () =>
-              selected.inputExtent(facts.previewWire, facts.durable.connectorRecovery)}),
+              selected.inputExtent(facts.previewWire, facts.durable.connectorRecovery, member.memberIndex)}),
             construct: () => index + 1 === members.length ? recoveredEntries(facts) : calls[index + 1](),
             requestsRetired: () => input.retiring && input.borrowers === 0 && input.result === undefined});
           // The raw selected constructor is synchronous. Retain before any
