@@ -22,6 +22,46 @@ const pause = value => {
     async run() { entered.resolve(); await released.promise; return value; }};
 };
 
+// Explicit original Plan/Request ports for the composition-only computation
+// cases below. These preserve identity through the current entrance and stop
+// at the authored await/refusal; they supply no actual runtime funding or Host.
+function managedComposition(acquired, count) {
+  const prepared = acquired.prepared, request = {}, managedRun = {}, operationPlan = {},
+    requirement = {}, selected = {}, ledger = {}, preparedSource = {}, capacity = {};
+  const budget = Object.freeze({managedRun, capacity, transferBytes: 17n, executionBytes: 19n});
+  const same = (parent, actual, identity) => {
+    assert.strictEqual(parent, managedRun); assert.strictEqual(actual, prepared); assert.strictEqual(identity, request);
+  };
+  const moon = {
+    clientProgramEffectAcquisitionCount(actual) {assert.strictEqual(actual, prepared); return count;},
+    clientProgramInstalledEffectManagedOperationPlan(parent, actual, identity) {
+      assert.strictEqual(this, moon); same(parent, actual, identity); return ok(operationPlan);
+    },
+    clientProgramInstalledEffectManagedHostOpen() {assert.fail('Authored refusal cannot reach a Compute Host');},
+    clientProgramSelectInstalledEffectSourceInput(actual, identity, task, input) {
+      assert.strictEqual(actual, prepared); assert.strictEqual(identity, request);
+      assert.equal(count, 1); assert.deepEqual([task, input], [0, 0]); return ok(selected);
+    },
+    clientProgramSelectedSourceInputKind(actual) {assert.strictEqual(actual, selected); return 'query';},
+    clientProgramSelectedSourceInputRef(actual) {assert.strictEqual(actual, selected); return 'fixture';},
+    clientProgramInstalledEffectManagedPlanSource(plan, task) {
+      assert.strictEqual(plan, operationPlan); assert.equal(count, 1); assert.equal(task, 0);
+      return ok({_0: {}, _1: requirement, _2: {}, _3: capacity});
+    },
+    clientProgramQueryRequirementSourceRef(actual) {assert.strictEqual(actual, requirement); return 'fixture';},
+    clientProgramInstalledEffectManagedRunPrepareLedger(parent, actual, identity, capacities, transfer, execution) {
+      same(parent, actual, identity); assert.deepEqual(capacities, [capacity]);
+      assert.deepEqual(transfer, [budget.transferBytes]); assert.deepEqual(execution, [budget.executionBytes]);
+      return ok(ledger);
+    },
+    clientProgramMultiCapturedLedgerUsage(actual) {
+      assert.strictEqual(actual, ledger); return undefined; // No measured Resource DATA in this composition fixture.
+    },
+  };
+  return {managedRun, acquired: {...acquired, requestIdentity: request}, moon, preparedSource,
+    ledgerCapacity(actual) {assert.strictEqual(actual, preparedSource); return budget;}};
+}
+
 function fixture({restoring, selected = true} = {}) {
   let originalCurrent = true, runCurrent = true, claimCurrent = true;
   const calls = [];
@@ -250,11 +290,11 @@ test('Model prime refusal preserves its original token for cleanup', async () =>
   let current = true, custody, released;
   const token = {snapshot: {}}, record = {inventory: {taskIndex: 0}};
   const paused = pause(token);
+  const ports = managedComposition({prepared: {}, runDefinition: {},
+    control: {runDefinitionRunId: () => 'run'}}, 0);
   const result = openAcquiredEffectComputation({
-    moon: {clientProgramEffectAcquisitionCount: () => 0,
-      clientProgramInferPlanBoundary: () => ({_0: 0})},
-    acquired: {prepared: {}, runDefinition: {},
-      control: {runDefinitionRunId: () => 'run'}},
+    moon: Object.assign(ports.moon, {clientProgramInferPlanBoundary: () => ({_0: 0})}),
+    managedRun: ports.managedRun, acquired: ports.acquired,
     infer: {graph: {}, observeAccount: () => ({})},
     retainComputationOwner(value) { custody = value; },
     assertUpdateSelectionCurrent() { if (!current) throw changed(); },
@@ -295,18 +335,19 @@ for (const boundary of ['prepare', 'open', 'evidence']) {
     const captured = {checkedSource: {sourceDataPolicyCid: 'policy'},
       async issueSourceEvidence() { calls.push('evidence'); return 'evidence'; },
       async close() { calls.push('close'); }};
+    const ports = managedComposition({prepared: {}}, 1);
     const adapter = {admitsSource: () => true,
-      async prepare() { calls.push('prepare'); return {}; },
+      ledgerCapacity: ports.ledgerCapacity,
+      async prepare() { calls.push('prepare'); return ports.preparedSource; },
       async open() { calls.push('open'); return captured; }};
-    const paused = pause(boundary === 'prepare' ? {} : boundary === 'open' ? captured : 'evidence');
+    const paused = pause(boundary === 'prepare' ? ports.preparedSource : boundary === 'open' ? captured : 'evidence');
     if (boundary === 'evidence') captured.issueSourceEvidence = paused.run;
     else adapter[boundary] = paused.run;
     const result = openAcquiredEffectComputation({
-      moon: {clientProgramEffectAcquisitionCount: () => 1,
-        clientProgramEffectPrepareLocalQueryRequirement: () => ok({}),
-        clientProgramQueryRequirementSourceRef: () => 'fixture',
-        clientProgramEffectSerializationOccurrences: () => []},
-      acquired: {prepared: {}}, sourceProfile: adapter, now: () => 1,
+      moon: Object.assign(ports.moon, {clientProgramEffectPrepareLocalQueryRequirement() {
+        assert.fail('The SAME managed Plan already owns its Source requirement');
+      }, clientProgramEffectSerializationOccurrences: () => []}),
+      managedRun: ports.managedRun, acquired: ports.acquired, sourceProfile: adapter, now: () => 1,
       retainComputationOwner(value) { custody = value; },
       assertUpdateSelectionCurrent() { if (!current) throw changed(); },
     });
@@ -334,13 +375,14 @@ async function modelSelectionFixture({selected = true, observer = true} = {}) {
       if (mutateDuringObservation) originalCurrent = false;
       return account;
     }} : {})});
+  const ports = managedComposition({prepared: {}, runDefinition: {}, control: {
+    runDefinitionRunId: () => 'run', adoptCheckedClientEffectInferRun: () => ({}),
+  }}, 0);
   const result = openAcquiredEffectComputation({
-    moon: {clientProgramEffectAcquisitionCount: () => 0,
+    moon: Object.assign(ports.moon, {
       clientProgramInferPlanBoundary: () => ({_0: 0}),
-      clientProgramEffectSerializationOccurrences: () => []},
-    acquired: {prepared: {}, runDefinition: {}, control: {
-      runDefinitionRunId: () => 'run', adoptCheckedClientEffectInferRun: () => ({}),
-    }},
+      clientProgramEffectSerializationOccurrences: () => []}),
+    managedRun: ports.managedRun, acquired: ports.acquired,
     infer: original, now: () => 1,
     retainComputationOwner(value) { custody = value; },
     ...(selected ? {assertUpdateSelectionCurrent() {
@@ -448,13 +490,14 @@ for (const selected of [false, true]) {
 test('outer Source waiting handoff does not reuse a journal-consumed claim', async () => {
   let claimCurrent = true, custody, reads = 0;
   const checkpoint = {};
+  const ports = managedComposition({prepared: {}}, 1);
   const result = await openAcquiredEffectComputation({
-    moon: {clientProgramEffectAcquisitionCount: () => 1,
-      clientProgramEffectPrepareLocalQueryRequirement: () => ok({}),
-      clientProgramQueryRequirementSourceRef: () => 'fixture',
-      clientProgramEffectSerializationOccurrences: () => []},
-    acquired: {prepared: {}}, now: () => 1,
-    sourceProfile: {admitsSource: () => true, prepare: async () => ({}),
+    moon: Object.assign(ports.moon, {clientProgramEffectPrepareLocalQueryRequirement() {
+      assert.fail('The SAME managed Plan already owns its Source requirement');
+    }, clientProgramEffectSerializationOccurrences: () => []}),
+    managedRun: ports.managedRun, acquired: ports.acquired, now: () => 1,
+    sourceProfile: {admitsSource: () => true, prepare: async () => ports.preparedSource,
+      ledgerCapacity: ports.ledgerCapacity,
       async open() { reads++; assert.fail('Waiting is not a read admission'); }},
     sourceContinuation: {accessFor: () => undefined, prepared: async () => {},
       times: () => ({}), close: async () => {},
