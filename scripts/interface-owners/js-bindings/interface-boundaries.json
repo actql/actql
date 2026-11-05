@@ -56978,7 +56978,8 @@
             "openInstalledHost/retireModelRuntime",
             "openInstalledHost/runtimeOriginals/runtimeOriginals",
             "openInstalledHost/runtimeTarget/runtimeTarget",
-            "openInstalledHost/selectedInstalledEffect"
+            "openInstalledHost/selectedInstalledEffect",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/init:onUnsupportedSelection/init:onUnsupportedSelection"
           ],
           "exports": [],
           "attributes": {
@@ -59218,7 +59219,8 @@
             "error",
             "request",
             "adapter",
-            "sourceRef"
+            "sourceRef",
+            "selection"
           ],
           "async": false
         },
@@ -60309,7 +60311,7 @@
           "parameters": [
             "preparedProgram",
             "requestId",
-            "retainWholeSourceRefusal"
+            "retainSourceRefusal"
           ],
           "async": false
         },
@@ -60324,6 +60326,14 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/graph/graph",
           "parameters": [
             "component"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/init:onUnsupportedSelection/init:onUnsupportedSelection",
+          "parameters": [
+            "error",
+            "selection"
           ],
           "async": false
         },
@@ -63026,7 +63036,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "73aa733afac979535a30d014d2ba9d39576850db09f39b6629de88e44805488f"
+      "sha256": "83691ff5ad77f070d1e0db1fb659bcbf1e421f01e3d2ebba0f3393dff4bde4f3"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

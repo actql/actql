@@ -3351,7 +3351,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     return original.requested;
   };
-  const requestOf = ({preparedProgram, requestId}, retainWholeSourceRefusal) => {
+  const requestOf = ({preparedProgram, requestId}, retainSourceRefusal) => {
     prepareSubmit.assertOwned(preparedProgram);
     if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
       const count = moon.clientProgramEffectAcquisitionCount(preparedProgram);
@@ -3359,11 +3359,20 @@ async function openInstalledHost(originalInstallation, preparation) {
       const requested = originalSourceFreeRequest(preparedProgram, requestId, true);
       if (count > 0) {
         if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
+        let unsupportedSelection;
         try {
           selectAcquiredEffectSources({moon, preparedEffect: preparedProgram,
-            requestIdentity: requested, sourceProfile, registry, values, fragment, ordered});
+            requestIdentity: requested, sourceProfile, registry, values, fragment, ordered,
+            onUnsupportedSelection(error, selection) {unsupportedSelection = {error, selection};}});
         } catch (cause) {
-          throw clientOperationError('ClientProgramUnsupported', cause);
+          const error = clientOperationError('ClientProgramUnsupported', cause);
+          // Only the exact inert selector's observed implementation refusal
+          // reaches this existing same-candidate receipt. A current/getter or
+          // arbitrary provider throw cannot certify pre-I/O nonadmission.
+          if (unsupportedSelection?.error === cause) retainSourceRefusal?.(error,
+            requested, unsupportedSelection.selection.adapter,
+            unsupportedSelection.selection.sourceRef, unsupportedSelection.selection);
+          throw error;
         }
       }
       const occurrence = moon.clientProgramEffectInferOccurrence(preparedProgram);
@@ -3452,7 +3461,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           if (unsupportedWholeSource?.cause === cause &&
               !inferSelections.has(preparedProgram) &&
               moon.clientProgramSerializationOccurrences(preparedProgram).length === 0) {
-            retainWholeSourceRefusal?.(error, requested,
+            retainSourceRefusal?.(error, requested,
               unsupportedWholeSource.adapter, unsupportedWholeSource.sourceRef);
           }
           throw error;
@@ -5097,9 +5106,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     function(submission, held) {
       let requested, sourceRefusal;
       try {
-        const selected = requestOf(submission, (error, request, adapter, sourceRef) => {
+        const selected = requestOf(submission, (error, request, adapter, sourceRef, selection) => {
           sourceRefusal = Object.freeze({error, request, adapter, sourceRef,
-            profile: sourceProfile, requestId: submission.requestId});
+            profile: sourceProfile, requestId: submission.requestId, selection});
         });
         requested = selected.requested;
         const {acquisitionCount, keyedAcquisition, effectful} = selected;
@@ -5209,6 +5218,24 @@ async function openInstalledHost(originalInstallation, preparation) {
             sourceFreeRequestIdentities.get(original.prepared)?.requestId !== source.requestId) return false;
         preparation.assertUnadmittedSourceRequest(moon, original.prepared, source.request);
         prepareSubmit.assertOwned(original.prepared);
+        if (source.selection !== undefined) {
+          const selected = source.selection;
+          if (prepareSubmit.kindOf(original.prepared) !== 'effectful' ||
+              selected.count !== 2 || moon.clientProgramEffectAcquisitionCount(original.prepared) !== selected.count ||
+              selected.adapter !== source.adapter ||
+              selected.sourceRef !== source.sourceRef ||
+              installedSourceFor(sourceProfile, selected.sourceRef) !== selected.adapter ||
+              selected.adapter.realizationKey !== selected.realization ||
+              selected.previousAdapter !== undefined &&
+                installedSourceFor(sourceProfile, selected.previousRef) !== selected.previousAdapter ||
+              (selected.reason === 'duplicate-owner'
+                ? selected.adapter !== selected.previousAdapter
+                : selected.reason !== 'unsupported-realization' ||
+                  ['duckdb-acquired', 'row-source-acquired'].includes(selected.realization)) ||
+              journal.resolveDefinition(source.request, {namespaceId}, moon, control) !== undefined) return false;
+          preparation.assertUnadmittedSourceRequest(moon, original.prepared, source.request);
+          return true;
+        }
         if (prepareSubmit.kindOf(original.prepared) !== 'effect_free' ||
             inferSelections.has(original.prepared) ||
             moon.clientProgramSerializationOccurrences(original.prepared).length !== 0 ||

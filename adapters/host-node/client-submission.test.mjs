@@ -12,6 +12,8 @@ const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url));
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
+import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
+import {installedSourceFor as selectInstalledSource} from './installed-source.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {validSubmissionLookup, validCheckOutcome, snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
@@ -998,7 +1000,7 @@ for (const partial of [false, true]) {
 // These are actual Host callback/holder bodies with explicit pre-Resource
 // ports. The Journal and its immutable outcomes below use real SQLite/Common;
 // this fixture does not claim a new Common/ordinary Host execution.
-function pairedAdmissionFixture({wholeSource = false, missingModel = false} = {}) {
+function pairedAdmissionFixture({wholeSource = false, missingModel = false, effectSelection} = {}) {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}), declarations = new Map();
   let holder, route, requestNode, unadmitted;
@@ -1052,7 +1054,7 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false} = {}
   const inferSelections = new WeakMap(), sourceFreeRequestIdentities = new WeakMap();
   const missingModelExecutionRefusals = new WeakSet();
   let existingDefinition, sourceError, selectedAdapter = adapter;
-  const prepareSubmit = {assertOwned(value) {assert.equal(value, prepared);}, kindOf: () => 'effect_free'};
+  const prepareSubmit = {assertOwned(value) {assert.equal(value, prepared);}, kindOf: () => effectSelection === undefined ? 'effect_free' : 'effectful'};
   preparation.assertUnadmittedSourceRequest = new Function('record', 'moon', 'originals',
     'sourceManaged', 'computeManaged', 'assertInitialControlHostPreparation',
     'assertSourceManagedInstallationCurrent', 'assertManagedComputeInstallationCurrent',
@@ -1062,6 +1064,7 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false} = {}
     (actual, value) => {assert.equal(actual, originals); assert.equal(value, prepared);},
     code => Object.assign(new Error(code), {code}));
   const installedSourceFor = (profile, ref) => {
+    if (effectSelection !== undefined) return selectInstalledSource(profile, ref);
     assert.equal(profile, sourceProfile); assert.equal(ref, sourceRef); return selectedAdapter;
   };
   let requestOf = candidate => {
@@ -1074,6 +1077,21 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false} = {}
     return {requested, acquisitionCount: 0, effectful: false};
   };
   if (missingModel) runtime.clientProgramAcquisitionCount = () => 0;
+  if (effectSelection !== undefined) {
+    const secondRef = 'source:second';
+    Object.assign(adapter, {realizationKey: 'duckdb-acquired',
+      admitsSource: ref => ref === sourceRef || effectSelection === 'duplicate-owner' && ref === secondRef,
+      prepare() {assert.fail('No Source preparation');}, open() {assert.fail('No Source I/O');}});
+    const second = {realizationKey: 'unsupported-table', admitsSource: ref => ref === secondRef,
+      prepare() {assert.fail('No Source preparation');}, open() {assert.fail('No Source I/O');}};
+    sourceProfile.sources = effectSelection === 'duplicate-owner' ? [adapter] : [adapter, second];
+    Object.assign(runtime, {clientProgramEffectAcquisitionCount: () => 2,
+      clientProgramSelectInstalledEffectSourceInput(value, request, stage, input) {
+        assert.strictEqual(value, prepared); assert.strictEqual(request, requested); assert.equal(input, 0);
+        return {$tag: 1, _0: stage === 0 ? sourceRef : secondRef};
+      }, clientProgramSelectedSourceInputKind: () => 'query',
+      clientProgramSelectedSourceInputRef: value => value});
+  }
   if (wholeSource) {
     Object.assign(runtime, {clientProgramAcquisitionCount: () => 1,
       clientProgramSelectSingleKeyedAcquisition: () => undefined,
@@ -1081,7 +1099,10 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false} = {}
       clientProgramSelectedSourceInputRef: () => sourceRef});
     preparation.managedModelSourceCoordinates = () => undefined;
     preparation.selectManagedDomainSourceInput = () => Object.freeze({});
-    const ports = {prepareSubmit, moon: runtime, earlyContentPlans: new WeakMap(), sourceProfile,
+  }
+  if (wholeSource || effectSelection !== undefined) {
+    const ports = {prepareSubmit, moon: runtime, earlyContentPlans: new WeakMap(), sourceProfile, selectAcquiredEffectSources,
+      registry: undefined, values: undefined, fragment: undefined, ordered: undefined,
       originalSourceFreeRequest(value, requestId) {
         assert.equal(value, prepared); sourceFreeRequestIdentities.set(value, {requested, requestId}); return requested;
       }, preparation, installedSourceFor, inferSelections, checked: value => value,
@@ -1103,7 +1124,7 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false} = {}
     sourceProfile, sourceFreeRequestIdentities, prepareSubmit, installedSourceFor,
     {resolveDefinition(value) {assert.equal(value, requested); return existingDefinition;}}, 'fixture', {}, missingModelExecutionRefusals);
   return {callback, error, prepared, requested, record, originalInstallation,
-    adapter, inferSelections, runtime, setDefinition(value) {existingDefinition = value;},
+    adapter, sourceProfile, prepareSubmit, inferSelections, runtime, setDefinition(value) {existingDefinition = value;},
     replaceAdapter(value) {selectedAdapter = value;},
     get sourceError() {return sourceError;},
     get requestReads() {return requestReads;}, get projections() {return projections;}, stop() {current = false;}};
@@ -1665,4 +1686,65 @@ test('original Source classification retains the post-write authority fence and 
   assert.deepEqual(retained.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
   assert.equal(Object.hasOwn(retained, 'checkObservation'), false);
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
+
+
+for (const reason of ['duplicate-owner', 'unsupported-realization']) {
+  test(`original acquired Effect ${reason} refusal precedes any Run admission`, async t => {
+    const p = pairedAdmissionFixture({effectSelection: reason});
+    const f = await fixture(t, {prepare: () => p.prepared, admit: p.callback});
+    const outcome = await f.service.submitIntent(f.body());
+    assert.equal(outcome.kind, 'not_accepted');
+    assert.deepEqual(outcome.problem, {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
+    assert.equal(Object.hasOwn(outcome, 'admission'), false);
+    assert.equal(p.record.computeRuns.size, 0);
+    assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+    assert.equal(p.requestReads, 1);
+  });
+
+  test(`original acquired Effect ${reason} refusal belongs to one candidate and consumption`, () => {
+    const p = pairedAdmissionFixture({effectSelection: reason});
+    const candidate = {preparedProgram: p.prepared, requestId: 'original'};
+    assert.throws(() => p.callback(candidate), error => error === p.sourceError);
+    const read = value => Reflect.apply(p.callback.isOriginalPreparationRefusal, p.callback, [p.sourceError, value]);
+    assert.equal(read({...candidate}), false); assert.equal(read(candidate), true); assert.equal(read(candidate), false);
+  });
+}
+
+for (const change of ['current', 'Run prefix', 'existing definition', 'foreign adapter', 'realization',
+  'pending cleanup', 'cleanup handle', 'Source count', 'prepared kind']) {
+  test(`original acquired Effect selection refusal retains the ${change} fence`, () => {
+    const p = pairedAdmissionFixture({effectSelection: 'unsupported-realization'});
+    const candidate = {preparedProgram: p.prepared, requestId: 'original'};
+    assert.throws(() => p.callback(candidate), error => error === p.sourceError);
+    if (change === 'current') p.stop();
+    if (change === 'Run prefix') p.record.computeRuns.set(p.prepared, {});
+    if (change === 'existing definition') p.setDefinition({});
+    if (change === 'foreign adapter') p.sourceProfile.sources[1] = {admitsSource: ref => ref === 'source:second'};
+    if (change === 'realization') p.sourceProfile.sources[1].realizationKey = 'row-source-acquired';
+    if (change === 'pending cleanup') p.sourceError.cleanupPending = true;
+    if (change === 'cleanup handle') p.sourceError.cleanupHandle = {};
+    if (change === 'Source count') p.runtime.clientProgramEffectAcquisitionCount = () => 1;
+    if (change === 'prepared kind') p.prepareSubmit.kindOf = () => 'effect_free';
+    const read = () => Reflect.apply(p.callback.isOriginalPreparationRefusal, p.callback, [p.sourceError, candidate]);
+    if (change === 'current' || change === 'Run prefix') assert.throws(read); else assert.equal(read(), false);
+  });
+}
+
+test('an inert Model selection is not an admitted Run for original Effect Source refusal', () => {
+  const p = pairedAdmissionFixture({effectSelection: 'unsupported-realization'});
+  const candidate = {preparedProgram: p.prepared, requestId: 'original'};
+  assert.throws(() => p.callback(candidate), error => error === p.sourceError);
+  p.inferSelections.set(p.prepared, {});
+  assert.equal(Reflect.apply(p.callback.isOriginalPreparationRefusal, p.callback, [p.sourceError, candidate]), true);
+  assert.equal(p.record.computeRuns.size, 0);
+});
+
+test('an arbitrary acquired Effect source lookup throw cannot issue original selection refusal', () => {
+  const p = pairedAdmissionFixture({effectSelection: 'duplicate-owner'});
+  const thrown = Object.assign(new Error('arbitrary caller error'), {code: 'ClientProgramUnsupported'});
+  p.sourceProfile.sources[0].admitsSource = () => {throw thrown;};
+  const candidate = {preparedProgram: p.prepared, requestId: 'original'};
+  assert.throws(() => p.callback(candidate), error => error === p.sourceError && error.cause === thrown);
+  assert.equal(Reflect.apply(p.callback.isOriginalPreparationRefusal, p.callback, [p.sourceError, candidate]), false);
 });
