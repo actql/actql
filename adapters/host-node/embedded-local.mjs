@@ -1739,7 +1739,14 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (retained === undefined || retained.runDefinition.identity !== recovered.runDefinition?.identity) {
           throw clientOperationError('ForeignInstalledMockEffectRun');
         }
-        return retainMockEffectRunOriginal({...recovered, identity: recovered.requestIdentity});
+        const originalFacts = {...recovered, identity: recovered.requestIdentity};
+        if (!mockEffectRuns.has(originalFacts.prepared)) {
+          return retainMockEffectRunOriginal(originalFacts);
+        }
+        // The winning definition may already have retained this physical Run
+        // during cold setup. Reuse the same Journal-authenticated readmission
+        // below for its newly validated local Allowed/Definition handles.
+        facts = originalFacts;
       }
       const retained = mockEffectRuns.get(facts.prepared);
       if (retained === undefined || retained.compilation !== facts.compilation ||
