@@ -257,7 +257,13 @@ test('packed INFER metadata uses the same installed Local policy without reident
   const script=readFileSync(new URL('./test-packed-single-infer.mjs',import.meta.url),'utf8');
   const tree=parseJavaScript(script,{ecmaVersion:'latest',sourceType:'module'});
   let writer;
+  const declarations = new Map();
   (function visit(node){if(!node||typeof node!=='object')return;
+    if(node.type==='VariableDeclaration'&&node.declarations.length===1&&
+        ['baseEnvironment','hostCapacityPolicy'].includes(node.declarations[0].id?.name)){
+      const name=node.declarations[0].id.name;
+      assert.equal(declarations.has(name),false);declarations.set(name,node);
+    }
     if(node.type==='CallExpression'&&node.callee.name==='writeFile'&&
         node.arguments[0]?.type==='CallExpression'&&node.arguments[0].callee.name==='join'&&
         node.arguments[0].arguments.some(arg=>arg.type==='Literal'&&arg.value==='base-environment.json')){
@@ -273,10 +279,18 @@ test('packed INFER metadata uses the same installed Local policy without reident
     clientLocalResourcePolicyModelRequestByteCeiling(value){assert.equal(value,originalPolicy);return 65536n;},
     clientProgramCheckEnvironment(value,cid){assert.equal(JSON.parse(value).evidence_bundle_cid,cid);return {};},
   };
-  const actualHost=selectInstalledLocalMaterializationEnvironment(moon,wire.trimEnd());
+  const actualHost=selectInstalledLocalMaterializationEnvironment(moon,wire.trimEnd(),
+    JSON.parse(wire).host_policy_profile.capacity);
+  assert.notEqual(JSON.parse(actualHost).host_policy_profile.capacity.max_model_request_bytes_per_item,
+    JSON.parse(selectInstalledLocalMaterializationEnvironment(moon,wire.trimEnd()))
+      .host_policy_profile.capacity.max_model_request_bytes_per_item);
   const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+  const bindings=['baseEnvironment','hostCapacityPolicy'].map(name=>{
+    const declaration=declarations.get(name);assert(declaration&&declaration.end<writer.start);
+    return script.slice(declaration.start,declaration.end);
+  }).join('\n');
   const produce=new AsyncFunction('root','repository','readFile','join','installedRuntime',
-    'selectInstalledLocalMaterializationEnvironment','return ('+
+    'selectInstalledLocalMaterializationEnvironment',bindings+'\nreturn ('+
     script.slice(writer.arguments[1].start,writer.arguments[1].end)+');');
   const prepared=await produce('/app','/repo',async(path,encoding)=>{
     assert.equal(path,join('/repo','spec/local-check-environment.json'));
