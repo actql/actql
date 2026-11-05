@@ -36,6 +36,40 @@ pub fn retain_row_captured_inputs(
   ledger : @resources.Ledger,
   max_work : Int,
 ) -> RowCapturedInputs? {
+  guard snapshot_row_captured_inputs(captures, ledger, max_work) is Some(value) &&
+    @resources.original_captured_inputs_prefix_available(
+      ledger,
+      value.originals,
+    ) else {
+    return None
+  }
+  Some(value)
+}
+
+///|
+// Nominal borrowed input of the existing shared Run. This is not the old
+// standalone prefix entrance and grants no new Source/read/retirement right.
+pub fn borrow_row_captured_inputs(
+  captures : Array[RowSourceCapture],
+  ledger : @resources.Ledger,
+  max_work : Int,
+) -> RowCapturedInputs? {
+  guard snapshot_row_captured_inputs(captures, ledger, max_work) is Some(value) &&
+    @resources.original_borrowed_captured_inputs_available(
+      ledger,
+      value.originals,
+    ) else {
+    return None
+  }
+  Some(value)
+}
+
+///|
+fn snapshot_row_captured_inputs(
+  captures : Array[RowSourceCapture],
+  ledger : @resources.Ledger,
+  max_work : Int,
+) -> RowCapturedInputs? {
   if captures.is_empty() || max_work < 0 || captures.length() > max_work / 2 {
     return None
   }
@@ -55,11 +89,20 @@ pub fn retain_row_captured_inputs(
     (physical.reservation, physical.holding.unwrap())
   })
   let value = RowCapturedInputs::{ ledger, captures, originals, }
-  guard row_captured_inputs_current(value) &&
-    @resources.original_captured_inputs_prefix_available(ledger, originals) else {
-    return None
-  }
+  guard row_captured_inputs_current(value) else { return None }
   Some(value)
+}
+
+///|
+pub fn row_captured_inputs_borrowed_available(
+  value : RowCapturedInputs,
+  ledger : @resources.Ledger,
+) -> Bool {
+  row_captured_inputs_live(value, ledger) &&
+  @resources.original_borrowed_captured_inputs_available(
+    ledger,
+    value.originals,
+  )
 }
 
 ///|

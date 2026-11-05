@@ -17,6 +17,15 @@ Ledger without spending Model quantities. The Model input reports the prefix's
 already completed work and runs only its remaining suffix. Existing standalone
 keyed readers keep their original owner, current, capacity and cleanup checks.
 
+An adopted Effect Run may retain preparation and control originals beside its
+Source captures. Its borrowed input checks each actual reservation and holding
+through the existing serial index and physical identity; a serial alone is not
+proof. The standalone capture-only census remains separate. The adopted Run
+retains the prefix in its existing one-use prefix slot before provider start,
+and selects the sequence from its actual retained Effect Plan. Early selection
+metadata, whole-Ledger purity and an absent prepared segment cannot substitute
+for that original. All other live children keep their original cleanup duties.
+
 # Original installed row reader custody
 
 ## Original installation preparation read

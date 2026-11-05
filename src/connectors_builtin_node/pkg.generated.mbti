@@ -3778,6 +3778,8 @@ pub fn client_program_start_infer_original_current_state_decode(@client_infer_ho
 
 pub fn client_program_start_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, @client_local_host.ClientInstalledSequenceContracts, String, @model_execution.VerifiedModelCapture, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
+pub fn client_program_start_installed_original_composed_keyed_prefix(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@client_row_source_host.RowSourceCapture]) -> Result[@client_local_host.ClientOriginalComposedKeyedPrefix, @client_local_host.ClientSerializationPrefixIssue]
+
 pub fn client_program_start_keyed_infer_execution(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, @run_publication_host.ClientInferComposedSources, @execution_relation.GeneratedSequence?, @physical_resources.Ledger) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_model_content_bytes(@model_execution.ModelContentInput, String, String, Int64?, Int64?, () -> Bool) -> Result[@model_execution.ModelContentByteCheck, @model_execution.ModelContentIssue]

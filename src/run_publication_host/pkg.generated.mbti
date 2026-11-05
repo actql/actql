@@ -273,6 +273,8 @@ pub fn borrow_client_effect_command_content_workspace(ClientEffectCommandContent
 
 pub fn borrow_client_original_captured_prefix_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
+pub fn borrow_client_original_composed_keyed_captures(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@client_row_source_host.RowSourceCapture]) -> Result[(@physical_resources.Ledger, @client_row_source_host.RowCapturedInputs, Array[@execution_query.CapturedInputSource]), ClientModelReadPreparationIssue]
+
 pub fn borrow_client_original_composed_keyed_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@execution_query.CapturedInputSource], @client_row_source_host.RowCapturedInputs, prefix? : @physical_resources.Reservation?) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
 pub fn borrow_client_original_keyed_captured_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, @execution_query.CapturedInputSource, prefix? : @physical_resources.Reservation?) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]

@@ -3383,6 +3383,15 @@ function publicationControl(moon) {
         value, token(definition), graph, keyed,
         captures.map(value => value.capture.originalRowCapture()), prefix));
     },
+    startInstalledOriginalComposedKeyedPrefix(managedRun, compiled, definition, graph, scope, keyed, captures) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramStartInstalledOriginalComposedKeyedPrefix(managedRun,
+        scope, value, token(definition), graph, keyed,
+        captures.map(value => value.capture.originalRowCapture())));
+    },
     takeSourceEvidenceOriginal(capture) {
       const take = Object.getOwnPropertyDescriptor(capture ?? {}, 'takeSourceEvidenceOriginal')?.value;
       if (typeof take !== 'function') throw new TypeError('InstalledSourceEvidenceUnavailable');

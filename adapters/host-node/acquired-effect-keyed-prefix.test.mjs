@@ -9,7 +9,7 @@ const ok = value => ({$tag: 1, _0: value});
 // issue a Run, Source evidence, capacity, permission or physical cleanup ACK.
 function fixture() {
   const prepared = {}, managedRun = {}, graph = {}, scope = {}, compiled = {}, definition = {};
-  const acquisition = {}, selected = {computePrefix: {}}, prefix = {}, execution = {}, left = {};
+  const acquisition = {}, selected = {}, prefix = {}, execution = {}, left = {};
   const sourceRef = {}, access = {}, preparedKeyed = {}, ledger = {}, observation = {}, original = {}, evidence = {};
   const captures = [{capture: {}}, {capture: {}}], events = [];
   let duty, current = true, acquired = 0, prepares = 0, advances = 0, closes = 0, cleanups = 0, ack = true;
@@ -32,9 +32,9 @@ function fixture() {
       assert.equal(value.sourceAccess, access); acquired++; return lookup;
     }};
   const request = {};
-  const control = {startOriginalComposedKeyedPrefix(...args) {
+  const control = {startInstalledOriginalComposedKeyedPrefix(...args) {
     assert(duty, 'retain cleanup before the actual constructor');
-    assert.deepEqual(args, [compiled, definition, graph, scope, acquisition, captures, selected.computePrefix]);
+    assert.deepEqual(args, [managedRun, compiled, definition, graph, scope, acquisition, captures]);
     events.push('prefix-start'); return prefix;
   }, keyedLookupPublicationEvidence(value) {assert.equal(value, observation); return evidence;}};
   const moon = {clientProgramEffectComposedModelKeyedAcquisition(p, g) {

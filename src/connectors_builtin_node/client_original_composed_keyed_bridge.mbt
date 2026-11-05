@@ -41,6 +41,34 @@ pub fn client_program_start_original_composed_keyed_prefix(
 }
 
 ///|
+#export_name("clientProgramStartInstalledOriginalComposedKeyedPrefix")
+pub fn client_program_start_installed_original_composed_keyed_prefix(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  rows : Array[@client_row_source_host.RowSourceCapture],
+) -> Result[
+  @client_local_host.ClientOriginalComposedKeyedPrefix,
+  @client_local_host.ClientSerializationPrefixIssue,
+] {
+  let limits = @infer_host.standard_limits()
+  @client_local_host.start_installed_original_composed_keyed_prefix(
+    owner,
+    scope,
+    compiled,
+    definition,
+    plan,
+    keyed,
+    rows,
+    limits.input,
+    limits.measurement,
+  )
+}
+
+///|
 #export_name("clientProgramOriginalComposedKeyedPrefixExecution")
 pub fn client_program_original_composed_keyed_prefix_execution(
   value : @client_local_host.ClientOriginalComposedKeyedPrefix,

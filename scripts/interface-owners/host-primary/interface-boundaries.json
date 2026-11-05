@@ -26165,7 +26165,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
-      "sha256": "e8403fb694d28f25a703e6b4a0ad765b41bea8da63dce860846163daa50326bd",
+      "sha256": "8a80e628215e985f33f0185517d0850fac5299573a7bb41518ba625f39352c58",
       "exports": [
         "prepareAcquiredEffectKeyedPrefix"
       ],

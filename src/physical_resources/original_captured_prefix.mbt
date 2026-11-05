@@ -125,6 +125,63 @@ fn original_captured_inputs_live(
 }
 
 ///|
+// Borrow actual captured originals on an already shared Run. Other live
+// preparation/reader/control tokens remain with their own existing owners.
+// Serial DATA only selects; exact token identity authenticates each member.
+// This read-only view issues no capacity, permission or cleanup acknowledgement.
+pub fn original_borrowed_captured_inputs_available(
+  ledger : Ledger,
+  originals : Array[(Reservation, Holding)],
+) -> Bool {
+  guard ledger.original_inventory is Some(inventory) &&
+    original_ledger_inventory_available(inventory.identity) &&
+    !originals.is_empty() else {
+    return false
+  }
+  for index, (reservation, holding) in originals {
+    guard physical_equal(reservation.owner, ledger) &&
+      holding_available(ledger, holding) &&
+      !reservation_pending(reservation) &&
+      holding.reservation_serial == reservation.serial &&
+      inventory.reservations.by_serial(reservation.serial)
+      is Some(actual_reservation) &&
+      physical_equal(actual_reservation, reservation) &&
+      inventory.holdings.by_serial(holding.serial) is Some(actual_holding) &&
+      physical_equal(actual_holding, holding) else {
+      return false
+    }
+    if index > 0 &&
+      (
+        originals[index - 1].0.serial >= reservation.serial ||
+        originals[index - 1].1.serial >= holding.serial
+      ) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+// The shared prefix/assembly keeps its SAME original open reservation. No
+// whole-Ledger purity or replacement census can stand in for this identity.
+pub fn original_borrowed_reservation_available(
+  identity : OriginalLedgerIdentity,
+  ledger : Ledger,
+  reservation : Reservation,
+) -> Bool {
+  guard physical_equal(identity.ledger, ledger) &&
+    original_ledger_inventory_available(identity) &&
+    ledger.original_inventory is Some(inventory) &&
+    physical_equal(reservation.owner, ledger) &&
+    reservation.open &&
+    !reservation.cleanup_pending &&
+    inventory.reservations.by_serial(reservation.serial) is Some(original) else {
+    return false
+  }
+  physical_equal(original, reservation)
+}
+
+///|
 // Exact ordered captured inputs only; live nonpending Source backing may still
 // exist. A spent prefix opportunity is never restored by downstream cleanup.
 pub fn original_captured_inputs_prefix_available(

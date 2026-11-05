@@ -126,11 +126,15 @@ pub fn borrow_client_original_composed_keyed_ledger(
   }
   // Liveness can reenter. The actual census after those callbacks owns the
   // loan; no usage snapshot or successful quote can replace this witness.
-  if !@row_host.row_captures_original_keyed_preparation_available(
-      captures,
-      scope.ledger,
-      scope.identity,
-      prefix~,
+  if !@resources.original_ledger_preparation_available(scope.identity) ||
+    !@row_host.row_captured_inputs_borrowed_available(captures, scope.ledger) ||
+    (
+      prefix is Some(original) &&
+      !@resources.original_borrowed_reservation_available(
+        scope.identity,
+        scope.ledger,
+        original,
+      )
     ) {
     return Err(Resource(@resources.ChangedOriginalState))
   }
@@ -172,6 +176,43 @@ pub fn retain_client_original_composed_keyed_captures(
 }
 
 ///|
+// Actual adopted Run inputs may share their Ledger with retained preparation
+// and fixed control originals. Borrow each exact Row pair, not a pristine
+// whole-Ledger census. Checked Source/graph/Scope binding remains above.
+pub fn borrow_client_original_composed_keyed_captures(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  keyed : ClientKeyedAcquisition,
+  rows : Array[@row_host.RowSourceCapture],
+) -> Result[
+  (
+    @resources.Ledger,
+    @row_host.RowCapturedInputs,
+    Array[@query.CapturedInputSource],
+  ),
+  ClientModelReadPreparationIssue,
+] {
+  guard client_model_origin_matches(scope.origin, compiled, definition, plan) &&
+    rows.length() == 2 &&
+    @row_host.borrow_row_captured_inputs(rows, scope.ledger, 100000)
+    is Some(captures) else {
+    return Err(ForeignRun)
+  }
+  let sources = []
+  for row in rows {
+    match @row_host.row_capture_source(row) {
+      Ok(source) => sources.push(source)
+      Err(_) => return Err(ForeignRun)
+    }
+  }
+  borrow_client_original_composed_keyed_ledger(
+    scope, compiled, definition, plan, keyed, sources, captures,
+  ).map(ledger => (ledger, captures, sources))
+}
+
+///|
 fn client_composed_keyed_original_current(
   value : ClientComposedKeyedOriginal,
 ) -> Bool {
@@ -181,7 +222,11 @@ fn client_composed_keyed_original_current(
     value.definition,
     value.plan,
   ) &&
-  @resources.reservation_open(value.prefix) &&
+  @resources.original_borrowed_reservation_available(
+    value.scope.identity,
+    value.scope.ledger,
+    value.prefix,
+  ) &&
   @execution.completed_segment_inputs_output(
     value.completed,
     value.sequence,
@@ -189,7 +234,10 @@ fn client_composed_keyed_original_current(
   )
   is Some(_) &&
   value.sources.all(@query.captured_source_available) &&
-  @row_host.row_captured_inputs_live(value.captures, value.scope.ledger) &&
+  @row_host.row_captured_inputs_borrowed_available(
+    value.captures,
+    value.scope.ledger,
+  ) &&
   @resources.original_ledger_inventory_available(value.scope.identity)
 }
 
@@ -247,13 +295,16 @@ pub fn client_composed_keyed_request_matches_model_parent(
     lookup, compiled, definition, plan, ledger,
   ) &&
   lookup.left.composed is Some(original) &&
-  @row_host.row_captures_original_keyed_child_available(
-    original.captures,
-    ledger,
+  @row_host.row_captured_inputs_borrowed_available(original.captures, ledger) &&
+  @resources.original_borrowed_reservation_available(
     original.scope.identity,
+    ledger,
+    original.prefix,
+  ) &&
+  @resources.original_borrowed_reservation_available(
+    original.scope.identity,
+    ledger,
     lookup.reservation,
-    lookup.known.length(),
-    prefix=Some(original.prefix),
   )
 }
 

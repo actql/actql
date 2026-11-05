@@ -3,6 +3,16 @@
 // The exact authored reference issuer is the existing component fixture;
 // this test supplies no installed physical provider or Model send permission.
 test "two original Direct captures execute one keyed prefix and feed the same Model input without replay" {
+  original_composed_keyed_consumer(false)
+}
+
+///|
+test "adopted Effect Model borrows shared Source tokens and its original prefix exactly once" {
+  original_composed_keyed_consumer(true)
+}
+
+///|
+fn original_composed_keyed_consumer(shared : Bool) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
   )
@@ -16,19 +26,43 @@ test "two original Direct captures execute one keyed prefix and feed the same Mo
   )
   let document =
     #|{"version":"actql/0.1","id":"two-direct-keyed-model","stages":[{"id":"left","inputs":{"files":{"connector":"content-fixture","resource":"files"}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["name","resource","version"]}}},{"id":"right","inputs":{"files":{"connector":"content-fixture","resource":"files"}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["name","resource","version"]}}},{"id":"classify","inputs":{"a":{"result":{"stage":"left","result":"rows"}},"b":{"result":{"stage":"right","result":"rows"}},"contents":{"connector":"content-fixture","resource":"contents"}},"steps":[{"from":"a","join":{"with":"b","kind":"inner","on":[{"left":"name","right":"name"}],"select":{"name":"left.name","resource":"left.resource","version":"left.version"}},"as":"joined"},{"from":"joined","join":{"with":"contents","kind":"inner","on":[{"left":"resource","right":"resource"},{"left":"version","right":"version"}],"select":{"name":"left.name","content":"right.content"}},"as":"captured"},{"assert_rows":{"unique_by":["name"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"classified"},{"derive":{"id":{"literal":1}},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"classify","result":"rows"}}}}
-  let prepared = match
-    @publication_host.prepare_client_effect_computation(
-      document,
-      Json,
-      environment,
-      None,
-      [],
-      @publication_host.client_standard_effect_computation_limits(),
-    ) {
-    Ok(value) => value
-    Err(_) => fail("two-Direct keyed Model fixture preparation")
+  let request_parent = if shared {
+    let (parent, child, _, input) = registration_parent_fixture(
+      text=document,
+      environment=Some(environment),
+      effect_limits=Some(
+        @publication_host.client_standard_effect_computation_limits(),
+      ),
+    )
+    finish_effect_program_check_preparation(child).unwrap() |> ignore
+    let prepared = compile_effect_program_check_preparation(child).unwrap()
+    assert_true(
+      physical_equal(
+        continue_request_effect_preparation(parent, input).unwrap(),
+        prepared,
+      ),
+    )
+    Some((parent, input, prepared))
+  } else {
+    None
   }
-  let (_, _, contracts, model) = effect_model_plan_for_prepared(
+  let prepared = match request_parent {
+    Some((_, _, prepared)) => prepared
+    None =>
+      match
+        @publication_host.prepare_client_effect_computation(
+          document,
+          Json,
+          environment,
+          None,
+          [],
+          @publication_host.client_standard_effect_computation_limits(),
+        ) {
+        Ok(value) => value
+        Err(_) => fail("two-Direct keyed Model fixture preparation")
+      }
+  }
+  let (_, request, contracts, model) = effect_model_plan_for_prepared(
     prepared,
     acquired=true,
   )
@@ -45,31 +79,61 @@ test "two original Direct captures execute one keyed prefix and feed the same Mo
     source_query_original_values,
     fragment_body=Some(source_query_original_fragment),
   ).unwrap()
-  let ledger = @resources.create_ledger({
-    planning_work: 100000,
-    attempts: 16,
-    holdings: 16,
-    transfer_bytes: 1048576L,
-    retained_bytes: 536870912L,
-    execution_bytes: 536870912L,
-  }).unwrap()
+  let ledger = match request_parent {
+    Some((parent, _, _)) => parent.ledger
+    None =>
+      @resources.create_ledger({
+        planning_work: 100000,
+        attempts: 16,
+        holdings: 16,
+        transfer_bytes: 1048576L,
+        retained_bytes: 536870912L,
+        execution_bytes: 536870912L,
+      }).unwrap()
+  }
   @resources.configure_quantities(ledger, {
     tokens: 128L,
     cost_units: 0L,
     duration_ms: 1000L,
   }).unwrap()
   let original_quantities = @resources.quantity_usage(ledger)
-  let bootstrap = @resources.reserve_capacity(ledger, 4096L, 4096L).unwrap()
-  let scope = @publication_host.begin_client_model_read_scope(
-    model.compiled,
-    model.definition,
-    model.graph,
-    ledger,
-    bootstrap,
-    16,
-    16,
-    0,
-  ).unwrap()
+  let managed = match request_parent {
+    None => None
+    Some((parent, input, _)) => {
+      let construction = borrow_request_effect_plan_input(parent, input).unwrap()
+      let installed = original_composed_keyed_installed_plan(
+        prepared, request, contracts, model, declaration,
+      )
+      let scope = prepare_request_effect_model_read_scope(
+        parent, input, installed,
+      ).unwrap()
+      complete_request_effect_preparation(parent, input, installed).unwrap()
+      @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+      let owner = begin_request_effect_model_managed_run(parent, request, scope).unwrap()
+      retain_installed_effect_operation_controls_before_construction(
+        owner, prepared, request, installed,
+      ).unwrap()
+      |> ignore
+      Some((owner, scope))
+    }
+  }
+  let scope = match managed {
+    Some((_, scope)) => scope
+    None => {
+      let bootstrap = @resources.reserve_capacity(ledger, 4096L, 4096L).unwrap()
+      @publication_host.begin_client_model_read_scope(
+        model.compiled,
+        model.definition,
+        model.graph,
+        ledger,
+        bootstrap,
+        16,
+        16,
+        0,
+      ).unwrap()
+    }
+  }
+  let prior_attempts = @resources.ledger_usage(ledger).attempts
   let accepted = wire => {
     wire == original_keyed_child_resource(0) ||
     wire == original_keyed_child_content(0)
@@ -139,42 +203,54 @@ test "two original Direct captures execute one keyed prefix and feed the same Mo
     requirements.push(requirement)
     acquisitions.push(acquisition)
   }
-  assert_eq(@resources.ledger_usage(ledger).attempts, 2)
+  assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 2)
   let (execution, measurement, mapping) = original_composed_keyed_test_limits()
+  let start_prefix = rows => {
+    match managed {
+      Some((owner, _)) =>
+        start_installed_original_composed_keyed_prefix(
+          owner,
+          scope,
+          model.compiled,
+          model.definition,
+          model.graph,
+          keyed,
+          rows,
+          execution,
+          measurement,
+        )
+      None =>
+        start_client_original_composed_keyed_prefix(
+          scope,
+          model.compiled,
+          model.definition,
+          model.graph,
+          keyed,
+          rows,
+          prefix,
+          execution,
+          measurement,
+        )
+    }
+  }
   let before_refusal = @resources.ledger_usage(ledger)
-  assert_true(
-    start_client_original_composed_keyed_prefix(
-      scope,
-      model.compiled,
-      model.definition,
-      model.graph,
-      keyed,
-      [captures[1], captures[0]],
-      prefix,
-      execution,
-      measurement,
-    )
-    is Err(_),
-  )
-  assert_true(
-    start_client_original_composed_keyed_prefix(
-      scope,
-      model.compiled,
-      model.definition,
-      model.graph,
-      keyed,
-      [captures[0]],
-      prefix,
-      execution,
-      measurement,
-    )
-    is Err(_),
-  )
+  assert_true(start_prefix([captures[1], captures[0]]) is Err(_))
+  assert_true(start_prefix([captures[0]]) is Err(_))
   assert_eq(@resources.ledger_usage(ledger), before_refusal)
+  if shared {
+    assert_true(
+      @row_source_host.retain_row_captured_inputs(captures, ledger, 100000)
+      is None,
+    )
+  } else {
+    assert_true(
+      @row_source_host.retain_row_captured_inputs(captures, ledger, 100000)
+      is Some(_),
+    )
+  }
   assert_true(
-    @row_source_host.retain_row_captured_inputs(captures, ledger, 100000)
+    @row_source_host.borrow_row_captured_inputs(captures, ledger, 100000)
     is Some(_),
-    msg="same original Row capture inventory",
   )
   let (_, _, join_step) = @publication_host.client_keyed_acquisition_coordinates(
     keyed,
@@ -203,14 +279,26 @@ test "two original Direct captures execute one keyed prefix and feed the same Mo
     is Some(_),
     msg="existing bounded left prefix capacity",
   )
-  let (_, row_inputs, sources) = @publication_host.retain_client_original_composed_keyed_captures(
-    scope,
-    model.compiled,
-    model.definition,
-    model.graph,
-    keyed,
-    captures,
-  ).unwrap()
+  let selected_inputs = if shared {
+    @publication_host.borrow_client_original_composed_keyed_captures(
+      scope,
+      model.compiled,
+      model.definition,
+      model.graph,
+      keyed,
+      captures,
+    )
+  } else {
+    @publication_host.retain_client_original_composed_keyed_captures(
+      scope,
+      model.compiled,
+      model.definition,
+      model.graph,
+      keyed,
+      captures,
+    )
+  }
+  let (_, row_inputs, sources) = selected_inputs.unwrap()
   let _ = match
     @publication_host.prepare_client_original_composed_keyed_inputs(
       scope,
@@ -231,18 +319,7 @@ test "two original Direct captures execute one keyed prefix and feed the same Mo
       fail("original two-input Source binding")
     Err(_) => fail("original two-input read construction")
   }
-  let original = match
-    start_client_original_composed_keyed_prefix(
-      scope,
-      model.compiled,
-      model.definition,
-      model.graph,
-      keyed,
-      captures,
-      prefix,
-      execution,
-      measurement,
-    ) {
+  let original = match start_prefix(captures) {
     Ok(value) => value
     Err(Original(@publication_host.ForeignRun)) =>
       fail("prefix original foreign Run")
@@ -251,6 +328,11 @@ test "two original Direct captures execute one keyed prefix and feed the same Mo
     Err(Unavailable) => fail("prefix original input unavailable")
     Err(Physical(issue)) => fail("prefix capacity: " + @debug.to_string(issue))
     Err(_) => fail("prefix original child refusal")
+  }
+  if shared {
+    let before_duplicate = @resources.ledger_usage(ledger)
+    assert_true(start_prefix(captures) is Err(Unavailable))
+    assert_eq(@resources.ledger_usage(ledger), before_duplicate)
   }
   let mut complete = false
   for _ in 0..<10000 {
@@ -505,33 +587,35 @@ test "two original Direct captures execute one keyed prefix and feed the same Mo
   // Only the two Direct reads and the keyed response are actual attempts.
   // The completed assembly settled its unused attempt; the live prefix still
   // retains its one unsent constructor reservation until cleanup.
-  assert_eq(@resources.ledger_usage(ledger).attempts, 3)
+  assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
   assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 1)
   assert_eq(@resources.quantity_usage(ledger), original_quantities)
-  assert_false(
-    @publication_host.finish_client_model_read_scope(
-      scope,
-      model.compiled,
-      model.definition,
-      model.graph,
-      false,
-    ).unwrap(),
-  )
-  assert_false(
-    @publication_host.client_composed_keyed_request_retained_model_parent(
-      request,
-      model.compiled,
-      model.definition,
-      model.graph,
-      ledger,
-    ),
-  )
-  assert_false(
-    @publication_host.client_infer_composed_sources_matches(
-      source_closure,
-      model._occurrence,
-    ),
-  )
+  if !shared {
+    assert_false(
+      @publication_host.finish_client_model_read_scope(
+        scope,
+        model.compiled,
+        model.definition,
+        model.graph,
+        false,
+      ).unwrap(),
+    )
+    assert_false(
+      @publication_host.client_composed_keyed_request_retained_model_parent(
+        request,
+        model.compiled,
+        model.definition,
+        model.graph,
+        ledger,
+      ),
+    )
+    assert_false(
+      @publication_host.client_infer_composed_sources_matches(
+        source_closure,
+        model._occurrence,
+      ),
+    )
+  }
   assert_true(cleanup_client_infer_input(input).unwrap())
   @row_source_host.close_accounted_row_run(child).unwrap()
   assert_true(
@@ -540,6 +624,9 @@ test "two original Direct captures execute one keyed prefix and feed the same Mo
   assert_true(cleanup_client_serialization_prefix(original.prefix).unwrap())
   for run in runs {
     @row_source_host.close_accounted_row_run(run).unwrap()
+  }
+  if managed is Some((owner, _)) {
+    quiesce_installed_managed_run(owner).unwrap()
   }
   assert_true(
     @publication_host.finish_client_model_read_scope(
@@ -550,9 +637,59 @@ test "two original Direct captures execute one keyed prefix and feed the same Mo
       true,
     ).unwrap(),
   )
+  if managed is Some((owner, _)) {
+    retire_installed_managed_run(owner).unwrap()
+  }
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
-  assert_eq(@resources.ledger_usage(ledger).attempts, 3)
+  assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
+}
+
+///|
+fn original_composed_keyed_installed_plan(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  contracts : ClientInstalledSequenceContracts,
+  model : ClientInstalledEffectModelDemand,
+  declaration : @row_source_host.RowDeclaration,
+) -> ClientInstalledEffectManagedPlan {
+  // This component never starts its future UPDATE or physical Model provider.
+  // Its actual selected construction member fails closed if invoked.
+  let extent = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(3L, 5L).unwrap(),
+    7L,
+    true,
+  ).unwrap()
+  let operation = prepare_installed_effect_operation_demand(
+    prepared,
+    2,
+    "save",
+    [extent],
+    [extent],
+  ).unwrap()
+  prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [declaration, declaration],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L, 4096L],
+    [4096L, 4096L],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [operation],
+    model=Some(model),
+    provider_factory=capacity => {
+      [
+        @local.managed_provider(_ => true, _ => Some(capacity), (_, _, _, _, _) => {
+          Err(@connector.ComputeUnsupported)
+        }),
+      ]
+    },
+  ).unwrap()
 }
 
 ///|
