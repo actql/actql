@@ -586,7 +586,7 @@
     {
       "module": "adapters/connectors/duckdb/node/configuration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5052bf862cca6f7dbe3d9d10c1283429ec9c7d04b0ef72eb9cf4c20be8ae9a1a",
+      "sha256": "9c7004bfb1ead434be106b5af3b1e1f279b4968383b38a47f172d63a82af4e6c",
       "role": "connector-semantics",
       "owner": "Pure DuckDB transport and strategy configuration, not source or runtime authority",
       "exports": [
@@ -2115,7 +2115,7 @@
     {
       "module": "adapters/connectors/duckdb/node/native-acquisition.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "544b1837eab929941f10f07d5e75641d74b8dc4a4b65be5e1f6411be9814e879",
+      "sha256": "72eeb9661c41a686db294ff80e5dc7ee000e929c176f7c636a1e8a93d54c7f02",
       "role": "physical-io",
       "owner": "Two-receipt sequencing; DuckDB NativeReceiving owns validation before native filtering",
       "exports": [
