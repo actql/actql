@@ -766,7 +766,7 @@ test('multiple Model request selection reuses its original ordered components af
   let branch;
   const visit = node => {
     if (!node || typeof node !== 'object') return;
-    if (node.type === 'IfStatement' && source.slice(node.test.start, node.test.end) === 'occurrences.length > 1') {
+    if (node.type === 'VariableDeclarator' && node.id.name === 'prepareComposedInferSelection') {
       assert.equal(branch, undefined); branch = node;
     }
     for (const value of Object.values(node)) {
@@ -783,10 +783,10 @@ test('multiple Model request selection reuses its original ordered components af
     assert.equal(adopted, false, 'adopted input cannot construct another Model graph');
     calls++; return Object.freeze({occurrence, quantityCapacity, graph: {}});
   };
-  const select = Function('occurrences', 'preparedProgram', 'inferSelections',
-    'prepareInferSelection', 'modelCoordinates', 'prepareSubmit', source.slice(branch.start, branch.end));
-  const run = () => select(occurrences, preparedProgram, inferSelections, prepareInferSelection, sourceCoordinates,
+  const select = Function('inferSelections', 'prepareInferSelection', 'prepareSubmit',
+    'return (' + source.slice(branch.init.start, branch.init.end) + ');')(inferSelections, prepareInferSelection,
     {originalInferRun: () => undefined});
+  const run = () => select(preparedProgram, occurrences, sourceCoordinates);
   run(); const original = inferSelections.get(preparedProgram); adopted = true; run();
   assert.equal(inferSelections.get(preparedProgram), original); assert.equal(calls, 2);
   assert.equal(original.sourceCoordinates, sourceCoordinates);

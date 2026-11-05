@@ -92,7 +92,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_retained_model_host.mbt",
-      "sha256": "ba0f2950d4d546a79064c1f34a2e658fb776a62aa91ab27736806faa436072c6",
+      "sha256": "a1e3692ebf2c2047accb0364111791137fcdd90c86b5c1d0af9007f73a495c7f",
       "exports": [],
       "operations": [
         {
@@ -100,12 +100,16 @@
           "declaration": "open_installed_effect_retained_model_host ( owner : ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , model_graph : @ publication_host . ClientInferPlanGraph , output : @ execution . CompletedOutput , completed_model : @ model . ModelExecution , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedEffectRunDAG , Array [ @ execution . GeneratedSequence ] , ) ? , ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "open_installed_effect_retained_models_host",
+          "declaration": "open_installed_effect_retained_models_host ( owner : ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , models : Array [ ( @ publication_host . ClientInferPlanGraph , @ execution . CompletedOutput , @ model . ModelExecution , ) , ] , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedEffectRunDAG , Array [ @ execution . GeneratedSequence ] , ) ? , ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "retire_installed_effect_captured_consumers",
           "declaration": "retire_installed_effect_captured_consumers ( owner : ClientInstalledManagedRun , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "select_installed_effect_retained_model_host",
-          "declaration": "select_installed_effect_retained_model_host ( owner : ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , model_graph : @ publication_host . ClientInferPlanGraph , output : @ execution . CompletedOutput , completed_model : @ model . ModelExecution , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedEffectRunDAG , Array [ @ execution . GeneratedSequence ] , ) ? , ClientInstalledManagedRunIssue , ]"
+          "declaration": "select_installed_effect_retained_model_host ( owner : ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , model_graph : @ publication_host . ClientInferPlanGraph , output : @ execution . CompletedOutput , completed_model : @ model . ModelExecution , models ? : Array [ ( @ publication_host . ClientInferPlanGraph , @ execution . CompletedOutput , @ model . ModelExecution , ) , ]"
         }
       ],
       "role": "common-semantics",
@@ -116,7 +120,8 @@
           "operations": [
             "<module>",
             "open_installed_effect_retained_model_host",
-            "select_installed_effect_retained_model_host"
+            "select_installed_effect_retained_model_host",
+            "open_installed_effect_retained_models_host"
           ],
           "exports": [],
           "attributes": {
@@ -266,12 +271,16 @@
     },
     {
       "module": "src/connectors_builtin_node/client_restored_model_host_bridge.mbt",
-      "sha256": "4ecb79d9e8e747d1104e73159a14bb2d84bcd19a3369ab3f065e993b213913c4",
+      "sha256": "7c2f7bb640c0cefc254d976a3e0b0f27871d522e25a6967a38db8c9b8d481e52",
       "exports": [],
       "operations": [
         {
           "name": "client_program_installed_effect_managed_restored_model_host_open",
           "declaration": "client_program_installed_effect_managed_restored_model_host_open ( owner : @ client_local_host . ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , held : @ infer_host . OutputUse , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ ClientLocalEffectHost ? , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_restored_models_host_open",
+          "declaration": "client_program_installed_effect_managed_restored_models_host_open ( owner : @ client_local_host . ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , held : Array [ @ infer_host . OutputUse ] , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , ) - > Result [ ClientLocalEffectHost ? , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_restored_infer_source_originals",
@@ -289,7 +298,8 @@
         {
           "operations": [
             "<module>",
-            "client_program_installed_effect_managed_restored_model_host_open"
+            "client_program_installed_effect_managed_restored_model_host_open",
+            "client_program_installed_effect_managed_restored_models_host_open"
           ],
           "exports": [],
           "attributes": {
@@ -529,12 +539,16 @@
     },
     {
       "module": "src/physical_strategy_host/retained_model_task.mbt",
-      "sha256": "09bfebde95489c78b4434b2f460ed4c702681616168b8b9609a91ce2b8354155",
+      "sha256": "a97c5e5d8ad0854a4adbc82c10b696b59c37bfcb87e7d2c7616b73e5c7329c02",
       "exports": [],
       "operations": [
         {
           "name": "open_multi_captured_effect_run_retained_model_dag",
           "declaration": "open_multi_captured_effect_run_retained_model_dag ( checked : CheckedEffectRunDAG , sources : Array [ ( Int , @ query . CapturedInputSource ) ] , ledger : @ resources . Ledger , task : Int , model_step : Int , output : @ execution . CompletedOutput , ) - > Result [ CapturedEffectRunDAG , RunIssue ]"
+        },
+        {
+          "name": "open_multi_captured_effect_run_retained_models_dag",
+          "declaration": "open_multi_captured_effect_run_retained_models_dag ( checked : CheckedEffectRunDAG , sources : Array [ ( Int , @ query . CapturedInputSource ) ] , ledger : @ resources . Ledger , models : Array [ ( Int , Int , @ execution . CompletedOutput ) ] , ) - > Result [ CapturedEffectRunDAG , RunIssue ]"
         },
         {
           "name": "retire_captured_task_outputs",
@@ -548,7 +562,8 @@
         {
           "operations": [
             "<module>",
-            "open_multi_captured_effect_run_retained_model_dag"
+            "open_multi_captured_effect_run_retained_model_dag",
+            "open_multi_captured_effect_run_retained_models_dag"
           ],
           "exports": [],
           "attributes": {

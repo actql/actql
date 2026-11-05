@@ -49,3 +49,34 @@ pub fn retire_captured_task_outputs(run : CapturedDAG) -> Bool {
   refresh_captured_retention(run)
   !captured_task_retirement_pending(run)
 }
+
+///|
+/// Every supplied completion is borrowed from its same original Model owner.
+/// Unsent components still run through the existing configured Local driver.
+/// Missing planned keyed input is usable only behind an actual retained Model
+/// completion at that checked keyed boundary, never plan DATA alone.
+pub fn open_multi_captured_effect_run_retained_models_dag(
+  checked : CheckedEffectRunDAG,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+  models : Array[(Int, Int, @execution.CompletedOutput)],
+) -> Result[CapturedEffectRunDAG, RunIssue] {
+  let graph = checked.computation.graph_value()
+  if models.is_empty() || sources.length() != graph.captured_prefix_value() {
+    return Err(ForeignCapture)
+  }
+  let dependencies = match
+    effect_dependency_ports(checked.computation, 4096, 65536, 64) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let captured = match
+    open_checked_dag(graph, sources, ledger, [], retained_models=models) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  for dependency in dependencies {
+    captured.effect_dependency_outputs[dependency.task] = true
+  }
+  Ok({ checked, captured, })
+}

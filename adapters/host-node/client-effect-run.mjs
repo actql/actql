@@ -102,7 +102,9 @@ export function installNodeClientEffectRun({moon,
         contentPolicy.cid, contentPolicy.wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth);
     } else outcome = infer === undefined
       ? moon.clientProgramCompileLocalEffects(prepared)
-      : moon.clientProgramCompileLocalEffectsWithInfer(prepared, infer);
+      : Array.isArray(infer)
+        ? moon.clientProgramCompileLocalEffectsWithInfers(prepared, infer)
+        : moon.clientProgramCompileLocalEffectsWithInfer(prepared, infer);
     if (moon.clientProgramEffectCompilationIssueCode(outcome) ===
         'unsupported_program') throw unsupported();
     compilation = checked(outcome);

@@ -1109,7 +1109,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             // a different Scope constructor or adoption method.
             for (const name of ['clientProgramPrepareRequestEffectModelReadScope',
               'clientProgramPrepareRequestEffectModelReadScopeWithQuantities',
-              'clientProgramAdoptRequestEffectModelPreparation']) {
+              'clientProgramAdoptRequestEffectModelPreparation',
+              'clientProgramPrepareRequestEffectModelsReadScopes',
+              'clientProgramPrepareRequestEffectModelsReadScopesWithQuantities',
+              'clientProgramAdoptRequestEffectModelsPreparation']) {
               names.push(name);
               methods.push(Object.getOwnPropertyDescriptor(moon, name)?.value);
             }
@@ -1257,7 +1260,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state === undefined || state.prepared !== prepared || !effectful && state.compilationFamily !== 'model' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
           state.preparing || state.modelCompilation !== undefined ||
-          state.modelProviderBinding !== undefined && (effectful || state.modelGraph === undefined)) fail('ForeignInstalledSourceProducer');
+          state.modelProviderBinding !== undefined && state.modelGraph === undefined) fail('ForeignInstalledSourceProducer');
       const moon = state.context.runtime;
       const readOriginal = effectful ? state.effectBorrowMethods.clientProgramEffectPreparationInputRead
         : moon.clientProgramPreparationBorrowRead;
@@ -1284,7 +1287,6 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state === undefined || state.prepared !== prepared || !effectful && state.compilationFamily !== 'model' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
           state.preparing || state.modelCompilation !== undefined ||
-          effectful && state.modelGraph !== undefined ||
           state.contentGraph !== serializationGraph) fail('ForeignInstalledSourceProducer');
       const moon = state.context.runtime, contracts = originals.installation.sequenceContractOriginal;
       const readOriginal = effectful ? state.effectBorrowMethods.clientProgramEffectPreparationInputRead
@@ -1889,10 +1891,23 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       }
       const methods = state.effectBorrowMethods;
       const quantityLimits = retainedRun.modelSelection?.quantityCapacity?.limits;
-      const prepareScope = quantityLimits === undefined ? methods.clientProgramPrepareRequestEffectModelReadScope
-        : methods.clientProgramPrepareRequestEffectModelReadScopeWithQuantities;
-      if (typeof prepareScope !== 'function' ||
-          typeof methods.clientProgramAdoptRequestEffectModelPreparation !== 'function') {
+      const plural = Array.isArray(retainedRun.modelMembers);
+      if (plural && (!Object.isFrozen(retainedRun.modelMembers) || retainedRun.modelMembers.length < 2 ||
+          !Array.isArray(retainedRun.modelSelection?.components) ||
+          retainedRun.modelMembers.length !== retainedRun.modelSelection.components.length ||
+          retainedRun.modelMembers.some((member, index) => member.model !== retainedRun.model.components[index] ||
+            member.modelSelection !== retainedRun.modelSelection.components[index] || member.modelScope !== undefined))) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      if (plural && quantityLimits === undefined && retainedRun.modelSelection.components.some(
+          member => member.quantityCapacity !== undefined)) fail('InstalledModelQuantityCapacityUnavailable');
+      const prepareScope = plural ? quantityLimits === undefined ? methods.clientProgramPrepareRequestEffectModelsReadScopes
+        : methods.clientProgramPrepareRequestEffectModelsReadScopesWithQuantities
+        : quantityLimits === undefined ? methods.clientProgramPrepareRequestEffectModelReadScope
+          : methods.clientProgramPrepareRequestEffectModelReadScopeWithQuantities;
+      const adoptModel = plural ? methods.clientProgramAdoptRequestEffectModelsPreparation
+        : methods.clientProgramAdoptRequestEffectModelPreparation;
+      if (typeof prepareScope !== 'function' || typeof adoptModel !== 'function') {
         fail('NodeManagedRunRuntimeUnavailable');
       }
       if (methods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) {
@@ -1905,12 +1920,19 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       state.effectPlan = operationPlan;
       state.adopting = true;
       try {
-        retainedRun.modelScope = checked(prepareScope(state.parent, producer.receipt, operationPlan,
+        const issued = checked(prepareScope(state.parent, producer.receipt, operationPlan,
           ...(quantityLimits === undefined ? [] : [quantityLimits.tokens,
             quantityLimits.costUnits, quantityLimits.durationMs])));
+        // Retain the complete native return before current/adoption can fail.
+        if (plural) {
+          retainedRun.modelScopes = issued;
+          if (!Array.isArray(issued) || issued.length !== retainedRun.modelMembers.length) fail('NodeManagedRunAdmissionUnavailable');
+          Object.freeze(issued);
+          for (let index = 0; index < issued.length; index++) retainedRun.modelMembers[index].modelScope = issued[index];
+        } else retainedRun.modelScope = issued;
         checked(methods.clientProgramCompleteRequestEffectPreparation(state.parent, producer.receipt, operationPlan));
-        const value = checked(methods.clientProgramAdoptRequestEffectModelPreparation(
-          state.parent, identity, retainedRun.modelScope));
+        const value = checked(adoptModel(
+          state.parent, identity, plural ? retainedRun.modelScopes : retainedRun.modelScope));
         const run = {prepared, request, producer, purpose: 'source-compute', model: retainedRun,
           effectful: true, content: undefined, operationPlan, original: state.original,
           children: [], fileIdentity: undefined, value};

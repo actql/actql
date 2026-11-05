@@ -6954,7 +6954,8 @@
           "operations": [
             "publicationControl/init:openCheckedClientInstalledRestoredModelEffectHost/init:openCheckedClientInstalledRestoredModelEffectHost",
             "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
-            "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals"
+            "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
+            "publicationControl/init:openCheckedClientInstalledRestoredModelsEffectHost/init:openCheckedClientInstalledRestoredModelsEffectHost"
           ],
           "exports": [],
           "attributes": {
@@ -11018,6 +11019,19 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:openCheckedClientInstalledRestoredModelsEffectHost/init:openCheckedClientInstalledRestoredModelsEffectHost",
+          "parameters": [
+            "compiled",
+            "definition",
+            "managedRun",
+            "bound",
+            "sources",
+            "heldOutputs",
+            "graphs"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:openCheckedClientRequestModelRecoveryHost/init:openCheckedClientRequestModelRecoveryHost",
           "parameters": [
             "parent",
@@ -15072,7 +15086,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "2f3720c2cf430ed64a8cfda92bca437b4c83e69bb36b7e3a2cfbe6e2b64030ea"
+      "sha256": "fdce9a2c9931e3a9f484ccef47a2c849f23daaa353e59a9f60a183f36d64d134"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -65230,7 +65244,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "13a3f394e2fd914c4aaa043d44a085d655620fea2a31b1f63530a24108e96d39",
+      "sha256": "1b292c18634af284f271d5dfdba6e181bec865dfdeb80caa7cdd1a4e1a90f158",
       "exports": [],
       "operations": [
         {

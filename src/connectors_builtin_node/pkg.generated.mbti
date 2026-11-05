@@ -1636,6 +1636,8 @@ pub fn client_program_installed_effect_managed_provider_plan_prepare_at_query_ti
 
 pub fn client_program_installed_effect_managed_restored_model_host_open(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource], @client_infer_host.OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Result[ClientLocalEffectHost?, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_managed_restored_models_host_open(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource], Array[@client_infer_host.OutputUse], @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[ClientLocalEffectHost?, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_managed_run_check(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_managed_run_prepare_ledger(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[@physical_resources.Ledger, @client_local_host.ClientInstalledManagedRunIssue]

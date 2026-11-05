@@ -4090,6 +4090,15 @@ function publicationControl(moon) {
       return checked(moon.clientProgramInstalledEffectManagedRestoredModelHostOpen(
         managedRun, bound, sources, heldOutput, value, token(definition), graph));
     },
+    openCheckedClientInstalledRestoredModelsEffectHost(compiled, definition,
+      managedRun, bound, sources, heldOutputs, graphs) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramInstalledEffectManagedRestoredModelsHostOpen(
+        managedRun, bound, sources, heldOutputs, value, token(definition), graphs));
+    },
     restoredInferSourceOriginals(compiled, definition, scope, occurrence, graph) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
