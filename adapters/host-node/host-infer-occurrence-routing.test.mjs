@@ -20,6 +20,8 @@ const request = nodes.find(node => node.type === 'VariableDeclarator' && node.id
 const choice = request.init.body.body.find(node => node.type === 'IfStatement' &&
   node.test.left?.object?.name === 'occurrences' && node.alternate?.type === 'ExpressionStatement');
 assert.equal(choice.alternate.expression.callee.name, 'prepareInferSelection');
+const shared = nodes.find(node => node.type === 'VariableDeclarator' && node.id.name === 'prepareComposedInferSelection');
+assert(shared);
 const argument = choice.alternate.expression.arguments[1];
 const select = new Function('occurrences', 'keyedAcquisition', 'moon', 'preparedProgram',
   `return (${source.slice(argument.start, argument.end)});`);
@@ -43,15 +45,19 @@ test('the absence of an INFER occurrence stays absent instead of inventing a Mod
 // selections. This is a caller identity check, not Core quantity admission.
 function selectGroup(selections) {
   const prepared = {}, occurrences = selections.map(() => ({})), held = new WeakMap();
-  const choose = Function('occurrences', 'preparedProgram', 'inferSelections',
-    'modelCoordinates', 'prepareInferSelection', source.slice(choice.start, choice.end));
+  const createShared = Function('inferSelections', 'prepareInferSelection', 'prepareSubmit',
+    'return (' + source.slice(shared.init.start, shared.init.end) + ');');
   let selected = 0;
-  choose(occurrences, prepared, held, undefined, (actual, occurrence, retain = true) => {
+  const prepare = (actual, occurrence, retain = true) => {
     assert.equal(actual, prepared); assert.equal(occurrence, occurrences[selected]);
     const value = selections[selected++];
     if (retain) held.set(prepared, value);
     return value;
-  });
+  };
+  const sharedSelection = createShared(held, prepare, {originalInferRun: () => undefined});
+  const choose = Function('occurrences', 'preparedProgram', 'inferSelections',
+    'modelCoordinates', 'prepareInferSelection', 'prepareComposedInferSelection', source.slice(choice.start, choice.end));
+  choose(occurrences, prepared, held, undefined, prepare, sharedSelection);
   assert.equal(selected, selections.length);
   return held.get(prepared);
 }

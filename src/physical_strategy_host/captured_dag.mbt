@@ -452,6 +452,7 @@ fn open_checked_dag(
   root_wire_bytes? : Int? = None,
   supplied_reads? : Array[(Int, Int, @execution.SuppliedRelationRead)] = [],
   retained_model? : (Int, Int, @execution.CompletedOutput)? = None,
+  retained_models? : Array[(Int, Int, @execution.CompletedOutput)] = [],
 ) -> Result[CapturedDAG, RunIssue] {
   let count = graph.owners_count()
   if count == 0 {
@@ -547,7 +548,36 @@ fn open_checked_dag(
       Some(task)
     }
   }
-  if !graph_ordered_inputs_complete(graph) && retained_task is None {
+  // The closed plural Model caller supplies actual original completed
+  // outputs, not planned supplied rows. Keep the scalar entrance unchanged.
+  if retained_models.length() > count ||
+    (retained_task is Some(_) && !retained_models.is_empty()) {
+    return Err(ForeignCapture)
+  }
+  let retained_tasks : Array[Int] = []
+  let mut retained_keyed_input = false
+  for (task, step, output) in retained_models {
+    guard task >= first_task &&
+      task < count &&
+      outputs[task] is None &&
+      graph.targets_at(task).unwrap() is Some(target) &&
+      @execution.completed_output_matches_port(
+        output,
+        graph.owners_at(task).unwrap(),
+        target,
+      ) &&
+      @execution.completed_output_available(output) else {
+      return Err(ForeignCapture)
+    }
+    outputs[task] = Some(Materialized(output))
+    retained_tasks.push(task)
+    if graph_keyed_model_plan_inputs_complete(graph, task, step) {
+      retained_keyed_input = true
+    }
+  }
+  if !graph_ordered_inputs_complete(graph) &&
+    retained_task is None &&
+    !retained_keyed_input {
     return Err(UnsupportedGraph)
   }
   if supplied.length() + supplied_reads.length() != graph.supplied_slots_count() {
@@ -851,7 +881,9 @@ fn open_checked_dag(
     }),
     ledger,
     outputs,
-    done: Array::makei(count, task => retained_task == Some(task)),
+    done: Array::makei(count, task => {
+      retained_task == Some(task) || retained_tasks.contains(task)
+    }),
     lifetimes,
     effect_dependency_outputs: Array::make(count, false),
     resources,
@@ -898,6 +930,14 @@ fn open_checked_dag(
     // This is a borrowed completion. Its actual Model execution keeps its
     // allocation and output-use pin; this DAG neither charges it twice nor
     // acknowledges that owner's physical cleanup.
+    resources[task] = Some({
+      holding: None,
+      release_confirmed: fn() { true },
+      cleanup_observation: CleanupReady,
+      parents: task_parents(run, task),
+    })
+  }
+  for task in retained_tasks {
     resources[task] = Some({
       holding: None,
       release_confirmed: fn() { true },

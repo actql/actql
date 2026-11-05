@@ -48,6 +48,13 @@ fn select_installed_effect_retained_model_host(
   model_graph : @publication_host.ClientInferPlanGraph,
   output : @execution.CompletedOutput,
   completed_model : @model.ModelExecution,
+  models? : Array[
+    (
+      @publication_host.ClientInferPlanGraph,
+      @execution.CompletedOutput,
+      @model.ModelExecution,
+    ),
+  ] = [],
 ) -> Result[
   (
     @builtin.ConfiguredComputeHost[@strategy.RunIssue],
@@ -70,7 +77,10 @@ fn select_installed_effect_retained_model_host(
   guard plan.model is Some(model) &&
     physical_equal(model.compiled, compiled) &&
     physical_equal(model.definition, definition) &&
-    physical_equal(model.graph, model_graph) &&
+    (
+      (models.is_empty() && physical_equal(model.graph, model_graph)) ||
+      (!models.is_empty() && model.components is Some(_))
+    ) &&
     @model.original_completed_model_matches_parent(completed_model, ledger) &&
     physical_equal(@strategy.checked_effect_run_graph(checked), graph) &&
     sources.length() == @strategy.graph_captured_prefix(graph) &&
@@ -91,20 +101,59 @@ fn select_installed_effect_retained_model_host(
     ) {
     return Err(ForeignOriginal)
   }
-  let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
-    model._occurrence,
-  )
-  let captured = match
-    @strategy.open_multi_captured_effect_run_retained_model_dag(
-      checked,
-      Array::makei(sources.length(), index => (index, sources[index])),
-      ledger,
-      task,
-      step,
-      output,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(ForeignOriginal)
+  let captured = if models.is_empty() {
+    let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    let captured = match
+      @strategy.open_multi_captured_effect_run_retained_model_dag(
+        checked,
+        Array::makei(sources.length(), index => (index, sources[index])),
+        ledger,
+        task,
+        step,
+        output,
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(ForeignOriginal)
+    }
+    captured
+  } else {
+    guard model.components is Some(components) &&
+      installed_effect_model_demand_complete(model) &&
+      models.length() <= components.length() else {
+      return Err(ForeignOriginal)
+    }
+    let originals = []
+    let mut previous = -1
+    for (member_graph, member_output, member_execution) in models {
+      let mut found = -1
+      for index in 0..<components.length() {
+        if physical_equal(components[index].graph, member_graph) {
+          found = index
+          break
+        }
+      }
+      guard found > previous &&
+        @model.original_completed_model_matches_parent(member_execution, ledger) else {
+        return Err(ForeignOriginal)
+      }
+      previous = found
+      let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+        components[found]._occurrence,
+      )
+      originals.push((task, step, member_output))
+    }
+    match
+      @strategy.open_multi_captured_effect_run_retained_models_dag(
+        checked,
+        Array::makei(sources.length(), index => (index, sources[index])),
+        ledger,
+        originals,
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(ForeignOriginal)
+    }
   }
   let run = @strategy.captured_effect_run_dag(captured)
   // Retain before the original configuration/current callbacks. A failure
@@ -120,8 +169,13 @@ fn select_installed_effect_retained_model_host(
   )
   match require_installed_managed_run(owner) {
     Ok(original) if physical_equal(original, ledger) &&
-      @model.original_completed_model_matches_parent(completed_model, original) =>
-      ()
+      @model.original_completed_model_matches_parent(completed_model, original) &&
+      models.all(original_model => {
+        @model.original_completed_model_matches_parent(
+          original_model.2,
+          original,
+        )
+      }) => ()
     Ok(_) => {
       ignore(reject_client_local_run(run))
       return Err(ForeignOriginal)
@@ -131,7 +185,10 @@ fn select_installed_effect_retained_model_host(
       return Err(issue)
     }
   }
-  if !@execution.completed_output_available(output) {
+  if !@execution.completed_output_available(output) ||
+    models.any(original_model => {
+      !@execution.completed_output_available(original_model.1)
+    }) {
     ignore(reject_client_local_run(run))
     return Err(ForeignOriginal)
   }
@@ -156,5 +213,52 @@ pub fn retire_installed_effect_captured_consumers(
       Some(run) => @strategy.retire_captured_task_outputs(run)
       None => true
     },
+  )
+}
+
+///|
+/// A nonempty ordered subset of actual completed original members can be
+/// restored; all remaining configured components retain their same live tasks.
+pub fn open_installed_effect_retained_models_host(
+  owner : ClientInstalledManagedRun,
+  bound : @publication_host.PreparedClientEffectRun,
+  sources : Array[@query.CapturedInputSource],
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  models : Array[
+    (
+      @publication_host.ClientInferPlanGraph,
+      @execution.CompletedOutput,
+      @model.ModelExecution,
+    ),
+  ],
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedEffectRunDAG,
+    Array[@execution.GeneratedSequence],
+  )?,
+  ClientInstalledManagedRunIssue,
+] {
+  if owner.source_free_opening || owner.source_free_captured is Some(_) {
+    return Err(AlreadyBound)
+  }
+  guard models.get(0) is Some((graph, output, execution)) else {
+    return Err(ForeignOriginal)
+  }
+  owner.source_free_opening = true
+  defer {
+    owner.source_free_opening = false
+  }
+  select_installed_effect_retained_model_host(
+    owner,
+    bound,
+    sources.copy(),
+    compiled,
+    definition,
+    graph,
+    output,
+    execution,
+    models~,
   )
 }

@@ -532,3 +532,155 @@ test('Effect Model cold read retains exact failed issuance and refuses lost orig
   assert.throws(() => other.view.restoreRead({savedScope: other.savedScope}), /OriginalCurrentLost/u);
   assert.equal(other.reads(), 0);
 });
+
+function pluralEffectModelFixture({physical = false} = {}) {
+  const f = fixture(), definition = {}, compiled = f.model.compiled, finishedScopes = new Set();
+  const models = Object.freeze([0, 1].map(() => Object.freeze({kind: physical ? 'installed-model' : 'local-mock', compiled,
+    definition: f.model.definition, occurrence: {}, graph: {}})));
+  const selections = Object.freeze(models.map(model => Object.freeze({localMock: !physical,
+    occurrence: model.occurrence, graph: model.graph, ...(physical ? {originalReadInstallation: {}, selectedBounds: {},
+      bindTrustedRuntimeScope() {return {};}, assertTrustedRuntimeScope() {},
+      finishTrustedRuntimeScope(scope, view, compiled, definition, selectedGraph) {
+        assert(!finishedScopes.has(scope), 'a completed trusted view is retired only once');
+        const result = f.options.publicationControl.finishCheckedClientInferOriginalReadScope(compiled, definition, selectedGraph, scope, true);
+        if (result) finishedScopes.add(scope); return result;
+      }} : {})})));
+  const graph = Object.freeze(models.map(model => model.graph)), scopes = [{}, {}], demands = [{}, {}], providers = [{}, {}];
+  f.options.model = Object.freeze({compiled, definition: f.model.definition, graph, components: models});
+  f.options.modelSelection = Object.freeze({graph, components: selections});
+  f.options.facts = Object.freeze({...f.options.facts, runDefinition: definition});
+  const calls = [], seen = new Set(); let pending = true, current = true;
+  f.runtime.clientProgramComposedInferLocalProvider = occurrence => {
+    const index = models.findIndex(model => model.occurrence === occurrence); assert(index >= 0); calls.push(['provider', index]); return providers[index];
+  };
+  f.options.publicationControl = {
+    prepareCheckedClientEffectModelDemand(prepared, c, compilation, d, occurrence, selectedGraph) {
+      same([prepared, c, compilation, d], [f.prepared, compiled, f.options.facts.compilation, definition]);
+      const index = models.findIndex(model => model.occurrence === occurrence);
+      assert(index >= 0); assert.strictEqual(selectedGraph, models[index].graph); calls.push(['demand', index]); return demands[index];
+    },
+    prepareCheckedClientInferOriginalRead(c, d, selectedGraph, scope) {
+      const index = graph.indexOf(selectedGraph); same([c, d, scope], [compiled, definition, scopes[index]]);
+      calls.push(['read', index]); return {index};
+    },
+    stopCheckedClientInferOriginalReadPreparation() {}, settleCheckedClientInferOriginalReadPreparation() {},
+    finishCheckedClientInferOriginalReadScope(c, d, selectedGraph, scope, physicalComplete) {
+      const index = graph.indexOf(selectedGraph); assert(index >= 0);
+      same([c, d, scope], [compiled, definition, scopes[index]]); assert.equal(physicalComplete, true);
+      calls.push(['finish', index]); seen.add(index); return !pending && seen.size === models.length;
+    },
+  };
+  f.options.publicationControl.prepareCheckedClientNodeEffectModelDemand = f.options.publicationControl.prepareCheckedClientEffectModelDemand;
+  f.runtime.clientProgramInstalledEffectModelsDemandPrepare = originals => {same(originals, demands); calls.push(['compose']); return ok(f.demand);};
+  f.runtime.clientProgramInstalledEffectModelReadWindow = original => {assert(demands.includes(original)); return [23n, 29n];};
+  f.options.manager.adoptEffectModelPreparation = (prepared, input, identity, plan, run) => {
+    same([prepared, input, identity, plan], [f.prepared, f.options.requestInput, f.options.request, f.plan]);
+    assert.strictEqual(run.modelScope, undefined); assert.strictEqual(run.modelScopes, undefined);
+    run.original = {};
+    run.modelScopes = Object.freeze(scopes);
+    for (let index = 0; index < scopes.length; index++) run.modelMembers[index].modelScope = scopes[index];
+    calls.push(['adopt']); return {original: run.original, operationPlan: plan, value: f.parent};
+  };
+  f.options.selection = Object.freeze({prepareManagedPlan(facts, inputs) {
+    assert.strictEqual(facts, f.options.facts); assert.strictEqual(inputs.modelDemand, f.demand);
+    same(inputs.modelComponents, providers); calls.push(['plan']); return f.plan;
+  }});
+  f.options.assertCurrent = () => {if (!current) throw new Error('OriginalCurrentLost');};
+  return {f, calls, graph, scopes, models, settle() {pending = false;}, revoke() {current = false;}};
+}
+
+test('plural Effect retains every original provider and Scope before Plan use and finishes the complete pending group', () => {
+  const {f, calls, scopes, models, settle} = pluralEffectModelFixture();
+  assert.strictEqual(prepareInstalledEffectManagedPlanRun(f.options), f.parent);
+  const run = readInstalledEffectManagedPlanRun(f.options);
+  assert.equal(run.modelScope, undefined); same(run.modelScopes, scopes);
+  assert.deepEqual(calls.slice(0, 6), [['demand', 0], ['provider', 0], ['demand', 1], ['provider', 1], ['compose'], ['plan']]);
+  const view = installedEffectModelPreparation(run, () => ({}), f.options.assertCurrent);
+  assert.equal(view.components.length, 2); view.retain();
+  for (let index = 0; index < 2; index++) {
+    assert.strictEqual(view.components[index].selection, f.options.modelSelection.components[index]);
+    assert.strictEqual(view.components[index].scope, scopes[index]);
+    assert.strictEqual(view.components[index].compiled, models[index].compiled);
+    view.components[index].prepareRead();
+  }
+  assert.equal(view.retire(), true);
+  assert.throws(() => finishInstalledEffectModelScope(run, true, checked), {code: 'InstalledEffectModelScopeCleanupPending'});
+  assert.equal(run.modelScopeFinished, undefined);
+  assert.deepEqual(calls.filter(call => call[0] === 'finish').slice(0, 2), [['finish', 0], ['finish', 1]]);
+  settle(); finishInstalledEffectModelScope(run, true, checked);
+  assert.equal(run.modelScopeFinished, true);
+  assert.throws(() => view.components[0].prepareRead(), {code: 'ForeignInstalledEffectModelScope'});
+});
+
+test('plural Effect refuses foreign member Scope or lost current before a read and never substitutes its first member', () => {
+  const one = pluralEffectModelFixture(); prepareInstalledEffectManagedPlanRun(one.f.options);
+  const run = readInstalledEffectManagedPlanRun(one.f.options);
+  const view = installedEffectModelPreparation(run, () => ({}), one.f.options.assertCurrent);
+  view.retain(); run.modelMembers[1].modelScope = {};
+  assert.throws(() => view.components[0].prepareRead(), {code: 'ForeignInstalledEffectModelScope'});
+  assert.equal(one.calls.some(call => call[0] === 'read'), false);
+  const two = pluralEffectModelFixture(); prepareInstalledEffectManagedPlanRun(two.f.options);
+  const currentRun = readInstalledEffectManagedPlanRun(two.f.options);
+  const currentView = installedEffectModelPreparation(currentRun, () => ({}), two.f.options.assertCurrent);
+  currentView.retain(); two.revoke();
+  assert.throws(() => installedEffectModelPreparation(currentRun, () => ({}), two.f.options.assertCurrent), /OriginalCurrentLost/u);
+  assert.throws(() => currentView.components[1].prepareRead(), /OriginalCurrentLost/u);
+  assert.equal(two.calls.some(call => call[0] === 'read'), false);
+});
+
+test('plural Effect keeps a failed second original read including thrown undefined without a replacement', () => {
+  const {f, calls, graph} = pluralEffectModelFixture(); let attempts = 0;
+  f.options.publicationControl.prepareCheckedClientInferOriginalRead = (compiled, definition, selectedGraph) => {
+    assert.strictEqual(selectedGraph, graph[1]); attempts++; throw undefined;
+  };
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const run = readInstalledEffectManagedPlanRun(f.options);
+  const view = installedEffectModelPreparation(run, () => ({}), f.options.assertCurrent); view.retain();
+  for (let i = 0; i < 2; i++) {
+    let failed = false;
+    try {view.components[1].prepareRead();} catch (cause) {failed = true; assert.strictEqual(cause, undefined);}
+    assert(failed);
+  }
+  assert(Object.hasOwn(run.modelMembers[1], 'modelReadFailure')); assert.equal(attempts, 1);
+  assert.equal(calls.some(call => call[0] === 'read'), false);
+});
+
+test('plural restored Effect facade forwards only its same opaque output inventory and native compilation/Definition', () => {
+  const source = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
+  let method;
+  (function walk(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'openCheckedClientInstalledRestoredModelsEffectHost') method = node;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
+    }
+  })(parse(source, {ecmaVersion: 'latest', sourceType: 'module'})); assert(method);
+  const compiled = Object.freeze({kind: 'infer'}), native = {}, definition = {}, nativeDefinition = {}, parent = {}, bound = {};
+  const outputs = [{}, {}], graphs = [{}, {}], sources = [{}], host = {};
+  let calls = 0;
+  const moon = {clientProgramInstalledEffectManagedRestoredModelsHostOpen(...actual) {
+    assert.strictEqual(this, moon); same(actual, [parent, bound, sources, outputs, native, nativeDefinition, graphs]); calls++; return ok(host);
+  }};
+  const control = Function('moon', 'compiledRunTokens', 'token', 'checked',
+    'return ({' + source.slice(method.start, method.end) + '});')(
+    moon, new WeakMap([[compiled, native]]), value => {assert.strictEqual(value, definition); return nativeDefinition;}, checked);
+  const open = value => control.openCheckedClientInstalledRestoredModelsEffectHost(value, definition,
+    parent, bound, sources, outputs, graphs);
+  assert.strictEqual(open(compiled), host);
+  assert.throws(() => open({...compiled}), /Foreign Client compiled Infer preparation/u);
+  assert.throws(() => open(native), /Foreign Client compiled Infer preparation/u);
+  assert.equal(calls, 1);
+});
+
+
+test('plural physical Effect finishes each trusted Scope view exactly once while its sibling closes the same group', () => {
+  const {f, calls, settle} = pluralEffectModelFixture({physical: true});
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const run = readInstalledEffectManagedPlanRun(f.options);
+  settle(); finishInstalledEffectModelScope(run, true, checked);
+  assert.equal(run.modelScopeFinished, true);
+  assert(run.modelMembers.every(member => member.modelScopeFinished === true));
+  const count = calls.filter(call => call[0] === 'finish').length;
+  finishInstalledEffectModelScope(run, true, checked);
+  assert.equal(calls.filter(call => call[0] === 'finish').length, count);
+});

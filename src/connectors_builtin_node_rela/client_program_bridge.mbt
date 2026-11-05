@@ -7775,6 +7775,7 @@ pub fn client_program_compile_local_effects(
 fn compile_client_local_effects(
   prepared : @publication_host.PreparedClientEffectComputation,
   infer : @publication_host.ClientInferPlanGraph?,
+  infers? : Array[@publication_host.ClientInferPlanGraph] = [],
 ) -> Result[
   @publication_host.ClientEffectCompilation,
   ClientProgramEffectCompilationBridgeIssue,
@@ -7793,6 +7794,7 @@ fn compile_client_local_effects(
     100000,
     100,
     infer~,
+    infers~,
   ).map_err(issue => Compilation(issue))
 }
 
@@ -9248,4 +9250,49 @@ fn client_row_source_prepare_mapping(
       refused(name)
     }
   }
+}
+
+///|
+#export_name("clientProgramEffectInferOccurrences")
+pub fn client_program_effect_infer_occurrences(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> Result[Array[@publication_host.ClientInferOccurrence], @infer_host.Issue] {
+  match @publication_host.prepared_client_effect_infer_occurrences(prepared) {
+    Some(originals) => Ok(originals)
+    None => Err(@infer_host.InvalidAdvance)
+  }
+}
+
+///|
+#export_name("clientProgramCompileLocalEffectsWithInfers")
+pub fn client_program_compile_local_effects_with_infers(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+) -> Result[
+  @publication_host.ClientEffectCompilation,
+  ClientProgramEffectCompilationBridgeIssue,
+] {
+  compile_client_local_effects(prepared, None, infers=graphs)
+}
+
+///|
+#export_name("clientProgramEffectCompilationInferOriginals")
+pub fn client_program_effect_compilation_infer_originals(
+  value : @publication_host.ClientEffectCompilation,
+) -> Array[
+  (
+    @publication_host.ClientInferPlanGraph,
+    @publication_host.ClientInferOccurrence,
+    @check_environment.ModelExecutionContract,
+  ),
+]? {
+  @publication_host.client_effect_compilation_infer_originals(value).map(originals => {
+    originals.map(original => {
+      (
+        original.0,
+        original.1,
+        @publication_host.client_infer_plan_graph_execution_contract(original.0),
+      )
+    })
+  })
 }

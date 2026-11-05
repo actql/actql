@@ -23787,7 +23787,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "31daa1013dbf08faf1f349bfdf632776d6d34565c09622663bf561ab48869f16",
+      "sha256": "bea8f7fb8248cecee83524b7376488a19eb9bb1454db0ee29b4e47bf6325febd",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -113586,7 +113586,9 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation"
+            "prepareOrdinaryManagedInstallation/view/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation#2"
           ],
           "exports": [],
           "attributes": {
@@ -116116,6 +116118,21 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation#2",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
           "parameters": [
             "prepared",
@@ -117122,7 +117139,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "71419495b340bb1db3915d0656b0e704fc3e80861980da602adc1953922857b1"
+      "sha256": "ec3b90296a3eb7f419304eb8f8de3218ca02d5fecb851661ec3983723831d95d"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -126452,10 +126469,10 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "96884e66a514a08d83b2cf970d85549cea80498b30fb222549b50e7ce2464d22",
+      "sha256": "b1900069222d7aa9d2335b2189aa62c68fe0132f896087bd9a4ae021dd8a507b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -126489,7 +126506,17 @@
             "component",
             "sourceInputs",
             "modelControl",
-            "modelDefinition"
+            "modelDefinition",
+            "members",
+            "scopes"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertCurrentPlanRecord/assertCurrentPlanRecord",
+          "parameters": [
+            "member",
+            "index"
           ],
           "async": false
         },
@@ -126510,7 +126537,63 @@
           "async": false
         },
         {
+          "name": "finishInstalledEffectModelScope/finishMember/finishMember",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "finishInstalledEffectModelScope/original/original",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelMemberPreparation",
+          "parameters": [
+            "run",
+            "member",
+            "publicationCapacity",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelMemberPreparation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelMemberPreparation/fields/init:assertRuntimeCurrent/init:assertRuntimeCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelMemberPreparation/installedEffectModelMemberPreparation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelMemberPreparation/prepareRead/prepareRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelMemberPreparation/view/init:restoreRead/init:restoreRead",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelMemberPreparation/view/init:retain/init:retain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelMemberPreparation/view/init:retire/init:retire",
           "parameters": [],
           "async": false
         },
@@ -126524,42 +126607,52 @@
           "async": false
         },
         {
+          "name": "installedEffectModelPreparation/components/components",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "installedEffectModelPreparation/current/current",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installedEffectModelPreparation/fields/init:assertRuntimeCurrent/init:assertRuntimeCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedEffectModelPreparation/installedEffectModelPreparation",
+          "name": "installedEffectModelPreparation/current/current/current",
           "parameters": [
-            "value"
+            "member",
+            "index"
           ],
           "async": false
         },
         {
-          "name": "installedEffectModelPreparation/prepareRead/prepareRead",
+          "name": "installedEffectModelPreparation/init:retain/init:retain",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installedEffectModelPreparation/view/init:restoreRead/init:restoreRead",
+          "name": "installedEffectModelPreparation/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareEffectModelMember",
           "parameters": [
-            "input"
+            "member",
+            "run",
+            "facts",
+            "publicationControl",
+            "prepareContent",
+            "checked"
           ],
           "async": false
         },
         {
-          "name": "installedEffectModelPreparation/view/init:retain/init:retain",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedEffectModelPreparation/view/init:retire/init:retire",
-          "parameters": [],
+          "name": "prepareEffectModelMember/prepareEffectModelMember",
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
@@ -126586,7 +126679,30 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectManagedPlanRun/members/members",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#10",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#11",
           "parameters": [
             "name"
           ],
@@ -126602,28 +126718,29 @@
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#3",
           "parameters": [
-            "name"
+            "member",
+            "index"
           ],
           "async": false
         },
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#4",
           "parameters": [
-            "value"
+            "member"
           ],
           "async": false
         },
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
           "parameters": [
-            "value"
+            "member"
           ],
           "async": false
         },
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#6",
           "parameters": [
-            "cause"
+            "value"
           ],
           "async": false
         },
@@ -126637,7 +126754,14 @@
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#8",
           "parameters": [
-            "name"
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#9",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -126699,9 +126823,6 @@
             "finishInstalledEffectModelScope",
             "installedEffectModelPreparation",
             "installedEffectModelPreparation/current/current",
-            "installedEffectModelPreparation/installedEffectModelPreparation",
-            "installedEffectModelPreparation/view/init:retain/init:retain",
-            "installedEffectModelPreparation/view/init:retire/init:retire",
             "prepareInstalledEffectManagedPlanRun",
             "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun",
             "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#2",
@@ -126711,10 +126832,26 @@
             "prepareInstalledEffectManagedPlanRun/same/same",
             "prepareInstalledEffectManagedPlanRun/same/same/same",
             "readInstalledEffectManagedPlanRun",
-            "installedEffectModelPreparation/fields/init:assertRuntimeCurrent/init:assertRuntimeCurrent",
             "finishInstalledEffectModelScope/original/original",
-            "installedEffectModelPreparation/prepareRead/prepareRead",
-            "installedEffectModelPreparation/view/init:restoreRead/init:restoreRead"
+            "finishInstalledEffectModelScope/finishMember/finishMember",
+            "installedEffectModelMemberPreparation",
+            "installedEffectModelMemberPreparation/current/current",
+            "installedEffectModelMemberPreparation/fields/init:assertRuntimeCurrent/init:assertRuntimeCurrent",
+            "installedEffectModelMemberPreparation/installedEffectModelMemberPreparation",
+            "installedEffectModelMemberPreparation/prepareRead/prepareRead",
+            "installedEffectModelMemberPreparation/view/init:restoreRead/init:restoreRead",
+            "installedEffectModelMemberPreparation/view/init:retain/init:retain",
+            "installedEffectModelMemberPreparation/view/init:retire/init:retire",
+            "installedEffectModelPreparation/components/components",
+            "installedEffectModelPreparation/current/current/current",
+            "installedEffectModelPreparation/init:retain/init:retain",
+            "installedEffectModelPreparation/init:retire/init:retire",
+            "prepareEffectModelMember",
+            "prepareEffectModelMember/prepareEffectModelMember",
+            "prepareInstalledEffectManagedPlanRun/members/members",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#10",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#11",
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#9"
           ],
           "exports": [
             "finishInstalledEffectModelScope",
@@ -127000,7 +127137,8 @@
         {
           "operations": [
             "assertCurrentPlanRecord",
-            "readCurrentPlanParent"
+            "readCurrentPlanParent",
+            "assertCurrentPlanRecord/assertCurrentPlanRecord"
           ],
           "exports": [],
           "attributes": {

@@ -485,7 +485,7 @@ function acquiredCleanupFixture({dagRetired = true, physicalReady = true, keyedR
     async cleanup() {events.push('keyed'); return keyedReady;}, cleanupPending:() => !keyedReady};
   const value = new Function('moon', 'checkedHost', 'execution', 'keyedCleanup', `
     let pending=true,closed=true,settled=true,unresolved=false;
-    let recovery,contentFamily,contentFamilyCleanup,contentRecovery,sourceContinuation,modelToken,restoredModelOutput;
+    let recovery,contentFamily,contentFamilyCleanup,contentRecovery,sourceContinuation,modelToken,restoredModelOutput,modelGroup;
     const restoredModelHostAttempted=false;
     const captures=[]; let originalPreparationRetained=false;
     const cleanupInfer=async()=>true; const observeUsage=()=>{};
@@ -602,7 +602,7 @@ function persistedModelScratchFixture({retire = true, releaseFailure, heldOutput
     let inferReleased=false,inferCloseAttempted=false,modelReleased=false,modelCloseAttempted=false;
     const modelContinuation={close(){throw Error('same journal continuation must remain');}};
     const originalPreparation={},component={},restoredModelOutput=${heldOutput ? '{}' : 'undefined'};
-    let publicationPlan;
+    let publicationPlan,modelGroup;
     const current=()=>{};
     const faultInjection=async()=>{events.push('capture-committed');};
     ${source.slice(cleanup.start, cleanup.end)}
@@ -814,7 +814,9 @@ function restoredHostCallerFixture({hostFailure, waiting = false} = {}) {
   const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const main = tree.body.find(node => node.declaration?.id?.name === 'openAcquiredEffectComputation').declaration;
   const body = main.body.body.find(node => node.type === 'TryStatement').block.body;
-  const cold = body.find(node => node.type === 'IfStatement' && source.slice(node.test.start, node.test.end) === 'restoredModel');
+  const groupBranch = body.find(node => node.type === 'IfStatement' && source.slice(node.test.start, node.test.end).startsWith('pluralModels && modelGroup.restored()'));
+  const cold = groupBranch.alternate;
+  assert.equal(source.slice(cold.test.start, cold.test.end), 'restoredModel');
   const custody = main.body.body.find(node => node.type === 'VariableDeclaration' &&
     node.declarations.some(value => value.id.name === 'custody'));
   assert.ok(cold && custody);
@@ -859,7 +861,7 @@ function restoredHostCallerFixture({hostFailure, waiting = false} = {}) {
     const restoredModel=true;
     let restoredModelOutput,restoredModelHostAttempted=false,checkedHost;
     let closed=false,settled=false,unresolved=false,pending=true;
-    let recovery,contentFamily,contentFamilyCleanup,contentRecovery,keyedCleanup,sourceContinuation,modelToken;
+    let recovery,contentFamily,contentFamilyCleanup,contentRecovery,keyedCleanup,sourceContinuation,modelToken,modelGroup;
     let originalPreparationRetained=false;
     ${source.slice(custody.start, custody.end)}
     return {custody, async run() {try {${source.slice(cold.start, cold.end)}
@@ -949,4 +951,86 @@ test('saved non-keyed Model preserves the ordinary Host route without projecting
   new Function('moon', 'checked', 'acquired', `const savedOriginal=true,multiple=true,infer={graph:{}};
     ${source.slice(branch.start, branch.end)}`)(moon, checked, acquired);
   assert.deepEqual({selections, projections}, {selections: 1, projections: 0});
+});
+
+// Execute the actual private group continuation with explicit nominal ports.
+// These are ownership/routing controls, not Model dispatch or Store admission.
+function effectModelGroupFixture({foreignRecord = false, pendingSecond = false} = {}) {
+  const fn = inferSourceNodes.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'acquiredEffectModelGroup');
+  assert(fn);
+  const selections = Object.freeze([0, 1].map(index => Object.freeze({graph: {index}, occurrence: {},
+    providerBinding: {}, observeAccount: () => accounts[index]})));
+  const accounts = [{}, {}], contexts = [], events = [], plan = {compiled: {}, runDefinition: {}};
+  let secondClosed = !pendingSecond, invalid = false;
+  const components = selections.map((selection, index) => Object.freeze({provider: {},
+    bindOriginal(context) {assert.strictEqual(context.selected, selection); contexts[index] = context; return components[index];},
+    hasFailure: () => false, failure: () => undefined}));
+  const preparations = Object.freeze(selections.map((selection, index) => Object.freeze({selection,
+    component: components[index], scope: {}, control: {}, compiled: plan.compiled, runDefinition: plan.runDefinition})));
+  const originalPreparation = Object.freeze({components: preparations});
+  const captures = [{capture: {}}], sourceEvidence = {}, evidence = [{sourceEvidence}];
+  const continuation = index => ({entry: slot => slot === index ? {index} : undefined,
+    async authorize() {events.push(['authorize', index]); return {status: 'waiting_checkpoint', checkpoint: index};},
+    async close() {events.push(['close-journal', index]); return true;},
+    async cleanup() {events.push(['retry-journal', index]); return true;}, cleanupPending: () => false});
+  const modelController = {discover: () => foreignRecord ? [{inventory: {taskIndex: 9, scopeCid: 'foreign'}}] : [],
+    async open(options) {
+      const index = selections.findIndex(selection => selection.graph === options.selected.graph); assert(index >= 0);
+      assert.strictEqual(options.originalPreparation, preparations[index]);
+      assert.strictEqual(options.selected.providerBinding, selections[index].providerBinding);
+      assert.strictEqual(options.selected.observeAccount(), accounts[index]);
+      assert.strictEqual(options.sourceContinuation, sourceClosure); events.push(['journal', index]); return continuation(index);
+    }};
+  const sourceClosure = {}, sourceContinuation = {async retainAll() {events.push(['source-closure']); return sourceClosure;}};
+  const moon = {clientProgramInferPlanBoundary(graph) {return {_0: graph.index};},
+    clientProgramEffectCompilationResultNames: () => ['answer']};
+  const control = {runDefinitionRunId: () => 'component-run',
+    admitComposedInferSources(occurrence, actualCaptures, originals, scope, start, end) {
+      assert(selections.some(selection => selection.occurrence === occurrence));
+      assert.strictEqual(actualCaptures, captures); assert.strictEqual(originals[0], sourceEvidence);
+      assert.deepEqual([scope, start, end], ['scope', 'start', 'end']); events.push(['sources']); return {};
+    }};
+  const ports = {canonicalJson: value => JSON.stringify(value), runtimeField: (value, index) => value[`_${index}`],
+    checked: value => {assert.equal(value.$tag, 1); return value._0;},
+    openNodeInferCaptureCustody({operation, sourceEvidence: originals, captureOnly}) {
+      const index = operation.index; assert.equal(captureOnly, true); assert.strictEqual(originals[0], sourceEvidence);
+      return {custody: {async close() {events.push(['close-capture', index]); return index !== 1 || secondClosed;},
+        async cleanup() {events.push(['retry-capture', index]); return index !== 1 || secondClosed;},
+        cleanupPending: () => index === 1 && !secondClosed},
+      configureModelJournal() {events.push(['configure', index]);},
+      async persistSettlement(settlement, entry) {assert.equal(settlement.index, index); assert.equal(entry.index, index); events.push(['settled', index]);}};
+    }, startCompleteInferObservation() {assert.fail('routing/cleanup does not invent a completed observation');},
+    preparePrivatePublicationHolding() {assert.fail('routing/cleanup does not invent a Store write');}};
+  const create = Function(...Object.keys(ports), 'return (' + inferSourceText.slice(fn.start, fn.end) + ');')(...Object.values(ports));
+  const group = create({moon, acquired: {prepared: {}, compilation: {}, control, authorityScopeCid: 'scope'},
+    infer: {components: selections}, originalModelComponents: components,
+    originalModelSelection: {components: selections}, originalPreparation, plan, modelController,
+    sourceContinuation, current() {if (invalid) throw new Error('OriginalCurrentLost');}});
+  return {group, contexts, events, prime: () => group.prime(),
+    bind() {
+      group.bind({captures, evidence, captureStartedAt: 'start', captureCompletedAt: 'end'});
+      for (const [index, context] of contexts.entries()) context.retainOperation({index,
+        preparedCallSet: () => ({}), pendingSettlement: () => ({index}), settlementSlot: () => index});
+    }, settle() {secondClosed = true;}, revoke() {invalid = true;}};
+}
+
+test('plural Effect routes equal local slots by original task and retains each pending capture on same cleanup retry', async () => {
+  const f = effectModelGroupFixture({pendingSecond: true}); await f.prime(); f.bind();
+  for (const task of [1, 0]) assert.deepEqual(await f.group.handlePause({task, slot: task, status: 'waiting'}),
+    {action: 'waiting_checkpoint', checkpoint: task});
+  assert.deepEqual(await f.group.handlePause({task: 1, slot: 1, status: 'settling'}), {action: 'resume'});
+  assert.deepEqual(f.events.filter(event => event[0] === 'journal'), [['journal', 1], ['journal', 0]]);
+  assert.equal(await f.group.cleanup(true), false); assert.equal(f.group.cleanupPending(), true);
+  f.settle(); assert.equal(await f.group.cleanup(true), true); assert.equal(f.group.cleanupPending(), false);
+  assert.equal(f.events.filter(event => event[0] === 'close-capture' && event[1] === 0).length, 1);
+  assert.equal(f.events.filter(event => event[0] === 'retry-capture' && event[1] === 1).length, 1);
+});
+
+test('plural Effect rejects foreign saved inventory and lost current before journal admission', async () => {
+  const foreign = effectModelGroupFixture({foreignRecord: true});
+  await assert.rejects(foreign.prime(), /ModelResumeForeignInventory/u);
+  assert.deepEqual(foreign.events, []);
+  const changed = effectModelGroupFixture(); await changed.prime(); changed.bind(); changed.revoke();
+  await assert.rejects(changed.group.handlePause({task: 0, slot: 0, status: 'waiting'}), /OriginalCurrentLost/u);
+  assert.equal(changed.events.some(event => event[0] === 'journal'), false);
 });

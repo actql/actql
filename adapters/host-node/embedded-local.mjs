@@ -6,6 +6,7 @@ import {createInstalledHostServices, installedSourceConfigurationReader,
 import {openHostInitializationPreparation, closeHostInitializationPreparation}
   from '../local-node/request-preparation-adapter.mjs';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
+import {runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
 import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 // Private selected-namespace DATA reader. Exporting this pure operation does
 // not expose the startup issuer or authenticate a caller-created packet.
@@ -2939,7 +2940,15 @@ async function openInstalledHost(originalInstallation, preparation) {
     let originalInfer;
     if (originalCompilation !== undefined) {
       try {
-        originalInfer = typeof moon.clientProgramEffectCompilationInferOriginal === 'function'
+        if (typeof moon.clientProgramEffectCompilationInferOriginals === 'function') {
+          const option = moon.clientProgramEffectCompilationInferOriginals(originalCompilation);
+          const originals = runtimeIsBoxedSome(option) ? runtimeField(option, 0) : undefined;
+          const coordinates = moon.clientProgramInferOccurrenceCoordinates(occurrence);
+          originalInfer = originals?.find(original => {
+            const actual = moon.clientProgramInferOccurrenceCoordinates(runtimeField(original, 1));
+            return [0, 1, 2].every(index => runtimeField(actual, index) === runtimeField(coordinates, index));
+          });
+        } else originalInfer = typeof moon.clientProgramEffectCompilationInferOriginal === 'function'
           ? moon.clientProgramEffectCompilationInferOriginal(originalCompilation) : undefined;
         if (typeof originalInfer?.then === 'function') {
           void Promise.resolve(originalInfer).catch(() => {});
@@ -3351,6 +3360,39 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     return original.requested;
   };
+  // Both entry families retain the same complete ordered Model inventory.
+  // The existing selection map owns it; quantities alone grant no execution.
+  const prepareComposedInferSelection = (preparedProgram, occurrences, modelCoordinates) => {
+    if (inferSelections.has(preparedProgram)) return;
+    const components = Object.freeze(occurrences.map(occurrence =>
+      prepareInferSelection(preparedProgram, occurrence, false)));
+    // Retain only one SAME installed declaration. Equal amounts from
+    // different registrations do not establish one original quantity scope.
+    let quantityCapacity = components[0].quantityCapacity;
+    for (const component of components) {
+      if (component.quantityCapacity !== quantityCapacity) {
+        quantityCapacity = undefined;
+        break;
+      }
+    }
+    const restoredRun = prepareSubmit.originalInferRun(preparedProgram);
+    const graph = restoredRun?.graph ?? Object.freeze(components.map(component => component.graph));
+    if (!Array.isArray(graph) || graph.length !== components.length ||
+        components.some((component, index) => component.graph !== graph[index] ||
+          component.restoredRun !== restoredRun)) {
+      throw new TypeError('ForeignInstalledInferOriginalGraph');
+    }
+    inferSelections.set(preparedProgram, Object.freeze({components, quantityCapacity, sourceCoordinates: modelCoordinates,
+      ...(restoredRun === undefined ? {} : {restoredRun}), graph,
+      egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
+  };
+  const prepareEffectInferSelection = prepared => {
+    const occurrences = typeof moon.clientProgramEffectInferOccurrences === 'function'
+      ? checked(moon.clientProgramEffectInferOccurrences(prepared))
+      : [moon.clientProgramEffectInferOccurrence(prepared)].filter(value => value !== undefined);
+    if (occurrences.length > 1) prepareComposedInferSelection(prepared, occurrences);
+    else if (occurrences.length === 1) prepareInferSelection(prepared, occurrences[0]);
+  };
   const requestOf = ({preparedProgram, requestId}, retainSourceRefusal) => {
     prepareSubmit.assertOwned(preparedProgram);
     if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
@@ -3375,8 +3417,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           throw error;
         }
       }
-      const occurrence = moon.clientProgramEffectInferOccurrence(preparedProgram);
-      if (occurrence !== undefined) prepareInferSelection(preparedProgram, occurrence);
+      prepareEffectInferSelection(preparedProgram);
       const resultNames = [];
       for (let index = 0;
         index < moon.clientProgramEffectResultCount(preparedProgram);
@@ -3486,29 +3527,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       // Funded preparation already retained this SAME Program's ordered
       // components. Submit consumes them after adoption without re-reading
       // Model contracts or constructing another Graph under that old borrow.
-      if (!inferSelections.has(preparedProgram)) {
-        const components = Object.freeze(occurrences.map(occurrence =>
-          prepareInferSelection(preparedProgram, occurrence, false)));
-        // Retain only one SAME installed declaration. Equal amounts from
-        // different registrations do not establish one original quantity scope.
-        let quantityCapacity = components[0].quantityCapacity;
-        for (const component of components) {
-          if (component.quantityCapacity !== quantityCapacity) {
-            quantityCapacity = undefined;
-            break;
-          }
-        }
-        const restoredRun = prepareSubmit.originalInferRun(preparedProgram);
-        const graph = restoredRun?.graph ?? Object.freeze(components.map(component => component.graph));
-        if (!Array.isArray(graph) || graph.length !== components.length ||
-            components.some((component, index) => component.graph !== graph[index] ||
-              component.restoredRun !== restoredRun)) {
-          throw new TypeError('ForeignInstalledInferOriginalGraph');
-        }
-        inferSelections.set(preparedProgram, Object.freeze({components, quantityCapacity, sourceCoordinates: modelCoordinates,
-          ...(restoredRun === undefined ? {} : {restoredRun}), graph,
-          egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
-      }
+      prepareComposedInferSelection(preparedProgram, occurrences, modelCoordinates);
     // The single occurrence can still belong to a multi-task/multi-Source
     // graph. Keep its compiler-owned identity instead of falling back to the
     // legacy single-task step lookup, which would miss that Model boundary.
@@ -4076,8 +4095,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       preparation.bindSourceRequest(request, prepared);
       prepareSubmit.assertSubmittedIntent(prepared, originalSubmittedIntent.intent);
       if (prepareSubmit.kindOf(prepared) !== 'effectful') throw clientOperationError('EffectRecoveryOriginalSelectionUnavailable');
-      const occurrence = moon.clientProgramEffectInferOccurrence(prepared);
-      if (occurrence !== undefined) prepareInferSelection(prepared, occurrence);
+      prepareEffectInferSelection(prepared);
       const original = await effectRun.restoreRetainedPreparation({prepared, identity: owned.requestIdentity,
         namespaceId, ref, originalSubmittedIntent});
       const managed = preparation.effectManagedPlanRun(moon, prepared, owned.requestIdentity);
@@ -4361,13 +4379,14 @@ async function openInstalledHost(originalInstallation, preparation) {
                   if (retainedModel === undefined && targetResume !== undefined &&
                       inferSelections.has(facts.prepared) && modelController !== undefined) {
                     activeResume.assertCurrent();
-                    const taskIndex = runtimeField(moon.clientProgramInferPlanBoundary(
-                      inferSelections.get(facts.prepared).graph), 0);
+                    const graphs = inferSelections.get(facts.prepared).graph;
+                    const taskIndices = (Array.isArray(graphs) ? graphs : [graphs]).map(graph =>
+                      runtimeField(moon.clientProgramInferPlanBoundary(graph), 0));
                     const records = modelController.discover(
                       control.runDefinitionRunId(facts.runDefinition))
-                      .filter(record => record.inventory.taskIndex === taskIndex);
-                    if (records.length > 1) throw new Error('ModelResumeScopeAmbiguous');
-                    if (records.length === 1) {
+                      .filter(record => taskIndices.includes(record.inventory.taskIndex));
+                    if (!Array.isArray(graphs) && records.length > 1) throw new Error('ModelResumeScopeAmbiguous');
+                    if (records.length > 0) {
                       const record = records[0];
                       const token = ownedModelToken = await modelController.prime(record);
                       facts.assertUpdateSelectionCurrent?.();
@@ -4408,6 +4427,8 @@ async function openInstalledHost(originalInstallation, preparation) {
                     owner: facts.owner, acquired: facts.preparedExecution, managedRun,
                     originalContent: managedEffect.contentOriginal,
                     originalModelComponent: managedEffect.modelComponent,
+                    originalModelComponents: managedEffect.modelMembers === undefined ? undefined
+                      : managedEffect.modelMembers.map(member => member.modelComponent),
                     originalModelSelection: managedEffect.modelSelection,
                     sourceProfile, registry, values, fragment, ordered,
                     sourceAccess: sourceProfile?.sourceAccess, signal, now,
@@ -7149,10 +7170,13 @@ async function openPreparedInstalledHost(options, initialEntry) {
       current();
       const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
       originalInstallation.computeRuns = runs;
+      const modelFor = selected => Object.freeze({kind: selected.localMock === true ? 'local-mock' : 'installed-model',
+        compiled: facts.modelCompiled, definition: facts.definition,
+        occurrence: selected.occurrence, graph: selected.graph});
       const model = modelSelection === undefined ? undefined : runs.get(facts.prepared)?.model ??
-        Object.freeze({kind: modelSelection.localMock === true ? 'local-mock' : 'installed-model',
-          compiled: facts.modelCompiled, definition: facts.definition,
-          occurrence: modelSelection.occurrence, graph: modelSelection.graph});
+        (modelSelection.components === undefined ? modelFor(modelSelection) : Object.freeze({
+          compiled: facts.modelCompiled, definition: facts.definition, graph: modelSelection.graph,
+          components: Object.freeze(modelSelection.components.map(modelFor))}));
       const hasSources = runtime.clientProgramEffectAcquisitionCount(facts.prepared) !== 0;
       return prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
         prepared: facts.prepared, request: facts.identity,
@@ -7674,7 +7698,11 @@ async function openPreparedInstalledHost(options, initialEntry) {
             run.releaseModelSelection(prepared);
             run.modelAliasesReleased = true;
           }
-          run.modelScope=run.model=run.modelDemand=run.definitionOriginal=run.operationPlan=undefined;
+          if (run.modelMembers !== undefined) for (const member of run.modelMembers) {
+            member.model = member.modelSelection = member.modelDemand = member.modelScope = undefined;
+            member.modelComponent = member.modelPreparation = member.modelRead = member.modelRuntimeView = undefined;
+          }
+          run.modelScopes=run.modelMembers=run.modelScope=run.model=run.modelDemand=run.definitionOriginal=run.operationPlan=undefined;
           run.contentOriginal=run.contentCleanup=undefined;
           run.modelSelection=run.modelComponent=run.modelComponents=run.sourceInputs=undefined;
           run.publicationControl=run.modelRunDefinition=run.modelPreparation=run.modelRead=undefined;

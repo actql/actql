@@ -583,7 +583,8 @@ fn prepare_installed_effect_managed_plan_owned(
   }
   // A Model plan retains its nominal checked binding and selected demand.
   // Ordinary operation DATA alone cannot convert the purpose or fund a Scope.
-  if model is Some(selected) && !physical_equal(selected.prepared, prepared) {
+  if model is Some(selected) && (!physical_equal(selected.prepared, prepared) ||
+    !installed_effect_model_demand_complete(selected)) {
     return Err(ForeignOriginal)
   }
   if content is Some(original) &&
@@ -602,6 +603,7 @@ fn prepare_installed_effect_managed_plan_owned(
   if !installed_managed_owner_shape_supported(
       Effect(prepared),
       model is Some(_),
+      model_graphs=model.bind(value => value.components.map(originals => originals.map(original => original.graph))),
       content~,
     ) {
     return Err(Unsupported)
@@ -660,6 +662,7 @@ fn prepare_installed_effect_managed_plan_owned(
           fragment_body,
           ordered_body,
           model is Some(_),
+          model_graphs=model.bind(value => value.components.map(originals => originals.map(original => original.graph))),
           content~,
           query_time=invocation,
         ) {

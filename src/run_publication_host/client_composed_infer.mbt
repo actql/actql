@@ -271,3 +271,12 @@ pub fn client_infer_occurrence_host_ceilings(
     MissingRequestCeiling,
   ).map(bytes => (items, bytes))
 }
+
+///|
+/// Exact checked Effect occurrences in the existing task order. This borrows
+/// its private compiler view without issuing an Effect-free preparation.
+pub fn prepared_client_effect_infer_occurrences(
+  owner : PreparedClientEffectComputation,
+) -> Array[ClientInferOccurrence]? {
+  prepared_client_composed_infer_occurrences(client_effect_program_view(owner))
+}

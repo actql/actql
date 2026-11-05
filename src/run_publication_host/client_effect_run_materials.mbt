@@ -134,6 +134,10 @@ pub fn issue_client_effect_run_materials(
       }
     }
   }
+  let infer_inputs_wire = match client_effect_original_infer_inputs(allowed.compilation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let wire = match
     encode_client_run_materials_body(
       allowed.admission,
@@ -144,6 +148,7 @@ pub fn issue_client_effect_run_materials(
       parameters_wire,
       request_wire~,
       source_free_policy_input~,
+      infer_inputs_wire~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
@@ -200,9 +205,6 @@ pub fn admit_client_effect_run_materials(
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
   }
-  if body.infer_inputs_wire is Some(_) {
-    return Err(Input(MaterialsEvidence("infer_execution_contracts")))
-  }
   match original_materials {
     Some(issued) =>
       if body.normalization_wire is None ||
@@ -230,6 +232,8 @@ pub fn admit_client_effect_run_materials(
           effect_limits,
         ) {
         Ok(value) => value
+        Err(Candidate(@checked.MissingEffects)) if body.infer_inputs_wire is Some(_) =>
+          return Err(Input(MaterialsEvidence("infer_execution_contracts")))
         Err(issue) => return Err(Program(issue))
       }
   }
@@ -280,6 +284,13 @@ pub fn admit_client_effect_run_materials(
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
+  }
+  let infers = match (original_compilation, body.infer_inputs_wire) {
+    (None, Some(wire)) => match read_plural_client_infer_run_graphs(client_effect_program_view(prepared), wire, limits) {
+      Ok(value) => value
+      Err(_) => return Err(Input(MaterialsEvidence("infer_execution_contracts")))
+    }
+    _ => []
   }
   let source_free_policy = match original_compilation {
     Some(_) => None
@@ -360,6 +371,7 @@ pub fn admit_client_effect_run_materials(
           limits.max_evidence_depth,
           normalization_profile,
           infer~,
+          infers~,
           source_free_policy~,
         ) {
         Ok(value) => value

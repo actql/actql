@@ -48,6 +48,7 @@ function fixture({plural = false, failAt, cause} = {}) {
   const view = Object.freeze({control, compiled, runDefinition: definition, selection,
     assertRuntimeCurrent() {calls.push('same current');}});
   const preparation = {
+    admitResultPublicationRun(owner) {assert.strictEqual(owner, prepared); calls.push('same Result original');},
     modelPublicationCapacity() {assert.fail('No publication borrow during recovery selection');},
     prepareManagedModelRecoveryPlan(runtime, owner, identity, actualPlan, selected, model) {
       assert.strictEqual(runtime, moon); assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
@@ -86,6 +87,7 @@ test('restored Model selection keeps the original Request and complete ordered g
     const f = fixture({plural});
     assert.strictEqual(f.open(), f.view); assert.strictEqual(f.open(), f.view);
     assert.equal(f.calls.filter(value => value === 'same Request Scope').length, 1);
+    assert.equal(f.calls.filter(value => value === 'same Result original').length, 2);
     assert.equal(f.calls.filter(value => value === 'original bounds').length, plural ? 2 : 1);
     assert.throws(() => f.open({}, f.plan), /ForeignInstalledModelRecovery/u);
     assert.throws(() => f.open(f.prepared, {...f.plan, compiled: {}}), /ForeignInstalledModelRecovery/u);
@@ -103,6 +105,7 @@ test('failed restored Scope retains its same partial parent and undefined primar
     }
     assert.strictEqual(f.model().scope, f.scope);
     assert.equal(f.calls.filter(value => value === 'same Request Scope').length, 1);
+    assert.equal(f.calls.filter(value => value === 'same Result original').length, 2);
     assert.throws(() => f.model().releaseAliases(), /InstalledModelCleanupPending/u);
     assert.notEqual(f.model().closed, true);
   }

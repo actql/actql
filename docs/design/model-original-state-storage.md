@@ -115,6 +115,12 @@ The Host retains the same Plan, Run, generated sequences, Source holdings and
 Effect dependency ports; it does not recompile or mark omitted ancestors as
 newly executed.
 
+For the existing separate-task plural Model form, the same Plan retains the
+complete ordered graph and Scope inventory. Cold restoration borrows a nonempty
+ordered subset of actual completed members; unsent members keep their existing
+Local tasks. Every output still binds its own original graph, saved scope and
+parent Ledger. A planned keyed input alone never becomes a retained output.
+
 The caller retains the existing opaque Model `OutputUse` before the fallible
 Host entry. The bridge accepts only the actual completed execution with the
 same compiled Run, Definition, Plan and live saved scope. The Model domain

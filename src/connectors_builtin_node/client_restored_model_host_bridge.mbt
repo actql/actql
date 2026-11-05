@@ -60,3 +60,43 @@ pub fn client_program_restored_infer_source_originals(
     scope, compiled, definition, occurrence, graph,
   )
 }
+
+///|
+#export_name("clientProgramInstalledEffectManagedRestoredModelsHostOpen")
+pub fn client_program_installed_effect_managed_restored_models_host_open(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  bound : @publication_host.PreparedClientEffectRun,
+  sources : Array[@query.CapturedInputSource],
+  held : Array[@infer_host.OutputUse],
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+) -> Result[
+  ClientLocalEffectHost?,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  if held.is_empty() || held.length() != graphs.length() || held.length() > 128 {
+    return Err(ForeignOriginal)
+  }
+  let originals = []
+  for index in 0..<held.length() {
+    guard @infer_host.borrow_original_restored_host_output(
+        held[index],
+        compiled,
+        definition,
+        graphs[index],
+      )
+      is Some((output, completed)) else {
+      return Err(ForeignOriginal)
+    }
+    originals.push((graphs[index], output, completed))
+  }
+  @client_local_host.open_installed_effect_retained_models_host(
+    owner, bound, sources, compiled, definition, originals,
+  ).map(value => {
+    value.map(tuple => {
+      let (host, run, sequences) = tuple
+      { host, run, prepared: bound, sequences, }
+    })
+  })
+}

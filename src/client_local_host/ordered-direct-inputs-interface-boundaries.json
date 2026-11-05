@@ -320,7 +320,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "68893a4e6e79fd222351c814c40dd7f643bd5d5cff299321b12bef6a55fcea54"
+      "sha256": "d107fd987258bd0916ec6aacf3250b78d262172474a0234b74d2285e21b79bfc"
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
@@ -450,7 +450,7 @@
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "de57dfc1d75ad3e22be2b702a7a526073a2eee75a51adfaa55a00fa536af46bd",
+      "sha256": "4a48f7e363d662a14073cb8f979b89620992e9504dc7f204cd806c7b2bb54790",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1537,18 +1537,22 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "46364495b374df520eafd57fc1137a8e4902d31420fe8eff81154dd0bf155d1a",
+      "sha256": "6f0c09bb6e4ef0add0a13561b93868bea4ef4f58b6673fe64c50c6ecfd093e3a",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
       "operations": [
+        {
+          "name": "[I,T]prepare_request_effect_model_scopes_owned",
+          "declaration": "[ I , T ] prepare_request_effect_model_scopes_owned ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , quantity_limits : @ resources . QuantityAmounts ? , bind : ( ClientInstalledEffectModelDemand , @ resources . Ledger , @ resources . OriginalLedgerIdentity ) - > Result [ T , @ publication_host . ClientModelReadPreparationIssue ] , ) - > Result [ T , ClientInstalledManagedRunIssue ]"
+        },
         {
           "name": "[I]begin_request_effect_managed_run",
           "declaration": "[ I ] begin_request_effect_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "[I]begin_request_effect_model_managed_run",
-          "declaration": "[ I ] begin_request_effect_model_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+          "declaration": "[ I ] begin_request_effect_model_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , scopes ? : Array [ @ publication_host . ClientModelReadScope ] ?"
         },
         {
           "name": "[I]borrow_request_effect_plan_input",
@@ -1575,6 +1579,10 @@
           "declaration": "[ I ] prepare_request_effect_model_read_scope ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , quantity_limits ? : @ resources . QuantityAmounts ?"
         },
         {
+          "name": "[I]prepare_request_effect_models_read_scopes",
+          "declaration": "[ I ] prepare_request_effect_models_read_scopes ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , quantity_limits ? : @ resources . QuantityAmounts ?"
+        },
+        {
           "name": "[I]request_effect_plan_quote",
           "declaration": "[ I ] request_effect_plan_quote ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
         },
@@ -1596,7 +1604,9 @@
             "[I]finish_request_effect_run_adoption",
             "[I]prepare_request_effect_model_read_scope",
             "[I]request_effect_plan_quote",
-            "[I]reserve_request_effect_plan"
+            "[I]reserve_request_effect_plan",
+            "[I,T]prepare_request_effect_model_scopes_owned",
+            "[I]prepare_request_effect_models_read_scopes"
           ],
           "exports": [],
           "attributes": {

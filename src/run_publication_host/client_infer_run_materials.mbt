@@ -323,59 +323,11 @@ fn issue_plural_client_infer_run_materials(
     Ok(_) => ()
     Err(issue) => return Err(Binding(issue))
   }
-  let inventory = try {
-    let writer = @encode.writer(
-      limits.max_evidence_bytes,
-      limits.max_evidence_nodes,
-      limits.max_evidence_depth,
-    )
-    @encode.begin_array(writer)
-    for index in 0..<occurrences.length() {
-      let occurrence = occurrences[index]
-      let graph = compilation.infers[index]
-      if !client_infer_occurrence_matches_plan(occurrence, graph) {
-        return Err(Binding(UnsupportedProgram))
-      }
-      let installed = match
-        issue_installed_client_composed_infer_plan_graph(
-          occurrence,
-          graph.execution,
-          limits.sequence,
-          limits.max_evidence_bytes,
-          limits.max_evidence_nodes,
-          limits.max_evidence_depth,
-        ) {
-        Ok(value) => value
-        Err(_) => return Err(Binding(UnsupportedProgram))
-      }
-      if installed.graph.wire != graph.graph.wire {
-        return Err(Binding(UnsupportedProgram))
-      }
-      let body = @encode.writer(65536, 4096, 64)
-      @syntax.emit_admitted_source_value(
-        @environment.model_execution_source(graph.execution),
-        body,
-      )
-      let (task, stage, step) = client_infer_occurrence_coordinates(occurrence)
-      @encode.begin_object(writer)
-      @encode.key(writer, "execution_contract_cid")
-      @encode.string_value(
-        writer,
-        @environment.model_execution_cid(graph.execution),
-      )
-      @encode.key(writer, "execution_contract_json")
-      @encode.string_value(writer, @encode.finish(body))
-      for (name, value) in [("stage", stage), ("step", step), ("task", task)] {
-        @encode.key(writer, name)
-        @encode.number_value(writer, value.to_double())
-      }
-      @encode.end_object(writer)
-    }
-    @encode.end_array(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(Input(MaterialsEvidence("infer_execution_contracts")))
+  let inventory = match encode_client_infer_original_inventory(occurrences, compilation.infers, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
+
   issue_client_run_materials_input(
     compiled.owner,
     compiled.admission,
@@ -473,4 +425,71 @@ fn read_plural_client_infer_run_graphs(
     graphs.push(graph)
   }
   Ok(graphs)
+}
+
+///|
+// The same closed ordered inventory codec serves Program and Effect owners;
+// each caller first proves its own typed compilation/Run correspondence.
+fn encode_client_infer_original_inventory(
+  occurrences : Array[ClientInferOccurrence],
+  graphs : Array[ClientInferPlanGraph],
+  limits : ClientValuesRunMaterialsLimits,
+) -> Result[String, ClientTaskRunMaterialsIssue] {
+  if occurrences.length() < 2 || occurrences.length() > 128 || graphs.length() != occurrences.length() {
+    return Err(Binding(UnsupportedProgram))
+  }
+  let inventory = try {
+    let writer = @encode.writer(
+      limits.max_evidence_bytes,
+      limits.max_evidence_nodes,
+      limits.max_evidence_depth,
+    )
+    @encode.begin_array(writer)
+    for index in 0..<occurrences.length() {
+      let occurrence = occurrences[index]
+      let graph = graphs[index]
+      if !client_infer_occurrence_matches_plan(occurrence, graph) {
+        return Err(Binding(UnsupportedProgram))
+      }
+      let installed = match
+        issue_installed_client_composed_infer_plan_graph(
+          occurrence,
+          graph.execution,
+          limits.sequence,
+          limits.max_evidence_bytes,
+          limits.max_evidence_nodes,
+          limits.max_evidence_depth,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(Binding(UnsupportedProgram))
+      }
+      if installed.graph.wire != graph.graph.wire {
+        return Err(Binding(UnsupportedProgram))
+      }
+      let body = @encode.writer(65536, 4096, 64)
+      @syntax.emit_admitted_source_value(
+        @environment.model_execution_source(graph.execution),
+        body,
+      )
+      let (task, stage, step) = client_infer_occurrence_coordinates(occurrence)
+      @encode.begin_object(writer)
+      @encode.key(writer, "execution_contract_cid")
+      @encode.string_value(
+        writer,
+        @environment.model_execution_cid(graph.execution),
+      )
+      @encode.key(writer, "execution_contract_json")
+      @encode.string_value(writer, @encode.finish(body))
+      for (name, value) in [("stage", stage), ("step", step), ("task", task)] {
+        @encode.key(writer, name)
+        @encode.number_value(writer, value.to_double())
+      }
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => return Err(Input(MaterialsEvidence("infer_execution_contracts")))
+  }
+  Ok(inventory)
 }
