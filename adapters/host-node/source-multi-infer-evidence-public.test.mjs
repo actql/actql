@@ -195,7 +195,7 @@ for (const transport of ['local', 'https']) {
       t.diagnostic(`Retained cleanup recovery: ${root}`);
     });
     const firstPid = await executeHost(root, transport, 'unicode', 'disabled', 'stop-first-saved', 77);
-    const pendingPid = await executeHost(root, transport, 'unicode', 'disabled', 'resume-cleanup-pending');
+    const pendingPid = await executeHost(root, transport, 'unicode', 'disabled', 'resume-cleanup-pending', 77);
     assert.notEqual(firstPid, pendingPid);
     const pending = JSON.parse(await readFile(join(root, 'resume-cleanup-pending.json'), 'utf8'));
     assert(pending.holdings.some(item => item.state === 'retiring' && item.cleanup_error === 'EACCES'));
