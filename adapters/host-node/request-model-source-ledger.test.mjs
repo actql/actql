@@ -387,3 +387,115 @@ test('actual complete Model dispatcher retains its original Run before borrowing
   assert.throws(() => run(...Object.values(ports)), /InstalledMultiSourceOriginalRunUnavailable/);
   assert.deepEqual(calls, ['same parent borrow', 'both original Source slots']);
 });
+
+// Execute the existing installed caller with explicit original Core ports. The
+// source-only fixture stops at the real kernel constructor boundary; it grants
+// no physical resources and claims neither provider IO nor ordinary success.
+function directCapturedModelFixture({taskCount = 1, retireBeforeRead = false, retireDuringSource = false} = {}) {
+  const source = readFileSync(new URL('./installed-infer-run.mjs', import.meta.url), 'utf8');
+  const declarations = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .map(node => node.declaration ?? node).filter(node => node.type === 'FunctionDeclaration');
+  const bodies = ['sourceFreeModelPreparation', 'installNodeInferRun'].map(name => {
+    const node = declarations.find(node => node.id.name === name); assert(node);
+    return source.slice(node.start, node.end);
+  }).join('\n');
+  const calls = [], prepared = {}, graph = {}, occurrence = {}, scope = {}, read = {}, ledger = {},
+    parent = {}, request = {}, provider = {}, prefix = {}, evidence = {}, capture = {source() {return originalSource;}},
+    originalSource = {}, captured = {capture}, managed = {value: parent, request, prepared}, component = {bindOriginal() {
+      assert.fail('A direct original Model kernel is not a completed captured DAG task');
+    }}, budget = {readRetainedBytes: 11n, readExecutionBytes: 13n,
+      modelRetainedBytes: 17n, modelExecutionBytes: 19n};
+  const plan = {compiled: {}, runDefinition: {wire: '{"run_id":"direct-model-fixture"}'}, inferGraph: graph};
+  const selected = {graph, occurrence, computePrefix: prefix, provider};
+  const model = {prepared, selection: selected, control: undefined, compiled: plan.compiled,
+    runDefinition: plan.runDefinition, graph, scope, budget, component, managed,
+    sourceLedger: ledger, publicationCapacity() {return {};}};
+  managed.model = model;
+  const primary = new Error('actual direct kernel boundary');
+  const wrong = new Error('captured DAG route');
+  const control = {
+    prepareCheckedClientInferOriginalRead(c, d, g, s, b) {
+      assert.deepEqual([c, d, g, s, b], [plan.compiled, plan.runDefinition, graph, scope, budget]);
+      calls.push('same read'); return read;
+    },
+    admitComposedInferSources(o, originals, proofs, authority, started, completed) {
+      assert.strictEqual(o, occurrence); assert.deepEqual(originals, [captured]);
+      assert.deepEqual(proofs, [evidence]); assert.equal(authority, 'authored-authority');
+      assert.equal(started, 'authored-start'); assert.equal(completed, 'authored-end');
+      calls.push('same Source evidence'); if (retireDuringSource) model.closed = true; return originalSources;
+    },
+    finishCheckedClientInferOriginalReadScope(c, d, g, s, stopped) {
+      assert.deepEqual([c, d, g, s, stopped], [plan.compiled, plan.runDefinition, graph, scope, true]);
+      calls.push('same Scope finish'); return true;
+    },
+  };
+  model.control = control;
+  const originalSources = {};
+  const moon = {clientProgramAcquisitionCount: p => {assert.strictEqual(p, prepared); return 1;},
+    clientProgramTaskCount: p => {assert.strictEqual(p, prepared); return taskCount;},
+    clientProgramSelectSingleKeyedAcquisition: () => ({$tag: 1, _0: undefined}),
+    clientProgramInferPlanBoundary: g => {assert.strictEqual(g, graph); return {_0: 0};}};
+  managed.runtime = moon;
+  const ports = {runtimeField: (v, i) => v[`_${i}`], checked: v => {assert.equal(v.$tag, 1);return v._0;},
+    runInstalledComposedInfers: () => {throw wrong;},
+    retireNodeInferOriginalRead: value => {assert.strictEqual(value, model);
+      if (model.read !== undefined) assert.strictEqual(model.read, read);
+      calls.push('same read retirement');},
+    openNodeInferOperation(options) {
+      assert.strictEqual(options.originalPreparation.scope, scope);
+      assert.strictEqual(options.originalPreparation.read, read);
+      assert.strictEqual(options.provider, provider);
+      assert.equal(options.acquiredInput, undefined);
+      assert.deepEqual(options.composedInput, {occurrence, prefix, inputs: [], sources: originalSources});
+      calls.push('same original kernel'); throw primary;
+    }};
+  const install = Function(...Object.keys(ports), `${bodies}\nreturn installNodeInferRun;`)(...Object.values(ports));
+  let cleanup;
+  const run = install({moon, core: {publicationControl: control}, selections: new Map([[prepared, selected]]),
+    authorityScopeCid: 'authored-authority', modelController: {discover: () => [], release() {}},
+    prepareOriginalModelRun(p, actual, s) {
+      assert.deepEqual([p, actual, s], [prepared, plan, selected]);
+      if (retireBeforeRead) model.closed = true;
+      return model;
+    }});
+  return {calls, primary, wrong, model, run: () => run({preparedProgram: prepared, plan,
+    acquiredInfer: {managedRun: parent, ledger, captured, sourceEvidence: evidence,
+      captureStartedAt: 'authored-start', captureCompletedAt: 'authored-end'},
+    preparationHolder: {}, signal: new AbortController().signal,
+    retainExecution(value) {cleanup = value;}}), cleanup: () => cleanup};
+}
+
+test('same-stage acquired Model uses its original kernel instead of publishing a captured DAG root', async () => {
+  const f = directCapturedModelFixture();
+  await assert.rejects(f.run(), error => error === f.primary);
+  assert.deepEqual(f.calls, ['same Source evidence', 'same read', 'same original kernel']);
+  assert.equal(await f.cleanup().close(), true);
+  assert.deepEqual(f.calls.slice(-2), ['same read retirement', 'same Scope finish']);
+  assert.equal(f.cleanup().cleanupPending(), false);
+});
+
+
+test('separate-stage acquired Model keeps its existing captured DAG route', async () => {
+  const f = directCapturedModelFixture({taskCount: 2});
+  await assert.rejects(f.run(), error => error === f.wrong);
+  assert.deepEqual(f.calls, []);
+});
+
+test('retired original same-stage Model cannot issue a read or enter the kernel', async () => {
+  const f = directCapturedModelFixture({retireBeforeRead: true});
+  await assert.rejects(f.run(), /InvalidInstalledRequestModelPreparation/);
+  assert.deepEqual(f.calls, []);
+  assert.equal(f.cleanup(), undefined);
+});
+
+test('same-stage Source admission reentry preserves the original pending Scope duty', async () => {
+  const f = directCapturedModelFixture({retireDuringSource: true});
+  await assert.rejects(f.run(), /InvalidInstalledRequestModelPreparation/);
+  assert.deepEqual(f.calls, ['same Source evidence']);
+  assert.equal(f.cleanup().cleanupPending(), true);
+  await assert.rejects(f.cleanup().close(), /InvalidInstalledRequestModelPreparation/);
+  assert.equal(f.cleanup().cleanupPending(), true);
+  f.model.closed = false; // Explicit fixture makes only its original current again.
+  assert.equal(await f.cleanup().cleanup(), true);
+  assert.deepEqual(f.calls.slice(-2), ['same read retirement', 'same Scope finish']);
+});
