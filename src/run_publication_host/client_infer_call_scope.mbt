@@ -834,6 +834,15 @@ pub fn client_infer_saved_call_scope_matches_run(
   definition : @publication.PublicationContract,
 ) -> Bool {
   (value.available)() &&
+  infer_saved_call_scope_run_originals(value, compiled, definition)
+}
+
+///|
+fn infer_saved_call_scope_run_originals(
+  value : ClientInferSavedCallScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
   physical_equal(value.compiled, compiled) &&
   @publication.publication_contract_identity(value.definition) ==
   @publication.publication_contract_identity(definition)
@@ -846,10 +855,34 @@ pub fn client_infer_saved_call_scope_matches_occurrence(
   plan : ClientInferPlanGraph,
 ) -> Bool {
   (value.available)() &&
+  infer_saved_call_scope_occurrence_originals(value, occurrence, plan)
+}
+
+///|
+fn infer_saved_call_scope_occurrence_originals(
+  value : ClientInferSavedCallScope,
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+) -> Bool {
   client_infer_occurrence_matches(value.occurrence, occurrence.owner) &&
   client_infer_occurrence_coordinates(value.occurrence) ==
   client_infer_occurrence_coordinates(occurrence) &&
   physical_equal(value.plan, plan)
+}
+
+///|
+/// One current observation for the same synchronous Run/occurrence borrow.
+/// Both original identity laws remain owned by the same private predicates.
+pub fn client_infer_saved_call_scope_matches_originals(
+  value : ClientInferSavedCallScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+) -> Bool {
+  infer_saved_call_scope_run_originals(value, compiled, definition) &&
+  infer_saved_call_scope_occurrence_originals(value, occurrence, plan) &&
+  (value.available)()
 }
 
 ///|

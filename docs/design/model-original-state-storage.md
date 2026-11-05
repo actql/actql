@@ -104,3 +104,30 @@ startup lifetimes require their own existing-Scope funding connection. Missing,
 foreign, insufficient or unjustified original installation is unavailable;
 neither this seam nor its component fixtures establish a normal numerical
 profile or public INFER acceptance.
+
+## Completed restored Model task in its original Effect Host
+
+A restored Model input is authenticated by its nominal saved call scope and
+the actual retained-input identity scan. It does not issue a new keyed Source
+observation. The original Model execution may finish that input and its checked
+Compute suffix before its enclosing Effect Host borrows the completed task.
+The Host retains the same Plan, Run, generated sequences, Source holdings and
+Effect dependency ports; it does not recompile or mark omitted ancestors as
+newly executed.
+
+The caller retains the existing opaque Model `OutputUse` before the fallible
+Host entry. The bridge accepts only the actual completed execution with the
+same compiled Run, Definition, Plan and live saved scope. The Model domain
+also checks its actual original Ledger against the managed parent's Ledger;
+equal limits or matching identifiers do not replace that parent. The existing
+managed Host opening/captured fields admit one Host, including through reentry.
+A Model already bound to its original Local component remains a valid producer;
+that component flag is not reused as a second output-transfer state machine.
+
+The DAG borrows the actual task completion under its original owner and target,
+leaves the deferred keyed Source slot unissued, and preserves downstream Result,
+Preview and current checks. It neither consumes another attempt nor reserves a
+second output allocation. The original Model execution keeps its work history,
+allocation, retained input and cleanup duties. The caller releases its output
+use only after the Host's consumers retire. Constructor failure, a stopped DAG
+or release of this use alone does not acknowledge the Model's physical cleanup.

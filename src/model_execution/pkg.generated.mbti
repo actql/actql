@@ -228,6 +228,8 @@ pub fn observe_model_raw_capture(ModelPhysicalCall, @run_publication_host.Client
 
 pub fn openai_chat_projection_work(OpenAIChatProjection) -> Int
 
+pub fn original_completed_model_matches_parent(ModelExecution, @physical_resources.Ledger) -> Bool
+
 pub fn original_model_mock_provider(ModelMockInstallation) -> Result[ModelProvider, ModelMockInstallationIssue]
 
 pub fn original_model_publication_capacity_covers(OriginalModelPublicationCapacity, Int64, Int64) -> Bool

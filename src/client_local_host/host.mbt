@@ -783,6 +783,11 @@ fn bind_client_local_configuration(
         // capture's statistics describe all independent input roots.
         let offers = []
         for task in first_compute..<task_count {
+          if @strategy.captured_task_completed(run, task) {
+            // A borrowed completed Model task has already spent its work.
+            // Offer only its actual downstream tasks, never rerun the prefix.
+            continue
+          }
           let proposed = match
             @local_driver.estimate_local_installed_offers(installed, task, {
               rows: None,
@@ -798,6 +803,11 @@ fn bind_client_local_configuration(
           for offer in proposed {
             offers.push(offer)
           }
+        }
+        if offers.is_empty() {
+          // Every remaining task is an actual typed completion. This Host
+          // still owns Result/Effect consumers, but has no Compute to select.
+          return Some(value)
         }
         match
           @strategy.configure_strategy_search(run, {

@@ -32769,7 +32769,7 @@
     },
     {
       "module": "src/client_local_host/host.mbt",
-      "sha256": "f92cc9302c850abc2c979d54f3044113798d65c0c407f3be9336fe01331b87c3",
+      "sha256": "cb6c7774fdfa8779d646d3111642a9850e3f451f303740ec2c2bb0ef9f885858",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -64831,7 +64831,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "31cb8785e6d607d0f5d018f416f5502ff4cf7f86ba005a277612dc3454c16b95",
+      "sha256": "079988913a004143c2b08e65e230d550b6267a738f55d52e97bc182b1abfff2e",
       "exports": [],
       "operations": [
         {

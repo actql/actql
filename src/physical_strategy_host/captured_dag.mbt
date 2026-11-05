@@ -438,6 +438,7 @@ fn open_checked_dag(
   completed? : Array[(Int, @execution.CompletedOutput)] = [],
   root_wire_bytes? : Int? = None,
   supplied_reads? : Array[(Int, Int, @execution.SuppliedRelationRead)] = [],
+  retained_model? : (Int, Int, @execution.CompletedOutput)? = None,
 ) -> Result[CapturedDAG, RunIssue] {
   let count = graph.owners_count()
   if count == 0 {
@@ -512,7 +513,28 @@ fn open_checked_dag(
     count,
     _ => [],
   )
-  if !graph_ordered_inputs_complete(graph) {
+  // A restored Model task has already executed on its original retained
+  // input. Its completion is not a newly completed keyed Source port.
+  let retained_task = match retained_model {
+    None => None
+    Some((task, step, output)) => {
+      guard task >= first_task &&
+        task < count &&
+        graph_keyed_model_plan_inputs_complete(graph, task, step) &&
+        graph.targets_at(task).unwrap() is Some(target) &&
+        @execution.completed_output_matches_port(
+          output,
+          graph.owners_at(task).unwrap(),
+          target,
+        ) &&
+        @execution.completed_output_available(output) else {
+        return Err(ForeignCapture)
+      }
+      outputs[task] = Some(Materialized(output))
+      Some(task)
+    }
+  }
+  if !graph_ordered_inputs_complete(graph) && retained_task is None {
     return Err(UnsupportedGraph)
   }
   if supplied.length() + supplied_reads.length() != graph.supplied_slots_count() {
@@ -816,7 +838,7 @@ fn open_checked_dag(
     }),
     ledger,
     outputs,
-    done: Array::make(count, false),
+    done: Array::makei(count, task => retained_task == Some(task)),
     lifetimes,
     effect_dependency_outputs: Array::make(count, false),
     resources,
@@ -858,6 +880,17 @@ fn open_checked_dag(
     managed_selections: Array::make(count, None),
     activation_required: false,
     activation_grant: None,
+  }
+  if retained_task is Some(task) {
+    // This is a borrowed completion. Its actual Model execution keeps its
+    // allocation and output-use pin; this DAG neither charges it twice nor
+    // acknowledges that owner's physical cleanup.
+    resources[task] = Some({
+      holding: None,
+      release_confirmed: fn() { true },
+      cleanup_observation: CleanupReady,
+      parents: task_parents(run, task),
+    })
   }
   for (task, port, read) in supplied_reads {
     let lifetime = lifetimes[task]

@@ -751,6 +751,8 @@ pub fn client_infer_prefix_owner(PreparedClientProgram, Int, Int) -> @lowering_r
 
 pub fn client_infer_saved_call_scope_matches_occurrence(ClientInferSavedCallScope, ClientInferOccurrence, ClientInferPlanGraph) -> Bool
 
+pub fn client_infer_saved_call_scope_matches_originals(ClientInferSavedCallScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph) -> Bool
+
 pub fn client_infer_saved_call_scope_matches_run(ClientInferSavedCallScope, ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
 pub fn client_journal_issuance_count(Bytes, Int) -> Result[Int, ClientJournalDecodingIssue]

@@ -16,6 +16,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/model_execution",
   "actql/actql/parameter_binding",
   "actql/actql/physical_cost",
   "actql/actql/physical_resources",
@@ -577,6 +578,8 @@ pub fn open_client_keyed_local_host(@run_publication_host.PreparedClientProgram,
 pub fn open_installed_effect_managed_host(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource]) -> Result[(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.CapturedEffectRunDAG, Array[@execution_relation.GeneratedSequence])?, ClientInstalledManagedRunIssue]
 
 pub fn open_installed_effect_managed_keyed_host(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource], @run_publication_host.ClientKeyedLookupInput) -> Result[(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.CapturedEffectRunDAG, Array[@execution_relation.GeneratedSequence])?, ClientInstalledManagedRunIssue]
+
+pub fn open_installed_effect_retained_model_host(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource], @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedOutput, @model_execution.ModelExecution) -> Result[(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.CapturedEffectRunDAG, Array[@execution_relation.GeneratedSequence])?, ClientInstalledManagedRunIssue]
 
 pub fn open_installed_managed_capture_host(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[@execution_query.CapturedInputSource]) -> Result[(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.CapturedDAG, Array[@execution_relation.GeneratedSequence]), ClientInstalledCaptureHostIssue]
 

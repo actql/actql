@@ -617,6 +617,8 @@ pub fn open_multi_captured_effect_run_dag(@physical_strategy.CheckedEffectRunDAG
 
 pub fn open_multi_captured_effect_run_keyed_dag(@physical_strategy.CheckedEffectRunDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, Int, Int, @execution_relation.SuppliedRelationRead) -> Result[CapturedEffectRunDAG, RunIssue]
 
+pub fn open_multi_captured_effect_run_retained_model_dag(@physical_strategy.CheckedEffectRunDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, Int, Int, @execution_relation.CompletedOutput) -> Result[CapturedEffectRunDAG, RunIssue]
+
 pub fn open_retained_effect_task_dag(@physical_strategy.CheckedEffectRunDAG, @physical_strategy.RetainedTaskProjection, @execution_relation.CompletedOutput, @physical_resources.Ledger, canonical_wire_bytes~ : Int) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn open_retained_task_dag(@physical_strategy.RetainedTaskProjection, @execution_relation.CompletedOutput, @physical_resources.Ledger, canonical_wire_bytes~ : Int) -> Result[CapturedDAG, RunIssue]
