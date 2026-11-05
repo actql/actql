@@ -195,6 +195,17 @@ export function createRemoteSiteCoordinator({
         return durable !== undefined &&
           durable[0] === control.coordinatorRecordRevision(current) &&
           control.coordinatorCanRetireCancellationDelivery(current);
+      },
+      canRetireReleaseDelivery() {
+        const current = recordFor(dispatch);
+        const durable = store.inspectState(dispatch, control);
+        if (durable === undefined ||
+            durable[0] !== control.coordinatorRecordRevision(current)) return false;
+        // Read only the existing typed owner's cleanup plane. In particular,
+        // the Core permits Accepted -> Releasing -> Released before start;
+        // Release delivery must not add Cancel's terminal-execution condition.
+        const state = control.coordinatorRecordStatus(current);
+        return state[5] === '2' && state[6] === '0' && state[7] === '0';
       }});
   };
   const exchange = async (request, operation) => {

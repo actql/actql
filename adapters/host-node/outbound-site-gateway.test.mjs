@@ -1506,6 +1506,68 @@ for (const boundary of ['before poll', 'after poll']) {
   });
 }
 
+for (const receiver of ['durable', 'transport']) {
+  test(`Release delivery preserves before-start cleanup with ${receiver} receiver`, {timeout: 15_000}, async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'release-before-start-'));
+    let passed = false;
+    t.after(async () => {
+      if (passed) await rm(root, {recursive: true, force: true});
+      else console.error(`Before-start Release fixture retained: ${root}`);
+    });
+    const material = await certificates(root);
+    const siteMaterial = {ca: material.ca, cert: material.siteCertificate,
+      key: material.siteKey};
+    const store = openSqliteCoordinatorDispatchJournal(join(root, 'coordinator'),
+      {coordinatorAuthority: 'coordinator-a'});
+    t.after(() => store.close());
+    let coordinator;
+    const gateway = await startHttpsOutboundSiteGateway({
+      key: material.serverKey, cert: material.serverCertificate, ca: material.ca,
+      siteAuthorities: new Map([[material.siteFingerprint,
+        {siteKey: 'site-a', siteGeneration: 1}]]), control,
+      ...(receiver === 'durable' ? {
+        receiveObservation: value => coordinator.receiveObservation(value),
+      } : {}),
+    });
+    t.after(() => gateway.close());
+    coordinator = createRemoteSiteCoordinator({authorization: remoteAuthorization,
+      control, journal: control.createCoordinatorJournal('coordinator-a'), store,
+      send: async () => ({revision: 0, state: [0, 0, 0, 0, 0]})});
+    const request = dispatch({dispatchId: `release-before-start-${receiver}`});
+    await coordinator.dispatch({dispatch: request});
+    const site = runtime.siteControl.create({key: 'site-a', generation: 1,
+      runtimeRevision: cid('a'), maxConcurrentOperations: 4,
+      maxConcurrentTransfers: 4, maxRetainedBytes: 1_048_576n,
+      maxExecutionBytes: 1_048_576n});
+    const siteStore = openSqliteDispatchJournal(join(root, 'site'),
+      {siteKey: 'site-a', siteGeneration: 1, runtimeRevision: cid('a')});
+    t.after(() => siteStore.close());
+    const record = siteStore.accept(control.prepareAdmission(
+      control.createJournal(site), request), request, control);
+    let completed = false;
+    const released = gateway.release({dispatch: request}).then(value => {
+      completed = true; return value;
+    }).catch(error => error);
+    const path = '/v1/sites/site-a/generations/1/outbound';
+    const postStatus = () => post(gateway.origin, `${path}/observations`, siteMaterial,
+      control.statusJson(record, undefined, undefined, undefined));
+    assert.equal((await postStatus()).status, 200);
+    assert.equal(completed, false, 'Accepted alone has no physical release');
+    assert.equal((await post(gateway.origin, `${path}/poll`, siteMaterial)).body,
+      control.pollReleaseJson(request));
+    siteStore.advance(control.prepareRelease(record), record, control);
+    assert.equal((await postStatus()).status, 200);
+    assert.equal(completed, false);
+    siteStore.advance(control.prepareReleased(record), record, control);
+    assert.equal((await postStatus()).status, 200);
+    assert.deepEqual((await released).state, [0, 0, 2, 0, 0],
+      'Release observes its own cleanup plane without inventing terminal execution');
+    assert.equal(gateway.pending(), 0);
+    passed = true;
+  });
+}
+
 test('outbound cancellation cannot admit work before dispatch', async t => {
   await mkdir(scratch, {recursive: true});
   const root = await mkdtemp(join(scratch, 'outbound-cancel-'));

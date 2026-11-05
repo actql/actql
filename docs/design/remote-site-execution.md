@@ -587,8 +587,10 @@ that caller's waiter.
 An ordinary status can arrive after a Release waiter is registered, including
 from another control process's earlier query. It is admitted as an observation
 without retiring Release delivery. The gateway keeps offering the same Release
-until the existing Owner confirms terminal execution and released cleanup,
-without retained material or quarantine. With a durable receiver, that decision
+until the existing Owner confirms released cleanup without retained material
+or quarantine. Cleanup is independent of execution: the existing before-start
+release path remains valid without a terminal execution observation. With a
+durable receiver, that decision
 uses its latest committed observation rather than an older reply. This delivery
 fence neither cancels the Run nor grants another execution.
 

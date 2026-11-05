@@ -583,7 +583,22 @@ export async function startHttpsOutboundSiteGateway({
         replyJson(response, 200, {accepted: true});
         return;
       }
-      if ((matched.operation === 'cancel' || matched.operation === 'release') &&
+      if (matched.operation === 'release' &&
+          !(receiveObservation === undefined
+            // This projection is from the admitted exact-request response,
+            // not received JSON or execution authority. CleanupReleased is
+            // independent of whether the existing execution has settled.
+            ? projected.state[2] === 2 && projected.state[3] === 0 &&
+              projected.state[4] === 0
+            : typeof observationReceipt?.canRetireReleaseDelivery === 'function' &&
+              observationReceipt.canRetireReleaseDelivery() === true)) {
+        // A delayed query or a release-in-progress reply cannot discard the
+        // exact Release offer. A durable receiver must project its current
+        // committed owner, including any later loss or quarantine.
+        replyJson(response, 200, {accepted: true});
+        return;
+      }
+      if (matched.operation === 'cancel' &&
           !(receiveObservation === undefined
             ? control.responseCanRetireCancellationDelivery(admitted)
             : typeof observationReceipt?.canRetireCancellationDelivery === 'function' &&
@@ -592,13 +607,10 @@ export async function startHttpsOutboundSiteGateway({
         // retire delivery; a known old released reply is not current evidence.
         // The receiver-free gateway retains its transport-only contract.
         // Ordinary status (even after an offer) cannot prove that the Site
-        // saved Cancel or completed Release. Admit the observation, but keep
-        // offering the exact operation until the common owner admits terminal
-        // execution and released cleanup with no retained material or quarantine
-        // obligation.
-        // The existing predicate includes successful Native settlement; its
-        // use for Release does not issue cancellation or execution authority.
-        // Unknown execution is not terminal cleanup evidence.
+        // saved Cancel. Admit the observation, but keep offering the exact
+        // cancellation until the common owner admits terminal execution and
+        // released cleanup with no retained material or quarantine obligation.
+        // Unknown execution is not terminal cancellation evidence.
         replyJson(response, 200, {accepted: true});
         return;
       }
