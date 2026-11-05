@@ -62839,7 +62839,7 @@
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e7bf49257dc181e8a4d50bc6fb880a07e9512d17b1f1ba2faa51debe6818aa9c",
+      "sha256": "6b16b8de29153e6333eda8a829acc0cdd2cc321a897f9f0c6405453faefad2ed",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -62895,20 +62895,6 @@
           "name": "createInstalledDuckDBSource/adapter/adapter",
           "parameters": [
             "connectorId"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledDuckDBSource/adapter/adapter/matches/matches",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledDuckDBSource/adapter/adapter/matches/matches/matches",
-          "parameters": [
-            "view"
           ],
           "async": false
         },
@@ -62995,6 +62981,20 @@
           "async": false
         },
         {
+          "name": "createInstalledDuckDBSource/adapter/init:prepareRetained/init:prepareRetained",
+          "parameters": [
+            "preparedProgram",
+            "requestIdentity",
+            "occurrence",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "sourceAccess"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledDuckDBSource/adapter/init:retainedCapture/init:retainedCapture",
           "parameters": [
             "prepared"
@@ -63018,6 +63018,29 @@
         {
           "name": "createInstalledDuckDBSource/current/current",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/retainPrepared/retainPrepared",
+          "parameters": [
+            "prepared",
+            "captureCapacity",
+            "retainedOnly"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/retainPrepared/retainPrepared/matches/matches",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/retainPrepared/retainPrepared/matches/matches/matches",
+          "parameters": [
+            "view"
+          ],
           "async": false
         },
         {
@@ -63352,8 +63375,6 @@
         },
         {
           "operations": [
-            "createInstalledDuckDBSource/adapter/adapter/matches/matches",
-            "createInstalledDuckDBSource/adapter/adapter/matches/matches/matches",
             "createInstalledDuckDBSource/adapter/init:ordinaryRecoveryBinding/init:ordinaryRecoveryBinding"
           ],
           "exports": [],
@@ -63601,7 +63622,11 @@
             "createInstalledDuckDBSource/adapter/init:ledgerCapacity/init:ledgerCapacity",
             "createInstalledDuckDBSource/adapter/init:retainedCapture/init:retainedCapture",
             "createInstalledDuckDBSource/catalogIds/catalogIds",
-            "createInstalledDuckDBSource/adapter/init:openCapture/init:openCapture"
+            "createInstalledDuckDBSource/adapter/init:openCapture/init:openCapture",
+            "createInstalledDuckDBSource/adapter/init:prepareRetained/init:prepareRetained",
+            "createInstalledDuckDBSource/retainPrepared/retainPrepared",
+            "createInstalledDuckDBSource/retainPrepared/retainPrepared/matches/matches",
+            "createInstalledDuckDBSource/retainPrepared/retainPrepared/matches/matches/matches"
           ],
           "exports": [],
           "attributes": {

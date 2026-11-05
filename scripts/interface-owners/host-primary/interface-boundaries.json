@@ -1480,7 +1480,7 @@
     },
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
-      "sha256": "53928f2f260b31209d2e3f0d41131f437f8c979f1376014c02004bb2a1c714e2",
+      "sha256": "249b957c701fe05c5c3a4ec19f07bf7075c358771c9548cb66976383f2b79948",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -1488,7 +1488,8 @@
         "capturedDuckDBPhysicalCapacity",
         "capturedDuckDBRequirement",
         "openCapturedDuckDBSource",
-        "prepareCapturedDuckDBSource"
+        "prepareCapturedDuckDBSource",
+        "prepareRetainedCapturedDuckDBSource"
       ],
       "operations": [
         {
@@ -1541,6 +1542,22 @@
           "async": false
         },
         {
+          "name": "checkedSourceForRequirement",
+          "parameters": [
+            "moon",
+            "requirement",
+            "sourceAccess"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedSourceForRequirement/checkedSourceForRequirement",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "currentReadDecision",
           "parameters": [
             "database",
@@ -1548,6 +1565,21 @@
             "signal"
           ],
           "async": true
+        },
+        {
+          "name": "describeCapturedSource",
+          "parameters": [
+            "checkedSource",
+            "selection",
+            "admittedLimits",
+            "planning",
+            "occurrence",
+            "sourceAccess",
+            "database",
+            "schema",
+            "table"
+          ],
+          "async": false
         },
         {
           "name": "openCapturedDuckDBSource",
@@ -1657,9 +1689,29 @@
           "async": false
         },
         {
-          "name": "prepareCapturedDuckDBSource/prepareCapturedDuckDBSource",
+          "name": "prepareRetainedCapturedDuckDBSource",
           "parameters": [
-            "value"
+            "moon",
+            "preparedProgram",
+            "requestIdentity",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "sourceAccess",
+            "database",
+            "schema",
+            "table",
+            "transportLimits",
+            "acquisitionPlanning",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRetainedCapturedDuckDBSource/prepareRetainedCapturedDuckDBSource",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -1696,8 +1748,12 @@
             "openCapturedDuckDBSource/recovery/recovery",
             "prepareCapturedDuckDBSource",
             "prepareCapturedDuckDBSource/contracts/contracts",
-            "prepareCapturedDuckDBSource/prepareCapturedDuckDBSource",
-            "selectAcquisition"
+            "selectAcquisition",
+            "checkedSourceForRequirement",
+            "checkedSourceForRequirement/checkedSourceForRequirement",
+            "describeCapturedSource",
+            "prepareRetainedCapturedDuckDBSource",
+            "prepareRetainedCapturedDuckDBSource/prepareRetainedCapturedDuckDBSource"
           ],
           "exports": [
             "capturedDuckDBConfiguration",
@@ -1706,7 +1762,8 @@
             "capturedDuckDBPhysicalCapacity",
             "capturedDuckDBRequirement",
             "openCapturedDuckDBSource",
-            "prepareCapturedDuckDBSource"
+            "prepareCapturedDuckDBSource",
+            "prepareRetainedCapturedDuckDBSource"
           ],
           "attributes": {
             "responsibility": [
