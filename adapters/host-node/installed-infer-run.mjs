@@ -167,7 +167,7 @@ function sourceFreeModelsPreparation(moon, control, prepared, plan, selected, mo
 
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
-  checkpoints, prepareAcquisition, sourceAccessFor, runContent, prepareKeyedRecovery,
+  checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor, runContent, prepareKeyedRecovery,
   prepareOriginalMockRun, prepareOriginalModelRun,
   computeConfigurations = {}}) {
   const control = core.publicationControl;
@@ -188,7 +188,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       return runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
         store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork, submission,
         existingModel, modelClaim, assertCurrent, modelController, inferEvidence, checkpoints,
-        prepareAcquisition, sourceAccessFor, namespaceId, authorityScopeCid, storeAuthorityCid,
+        prepareAcquisition, sourceAccessFor, sourceAdapterFor, namespaceId, authorityScopeCid, storeAuthorityCid,
         now, faultInjection, registry, values, fragment, ordered, computeConfigurations,
         originalPreparation: original});
     }
@@ -226,7 +226,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       return runInstalledComposedInfers({moon, control, preparedProgram, plan,
         selected: {components: [selected]}, store, principalId, signal, retainExecution,
         acquiredInfer, replay, beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
-        modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor,
+        modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor,
         namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
         registry, values, fragment, ordered, computeConfigurations, originalPreparation});
     }
@@ -338,7 +338,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       return runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
         store, principalId, signal, retainExecution, acquiredInfer, replay,
         beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
-        modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor,
+        modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor,
         namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
         registry, values, fragment, ordered, computeConfigurations});
     }
@@ -671,7 +671,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           composedExecution = value;
         }, acquiredInfer, replay, beginPhysicalWork, submission, existingModel, modelClaim,
         assertCurrent: () => {assertCurrent?.(); assertOriginalRuntime();}, modelController,
-        inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor,
+        inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor,
         namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
         registry, values, fragment, ordered, computeConfigurations, originalPreparation: original});
     }

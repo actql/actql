@@ -1060,7 +1060,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           const input = requestModelAcquired || captured.composedInfer ? undefined : control.admitInferCapturedInput(
             preparedProgram, captured, sourceEvidence, authorityScopeCid,
             captured.checkedSource.sourceDataPolicyCid, captureStartedAt, captureCompletedAt);
-          acquiredInfer = {input, captured, preparedSource: held.preparedSource, sourceAccess,
+          acquiredInfer = {input, captured, adapter: installedSource, preparedSource: held.preparedSource, sourceAccess,
             occurrence: runInfer.sourceOccurrence?.(preparedProgram, 0),
             ...(requestModelAcquired ? {ledger, managedRun: held.managedRun} : {}),
             sourceEvidenceWire: sourceEvidence.wire, captureStartedAt, captureCompletedAt, sourceEvidence};

@@ -755,3 +755,38 @@ test('native captured Model group keeps both original children when later curren
   assert.equal(f.run.preparedSequences, undefined);
   assert.equal(f.run.modelPlan, undefined);
 });
+
+// Exercise the actual request-selection branch twice, as funded preparation
+// and submit do for the same original Program. No Core/physical grant is made.
+test('multiple Model request selection reuses its original ordered components after adoption', () => {
+  let branch;
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'IfStatement' && source.slice(node.test.start, node.test.end) === 'occurrences.length > 1') {
+      assert.equal(branch, undefined); branch = node;
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  };
+  visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'})); assert(branch);
+  const preparedProgram = {}, occurrences = Object.freeze([{}, {}]), quantityCapacity = {};
+  const inferSelections = new WeakMap(), sourceCoordinates = Object.freeze([[0, 0, 0]]);
+  let calls = 0, adopted = false;
+  const prepareInferSelection = (prepared, occurrence, retain) => {
+    assert.equal(prepared, preparedProgram); assert.equal(retain, false);
+    assert.equal(adopted, false, 'adopted input cannot construct another Model graph');
+    calls++; return Object.freeze({occurrence, quantityCapacity, graph: {}});
+  };
+  const select = Function('occurrences', 'preparedProgram', 'inferSelections',
+    'prepareInferSelection', 'modelCoordinates', source.slice(branch.start, branch.end));
+  const run = () => select(occurrences, preparedProgram, inferSelections, prepareInferSelection, sourceCoordinates);
+  run(); const original = inferSelections.get(preparedProgram); adopted = true; run();
+  assert.equal(inferSelections.get(preparedProgram), original); assert.equal(calls, 2);
+  assert.equal(original.sourceCoordinates, sourceCoordinates);
+  assert.equal(original.quantityCapacity, quantityCapacity);
+  original.components.forEach((component, index) => {
+    assert.equal(component.occurrence, occurrences[index]); assert.equal(original.graph[index], component.graph);
+  });
+});

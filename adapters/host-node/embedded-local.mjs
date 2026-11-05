@@ -3429,20 +3429,25 @@ async function openInstalledHost(originalInstallation, preparation) {
     const inventory = moon.clientProgramComposedInferOccurrences(preparedProgram);
     const occurrences = runtimeIsOkRequired(inventory) ? runtimeField(inventory, 0) : [];
     if (occurrences.length > 1) {
-      const components = Object.freeze(occurrences.map(occurrence =>
-        prepareInferSelection(preparedProgram, occurrence, false)));
-      // Retain only one SAME installed declaration. Equal amounts from
-      // different registrations do not establish one original quantity scope.
-      let quantityCapacity = components[0].quantityCapacity;
-      for (const component of components) {
-        if (component.quantityCapacity !== quantityCapacity) {
-          quantityCapacity = undefined;
-          break;
+      // Funded preparation already retained this SAME Program's ordered
+      // components. Submit consumes them after adoption without re-reading
+      // Model contracts or constructing another Graph under that old borrow.
+      if (!inferSelections.has(preparedProgram)) {
+        const components = Object.freeze(occurrences.map(occurrence =>
+          prepareInferSelection(preparedProgram, occurrence, false)));
+        // Retain only one SAME installed declaration. Equal amounts from
+        // different registrations do not establish one original quantity scope.
+        let quantityCapacity = components[0].quantityCapacity;
+        for (const component of components) {
+          if (component.quantityCapacity !== quantityCapacity) {
+            quantityCapacity = undefined;
+            break;
+          }
         }
+        inferSelections.set(preparedProgram, Object.freeze({components, quantityCapacity, sourceCoordinates: modelCoordinates,
+          graph: Object.freeze(components.map(component => component.graph)),
+          egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
       }
-      inferSelections.set(preparedProgram, Object.freeze({components, quantityCapacity, sourceCoordinates: modelCoordinates,
-        graph: Object.freeze(components.map(component => component.graph)),
-        egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
     // The single occurrence can still belong to a multi-task/multi-Source
     // graph. Keep its compiler-owned identity instead of falling back to the
     // legacy single-task step lookup, which would miss that Model boundary.
@@ -3860,6 +3865,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       return {keyedSource, ledger};
     },
     sourceAccessFor: prepared => installedSourceFor(sourceProfile, prepared.checkedSource.sourceRef).sourceAccess,
+    sourceAdapterFor: prepared => installedSourceFor(sourceProfile, prepared.checkedSource.sourceRef),
     faultInjection: authorization?.faultInjection,
     computeConfigurations: {local: localSnapshotConfiguration}});
   dispatchOwner = installNodeClientDispatchOwner({moon, control,
