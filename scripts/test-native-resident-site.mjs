@@ -206,6 +206,7 @@ const releaseObservationMode = process.argv.includes('--release-observation-only
 const releaseStoppedRecoveryMode = process.argv.includes('--release-stopped-recovery-only');
 const releaseColdRecoveryMode = process.argv.includes('--release-cold-recovery-only');
 const holderReclaimMode = process.argv.includes('--holder-reclaim-only');
+const restartReclaimMode = process.argv.includes('--restart-reclaim-only');
 const holderKillPoints = Object.freeze(['before-intent', 'after-intent', 'allocated', 'owned',
   'payload-written', 'sealed', 'reclaimed']);
 const holderReclaimPoint = process.argv.find(value => value.startsWith('--holder-reclaim-point='))
@@ -964,6 +965,56 @@ try {
 
   };
 
+
+  const sleep = milliseconds =>
+    new Promise(resolve => setTimeout(resolve, milliseconds));
+
+  const verifyRestartReclamation = async () => {
+    // 18. The holder dies right after the seal and its control process never
+    //     reclaims (acceptance hook: reclaim passes skipped), then the control
+    //     process is killed too. The same formal Release lets the restarted
+    //     Site reclaim the payload; process death alone grants no release.
+    const neglecting = startSite(['--publication-capacity-bytes', '40',
+      '--holder-kill-at', 'sealed', '--control-reclaim-failures', '1000000']);
+    currentSite = neglecting;
+    const restartDispatch = dispatchFor('resident-restart-reclaim', 72);
+    await within(gateway.dispatch({dispatch: restartDispatch,
+      inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(restartDispatch)}),
+    'restart dispatch');
+    expectedEntries += 1;
+    await waitFor(async () => (await entries()).length === expectedEntries,
+      'restart entry');
+    const restartOutput = requestOutput(restartDispatch, await planOutput(
+      restartDispatch, await settledQuery(restartDispatch, 'restart'),
+      'restart')).catch(error => error);
+    await waitFor(() => neglecting.lines.some(line =>
+      line.kind === 'holder-killed'), 'restart holder killed');
+    gateway.withdraw({dispatch: restartDispatch});
+    await restartOutput;
+    await sleep(1000);
+    assert.equal(pendingIntents().length, 1);
+    assert.ok(reservedPayloadBytes() > 0);
+    neglecting.child.kill('SIGKILL');
+    await neglecting.exited;
+    const restartedSite = startSite(['--publication-capacity-bytes', '40']);
+    currentSite = restartedSite;
+    await waitFor(() => restartedSite.lines.some(line =>
+      line.kind === 'orphan-reclaim-pending' && line.reason === 'store'),
+    'restart retains output before Release');
+    assert.equal(pendingIntents().length, 1);
+    const restartReleased = await within(gateway.release({dispatch: restartDispatch}),
+      'restart original Release');
+    assert.equal(restartReleased.state[2], 2);
+    await waitFor(() => restartedSite.lines.some(line =>
+      line.kind === 'orphans-reclaimed'), 'reclaimed after restart');
+    assert.equal(pendingIntents().length, 0);
+    assert.equal(reservedPayloadBytes(), 0);
+    assert.equal((await entries()).length, expectedEntries);
+    restartedSite.child.kill('SIGTERM');
+    await restartedSite.exited;
+    await provesCapacityFree('after-restart-reclaim', 73);
+  };
 
   if (cancelMode) {
     const bundleHoldings = () => {
@@ -1884,6 +1935,8 @@ try {
     failing.child.kill('SIGTERM');
     await failing.exited;
     }
+  } else if (restartReclaimMode) {
+    await verifyRestartReclamation();
   } else if (holderReclaimMode) {
     // The full suite opens this Store before adding the foreign staging file.
     // An isolated selection must do that through the same real Site too: a
@@ -3041,8 +3094,6 @@ try {
     assert.equal(reservedPayloadBytes(), 0);
   }
 
-  const sleep = milliseconds =>
-    new Promise(resolve => setTimeout(resolve, milliseconds));
 
   await verifyKilledHolderReclamation(holderKillPoints);
 
@@ -3080,42 +3131,7 @@ try {
   living.child.kill('SIGTERM');
   await living.exited;
 
-  // 18. The holder dies right after the seal and its control process never
-  //     reclaims (acceptance hook: reclaim passes skipped), then the control
-  //     process is killed too. A restarted Site reclaims the payload.
-  const neglecting = startSite(['--publication-capacity-bytes', '40',
-    '--holder-kill-at', 'sealed', '--control-reclaim-failures', '1000000']);
-  currentSite = neglecting;
-  const restartDispatch = dispatchFor('resident-restart-reclaim', 72);
-  await within(gateway.dispatch({dispatch: restartDispatch,
-    inputBindingBody: '{}',
-    dispatchEnvelope: materialsEnvelope(restartDispatch)}),
-  'restart dispatch');
-  expectedEntries += 1;
-  await waitFor(async () => (await entries()).length === expectedEntries,
-    'restart entry');
-  const restartOutput = requestOutput(restartDispatch, await planOutput(
-    restartDispatch, await settledQuery(restartDispatch, 'restart'),
-    'restart')).catch(error => error);
-  await waitFor(() => neglecting.lines.some(line =>
-    line.kind === 'holder-killed'), 'restart holder killed');
-  gateway.withdraw({dispatch: restartDispatch});
-  await restartOutput;
-  await sleep(1000);
-  assert.equal(pendingIntents().length, 1);
-  assert.ok(reservedPayloadBytes() > 0);
-  neglecting.child.kill('SIGKILL');
-  await neglecting.exited;
-  const restartedSite = startSite(['--publication-capacity-bytes', '40']);
-  currentSite = restartedSite;
-  await waitFor(() => restartedSite.lines.some(line =>
-    line.kind === 'orphans-reclaimed'), 'reclaimed after restart');
-  assert.equal(pendingIntents().length, 0);
-  assert.equal(reservedPayloadBytes(), 0);
-  assert.equal((await entries()).length, expectedEntries);
-  restartedSite.child.kill('SIGTERM');
-  await restartedSite.exited;
-  await provesCapacityFree('after-restart-reclaim', 73);
+  await verifyRestartReclamation();
 
   // 19. The intent cannot be kept (a real journal write failure: another
   //     connection holds the write lock past the busy timeout). The holder

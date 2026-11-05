@@ -887,10 +887,10 @@ priv struct RunningHolder {
 }
 
 ///|
-/// Acceptance evidence only: while `failures` is positive, a reclaim pass is
-/// reported as skipped and the count goes down.
-fn skip_reclaim(failures : Ref[Int]) -> Bool {
-  if failures.val <= 0 {
+/// Acceptance evidence only: defer an actual nonempty reclaim pass. The empty
+/// startup scan must complete normally before the first holder can start.
+fn skip_reclaim(failures : Ref[Int], pending : Int) -> Bool {
+  if failures.val <= 0 || pending == 0 {
     return false
   }
   failures.val -= 1
@@ -926,6 +926,7 @@ fn reclaim_orphaned_outputs(
   replay_journal : Ref[ControlReplayJournalCustody?],
   failed_store : Ref[@publication_store.NativePublicationStoreOpenFailure?],
   slot_progress : Ref[ControlTerminalClose],
+  failures : Ref[Int],
 ) -> OrphanReclaim {
   let publication_root = settings.root
   let close_held = fn(store : @publication_store.Store) -> OrphanReclaim {
@@ -977,6 +978,12 @@ fn reclaim_orphaned_outputs(
     } else {
       OrphansPending
     }
+  }
+  if held is None && skip_reclaim(failures, pending) {
+    // No Store or Slot was acquired by this pass. A failed Journal close
+    // remains in its original custody and keeps admission fenced below.
+    close_control_replay_journal(replay_journal)
+    return OrphansPending
   }
   let store = match held {
     Some(value) => value
@@ -1986,12 +1993,11 @@ fn run_control(
       (
         orphan_store is Some(_) ||
         (reclaim_due && @env.now() >= next_reclaim_ms)
-      ) &&
-      !skip_reclaim(reclaim_failures) {
+      ) {
       match
         reclaim_orphaned_outputs(
           orphan_settings, environment, slot, orphan_store, replay_journal, failed_orphan_store,
-          slot_progress,
+          slot_progress, reclaim_failures,
         ) {
         OrphansDone => {
           reclaim_due = false
