@@ -118,14 +118,18 @@ test('native coordinator requires both exact settled receipts and revokes failed
     assert.throws(() => captured.bindInput(false), { code: 'IssuerClosed' });
     assert.equal(events.filter(event => event === 'close').length, 1);
     const sourceRefused = [];
+    const sourceLimits = {...limits, maxSourceRows: 2};
     const prepareSourceRefusal = verify => {
       const same = factory(sourceRefused, 'success')(verify);
       return {...same, port: {...same.port,
+        acceptMetadata(...args) {
+          sourceLimits.maxSourceRows = 3;
+          return same.port.acceptMetadata(...args);
+        },
         nativeSql() { assert.fail('Source overflow must precede native filtering'); },
       }};
     };
-    await assert.rejects(runNativeQuery(grant, prepareSourceRefusal,
-      {...limits, maxSourceRows: 2}), error => {
+    await assert.rejects(runNativeQuery(grant, prepareSourceRefusal, sourceLimits), error => {
       assert.equal(error.code, 'SourceRows');
       assert.equal(acquisitionOutcome(error).outcome, 'stopped');
       return true;

@@ -5,6 +5,7 @@ import { DuckDBTransportError } from './session.mjs';
 import { withSourceAcquisition } from './source-acquisition.mjs';
 
 export async function runNativeAcquisition(grant, port, limits, signal, accounting) {
+  limits = Object.freeze({...limits});
   return await withSourceAcquisition(grant, port, limits, signal, async (session, readView) => {
     const started = performance.now();
     // The trusted adapter supplies catalog-only SQL, not a source-row query.
