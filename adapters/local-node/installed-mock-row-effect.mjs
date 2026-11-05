@@ -420,7 +420,6 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
       const data = {binding: bindingCid, requests: entries.map(entry => own(entry.request).record)};
       const body = wire(data);
       if (Buffer.byteLength(body) > maximum) fail('MockEffectRecoveryLimit');
-      if (Buffer.byteLength(body) > maximum) fail('MockEffectRecoveryLimit');
       return {kind: 'mock-file-row-update', observationCid: hash(data), wire: body};
     },
     recoverRequests: recover, recoverMemberRequests: recover,
