@@ -19,7 +19,7 @@ const load = compileFunction(`return (${source.slice(declaration.start, declarat
 // Source, Model request, Ledger, Store or installed-runtime qualification is made.
 function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
   missingRetained = false, missingAdapter = false, fault, loseCurrentAt,
-  continueToModel = false} = {}) {
+  continueToModel = false, authorization = 'waiting_checkpoint'} = {}) {
   const prepared = {}, graph = {}, compiled = {}, occurrence = {}, savedScope = {}, read = {}, prefix = {}, suffix = {};
   const definition = {identity: 'original-definition', wire: '{"run_id":"original-run"}'};
   const restoredRun = {compiled, graph, runDefinition: definition};
@@ -31,6 +31,7 @@ function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
   const token = {snapshot}, preparedSource = {}, sourceSelection = {}, adapter = {}, access = {}, retained = {}, evidence = {};
   const checkpoints = {}, submission = {}, waiting = {status: 'waiting_checkpoint'}, events = [];
   const boundary = new Error('StopAtOriginalRestoreRead'), currentFailure = new Error('OriginalCurrentChanged');
+  const advanceBoundary = new Error('StopAfterOriginalModelAuthorization');
   const counters = {prepare: 0, authorized: 0, restoredRead: 0, sourceClose: 0, scope: 0, release: 0};
   const sourceClose = {}, ready = {capture: false, model: false};
   let owner, original, current = true, captureClosed = false, modelClosed = false, tokenAvailable = true, kernelOpened = false;
@@ -72,6 +73,7 @@ function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
     },
   };
   const modelController = {
+    unresolved: () => false,
     async prime(actual) {assert.strictEqual(actual, record); return token;},
     capturedContent: () => undefined, capturedContentBinding: () => undefined,
     state: () => ({slots: []}), savedScope: () => savedScope,
@@ -82,7 +84,10 @@ function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
     async open(options) {
       assert.strictEqual(options.existing, record); assert.strictEqual(options.inputToken, token);
       events.push('retain-model-continuation');
-      return {observe() {}, entry() {}, authorize: async () => waiting,
+      return {observe() {}, entry() {}, async authorize() {
+        events.push('authorize-model'); return authorization === 'waiting_checkpoint' ? waiting : {status: authorization};
+      },
+        prepareOriginalResourcesForDispatch() {assert.fail('A common managed Read has no Node read installation to serialize');},
         async close() {events.push('close-model-continuation'); modelClosed = ready.model; return modelClosed;},
         async cleanup() {events.push('cleanup-model-continuation'); modelClosed = ready.model; return modelClosed;},
         cleanupPending: () => !modelClosed};
@@ -126,9 +131,16 @@ function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
     };
     return original;
   }
+  let advances = 0;
   const operation = {
     bindRun(actualControl, actualPlan) {assert.strictEqual(actualControl, control); assert.strictEqual(actualPlan, plan);},
-    run: async () => ({status: 'waiting', preparedCallSet: {}}),
+    pendingSettlement: () => undefined,
+    physicalStopped: () => false,
+    async run() {
+      advances++;
+      if (authorization === 'dispatch' && advances > 2) throw advanceBoundary;
+      return {status: 'waiting', preparedCallSet: {}};
+    },
   };
   const install = load((tuple, index) => tuple[index], checked, continuationPort, options => {
     assert(continueToModel); assert.strictEqual(options.restoredPreparation, read);
@@ -179,7 +191,7 @@ function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
     beginPhysicalWork() {events.push('bind-original-physical-owner');},
   };
   return {run: () => run(options), options, view, boundary, currentFailure, counters, events, sourceClose, ready,
-    waiting, owner: () => owner};
+    waiting, advanceBoundary, owner: () => owner};
 }
 
 test('single-Unit cold recovery authorizes its exact retained Source before restoreRead without reacquisition', async () => {
@@ -266,6 +278,16 @@ test('Model and capture child acknowledgements precede Source continuation and r
   assert.equal(await f.owner().cleanup(), true);
   assert(f.events.indexOf('cleanup-capture') < f.events.indexOf('close-source-continuation'));
   assert(f.events.lastIndexOf('cleanup-model-continuation') < f.events.indexOf('close-source-continuation'));
+  assert(f.events.indexOf('close-source-continuation') < f.events.indexOf('retire-original-scope'));
+});
+
+test('ordinary restored Model authorization keeps its common Read without selecting a Node resource codec', async () => {
+  const f = fixture({continueToModel: true, authorization: 'dispatch'});
+  await assert.rejects(f.run(), actual => actual === f.advanceBoundary);
+  assert.equal(f.events.filter(event => event === 'authorize-model').length, 1);
+  assert.equal(f.counters.restoredRead, 1); assert.equal(f.counters.prepare, 1);
+  f.ready.capture = f.ready.model = true;
+  assert.equal(await f.owner().cleanup(), true);
   assert(f.events.indexOf('close-source-continuation') < f.events.indexOf('retire-original-scope'));
 });
 

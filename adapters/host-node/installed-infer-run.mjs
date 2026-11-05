@@ -951,10 +951,11 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           const decision = await continuation.authorize();
           assertOriginalRuntime();
           if (decision.status === 'waiting_checkpoint') return decision;
-          if (originalPreparation!==undefined) {
-            // Same actual journal now has the original CallSet. Complete its
-            // saved Resource cut and nominal fence removal before next advance
-            // can create an Entry. Authorization and physical send stay separate.
+          if (originalPreparation !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation')) {
+            // This explicit Node read-layout selection owns the storage
+            // origin and codec for its saved Resource cut. A common managed
+            // Read retains its own same-parent consumer/current/Entry gates;
+            // it cannot serialize a Node installation it never selected.
             await continuation.prepareOriginalResourcesForDispatch();
             assertOriginalRuntime();
           }
