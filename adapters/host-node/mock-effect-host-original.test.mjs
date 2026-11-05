@@ -248,3 +248,34 @@ test('an empty readmission cache never accepts missing original handles', () => 
   assert.throws(() => f.mockEffectResources.bindRunOriginal({...f.readmittedFacts,
     identity: {request: 'original'}}), {code: 'ForeignInstalledMockEffectRun'});
 });
+
+
+test('cold saved readmission keeps the same already retained physical Run original', () => {
+  const f = fixture({composed: true}); f.prepareDefinition(f.facts);
+  const original = f.mockEffectResources.bindRunOriginal(f.facts);
+  const recovered = {...f.readmittedFacts, requestIdentity: f.facts.identity};
+  assert.strictEqual(f.mockEffectResources.bindRunOriginal({recovered}), original);
+  assert.strictEqual(f.mockEffectResources.bindRunOriginal({recovered}), original);
+  assert.equal(f.calls.filter(call => call === 'saved-journal').length, 2);
+  assert.equal(f.calls.filter(call => call === 'same-journal').length, 1);
+  assert.equal(f.calls.filter(call => call === 'typed-run').length, 2);
+  assert.equal(f.calls.filter(call => call === 'physical-original').length, 1);
+  assert.equal(f.calls.filter(call => call === 'shared-plan').length, 1);
+  assert.strictEqual(f.mockEffectResources.limits(original), f.actualLimits);
+});
+
+test('cold saved readmission refuses lost Journal changed authority and copied typed handles', () => {
+  for (const change of ['denyRecovery', 'changeSavedAuthorization', 'copiedDefinition', 'foreignCompilation', 'revoke']) {
+    const f = fixture(); f.prepareDefinition(f.facts);
+    const original = f.mockEffectResources.bindRunOriginal(f.facts);
+    let recovered = {...f.readmittedFacts, requestIdentity: f.facts.identity};
+    if (change === 'copiedDefinition') recovered = {...recovered, definition: {wire: 'saved-definition'}};
+    else if (change === 'foreignCompilation') recovered = {...recovered, compilation: {}};
+    else f[change]();
+    assert.throws(() => f.mockEffectResources.bindRunOriginal({recovered}),
+      change === 'revoke' ? cause => cause === f.refusal : undefined);
+    assert.equal(f.calls.filter(call => call === 'physical-original').length, 1);
+    assert.equal(f.calls.filter(call => call === 'typed-run').length, 1);
+    if (change !== 'revoke') assert.strictEqual(f.mockEffectResources.bindRunOriginal(f.facts), original);
+  }
+});

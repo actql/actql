@@ -118961,7 +118961,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "01033298619c9757fa023561dc0baa6ae1b8e846d09db59a6a3f8682f36e0353",
+      "sha256": "1934d1e05bf02f7d3ae7e395853032c73454efc1103af7d2606aba89d66823f1",
       "exports": [
         "installPreparedProjectMockEffects",
         "observeInstalledMockEffectResources"
@@ -119255,6 +119255,13 @@
           "async": true
         },
         {
+          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/init:retainedOutputWire/init:retainedOutputWire",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "mockRowEffectDriver/driver/init:prepareRequest/init:prepareRequest",
           "parameters": [],
           "async": false
@@ -119379,20 +119386,27 @@
           "async": false
         },
         {
-          "name": "mockRowEffectDriver/readChild/init:authorize/init:authorize",
+          "name": "mockRowEffectDriver/readChild/child/child",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/readChild/child/init:authorize/init:authorize",
           "parameters": [],
           "async": true
         },
         {
-          "name": "mockRowEffectDriver/readChild/init:consume/init:consume",
+          "name": "mockRowEffectDriver/readChild/child/init:consume/init:consume",
           "parameters": [
             "bytes"
           ],
           "async": false
         },
         {
-          "name": "mockRowEffectDriver/readChild/readChild",
-          "parameters": [],
+          "name": "mockRowEffectDriver/readChild/init:retainedOutputWire/init:retainedOutputWire",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -119593,6 +119607,7 @@
             "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/child/init:authorize/init:authorize",
             "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/child/init:consume/init:consume",
             "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/init:prepare/init:prepare",
+            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/init:retainedOutputWire/init:retainedOutputWire",
             "mockRowEffectDriver/driver/init:prepareRequest/init:prepareRequest",
             "mockRowEffectDriver/driver/init:project/init:project",
             "mockRowEffectDriver/driver/init:recheckRequests/init:recheckRequests",
@@ -119608,9 +119623,10 @@
             "mockRowEffectDriver/observe",
             "mockRowEffectDriver/own",
             "mockRowEffectDriver/readChild",
-            "mockRowEffectDriver/readChild/init:authorize/init:authorize",
-            "mockRowEffectDriver/readChild/init:consume/init:consume",
-            "mockRowEffectDriver/readChild/readChild",
+            "mockRowEffectDriver/readChild/child/child",
+            "mockRowEffectDriver/readChild/child/init:authorize/init:authorize",
+            "mockRowEffectDriver/readChild/child/init:consume/init:consume",
+            "mockRowEffectDriver/readChild/init:retainedOutputWire/init:retainedOutputWire",
             "mockRowEffectDriver/recover/recover",
             "mockRowEffectDriver/recover/recover/entries/entries",
             "mockRowEffectDriver/recover/recover/requests/requests",
@@ -119797,6 +119813,10 @@
               {
                 "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
                 "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "anchor": "test('actual target output wire stays bound to its same closed immutable observation'"
               }
             ]
           }

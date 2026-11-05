@@ -34185,7 +34185,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "c7e81d9601d600fd51e340c55e7d9b94f81cb6109d6f220008ced917f9abfef4",
+      "sha256": "2e4ed09d181a84a5dc7ce8f25466ee92be180eace34859afb963ca5ae3ba380e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
@@ -34247,6 +34247,14 @@
         {
           "name": "complete_installed_effect_operation_construction",
           "declaration": "complete_installed_effect_operation_construction ( value : ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "complete_installed_effect_operation_construction_output",
+          "declaration": "complete_installed_effect_operation_construction_output ( value : ClientInstalledEffectOperationBorrow , wire : String , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "complete_installed_effect_operation_construction_owned",
+          "declaration": "complete_installed_effect_operation_construction_owned ( value : ClientInstalledEffectOperationBorrow , output_wire : String ? , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "complete_installed_effect_operation_control_construction",
@@ -34432,20 +34440,22 @@
             "check_installed_effect_operation_backing_original",
             "check_installed_effect_operation_original",
             "complete_installed_effect_operation_construction",
+            "complete_installed_effect_operation_construction_output",
+            "complete_installed_effect_operation_construction_owned",
             "complete_installed_effect_operation_control_construction",
             "installed_effect_control_execution",
             "installed_effect_operation_reservation_issue",
             "record_effect_operation_lookup_probe",
             "refuse_installed_effect_operation_after_current",
             "resize_installed_effect_operation_control_construction",
+            "retain_installed_effect_captured_input_inventory",
+            "retain_installed_effect_control_row_inventory",
             "retain_installed_effect_operation_construction",
             "retain_installed_effect_operation_controls",
             "retain_installed_effect_operation_controls_before_construction",
+            "retain_installed_effect_recovered_input_inventory",
             "select_installed_effect_operation_controls",
-            "select_installed_effect_operation_original",
-            "retain_installed_effect_captured_input_inventory",
-            "retain_installed_effect_control_row_inventory",
-            "retain_installed_effect_recovered_input_inventory"
+            "select_installed_effect_operation_original"
           ],
           "exports": [],
           "attributes": {
@@ -34543,6 +34553,10 @@
               {
                 "path": "src/client_local_host/installed_effect_staged_input_js_wbtest.mbt",
                 "anchor": "test \"cold input cannot replace a warm constructor whose original workspace is live\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
+                "anchor": "test \"owned constructor output refines same live backing once without resetting history\""
               }
             ]
           }
@@ -34551,8 +34565,8 @@
           "operations": [
             "begin_installed_effect_operation_control_input",
             "installed_effect_control_capacity",
-            "installed_effect_host_preview_input_capacity",
-            "installed_effect_control_capacity_for_rows"
+            "installed_effect_control_capacity_for_rows",
+            "installed_effect_host_preview_input_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -52614,14 +52628,15 @@
         },
         {
           "operations": [
+            "client_program_installed_effect_captured_input_inventory_retain",
             "client_program_installed_effect_operation_construction_begin",
             "client_program_installed_effect_operation_construction_complete",
+            "client_program_installed_effect_operation_construction_complete_output",
             "client_program_installed_effect_operation_construction_retain",
             "client_program_installed_effect_operation_control_construction_begin",
             "client_program_installed_effect_operation_control_construction_complete",
             "client_program_installed_effect_operation_controls_retain",
             "client_program_installed_effect_operation_input_begin",
-            "client_program_installed_effect_captured_input_inventory_retain",
             "client_program_installed_effect_recovered_input_inventory_retain"
           ],
           "exports": [],
@@ -52866,7 +52881,7 @@
           }
         }
       ],
-      "sha256": "ed998acb11f210a4f04c40a0fcdc69572efd70cdb3fde7cecc96f94b5fa897cf",
+      "sha256": "1eaa29f62a514773b19a2a7e707612cc8801e72f30affab1268ff591d2551d93",
       "operations": [
         {
           "name": "client_program_installed_effect_captured_input_inventory_retain",
@@ -52891,6 +52906,10 @@
         {
           "name": "client_program_installed_effect_operation_construction_complete",
           "declaration": "client_program_installed_effect_operation_construction_complete ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_construction_complete_output",
+          "declaration": "client_program_installed_effect_operation_construction_complete_output ( value : @ client_local_host . ClientInstalledEffectOperationBorrow , wire : String , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_operation_construction_retain",
@@ -74377,7 +74396,7 @@
     },
     {
       "module": "src/physical_resources/node_managed_run_operation.mbt",
-      "sha256": "d3a8d079d012ed4b120efaf26eb86d5c92ec35ce5cd98685cc979bf87e04ac0d",
+      "sha256": "29158cb5dcd0be077b144638de0aafb696f469e1c67ce93a258e520a604bb17c",
       "exports": [],
       "operations": [
         {
@@ -74395,6 +74414,10 @@
         {
           "name": "[P,E]complete_prepared_run_operation_construction",
           "declaration": "[ P , E ] complete_prepared_run_operation_construction ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , backing : NodeManagedRunOperationBacking , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
+        },
+        {
+          "name": "[P,E]complete_prepared_run_operation_construction_output",
+          "declaration": "[ P , E ] complete_prepared_run_operation_construction_output ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , backing : NodeManagedRunOperationBacking , retained_bytes : Int64 , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
         },
         {
           "name": "[P,E]grow_prepared_run_operation_capacity",
@@ -74440,6 +74463,7 @@
             "[P,E]begin_prepared_run_operation_construction",
             "[P,E]complete_node_managed_run_operation_construction",
             "[P,E]complete_prepared_run_operation_construction",
+            "[P,E]complete_prepared_run_operation_construction_output",
             "[P,E]grow_prepared_run_operation_capacity",
             "[P,E]reserve_node_managed_run_operation",
             "[P,E]reserve_node_managed_run_operation_controls",

@@ -6,6 +6,7 @@ pub struct ClientInstalledEffectOperationBorrow {
   priv slot : Int
   priv member_index : Int
   priv mut extent : ClientInstalledEffectOperationExtent?
+  // One original extent selection: owned input or detached successful output.
   priv mut input_selected : Bool
   priv mut backing : @resources.NodeManagedRunOperationBacking?
   // The SAME immutable extent's execution upper; never Host-supplied DATA.
@@ -72,13 +73,15 @@ fn installed_effect_operation_control_capacity(
   // occupies one more scalar; it starts before any original release callback.
   guard @shape.collection_construction_extent({
       // The selected extent Some adds1H2R1W; member/input-selected are2W.
-      records: 26L * calls,
-      record_references: (64L + 3L + 2L) * calls,
+      // Optional owned output retains one wire callback frame and its
+      // original method/output references; the wire DATA has its own extent.
+      records: 27L * calls,
+      record_references: (64L + 3L + 2L + 4L) * calls,
       record_words: (12L + 2L + 3L) * calls,
       // Deferred member construction retains one original preparation-method
       // vector. Its length is bounded by these same checked child slots.
       reference_arrays: 3L * calls + 1L,
-      reference_items: 14L * calls + count,
+      reference_items: 15L * calls + count,
       scalar_arrays: 0L,
       scalar_items: 0L,
       maps: 1L,
@@ -943,6 +946,27 @@ pub fn begin_installed_effect_operation_construction(
 pub fn complete_installed_effect_operation_construction(
   value : ClientInstalledEffectOperationBorrow,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  complete_installed_effect_operation_construction_owned(value, None)
+}
+
+///|
+/// The owned child has returned its SAME detached immutable output and its
+/// original physical release has acknowledged close. Borrow its existing
+/// canonical wire for bounded retained-tree DATA; do not parse, serialize,
+/// dispatch or infer cleanup from a size. This consumes the existing extent
+/// selection latch once, leaving the immutable Plan ceiling unchanged.
+pub fn complete_installed_effect_operation_construction_output(
+  value : ClientInstalledEffectOperationBorrow,
+  wire : String,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  complete_installed_effect_operation_construction_owned(value, Some(wire))
+}
+
+///|
+fn complete_installed_effect_operation_construction_owned(
+  value : ClientInstalledEffectOperationBorrow,
+  output_wire : String?,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(original, value) else {
     return Err(ForeignOriginal)
   }
@@ -965,19 +989,55 @@ pub fn complete_installed_effect_operation_construction(
   if owner.effect_operation_opening || owner.effect_operation_closing {
     return Err(AlreadyBound)
   }
+  let output_retained = match output_wire {
+    None => None
+    Some(wire) => {
+      if value.input_selected {
+        return Err(AlreadyBound)
+      }
+      guard value.extent is Some(extent) &&
+        !extent.physical_attempt &&
+        extent.maximum is None else {
+        return Err(Unsupported)
+      }
+      let upper = @execution.execution_capacity_retained_bytes(extent.capacity)
+      let bound = Int64::min(upper, 2147483647L).to_int()
+      let bytes = match @scalar.admit_utf8_length(wire, bound) {
+        Err(_) => return Err(InsufficientCapacity)
+        Ok(bytes) => bytes
+      }
+      // Every JSON value node and open container costs at least one wire
+      // byte. The original native wire is already canonical/validated; this
+      // conservative DATA bound needs no second parser or content traversal.
+      guard bytes > 0 &&
+        local_file_store_json_capacity(bytes, bytes, bytes) is Some(output) &&
+        @execution.execution_capacity_retained_bytes(output) <= upper else {
+        return Err(InsufficientCapacity)
+      }
+      Some(@execution.execution_capacity_retained_bytes(output))
+    }
+  }
   owner.effect_operation_opening = true
-  let result = @resources.complete_prepared_run_operation_construction(
-    admission,
-    plan,
-    ledger,
-    () => {
-      check_installed_effect_construction_original(
-        value, owner, ledger, preparation, backing,
+  let original = () => {
+    check_installed_effect_construction_original(
+      value, owner, ledger, preparation, backing,
+    )
+  }
+  let result = match output_retained {
+    None =>
+      @resources.complete_prepared_run_operation_construction(
+        admission, plan, ledger, original, backing,
       )
-    },
-    backing,
-  ).map_err(installed_effect_operation_reservation_issue)
+    Some(retained) =>
+      @resources.complete_prepared_run_operation_construction_output(
+        admission, plan, ledger, original, backing, retained,
+      )
+  }
+  let result = result.map_err(installed_effect_operation_reservation_issue)
   owner.effect_operation_opening = false
+  if result is Ok(_) && output_retained is Some(_) {
+    value.input_selected = true
+  }
   result
 }
 

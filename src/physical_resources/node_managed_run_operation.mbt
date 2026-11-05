@@ -200,6 +200,37 @@ pub fn[P, E] complete_prepared_run_operation_construction(
 }
 
 ///|
+/// Successful detached constructor DATA keeps its measured retained envelope
+/// on the SAME pure backing. The original consumer observes real child close
+/// before this entrance; numbers never certify physical cleanup or permission.
+/// Refusal preserves the complete old backing and cumulative history.
+pub fn[P, E] complete_prepared_run_operation_construction_output(
+  value : PreparedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  backing : NodeManagedRunOperationBacking,
+  retained_bytes : Int64,
+) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
+  match
+    check_prepared_run_operation_original(value, prepared, ledger, original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard backing is Construction(capacity) &&
+    retained_bytes >= 0L &&
+    retained_bytes <= capacity.reservation.retention else {
+    return Err(Control(InvalidCharge))
+  }
+  resize_capacity_reservation_current(
+    ledger,
+    capacity,
+    retained_bytes,
+    Int64::min(retained_bytes, capacity.reservation.execution),
+  ).map_err(issue => Control(issue))
+}
+
+///|
 /// Grow only the SAME retained pure-constructor reservation immediately before
 /// its callback. The original consumer/current frame is the same as completion;
 /// neither this byte resize nor completion creates an attempt or a new owner.

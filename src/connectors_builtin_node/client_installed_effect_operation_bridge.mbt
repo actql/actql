@@ -356,3 +356,15 @@ pub fn client_program_installed_effect_operation_ledger_codec_complete(
     owner, prepared, request, plan,
   )
 }
+
+///|
+/// Same owned constructor's detached output after actual physical close.
+#export_name("clientProgramInstalledEffectOperationConstructionCompleteOutput")
+pub fn client_program_installed_effect_operation_construction_complete_output(
+  value : @client_local_host.ClientInstalledEffectOperationBorrow,
+  wire : String,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_operation_construction_output(
+    value, wire,
+  )
+}

@@ -1652,6 +1652,8 @@ pub fn client_program_installed_effect_operation_construction_begin(@client_loca
 
 pub fn client_program_installed_effect_operation_construction_complete(@client_local_host.ClientInstalledEffectOperationBorrow) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_operation_construction_complete_output(@client_local_host.ClientInstalledEffectOperationBorrow, String) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_operation_construction_retain(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, Int, Bool, Int, Int, String) -> Result[@client_local_host.ClientInstalledEffectOperationBorrow, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_control_construction_begin(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
