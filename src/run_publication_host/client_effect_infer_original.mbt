@@ -100,8 +100,11 @@ fn restore_client_effect_original_infer(
 fn client_effect_original_infer_inputs(
   compilation : ClientEffectCompilation,
 ) -> Result[String?, ClientEffectRunMaterialsIssue] {
-  if compilation.compiled.infers.length() <= 1 { return Ok(None) }
-  guard client_effect_compilation_infer_originals(compilation) is Some(originals) else {
+  if compilation.compiled.infers.length() <= 1 {
+    return Ok(None)
+  }
+  guard client_effect_compilation_infer_originals(compilation)
+    is Some(originals) else {
     return Err(Compilation(ForeignInferOwner))
   }
   let limits : ClientValuesRunMaterialsLimits = {
@@ -113,6 +116,11 @@ fn client_effect_original_infer_inputs(
     max_evidence_nodes: 100000,
     max_evidence_depth: 100,
   }
-  encode_client_infer_original_inventory(originals.map(value => value.1), compilation.compiled.infers, limits)
-    .map(value => Some(value)).map_err(_ => Input(MaterialsEvidence("infer_execution_contracts")))
+  encode_client_infer_original_inventory(
+    originals.map(value => value.1),
+    compilation.compiled.infers,
+    limits,
+  )
+  .map(value => Some(value))
+  .map_err(_ => Input(MaterialsEvidence("infer_execution_contracts")))
 }

@@ -208,34 +208,71 @@ pub fn[I] prepare_request_effect_model_read_scope(
   @publication_host.ClientModelReadScope,
   ClientInstalledManagedRunIssue,
 ] {
-  if plan.model is Some(selected) && selected.components is Some(_) { return Err(ForeignOriginal) }
-  prepare_request_effect_model_scopes_owned(owner, input, plan, quantity_limits,
-    (selected, ledger, identity) => @publication_host.bind_client_model_read_scope(
-      selected.compiled, selected.definition, selected.graph, ledger, identity,
-      model_limits=Some(selected.model_limits)))
+  if plan.model is Some(selected) && selected.components is Some(_) {
+    return Err(ForeignOriginal)
+  }
+  prepare_request_effect_model_scopes_owned(
+    owner,
+    input,
+    plan,
+    quantity_limits,
+    (selected, ledger, identity) => {
+      @publication_host.bind_client_model_read_scope(
+        selected.compiled,
+        selected.definition,
+        selected.graph,
+        ledger,
+        identity,
+        model_limits=Some(selected.model_limits),
+      )
+    },
+  )
 }
 
 ///|
 pub fn[I] prepare_request_effect_models_read_scopes(
-  owner : ClientRequestPreparation[I], input : I,
+  owner : ClientRequestPreparation[I],
+  input : I,
   plan : ClientInstalledEffectManagedPlan,
   quantity_limits? : @resources.QuantityAmounts? = None,
-) -> Result[Array[@publication_host.ClientModelReadScope], ClientInstalledManagedRunIssue] {
-  guard plan.model is Some(selected) && selected.components is Some(_) else { return Err(ForeignOriginal) }
-  prepare_request_effect_model_scopes_owned(owner, input, plan, quantity_limits,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  ClientInstalledManagedRunIssue,
+] {
+  guard plan.model is Some(selected) && selected.components is Some(_) else {
+    return Err(ForeignOriginal)
+  }
+  prepare_request_effect_model_scopes_owned(
+    owner,
+    input,
+    plan,
+    quantity_limits,
     (selected, ledger, identity) => {
       let originals = selected.components.unwrap()
-      @publication_host.bind_client_effect_model_read_scopes(selected._compilation, selected.compiled, selected.definition,
-        ledger, identity,
-        originals.map(value => value.read_retained_bytes), originals.map(value => value.read_execution_bytes))
-    })
+      @publication_host.bind_client_effect_model_read_scopes(
+        selected._compilation,
+        selected.compiled,
+        selected.definition,
+        ledger,
+        identity,
+        originals.map(value => value.read_retained_bytes),
+        originals.map(value => value.read_execution_bytes),
+      )
+    },
+  )
 }
 
 ///|
 fn[I, T] prepare_request_effect_model_scopes_owned(
-  owner : ClientRequestPreparation[I], input : I, plan : ClientInstalledEffectManagedPlan,
+  owner : ClientRequestPreparation[I],
+  input : I,
+  plan : ClientInstalledEffectManagedPlan,
   quantity_limits : @resources.QuantityAmounts?,
-  bind : (ClientInstalledEffectModelDemand, @resources.Ledger, @resources.OriginalLedgerIdentity) -> Result[T, @publication_host.ClientModelReadPreparationIssue],
+  bind : (
+    ClientInstalledEffectModelDemand,
+    @resources.Ledger,
+    @resources.OriginalLedgerIdentity,
+  ) -> Result[T, @publication_host.ClientModelReadPreparationIssue],
 ) -> Result[T, ClientInstalledManagedRunIssue] {
   let quoted = owner.phase == EffectModelScopeQuoted
   guard (
@@ -259,7 +296,9 @@ fn[I, T] prepare_request_effect_model_scopes_owned(
     return Err(ForeignOriginal)
   }
   guard plan.model is Some(selected) else { return Err(Unsupported) }
-  if !installed_effect_model_demand_complete(selected) { return Err(ForeignOriginal) }
+  if !installed_effect_model_demand_complete(selected) {
+    return Err(ForeignOriginal)
+  }
   match check_preparation_owned_effect_limits(owner.initial, input, capacity) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -272,7 +311,9 @@ fn[I, T] prepare_request_effect_model_scopes_owned(
         selected.max_reservations,
         selected.max_holdings,
         selected.max_delegations,
-        model_count=selected.components.map(value => value.length()).unwrap_or(1),
+        model_count=selected.components
+          .map(value => value.length())
+          .unwrap_or(1),
       ) {
       Err(issue) => return Err(issue)
       Ok(value) => value
@@ -292,8 +333,12 @@ fn[I, T] prepare_request_effect_model_scopes_owned(
     None => Ok(())
     Some(installed) => {
       let quantities = match
-        request_model_group_quantity_limits(selected.graph, None, installed,
-          effect_models=selected.components) {
+        request_model_group_quantity_limits(
+          selected.graph,
+          None,
+          installed,
+          effect_models=selected.components,
+        ) {
         None => return Err(InsufficientCapacity)
         Some(value) => value
       }
@@ -317,10 +362,8 @@ fn[I, T] prepare_request_effect_model_scopes_owned(
       Ok(_) => Err(ForeignOriginal)
     }
   }
-  let result : Result[
-    T,
-    ClientInstalledManagedRunIssue,
-  ] = match quantities_ready {
+  let result : Result[T, ClientInstalledManagedRunIssue] = match
+    quantities_ready {
     Err(issue) => Err(issue)
     Ok(_) =>
       match
@@ -354,7 +397,9 @@ fn[I, T] prepare_request_effect_model_scopes_owned(
             @resources.preparation_capacity_inventory_original(capacity, input) {
             Err(issue) => Err(Preparation(issue))
             Ok(identity) =>
-              bind(selected, owner.ledger, identity).map_err(issue => ModelRead(issue))
+              bind(selected, owner.ledger, identity).map_err(issue => {
+                ModelRead(issue)
+              })
           }
         }
       }

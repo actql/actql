@@ -323,7 +323,12 @@ fn issue_plural_client_infer_run_materials(
     Ok(_) => ()
     Err(issue) => return Err(Binding(issue))
   }
-  let inventory = match encode_client_infer_original_inventory(occurrences, compilation.infers, limits) {
+  let inventory = match
+    encode_client_infer_original_inventory(
+      occurrences,
+      compilation.infers,
+      limits,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -435,7 +440,9 @@ fn encode_client_infer_original_inventory(
   graphs : Array[ClientInferPlanGraph],
   limits : ClientValuesRunMaterialsLimits,
 ) -> Result[String, ClientTaskRunMaterialsIssue] {
-  if occurrences.length() < 2 || occurrences.length() > 128 || graphs.length() != occurrences.length() {
+  if occurrences.length() < 2 ||
+    occurrences.length() > 128 ||
+    graphs.length() != occurrences.length() {
     return Err(Binding(UnsupportedProgram))
   }
   let inventory = try {

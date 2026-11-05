@@ -40,7 +40,8 @@ pub fn issue_client_effect_prepared_original(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let infer_inputs_wire = match client_effect_original_infer_inputs(compilation) {
+  let infer_inputs_wire = match
+    client_effect_original_infer_inputs(compilation) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -143,9 +144,9 @@ pub fn admit_client_effect_prepared_original(
   let object = match
     @decode.closed_object(root, [
       "check_environment", "check_environment_cid", "effect_target_selections_json",
-      "infer_execution_contract_cid", "infer_execution_contract_json", "infer_execution_contracts_json", "normalization_profile_cid",
-      "normalization_profile_key", "parameters", "program", "source_free_result_policy_cid",
-      "source_free_result_policy_json",
+      "infer_execution_contract_cid", "infer_execution_contract_json", "infer_execution_contracts_json",
+      "normalization_profile_cid", "normalization_profile_key", "parameters", "program",
+      "source_free_result_policy_cid", "source_free_result_policy_json",
     ]) {
     Ok(value) => value
     Err(_) => return Err(Input(MaterialsMalformed))
@@ -218,9 +219,15 @@ pub fn admit_client_effect_prepared_original(
       guard infer_input is None && @decode.text(value) is Ok(wire) else {
         return Err(Input(MaterialsMalformed))
       }
-      match read_plural_client_infer_run_graphs(client_effect_program_view(prepared), wire, limits) {
+      match
+        read_plural_client_infer_run_graphs(
+          client_effect_program_view(prepared),
+          wire,
+          limits,
+        ) {
         Ok(value) => value
-        Err(_) => return Err(Input(MaterialsEvidence("infer_execution_contracts")))
+        Err(_) =>
+          return Err(Input(MaterialsEvidence("infer_execution_contracts")))
       }
     }
   }

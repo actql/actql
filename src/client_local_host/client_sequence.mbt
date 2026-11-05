@@ -689,7 +689,8 @@ fn prepare_client_local_sequences_owned(
   let generated = []
   let composed_boundaries = match prepared {
     Effect(value) =>
-      @publication_host.prepared_client_effect_infer_occurrences(value).unwrap_or([])
+      @publication_host.prepared_client_effect_infer_occurrences(value).unwrap_or([],
+      )
     Pure(value) =>
       @publication_host.prepared_client_composed_infer_occurrences(value).unwrap_or([],
       )

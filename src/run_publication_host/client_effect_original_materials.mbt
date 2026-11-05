@@ -93,7 +93,8 @@ fn encode_prepared_client_effect_materials(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let infer_inputs_wire = match client_effect_original_infer_inputs(allowed.compilation) {
+  let infer_inputs_wire = match
+    client_effect_original_infer_inputs(allowed.compilation) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

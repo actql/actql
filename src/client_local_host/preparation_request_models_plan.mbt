@@ -390,24 +390,30 @@ fn request_model_group_quantity_limits(
   // Borrow the actual compiler group already retained on this Plan. Singles
   // keep exactly their original execution contract and min intersection.
   let mut index = 0
-  let count = if effect_models is Some(originals) { originals.length() } else { match graphs {
-    Some(originals) => originals.length()
-    None =>
-      match models {
-        None => 1
-        Some(models) => models.length()
-      }
-  }
-  }
-  while index < count {
-    let graph = if effect_models is Some(originals) { originals[index].graph } else { match graphs {
-      Some(originals) => originals[index]
+  let count = if effect_models is Some(originals) {
+    originals.length()
+  } else {
+    match graphs {
+      Some(originals) => originals.length()
       None =>
         match models {
-          None => first_graph
-          Some(models) => models[index].graph
+          None => 1
+          Some(models) => models.length()
         }
     }
+  }
+  while index < count {
+    let graph = if effect_models is Some(originals) {
+      originals[index].graph
+    } else {
+      match graphs {
+        Some(originals) => originals[index]
+        None =>
+          match models {
+            None => first_graph
+            Some(models) => models[index].graph
+          }
+      }
     }
     let execution = @publication_host.client_infer_plan_graph_execution_contract(
       graph,

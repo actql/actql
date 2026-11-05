@@ -217,8 +217,10 @@ fn issue_client_effect_compilation_internal(
   let value = match infer {
     None if !infers.is_empty() => {
       let first = infers[0]
-      guard prepared_client_composed_infer_occurrences(first.owner) is Some(expected) &&
-        expected.length() == infers.length() && infers.length() > 1 else {
+      guard prepared_client_composed_infer_occurrences(first.owner)
+        is Some(expected) &&
+        expected.length() == infers.length() &&
+        infers.length() > 1 else {
         return Err(ForeignInferOwner)
       }
       for index, component in infers {
@@ -234,8 +236,12 @@ fn issue_client_effect_compilation_internal(
     }
     None => client_effect_program_view(owner)
     Some(infer) => {
-      guard prepared_client_composed_infer_occurrences(infer.owner) is Some(expected) && expected.length() == 1 &&
-        client_infer_occurrence_matches_plan(expected[0], infer) else { return Err(ForeignInferOwner) }
+      guard prepared_client_composed_infer_occurrences(infer.owner)
+        is Some(expected) &&
+        expected.length() == 1 &&
+        client_infer_occurrence_matches_plan(expected[0], infer) else {
+        return Err(ForeignInferOwner)
+      }
       if !physical_equal(infer.owner.graph, graph) ||
         !physical_equal(infer.owner.source, owner.source) ||
         infer.owner.check_environment_cid != owner.check_environment_cid {
@@ -265,7 +271,9 @@ fn issue_client_effect_compilation_internal(
       let profiles = []
       for component in infers {
         for profile in client_infer_required_profiles(component) {
-          if !profiles.contains(profile) { profiles.push(profile) }
+          if !profiles.contains(profile) {
+            profiles.push(profile)
+          }
         }
       }
       profiles
@@ -827,8 +835,10 @@ pub fn client_effect_compilation_unit_id(
 pub fn client_effect_compilation_infer_originals(
   value : ClientEffectCompilation,
 ) -> Array[(ClientInferPlanGraph, ClientInferOccurrence)]? {
-  guard prepared_client_composed_infer_occurrences(value.compiled.owner) is Some(expected) &&
-    !expected.is_empty() && expected.length() == value.compiled.infers.length() else {
+  guard prepared_client_composed_infer_occurrences(value.compiled.owner)
+    is Some(expected) &&
+    !expected.is_empty() &&
+    expected.length() == value.compiled.infers.length() else {
     return None
   }
   let originals = []
@@ -856,9 +866,20 @@ pub fn bind_client_effect_model_read_scopes(
   retained_bytes : Array[Int64],
   execution_bytes : Array[Int64],
 ) -> Result[Array[ClientModelReadScope], ClientModelReadPreparationIssue] {
-  if !client_compiled_run_matches_effect(compiled, compilation.owner, compilation) {
+  if !client_compiled_run_matches_effect(
+      compiled,
+      compilation.owner,
+      compilation,
+    ) {
     return Err(ForeignRun)
   }
-  bind_client_model_read_scopes(compiled, definition, compilation.compiled.infers,
-    ledger, identity, retained_bytes, execution_bytes)
+  bind_client_model_read_scopes(
+    compiled,
+    definition,
+    compilation.compiled.infers,
+    ledger,
+    identity,
+    retained_bytes,
+    execution_bytes,
+  )
 }

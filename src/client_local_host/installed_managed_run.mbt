@@ -233,7 +233,8 @@ fn installed_managed_owner_shape_supported(
   let original_occurrences = match owner {
     Pure(prepared) =>
       @publication_host.prepared_client_composed_infer_occurrences(prepared)
-    Effect(prepared) => @publication_host.prepared_client_effect_infer_occurrences(prepared)
+    Effect(prepared) =>
+      @publication_host.prepared_client_effect_infer_occurrences(prepared)
   }
   let boundary_count = original_occurrences.map(value => value.length())
   if model_graphs is Some(graphs) {
@@ -248,17 +249,36 @@ fn installed_managed_owner_shape_supported(
     for index, selected in graphs {
       if !(match owner {
           Pure(prepared) => physical_equal(selected.owner, prepared)
-          Effect(prepared) => @publication_host.client_infer_occurrence_matches_effect(expected[index], prepared)
+          Effect(prepared) =>
+            @publication_host.client_infer_occurrence_matches_effect(
+              expected[index],
+              prepared,
+            )
         }) ||
         !(match owner {
-          Pure(_) => @publication_host.client_infer_occurrence_matches_plan(expected[index], selected)
-          Effect(prepared) => @publication_host.client_infer_occurrence_matches_effect(selected.occurrence, prepared) &&
-            @publication_host.client_infer_occurrence_coordinates(selected.occurrence) ==
-            @publication_host.client_infer_occurrence_coordinates(expected[index])
+          Pure(_) =>
+            @publication_host.client_infer_occurrence_matches_plan(
+              expected[index],
+              selected,
+            )
+          Effect(prepared) =>
+            @publication_host.client_infer_occurrence_matches_effect(
+              selected.occurrence,
+              prepared,
+            ) &&
+            @publication_host.client_infer_occurrence_coordinates(
+              selected.occurrence,
+            ) ==
+            @publication_host.client_infer_occurrence_coordinates(
+              expected[index],
+            )
         }) ||
         (match (owner, selected.serialization) {
           (_, None) => false
-          (Effect(_), Some(component)) => !content.map(original => physical_equal(original.component, component)).unwrap_or(false)
+          (Effect(_), Some(component)) =>
+            !content
+            .map(original => physical_equal(original.component, component))
+            .unwrap_or(false)
           _ => true
         }) {
         return false
@@ -280,8 +300,14 @@ fn installed_managed_owner_shape_supported(
       }
       for index, original in originals {
         if !(match owner {
-            Pure(prepared) => @publication_host.client_infer_occurrence_matches(original, prepared)
-            Effect(prepared) => @publication_host.client_infer_occurrence_matches_effect(original, prepared)
+            Pure(prepared) =>
+              @publication_host.client_infer_occurrence_matches(
+                original, prepared,
+              )
+            Effect(prepared) =>
+              @publication_host.client_infer_occurrence_matches_effect(
+                original, prepared,
+              )
           }) ||
           @publication_host.client_infer_occurrence_coordinates(original) !=
           @publication_host.client_infer_occurrence_coordinates(expected[index]) {

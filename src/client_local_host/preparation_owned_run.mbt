@@ -218,14 +218,32 @@ fn[I] begin_preparation_owned_installed_effect_model_run(
     Ok(value) => value
   }
   let matches = match (selected.components, scopes) {
-    (None, None) => @publication_host.client_model_read_scope_original_inventory(scope, ledger, identity) &&
-      @publication_host.client_model_read_scope_live(scope, selected.compiled, selected.definition, selected.graph)
-    (Some(models), Some(originals)) => originals.length() == models.length() && !originals.is_empty() &&
-      physical_equal(originals[0], scope) && @publication_host.client_model_read_scopes_match_originals(
-        originals, selected.compiled, selected.definition, ledger, identity)
+    (None, None) =>
+      @publication_host.client_model_read_scope_original_inventory(
+        scope, ledger, identity,
+      ) &&
+      @publication_host.client_model_read_scope_live(
+        scope,
+        selected.compiled,
+        selected.definition,
+        selected.graph,
+      )
+    (Some(models), Some(originals)) =>
+      originals.length() == models.length() &&
+      !originals.is_empty() &&
+      physical_equal(originals[0], scope) &&
+      @publication_host.client_model_read_scopes_match_originals(
+        originals,
+        selected.compiled,
+        selected.definition,
+        ledger,
+        identity,
+      )
     _ => false
   }
-  if !matches || !installed_effect_model_demand_complete(selected) { return Err(ForeignOriginal) }
+  if !matches || !installed_effect_model_demand_complete(selected) {
+    return Err(ForeignOriginal)
+  }
   match check_preparation_owned_effect_limits(initial, input, capacity) {
     Err(issue) => return Err(issue)
     Ok(_) => ()

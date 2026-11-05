@@ -134,7 +134,8 @@ pub fn issue_client_effect_run_materials(
       }
     }
   }
-  let infer_inputs_wire = match client_effect_original_infer_inputs(allowed.compilation) {
+  let infer_inputs_wire = match
+    client_effect_original_infer_inputs(allowed.compilation) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -232,7 +233,8 @@ pub fn admit_client_effect_run_materials(
           effect_limits,
         ) {
         Ok(value) => value
-        Err(Candidate(@checked.MissingEffects)) if body.infer_inputs_wire is Some(_) =>
+        Err(Candidate(@checked.MissingEffects)) if body.infer_inputs_wire
+          is Some(_) =>
           return Err(Input(MaterialsEvidence("infer_execution_contracts")))
         Err(issue) => return Err(Program(issue))
       }
@@ -286,10 +288,17 @@ pub fn admit_client_effect_run_materials(
       }
   }
   let infers = match (original_compilation, body.infer_inputs_wire) {
-    (None, Some(wire)) => match read_plural_client_infer_run_graphs(client_effect_program_view(prepared), wire, limits) {
-      Ok(value) => value
-      Err(_) => return Err(Input(MaterialsEvidence("infer_execution_contracts")))
-    }
+    (None, Some(wire)) =>
+      match
+        read_plural_client_infer_run_graphs(
+          client_effect_program_view(prepared),
+          wire,
+          limits,
+        ) {
+        Ok(value) => value
+        Err(_) =>
+          return Err(Input(MaterialsEvidence("infer_execution_contracts")))
+      }
     _ => []
   }
   let source_free_policy = match original_compilation {

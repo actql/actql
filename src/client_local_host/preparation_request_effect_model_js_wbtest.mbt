@@ -583,44 +583,108 @@ test "Effect Model configures selected quantities on its original preparation be
 ///|
 test "plural Effect Scopes bind and adopt complete order on the same finite Request with input history" {
   let (environment, document) = effect_model_plan_source(plural=true)
-  let (parent, child, _, input) = registration_parent_fixture(text=document, environment=Some(environment),
-    effect_limits=Some(@publication_host.client_standard_effect_computation_limits()))
+  let (parent, child, _, input) = registration_parent_fixture(
+    text=document,
+    environment=Some(environment),
+    effect_limits=Some(
+      @publication_host.client_standard_effect_computation_limits(),
+    ),
+  )
   finish_effect_program_check_preparation(child).unwrap() |> ignore
   let prepared = compile_effect_program_check_preparation(child).unwrap()
   continue_request_effect_preparation(parent, input).unwrap() |> ignore
-  let operation = @resources.begin_preparation_io(parent.effect_capacity.unwrap(), input, 2L).unwrap()
+  let operation = @resources.begin_preparation_io(
+    parent.effect_capacity.unwrap(),
+    input,
+    2L,
+  ).unwrap()
   @resources.charge_preparation_io(operation, 1L).unwrap()
   @resources.finish_preparation_io_after_cleanup(operation).unwrap()
   let construction = borrow_request_effect_plan_input(parent, input).unwrap()
   let (request, contracts, model, _) = effect_models_plan_for_prepared(prepared)
-  let plan = effect_model_plan_fixture(prepared, request, contracts, model, Ref(0), stage_index=3)
+  let plan = effect_model_plan_fixture(
+    prepared,
+    request,
+    contracts,
+    model,
+    Ref(0),
+    stage_index=3,
+  )
   let before = @resources.ledger_usage(parent.ledger)
-  assert_true(prepare_request_effect_model_read_scope(parent, input, plan) is Err(ForeignOriginal))
-  let scopes = prepare_request_effect_models_read_scopes(parent, input, plan,
-    quantity_limits=Some({tokens: 128L, cost_units: 0L, duration_ms: 1000L,})).unwrap()
+  assert_true(
+    prepare_request_effect_model_read_scope(parent, input, plan)
+    is Err(ForeignOriginal),
+  )
+  let scopes = prepare_request_effect_models_read_scopes(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({ tokens: 128L, cost_units: 0L, duration_ms: 1000L, }),
+  ).unwrap()
   assert_eq(scopes.length(), 2)
-  assert_true(@resources.quantity_configuration_matches(parent.ledger,
-    Some({tokens: 128L, cost_units: 0L, duration_ms: 1000L,})))
+  assert_true(
+    @resources.quantity_configuration_matches(
+      parent.ledger,
+      Some({ tokens: 128L, cost_units: 0L, duration_ms: 1000L, }),
+    ),
+  )
   assert_eq(@resources.ledger_usage(parent.ledger).attempts, before.attempts)
-  assert_eq(@resources.ledger_usage(parent.ledger).transferred_bytes, before.transferred_bytes)
+  assert_eq(
+    @resources.ledger_usage(parent.ledger).transferred_bytes,
+    before.transferred_bytes,
+  )
   complete_request_effect_preparation(parent, input, plan).unwrap()
   @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
-  for invalid in [[scopes[0]], [scopes[0], scopes[0]], [scopes[1],scopes[0]]] {
-    assert_true(begin_request_effect_model_managed_run(parent, request, invalid[0], scopes=Some(invalid)) is Err(ForeignOriginal))
+  for invalid in [[scopes[0]], [scopes[0], scopes[0]], [scopes[1], scopes[0]]] {
+    assert_true(
+      begin_request_effect_model_managed_run(
+        parent,
+        request,
+        invalid[0],
+        scopes=Some(invalid),
+      )
+      is Err(ForeignOriginal),
+    )
   }
-  let run = begin_request_effect_model_managed_run(parent, request, scopes[0], scopes=Some(scopes)).unwrap()
-  let second = @publication_host.prepare_client_model_read(scopes[1], 500L, 700L).unwrap()
+  let run = begin_request_effect_model_managed_run(
+    parent,
+    request,
+    scopes[0],
+    scopes=Some(scopes),
+  ).unwrap()
+  let second = @publication_host.prepare_client_model_read(
+    scopes[1],
+    500L,
+    700L,
+  ).unwrap()
   let first = @publication_host.prepare_client_model_read(scopes[0], 500L, 700L).unwrap()
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
   @publication_host.settle_client_model_read(first, true).unwrap()
-  assert_false(@publication_host.finish_client_model_read_scope(scopes[0], model.compiled, model.definition,
-    model.components.unwrap()[0].graph, true).unwrap())
+  assert_false(
+    @publication_host.finish_client_model_read_scope(
+      scopes[0],
+      model.compiled,
+      model.definition,
+      model.components.unwrap()[0].graph,
+      true,
+    ).unwrap(),
+  )
   let pending_usage = @resources.ledger_usage(parent.ledger)
-  assert_true(@publication_host.settle_client_model_read(second, false) is Err(@publication_host.Resource(@resources.CleanupPending)))
+  assert_true(
+    @publication_host.settle_client_model_read(second, false)
+    is Err(@publication_host.Resource(@resources.CleanupPending)),
+  )
   assert_eq(@resources.ledger_usage(parent.ledger), pending_usage)
   @publication_host.settle_client_model_read(second, true).unwrap()
-  assert_true(@publication_host.finish_client_model_read_scope(scopes[1], model.compiled, model.definition,
-    model.components.unwrap()[1].graph, true).unwrap())
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scopes[1],
+      model.compiled,
+      model.definition,
+      model.components.unwrap()[1].graph,
+      true,
+    ).unwrap(),
+  )
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   assert_eq(@resources.ledger_usage(parent.ledger).attempts, before.attempts)
