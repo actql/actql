@@ -34,14 +34,24 @@ pub fn open_installed_effect_managed_keyed_host(
   bound : @publication_host.PreparedClientEffectRun,
   sources : Array[@query.CapturedInputSource],
   keyed : @publication_host.ClientKeyedLookupInput,
-) -> Result[(
-  @builtin.ConfiguredComputeHost[@strategy.RunIssue],
-  @strategy.CapturedEffectRunDAG,
-  Array[@execution.GeneratedSequence],
-)?, ClientInstalledManagedRunIssue] {
-  if owner.source_free_opening || owner.source_free_captured is Some(_) { return Err(AlreadyBound) }
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedEffectRunDAG,
+    Array[@execution.GeneratedSequence],
+  )?,
+  ClientInstalledManagedRunIssue,
+] {
+  if owner.source_free_opening || owner.source_free_captured is Some(_) {
+    return Err(AlreadyBound)
+  }
   owner.source_free_opening = true
-  let opened = select_installed_effect_managed_host(owner, bound, sources.copy(), keyed=Some(keyed))
+  let opened = select_installed_effect_managed_host(
+    owner,
+    bound,
+    sources.copy(),
+    keyed=Some(keyed),
+  )
   owner.source_free_opening = false
   opened
 }
@@ -104,7 +114,12 @@ fn select_installed_effect_managed_host(
   // Reentrant current/provider callbacks cannot replace this owner's one DAG
   // or retire the parent while its original configuration is in progress.
   open_installed_effect_managed_host_original(
-    owner, bound, sources, plan, ledger, keyed~,
+    owner,
+    bound,
+    sources,
+    plan,
+    ledger,
+    keyed~,
   )
 }
 
@@ -134,17 +149,35 @@ fn open_installed_effect_managed_host_original(
   let opened = if keyed is Some(lookup) {
     guard plan.model is Some(model) &&
       @publication_host.client_composed_keyed_lookup_matches_model_parent(
-        lookup, model.compiled, model.definition, model.graph, ledger,
-      ) && @publication_host.client_composed_keyed_lookup_sources_match(
-        lookup, model._occurrence, sources,
-      ) else { return Err(ForeignOriginal) }
-    let read = match @publication_host.finish_client_keyed_lookup_input(lookup) {
+        lookup,
+        model.compiled,
+        model.definition,
+        model.graph,
+        ledger,
+      ) &&
+      @publication_host.client_composed_keyed_lookup_sources_match(
+        lookup,
+        model._occurrence,
+        sources,
+      ) else {
+      return Err(ForeignOriginal)
+    }
+    let read = match
+      @publication_host.finish_client_keyed_lookup_input(lookup) {
       Ok(value) => value
       Err(_) => return Err(ForeignOriginal)
     }
-    let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(model._occurrence)
-    @strategy.open_multi_captured_effect_run_keyed_dag(checked,
-      Array::makei(first, index => (index, sources[index])), ledger, task, step, read)
+    let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    @strategy.open_multi_captured_effect_run_keyed_dag(
+      checked,
+      Array::makei(first, index => (index, sources[index])),
+      ledger,
+      task,
+      step,
+      read,
+    )
   } else if first == 0 {
     @strategy.open_source_free_effect_run_dag(checked, ledger)
   } else if first == 1 {

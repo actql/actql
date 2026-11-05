@@ -600,3 +600,105 @@ test('managed Source capture-only entry retains its original method and receiver
   original.openCapture = () => assert.fail('a later function cannot replace the original capture entry');
   assert.strictEqual(wrapped.openCapture(facts), capture);
 });
+
+
+test('retained Source metadata forwards the original readonly method without a fresh Run lookup', () => {
+  const facts = {}, metadata = {};
+  const original = {managedCaptureCapacity() {}, prepare() {}, ledgerCapacity() {},
+    prepareRetained(actual) {assert.equal(this, original); assert.equal(actual, facts); return metadata;}};
+  const wrapped = bindInstalledManagedSources(original, () => assert.fail('No fresh ManagedRun for saved input'));
+  original.prepareRetained = () => assert.fail('Use the captured original readonly method');
+  assert.equal(wrapped.prepareRetained(facts), metadata);
+  assert.throws(() => wrapped.ledgerCapacity(metadata), /ForeignInstalledManagedSource/u);
+});
+
+test('DuckDB retained Source metadata keeps original profile and binding without any acquisition or grant', async () => {
+  const {prepareRetainedCapturedDuckDBSource} = await import('./captured-duckdb-source.mjs');
+  const text = readFileSync(new URL('./installed-duckdb-source.mjs', import.meta.url), 'utf8');
+  const node = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(node =>
+    node.declaration?.type === 'FunctionDeclaration' && node.declaration.id.name === 'createInstalledDuckDBSource').declaration;
+  const program = {}, request = {}, requirement = {}, occurrence = Object.freeze({stage: 3, input: 1, task: 0});
+  let requirements = 0;
+  const profile = {database: '/UNOPENED/readonly.duckdb', schema: 'main', table: 'records', sourceRef: 'source:records',
+    environmentWire: JSON.stringify({connector_catalogs: [{connector_id: 'fixture', source_views: [{contract_cid: 'view'}]}]}),
+    transportLimits: {maxRows: 4, maxCells: 4, maxTransportBytes: 1024, maxSqlBytes: 4096,
+      maxParameters: 0, maxColumns: 1, memoryBytes: 1048576, threads: 1},
+    sourceAccess: {sourceRef: 'source:records', connection: 'original', resource: '/UNOPENED/readonly.duckdb',
+      authorization: Object.freeze({close() {return true;}, authorize() {assert.fail('No new authorization');}})}};
+  const moon = {
+    clientProgramMatchesRequestIdentity: (p, r) => p === program && r === request,
+    clientProgramPrepareLocalQueryRequirement(p, stage, input, ...contracts) {
+      assert.equal(p, program); assert.deepEqual([stage, input], [3, 1]);
+      assert.deepEqual(contracts, ['registry', 'values', 'fragment', 'ordered']); requirements++; return {$tag: 1, _0: requirement};
+    },
+    clientProgramQueryRequirementSourceEvidenceFacts: r => {assert.equal(r, requirement); return {$tag: 1, _0: [profile.sourceRef, 'contract', 'schema', 'policy', 'internal', 'view']};},
+    clientProgramQueryRequirementCid: () => 'requirement', clientProgramQueryRequirementInputContractCid: () => 'input',
+    clientProgramQueryRequirementOutputContractCid: () => 'output',
+  };
+  const ports = {loadDuckDBNativeRuntime() {}, readFile, contentCid, duckDBPhysicalTarget,
+    validInstallationBinding, prepareRetainedCapturedDuckDBSource};
+  const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
+  const create = await new AsyncFunction(...Object.keys(ports), 'importMetaUrl',
+    text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') + ';return createInstalledDuckDBSource;')
+    (...Object.values(ports), new URL('./installed-duckdb-source.mjs', import.meta.url).href);
+  const adapter = await create(profile, moon, {root: '/UNOPENED/Host', principalId: 'principal',
+    installation: {registration: 'fixture', revision: 'original'}});
+  const facts = {preparedProgram: program, requestIdentity: request, occurrence,
+    registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered'};
+  assert.throws(() => adapter.prepareRetained({...facts, requestIdentity: {}}), /InstalledSourcePreparationMismatch/u);
+  const prepared = adapter.prepareRetained(facts);
+  assert.equal(requirements, 1); assert.equal(prepared.selection, undefined);
+  assert.deepEqual(prepared.physicalBinding, duckDBPhysicalTarget(profile));
+  assert.deepEqual(prepared.occurrence, occurrence); assert(Object.isFrozen(prepared.physicalPolicy));
+  const binding = adapter.ordinaryRecoveryBinding(prepared); assert(validInstallationBinding(binding));
+  assert.equal(binding.connectorRevision, 'original');
+  assert.throws(() => adapter.ordinaryRecoveryBinding({...prepared}), /InstalledSourcePreparationMismatch/u);
+  assert.throws(() => adapter.retainedCapture(prepared), /InstalledSourcePreparationMismatch/u);
+  adapter.close();
+  assert.throws(() => adapter.ordinaryRecoveryBinding(prepared), /InstalledSourceReaderNotCurrent/u);
+  assert.throws(() => adapter.prepareRetained(facts), /InstalledSourceReaderNotCurrent/u);
+});
+
+test('common row Source publication retains its readonly metadata and retirement entries', async () => {
+  const {types} = await import('node:util');
+  const source = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+  const begin = source.indexOf('  let selectedSurface;'), end = source.indexOf('  let publicationFields', begin);
+  const select = new Function('publicationSurface', 'nodeTypes', 'fail', source.slice(begin, end) + ';return selectedSurface;');
+  const required = ['realizationKey','supportsRetainedRelationOutput','connectorRegistration','connectorRevision',
+    'environmentWire','connectorBindings','readAuthorization','sourceAccess','sourceReadAccesses',
+    'admitsSource','ledgerCapacity','prepare','open','close'];
+  const original = Object.freeze(required);
+  assert.deepEqual(select(original, types, code => {throw new Error(code);}), [...required, 'retirePreparedSource', 'prepareRetained']);
+  assert.deepEqual(original, required, 'Do not mutate the original provider DATA selection');
+});
+
+test('DuckDB readonly and held-read preparations share their checked target and policy descriptor', async () => {
+  const {prepareRetainedCapturedDuckDBSource, prepareCapturedDuckDBSource,
+    capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} = await import('./captured-duckdb-source.mjs');
+  const program = {}, identity = {}, requirement = {};
+  let authorizations = 0;
+  const sourceAccess = {sourceRef: 'source:original', connection: 'original', resource: '/UNOPENED/rows.duckdb',
+    authorization: {async authorize() {authorizations++; return {action: 'waiting'};}}};
+  const moon = {
+    clientProgramMatchesRequestIdentity: (p, r) => p === program && r === identity,
+    clientProgramPrepareQueryAcquisition: () => ({$tag: 1, _0: {}}),
+    clientProgramPrepareLocalQueryRequirement: () => ({$tag: 1, _0: requirement}),
+    clientProgramQueryRequirementSourceEvidenceFacts: () => ({$tag: 1, _0: [sourceAccess.sourceRef, 'contract', 'schema', 'policy', 'internal', 'view']}),
+    clientProgramQueryRequirementCid: () => 'requirement', clientProgramQueryRequirementInputContractCid: () => 'input',
+    clientProgramQueryRequirementOutputContractCid: () => 'output',
+    clientProgramPrepareDuckDBSourceEvidenceContext: () => ({$tag: 1, _0: {}}),
+    clientProgramPrepareDuckDBCaptureCapacity: () => ({$tag: 1, _0: {}}),
+  };
+  const options = {moon, preparedProgram: program, requestIdentity: identity, sourceAccess,
+    registry: {}, values: 'values', fragment: 'fragment', ordered: 'ordered',
+    database: '/UNOPENED/rows.duckdb', schema: 'main', table: 'records', occurrence: {stage: 0, input: 0, task: 0},
+    transportLimits: {maxRows: 4, maxCells: 4, maxTransportBytes: 1024, maxSqlBytes: 4096,
+      maxParameters: 0, maxColumns: 1, memoryBytes: 1048576, threads: 1}};
+  const retained = prepareRetainedCapturedDuckDBSource(options);
+  assert.equal(authorizations, 0);
+  assert.throws(() => capturedDuckDBConfiguration(retained), /InstalledSourcePreparationMismatch/u);
+  assert.throws(() => capturedDuckDBPhysicalCapacity(retained), /InstalledSourcePreparationMismatch/u);
+  const original = await prepareCapturedDuckDBSource(options);
+  assert.deepEqual(retained, original, 'The same immutable descriptor rules apply to both purposes');
+  assert.equal(authorizations, 1, 'Only ordinary held-read preparation observes authorization');
+});

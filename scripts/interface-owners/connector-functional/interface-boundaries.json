@@ -13833,7 +13833,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "eb37c4402a3730fcaf7ff5994914bda8c42cacb83a5a3227d6b7c41a7cef82ab",
+      "sha256": "91387d87b20a372dfd910c7f79fe6d82d67f8681c6077b0848c63cf190679d80",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -14167,6 +14167,31 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/describePreparedSource",
+          "parameters": [
+            "requirement",
+            "occurrence",
+            "checkedOwner",
+            "wholeInput",
+            "plannedAcquisition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/describePreparedSource/describePreparedSource",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/describePreparedSource/describePreparedSource#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/invalidReaderField",
           "parameters": [
             "name"
@@ -14494,20 +14519,6 @@
           "async": true
         },
         {
-          "name": "createInstalledRowSource/prepare/prepare",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/prepare/prepare#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/prepare/recheck/recheck",
           "parameters": [],
           "async": false
@@ -14540,6 +14551,27 @@
           "name": "createInstalledRowSource/prepareOriginalAcquisition",
           "parameters": [
             "requirement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepareRetained",
+          "parameters": [
+            "preparedProgram",
+            "requestIdentity",
+            "occurrence",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "access"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepareRetained/prepareRetained",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -15689,7 +15721,6 @@
             "createInstalledRowSource/ordinarySubject/ordinarySubject",
             "createInstalledRowSource/prepare",
             "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
-            "createInstalledRowSource/prepare/prepare",
             "createInstalledRowSource/prepare/recheck/recheck",
             "createInstalledRowSource/prepareKeyed",
             "createInstalledRowSource/prepareKeyed/prepareKeyed",
@@ -15755,7 +15786,12 @@
             "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
             "rowSourceCheckEnvironment",
             "text/text",
-            "valueCid/valueCid"
+            "valueCid/valueCid",
+            "createInstalledRowSource/describePreparedSource",
+            "createInstalledRowSource/describePreparedSource/describePreparedSource",
+            "createInstalledRowSource/describePreparedSource/describePreparedSource#2",
+            "createInstalledRowSource/prepareRetained",
+            "createInstalledRowSource/prepareRetained/prepareRetained"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -17678,8 +17714,7 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/managedWholeSourceCapacity",
-            "createInstalledRowSource/prepare/prepare#2"
+            "createInstalledRowSource/managedWholeSourceCapacity"
           ],
           "exports": [],
           "attributes": {

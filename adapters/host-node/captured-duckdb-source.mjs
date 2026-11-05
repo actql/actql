@@ -54,6 +54,63 @@ function selectAcquisition(inputs) {
     broad: chosen.native === undefined, selection: chosen.selection};
 }
 
+function checkedSourceForRequirement(moon, requirement, sourceAccess) {
+  const sourceFacts = checked(
+    moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
+  if (!Array.isArray(sourceFacts) || sourceFacts.length !== 6 ||
+      !sourceFacts.every(value => typeof value === 'string')) {
+    throw new Error('InstalledSourceEvidenceFactsUnavailable');
+  }
+  const [sourceRef, sourceContractCid, carrierSchemaContractCid,
+    sourceDataPolicyCid, dataClassification, sourceViewContractCid] =
+    sourceFacts;
+  if (sourceRef !== sourceAccess?.sourceRef) {
+    throw new Error('InstalledSourceProgramMismatch');
+  }
+  const checkedSource = Object.freeze({
+    requirementCid: moon.clientProgramQueryRequirementCid(requirement),
+    sourceRef, sourceContractCid, carrierSchemaContractCid,
+    sourceDataPolicyCid, dataClassification, sourceViewContractCid,
+    inputContractCid:
+      moon.clientProgramQueryRequirementInputContractCid(requirement),
+    outputContractCid:
+      moon.clientProgramQueryRequirementOutputContractCid(requirement),
+  });
+  return checkedSource;
+}
+
+function describeCapturedSource(checkedSource, selection, admittedLimits, planning, occurrence, sourceAccess, database, schema, table) {
+  return Object.freeze({checkedSource, selection,
+    physicalPolicy: Object.freeze({transportLimits: admittedLimits,
+      acquisitionPlanning: planning ?? null}),
+    occurrence: Object.freeze({...occurrence}),
+    readTuple: Object.freeze({connection: sourceAccess.connection ??
+      'local-database', resource: sourceAccess.resource ?? database,
+    operation: 'read'}),
+    physicalBinding: duckDBPhysicalTarget({database, schema, table})});
+}
+
+// Readonly target metadata for an already saved Model input. The original
+// recovery Request backs this call; it selects no acquisition or physical read.
+export function prepareRetainedCapturedDuckDBSource({moon, preparedProgram, requestIdentity,
+  registry, values, fragment, ordered, sourceAccess, database, schema, table,
+  transportLimits, acquisitionPlanning, occurrence}) {
+  if (requestIdentity === undefined ||
+      moon.clientProgramMatchesRequestIdentity(preparedProgram, requestIdentity) !== true ||
+      occurrence === undefined || !['stage', 'input', 'task'].every(name =>
+        Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0)) {
+    throw new Error('InstalledSourcePreparationMismatch');
+  }
+  const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(preparedProgram,
+    occurrence.stage, occurrence.input, registry, values, fragment, ordered));
+  const checkedSource = checkedSourceForRequirement(moon, requirement, sourceAccess);
+  const admittedLimits = admittedTransportPolicy(transportLimits);
+  const planning = acquisitionPlanning === undefined ? undefined
+    : checkDuckDBAcquisitionPlanning(acquisitionPlanning);
+  return describeCapturedSource(checkedSource, undefined, admittedLimits, planning,
+    occurrence, sourceAccess, database, schema, table);
+}
+
 // Checked preparation for the Host's acquisition Checkpoint. It does not
 // open the database or infer authority from the source CID. The returned
 // handle can only be consumed with the same checked Program and Host profile.
@@ -82,27 +139,8 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   const {requirement} = originalCapture ?? prepareOriginalSourceQuery({moon,
     preparedProgram, preparedEffect, stage: occurrence.stage, input: occurrence.input,
     registry, values, fragment, ordered, queryTimePreparation, requestIdentity});
-  const sourceFacts = checked(
-    moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
-  if (!Array.isArray(sourceFacts) || sourceFacts.length !== 6 ||
-      !sourceFacts.every(value => typeof value === 'string')) {
-    throw new Error('InstalledSourceEvidenceFactsUnavailable');
-  }
-  const [sourceRef, sourceContractCid, carrierSchemaContractCid,
-    sourceDataPolicyCid, dataClassification, sourceViewContractCid] =
-    sourceFacts;
-  if (sourceRef !== sourceAccess?.sourceRef) {
-    throw new Error('InstalledSourceProgramMismatch');
-  }
-  const checkedSource = Object.freeze({
-    requirementCid: moon.clientProgramQueryRequirementCid(requirement),
-    sourceRef, sourceContractCid, carrierSchemaContractCid,
-    sourceDataPolicyCid, dataClassification, sourceViewContractCid,
-    inputContractCid:
-      moon.clientProgramQueryRequirementInputContractCid(requirement),
-    outputContractCid:
-      moon.clientProgramQueryRequirementOutputContractCid(requirement),
-  });
+  const checkedSource = checkedSourceForRequirement(moon, requirement, sourceAccess);
+  const sourceRef = checkedSource.sourceRef;
   const evidenceContext = checked(
     moon.clientProgramPrepareDuckDBSourceEvidenceContext(requirement));
   const contracts = originalContracts ?? await Promise.all(contractFiles.map(name =>
@@ -138,14 +176,8 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   // read. Physical names are bound by their exact UTF-8 bytes (hex): the
   // database distinguishes names that ActQL's logical text normalization
   // treats as equal. The readable names are display only.
-  const prepared = Object.freeze({checkedSource, selection,
-    physicalPolicy: Object.freeze({transportLimits: admittedLimits,
-      acquisitionPlanning: planning ?? null}),
-    occurrence: Object.freeze({...occurrence}),
-    readTuple: Object.freeze({connection: sourceAccess.connection ??
-      'local-database', resource: sourceAccess.resource ?? database,
-    operation: 'read'}),
-    physicalBinding: duckDBPhysicalTarget({database, schema, table})});
+  const prepared = describeCapturedSource(checkedSource, selection, admittedLimits, planning,
+    occurrence, sourceAccess, database, schema, table);
   preparations.set(prepared, Object.freeze({moon, checkedOwner, effectful, registry,
     values, fragment, ordered, database, schema, table, sourceAccess,
     requirement, evidenceContext, acquisition, broad, selection, selectionInputs,

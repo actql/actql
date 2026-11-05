@@ -38,7 +38,8 @@ assert.match(setup, /physicalTarget = immutableTargets.prepare/u);
 assert.match(setup, /let physicalTargetGeneration/u);
 const ownerInsertion = slice(one(create, node => node.type === 'CallExpression' &&
   node.callee.type === 'MemberExpression' && node.callee.object.name === 'preparations' && node.callee.property.name === 'set' &&
-  node.arguments[1]?.arguments?.[0]?.properties?.some(property => property.key?.name === 'checkedOwner'))) + ';';
+  node.arguments[1]?.arguments?.[0]?.properties?.some(property => property.key?.name === 'checkedOwner') &&
+  !node.arguments[1]?.arguments?.[0]?.properties?.some(property => property.key?.name === 'retainedOnly'))) + ';';
 const sourceBody = one(create, node => node.type === 'VariableDeclarator' && node.id?.name === 'sourceBody');
 assert.equal(sourceBody.init.type, 'ObjectExpression');
 const close = sourceBody.init.properties.find(node => node.key?.name === 'close');assert(close);

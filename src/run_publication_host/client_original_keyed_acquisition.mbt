@@ -149,16 +149,12 @@ pub fn start_client_original_keyed_lookup_input(
   if !physical_equal(left.acquisition, keyed) {
     return Err(ForeignLeft)
   }
-  guard left.composed is None && left.source is Some(source) else { return Err(ForeignLeft) }
+  guard left.composed is None && left.source is Some(source) else {
+    return Err(ForeignLeft)
+  }
   let ledger = match
     borrow_client_original_keyed_captured_ledger(
-      scope,
-      compiled,
-      definition,
-      plan,
-      prepared,
-      keyed,
-      source,
+      scope, compiled, definition, plan, prepared, keyed, source,
     ) {
     Ok(value) => value
     Err(_) => return Err(Assembly("original_custody_changed"))

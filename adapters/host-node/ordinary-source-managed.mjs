@@ -708,6 +708,35 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             registry, values, fragment, ordered, providers);
         };
         const hostFields = {
+          prepareSource(occurrence, construct) {
+            const currentSource = () => {
+              assertOriginal();
+              if (state.preparationFailed) throw state.preparationFailure;
+              if (members.some(member => !member.taken || member.closed || member.scopeFinished)) {
+                fail('ForeignInstalledModelRecoveryScope');
+              }
+            };
+            currentSource();
+            if (typeof construct !== 'function' || !view.modelSourceCoordinates(prepared, request).some(coordinates =>
+                  ['stage', 'input', 'task'].every((name, index) => occurrence?.[name] === coordinates[index]))) {
+              fail('ForeignInstalledModelRecoveryScope');
+            }
+            // The same retained material funds this metadata-only constructor
+            // before it runs. There is no fresh ManagedRun or physical read.
+            reserveModelRecovery(producer, state, 1, () => recovery.original.materialsWire, 1);
+            return constructRequestDomain(state, () => {
+              currentSource();
+              const selectedSource = checked(moon.clientProgramSelectInstalledSourceInput(
+                prepared, recovery.request, occurrence.stage, occurrence.input));
+              currentSource();
+              const result = construct(selectedSource);
+              if (result === null || typeof result !== 'object' || typeof result.then === 'function') {
+                fail('ForeignInstalledModelRecoveryScope');
+              }
+              currentSource();
+              return result;
+            });
+          },
           sourceLedger() {return view.modelRecoveryLedger(prepared, request);},
           setupUsageIsolated(dag) {
             assertOriginal();

@@ -584,13 +584,42 @@ Before storing a fresh single-Unit Model checkpoint, the same caller retains
 that captured Source through the existing Source continuation. It passes the
 original checked Source coordinates and the nominal read approval, without
 another read or authorization. The approval must match the original principal,
-read tuple, Source, physical and installation bindings; an optional occurrence
+read tuple, Source and physical binding, plus its installation fact when present;
+an optional occurrence
 matches its stage/input/task coordinates. Cancellation and every earlier
 approval remain current requirements. The private retained record preserves
 that approval chain for restoration; a process-local Host permit without a
-checkpoint CID supplies no durable approval. Saved input consumes this retained
+checkpoint CID supplies no durable approval. A singular approval can omit its
+installation fact; the Source closure still retains its actual installed binding
+and restoration checks that original binding independently. Saved input consumes this retained
 closure rather than issuing a replacement, and cleanup retires it before the
 original Model Scope.
+
+When a singleton Model resumes from saved input, its original recovery view
+backs Source metadata construction on the same WorkingParent before calling
+the installed Source Owner. The Owner uses the shared checked Source descriptor
+construction, with the same Request and occurrence, and retains the actual
+installed binding. This readonly preparation cannot open a Source, expose a
+capture capacity or supply a Ledger. It creates no fresh ManagedRun or physical
+read. The existing continuation then checks the original retained scope and
+current approval before restoring the Model Read. Constructor failures remain
+with that same recovery parent, including an undefined thrown primary; retired
+Scopes cannot construct another preparation.
+
+The builtin DuckDB Source uses this same readonly entry with its original
+profile, target and resource policy. Its descriptor construction is shared with
+ordinary held reads, while acquisition selection and capture ownership remain
+absent. Row Source publication selections retain this common lifecycle entry
+alongside preparation retirement; provider-specific surface lists cannot hide it.
+
+A keyed read below a composed Model borrows the original planned Effect/Model
+parent and its actual Ledger. Its selected request must match the original
+completed prefix, Scope, compilation, definition and Model graph. The actual
+left-read row count bounds the cumulative child history; retiring a child does
+not return its request occurrence. Row limits use the existing installed keyed
+limits constructor. After selection advances, child operations retain the
+same original parent proof without requiring a pristine, unattempted request.
+Source, prefix and Scope currentness and physical cleanup remain required.
 
 A composed input does not itself select a scheduler. The original installed
 single-Unit caller also supplies the same checked Program. The existing opaque
