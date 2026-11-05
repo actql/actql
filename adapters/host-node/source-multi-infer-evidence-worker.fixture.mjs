@@ -15,33 +15,40 @@ import {once} from 'node:events';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 
 // Run completion does not wait for its optional Evidence projection. Observe
-// this fixture's actual sink write before reading that same original receipt;
-// never turn a missing receipt into success or change the Host's completion law.
+// this fixture's actual sink write before reading that same original receipt.
+// A later process can read an already committed receipt without waiting for a
+// new projection; lookup still refuses a missing original receipt.
 function captureSinkWithCompletion(original, targets) {
   const writes = new Map(targets.map(target => {
     const completion = Promise.withResolvers();
     // record may fail before lookup starts. Keep that exact rejection for the
     // later lookup without creating an unrelated unhandled rejection.
     void completion.promise.catch(() => {});
-    return [target, completion];
+    return [target, {...completion, started: false}];
   }));
   return Object.freeze({...original,
     capture: original.capture.bind(original),
     pendingBytes: original.pendingBytes.bind(original),
     cleanupPending: original.cleanupPending.bind(original),
     async record(receipt) {
+      const completion = writes.get(receipt.target);
+      if (completion) completion.started = true;
       try {
         const result = await original.record(receipt);
-        writes.get(receipt.target)?.resolve(receipt.subject);
+        completion?.resolve(receipt.subject);
         return result;
       } catch (cause) {
-        writes.get(receipt.target)?.reject(cause);
+        completion?.reject(cause);
         throw cause;
       }
     },
     async lookup(subject, target) {
       const completion = writes.get(target);
       assert.ok(completion, 'Only the two declared Evidence targets are observed');
+      let committed;
+      try {committed = await original.lookup(subject, target);}
+      catch (cause) {if (cause.code !== 'EvidenceOriginalMissing') throw cause;}
+      if (committed !== undefined && !completion.started) return committed;
       assert.deepEqual(await completion.promise, subject);
       return original.lookup(subject, target);
     }});
@@ -438,8 +445,16 @@ try {
     calls, sourceCalls: readLines(sourcePath).length, terminal, description, ref: run.ref, revision: runtime?.revision}));
   }
   if (['resume-cleanup-pending', 'resume-cleanup-retry'].includes(phase)) {
-    await client.close(); client = undefined;
-    if (host !== undefined) {await host.close(); host = undefined;}
+    const closeOwners = async () => {
+      await client.close(); client = undefined;
+      if (host !== undefined) {await host.close(); host = undefined;}
+    };
+    if (phase === 'resume-cleanup-pending') {
+      // The injected filesystem refusal must remain visible at close. Preserve
+      // that exact pending state across the fixture's next process boundary.
+      await assert.rejects(closeOwners, {code: transport === 'local'
+        ? 'ClientCleanupPending' : 'PublicationStoreCleanupPending'});
+    } else await closeOwners();
     const directory = join(root, 'host/checkpoints/attempts');
     const ledgers = [];
     for (const name of await readdir(directory)) {
@@ -454,6 +469,7 @@ try {
     await writeFile(join(root, `${phase}.json`), JSON.stringify({pid: process.pid,
       ref: run.ref, sourceCalls: readLines(sourcePath).length, calls, holdings,
       retainedRequestCount: ledgers.flatMap(ledger => ledger.holdings).filter(item => item.name === 'invocation_request').length}));
+    if (phase === 'resume-cleanup-pending') process.exit(77);
   }
 } finally {
   await client?.close();
