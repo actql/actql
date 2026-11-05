@@ -61,6 +61,7 @@ test('exact nested C fixtures stay bound inert inputs; changed or additional mem
   assert.equal(report.nested_fixtures.length, 3);
   const directory = 'src/platform_native/filesystem';
   for (const [path, digest] of Object.entries(currentNestedFixtureConfigurations)) {
+    if (!path.startsWith(directory + '/')) continue;
     assert.equal(hash(tree.read(path)), digest);
     assert(reviewedNestedFixture(request(path, digest)));
     for (const delta of [{digest:'0'.repeat(64)}, {path:path+'.extra'}, {target:'native'}, {toolchainDigest:'0'.repeat(64)}])
@@ -76,6 +77,22 @@ test('exact nested C fixtures stay bound inert inputs; changed or additional mem
   const selected = packageSourceInputs({tree:altered, packages:[directory], target:'js'});
   assert(selected.paths.includes(added));
   assert(selected.unresolved.includes(`nested package input requires review: ${added}`));
+});
+
+test('the current keyed README fixture is exact JSON data and cannot admit changed or additional nested inputs', () => {
+  const path = 'src/connectors_builtin_node/fixtures/readme-deferred-keyed-input.json';
+  const digest = currentNestedFixtureConfigurations[path];
+  assert.equal(hash(currentTree.read(path)), digest);
+  const fixture = JSON.parse(currentTree.read(path));
+  assert.deepEqual(Object.keys(fixture).sort(), ['environmentWire', 'publicationWire', 'source', 'task']);
+  assert(Object.values(fixture).every(value => typeof value === 'string'));
+  assert(reviewedNestedFixture(request(path, digest)));
+  for (const delta of [{digest:'0'.repeat(64)}, {path:path+'.extra'}, {target:'native'}, {toolchainDigest:'0'.repeat(64)}])
+    assert.equal(reviewedNestedFixture({...request(path,digest),...delta}), false);
+  const altered = {...currentTree, read: p => p === path ? Buffer.concat([currentTree.read(p), Buffer.from('\nchanged')]) : currentTree.read(p)};
+  const selected = packageSourceInputs({tree:altered, packages:['src/connectors_builtin_node'], target:'js'});
+  assert(selected.paths.includes(path));
+  assert(selected.unresolved.includes(`nested package input requires review: ${path}`));
 });
 
 // One current map records each input's exact review, while archived preimages

@@ -105,6 +105,7 @@ export const currentPackageConfigurations = Object.freeze({
 });
 
 export const currentNestedFixtureConfigurations = Object.freeze({
+  'src/connectors_builtin_node/fixtures/readme-deferred-keyed-input.json': '587ea35d738b1b7ecfaad2fd19d0c81260732b698c8e972477aa095dc6068be9',
   'src/platform_native/filesystem/fixtures/command_acl.c': '5c0e689346f89b1b62c5b5ffdb9d18a87d5181ec9082628b80ca1dcdc56bee69',
   'src/platform_native/filesystem/fixtures/command_directory_census.c': 'f6dc46e8338fdb9de7b2f2f34ef6e913230719ac8edf56063605b1d51da92726',
   'src/platform_native/filesystem/fixtures/observed_command_member.c': '147684d8a6ba26619a72de9ecc820a23ca2baca11d1fd5643e1d1511c1ccfbfb',
