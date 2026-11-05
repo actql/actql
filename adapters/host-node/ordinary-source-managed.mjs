@@ -377,11 +377,12 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         typeof wireAt !== 'function') fail('ForeignInstalledSourceProducer');
     const moon = state.context.runtime;
     const recovery = state.recovery;
-    const reserve = moon.clientProgramReserveRequestModelRecoveryMaterials;
+    const control = recovery.model?.control ?? runtimeCore(moon).publicationControl;
+    const reserve = control.reserveCheckedClientRequestModelRecoveryMaterials;
     if (typeof reserve !== 'function') fail('NodeManagedRunRuntimeUnavailable');
     try {
-      checked(Reflect.apply(reserve, moon, [state.parent, producer.receipt,
-        recovery.request, recovery.definition, count, wireAt, containers]));
+      Reflect.apply(reserve, control, [state.parent, producer.receipt,
+        recovery.request, recovery.definition, count, wireAt, containers]);
       current();
       if (producer.finished || producer.preparation !== state || state.recovery !== recovery) fail('ForeignInstalledSourceProducer');
       recovery.assertCurrent();
