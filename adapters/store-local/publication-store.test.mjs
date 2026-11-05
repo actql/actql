@@ -10285,6 +10285,73 @@ test('physical holding retirement waits for the exact active reader',
     assert.equal(store.status().storedBytes, 0);
   });
 
+for (const interruption of ['failed ACK', 'replacement during ACK']) {
+test(`missing prior-lifetime holding retains capacity on ${interruption}`, async t => {
+  let failObjectSync = false;
+  const {store, configuration, directory} = await fixture(t);
+  const prepared = await preparePhysical(store, 'missing');
+  const record = physicalHolding(digest('missing prior holding'), digest('missing prior manifest'),
+    [{cid: prepared.cid, byte_count: prepared.bytes}]);
+  await store.commitPhysicalHolding(record, [prepared.prepared]);
+  await store.close();
+  await unlink(join(directory, 'objects', prepared.cid.slice(7)));
+  const reopened = await openLocalPublicationStore(configuration, contractControl, {
+    async syncDirectory(path) {
+      if (failObjectSync && path === join(directory, 'objects')) {
+        failObjectSync = false;
+        if (interruption === 'failed ACK') {
+          throw Object.assign(new Error('original missing-object directory ACK unavailable'), {code: 'EIO'});
+        }
+        await writeFile(join(path,prepared.cid.slice(7)), 'foreign replacement');
+      }
+      const handle = await open(path, 'r');
+      try {await handle.sync();} finally {await handle.close();}
+    },
+  });
+  await assert.rejects(reopened.inspectPhysicalHolding(record.holding_cid), code('PublicationObjectMissing'));
+  const unrelated = await reopened.putBytes(Buffer.from('current healthy object'));
+  const before = reopened.status();
+  failObjectSync = true;
+  const retired = await reopened.retirePhysicalHolding(record.holding_cid);
+  assert.equal(retired.deleted, false);
+  assert.equal(retired.cleanup.status().pending, true);
+  assert.equal(reopened.status().storedBytes, before.storedBytes,
+    'an absent pathname alone cannot refund its indexed original');
+  if (interruption === 'replacement during ACK') {
+    assert.equal(retired.cleanup.status().errors.at(-1).code, 'PublicationObjectAccountingMismatch');
+    assert.equal(await readFile(join(directory,'objects',prepared.cid.slice(7)), 'utf8'), 'foreign replacement');
+    await unlink(join(directory,'objects',prepared.cid.slice(7)));
+  }
+  assert.equal((await retired.cleanup.retry()).pending, false);
+  assert.equal(reopened.status().storedBytes, unrelated.bytes);
+  assert.equal(reopened.status().objectCount, 1);
+  await reopened.close();
+  assert.deepEqual(await readFile(join(directory, 'objects', unrelated.cid.slice(7))), Buffer.from('current healthy object'));
+});
+}
+
+test('missing current-lifetime holding retains its original charge until the original allocation returns', async t => {
+  const {store, directory} = await fixture(t);
+  const prepared = await preparePhysical(store, 'current');
+  const record = physicalHolding(digest('missing current holding'), digest('missing current manifest'),
+    [{cid: prepared.cid, byte_count: prepared.bytes}]);
+  await store.commitPhysicalHolding(record, [prepared.prepared]);
+  const path = join(directory, 'objects', prepared.cid.slice(7));
+  const retained = join(directory, 'original-current-allocation');
+  await link(path, retained);
+  await unlink(path);
+  const before = store.status();
+  const retired = await store.retirePhysicalHolding(record.holding_cid);
+  assert.equal(retired.deleted, false);
+  assert.equal(retired.cleanup.status().pending, true);
+  assert.equal(store.status().storedBytes, before.storedBytes);
+  assert.equal(retired.cleanup.status().errors.at(-1).code, 'PublicationObjectAccountingMismatch');
+  await link(retained, path);
+  await unlink(retained);
+  assert.equal((await retired.cleanup.retry()).pending, false);
+  assert.equal(store.status().storedBytes, 0);
+});
+
 test('physical holding retains capacity until unlink durability retry',
   async t => {
     const directory = await mkdtemp(join(
