@@ -15,6 +15,35 @@ priv struct ClientComposedKeyedOriginal {
 }
 
 ///|
+pub fn select_client_effect_composed_model_keyed_acquisition(
+  prepared : PreparedClientEffectComputation,
+  plan : ClientInferPlanGraph,
+) -> Result[ClientKeyedAcquisition?, ClientKeyedAcquisitionIssue] {
+  guard client_infer_occurrence_matches_effect(plan.occurrence, prepared) else { return Err(ForeignPipeline) }
+  let checked = @strategy.graph_program(plan.owner.graph)
+  let mut selected = None
+  let count = @checked.source_execution_count(checked)
+  if count > 1000000 { return Err(WorkLimit) }
+  for index in 0..<count {
+    let check = @checked.source_execution_at(checked, index).unwrap()
+    if @checked.source_execution_kind(check) is @checked.KeyedRequest(binding) {
+      let subject = @checked.source_execution_subject(check)
+      let step = @acquisition.keyed_join_step(binding.join)
+      if selected is Some(_) || subject.stage != plan.stage || step >= plan.source_ordinal {
+        return Err(ForeignPipeline)
+      }
+      selected = Some((subject.stage, subject.input, step))
+    }
+  }
+  match selected {
+    None => Ok(None)
+    Some((stage, input, join)) => prepare_client_effect_keyed_acquisition(
+      prepared, stage, input, 1000000, join_step=Some(join),
+    ).map(Some)
+  }
+}
+
+///|
 fn client_keyed_left_single_source_matches(
   left : ClientKeyedLeftRead,
   source : @query.CapturedInputSource,
@@ -129,6 +158,44 @@ pub fn client_composed_keyed_request_matches_model_parent(
   request.attempts == 0L && !request.io_complete && lookup.completed is None &&
   lookup.copying is None && lookup.preparation is None &&
   client_composed_keyed_lookup_matches_model_parent(lookup, compiled, definition, plan, ledger)
+}
+
+///|
+// An already-entered child retains this SAME assembly/left/Scope identity
+// after its selected slot advances or its IO attempt is observed. This does
+// not authorize another request or another physical attempt.
+pub fn client_composed_keyed_request_retained_model_parent(
+  request : ClientKeyedRequest,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  ledger : @resources.Ledger,
+) -> Bool {
+  client_keyed_request_matches_acquisition(request, request.left.acquisition) &&
+  request.assembly_accounting is Some(lookup) && physical_equal(request.left, lookup.left) &&
+  client_composed_keyed_lookup_matches_model_parent(lookup, compiled, definition, plan, ledger)
+}
+
+///|
+// Actual completed-left length, not a checked estimate or the later Model
+// output count. Repeated keys use existing rows without allocating a second
+// physical child; one row can select at most its one original request slot.
+pub fn client_composed_keyed_request_model_rows(
+  request : ClientKeyedRequest,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  ledger : @resources.Ledger,
+) -> Int? {
+  guard client_composed_keyed_request_retained_model_parent(request, compiled, definition, plan, ledger) else {
+    return None
+  }
+  let rows = @execution.producer_read_row_count(request.left.read)
+  guard request.row >= 0 && request.row < rows &&
+    client_composed_keyed_request_retained_model_parent(request, compiled, definition, plan, ledger) else {
+    return None
+  }
+  Some(rows)
 }
 
 ///|
