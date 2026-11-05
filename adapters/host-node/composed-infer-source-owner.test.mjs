@@ -118,3 +118,50 @@ test('composed Model journal receives each original component Scope rather than 
       originalPreparation, undefined, undefined, undefined), error => error === boundary);
   }
 });
+
+test('cold composed segment preparation keeps the actual prepared occurrence and current fences', () => {
+  const text = readFileSync(new URL('./installed-composed-infer-run.mjs', import.meta.url), 'utf8');
+  let expression;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'prepareInputSegments') {
+      assert.equal(expression, undefined); expression = text.slice(node.value.start, node.value.end);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit); else visit(value);
+    }
+  }
+  visit(parse(text, {ecmaVersion: 'latest', sourceType: 'module'})); assert(expression);
+  for (const refusal of [undefined, 'before', 'after', 'lowering']) {
+    const selected = {restoredRun: {}}, child = {selection: {occurrence: {}}};
+    const prepared = {}, registry = {}, values = {}, fragment = {}, ordered = {}, segments = {_0: {}, _1: {}};
+    const failure = new Error('OriginalSegmentsCurrentRefused'), events = [];
+    let currentCalls = 0;
+    const original = {assertRuntimeCurrent() {
+      currentCalls++; events.push('original-current');
+      if (refusal === 'before' && currentCalls === 1 || refusal === 'after' && currentCalls === 2) throw failure;
+    }};
+    const moon = {clientProgramPrepareComposedInferSegments(...actual) {
+      assert.deepEqual(actual, [prepared, child.selection.occurrence, registry, values, fragment, ordered]);
+      actual.forEach((value, index) => assert.strictEqual(value,
+        [prepared, child.selection.occurrence, registry, values, fragment, ordered][index]));
+      events.push('lower-once');
+      if (refusal === 'lowering') throw failure;
+      return {$tag: 1, _0: segments};
+    }};
+    const invoke = Function('selected', 'child', 'childOriginal', 'assertCurrent', 'checked', 'moon',
+      'preparedProgram', 'registry', 'values', 'fragment', 'ordered', `return ${expression};`);
+    const args = [selected, child, original, () => events.push('run-current'), result => result._0,
+      moon, prepared, registry, values, fragment, ordered];
+    const prepare = invoke(...args);
+    if (refusal === undefined) {
+      assert.strictEqual(prepare(), segments);
+      assert.deepEqual(events, ['run-current', 'original-current', 'lower-once', 'original-current', 'run-current']);
+    } else assert.throws(prepare, error => error === failure);
+    if (refusal === 'before') assert.equal(events.includes('lower-once'), false);
+    child.selection.computePrefix = {};
+    assert.equal(invoke(...args), undefined, 'retain an already checked prefix without another lowering');
+    child.selection.computePrefix = undefined; selected.restoredRun = undefined;
+    assert.equal(invoke(...args), undefined, 'fresh input keeps its original installed segment owner');
+  }
+});
