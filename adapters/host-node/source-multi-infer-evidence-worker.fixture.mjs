@@ -375,13 +375,13 @@ try {
     serial.id = 'unsupported-serial-infer-evidence';
     serial.stages[2].inputs.items.result.stage = 'first';
     serial.stages[2].steps[1].infer.input = {text: {literal: 'downstream'}};
-    // The public Submission contract records this unsupported downstream
-    // preparation as an operation failure, not malformed language input.
+    // The original bound Check discloses this Host's downstream Model-input
+    // implementation limit. This is not a complete language-validity verdict.
     await assert.rejects(client.start(serial,
       {submissionRef: client.newSubmission({nonce: 'serial-infer-negative'})}),
       error => error.code === 'SubmissionPreparationFailed' &&
-        error.outcome?.problem?.code === 'ClientProgramRejected' &&
-        error.outcome.problem.classification === 'operation_failed');
+        error.outcome?.problem?.code === 'ClientProgramUnsupported' &&
+        error.outcome.problem.classification === 'implementation_limit');
     assert.equal(calls.length, 4, 'the refused downstream INFER must not send');
     assert.equal(observed.filter(item => item.name === 'acquisition_started').length, 1);
   }
