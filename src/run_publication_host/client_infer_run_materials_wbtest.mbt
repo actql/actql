@@ -236,7 +236,12 @@ test "saved composed INFER refuses changed Run source contract Program and execu
 }
 
 ///|
-test "saved composed INFER refuses an ambiguous two Model inventory rather than choosing the first" {
+fn plural_infer_run_materials_fixture() -> (
+  PreparedClientProgram,
+  ClientCompiledRun,
+  @publication.PublicationContract,
+  String,
+) raise {
   let prepared = client_two_independent_infer_test_program()
   assert_true(prepared_client_composed_infer_occurrence(prepared) is None)
   let bounds = run_materials_limits()
@@ -275,15 +280,278 @@ test "saved composed INFER refuses an ambiguous two Model inventory rather than 
     "2099-01-01T00:00:00.000Z",
   ).unwrap()
   let (_, environment) = client_infer_prefix_test_environment()
+  let wire = issue_prepared_client_infer_run_materials(
+    compiled,
+    definition,
+    environment,
+    None,
+    bounds,
+  ).unwrap()
+  (prepared, compiled, definition, wire)
+}
+
+///|
+fn plural_infer_run_materials_entries(
+  wire : String,
+) -> Array[@canonical.CanonicalValue] raise {
+  let body = parse_plan_identity_value(wire, 262144, 32, 2).unwrap()
+  guard @canonical.object_field(body, "infer_execution_contracts_json")
+    is Some(@canonical.String(inventory)) &&
+    parse_plan_identity_value(inventory, 100000, 10000, 100)
+    is Some(@canonical.Array(entries)) else {
+    fail("original plural Model inventory")
+  }
+  @canonical.array_values(entries)
+}
+
+///|
+fn plural_infer_run_materials_with_entries(
+  wire : String,
+  entries : Array[@canonical.CanonicalValue],
+) -> String raise {
+  let writer = @encode.writer(100000, 10000, 100)
+  @encode.begin_array(writer)
+  for entry in entries {
+    @canonical.emit_value(entry, writer)
+  }
+  @encode.end_array(writer)
+  let body = parse_plan_identity_value(wire, 262144, 32, 2).unwrap()
+  @canonical.stringify_value(
+    @canonical.object_with_string_field(
+      @canonical.object_without_field(body, "infer_execution_contracts_json").unwrap(),
+      "infer_execution_contracts_json",
+      @encode.finish(writer),
+    ).unwrap(),
+    262144,
+    32,
+    2,
+  )
+}
+
+///|
+test "saved plural INFER retains every original occurrence and the complete Run without singular selection" {
+  let (prepared, compiled, definition, wire) = plural_infer_run_materials_fixture()
+  let restored = infer_run_materials_admit(wire, definition).unwrap()
+  let inverse = client_task_run_materials_compiled_original(restored).unwrap()
+  let graphs = client_compiled_run_infers(inverse)
+  assert_eq(graphs.length(), 2)
   assert_true(
-    issue_prepared_client_infer_run_materials(
-      compiled,
-      definition,
-      environment,
-      None,
-      bounds,
+    prepared_client_composed_infer_occurrence(restored.prepared) is None,
+  )
+  assert_false(physical_equal(restored.prepared, prepared))
+  for index in 0..<graphs.length() {
+    let original = client_compiled_run_infers(compiled)[index]
+    assert_eq(graphs[index].graph.wire, original.graph.wire)
+    assert_eq(
+      client_infer_occurrence_coordinates(graphs[index].occurrence),
+      client_infer_occurrence_coordinates(original.occurrence),
     )
-    is Err(Binding(UnsupportedProgram)),
+    assert_true(physical_equal(graphs[index].owner, restored.prepared))
+    assert_true(
+      client_infer_occurrence_matches_plan(
+        graphs[index].occurrence,
+        graphs[index],
+      ),
+    )
+    assert_false(
+      client_infer_occurrence_matches_plan(original.occurrence, graphs[index]),
+    )
+  }
+  // Repeated Task/execution DATA is valid only for these distinct occurrences.
+  assert_eq(
+    @environment.model_execution_cid(graphs[0].execution),
+    @environment.model_execution_cid(graphs[1].execution),
+  )
+  assert_eq(
+    @publication.publication_contract_json(restored.run_definition),
+    @publication.publication_contract_json(definition),
+  )
+  assert_eq(
+    client_compiled_run_evaluation_policy_body(inverse),
+    client_compiled_run_evaluation_policy_body(compiled),
+  )
+  assert_eq(
+    client_compiled_run_source_free_result_policy_body(inverse).map(body => {
+      @publication.captured_effect_dependency_body_json(body)
+    }),
+    client_compiled_run_source_free_result_policy_body(compiled).map(body => {
+      @publication.captured_effect_dependency_body_json(body)
+    }),
+  )
+  assert_true(wire.contains("infer_execution_contracts_json"))
+  assert_false(wire.contains("\"infer_execution_contract_cid\""))
+}
+
+///|
+test "saved plural INFER refuses omitted duplicate swapped foreign and corrupt inventory" {
+  let (_, _, definition, wire) = plural_infer_run_materials_fixture()
+  let entries = plural_infer_run_materials_entries(wire)
+  let foreign = @canonical.object_with_replaced_fields(entries[0], [
+    ("task", parse_plan_identity_value("99", 16, 2, 2).unwrap()),
+  ]).unwrap()
+  let missing = @canonical.object_without_field(
+    entries[0],
+    "execution_contract_json",
+  ).unwrap()
+  let corrupt = @canonical.object_with_string_field(
+    @canonical.object_without_field(entries[0], "execution_contract_cid").unwrap(),
+    "execution_contract_cid",
+    "sha256:" + "0".repeat(64),
+  ).unwrap()
+  for
+    changed in [
+      [],
+      [entries[0]],
+      [entries[0], entries[0]],
+      [entries[1], entries[0]],
+      [foreign, entries[1]],
+      [missing, entries[1]],
+      [corrupt, entries[1]],
+      [entries[0], entries[1], entries[1]],
+    ] {
+    assert_true(
+      infer_run_materials_admit(
+        plural_infer_run_materials_with_entries(wire, changed),
+        definition,
+      )
+      is Err(_),
+    )
+  }
+  for
+    changed in [
+      wire.replace(old="two-original-models", new="another-run"),
+      wire.replace(old="fixture-risk-model", new="current-other-model"),
+      wire.replace(
+        old="infer_execution_contracts_json",
+        new="foreign_contracts_json",
+      ),
+    ] {
+    assert_true(changed != wire)
+    assert_true(infer_run_materials_admit(changed, definition) is Err(_))
+  }
+  let body = parse_plan_identity_value(wire, 262144, 32, 2).unwrap()
+  let first = entries[0]
+  guard @canonical.object_field(first, "execution_contract_cid")
+    is Some(@canonical.String(cid)) &&
+    @canonical.object_field(first, "execution_contract_json")
+    is Some(@canonical.String(contract)) else {
+    fail("original execution contract")
+  }
+  let both = @canonical.object_with_string_field(
+    @canonical.object_with_string_field(
+      body, "infer_execution_contract_cid", cid,
+    ).unwrap(),
+    "infer_execution_contract_json",
+    contract,
+  ).unwrap()
+  assert_true(
+    infer_run_materials_admit(
+      @canonical.stringify_value(both, 262144, 32, 2),
+      definition,
+    )
+    is Err(Input(MaterialsMalformed)),
+  )
+  let wrong_shape = @canonical.object_with_replaced_fields(body, [
+    (
+      "infer_execution_contracts_json",
+      parse_plan_identity_value("null", 16, 2, 2).unwrap(),
+    ),
+  ]).unwrap()
+  assert_true(
+    infer_run_materials_admit(
+      @canonical.stringify_value(wrong_shape, 262144, 32, 2),
+      definition,
+    )
+    is Err(Input(MaterialsMalformed)),
+  )
+}
+
+///|
+test "saved plural INFER remains bounded and refuses Values Source and Effect readers" {
+  let (prepared, _, definition, wire) = plural_infer_run_materials_fixture()
+  let body = parse_plan_identity_value(wire, 262144, 32, 2).unwrap()
+  guard @canonical.object_field(body, "infer_execution_contracts_json")
+    is Some(@canonical.String(inventory)) else {
+    fail("original plural inventory")
+  }
+  assert_true(
+    read_plural_client_infer_run_graphs(
+      prepared,
+      inventory,
+      run_materials_limits(),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    read_plural_client_infer_run_graphs(prepared, inventory, {
+      ..run_materials_limits(),
+      max_evidence_bytes: @utf8.encode(inventory).length() - 1,
+    })
+    is Err(_),
+  )
+  assert_true(
+    read_plural_client_infer_run_graphs(prepared, inventory, {
+      ..run_materials_limits(),
+      max_evidence_nodes: 1,
+    })
+    is Err(_),
+  )
+  let cid = @publication.publication_contract_identity(definition)
+  let expressions : @context.ExpressionProfiles = {
+    text_time: false,
+    veca: false,
+  }
+  let operations : @context.PureOperationProfiles = {
+    rela: true,
+    sga: false,
+    tea: false,
+    calendar: false,
+    text_rank: false,
+  }
+  assert_true(
+    admit_client_values_run_materials(
+      wire,
+      cid,
+      expressions,
+      operations,
+      run_materials_manifests(),
+      run_materials_limits(),
+    )
+    is Err(MaterialsEvidence("infer_execution_contracts")),
+  )
+  assert_true(
+    admit_client_task_run_materials(
+      wire,
+      cid,
+      expressions,
+      operations,
+      run_materials_manifests(),
+      run_materials_limits(),
+    )
+    is Err(Input(MaterialsEvidence("infer_execution_contracts"))),
+  )
+  assert_true(
+    admit_client_run_materials(
+      wire,
+      cid,
+      expressions,
+      operations,
+      run_materials_manifests(),
+      run_materials_limits(),
+    )
+    is Err(Values(MaterialsEvidence("infer_execution_contracts"))),
+  )
+  assert_true(
+    admit_client_effect_run_materials(
+      wire,
+      cid,
+      expressions,
+      operations,
+      run_materials_manifests(),
+      run_materials_limits(),
+      client_standard_effect_computation_limits(),
+    )
+    is Err(Input(MaterialsEvidence("infer_execution_contracts"))),
   )
 }
 
