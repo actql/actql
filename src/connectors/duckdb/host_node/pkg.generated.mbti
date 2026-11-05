@@ -74,6 +74,8 @@ pub fn broad_host_source_capture_source_ref(@host.BroadHostSourceCapture) -> Str
 
 pub fn broad_host_sql(BroadNodeRun, Bool) -> String
 
+pub fn broad_host_transport_window(@host.BroadHostConfiguration) -> (Int, Int)
+
 pub fn broad_strategy_host_open(@host.BroadHostConfiguration, @physical_resources.Ledger, String, (@acquisition.DuckDBBroadAttempt) -> Bool, Int64, Int64, () -> Bool) -> BroadNodeRun raise NodeHostFailure
 
 pub fn compute_host_abort(ComputeNodeRun) -> Unit
@@ -445,6 +447,8 @@ pub fn native_host_stream_prepare(NativeNodeRun, Int) -> Unit raise NodeHostFail
 pub fn native_host_stream_readable(@execution_relation.RetainedOutputHandle[NativeStreamNodeReceipt], @execution_relation.ProducerRead) -> Bool
 
 pub fn native_host_stream_retain(NativeNodeRun, NativeStreamNodeReceipt, () -> Bool) -> @execution_relation.RetainedOutputHandle[NativeStreamNodeReceipt] raise NodeHostFailure
+
+pub fn native_host_transport_window(@host.NativeHostConfiguration) -> (Int, Int)
 
 pub fn native_retained_host_capacity(@host.NativeHostConfiguration, Bool) -> Int64 raise NodeHostFailure
 
