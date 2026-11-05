@@ -67,15 +67,23 @@ try {
   assert.equal(owner.status().releaseRequested, true, 'the original close is awaiting its real reader');
   assert.equal(owner.status().releaseAttempted, false, 'active use prevents physical retirement');
   releaseRead();
-  // Releasing the last real reader exposes the same finite-scratch cleanup
-  // child to both the reader and Host. The Host owns retry; do not acknowledge
-  // it here or replace it with a successful cleanup stub.
+  // The last real reader may complete retirement, or expose the same original
+  // finite-scratch cleanup child. No failure is injected here: require actual
+  // release on success, and authenticate any failure against this exact owner.
+  // The Host owns retry; this observer never acknowledges or replaces it.
   const readFailure = await heldRead.then(() => undefined, error => error);
-  assert.equal(readFailure?.code, 'ManagedInputReleaseFailed');
-  const originalCleanup = readFailure.cleanupHandle;
-  assert.equal(typeof originalCleanup?.retry, 'function');
+  let originalCleanup;
+  if (readFailure !== undefined) {
+    assert.equal(readFailure.code, 'ManagedInputReleaseFailed');
+    assert.equal(memory.managedMemoryReleaseFailureMatches(owner, readFailure), true);
+    originalCleanup = readFailure.cleanupHandle;
+    assert.equal(typeof originalCleanup?.retry, 'function');
+  } else {
+    assert.equal(owner.status().releaseAttempted, true);
+    assert.equal(owner.status().released, true);
+  }
   await closing;
-  assert.equal(originalCleanup.status().pending, false);
+  if (originalCleanup !== undefined) assert.equal(originalCleanup.status().pending, false);
   await client.close();
   assert.equal(owner.status().readers, 0);
   assert.equal(owner.status().released, true);
