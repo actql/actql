@@ -33773,7 +33773,7 @@
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "53928f2f260b31209d2e3f0d41131f437f8c979f1376014c02004bb2a1c714e2",
+      "sha256": "249b957c701fe05c5c3a4ec19f07bf7075c358771c9548cb66976383f2b79948",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -33783,7 +33783,8 @@
         "capturedDuckDBPhysicalCapacity",
         "capturedDuckDBRequirement",
         "openCapturedDuckDBSource",
-        "prepareCapturedDuckDBSource"
+        "prepareCapturedDuckDBSource",
+        "prepareRetainedCapturedDuckDBSource"
       ],
       "operations": [
         {
@@ -33836,6 +33837,22 @@
           "async": false
         },
         {
+          "name": "checkedSourceForRequirement",
+          "parameters": [
+            "moon",
+            "requirement",
+            "sourceAccess"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedSourceForRequirement/checkedSourceForRequirement",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "currentReadDecision",
           "parameters": [
             "database",
@@ -33843,6 +33860,21 @@
             "signal"
           ],
           "async": true
+        },
+        {
+          "name": "describeCapturedSource",
+          "parameters": [
+            "checkedSource",
+            "selection",
+            "admittedLimits",
+            "planning",
+            "occurrence",
+            "sourceAccess",
+            "database",
+            "schema",
+            "table"
+          ],
+          "async": false
         },
         {
           "name": "openCapturedDuckDBSource",
@@ -33952,9 +33984,29 @@
           "async": false
         },
         {
-          "name": "prepareCapturedDuckDBSource/prepareCapturedDuckDBSource",
+          "name": "prepareRetainedCapturedDuckDBSource",
           "parameters": [
-            "value"
+            "moon",
+            "preparedProgram",
+            "requestIdentity",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "sourceAccess",
+            "database",
+            "schema",
+            "table",
+            "transportLimits",
+            "acquisitionPlanning",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRetainedCapturedDuckDBSource/prepareRetainedCapturedDuckDBSource",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -34908,10 +34960,15 @@
           "operations": [
             "prepareCapturedDuckDBSource",
             "prepareCapturedDuckDBSource/contracts/contracts",
-            "prepareCapturedDuckDBSource/prepareCapturedDuckDBSource"
+            "checkedSourceForRequirement",
+            "checkedSourceForRequirement/checkedSourceForRequirement",
+            "describeCapturedSource",
+            "prepareRetainedCapturedDuckDBSource",
+            "prepareRetainedCapturedDuckDBSource/prepareRetainedCapturedDuckDBSource"
           ],
           "exports": [
-            "prepareCapturedDuckDBSource"
+            "prepareCapturedDuckDBSource",
+            "prepareRetainedCapturedDuckDBSource"
           ],
           "attributes": {
             "responsibility": [
@@ -87532,7 +87589,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5f6e2a147c7361954f68f460fcc35afec4b5623f1e909e017b83b986c3d930d2",
+      "sha256": "91387d87b20a372dfd910c7f79fe6d82d67f8681c6077b0848c63cf190679d80",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

@@ -606,6 +606,12 @@ current approval before restoring the Model Read. Constructor failures remain
 with that same recovery parent, including an undefined thrown primary; retired
 Scopes cannot construct another preparation.
 
+The builtin DuckDB Source uses this same readonly entry with its original
+profile, target and resource policy. Its descriptor construction is shared with
+ordinary held reads, while acquisition selection and capture ownership remain
+absent. Row Source publication selections retain this common lifecycle entry
+alongside preparation retirement; provider-specific surface lists cannot hide it.
+
 A composed input does not itself select a scheduler. The original installed
 single-Unit caller also supplies the same checked Program. The existing opaque
 compiled-owner check and immutable one-task/one-acquisition shape bind this

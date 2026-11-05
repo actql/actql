@@ -1429,7 +1429,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
     }
     // Common preparation cleanup is part of the original Source lifecycle.
     // A provider's publication selection cannot hide an unentered read owner.
-    if (!selectedSurface.includes('retirePreparedSource')) selectedSurface.push('retirePreparedSource');
+    for (const name of ['retirePreparedSource', 'prepareRetained']) {
+      if (!selectedSurface.includes(name)) selectedSurface.push(name);
+    }
   }
   let publicationFields = {};
   if (publication !== undefined) {

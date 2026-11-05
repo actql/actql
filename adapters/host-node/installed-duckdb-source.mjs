@@ -15,7 +15,7 @@ import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capaci
 import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.mjs';
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction, closeInstalledSourceConstruction,
   readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
-import {openCapturedDuckDBSource, prepareCapturedDuckDBSource,
+import {openCapturedDuckDBSource, prepareCapturedDuckDBSource, prepareRetainedCapturedDuckDBSource,
   capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity,
   capturedDuckDBPendingCapacity, capturedDuckDBRequirement} from
   './captured-duckdb-source.mjs';
@@ -131,6 +131,20 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
   const bindingCid = contentCid({version: 'actql-installed-duckdb-source-binding/0.1',
     root, principalId, physicalBinding, sourceRef: profile.sourceRef});
   const preparations = new WeakMap();
+  const retainPrepared = (prepared, captureCapacity, retainedOnly = false) => {
+    const matches = catalogs.filter(value => value.source_views.some(view =>
+      view.contract_cid === prepared.checkedSource.sourceViewContractCid));
+    const catalog = matches.length === 1 ? matches[0] : undefined;
+    const binding = Object.freeze({connectorId: catalog?.connector_id,
+      connectorRegistration: installation?.registration,
+      connectorRevision: installation?.revision, bindingCid});
+    if (sourceInitialization !== undefined && !validInstallationBinding(binding)) {
+      throw new TypeError('InstalledSourcePreparationMismatch');
+    }
+    preparations.set(prepared, Object.freeze({physicalBinding: prepared.physicalBinding, binding,
+      captureCapacity, retainedOnly}));
+    return prepared;
+  };
   const adapter = Object.freeze({
     realizationKey: 'duckdb-acquired',
     connectorRegistration: installation?.registration,
@@ -178,7 +192,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     retainedCapture(prepared) {
       current();
       const original = preparations.get(prepared);
-      if (original === undefined) throw new TypeError('InstalledSourcePreparationMismatch');
+      if (original === undefined || original.retainedOnly) throw new TypeError('InstalledSourcePreparationMismatch');
       return Object.freeze({requirement: capturedDuckDBRequirement(prepared),
         capacity: original.captureCapacity ?? moon.clientProgramInstalledPendingDuckDBCaptureCapacity(
           capturedDuckDBPendingCapacity(prepared))});
@@ -198,6 +212,15 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
         transferBytes: physical.transferBytes,
         executionBytes: physical.executionBytes,
       });
+    },
+    prepareRetained({preparedProgram, requestIdentity, occurrence, registry, values, fragment, ordered,
+      sourceAccess = profile.sourceAccess}) {
+      current();
+      const prepared = prepareRetainedCapturedDuckDBSource({...common,
+        preparedProgram, requestIdentity, occurrence, registry, values, fragment, ordered, sourceAccess,
+        transportLimits: profile.transportLimits});
+      current();
+      return retainPrepared(prepared, undefined, true);
     },
     prepare: async ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, occurrence, requireImmediateReadAuthorization,
@@ -222,17 +245,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       queryTimePreparation, requestIdentity, originalCapture, originalContracts: capacityContracts,
       sourceAccess, occurrence, requireImmediateReadAuthorization, transportLimits: profile.transportLimits});
       current();
-      const matches = catalogs.filter(value => value.source_views.some(view =>
-        view.contract_cid === prepared.checkedSource.sourceViewContractCid));
-      const catalog = matches.length === 1 ? matches[0] : undefined;
-      const binding = Object.freeze({connectorId: catalog?.connector_id,
-        connectorRegistration: installation?.registration,
-        connectorRevision: installation?.revision, bindingCid});
-      if (sourceInitialization !== undefined && !validInstallationBinding(binding)) {
-        throw new TypeError('InstalledSourcePreparationMismatch');
-      }
-      preparations.set(prepared, Object.freeze({physicalBinding: prepared.physicalBinding, binding,
-        captureCapacity: originalCapture?.capacity}));
+      retainPrepared(prepared, originalCapture?.capacity);
       return prepared;
     },
     open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
