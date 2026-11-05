@@ -5548,10 +5548,11 @@ async function openInstalledHost(originalInstallation, preparation) {
                   throw new Error('EffectContinuationRunMismatch');
                 }
                 const facts = await effectRun.restoreComputation(accepted);
+                const observeCancellation = journal.observeRunCancellation(ref, moon, control, retained);
                 sourceResume = {claim: claimed.claim, view, continuation, active: true,
                   assertCurrent() {
                     if (leaseFailure !== undefined) throw leaseFailure;
-                    if (journal.lookupRunDefinition(ref, moon, control)?.cancellationRequested) {
+                    if (observeCancellation()?.cancellationRequested) {
                       throw Object.assign(new Error('ClientRunCancellationRequested'),
                         {code: 'ClientRunCancellationRequested'});
                     }
