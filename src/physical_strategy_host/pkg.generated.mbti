@@ -531,6 +531,8 @@ pub fn graph_data_at(@physical_strategy.CheckedDAG, Int) -> @physical_strategy.D
 
 pub fn graph_data_count(@physical_strategy.CheckedDAG) -> Int
 
+pub fn graph_keyed_model_plan_inputs_complete(@physical_strategy.CheckedDAG, Int, Int) -> Bool
+
 pub fn graph_ordered_inputs_complete(@physical_strategy.CheckedDAG) -> Bool
 
 pub fn graph_program(@physical_strategy.CheckedDAG) -> @program_check.CheckedProgram

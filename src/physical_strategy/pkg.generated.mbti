@@ -78,6 +78,8 @@ pub fn graph_data_at(CheckedDAG, Int) -> DataEdge?
 
 pub fn graph_data_count(CheckedDAG) -> Int
 
+pub fn graph_keyed_model_plan_inputs_complete(CheckedDAG, Int, Int) -> Bool
+
 pub fn graph_ordered_inputs_complete(CheckedDAG) -> Bool
 
 pub fn graph_program(CheckedDAG) -> @program_check.CheckedProgram

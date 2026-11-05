@@ -183,6 +183,27 @@ fn issue_client_task_plan_graph(
   }
   let graph = value.graph
   let count = @strategy.graph_task_count(graph)
+  if infer is Some(_) && !infers.is_empty() {
+    return Err(UnsupportedGraph)
+  }
+  let components = match infer {
+    Some(component) => [component]
+    None => infers
+  }
+  let mut planned_inputs = @strategy.graph_ordered_inputs_complete(graph)
+  if !planned_inputs {
+    for component in components {
+      if physical_equal(component.owner, value) &&
+        @strategy.graph_keyed_model_plan_inputs_complete(
+          graph,
+          component.task,
+          component.source_ordinal,
+        ) {
+        planned_inputs = true
+        break
+      }
+    }
+  }
   if count == 0 ||
     count > max_nodes ||
     (
@@ -194,7 +215,7 @@ fn issue_client_task_plan_graph(
       )
     ) ||
     (@strategy.graph_program_has_effects(graph) && !effects) ||
-    !@strategy.graph_ordered_inputs_complete(graph) {
+    !planned_inputs {
     return Err(UnsupportedGraph)
   }
   let fragments : Array[ClientTaskFragmentNode] = []
@@ -204,13 +225,6 @@ fn issue_client_task_plan_graph(
   let transformations : Array[ClientResultTransformation] = []
   let result_plans : Array[ClientResultPlanIdentity] = []
   let nodes : Array[@canonical.CanonicalValue] = []
-  if infer is Some(_) && !infers.is_empty() {
-    return Err(UnsupportedGraph)
-  }
-  let components = match infer {
-    Some(component) => [component]
-    None => infers
-  }
   if serialization is Some(component) &&
     (
       !components.is_empty() ||
