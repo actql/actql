@@ -2317,3 +2317,11 @@ pub fn client_program_request_model_recovery_source_coordinates(
   }
   Ok(coordinates)
 }
+
+///|
+#export_name("clientProgramCompleteInstalledEffectCaptureRecovery")
+pub fn client_program_complete_installed_effect_capture_recovery(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_capture_recovery(original)
+}

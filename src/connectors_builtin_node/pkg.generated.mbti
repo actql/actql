@@ -790,6 +790,8 @@ pub fn client_program_complete_content_step(@client_local_host.ClientLocalConten
 
 pub fn client_program_complete_infer_original_journal_invalidation(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, OriginalModelJournalReference, OriginalModelJournalReference, OriginalModelJournalReference, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> Result[Unit, @client_infer_host.Issue]
 
+pub fn client_program_complete_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_complete_installed_source_material(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, (ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)], ClientLocalPreparationInputOriginal, ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
 
 pub fn client_program_complete_model_output(@model_execution.ModelOutputPreparation) -> Result[@execution_relation.CompletedOutput, @model_execution.ModelExecutionIssue]

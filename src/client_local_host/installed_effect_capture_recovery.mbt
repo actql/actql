@@ -101,7 +101,9 @@ pub fn reserve_installed_effect_capture_recovery(
       }
       if owner.material_bytes is Some(bytes) {
         return if bytes == encrypted_bytes {
-          Ok(())
+          // A previous successful Store return may have disposed scratch.
+          // Re-enter only after this SAME token funds the same original peak.
+          resize_installed_effect_capture_recovery_material(owner, false)
         } else {
           Err(ForeignOriginal)
         }
@@ -141,6 +143,114 @@ pub fn reserve_installed_effect_capture_recovery(
     },
     () => owner.transitioning = false,
   )
+}
+
+///|
+/// The trusted Store consumer has returned after its original FD close and
+/// transient plaintext/cursor aliases were cut. Keep every retained output;
+/// return only this SAME constructor token's completed workspace.
+pub fn complete_installed_effect_capture_recovery(
+  owner : ClientInstalledEffectCaptureRecovery,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  if owner.transitioning || owner.closing || owner.fixed is None {
+    return Err(Retired)
+  }
+  owner.transitioning = true
+  preparation_module_call(
+    () => resize_installed_effect_capture_recovery_material(owner, true),
+    () => owner.transitioning = false,
+  )
+}
+
+///|
+// Both entrances reuse the original adopted Plan and byte-only backing. The
+// private Bool selects completion versus a later SAME-extent read, not an ACK
+// or externally supplied capacity. No new reservation/attempt/history exists.
+fn resize_installed_effect_capture_recovery_material(
+  owner : ClientInstalledEffectCaptureRecovery,
+  completed : Bool,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard !owner.closing &&
+    owner.transitioning &&
+    owner.parent is Some(parent) &&
+    owner.prepared is Some(prepared) &&
+    owner.request is Some(request) &&
+    owner.definition is Some(definition) &&
+    owner.ledger is Some(ledger) &&
+    owner.fixed is Some(fixed) &&
+    parent.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) else {
+    return Err(Retired)
+  }
+  match check_installed_effect_managed_run_binding(parent, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard owner.material is Some(material) && owner.material_bytes is Some(bytes) else {
+    return check_installed_effect_managed_run(parent, prepared, request)
+  }
+  let original : () -> Result[Unit, ClientInstalledManagedRunIssue] = () => {
+    guard !owner.closing &&
+      owner.transitioning &&
+      owner.parent is Some(p) &&
+      physical_equal(p, parent) &&
+      owner.prepared is Some(p) &&
+      physical_equal(p, prepared) &&
+      owner.request is Some(r) &&
+      physical_equal(r, request) &&
+      owner.definition is Some(d) &&
+      physical_equal(d, definition) &&
+      owner.ledger is Some(l) &&
+      physical_equal(l, ledger) &&
+      owner.fixed is Some(f) &&
+      physical_equal(f, fixed) &&
+      owner.material is Some(m) &&
+      physical_equal(m, material) &&
+      owner.material_bytes == Some(bytes) else {
+      return Err(Retired)
+    }
+    check_installed_managed_run_original(parent, ledger, preparation).map(_ => {
+      ()
+    })
+  }
+  let backing = @resources.NodeManagedRunOperationBacking::Construction(
+    material,
+  )
+  if completed {
+    return @resources.complete_prepared_run_operation_construction(
+      admission, plan, ledger, original, backing,
+    ).map_err(installed_effect_operation_reservation_issue)
+  }
+  guard request_effect_capture_recovery_capacity(
+      bytes,
+      @publication.publication_contract_json(definition).length(),
+      owner.max_wire_bytes,
+      owner.max_nodes,
+      owner.max_depth,
+    )
+    is Some(required) &&
+    request_effect_capture_recovery_capacity(
+      0,
+      @publication.publication_contract_json(definition).length(),
+      owner.max_wire_bytes,
+      owner.max_nodes,
+      owner.max_depth,
+    )
+    is Some(base) else {
+    return Err(InsufficientCapacity)
+  }
+  let retained = @execution.execution_capacity_retained_bytes(required) -
+    @execution.execution_capacity_retained_bytes(base)
+  let execution = @execution.execution_capacity_execution_bytes(required) -
+    @execution.execution_capacity_execution_bytes(base)
+  if @resources.capacity_reservation_covers(
+      ledger, material, retained, execution,
+    ) {
+    return original()
+  }
+  @resources.grow_prepared_run_operation_capacity(
+    admission, plan, ledger, original, backing, retained, execution,
+  ).map_err(installed_effect_operation_reservation_issue)
 }
 
 ///|

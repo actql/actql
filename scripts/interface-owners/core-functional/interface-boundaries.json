@@ -55393,7 +55393,8 @@
             "client_program_reserve_request_snapshot",
             "client_program_retire_installed_effect_capture_recovery",
             "strategy_begin_original_effect_free_captured_run",
-            "strategy_captured_run_preparation_limits"
+            "strategy_captured_run_preparation_limits",
+            "client_program_complete_installed_effect_capture_recovery"
           ],
           "exports": [],
           "attributes": {
@@ -56037,6 +56038,10 @@
           "declaration": "client_program_close_host_initialization_preparation ( original : @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ client_local_host . ClientHostInitializationIssue ]"
         },
         {
+          "name": "client_program_complete_installed_effect_capture_recovery",
+          "declaration": "client_program_complete_installed_effect_capture_recovery ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_complete_request_content_preparation",
           "declaration": "client_program_complete_request_content_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , selected : @ client_local_host . ClientInstalledManagedKeyedPreparation , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
@@ -56417,7 +56422,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "7ef8e9165668ad87c24fb12d522b0ce20bbc92108d1568365b4b64fbc2a74fe0"
+      "sha256": "4bb0f55bf3c83564028bad1d6afe13fc708d9cedca7fc344d742232ba18f9eec"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
