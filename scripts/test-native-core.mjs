@@ -28,7 +28,7 @@ console.log(`Native core SQLite namespace: ${namespace}`);
 // These unconditional fixtures share the existing restoration owner, not the
 // optional publication Store root. Enabling that global root would let unrelated
 // packages contend on one Store lock and contaminate its format admission.
-for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file']) {
+for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file', 'cli-parent']) {
   mkdirSync(join(namespace, name), {mode: 0o700});
 }
 const bundle = nativeCompletedRestorationBundle();
@@ -87,6 +87,7 @@ const result = spawnSync(full ? process.execPath : 'moon', full
   ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: join(namespace, 'bundles'),
   ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: join(namespace, 'executor-slot'),
   ACTQL_TEST_NATIVE_RETAINED_TASK_FILE_ROOT: join(namespace, 'retained-task-file'),
+  ACTQL_TEST_NATIVE_CLI_PARENT_ROOT: join(namespace, 'cli-parent'),
   ACTQL_REQUIRE_NATIVE_RETAINED_TEST: '1',
   ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY: join(namespace, 'missing-crypto-library'),
   ACTQL_TEST_NATIVE_CRYPTO_LIBRARY:
