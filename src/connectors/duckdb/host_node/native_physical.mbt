@@ -18,6 +18,16 @@ priv struct NativePhysical {
 }
 
 ///|
+/// The selected receiver's batch window is DATA, not cumulative read capacity.
+#export_name("nativeHostTransportWindow")
+pub fn native_host_transport_window(
+  setup : @acquisition_host.NativeHostConfiguration,
+) -> (Int, Int) {
+  let limits = @acquisition_host.configured_native_host_limits(setup).transport
+  (limits.max_rows, limits.max_bytes)
+}
+
+///|
 #export_name("nativeHostCapacity")
 pub fn native_host_capacity(
   setup : @acquisition_host.NativeHostConfiguration,

@@ -14,6 +14,16 @@ priv struct BroadPhysical {
 }
 
 ///|
+/// Borrow the SAME selected Broad receiver's window before physical allocation.
+#export_name("broadHostTransportWindow")
+pub fn broad_host_transport_window(
+  setup : @acquisition_host.BroadHostConfiguration,
+) -> (Int, Int) {
+  let limits = @acquisition_host.configured_broad_host_limits(setup).transport
+  (limits.max_rows, limits.max_bytes)
+}
+
+///|
 #export_name("broadHostCapacity")
 pub fn broad_host_capacity(
   setup : @acquisition_host.BroadHostConfiguration,
