@@ -10,7 +10,7 @@ import test from 'node:test';
 import {parse} from 'yaml';
 import {parse as javascript} from 'acorn';
 import {functionDiagnosticSummary, rewriteResidentControlSpawn,
-  runFunctionDiagnosticCase} from './diagnose-native-resident-functions.mjs';
+  publishFunctionDiagnostic, runFunctionDiagnosticCase} from './diagnose-native-resident-functions.mjs';
 
 const source = readFileSync(new URL('./test-native-resident-site.mjs', import.meta.url), 'utf8');
 const wrapper = fileURLToPath(new URL('./fixtures/native-resident-function-debugger.py', import.meta.url));
@@ -40,6 +40,20 @@ async function fixture(t, body) {
     child.stderr.on('data', data => { stderr += data; });
     return {child, closed: once(child, 'close').then(([code, signal]) => ({code, signal, stdout, stderr}))};
   }};
+}
+
+async function fakeDebuggerReady(f) {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    try {
+      const value = JSON.parse(await readFile(f.spy, 'utf8'));
+      if (value.ready === true) return value;
+    } catch (error) {
+      if (error.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error;
+    }
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
+  assert.fail('fake debugger did not install its signal handler');
 }
 
 test('diagnostic changes only the hash-fenced original control parent, leaving installer/environment/arguments intact', () => {
@@ -98,11 +112,11 @@ def interrupted(sig,frame):
  with open(tty,'wb',buffering=0) as output:output.write(b'{"kind":"target-final"}\\n')
  sys.exit(23)
 signal.signal(signal.SIGINT,interrupted)
+spy.write_text(json.dumps({'ready':True}))
 while True:time.sleep(.02)
 `);
   const run = f.start();
-  await new Promise(resolve => setTimeout(resolve, 250));
-  assert.equal(await stat(f.spy).then(() => true, () => false), false);
+  assert.deepEqual(await fakeDebuggerReady(f), {ready: true});
   await writeFile(f.entry, 'original-producer\noriginal-consumer\n');
   const result = await run.closed;
   assert.equal(result.code, 23);
@@ -137,6 +151,60 @@ sys.exit(7)
     conditions: ['permission-denied', 'stage-not-observed', 'trace-unavailable']});
 });
 
+test('outer publication retains an atomic function snapshot when the sampled debugger hangs and is killed', {timeout: 10000}, async t => {
+  const f = await fixture(t, `
+def interrupted(sig,frame):
+ print('#0 0x1234 in busy_then_hangs (private="value") at /private/source:19',flush=True)
+ print('private debugger arguments and body',flush=True)
+signal.signal(signal.SIGINT,interrupted)
+spy.write_text(json.dumps({'pid':os.getpid(),'ready':True}))
+while True:time.sleep(.02)
+`);
+  const run = f.start();
+  let debuggerPid;
+  let stopped = false;
+  t.after(async () => {
+    if (stopped) return;
+    run.child.kill('SIGKILL');
+    try {
+      debuggerPid ??= JSON.parse(await readFile(f.spy, 'utf8')).pid;
+      process.kill(debuggerPid, 'SIGKILL');
+    } catch (error) { if (error.code !== 'ESRCH' && error.code !== 'ENOENT') throw error; }
+  });
+  await fakeDebuggerReady(f);
+  await writeFile(f.entry, 'original-producer\noriginal-consumer\n');
+  const deadline = Date.now() + 6000;
+  let snapshot;
+  while (Date.now() < deadline) {
+    try { snapshot = JSON.parse(await readFile(f.report, 'utf8')); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (snapshot?.functions.includes('busy_then_hangs')) break;
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
+  assert.deepEqual(snapshot.functions, ['busy_then_hangs']);
+  assert.equal(run.child.exitCode, null, 'the sampled owner has not returned');
+  debuggerPid = JSON.parse(await readFile(f.spy, 'utf8')).pid;
+  run.child.kill('SIGKILL');
+  process.kill(debuggerPid, 'SIGKILL');
+  stopped = true;
+  const result = await run.closed;
+  assert.equal(result.signal, 'SIGKILL');
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, '');
+  const output = join(f.directory, 'sanitized.json');
+  const summary = publishFunctionDiagnostic(output, f.report, 124);
+  assert.equal(summary.supervisorExit, 124, 'outer timeout stays nonzero');
+  assert.equal(summary.timedOut, true);
+  assert.equal(summary.caseExit, null, 'killed case has no invented exit receipt');
+  assert.equal(summary.consumerExecutorEntered, true);
+  assert.equal(summary.sampleRequested, true);
+  assert.deepEqual(summary.functions, ['busy_then_hangs']);
+  const wire = await readFile(output, 'utf8');
+  assert.deepEqual(JSON.parse(wire), summary);
+  assert.equal(wire.includes('private'), false);
+  assert.equal((await stat(output)).mode & 0o777, 0o600);
+});
+
 test('missing debugger reports availability without a target attempt or fallback', {timeout: 5000}, async t => {
   const f = await fixture(t);
   const result = await f.start().closed;
@@ -154,6 +222,8 @@ test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized 
   assert.equal(original.if, undefined);
   assert.equal(original['continue-on-error'], undefined);
   assert(original.run.includes('npm run check:native-http-client'));
+  const dependencies = jobs.native.steps.find(step => step.name === 'Select the original pinned Noble static Crypto inputs');
+  assert(dependencies.run.includes('sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv gdb'));
   const diagnostic = jobs.native.steps.find(step => step.name === 'Diagnose only failed Linux Effect consumer functions');
   assert.equal(diagnostic.if, "${{ failure() && steps.native-runtime-test.outcome == 'failure' }}");
   assert.equal(diagnostic['continue-on-error'], true);

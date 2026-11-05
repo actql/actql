@@ -34,6 +34,22 @@ def run(report, target):
     done = threading.Event()
     functions = []
     conditions = set()
+    report_lock = threading.RLock()
+
+    def publish():
+        # One owner, same-directory atomic replacement. A killed writer leaves
+        # the preceding complete snapshot available to the outer supervisor.
+        with report_lock:
+            temporary = report + ".tmp"
+            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(descriptor, "w") as stream:
+                json.dump({"consumerExecutorEntered": entered.is_set(),
+                           "sampleRequested": sampled.is_set(), "functions": functions,
+                           "conditions": sorted(conditions | (
+                               set() if entered.is_set() else {"stage-not-observed"}))}, stream)
+            os.replace(temporary, report)
+
+    publish()
     code = 1
     debugger = shutil.which("gdb")
     if debugger is None:
@@ -85,11 +101,13 @@ def run(report, target):
                 if not consumer_entered(entry):
                     continue
                 entered.set()
+                publish()
                 # A single sample after the original pre-call record; no
                 # second signal, new attempt or changed 60-second case bound.
                 if not done.wait(2):
                     try:
                         sampled.set()
+                        publish()
                         child.send_signal(signal.SIGINT)
                     except ProcessLookupError:
                         pass
@@ -116,29 +134,29 @@ def run(report, target):
             for line in child.stdout:
                 match = re.match(r"^#\d+\s+(?:0x[0-9a-f]+\s+in\s+)?"
                                  r"([A-Za-z_][A-Za-z_0-9:.$~]{0,179})(?=\s|\()", line)
-                if sampled.is_set() and match and len(functions) < 64:
-                    functions.append(match.group(1))
-                lower = line.lower()
-                for text, condition in [("operation not permitted", "permission-denied"),
-                                        ("function not implemented", "debugger-platform-unsupported"),
-                                        ("could not trace", "trace-unavailable"),
-                                        ("no stack", "no-stack"),
-                                        ("input/output error", "registers-unavailable")]:
-                    if text in lower:
-                        conditions.add(condition)
+                with report_lock:
+                    changed = False
+                    if sampled.is_set() and match and len(functions) < 64:
+                        functions.append(match.group(1))
+                        changed = True
+                    lower = line.lower()
+                    for text, condition in [("operation not permitted", "permission-denied"),
+                                            ("function not implemented", "debugger-platform-unsupported"),
+                                            ("could not trace", "trace-unavailable"),
+                                            ("no stack", "no-stack"),
+                                            ("input/output error", "registers-unavailable")]:
+                        if text in lower and condition not in conditions:
+                            conditions.add(condition)
+                            changed = True
+                    if changed:
+                        publish()
             code = child.wait()
         finally:
             done.set()
             os.close(slave)
             output_thread.join(timeout=1)
             os.close(master)
-    if not entered.is_set():
-        conditions.add("stage-not-observed")
-    descriptor = os.open(report, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    with os.fdopen(descriptor, "w") as stream:
-        json.dump({"consumerExecutorEntered": entered.is_set(),
-                   "sampleRequested": sampled.is_set(), "functions": functions,
-                   "conditions": sorted(conditions)}, stream)
+    publish()
     return code if code >= 0 else 128 - code
 
 

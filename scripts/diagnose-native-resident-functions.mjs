@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdirSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs';
+import {linkSync, mkdirSync, mkdtempSync, readFileSync, unlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
@@ -58,21 +58,36 @@ export function runFunctionDiagnosticCase(report, {execute = spawnSync, env = pr
     cwd: root, env, stdio: 'ignore', timeout: 285000, killSignal: 'SIGTERM'});
 }
 
-function executeChild(output) {
-  const privateDirectory = mkdtempSync(join(tmpdir(), 'actql-native-functions-'));
-  const report = join(privateDirectory, 'control.json');
+function readReport(path) {
+  try {
+    const wire = readFileSync(path);
+    assert(wire.length <= 65536);
+    return JSON.parse(wire.toString('utf8'));
+  } catch { /* Closed unavailable metadata; never forward raw exceptions. */ }
+}
+
+export function publishFunctionDiagnostic(output, report, supervisorExit) {
+  const result = readReport(report + '.case') ?? {status: null};
+  if (supervisorExit === 124) result.error = {code: 'ETIMEDOUT'};
+  const summary = {...functionDiagnosticSummary(result, readReport(report)), supervisorExit};
+  mkdirSync(dirname(output), {recursive: true});
+  const temporary = output + '.tmp';
+  writeFileSync(temporary, JSON.stringify(summary, null, 2) + '\n', {flag: 'wx', mode: 0o600});
+  // Publish a complete file without overwriting a previous diagnostic.
+  linkSync(temporary, output);
+  unlinkSync(temporary);
+  return summary;
+}
+
+function executeChild(report) {
   let result;
   try { result = runFunctionDiagnosticCase(report); }
   catch { result = {status: 1}; }
-  let value;
-  try {
-    const wire = readFileSync(report);
-    assert(wire.length <= 65536);
-    value = JSON.parse(wire.toString('utf8'));
-  } catch { /* Closed unavailable metadata; never forward raw exceptions. */ }
-  mkdirSync(dirname(output), {recursive: true});
-  writeFileSync(output, JSON.stringify(functionDiagnosticSummary(result, value), null, 2) + '\n',
-    {flag: 'wx', mode: 0o600});
+  // The outer parent owns final publication. If this child is killed, the
+  // already published Python snapshot still survives; caseExit stays unknown.
+  writeFileSync(report + '.case', JSON.stringify({status: result.status ?? null,
+    signal: result.signal ?? null, error: result.error?.code === 'ETIMEDOUT'
+      ? {code: 'ETIMEDOUT'} : undefined}), {flag: 'wx', mode: 0o600});
   return result.error?.code === 'ETIMEDOUT' ? 124 : result.status ?? 1;
 }
 
@@ -82,11 +97,18 @@ async function main() {
   assert(['--output', '--child'].includes(process.argv[2]) && process.argv.length === 4);
   const output = resolve(process.argv[3]);
   if (process.argv[2] === '--child') return executeChild(output);
+  const report = join(mkdtempSync(join(tmpdir(), 'actql-native-functions-')), 'control.json');
   // Include cleanup in the finite 300-second diagnostic envelope. The real
   // fixture retains its existing watchdog and every original assertion.
-  return runLocalCheck({root, heavy: false, timeoutSeconds: 295, graceSeconds: 5,
-    steps: [{name: 'Failure-only Native consumer function availability', command: process.execPath,
-      args: [fileURLToPath(import.meta.url), '--child', output]}]});
+  let code = 1;
+  try {
+    code = await runLocalCheck({root, heavy: false, timeoutSeconds: 295, graceSeconds: 5,
+      steps: [{name: 'Failure-only Native consumer function availability', command: process.execPath,
+        args: [fileURLToPath(import.meta.url), '--child', report]}]});
+  } finally {
+    publishFunctionDiagnostic(output, report, code);
+  }
+  return code;
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
