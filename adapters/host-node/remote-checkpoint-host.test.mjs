@@ -23,6 +23,7 @@ import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import test, {after} from 'node:test';
 import {fileURLToPath} from 'node:url';
+import {types as utilTypes} from 'node:util';
 import {connect, RequestHeld, explainRequestLookup, explainSubmission, explainRequestCancellation,
   getSubmissionOutcome, getSubmissionAttempt} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
@@ -1608,9 +1609,64 @@ test(uncertain
 
 }
 
+// Observe this fixture's original HTTP failures before the SDK redacts their
+// borrowed causes. Keep only finite route/phase metadata and Error data fields;
+// never record a URL origin, headers, body, message, stack or Run identity.
+function observeSecondSourceApprovalHttp(t) {
+  const original = globalThis.fetch;
+  const events = [];
+  const routes = new Set(['connect', 'submit-intent', 'attach', 'status',
+    'checkpoints', 'checkpoint-review', 'resolve', 'lookup-submission', 'read']);
+  let phase = 'initial';
+  const field = (value, key) => {
+    for (let depth = 0; depth < 4 && value !== null &&
+        typeof value === 'object' && !utilTypes.isProxy(value); depth++) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (descriptor !== undefined) {
+        return Object.hasOwn(descriptor, 'value') ? descriptor.value : undefined;
+      }
+      value = Object.getPrototypeOf(value);
+    }
+  };
+  const token = value => typeof value === 'string' &&
+    /^[A-Za-z][A-Za-z0-9_]{0,79}$/u.test(value) ? value : undefined;
+  const record = value => {
+    events.push(value);
+    if (events.length > 8) events.shift();
+  };
+  globalThis.fetch = async function(input, init) {
+    let request;
+    try {
+      const path = new URL(input).pathname;
+      const route = path.startsWith('/actql/client/0.1/')
+        ? path.slice('/actql/client/0.1/'.length) : undefined;
+      request = {phase, method: ['GET', 'POST'].includes(init?.method)
+        ? init.method : 'other', route: routes.has(route) ? route : 'other'};
+    } catch { /* Optional diagnostics cannot change the original request. */ }
+    try {
+      const response = await Reflect.apply(original, this, [input, init]);
+      try {
+        if (request !== undefined) record({...request, status: response.status});
+      } catch { /* Keep the original response authoritative. */ }
+      return response;
+    } catch (error) {
+      try {
+        record({...request, status: null, name: token(field(error, 'name')),
+          code: token(field(error, 'code')),
+          causeCode: token(field(field(error, 'cause'), 'code'))});
+        t.diagnostic(JSON.stringify({phase: 'second_source_approval_http', events}));
+      } catch { /* Keep the same original failure and its SDK classification. */ }
+      throw error;
+    }
+  };
+  t.after(() => { globalThis.fetch = original; });
+  return next => { phase = next; };
+}
+
 for (const realization of ['native', 'broad']) {
 test(`acquired Effect second Source approval restores the first ${realization} capture`,
   async t => {
+    const httpPhase = observeSecondSourceApprovalHttp(t);
     const directory = await mkdtemp(join(scratch, 'second-source-approval-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     const inputs = await loadTwoSourceFixtures(join(repository, 'adapters/host-node/fixtures/two-source'));
@@ -1711,6 +1767,7 @@ test(`acquired Effect second Source approval restores the first ${realization} c
     assert.equal(captures, 0);
     assert.deepEqual(sends, []);
     await host.close();
+    httpPhase('read_review');
     host = await remoteHost(t, account(), options);
     let reviewer = await host.as('reviewer-token');
     const [sameRead] = (await reviewer.checkpoints()).items;
@@ -1718,6 +1775,7 @@ test(`acquired Effect second Source approval restores the first ${realization} c
     await reviewer.resolveCheckpoints([{checkpoint: sameRead, decision: 'approved'}], {signer});
     assert.deepEqual(provider.snapshot().sourceProviderOpens, [installation.databases.left]);
     await host.close();
+    httpPhase('source_restore');
     host = await remoteHost(t, account(), options);
     let attached = await (await host.as('owner-token')).attach(submitted.ref);
     await wait(attached, 'waiting_checkpoint');
@@ -1728,9 +1786,11 @@ test(`acquired Effect second Source approval restores the first ${realization} c
       [installation.databases.left, installation.databases.right]);
     assert.equal(captures, 1);
     assert.deepEqual(sends, []);
+    httpPhase('effect_review');
     await reviewer.resolveCheckpoints([{checkpoint: effect, decision: 'approved'}], {
       signer: {...signer, authorityScopeCid: submitted.ref.authorityScopeCid}});
     await host.close();
+    httpPhase('effect_restore');
     host = await remoteHost(t, account(), options);
     attached = await (await host.as('owner-token')).attach(submitted.ref);
     await wait(attached, 'succeeded');
