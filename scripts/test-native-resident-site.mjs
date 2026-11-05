@@ -56,6 +56,8 @@ const residentPhaseKinds = new Set([
   'oversized-materials-return', 'result-definition-enter', 'result-definition-return',
   'site-start', 'first-dispatch-enter', 'first-dispatch-return',
   'wait-for-enter', 'wait-for-return', 'within-enter', 'within-return',
+  'concurrent-controls-stop-enter', 'concurrent-left-exit-return',
+  'concurrent-right-exit-return', 'concurrent-controls-stop-return',
   'finally-enter', 'owned-children-closed', 'proxy-close-enter',
   'gateway-close-enter', 'receiver-close-enter', 'store-cleanup-enter',
   'cleanup-calls-returned',
@@ -140,6 +142,19 @@ async function crashResidentReconciliationObserver(site) {
   const [code, signal] = await site.exited;
   assert.equal(code, null);
   assert.equal(signal, 'SIGKILL');
+}
+
+// These are process-exit observations only. The original controls still own
+// their graceful shutdown; a stalled control remains watchdog failure.
+async function stopConcurrentResidentControls(left, right) {
+  residentPhase('concurrent-controls-stop-enter');
+  left.child.kill('SIGTERM');
+  right.child.kill('SIGTERM');
+  await Promise.all([
+    left.exited.then(() => residentPhase('concurrent-left-exit-return')),
+    right.exited.then(() => residentPhase('concurrent-right-exit-return')),
+  ]);
+  residentPhase('concurrent-controls-stop-return');
 }
 
 function residentPhase(phase) {
@@ -2870,9 +2885,7 @@ try {
   assert.equal(fifthTerminal.state[0], 3);
   await within(gateway.release({dispatch: fifth}), 'fifth release');
   assert.equal((await entries()).length, 5);
-  left.child.kill('SIGTERM');
-  right.child.kill('SIGTERM');
-  await Promise.all([left.exited, right.exited]);
+  await stopConcurrentResidentControls(left, right);
 
   // 8. A released output also frees its payload in the Site's Store: runs
   //    one after another never exhaust a Store sized for one payload.
