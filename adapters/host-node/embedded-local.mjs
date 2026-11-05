@@ -4374,7 +4374,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                     assertContinuationCurrent: activeResume?.assertCurrent,
                     retainComputationOwner, infer: inferSelections.get(facts.prepared),
                     ...(managedEffect.model === undefined ? {} : {
-                      originalModelPlan: {compiled: managedEffect.model.compiled, runDefinition: facts.runDefinition},
+                      originalModelPlan: {compiled: managedEffect.model.compiled, runDefinition: managedEffect.modelRunDefinition},
                       originalPreparation: installedEffectModelPreparation(managedEffect,
                         () => preparation.modelPublicationCapacity(facts.prepared),
                         () => preparation.effectManagedPlanRun(moon, facts.prepared, facts.identity)),

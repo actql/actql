@@ -67,3 +67,41 @@ test('installed keyed prefix facade preserves original undefined capture refusal
     error=>error.code==='MoonBitHostFailure'&&error.cause===primary);
   assert.equal(nativeCalls,1);assert.equal(g.counts().borrows,2);
 });
+
+test('acquired Effect keeps its retained Model Definition instead of a separately validated Journal handle',()=>{
+  const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');
+  let expression;
+  function visit(node){
+    if(node?.type==='Property'&&node.key.name==='originalModelPlan'){
+      assert.equal(expression,undefined);
+      assert.equal(node.value.type,'ObjectExpression');
+      expression=source.slice(node.value.start,node.value.end);
+    }
+    for(const value of Object.values(node??{})){
+      if(Array.isArray(value)){for(const item of value)if(item?.type)visit(item);}
+      else if(value?.type)visit(value);
+    }
+  }
+  visit(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(expression);
+  const select=new Function('managedEffect','facts',`return (${expression});`);
+  const f=fixture(),journalDefinition={wire:'same-public-definition'},original=f.definition;
+  original.wire=journalDefinition.wire;
+  let journalReads=0;
+  const facts={get runDefinition(){journalReads++;return journalDefinition;}};
+  const managedEffect={model:{compiled:f.compiled},modelRunDefinition:original};
+  const plan=select(managedEffect,facts);
+  assert.equal(plan.compiled,f.compiled);
+  assert.equal(plan.runDefinition,original);
+  assert.notEqual(plan.runDefinition,journalDefinition);
+  assert.equal(f.start(f.run,plan.compiled,plan.runDefinition,f.graph,f.scope,f.keyed,f.captures),f.result);
+  assert.deepEqual(f.counts(),{calls:1,borrows:2});
+  assert.equal(journalReads,0);
+
+  const missing=fixture();
+  const absent=select({model:{compiled:missing.compiled}},facts);
+  assert.equal(absent.runDefinition,undefined);
+  assert.throws(()=>missing.start(missing.run,absent.compiled,absent.runDefinition,
+    missing.graph,missing.scope,missing.keyed,missing.captures),/Foreign Definition/);
+  assert.deepEqual(missing.counts(),{calls:0,borrows:0});
+  assert.equal(journalReads,0);
+});
