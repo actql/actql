@@ -65,7 +65,7 @@ const expectedGates = {
     "node scripts/local-checks.mjs test node -- adapters/host-node/client-relational-composition.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/client-right-join.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/client-audited-capabilities.test.mjs",
-    "node scripts/local-checks.mjs test node -- adapters/host-node/client-publication-capacity.test.mjs adapters/host-node/grouped-count-capacity-public.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/client-publication-capacity.test.mjs adapters/host-node/grouped-count-capacity-public.test.mjs adapters/host-node/metadata-capacity-public.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/local-preparation-custody.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/client-preparation-custody-public.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/client-result-schema-budget.test.mjs",
