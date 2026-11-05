@@ -144,6 +144,8 @@ export function selectInstalledHostEnvironment(moon, baseWire, selection, lookup
 // Only the selected in-process materializing Local installation consumes this
 // nominal policy. It is a necessary row ceiling, not a new resource grant:
 // the actual checked plan must still fund all cells, names and live workspaces.
+// With no explicit Host policy, use the same installed Model request window
+// as execution; the generic Environment defaults are not this service profile.
 // Generic Hosts and independently installed Effect/streaming profiles retain
 // their original selector and policy identity.
 export function selectInstalledLocalMaterializationEnvironment(
@@ -157,6 +159,12 @@ export function selectInstalledLocalMaterializationEnvironment(
   }
   const base = JSON.parse(baseWire).host_policy_profile.capacity;
   const capacity = {...(explicit ?? base)};
+  if (explicit === undefined) {
+    const modelRequestBytes = moon.clientLocalResourcePolicyModelRequestByteCeiling(original);
+    if (typeof modelRequestBytes !== 'bigint' || modelRequestBytes < 1n ||
+        modelRequestBytes > BigInt(Number.MAX_SAFE_INTEGER)) fail('LocalModelRequestPolicyProjection');
+    capacity.max_model_request_bytes_per_item = Number(modelRequestBytes);
+  }
   for (const field of ['max_relation_output_rows', 'max_artifact_rows']) {
     capacity[field] = explicit === undefined ? rows : Math.min(explicit[field], rows);
   }

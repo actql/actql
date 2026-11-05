@@ -270,6 +270,7 @@ test('packed INFER metadata uses the same installed Local policy without reident
   const originalPolicy=Object.freeze({}), moon={
     clientLocalResourcePolicyOriginal(){return originalPolicy;},
     clientLocalResourcePolicyRowCeiling(value){assert.equal(value,originalPolicy);return 203;},
+    clientLocalResourcePolicyModelRequestByteCeiling(value){assert.equal(value,originalPolicy);return 65536n;},
     clientProgramCheckEnvironment(value,cid){assert.equal(JSON.parse(value).evidence_bundle_cid,cid);return {};},
   };
   const actualHost=selectInstalledLocalMaterializationEnvironment(moon,wire.trimEnd());
@@ -377,6 +378,7 @@ test('public check Source fixture keeps original declarations under the actual L
   const originalPolicy=Object.freeze({}), moon={
     clientLocalResourcePolicyOriginal(){return originalPolicy;},
     clientLocalResourcePolicyRowCeiling(value){assert.equal(value,originalPolicy);return 203;},
+    clientLocalResourcePolicyModelRequestByteCeiling(value){assert.equal(value,originalPolicy);return 65536n;},
     clientProgramCheckEnvironment(value,cid){assert.equal(JSON.parse(value).evidence_bundle_cid,cid);return {};},
   };
   const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;

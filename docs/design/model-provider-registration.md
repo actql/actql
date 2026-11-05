@@ -478,6 +478,13 @@ for opaque Content values. Every reference frame still checks availability and
 uses the bounded wire encoder; the physical-provider preflight requirement stays
 with its existing purpose.
 
+The ordinary Local default installation selects its existing standard 64 KiB
+Model request window before declaration construction, alongside its installed
+row policy. The generic Environment's fixture defaults remain unchanged. An
+explicit Host policy keeps its request ceiling, including a lower one, and the
+whole input wire still refuses an over-limit request before any Model call.
+This service-policy DATA supplies neither an allocation nor dispatch authority.
+
 Installation retains the same public Task declaration, normalization and typed
 answer inventory. The first successful original startup binds the checked Task
 from those same prepared rows, and subsequent equal re-parsed Tasks cannot
