@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {checkChainCensus} from './bounds.mjs';
 import {checkChainSource} from './chain-source.mjs';
 import {currentOverlay} from './current-overlay.mjs';
+import {parentStartupLayout} from '../backing/parent-layout.mjs';
 const source=readFileSync(new URL('../../../../src/connectors/local/selected_relation_provider.mbt',import.meta.url),'utf8');
 const read=p=>readFileSync(new URL('../../../../'+p,import.meta.url));
 test('current aggregated state and both retained preparation cursors are independently typed',()=>{
@@ -53,7 +54,7 @@ test('advance captures the audited Int prefix, not its callback-local Boolean',(
   assert.equal(constructor.split(declaration).length,2,
     'Prefix mutation must reach the unique parent initializer, not the capacity function');
   const changed=source.slice(0,start)+constructor.replace(declaration,'let reclaimed_prefix = count');
-  assert.throws(()=>checkChainSource(changed),/Changed audited prefix capture/);
+  assert.throws(()=>checkChainSource(changed),/Changed reviewed reclaimed-prefix call count/);
 });
 test('the observer remains outside original callbacks and uses real state return',()=>{
   const overlay=currentOverlay(read);
@@ -95,6 +96,22 @@ test('current provider census retains the original optional Infer prefix recipe'
   assert.notEqual(changed, original);
   assert.throws(() => checkChainCensus(p => p === path ? changed : read(p)),
     /Unreviewed parent\/edge field or type ManagedProvider/);
+});
+
+test('Native observer parent layout agrees with the typed execution census', () => {
+  const fields=checkChainCensus(read).sourceFields
+    .find(entry=>entry.struct==='ManagedProviderExecution').fields;
+  assert.deepEqual(fields.at(-1),{name:'retained_completion',type:'(() -> Bool)?'});
+  const reader=readFileSync(new URL('./current-reader.c',import.meta.url),'utf8');
+  const shape=reader.match(/current_shape\(parent\);assert\(s\[0\]==(\d+) && s\[1\]==(\d+)\)/);
+  assert(shape,'Missing exact parent layout refusal');
+  assert.equal(Number(shape[1]),(parentStartupLayout().blocks.owner-8)/4);
+  assert.equal(Number(shape[2]),fields.length);
+  const references=reader.match(/for\(int i=0;i<(\d+);i\+\+\)assert\(s\[2\+i\]/);
+  assert(references,'Missing complete indexed pointer-layout refusal');
+  assert.equal(Number(references[1]),fields.length);
+  assert(reader.includes(`assert(current_pointer(parent,${(fields.length-1)*8})==NULL);`),
+    'A live retained-completion callback cannot be omitted from the census');
 });
 
 test('current generated recipe borrows one original query-time identity', () => {
