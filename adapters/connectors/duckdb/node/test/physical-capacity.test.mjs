@@ -28,9 +28,22 @@ test('Source receiver window funds actual batches without changing cumulative po
 });
 
 test('Source receiver window preserves tighter explicit batch bounds and refuses invalid DATA', () => {
-  for (const selected of [{maxChunkRows: 2}, {maxChunkBytes: 10}, {maxChunkRows: 2, maxChunkBytes: 10}]) {
+  const small = sourceTransportLimits(limits, 100, 100000);
+  assert.deepEqual(small, {...limits, maxChunkRows: 2, maxChunkBytes: 10});
+  assert.equal(computePhysicalCapacity(small).scratchBytes,
+    10n * 32n + (2n + 6144n + 7n) * 256n + 20n);
+  for (const selected of [{maxChunkRows: 1}, {maxChunkBytes: 5}, {maxChunkRows: 1, maxChunkBytes: 5}]) {
     assert.deepEqual(sourceTransportLimits({...limits, ...selected}, 100, 100000),
-      {...limits, maxChunkRows: 100, maxChunkBytes: 100000, ...selected});
+      {...limits, maxChunkRows: 2, maxChunkBytes: 10, ...selected});
+  }
+  for (const empty of [{maxRows: 0}, {maxTransportBytes: 0}, {maxRows: 0, maxTransportBytes: 0}]) {
+    for (const explicit of [{}, {maxChunkRows: 1, maxChunkBytes: 5}]) {
+      const supplied = {...limits, ...empty, ...explicit};
+      const unchanged = sourceTransportLimits(supplied, 0, 0);
+      assert.deepEqual(unchanged, supplied);
+      assert.equal(Object.isFrozen(unchanged), true);
+      assert.deepEqual(computePhysicalCapacity(unchanged), computePhysicalCapacity(supplied));
+    }
   }
   for (const invalid of [0, -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
     assert.throws(() => sourceTransportLimits(limits, invalid, 100000), {code: 'InvalidLimits'});

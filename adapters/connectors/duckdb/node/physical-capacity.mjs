@@ -5,12 +5,15 @@ import {boundedTransport, maxNativeVectorRows} from './transport-bounds.mjs';
 // Session. Cumulative rows/cells/bytes and tighter explicit batches stay intact.
 export function sourceTransportLimits(limits, maxChunkRows, maxChunkBytes) {
   limits = validateLimits(limits);
+  // A zero cumulative budget keeps its existing refusal/empty-input path;
+  // there is no positive batch window to invent or reserve for it.
+  if (limits.maxRows === 0 || limits.maxTransportBytes === 0) return limits;
   if (![maxChunkRows, maxChunkBytes].every(value => Number.isSafeInteger(value) && value > 0)) {
     throw new DuckDBTransportError('InvalidLimits');
   }
   return Object.freeze({...limits,
-    maxChunkRows: Math.min(limits.maxChunkRows ?? maxChunkRows, maxChunkRows),
-    maxChunkBytes: Math.min(limits.maxChunkBytes ?? maxChunkBytes, maxChunkBytes)});
+    maxChunkRows: Math.min(limits.maxChunkRows ?? maxChunkRows, maxChunkRows, limits.maxRows),
+    maxChunkBytes: Math.min(limits.maxChunkBytes ?? maxChunkBytes, maxChunkBytes, limits.maxTransportBytes)});
 }
 
 // Host capacity policy for the bounded parameter/chunk representation. These
