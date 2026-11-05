@@ -619,7 +619,7 @@ export function runAcceptanceConfiguration(outcome, {siteKey =
   });
 }
 
-function effectCommitConfiguration(targetRead = 'allow', commit = 'delegate') {
+function effectCommitConfiguration(targetRead = 'allow', commit = 'delegate', resultNames = ['answer']) {
   return canonicalJson({version: 'actql-execution-account-config/0.1',
     account_id: 'remote-effect-account', entries: [
       {entry_id: 'effect-commit', outcome: commit,
@@ -634,6 +634,10 @@ function effectCommitConfiguration(targetRead = 'allow', commit = 'delegate') {
       {entry_id: 'target-read', outcome: targetRead,
         principal: {all: true}, connection: {any_of: ['reference']},
         resource: {any_of: ['records']},
+        operation: {any_of: ['read']}, exclusions: []},
+      {entry_id: 'terminal-owner-read', outcome: 'allow',
+        principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: [...resultNames.map(name => `result/${name}`), 'run']},
         operation: {any_of: ['read']}, exclusions: []},
     ]});
 }
@@ -660,7 +664,15 @@ async function remoteHost(t, authorization, {directory,
     authorization, effectInstallation, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
     hostCapacityPolicy,
   });
-  let host = await openHost();
+  let host = await openHost().catch(error => {
+    const failure = error.primaryFailure ?? error.cause ?? error;
+    t.diagnostic(JSON.stringify({phase: 'open_host', code: error.code,
+      primaryCode: failure.code, primaryName: failure.name,
+      primaryMessage: /^[A-Za-z][A-Za-z0-9_ ]{0,100}$/u.test(failure.message ?? '')
+        ? failure.message : undefined,
+      frames: failure.stack?.split('\n').slice(1, 5)}));
+    throw error;
+  });
   const seedHistorical = async originals => {
     assert.equal(sourceProfilePaths, undefined);
     await host.close();
@@ -739,7 +751,7 @@ async function waitFor(check) {
   throw new Error('Timeout');
 }
 
-async function assertPreparationRefused(client, text, submissionRef, code, options = {}) {
+async function assertPreparationRefused(client, text, submissionRef, code, options = {}, lookupDenied = false) {
   let outcome;
   await assert.rejects(client.startSource(text, {format: 'json', ...options, submissionRef}), error => {
     assert.equal(error.code, 'SubmissionPreparationFailed');
@@ -750,7 +762,11 @@ async function assertPreparationRefused(client, text, submissionRef, code, optio
     assert.equal(Object.hasOwn(outcome, 'admission'), false);
     return true;
   });
-  assert.deepEqual(await client.lookupSubmission(submissionRef), outcome);
+  if (lookupDenied) {
+    // Without a valid Account the current Host must deny Journal observation,
+    // even when this Client already knows its original preparation refusal.
+    await assert.rejects(client.lookupSubmission(submissionRef), {code: 'ClientConnectionDenied'});
+  } else assert.deepEqual(await client.lookupSubmission(submissionRef), outcome);
 }
 
 test('allow runs without a Checkpoint; deny and missing configuration start nothing',
@@ -764,14 +780,14 @@ test('allow runs without a Checkpoint; deny and missing configuration start noth
       [{id: 1}, {id: 2}]);
     assert.deepEqual((await (await allowed.as('reviewer-token'))
       .checkpoints()).items, []);
-    for (const [label, authorization, code] of [
+    for (const [label, authorization, code, lookupDenied = false] of [
       ['deny', protectedHost('deny'), 'ACTQL_E_ACCOUNT_DENIED'],
-      ['missing', protectedHost(undefined), 'ACTQL_E_ACCOUNT_CONFIG_INVALID'],
+      ['missing', protectedHost(undefined), 'ACTQL_E_ACCOUNT_CONFIG_INVALID', true],
     ]) {
       const host = await remoteHost(t, authorization);
       const denied = await host.as('owner-token');
       const submissionRef = denied.newSubmission({nonce: `${label}-a`});
-      await assertPreparationRefused(denied, document, submissionRef, code);
+      await assertPreparationRefused(denied, document, submissionRef, code, {}, lookupDenied);
       assert.equal(host.dispatches(), 0, label);
     }
   });
@@ -1242,12 +1258,16 @@ test('installed Effect retries a transient capture read without recompute',
     let preparationFailures = 0;
     let preparationCleanups = 0;
     const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const installed = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 13), leaseMs: 1000,
       prepareCaptured(facts) {
         captures++;
-        return prepareReferenceCapture(facts, hooks);
+        return managed.stage(facts, false,
+          owned => prepareReferenceCapture(facts, {...hooks, ...owned}));
       },
       prepareRecovered(facts) {
         if (preparationFailures === 0) {
@@ -1257,7 +1277,8 @@ test('installed Effect retries a transient capture read without recompute',
             cleanupPending: () => false});
           throw new Error('TemporaryProviderPreparationFailure');
         }
-        return prepareReferenceRecovery(facts, hooks);
+        return managed.stage(facts, true,
+          owned => prepareReferenceRecovery(facts, {...hooks, ...owned}));
       },
     });
     const effectInstallation = {...installed, resume(facts) {
@@ -1317,11 +1338,14 @@ test('installed Effect allow publishes without a commit Checkpoint',
     t.after(() => rm(directory, {recursive: true, force: true}));
     const sends = [];
     const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const effectInstallation = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 8),
-      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
-      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+      prepareCaptured: facts => managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned})),
+      prepareRecovered: facts => managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned})),
     });
     const sourceProfilePaths = await Promise.all(['unused-first', 'unused-second', 'unused-third']
       .map(name => unusedTableFixture(directory, name)));
@@ -1447,11 +1471,15 @@ test(uncertain
     t.after(() => { DuckDBInstance.create = create; });
     const hooks = {directory, mappingCids: fixture.mappingCids, sends, maxInputPins: 2,
       loseReply: (member, row) => uncertain && member === 0 && row === 0};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds,
+    program.stages.findIndex(stage => stage.effects !== undefined));
     const installed = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 61),
-      prepareCaptured(facts) { captures++; return prepareReferenceCapture(facts, hooks); },
-      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+      prepareCaptured(facts) { captures++; return managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned})); },
+      prepareRecovered: facts => managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned})),
     });
     const effectInstallation = {...installed, async execute(facts) {
       const result = await installed.execute(facts);
@@ -1584,7 +1612,11 @@ test(`acquired Effect second Source approval restores the first ${realization} c
     t.after(() => provider.restore());
     const hooks = {directory, mappingCids: fixture.mappingCids, sends,
       maxInputPins: 3, expectedDependencyCount: 3};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds,
+    program.stages.findIndex(stage => stage.effects !== undefined));
     const effectInstallation = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire, privateEvidenceKey: Buffer.alloc(32, 63),
       // Keep the optional target binding identical through Source restoration
       // and the later Effect-commit restoration, without changing read counts.
@@ -1593,10 +1625,10 @@ test(`acquired Effect second Source approval restores the first ${realization} c
       targetReadInventory: () => [{readTuple: {connection: 'reference',
         resource: 'records', operation: 'read'}, physicalBinding: {
         version: 'fixture-effect-target/0.1', mappings: [...fixture.mappingCids]}}],
-      prepareCaptured(facts) { captures++; return prepareReferenceCapture(facts, hooks); },
+      prepareCaptured(facts) { captures++; return managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned})); },
       prepareRecovered: facts => {
         assert.deepEqual(facts.targetReads.captureBinding(), facts.continuation.target_read_binding);
-        return prepareReferenceRecovery(facts, hooks);
+        return managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned}));
       },
     });
     const configuration = JSON.parse(effectCommitConfiguration());
@@ -2014,16 +2046,21 @@ test('one installed Host reads and applies independent Effects', async t => {
   const fixture = await effectFixture({twoMembers: true});
   const sends = [];
   const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+  const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+    'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
   const effectInstallation = createInstalledEffectSite({
+    prepareManagedPlan: managed.prepareManagedPlan,
     environmentWire: fixture.environmentWire,
     privateEvidenceKey: Buffer.alloc(32, 16),
-    prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
-    prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+    prepareCaptured: facts => managed.stage(facts, false,
+      owned => prepareReferenceCapture(facts, {...hooks, ...owned})),
+    prepareRecovered: facts => managed.stage(facts, true,
+      owned => prepareReferenceRecovery(facts, {...hooks, ...owned})),
   });
   const options = {directory, sourceProfilePath, effectInstallation};
   const account = () => {
     const configuration = JSON.parse(effectCommitConfiguration(
-      'allow', 'allow'));
+      'allow', 'allow', ['answer', 'b']));
     configuration.entries[1].connection = {all: true};
     configuration.entries[1].resource = {all: true};
     return protectedHost(undefined,
@@ -2060,11 +2097,14 @@ test('coinstalled historical read and current commit approvals survive the same 
     const fixture = await effectFixture();
     const sends = [];
     const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const effectInstallation = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 17),
-      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
-      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+      prepareCaptured: facts => managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned})),
+      prepareRecovered: facts => managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned})),
     });
     const options = {directory, sourceProfilePath, effectInstallation};
     const account = (extra = {}) => {
@@ -2135,11 +2175,14 @@ test('coinstalled read denial cannot authorize or suppress independent commit',
     const fixture = await effectFixture();
     const sends = [];
     const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const effectInstallation = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 18),
-      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
-      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+      prepareCaptured: facts => managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned})),
+      prepareRecovered: facts => managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned})),
     });
     const configuration = JSON.parse(effectCommitConfiguration(
       'allow', 'allow'));
@@ -2170,14 +2213,17 @@ test('public Effect dispatch waits for and obeys the Host barrier',
     let release;
     const barrier = new Promise(resolve => { release = resolve; });
     const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const installed = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 10),
       prepareCaptured(facts) {
         captures++;
-        return prepareReferenceCapture(facts, hooks);
+        return managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned}));
       },
-      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+      prepareRecovered: facts => managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned})),
     });
     const account = protectedHost(undefined,
       {accountConfiguration: effectCommitConfiguration('allow', 'allow')});
@@ -2226,11 +2272,14 @@ test('installed Effect deny sends nothing and reclaims captured inputs',
     t.after(() => rm(directory, {recursive: true, force: true}));
     const sends = [];
     const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const effectInstallation = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 9),
-      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
-      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+      prepareCaptured: facts => managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned})),
+      prepareRecovered: facts => managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned})),
     });
     const account = () => protectedHost(undefined,
       {accountConfiguration: effectCommitConfiguration('allow', 'deny')});
@@ -2265,11 +2314,14 @@ test('terminal Checkpoints retire captured Effect payloads after restart',
         child.after(() => rm(directory, {recursive: true, force: true}));
         const sends = [];
         const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+        const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+          'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
         const effectInstallation = createInstalledEffectSite({
+          prepareManagedPlan: managed.prepareManagedPlan,
           environmentWire: fixture.environmentWire,
           privateEvidenceKey: Buffer.alloc(32, 11),
-          prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
-          prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+          prepareCaptured: facts => managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned})),
+          prepareRecovered: facts => managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned})),
         });
         const account = () => protectedHost(undefined, {
           accountConfiguration: effectCommitConfiguration(),
@@ -2321,11 +2373,14 @@ test('an expired Effect Checkpoint retires the captured payload',
     t.after(() => rm(directory, {recursive: true, force: true}));
     const sends = [];
     const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const effectInstallation = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 12),
-      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
-      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+      prepareCaptured: facts => managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned})),
+      prepareRecovered: facts => managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned})),
     });
     const account = () => protectedHost(undefined, {
       accountConfiguration: effectCommitConfiguration(),
@@ -2372,11 +2427,14 @@ test('installed Effect rechecks account denial after an approved answer',
     t.after(() => rm(directory, {recursive: true, force: true}));
     const sends = [];
     const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const effectInstallation = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 6),
-      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
-      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+      prepareCaptured: facts => managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned})),
+      prepareRecovered: facts => managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned})),
     });
     const account = (commit = 'delegate', extra = {}) =>
       protectedHost(undefined, {...extra,
@@ -2438,11 +2496,14 @@ test('installed Effect reply loss retains the unknown row after restart',
         loseFirst = false;
         return true;
       }};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const effectInstallation = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 5),
-      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
-      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+      prepareCaptured: facts => managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned})),
+      prepareRecovered: facts => managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned})),
     });
     const account = () => protectedHost(undefined, {
       accountConfiguration: effectCommitConfiguration(),
@@ -2515,11 +2576,14 @@ test('installed Effect keeps independent members after a halted row',
     const hooks = {directory, mappingCids: fixture.mappingCids, sends,
       failRow: (memberIndex, rowIndex) => memberIndex === 0 &&
         rowIndex === 0};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const effectInstallation = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 7),
-      prepareCaptured: facts => prepareReferenceCapture(facts, hooks),
-      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+      prepareCaptured: facts => managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned})),
+      prepareRecovered: facts => managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned})),
     });
     const account = () => protectedHost(undefined,
       {accountConfiguration: effectCommitConfiguration()});
