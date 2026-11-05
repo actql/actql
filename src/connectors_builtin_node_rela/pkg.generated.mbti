@@ -506,6 +506,8 @@ pub fn client_program_compiled_run_result_transformation(@run_publication_host.C
 
 pub fn client_program_compiled_run_template(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_program_complete_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_complete_request_content_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledManagedKeyedPreparation) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_complete_request_effect_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]

@@ -95,6 +95,7 @@ function recoveryView(state) {
       }
       state.closed = true;
       state.assertCurrent = undefined;
+      state.complete = undefined;
       state.context = undefined;
       const retired = state.retired;
       state.retired = undefined;
@@ -119,9 +120,21 @@ function recoveryView(state) {
     },
     finish(failed, cause) {
       if (!state.busy) fail('EffectCaptureResourceUnavailable');
-      if (failed) captureFailure(state, cause);
-      state.busy = false;
-      if (!failed && state.closing) fail('EffectCaptureResourceUnavailable');
+      try {
+        if (failed) captureFailure(state, cause);
+        else {
+          if (state.closing || state.child !== undefined || state.unknownChild) fail('EffectCaptureResourceUnavailable');
+          if (state.live) {
+            // Only the existing trusted Store return reaches successful finish:
+            // its FD and temporary decode aliases are already closed/cut. The
+            // SAME Core token keeps all returned schemas and typed originals.
+            state.preparing = true;
+            try {checked(Reflect.apply(state.complete, state.context.runtime, [state.value]));}
+            finally {state.preparing = false;}
+          }
+        }
+      } catch (error) {captureFailure(state, error);throw error;}
+      finally {state.busy = false;}
     },
     close,
     status: () => Object.freeze({pending: !state.closed, busy: state.busy || state.preparing}),
@@ -148,7 +161,10 @@ export function prepareEffectCaptureResources({moon, control, request, runDefini
     assertCurrent();
     if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
     if (managed !== undefined) {
-      if (typeof moon.clientProgramPrepareInstalledEffectCaptureRecovery !== 'function') {
+      state.complete = Object.getOwnPropertyDescriptor(moon,
+        'clientProgramCompleteInstalledEffectCaptureRecovery')?.value;
+      if (typeof moon.clientProgramPrepareInstalledEffectCaptureRecovery !== 'function' ||
+          typeof state.complete !== 'function') {
         fail('EffectCaptureResourceUnavailable');
       }
       // The live Host already owns this exact compiled Definition. Do not

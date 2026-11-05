@@ -337,6 +337,8 @@ pub fn complete_client_local_content_step(ClientLocalContentStep, @run_publicati
 
 pub fn complete_client_original_composed_keyed_prefix(ClientOriginalComposedKeyedPrefix, Int, Int) -> Result[@run_publication_host.ClientKeyedLeftRead, @run_publication_host.ClientKeyedRequestIssue]
 
+pub fn complete_installed_effect_capture_recovery(ClientInstalledEffectCaptureRecovery) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn complete_installed_effect_operation_construction(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn complete_installed_effect_operation_construction_output(ClientInstalledEffectOperationBorrow, String) -> Result[Unit, ClientInstalledManagedRunIssue]
