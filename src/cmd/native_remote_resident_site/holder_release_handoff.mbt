@@ -31,19 +31,27 @@ fn begin_ended_holder_releases(
     return true
   }
   guard original.process_retirement is HolderProcessRetired &&
-    slot.try_acquire() == Ok(true) && slot.verify_current_hold() == Ok(()) else {
+    slot.try_acquire() == Ok(true) &&
+    slot.verify_current_hold() == Ok(()) else {
     return false
   }
-  guard retry_control_replay_journal_cleanup(original.journal) else { return false }
-  let journal = match open_control_replay_journal(environment, original.journal) {
+  guard retry_control_replay_journal_cleanup(original.journal) else {
+    return false
+  }
+  let journal = match
+    open_control_replay_journal(environment, original.journal) {
     Some(value) => value
     None => return false
   }
   let mut begun = true
   for request in original.original.releases.values() {
     if @resident_host.begin_resident_output_release(
-        journal, delegation, environment.site_generation, request,
-      ) is Err(_) {
+        journal,
+        delegation,
+        environment.site_generation,
+        request,
+      )
+      is Err(_) {
       begun = false
     }
   }
@@ -68,8 +76,13 @@ fn finish_stopped_control_release(
   recover_now~ : Bool,
 ) -> Bool raise CommandStop {
   guard @resident.check_resident_dispatch_delegation(
-    delegation, request, environment.site_generation,
-  ) is Ok(_) else { return false }
+      delegation,
+      request,
+      environment.site_generation,
+    )
+    is Ok(_) else {
+    return false
+  }
   guard retry_control_replay_journal_cleanup(retained) else { return false }
   let journal = match open_control_replay_journal(environment, retained) {
     Some(value) => value
@@ -79,13 +92,20 @@ fn finish_stopped_control_release(
     Ok(record) => {
       let codes = @remote.dispatch_record_state_codes(record)
       codes[0] == 3 &&
-      (recovery.val is Some(_) || codes[2] == 0 || codes[2] == 1 || codes[2] == 3)
+      (
+        recovery.val is Some(_) ||
+        codes[2] == 0 ||
+        codes[2] == 1 ||
+        codes[2] == 3
+      )
     }
     _ => false
   }
   guard retry_control_replay_journal_cleanup(retained) else { return false }
   if recover_now && needs_recovery {
-    if recover_stopped_release(matches, environment, request, recovery, close_failures) {
+    if recover_stopped_release(
+        matches, environment, request, recovery, close_failures,
+      ) {
       report("release-recovered", [
         ("request_cid", @remote.dispatch_request_identity(request)),
       ])
@@ -130,11 +150,21 @@ fn finish_ended_holder_releases(
 ) -> Bool raise CommandStop {
   let identities = original.original.releases.keys().to_array()
   for identity in identities {
-    guard original.original.releases.get(identity) is Some(request) else { continue }
+    guard original.original.releases.get(identity) is Some(request) else {
+      continue
+    }
     if finish_stopped_control_release(
-      matches, environment, request, delegation, recovery, close_failures,
-      original.journal, client, observation_url, recover_now=true,
-    ) {
+        matches,
+        environment,
+        request,
+        delegation,
+        recovery,
+        close_failures,
+        original.journal,
+        client,
+        observation_url,
+        recover_now=true,
+      ) {
       ignore(original.original.releases.remove(identity))
     }
   }

@@ -1970,7 +1970,9 @@ fn run_control(
     if holder is None && reclaim_due {
       let mut release_pending = false
       for ended in unsettled {
-        if !begin_ended_holder_releases(ended, environment, slot, site_delegation) {
+        if !begin_ended_holder_releases(
+            ended, environment, slot, site_delegation,
+          ) {
           release_pending = true
         }
       }
@@ -2016,8 +2018,8 @@ fn run_control(
       for ended in unsettled {
         ignore(
           finish_ended_holder_releases(
-            ended, matches, environment, site_delegation, recovery,
-            recovery_close_failures, client, observation_url,
+            ended, matches, environment, site_delegation, recovery, recovery_close_failures,
+            client, observation_url,
           ),
         )
       }
@@ -2402,7 +2404,9 @@ fn run_control(
           holder_can_receive(current.request, request) {
           guard journal.require(request) is Ok(_) &&
             remember_holder_release(
-              current.request, current.releases, request,
+              current.request,
+              current.releases,
+              request,
               admission.limits.preparation.max_tasks,
             ) else {
             report("release-failed", [("reason", "original-release-custody")])
@@ -2444,9 +2448,18 @@ fn run_control(
         }
         ignore(
           finish_stopped_control_release(
-            matches, environment, request, site_delegation, recovery,
-            recovery_close_failures, replay_journal, client, observation_url,
-            recover_now=orphan_store is None && !reclaim_due && !orphan_reconciliation,
+            matches,
+            environment,
+            request,
+            site_delegation,
+            recovery,
+            recovery_close_failures,
+            replay_journal,
+            client,
+            observation_url,
+            recover_now=orphan_store is None &&
+              !reclaim_due &&
+              !orphan_reconciliation,
           ),
         )
       }
