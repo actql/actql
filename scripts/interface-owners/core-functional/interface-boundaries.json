@@ -1823,6 +1823,7 @@
             "publicationControl/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
             "publicationControl/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
             "publicationControl/init:checkCheckedClientInferOriginalPreRestoreOrigin/init:checkCheckedClientInferOriginalPreRestoreOrigin",
+            "publicationControl/init:checkClientCompiledEffectRunOwner/init:checkClientCompiledEffectRunOwner",
             "publicationControl/init:checkClientCompiledRunDefinition/init:checkClientCompiledRunDefinition",
             "publicationControl/init:checkClientCompiledRunOwner/init:checkClientCompiledRunOwner",
             "publicationControl/init:checkClientRunDefinitionBinding/init:checkClientRunDefinitionBinding",
@@ -1973,6 +1974,7 @@
             "publicationControl/init:prepareCheckedClientInferNodeReadLayout/init:prepareCheckedClientInferNodeReadLayout",
             "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
             "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
+            "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
             "publicationControl/init:prepareCheckedClientRequestAcquiredSerializationGraph/init:prepareCheckedClientRequestAcquiredSerializationGraph",
             "publicationControl/init:prepareCheckedClientRequestSerializationGraph/init:prepareCheckedClientRequestSerializationGraph",
             "publicationControl/init:prepareCheckedClientRetainedContentOutput/init:prepareCheckedClientRetainedContentOutput",
@@ -2034,6 +2036,7 @@
             "publicationControl/init:resultReadRetentionPolicyCid/init:resultReadRetentionPolicyCid",
             "publicationControl/init:resultRetentionClockContractCid/init:resultRetentionClockContractCid",
             "publicationControl/init:resultSerializationContractCid/init:resultSerializationContractCid",
+            "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
             "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation",
             "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed",
             "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed",
@@ -2052,10 +2055,14 @@
             "publicationControl/init:startCheckedClientGeneratedInferExecution/init:startCheckedClientGeneratedInferExecution",
             "publicationControl/init:startCheckedClientGeneratedInferInputs/init:startCheckedClientGeneratedInferInputs",
             "publicationControl/init:startCheckedClientInferOriginalPreparation/init:startCheckedClientInferOriginalPreparation",
+            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation",
+            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals",
             "publicationControl/init:startCheckedClientOriginalGeneratedInferExecution/init:startCheckedClientOriginalGeneratedInferExecution",
             "publicationControl/init:startCheckedClientOriginalGeneratedInferInputs/init:startCheckedClientOriginalGeneratedInferInputs",
             "publicationControl/init:startCheckedClientRestoredGeneratedInferExecution/init:startCheckedClientRestoredGeneratedInferExecution",
             "publicationControl/init:startCheckedClientRestoredGeneratedInferInputs/init:startCheckedClientRestoredGeneratedInferInputs",
+            "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
+            "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
             "publicationControl/init:stopCheckedClientInferNodeReadState/init:stopCheckedClientInferNodeReadState",
             "publicationControl/init:stopCheckedClientInferOriginalReadPreparation/init:stopCheckedClientInferOriginalReadPreparation",
             "publicationControl/init:supersededPublicationFinalizationAction/init:supersededPublicationFinalizationAction",
@@ -2355,11 +2362,7 @@
             "siteControl/siteControl/siteControl",
             "tuplePair/tuplePair",
             "usageKeys/usageKeys",
-            "usageKeys/usageKeys/usageKeys",
-            "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
-            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation",
-            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals",
-            "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory"
+            "usageKeys/usageKeys/usageKeys"
           ],
           "exports": [
             "contentCaptureControl",
@@ -5152,21 +5155,21 @@
           "operations": [
             "publicationControl/init:bindCheckedClientMockModelCapturePlan/init:bindCheckedClientMockModelCapturePlan",
             "publicationControl/init:prepareCheckedClientRequestModelCaptureModule/init:prepareCheckedClientRequestModelCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelProviderComponentCaptureModule/init:prepareCheckedClientRequestModelProviderComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreeComponentModule/init:prepareCheckedClientRequestModelSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule"
+            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan"
           ],
           "exports": [],
           "attributes": {
@@ -9290,6 +9293,15 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:checkClientCompiledEffectRunOwner/init:checkClientCompiledEffectRunOwner",
+          "parameters": [
+            "compiled",
+            "prepared",
+            "compilation"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:checkClientCompiledLocalExecutionOwner/init:checkClientCompiledLocalExecutionOwner",
           "parameters": [
             "compiled",
@@ -12453,6 +12465,26 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "keyed",
+            "captures",
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:stopCheckedClientInferNodeReadState/init:stopCheckedClientInferNodeReadState",
           "parameters": [
             "compiled",
@@ -14865,7 +14897,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "29698f9a6d1d0c54f1fecde61e405e4d4121f25d36193c4a8b0f98a66c684809"
+      "sha256": "93509ca63567c1ea55aa44068adb254dd1f8f42aed309533ace513b9360dc261"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -15594,6 +15626,7 @@
             "openNodeComposedInferProvider/provider/provider#4",
             "openNodeComposedInferProvider/provider/provider/init:retainOperation/init:retainOperation",
             "openNodeComposedInferProvider/recordFailure/recordFailure",
+            "openNodeComposedInferProvider/selectRead/selectRead",
             "openNodeInferOperation",
             "openNodeInferOperation/bindOriginalRuntimeObservation",
             "openNodeInferOperation/cleanup",
@@ -15608,6 +15641,7 @@
             "openNodeInferOperation/openNodeInferOperation#4",
             "openNodeInferOperation/openNodeInferOperation#5",
             "openNodeInferOperation/openNodeInferOperation#6",
+            "openNodeInferOperation/openNodeInferOperation#7",
             "openNodeInferOperation/openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparison/init:advanceOriginalCurrentStateComparison",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparisonWithMatch/init:advanceOriginalCurrentStateComparisonWithMatch",
@@ -15692,6 +15726,7 @@
             "openNodeInferOperation/operation/operation/operation#3",
             "openNodeInferOperation/operation/operation/operation#4",
             "openNodeInferOperation/operation/operation/operation#5",
+            "openNodeInferOperation/operation/operation/owners/owners",
             "openNodeInferOperation/operation/operation/saved/saved",
             "openNodeInferOperation/operation/operation/slotWires/slotWires",
             "openNodeInferOperation/prepare/prepare",
@@ -15717,10 +15752,7 @@
             "withNodeInferResult/cancel/cancel",
             "withNodeInferResult/retained/init:retry/init:retry",
             "withNodeInferResult/retained/retained",
-            "withNodeInferResult/withNodeInferResult",
-            "openNodeInferOperation/operation/operation/owners/owners",
-            "openNodeComposedInferProvider/selectRead/selectRead",
-            "openNodeInferOperation/openNodeInferOperation#7"
+            "withNodeInferResult/withNodeInferResult"
           ],
           "exports": [
             "finishNodeInferOriginalReadScopes",
@@ -16620,6 +16652,7 @@
             "originalPreparation",
             "deferred",
             "deferredGeneratedInput",
+            "capturedInput",
             "inputPrefix",
             "bindComputeSuffix",
             "assertRuntimeCurrent"
@@ -17665,7 +17698,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "22d75c0537afe088c1421dfc3ba59d760ea5bc16ae8fc2c7f24f48449d9240ce"
+      "sha256": "1eb1d4d75303a38a44518669e3468238686db498c4487a1f7ebff1666aed940c"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -19439,8 +19472,10 @@
             "installNodeInferRun/run/run/cleanupOwned/cleanupOwned",
             "installNodeInferRun/run/run/cleanupPending/cleanupPending",
             "installNodeInferRun/run/run/current/current",
+            "installNodeInferRun/run/run/current/current#2",
             "installNodeInferRun/run/run/declaredResults/declaredResults",
             "installNodeInferRun/run/run/declaredResults/declaredResults#2",
+            "installNodeInferRun/run/run/declaredResults/declaredResults#3",
             "installNodeInferRun/run/run/frame/init:retainExecution/init:retainExecution",
             "installNodeInferRun/run/run/generated/init:retainExecution/init:retainExecution",
             "installNodeInferRun/run/run/init:retainCopy/init:retainCopy",
@@ -19452,6 +19487,7 @@
             "installNodeInferRun/run/run/original/init:retain/init:retain",
             "installNodeInferRun/run/run/original/init:retainOperation/init:retainOperation",
             "installNodeInferRun/run/run/prepareRead/prepareRead",
+            "installNodeInferRun/run/run/preparedSource/preparedSource",
             "installNodeInferRun/run/run/retireOriginalPreparation/retireOriginalPreparation",
             "installNodeInferRun/run/run/retireOriginalPreparation/retireOriginalPreparation/sameOriginal/sameOriginal",
             "installNodeInferRun/run/run/run",
@@ -19464,7 +19500,9 @@
             "installNodeInferRun/run/run/run#16",
             "installNodeInferRun/run/run/run#17",
             "installNodeInferRun/run/run/run#18",
+            "installNodeInferRun/run/run/run#19",
             "installNodeInferRun/run/run/run#2",
+            "installNodeInferRun/run/run/run#20",
             "installNodeInferRun/run/run/run#3",
             "installNodeInferRun/run/run/run#4",
             "installNodeInferRun/run/run/run#5",
@@ -19472,12 +19510,7 @@
             "installNodeInferRun/run/run/run#7",
             "installNodeInferRun/run/run/run#8",
             "installNodeInferRun/run/run/run#9",
-            "installNodeInferRun/run/run/settle",
-            "installNodeInferRun/run/run/current/current#2",
-            "installNodeInferRun/run/run/declaredResults/declaredResults#3",
-            "installNodeInferRun/run/run/run#19",
-            "installNodeInferRun/run/run/run#20",
-            "installNodeInferRun/run/run/preparedSource/preparedSource"
+            "installNodeInferRun/run/run/settle"
           ],
           "exports": [
             "installNodeInferRun"
@@ -19829,6 +19862,8 @@
           "operations": [
             "sourceFreeModelPreparation",
             "sourceFreeModelPreparation/current/current",
+            "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost",
+            "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
             "sourceFreeModelPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
             "sourceFreeModelPreparation/init:prepareRead/init:prepareRead",
             "sourceFreeModelPreparation/init:retain/init:retain",
@@ -19843,9 +19878,7 @@
             "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost/init:openSourceFreeHost",
             "sourceFreeModelsPreparation/init:retain/init:retain",
             "sourceFreeModelsPreparation/init:retire/init:retire",
-            "sourceFreeModelsPreparation/originals/originals",
-            "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost",
-            "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost"
+            "sourceFreeModelsPreparation/originals/originals"
           ],
           "exports": [],
           "attributes": {
@@ -53308,10 +53341,12 @@
             "client_program_installed_managed_keyed_content_check_preparation",
             "client_program_installed_managed_keyed_content_requirements",
             "client_program_installed_managed_keyed_source_read",
+            "client_program_installed_managed_model_keyed_source_read",
             "client_program_installed_managed_run_begin",
             "client_program_installed_managed_run_check",
             "client_program_installed_managed_run_issue_is_unsupported",
             "client_program_installed_managed_run_prepare_ledger",
+            "client_program_installed_managed_run_quiesce",
             "client_program_installed_managed_run_requirements",
             "client_program_installed_managed_run_retire",
             "client_program_installed_managed_run_source_read",
@@ -53322,9 +53357,7 @@
             "client_program_node_managed_run_prepare",
             "client_program_prepare_infer_original_read",
             "client_program_prepared_installed_managed_source_free_requirements",
-            "combine_installed_mock_model_run_requirements",
-            "client_program_installed_managed_run_quiesce",
-            "client_program_installed_managed_model_keyed_source_read"
+            "combine_installed_mock_model_run_requirements"
           ],
           "exports": [],
           "attributes": {
@@ -64798,7 +64831,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "2675f3da6f57c00e3e8caed8835fc899ee8fcad921619e25970597817f4cc2a9",
+      "sha256": "31cb8785e6d607d0f5d018f416f5502ff4cf7f86ba005a277612dc3454c16b95",
       "exports": [],
       "operations": [
         {
@@ -65054,6 +65087,10 @@
           "declaration": "open_multi_captured_effect_run_dag ( checked : CheckedEffectRunDAG , sources : Array [ ( Int , @ query . CapturedInputSource ) ] , ledger : @ resources . Ledger , supplied ? : Array [ @ execution . CapturedRows ]"
         },
         {
+          "name": "open_multi_captured_effect_run_keyed_dag",
+          "declaration": "open_multi_captured_effect_run_keyed_dag ( checked : CheckedEffectRunDAG , sources : Array [ ( Int , @ query . CapturedInputSource ) ] , ledger : @ resources . Ledger , task : Int , model_step : Int , read : @ execution . SuppliedRelationRead , ) - > Result [ CapturedEffectRunDAG , RunIssue ]"
+        },
+        {
           "name": "open_source_free_dag",
           "declaration": "open_source_free_dag ( graph : CheckedDAG , ledger : @ resources . Ledger , ) - > Result [ CapturedDAG , RunIssue ]"
         },
@@ -65156,6 +65193,7 @@
             "open_effect_run_captures",
             "open_multi_captured_dag",
             "open_multi_captured_effect_run_dag",
+            "open_multi_captured_effect_run_keyed_dag",
             "open_source_free_dag",
             "open_source_free_effect_run_dag",
             "open_source_input_dag",
@@ -65233,7 +65271,7 @@
     },
     {
       "module": "src/physical_strategy_host/checked_graph.mbt",
-      "sha256": "34828f53de7f884c060d95624ec1eb119bd3fb0181ffde1a3d9bce251c7202e7",
+      "sha256": "6dc11c2bd2061b7fbcba1a3f50b9cd164ead6d9bb9ce068c776184c965dd3461",
       "exports": [],
       "operations": [
         {
@@ -80782,6 +80820,143 @@
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
       "sha256": "98a96dad89c884ec47f581387709fcbccb69cb34712ffd6f2d5d6494f3069103"
+    },
+    {
+      "module": "src/client_local_host/original_composed_keyed_prefix.mbt",
+      "sha256": "08fc6e52ba18e269346180568e47ae42d01b019be0ebabc925538fb5daf04ae4",
+      "exports": [],
+      "operations": [
+        {
+          "name": "advance_client_original_composed_keyed_prefix",
+          "declaration": "advance_client_original_composed_keyed_prefix ( value : ClientOriginalComposedKeyedPrefix , quantum : Int , ) - > Result [ @ local . ManagedProviderPoll , @ connector . FixedComputeIssue ]"
+        },
+        {
+          "name": "client_original_composed_keyed_prefix_execution",
+          "declaration": "client_original_composed_keyed_prefix_execution ( value : ClientOriginalComposedKeyedPrefix , ) - > ClientSerializationPrefix"
+        },
+        {
+          "name": "complete_client_original_composed_keyed_prefix",
+          "declaration": "complete_client_original_composed_keyed_prefix ( value : ClientOriginalComposedKeyedPrefix , max_entries : Int , max_name_bytes : Int , ) - > Result [ @ publication_host . ClientKeyedLeftRead , @ publication_host . ClientKeyedRequestIssue , ]"
+        },
+        {
+          "name": "start_client_original_composed_keyed_prefix",
+          "declaration": "start_client_original_composed_keyed_prefix ( scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowSourceCapture ] , input_prefix : @ execution . GeneratedSequence , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , ) - > Result [ ClientOriginalComposedKeyedPrefix , ClientSerializationPrefixIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
+      "referenceQualification": "Selected original row configuration and typed failure forwarding only; not ordinary matching-artifact or full funding acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advance_client_original_composed_keyed_prefix",
+            "client_original_composed_keyed_prefix_execution",
+            "complete_client_original_composed_keyed_prefix",
+            "start_client_original_composed_keyed_prefix"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix.mbt",
+                "anchor": "pub fn start_client_original_composed_keyed_prefix"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix.mbt",
+                "anchor": "pub fn start_client_original_composed_keyed_prefix"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix.mbt",
+                "anchor": "pub fn start_client_original_composed_keyed_prefix"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix.mbt",
+                "anchor": "pub fn start_client_original_composed_keyed_prefix"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix.mbt",
+                "anchor": "pub fn start_client_original_composed_keyed_prefix"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix.mbt",
+                "anchor": "pub fn start_client_original_composed_keyed_prefix"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix.mbt",
+                "anchor": "pub fn start_client_original_composed_keyed_prefix"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix.mbt",
+                "anchor": "pub fn start_client_original_composed_keyed_prefix"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix.mbt",
+                "anchor": "pub fn start_client_original_composed_keyed_prefix"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"two original Direct captures execute one keyed prefix and feed the same Model input without replay\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

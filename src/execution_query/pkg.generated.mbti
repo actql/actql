@@ -76,6 +76,8 @@ pub fn finish_captured_source_identity_scan(CapturedSourceIdentityScan) -> Resul
 
 pub fn identify_captured_source_relation(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, retain_body_bytes? : Int) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue]
 
+pub fn keyed_response_input_index(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedJoin) -> Result[Int, KeyedInputRequestIssue]
+
 pub fn keyed_response_input_schema(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedJoin, @sourceview_resolution.KeyedRowRequest) -> Result[@relation_schema.Schema, KeyedInputRequestIssue]
 
 pub fn keyed_response_port_schema(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedJoin) -> Result[@relation_schema.Schema, KeyedInputRequestIssue]

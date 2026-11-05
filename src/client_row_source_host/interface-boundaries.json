@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "70bf6e2efdfef87b9de16777ae181f498310a9c787ad89e4711f8a7a5e2ac0d5",
+      "sha256": "b4bd20422afc65656ae29c1bf6ab13673a79e2cd0f15351a8fb441264a02fdac",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -498,6 +498,7 @@
         "pub fn row_captured_input_requirement_at(RowCapturedInputs, Int) -> @query_planning.QueryRequirement?",
         "pub fn row_captured_inputs_construction_inventory(Int) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn row_captured_inputs_count(RowCapturedInputs) -> Int",
+        "pub fn row_captured_inputs_live(RowCapturedInputs, @physical_resources.Ledger) -> Bool",
         "pub fn row_captures_original_keyed_child_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, prefix? : @physical_resources.Reservation?) -> Bool",
         "pub fn row_captures_original_keyed_lookup_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation, prefix? : @physical_resources.Reservation?) -> Bool",
         "pub fn row_captures_original_keyed_prefix_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation) -> Bool",
@@ -1101,6 +1102,10 @@
         {
           "name": "row_captured_inputs_count",
           "declaration": "pub fn row_captured_inputs_count(RowCapturedInputs) -> Int"
+        },
+        {
+          "name": "row_captured_inputs_live",
+          "declaration": "pub fn row_captured_inputs_live(RowCapturedInputs, @physical_resources.Ledger) -> Bool"
         },
         {
           "name": "row_captures_original_keyed_child_available",
@@ -3478,6 +3483,7 @@
             "row_captured_input_requirement_at",
             "row_captured_inputs_construction_inventory",
             "row_captured_inputs_count",
+            "row_captured_inputs_live",
             "row_captures_original_keyed_child_available",
             "row_captures_original_keyed_lookup_dependents_retired",
             "row_captures_original_keyed_prefix_dependents_retired",
@@ -3496,7 +3502,8 @@
             "pub fn row_captures_original_keyed_prefix_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation) -> Bool",
             "pub fn row_captures_original_keyed_preparation_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, prefix? : @physical_resources.Reservation?) -> Bool",
             "pub fn row_captures_original_keyed_serialization_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, @physical_resources.Reservation, Int) -> Bool",
-            "pub fn row_captures_original_prefix_available(RowCapturedInputs, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> Bool"
+            "pub fn row_captures_original_prefix_available(RowCapturedInputs, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> Bool",
+            "pub fn row_captured_inputs_live(RowCapturedInputs, @physical_resources.Ledger) -> Bool"
           ],
           "attributes": {
             "responsibility": [

@@ -15,6 +15,7 @@ let effect_model_plan_limits : @resources.LedgerLimits = {
 // test bounds. These component ports perform no Source/Model IO or permission.
 fn effect_model_plan_source(
   declaration? : @row_source_host.RowDeclaration? = None,
+  lookup_policy? : Json? = None,
 ) -> (@checked.CheckEnvironment, String) raise {
   let task =
     #|{"authored_model_selector":"fixture-risk-model","connector_id":"models/fixture","contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","data_handling":{"accepted_classifications":["public","internal"],"allowed_regions":["fixture-region"],"contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retention":"none","training_use":"forbidden"},"generation_config":{"max_output_tokens":32,"seed_requested":-7,"temperature":0,"top_p":1},"input_contract":{"additional_properties":false,"fields":{"text":{"nullable":true,"type":"string"}},"nullable":false,"type":"object"},"input_schema_cid":"sha256:57887e29c270383ae1e005ba3476a81c8b0012a8b566db860c75abba9c786dd7","max_items":2,"output_contract":{"additional_properties":false,"fields":{"reason":{"nullable":true,"type":"string"},"risk":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"output_schema_cid":"sha256:d67003c78c0eb8b7ab0499bbed57bc8d5895c43ed0b3ce27755b656a65fd49f3","prompt_template_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retrieval_policy":"none","schema":"actql.model_task/0.1","streaming":false,"task_id":"model-task:risk-score.v1","task_kind":"structured_generate","tool_policy":"none","version":"1"}
@@ -22,6 +23,12 @@ fn effect_model_plan_source(
   guard parsed is Object(fields) else { fail("Model plan Environment") }
   fields.remove("evidence_bundle_cid")
   fields["model_task_contracts"] = @json.parse("[" + task + "]")
+  if lookup_policy is Some(selected) {
+    guard fields["host_policy_profile"] is Object(policy) else {
+      fail("Model fixture Host policy")
+    }
+    policy["lookup_execution"] = selected
+  }
   if declaration is Some(original) {
     let (schemas, capabilities) = @row_source_host.row_declaration_evidence_members(
       original,
@@ -101,6 +108,7 @@ fn effect_model_plan_inputs() -> (
 ///|
 fn effect_model_plan_for_prepared(
   prepared : @publication_host.PreparedClientEffectComputation,
+  acquired? : Bool = false,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
@@ -127,13 +135,14 @@ fn effect_model_plan_for_prepared(
     100000,
     100,
   ).unwrap()
-  effect_model_plan_for_graph(prepared, graph)
+  effect_model_plan_for_graph(prepared, graph, acquired~)
 }
 
 ///|
 fn effect_model_plan_for_graph(
   prepared : @publication_host.PreparedClientEffectComputation,
   graph : @publication_host.ClientInferPlanGraph,
+  acquired? : Bool = false,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
@@ -168,18 +177,22 @@ fn effect_model_plan_for_graph(
   let definition = @publication_host.issue_client_effect_run_definition(
     allowed, "Model-plan", "same-original", "2026-10-26T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
   ).unwrap()
-  let compiled = @publication_host.client_effect_allowed_infer_run_with_policy_body(
-    allowed,
-    Some(
-      "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
-    ),
-    Some(
-      "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
-    ),
-    10000,
-    1000,
-    20,
-  ).unwrap()
+  let compiled = if acquired {
+    @publication_host.client_effect_allowed_infer_run(allowed).unwrap()
+  } else {
+    @publication_host.client_effect_allowed_infer_run_with_policy_body(
+      allowed,
+      Some(
+        "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+      ),
+      Some(
+        "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
+      ),
+      10000,
+      1000,
+      20,
+    ).unwrap()
+  }
   let model = prepare_installed_effect_model_demand(
     prepared, compiled, compilation, definition, occurrence, graph, effect_model_plan_limits,
     500L, 700L, 20, 20, 20,

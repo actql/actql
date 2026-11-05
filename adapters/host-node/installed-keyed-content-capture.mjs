@@ -8,14 +8,20 @@ import {issueStoredCapturedContent, consumeStoredContentOriginal,
   closeStoredContentReaders} from './generated-content-holding.mjs';
 
 export function installRunKeyedContentCapture({moon, publications, control,
-  preparedProgram, plan, acquisition, ledger, maxBytes, maxWork = 1000000, store, namespaceId,
+  preparedProgram, preparedEffect, compilation, plan, acquisition, ledger, maxBytes, maxWork = 1000000, store, namespaceId,
   authorityScopeCid, storeAuthorityCid, principalId, ownerPrincipal, now,
   authorize, retainExecution, signal, inputAvailable = () => true, sourceBinding}) {
-  publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
+  if ((preparedProgram === undefined) === (preparedEffect === undefined)) {
+    throw new TypeError('InvalidInstalledKeyedContentCapture');
+  }
+  if (preparedEffect === undefined) publications.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
+  else publications.checkClientCompiledEffectRunOwner(plan.compiled, preparedEffect, compilation);
   publications.checkClientCompiledRunDefinition(plan.compiled, plan.runDefinition);
   if (principalId !== ownerPrincipal || store.storeAuthorityCid !== storeAuthorityCid ||
       typeof retainExecution !== 'function' || typeof inputAvailable !== 'function' ||
-      moon.clientProgramKeyedAcquisitionMatchesProgram(acquisition, preparedProgram) !== true) {
+      (preparedEffect === undefined
+        ? moon.clientProgramKeyedAcquisitionMatchesProgram(acquisition, preparedProgram)
+        : moon.clientProgramKeyedAcquisitionMatchesEffectProgram(acquisition, preparedEffect)) !== true) {
     throw new TypeError('InvalidInstalledKeyedContentCapture');
   }
   const definition = JSON.parse(plan.runDefinition.wire);

@@ -54,6 +54,8 @@ pub fn acknowledge_client_local_content_piece(ClientLocalContentStep, Int) -> Bo
 
 pub fn advance_client_infer_input(ClientInferInputExecution, Int) -> Result[ClientInferInputPoll, ClientInferInputIssue]
 
+pub fn advance_client_original_composed_keyed_prefix(ClientOriginalComposedKeyedPrefix, Int) -> Result[@local.ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
+
 pub fn advance_client_original_keyed_prefix_input(ClientOriginalKeyedPrefixInput, Int) -> Result[@local.ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
 
 pub fn advance_client_serialization_prefix(ClientSerializationPrefix, Int) -> Result[@local.ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
@@ -332,7 +334,7 @@ pub fn complete_client_broad_residual(ClientBroadResidual) -> Result[@acquisitio
 
 pub fn complete_client_local_content_step(ClientLocalContentStep, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationInputEvidence, @run_publication.GeneratedContentReference, @value_admission.CheckedValue, () -> Bool, @execution_relation.ValueLimits, Int) -> Result[@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientSerializationGenerationIssue]
 
-pub fn complete_client_original_composed_keyed_prefix(ClientOriginalComposedKeyedPrefix, @execution_relation.CompletedOutput, Int, Int) -> Result[@run_publication_host.ClientKeyedLeftRead, @run_publication_host.ClientKeyedRequestIssue]
+pub fn complete_client_original_composed_keyed_prefix(ClientOriginalComposedKeyedPrefix, Int, Int) -> Result[@run_publication_host.ClientKeyedLeftRead, @run_publication_host.ClientKeyedRequestIssue]
 
 pub fn complete_installed_effect_operation_construction(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
 
@@ -1054,7 +1056,7 @@ pub fn start_client_keyed_local_join(ClientKeyedJoinPreparation, run? : @physica
 
 pub fn start_client_original_captured_serialization_prefix(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.PreparedClientProgram, Int, Int, @client_row_source_host.RowSourceCapture, ClientInstalledSequenceContracts, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, workspace? : @execution_relation.ExecutionCapacity?) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue]
 
-pub fn start_client_original_composed_keyed_prefix(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@execution_query.CapturedInputSource], @execution_relation.GeneratedSequence, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue]
+pub fn start_client_original_composed_keyed_prefix(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@client_row_source_host.RowSourceCapture], @execution_relation.GeneratedSequence, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue]
 
 pub fn start_client_original_keyed_content_suffix(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientOriginalKeyedPrefixLookup, @run_publication_host.ClientKeyedAcquisition, Int, Int, ClientInstalledSequenceContracts, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, ClientSerializationWorkspaceLimits, ClientLocalContentPhysicalPort, (ClientLocalContentStep) -> Bool) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue]
 

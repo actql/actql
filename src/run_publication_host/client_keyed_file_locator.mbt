@@ -61,6 +61,45 @@ pub fn start_client_keyed_file_locator(
 }
 
 ///|
+pub fn start_client_composed_keyed_file_locator(
+  lookup : ClientKeyedLookupInput,
+  request : ClientKeyedRequest,
+  sources : Array[@query.CapturedInputSource],
+  reads : Array[@execution.SuppliedRelationRead?],
+) -> Result[ClientKeyedFileLocator, ClientKeyedRequestIssue] {
+  guard lookup.left.composed is Some(original) &&
+    client_keyed_file_locator_available(lookup, request) &&
+    sources.length() == original.sources.length() &&
+    reads.length() == sources.length() &&
+    client_composed_keyed_original_current(original) else {
+    return Err(Assembly("invalid_file_locator_request"))
+  }
+  let mut selected = None
+  for index, source in sources {
+    if !physical_equal(source, original.sources[index]) {
+      return Err(ForeignLeft)
+    }
+    guard reads[index] is Some(read) else { continue }
+    match start_client_keyed_file_locator(lookup, request, source, read) {
+      Ok(locator) => {
+        if selected is Some(previous) {
+          cancel_client_keyed_file_locator(previous)
+          cancel_client_keyed_file_locator(locator)
+          return Err(Assembly("ambiguous_file_locator"))
+        }
+        selected = Some(locator)
+      }
+      Err(Assembly("file_locator_unavailable")) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  match selected {
+    Some(value) => Ok(value)
+    None => Err(Assembly("file_locator_unavailable"))
+  }
+}
+
+///|
 pub fn cancel_client_keyed_file_locator(
   cursor : ClientKeyedFileLocator,
 ) -> Unit {

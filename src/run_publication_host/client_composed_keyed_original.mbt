@@ -8,10 +8,12 @@ priv struct ClientComposedKeyedOriginal {
   plan : ClientInferPlanGraph
   keyed : ClientKeyedAcquisition
   sources : Array[@query.CapturedInputSource]
+  captures : @row_host.RowCapturedInputs
   sequence : @execution.GeneratedSequence
   inputs : Array[(Int, Int, @execution.ProducerRead)]
   completed : @execution.CompletedSegmentInputs
   prefix : @resources.Reservation
+  prefix_work : Int64
 }
 
 ///|
@@ -88,6 +90,7 @@ pub fn borrow_client_original_composed_keyed_ledger(
   plan : ClientInferPlanGraph,
   keyed : ClientKeyedAcquisition,
   sources : Array[@query.CapturedInputSource],
+  captures : @row_host.RowCapturedInputs,
   prefix? : @resources.Reservation? = None,
 ) -> Result[@resources.Ledger, ClientModelReadPreparationIssue] {
   let owner = plan.owner
@@ -114,19 +117,58 @@ pub fn borrow_client_original_composed_keyed_ledger(
   let identity = @checked.source_identity(@strategy.graph_program(owner.graph))
   for task, source in sources {
     guard @strategy.graph_task_owner(owner.graph, task) is Some(preparation) &&
-      @query.captured_source_matches(source, identity, preparation) else {
+      @query.captured_source_matches(source, identity, preparation) &&
+      @row_host.row_captured_input_at(captures, task) is Some(row) &&
+      @row_host.row_capture_source(row) is Ok(actual) &&
+      physical_equal(source, actual) else {
       return Err(ForeignRun)
     }
   }
   // Liveness can reenter. The actual census after those callbacks owns the
   // loan; no usage snapshot or successful quote can replace this witness.
-  if !@resources.original_ledger_captured_preparation_available(
+  if !@row_host.row_captures_original_keyed_preparation_available(
+      captures,
+      scope.ledger,
       scope.identity,
       prefix~,
     ) {
     return Err(Resource(@resources.ChangedOriginalState))
   }
   Ok(scope.ledger)
+}
+
+///|
+pub fn retain_client_original_composed_keyed_captures(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  keyed : ClientKeyedAcquisition,
+  rows : Array[@row_host.RowSourceCapture],
+) -> Result[
+  (
+    @resources.Ledger,
+    @row_host.RowCapturedInputs,
+    Array[@query.CapturedInputSource],
+  ),
+  ClientModelReadPreparationIssue,
+] {
+  guard client_model_origin_matches(scope.origin, compiled, definition, plan) &&
+    rows.length() == 2 &&
+    @row_host.retain_row_captured_inputs(rows, scope.ledger, 100000)
+    is Some(captures) else {
+    return Err(ForeignRun)
+  }
+  let sources = []
+  for row in rows {
+    match @row_host.row_capture_source(row) {
+      Ok(source) => sources.push(source)
+      Err(_) => return Err(ForeignRun)
+    }
+  }
+  borrow_client_original_composed_keyed_ledger(
+    scope, compiled, definition, plan, keyed, sources, captures,
+  ).map(ledger => (ledger, captures, sources))
 }
 
 ///|
@@ -147,6 +189,7 @@ fn client_composed_keyed_original_current(
   )
   is Some(_) &&
   value.sources.all(@query.captured_source_available) &&
+  @row_host.row_captured_inputs_live(value.captures, value.scope.ledger) &&
   @resources.original_ledger_inventory_available(value.scope.identity)
 }
 
@@ -202,6 +245,15 @@ pub fn client_composed_keyed_request_matches_model_parent(
   lookup.preparation is None &&
   client_composed_keyed_lookup_matches_model_parent(
     lookup, compiled, definition, plan, ledger,
+  ) &&
+  lookup.left.composed is Some(original) &&
+  @row_host.row_captures_original_keyed_child_available(
+    original.captures,
+    ledger,
+    original.scope.identity,
+    lookup.reservation,
+    lookup.known.length(),
+    prefix=Some(original.prefix),
   )
 }
 
@@ -317,6 +369,22 @@ pub fn client_composed_keyed_lookup_input_slot(
 }
 
 ///|
+pub fn client_composed_keyed_lookup_prefix_work(
+  lookup : ClientKeyedLookupInput,
+  occurrence : ClientInferOccurrence,
+) -> Int64? {
+  guard lookup.left.composed is Some(original) &&
+    client_composed_keyed_lookup_sources_match(
+      lookup,
+      occurrence,
+      original.sources,
+    ) else {
+    return None
+  }
+  Some(original.prefix_work)
+}
+
+///|
 // Bind the actual external prefix ports in operation order. The graph, not
 // source names or caller coordinates, selects each original captured producer.
 pub fn prepare_client_original_composed_keyed_inputs(
@@ -326,12 +394,13 @@ pub fn prepare_client_original_composed_keyed_inputs(
   plan : ClientInferPlanGraph,
   keyed : ClientKeyedAcquisition,
   sources : Array[@query.CapturedInputSource],
+  captures : @row_host.RowCapturedInputs,
   sequence : @execution.GeneratedSequence,
   max_entries : Int,
   max_name_bytes : Int,
 ) -> Result[Array[(Int, Int, @execution.ProducerRead)], ClientKeyedRequestIssue] {
   guard borrow_client_original_composed_keyed_ledger(
-      scope, compiled, definition, plan, keyed, sources,
+      scope, compiled, definition, plan, keyed, sources, captures,
     )
     is Ok(_) &&
     physical_equal(@execution.generated_sequence_owner(sequence), keyed.owner) else {
@@ -367,12 +436,17 @@ pub fn prepare_client_original_composed_keyed_inputs(
         return Err(ForeignLeft)
       }
       let bound = match
-        @query.bind_captured_source_operation(
-          sources[task],
-          keyed.owner,
-          step,
-          port,
-        ) {
+        (match target {
+          @pipeline.Input(index) =>
+            @query.bind_captured_source(sources[task], keyed.owner, index)
+          _ =>
+            @query.bind_captured_source_operation(
+              sources[task],
+              keyed.owner,
+              step,
+              port,
+            )
+        }) {
         Ok(value) => value
         Err(issue) => return Err(Capture(issue))
       }
@@ -391,7 +465,7 @@ pub fn prepare_client_original_composed_keyed_inputs(
   }
   guard inputs.length() == sources.length() &&
     borrow_client_original_composed_keyed_ledger(
-      scope, compiled, definition, plan, keyed, sources,
+      scope, compiled, definition, plan, keyed, sources, captures,
     )
     is Ok(_) else {
     return Err(ForeignLeft)
@@ -410,10 +484,12 @@ pub fn prepare_client_original_composed_keyed_left(
   plan : ClientInferPlanGraph,
   keyed : ClientKeyedAcquisition,
   sources : Array[@query.CapturedInputSource],
+  captures : @row_host.RowCapturedInputs,
   sequence : @execution.GeneratedSequence,
   inputs : Array[(Int, Int, @execution.ProducerRead)],
   output : @execution.CompletedOutput,
   prefix : @resources.Reservation,
+  prefix_work : Int64,
   max_entries : Int,
   max_name_bytes : Int,
 ) -> Result[ClientKeyedLeftRead, ClientKeyedRequestIssue] {
@@ -425,12 +501,14 @@ pub fn prepare_client_original_composed_keyed_left(
       plan,
       keyed,
       sources,
+      captures,
       prefix=Some(prefix),
     ) {
     Ok(value) => value
     Err(_) => return Err(ForeignLeft)
   }
-  guard inputs.length() == sources.length() &&
+  guard prefix_work >= 0L &&
+    inputs.length() == sources.length() &&
     physical_equal(@execution.generated_sequence_owner(sequence), keyed.owner) &&
     @execution.retain_completed_segment_inputs(
       output, sequence, inputs, max_entries,
@@ -471,10 +549,12 @@ pub fn prepare_client_original_composed_keyed_left(
     plan,
     keyed,
     sources: sources.copy(),
+    captures,
     sequence,
     inputs: inputs.copy(),
     completed,
     prefix,
+    prefix_work,
   }
   guard client_composed_keyed_original_current(original) &&
     borrow_client_original_composed_keyed_ledger(
@@ -484,6 +564,7 @@ pub fn prepare_client_original_composed_keyed_left(
       plan,
       keyed,
       sources,
+      captures,
       prefix=Some(prefix),
     )
     is Ok(_) else {
