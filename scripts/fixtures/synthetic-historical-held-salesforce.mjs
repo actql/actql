@@ -231,7 +231,9 @@ export async function writeSyntheticHistoricalHeldSalesforce({directory, documen
     // policy through the 256-byte logical value-node unit. Keep this authored
     // binding aligned with that declared policy, without reading a Host CID.
     max_relation_output_rows: 536870912 / 256,
-    max_artifact_rows: 536870912 / 256};
+    max_artifact_rows: 536870912 / 256,
+    // Match the default Local service's declared standard Model request window.
+    max_model_request_bytes_per_item: 65536};
   const binding = {authorization_context_cid: cid({principal: principalId,
     account_id: account.account_id, configuration_cid: configurationCid, source_configuration_cid: sourceConfigurationCid}),
   environment_binding_cid: cid({version: 'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,

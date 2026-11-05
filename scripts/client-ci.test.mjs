@@ -607,7 +607,10 @@ test('packed Effect target reads keep distinct approval phases and independent p
 });
 
 test('each Client group retains its acceptance commands exactly once', () => {
-  assert.deepEqual(runs('client-distribution'), ['npm run check:distribution-client']);
+  assert.deepEqual(runs('client-distribution'), [
+    'npm ci --prefix packages/provider-ai-sdk --ignore-scripts',
+    'npm run check:distribution-client',
+  ]);
   assert.deepEqual(runs('client-packed'), [
     'npm run check:packed-embedded-checkpoint',
     'node scripts/test-packed-single-infer.mjs',
@@ -713,7 +716,11 @@ test('local commands remain available for each independently retryable group', (
   for (const name of [...consumers, 'client-salesforce']) {
     const child = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'run', name, '--dry-run'], {cwd: root, encoding: 'utf8'});
     assert.equal(child.status, 0, child.stderr);
-    for (const command of runs(name)) assert(child.stdout.includes(command));
+    for (const command of runs(name)) {
+      if (command === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts') {
+        assert(!child.stdout.includes(command), 'Local checks retain installed dependencies');
+      } else assert(child.stdout.includes(command));
+    }
   }
 });
 

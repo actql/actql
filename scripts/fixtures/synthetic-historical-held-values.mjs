@@ -152,7 +152,10 @@ export async function writeSyntheticHistoricalHeldValues({directory, document,
     // its original 512MiB policy / 256-byte logical value-node unit. These are
     // independent Source preimages, not a returned Host CID or memory grant.
     max_relation_output_rows: 536870912 / 256,
-    max_artifact_rows: 536870912 / 256};
+    max_artifact_rows: 536870912 / 256,
+    // The same default Local service selects standard_limits().model's 64KiB
+    // request window; this fixture supplies the declared input, not a Host CID.
+    max_model_request_bytes_per_item: 65536};
   const binding = {authorization_context_cid: cid({principal: principalId,
     account_id: account.account_id, configuration_cid: configurationCid, source_configuration_cid: null}),
   environment_binding_cid: cid({version: 'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,

@@ -177,7 +177,10 @@ export async function writeSyntheticHistoricalHeldQuery({directory, document,
     : {version: 'actql-remote-acquisition-intent/0.1', request_cid: requestCid,
       captured_submission_cid: dataCid(captured), checked_source: checkedSource,
       read_tuple: acquisition.readTuple, physical_binding: acquisition.physicalBinding};
-  const invocationCid = cid(invocation);
+  // Acquisition evidence preserves physical-name bytes, including its
+  // independently authored UTF8 binding. It is not normalized logical text.
+  const invocationWire = runHold ? identityWire(invocation) : wire(invocation);
+  const invocationCid = hash(invocationWire);
   const createdAt = new Date(now).toISOString(), expiresAt = new Date(now +
     (authorization.checkpointTtlMs ?? 86400000)).toISOString();
   const reviewBody = {version: 'actql-run-review-projection/0.1', prepared_invocation_cid: invocationCid,
@@ -205,7 +208,7 @@ export async function writeSyntheticHistoricalHeldQuery({directory, document,
   };
   const items = [{name: 'captured_input', wire: wire(captured)},
     {name: 'invocation_request', wire: identityWire(request)},
-    {name: 'prepared_invocation', wire: identityWire(invocation)},
+    {name: 'prepared_invocation', wire: invocationWire},
     {name: 'review_projection', wire: reviewWire}];
   const decisionSubject = runHold
     ? {account_id: account.account_id, configuration_cid: configurationCid,

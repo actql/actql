@@ -725,7 +725,7 @@ test('DuckDB readonly and held-read preparations share their checked target and 
       maxParameters: 0, maxColumns: 1, memoryBytes: 1048576, threads: 1}};
   const retained = prepareRetainedCapturedDuckDBSource(options);
   assert.equal(authorizations, 0);
-  assert.throws(() => capturedDuckDBConfiguration(retained), /InstalledSourcePreparationMismatch/u);
+  assert.throws(() => capturedDuckDBConfiguration(retained), /InstalledSourceSelectionRequired/u);
   assert.throws(() => capturedDuckDBPhysicalCapacity(retained), /InstalledSourcePreparationMismatch/u);
   const original = await prepareCapturedDuckDBSource(options);
   assert.deepEqual(retained, original, 'The same immutable descriptor rules apply to both purposes');
