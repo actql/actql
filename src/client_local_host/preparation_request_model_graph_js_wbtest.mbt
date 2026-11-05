@@ -2997,12 +2997,20 @@ test "two Model Request adopts one module and all original scopes with one aggre
     bootstrap=Some((31L, 37L)),
   ).unwrap()
   assert_eq(module_entries, [0, 1])
-  // One original module demand, two Model demands, total read partitions,
+  // This authored graph has three configured tasks and two input edges. Its
+  // retained two-root driver offers 17 work units per task and a 32-unit
+  // search, for 83 per original input binding and 166 for both terminal Models.
+  // The module's whole-Run ceiling remains a ceiling, not additional demand.
+  let configured = selected_module.configuration.unwrap()
+  assert_eq(@strategy.graph_task_count(configured.graph), 3)
+  assert_eq(@strategy.graph_data_count(configured.graph), 2)
+  assert_eq(configured.capacity_plan.graph_offset, 0)
+  assert_true(configured.retained_output)
+  assert_eq(@local_driver.local_dispatch_work_slots(), 5)
+  assert_true(selected_module.limits.planning_work > 166)
+  // One configured module demand, two Model demands, total read partitions,
   // and the independent same-parent bootstrap exactly once.
-  assert_eq(
-    plan.limits.planning_work,
-    selected_module.limits.planning_work + 34,
-  )
+  assert_eq(plan.limits.planning_work, 166 + 34)
   assert_eq(plan.limits.attempts, selected_module.limits.attempts + 8)
   assert_eq(
     plan.limits.retained_bytes,
