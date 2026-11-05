@@ -128,21 +128,39 @@ if (full) {
     const scopedScratch = await createOwnedScratch({parent: join(root, '_build', 'native-core-scoped'),
       prefix: 'profile-', label: 'Native Core scoped compiler', preserve: true});
     const {prepareNativeCoreScopedProfile} = await import('./native-core-scoped-profile.mjs');
+    const {nativeCoreScopedFixture} = await import('./native-core-scoped-fixture.mjs');
     // Start from the original PATH, not the ordinary test-only compiler shim.
     const scoped = prepareNativeCoreScopedProfile(root, scopedScratch.path,
       ['--target', 'native', ...selection.profiles.scoped.args], {env: fixtureEnvironment});
     // These physical cases use the SQLite/Reader fixtures above. Salesforce's
     // request/response oracle belongs to the ordinary selection and remains
     // required there; the selected cases must not pretend to execute it again.
-    const scopedArgs = ['--target', 'native', ...selection.profiles.scoped.args,
-      '--target-dir', scoped.targetDirectory];
     console.log(`Native Core scoped profile: ${selection.profiles.scoped.cases} required cases`);
-    checkChild(spawnSync(process.execPath, ['--input-type=module', '-e',
-      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
-      "process.exitCode = runFocusedTests('moon', " + JSON.stringify(scopedArgs) +
-      ", {timeout: 3600000, expectedTests: " + selection.profiles.scoped.cases +
-      ", evidenceScratch: " + JSON.stringify(scopedScratch.path) + "});"],
-    {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment}}));
+    const scopedDeadline = Date.now() + 3600000;
+    // Each original case initializes its own physical region header. Closing
+    // that region does not erase the header, and the cases require different
+    // exact backing extents. Keep the compiled target, never reset a used file.
+    for (const [ordinal, test] of selection.profiles.scoped.tests.entries()) {
+      const caseNamespace = join(namespace, `scoped-case-${ordinal}`);
+      mkdirSync(caseNamespace, {mode: 0o700});
+      const physical = nativeCoreScopedFixture(caseNamespace, {
+        cryptoLibrary: fixtureEnvironment.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY,
+        sqliteLibrary: fixtureEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+        backingPages: test.source ===
+          'src/platform_native/installed_arena_control/local_host_crypto_physical_scoped_wbtest.mbt'
+          ? 8192 : 256,
+      });
+      const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
+        '--target-dir', scoped.targetDirectory];
+      const timeout = scopedDeadline - Date.now();
+      if (timeout <= 0) throw new Error('Selected Native Core deadline exhausted');
+      checkChild(spawnSync(process.execPath, ['--input-type=module', '-e',
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+        "process.exitCode = runFocusedTests('moon', " + JSON.stringify(scopedArgs) +
+        ", {timeout: " + timeout + ", expectedTests: 1, evidenceScratch: " +
+        JSON.stringify(scopedScratch.path) + "});"],
+      {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment, ...physical}}));
+    }
     scopedScratch.passed();
   }
 } else {

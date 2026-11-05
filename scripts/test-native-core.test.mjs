@@ -22,6 +22,7 @@ import './native-core-progress.test.mjs';
 import './native-core-c-compiler.test.mjs';
 import './native-core-test-selection.test.mjs';
 import './native-core-scoped-profile.test.mjs';
+import './native-core-scoped-fixture.test.mjs';
 
 test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-capture-progress-'));
@@ -714,6 +715,15 @@ export function prepareNativeCoreScopedProfile(root, scratch, args, {env}) {
   return {targetDirectory, environment: {...env, ACTQL_FIXTURE_PROFILE: 'scoped'}};
 }
 `);
+    writeFileSync(join(checkout, 'scripts/native-core-scoped-fixture.mjs'), `
+import {mkdirSync} from 'node:fs';
+import {join} from 'node:path';
+export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary}) {
+  const root = join(namespace, 'installed-process'); mkdirSync(root, {mode: 0o700});
+  return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root,
+    ACTQL_TEST_CRYPTO_COMPONENT: cryptoLibrary, ACTQL_TEST_SQLITE_COMPONENT: sqliteLibrary};
+}
+`);
   }
   writeFileSync(moon, `#!${process.execPath}
 const assert = require('node:assert/strict');
@@ -751,14 +761,16 @@ if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
   require('node:fs').appendFileSync(process.env.ACTQL_FIXTURE_NATIVE_COMMANDS,
     JSON.stringify({args:process.argv.slice(2),path:process.env.PATH,
       allocator:process.env.MOONBIT_ALLOCATOR,compiler:process.env.MOON_CC,
-      backend:process.env.MOONBIT_NEW_NATIVE,profile:process.env.ACTQL_FIXTURE_PROFILE ?? 'ordinary'}) + '\\n');
+      backend:process.env.MOONBIT_NEW_NATIVE,profile:process.env.ACTQL_FIXTURE_PROFILE ?? 'ordinary',
+      installedProcess:process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT}) + '\\n');
 }
 if (process.env.ACTQL_FIXTURE_PROFILE === 'scoped') {
   assert(process.argv.includes('--target-dir'));
   assert(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT);
   assert(process.env.ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE);
+  assert.equal(statSync(process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT).mode & 0o777, 0o700);
   if (process.env.ACTQL_FIXTURE_SCOPED_FAIL === '1') process.exit(7);
-  console.log('Total tests: 2, passed: 2, failed: 0.'); process.exit(0);
+  console.log('Total tests: 1, passed: 1, failed: 0.'); process.exit(0);
 }
 if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
      'src/platform_native/client_host/run_effect_receipt_wbtest.mbt'].some(file => process.argv.includes(file)) &&
@@ -1233,18 +1245,26 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     assert.equal(result.signal, null);
     assert.equal(result.status, fail ? 7 : 0, result.stdout + result.stderr);
     const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
-    assert.equal(calls.length, 4, 'two original checkpoint producers and two required profiles');
-    const [ordinary, selected] = calls.slice(2);
+    assert.equal(calls.length, fail ? 4 : 5,
+      'two original checkpoint producers, ordinary Core and every selected case until failure');
+    const [ordinary, ...selectedCases] = calls.slice(2);
+    const selected = selectedCases[0];
     assert.equal(ordinary.profile, 'ordinary');
     assert.equal(selected.profile, 'scoped');
     assert.deepEqual(ordinary.args.filter(value => value.startsWith('src/')), [
       'src/cmd/native_client/ordinary_wbtest.mbt',
       'src/cmd/native_client/local_command_business_wbtest.mbt',
     ]);
-    assert.deepEqual(selected.args.filter(value => value.startsWith('src/')), [
-      'src/cmd/native_client/local_command_business_wbtest.mbt',
-      'src/cmd/native_client/local_command_business_cleanup_wbtest.mbt',
-    ]);
+    assert.deepEqual(selectedCases.flatMap(value => value.args.filter(arg => arg.startsWith('src/'))),
+      ['src/cmd/native_client/local_command_business_wbtest.mbt',
+        ...(!fail ? ['src/cmd/native_client/local_command_business_cleanup_wbtest.mbt'] : [])]);
+    assert.equal(new Set(selectedCases.map(value => value.installedProcess)).size, selectedCases.length,
+      'every physical case owns a fresh original backing namespace');
+    for (const value of selectedCases) {
+      assert.equal(value.args[value.args.indexOf('--index') + 1], '0');
+      assert.equal(value.args[value.args.indexOf('--target-dir') + 1],
+        selected.args[selected.args.indexOf('--target-dir') + 1]);
+    }
     assert.match(ordinary.path, /\/test-c-compiler:/u);
     assert.equal(selected.path, f.env.PATH, 'selected preparation starts from the original PATH');
     assert.deepEqual(selected.args.slice(0, 3), ['test', '--target', 'native']);

@@ -78,7 +78,10 @@ test('actual Native profile partition executes every original and both geometry 
     ordinary: {args: [...args, directory+'/ordinary_wbtest.mbt',
       directory+'/local_command_business_wbtest.mbt'], cases: 2},
     scoped: {args: [...args, directory+'/local_command_business_wbtest.mbt',
-      directory+'/local_command_business_cleanup_wbtest.mbt'], cases: 2},
+      directory+'/local_command_business_cleanup_wbtest.mbt'], cases: 2, tests: [
+      {source: directory+'/local_command_business_wbtest.mbt', index: 0},
+      {source: directory+'/local_command_business_cleanup_wbtest.mbt', index: 0},
+    ]},
     physicalCases: 1, repeatedGeometryCases: 1, uniqueCases: 3,
   });
   // These tiny programs test real compiler file selection, not a provider or
@@ -97,7 +100,9 @@ test('actual Native profile partition executes every original and both geometry 
   assert.match(ordinary, /ordinary profile original/u);
   assert.match(ordinary, /both geometry configurations/u);
   assert.doesNotMatch(ordinary, /physical profile original/u);
-  const scoped = execute(selected.profiles.scoped);
+  const scoped = selected.profiles.scoped.tests.map(test => execute({
+    args: [...args, test.source, '--index', String(test.index)], cases: 1,
+  })).join('\n');
   assert.match(scoped, /physical profile original/u);
   assert.match(scoped, /both geometry configurations/u);
   assert.doesNotMatch(scoped, /ordinary profile original/u);
@@ -130,7 +135,7 @@ test('actual Native package selection preserves full WB/BB/inline/doc outline an
   const profiled = nativeCoreTestSelection(root, args, {env, partitionProfiles: true});
   assert.deepEqual(profiled.profiles, {
     ordinary: {args: selected.args, cases: 4},
-    scoped: {args: null, cases: 0},
+    scoped: {args: null, cases: 0, tests: []},
     physicalCases: 0, repeatedGeometryCases: 0, uniqueCases: 4,
   });
   const outline = run([...selected.args,'--outline']);

@@ -36,15 +36,22 @@ function partitionProfiles(args, records) {
   const affected = new Set(physical.map(record => record.directory));
   const ordinaryPaths = [...new Set(ordinary.map(record =>
     affected.has(record.directory) ? record.source : record.directory))];
-  const selectedPaths = [...new Set(records.filter(record =>
-    scopedFiles.has(record.source) || selectedGeometryFiles.has(record.source))
-    .map(record => record.source))];
+  const selectedRecords = records.filter(record =>
+    scopedFiles.has(record.source) || selectedGeometryFiles.has(record.source));
+  const selectedPaths = [...new Set(selectedRecords.map(record => record.source))];
+  const tests = selectedRecords.map(record => {
+    const index = record.entry[2].index;
+    assert(Number.isSafeInteger(index) && index >= 0, 'Original compiler case index required');
+    return {source: record.source, index};
+  });
+  assert.equal(new Set(tests.map(value => JSON.stringify(value))).size, tests.length,
+    'Selected physical case must retain a unique original file/index');
   // Empty PATH would run the whole project, never an empty profile.
   return {
     ordinary: {args: ordinaryPaths.length ? [...args, ...ordinaryPaths] : null,
       cases: ordinary.length},
     scoped: {args: selectedPaths.length ? [...args, ...selectedPaths] : null,
-      cases: physical.length + geometry.length},
+      cases: physical.length + geometry.length, tests},
     physicalCases: physical.length,
     repeatedGeometryCases: geometry.length,
     uniqueCases: records.length,
