@@ -195,10 +195,33 @@ test "original Mock Content dependencies retain opaque input and strict physical
     admit_original_model_mock_provider(original, execution, dependencies)
     is Ok(_),
   )
+  let provider = original.provider.unwrap()
+  let checked_task = @environment.model_execution_task(execution)
+  assert_true(original_mock_accepts_opaque_references(provider, checked_task))
+  assert_false(
+    original_mock_accepts_opaque_references({ ..provider, }, checked_task),
+  )
+  let copied = { ..original, }
+  assert_false(
+    original_mock_accepts_opaque_references(
+      { invocation: OriginalMock(copied), provider_id: "mock", },
+      checked_task,
+    ),
+  )
+  let generic = install_model_provider("mock", _ => Err(Refusal)).unwrap()
+  assert_false(original_mock_accepts_opaque_references(generic, checked_task))
   assert_true(read({ ..original, }) is Err(_))
   let foreign = mock_installation_test_original()
   assert_true(read(foreign) is Err(_))
-  let (_, foreign_prompt, _, _) = mock_provider_admission_execution(foreign)
+  let (foreign_execution, foreign_prompt, _, _) = mock_provider_admission_execution(
+    foreign,
+  )
+  assert_false(
+    original_mock_accepts_opaque_references(
+      provider,
+      @environment.model_execution_task(foreign_execution),
+    ),
+  )
   assert_true(
     read_original_model_mock_dependencies(
       original,
@@ -298,8 +321,10 @@ test "original Mock Content dependencies retain opaque input and strict physical
   )
   assert_eq(original.users, 0)
   assert_true(@environment.retire_model_mock_profile(profile))
+  assert_false(original_mock_accepts_opaque_references(provider, checked_task))
   assert_true(read(original) is Err(_))
   retire_original_model_mock(original).unwrap() |> ignore
+  assert_false(original_mock_accepts_opaque_references(provider, checked_task))
   assert_true(read(original) is Err(_))
   retire_original_model_mock(foreign).unwrap() |> ignore
 }

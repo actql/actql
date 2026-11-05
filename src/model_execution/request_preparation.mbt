@@ -311,10 +311,11 @@ fn advance_model_request_preparation(
       @bounded.Continue(1, 1)
     }
     InputWire(cursor) => {
-      if state.source is Provider(_) &&
+      if state.source is Provider(provider) &&
         state.physical_preflight is None &&
         @admitted.wire_emit_next_reference(cursor) is Some(reference) &&
-        @admitted.reference_content_metadata(reference) is Some(_) {
+        @admitted.reference_content_metadata(reference) is Some(_) &&
+        !original_mock_accepts_opaque_references(provider, state.task) {
         return @bounded.Failed(Content(Role), 1, 1)
       }
       let finished = match advance_model_input_wire(cursor) {
