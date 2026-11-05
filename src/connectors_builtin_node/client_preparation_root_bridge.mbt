@@ -2222,6 +2222,29 @@ pub fn client_program_open_request_model_recovery_host(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  let provider_factory = capacity => {
+    let families = installed_client_family_providers(capacity)
+    for provider in providers {
+      families.push(provider)
+    }
+    families
+  }
+  // A single restored Source is not a two-capture prefix. Keep its original
+  // Request ledger and providers through the existing single-capture owner.
+  if sources.length() == 1 {
+    return Ok(
+      @client_local_host.open_captured_local_retained_host_on_ledger(
+        prepared,
+        sources[0],
+        ledger,
+        contracts,
+        values,
+        fragment,
+        ordered,
+        provider_factory~,
+      ),
+    )
+  }
   let captures = []
   for index in 0..<sources.length() {
     captures.push((index, sources[index]))
@@ -2235,13 +2258,7 @@ pub fn client_program_open_request_model_recovery_host(
       values,
       fragment,
       ordered,
-      provider_factory=capacity => {
-        let families = installed_client_family_providers(capacity)
-        for provider in providers {
-          families.push(provider)
-        }
-        families
-      },
+      provider_factory~,
     ),
   )
 }
