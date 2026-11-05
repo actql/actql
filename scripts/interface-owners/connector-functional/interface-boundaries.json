@@ -4834,7 +4834,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "be18cf30033ee7accd0dd3e5ab076ed53da1fc395b12e037a2844178b26f5b4a",
+      "sha256": "fbfa8b987ea12028f6ea2034494a727af9be7970f065b423e563649df666bb30",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -6036,6 +6036,14 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/init:owned/init:owned",
+          "parameters": [
+            "constructChild",
+            "rowIndex"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
           "parameters": [
             "originalAuthorization",
@@ -6050,6 +6058,13 @@
             "authorization",
             "credential",
             "callResource"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -6404,9 +6419,17 @@
             "dispatchRequestCid",
             "assertCurrent",
             "signal",
-            "maxResponseBytes"
+            "maxResponseBytes",
+            "constructChild"
           ],
           "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/ownedRead/ownedRead",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
         },
         {
           "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
@@ -6420,6 +6443,11 @@
         },
         {
           "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
           "parameters": [],
           "async": false
         },
@@ -7758,8 +7786,10 @@
             "createRowEffectStage/entryOf/entryOf",
             "createRowEffectStage/footprintOf/footprintOf",
             "createRowEffectStage/managedReadChild/managedReadChild",
+            "createRowEffectStage/managedReadChild/managedReadChild/init:owned/init:owned",
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
+            "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
             "createRowEffectStage/managedReadChild/managedReadChild/selected/selected",
             "createRowEffectStage/memberDispatch/memberDispatch",
             "createRowEffectStage/membersOf/membersOf",
@@ -8349,6 +8379,10 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
               }
             ]
           }
@@ -8370,7 +8404,9 @@
             "createRowEffectStage/physicalRoute/physicalRoute/requireOpen/requireOpen",
             "createRowEffectStage/physicalRoute/physicalRoute/retire/retire",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation",
+            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/ownedRead/ownedRead",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
+            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
             "createRowEffectStage/prepareManagedPlan/prepareManagedPlan",
@@ -8488,6 +8524,10 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
               }
             ]
           }
@@ -12111,12 +12151,12 @@
             "captureResponseConfirmation/used/used",
             "captureResponseConfirmation/used/used#2",
             "createRowEffectStage/captureStage/captureStage#13",
-            "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#3",
             "createRowEffectStage/captureStage/preparedRequest/preparedRequest#2",
+            "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#3",
             "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse",
             "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse/confirmed/confirmed",
-            "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/prepareRecovered#3",
+            "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
             "createRowEffectStage/recoveredEntries/recoveredEntries/restore/restore",
             "deriveInstalledRowWrite/bindLogical",
             "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
@@ -12237,12 +12277,12 @@
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original#2",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original#3",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/init:retire/init:retire",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
-            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#3",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#4",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/init:retire/init:retire",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries#2",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/release/release",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries",
@@ -20968,6 +21008,13 @@
           "async": false
         },
         {
+          "name": "captureInstalledEffectPlanRecipe/captureInstalledEffectPlanRecipe#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "captureInstalledEffectPlanRecipe/entries/entries",
           "parameters": [
             "_",
@@ -21054,6 +21101,84 @@
           "parameters": [
             "recipe"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectConstructorChild",
+          "parameters": [
+            "run",
+            "memberIndex",
+            "rowIndex",
+            "operationIndex",
+            "operation",
+            "perRow",
+            "originalConstruct",
+            "originalInputExtent",
+            "requestsRetired",
+            "ownedChild"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectConstructorChild/drain/drain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectConstructorChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare/failed/failed",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare/init:prepare",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare#2",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectConstructorChild/originalRecord/originalRecord",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectConstructorChild/prepareInstalledEffectConstructorChild",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectConstructorChild/prepareInstalledEffectConstructorChild#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -21459,56 +21584,8 @@
         {
           "name": "prepareInstalledEffectRequestChild",
           "parameters": [
-            "run",
-            "memberIndex",
-            "rowIndex",
-            "operationIndex",
-            "operation",
-            "perRow",
-            "originalConstruct",
-            "originalInputExtent",
-            "requestsRetired"
+            "options"
           ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectRequestChild/drain/drain",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectRequestChild/init:prepare/init:prepare",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectRequestChild/init:prepare/init:prepare/init:prepare",
-          "parameters": [
-            "resolve",
-            "reject"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectRequestChild/init:prepare/init:prepare/init:prepare/settled/settled",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectRequestChild/originalRecord/originalRecord",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectRequestChild/prepareInstalledEffectRequestChild",
-          "parameters": [
-            "method"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareInstalledEffectRequestChild/prepareInstalledEffectRequestChild#2",
-          "parameters": [],
           "async": false
         },
         {
@@ -21518,7 +21595,10 @@
             "operation",
             "inputLimits",
             "limits",
-            "construction"
+            "construction",
+            "requestConstruction",
+            "physicalConstruction",
+            "targetReadOperation"
           ],
           "async": false
         },
@@ -21536,6 +21616,13 @@
           "name": "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#2",
+          "parameters": [
+            "phase"
           ],
           "async": false
         },
@@ -21622,15 +21709,17 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ea7f5cfdfa6e5166a77c3962fe4d3c14160ba33af0406004504f03975b7f5e32",
+      "sha256": "958b21ceb0d04f46ba68504f31276813da0c8736394ae90b4b935115479e8c9c",
       "contracts": [
         {
           "operations": [
             "<module>",
             "captureInstalledEffectPlanRecipe",
             "captureInstalledEffectPlanRecipe/captureInstalledEffectPlanRecipe",
+            "captureInstalledEffectPlanRecipe/captureInstalledEffectPlanRecipe#2",
             "captureInstalledEffectPlanRecipe/captureInstalledEffectPlanRecipe/captureInstalledEffectPlanRecipe",
             "captureInstalledEffectPlanRecipe/entries/entries",
+            "captureInstalledEffectPlanRecipe/memberConstruction/memberConstruction",
             "captureInstalledEffectPlanRecipe/operations/operations",
             "captureInstalledEffectPlanRecipe/operations/operations/entries/entries",
             "captureInstalledEffectPlanRecipe/operations/operations/operations",
@@ -21638,6 +21727,17 @@
             "captureInstalledEffectPlanRecipe/own/own/own",
             "captureInstalledStandardCreateLimits",
             "fail/fail",
+            "prepareInstalledEffectConstructorChild",
+            "prepareInstalledEffectConstructorChild/drain/drain",
+            "prepareInstalledEffectConstructorChild/init:prepare/init:prepare",
+            "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare",
+            "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare#2",
+            "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare/failed/failed",
+            "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare/init:prepare",
+            "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare/settled/settled",
+            "prepareInstalledEffectConstructorChild/originalRecord/originalRecord",
+            "prepareInstalledEffectConstructorChild/prepareInstalledEffectConstructorChild",
+            "prepareInstalledEffectConstructorChild/prepareInstalledEffectConstructorChild#2",
             "prepareInstalledEffectCredentialChild",
             "prepareInstalledEffectCredentialChild/callResource/callResource",
             "prepareInstalledEffectCredentialChild/callResource/callResource/callResource",
@@ -21672,20 +21772,12 @@
             "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan",
             "prepareInstalledEffectManagedPlan/prepareInstalledEffectManagedPlan#2",
             "prepareInstalledEffectRequestChild",
-            "prepareInstalledEffectRequestChild/drain/drain",
-            "prepareInstalledEffectRequestChild/init:prepare/init:prepare",
-            "prepareInstalledEffectRequestChild/init:prepare/init:prepare/init:prepare",
-            "prepareInstalledEffectRequestChild/init:prepare/init:prepare/init:prepare/settled/settled",
-            "prepareInstalledEffectRequestChild/originalRecord/originalRecord",
-            "prepareInstalledEffectRequestChild/prepareInstalledEffectRequestChild",
-            "prepareInstalledEffectRequestChild/prepareInstalledEffectRequestChild#2",
             "prepareInstalledStandardCreatePlanRecipe",
             "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod",
             "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
             "prepareInstalledStandardCreatePlanRecipe/physical/physical",
             "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
-            "text/text",
-            "captureInstalledEffectPlanRecipe/memberConstruction/memberConstruction"
+            "text/text"
           ],
           "exports": [
             "captureInstalledEffectPlanRecipe",
@@ -21778,6 +21870,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test(`Effect native Plan forwards original Source inputs with Model=${model} Content=${content}`"
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
               }
             ]
           }
@@ -21792,9 +21888,9 @@
             "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid",
             "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/joined/joined",
             "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/settled/settled",
+            "prepareInstalledEffectControlConstruction/retainRecoveredInputs/retainRecoveredInputs",
             "prepareInstalledEffectControlConstruction/retire/retire",
-            "prepareInstalledEffectControlConstruction/sameRecord/sameRecord",
-            "prepareInstalledEffectControlConstruction/retainRecoveredInputs/retainRecoveredInputs"
+            "prepareInstalledEffectControlConstruction/sameRecord/sameRecord"
           ],
           "exports": [
             "prepareInstalledEffectControlConstruction"
@@ -21898,6 +21994,7 @@
             "prepareInstalledPhysicalWritePlanRecipe",
             "prepareInstalledPhysicalWritePlanRecipe/extent/extent",
             "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe",
+            "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#2",
             "prepareInstalledPhysicalWritePlanRecipe/quote/quote",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected"
@@ -22019,6 +22116,10 @@
               {
                 "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
                 "anchor": "test('physical writer composer refuses missing mutable extra and invalid constructor metadata before native calls'"
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
               }
             ]
           }

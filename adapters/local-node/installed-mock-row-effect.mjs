@@ -6,7 +6,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {authorizationDispatchFacts, assertAuthorizationAccountCurrent}
   from '../host-common/authorization-gate.mjs';
-import {retainInstalledRowEffectAdapter} from '../host-node/installed-row-effect.mjs';
+import {retainInstalledRowEffectAdapter, installedRowEffectConstructionLimits} from '../host-node/installed-row-effect.mjs';
+import {prepareInstalledPhysicalWritePlanRecipe} from '../host-node/installed-effect-plan.mjs';
 import {installedUpdateTargets} from '../host-node/installed-effect-inventory.mjs';
 import {createMockFileTarget} from '../host-node/mock-file-target.mjs';
 
@@ -94,12 +95,13 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
   const {driver, site, resourceObservation} = mockRowEffectDriver({bundle, original, spec, physical, mapping, bindingCid,
     principalId, authorization, current, call, resources, io});
   try {
+    const managedPlanRecipe = mockFileEffectPlanRecipe(moon, bundle, spec.permission, spec.observe_permission);
     const effect = await original.effectMember.load({moon,
       mappings: prepared.mappings,
       environmentWire: prepared.environment.wire, connectorId: catalogue.connectorId,
       connectorRegistration: catalogue.registration, connectorRevision: catalogue.revision,
       connection: catalogue.connection, site, authorization, runtimeBundleCid,
-      bindingCid, ledgerRoot, driver, effectResources: resources,
+      bindingCid, ledgerRoot, driver, managedPlanRecipe, effectResources: resources,
       limits: {maxRows: targetLimits.maxRows}});
     current();
     const aliases = spec.aliases.map(name => Object.freeze({name,
@@ -116,6 +118,34 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
     }
     throw cause;
   }
+}
+
+// One finite file operation window. Common supplies parser/control tariffs;
+// only the actual declared projections and file/replacement buffers vary here.
+// Returned request/response DATA has the existing JSON recipe and output guard.
+function mockFileEffectPlanRecipe(moon, bundle, operation, targetReadOperation) {
+  const bytes = BigInt(targetLimits.maxFileBytes), nodes = BigInt(targetLimits.maxNodes);
+  const projections = BigInt(bundle.sources.reduce((sum, source) => sum + source.physical.length, 0));
+  const workspace = Object.freeze({nodes: 4n * nodes * projections,
+    text: bytes * projections, wire: bytes});
+  const zero = Object.freeze({nodes: 0n, text: 0n, wire: 0n});
+  const capacity = value => checked(moon.clientProgramInstalledSourceConstructionCapacity(
+    0n, 0n, 0n, value.nodes, value.text, value.wire));
+  const decode = checked(moon.clientProgramInstalledFileEffectConstructionCapacity(
+    capacity(zero), targetLimits.maxFileBytes, targetLimits.maxNodes, targetLimits.maxDepth));
+  const requestConstruction = checked(moon.clientProgramComposeInstalledSourceConstructionCapacity(
+    capacity(workspace), [decode]));
+  // Projection owns checked values, admitted wrappers and row/cell indexes;
+  // the file decoder is separate. Replacement Bytes coexist with original
+  // file backing. Write additionally copies replacement Bytes into its Buffer.
+  const construction = Object.freeze({retained: zero,
+    workspace: Object.freeze({...workspace, wire: 2n * bytes})});
+  const inputLimits = installedRowEffectConstructionLimits({maxRows: targetLimits.maxRows});
+  return prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputLimits,
+    construction, physicalConstruction: decode, requestConstruction, targetReadOperation,
+    limits: Object.freeze({maxRequestBytes: targetLimits.maxFileBytes,
+      maxRecoveryBytes: targetLimits.maxFileBytes, maxResponseBytes: targetLimits.maxResponseBytes,
+      maxOutcomeBytes: targetLimits.maxResponseBytes, maxTransferBytes: 2 * targetLimits.maxFileBytes})});
 }
 
 // Only this actual factory result retains the physical file owner. A copied
@@ -354,7 +384,7 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
       memberCurrent(member); description(selected, runOriginal); runCurrent(runOriginal);
       for (const entry of entries) own(entry.request, runOriginal);
     },
-    async observeTargets({member, entries, current: selected, authorizationForRow, signal, runOriginal}) {
+    async observeTargets({member, entries, current: selected, authorizationForRow, signal, runOriginal, ownedReadChild}) {
       memberCurrent(member); description(selected, runOriginal); runCurrent(runOriginal);
       const result = [];
       for (const [index, entry] of entries.entries()) {
@@ -364,13 +394,23 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
           continue;
         }
         let use, primary, observed, failed = false;
-        const child = file.readChild({signal, runOriginal,
+        const constructChild = () => {
+          const child = file.readChild({signal, runOriginal,
           assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
           async authorize() {use = consume('read', await authorizationForRow(index), selected);},
           consume(bytes) {const value = observe(admit(bytes), record.target);
             return {identity: record.target, versionCid: value.versionCid, before: value.before};}});
-        try {observed = await child.prepare();} catch (cause) {primary = cause; failed = true;}
-        await retireChild(child, failed, primary);
+          return Object.freeze({status: child.status, release: child.release, retry: child.retry,
+            async prepare() {
+              try {observed = await child.prepare();} catch (cause) {primary = cause; failed = true;}
+              // The detached before/version DATA cannot retain the file's
+              // parser. Observe its real close ACK before this window ends.
+              await retireChild(child, failed, primary);
+              return observed;
+            }});
+        };
+        observed = ownedReadChild === undefined ? await constructChild().prepare()
+          : await ownedReadChild(constructChild, index);
         result.push(observed);
       }
       return result;
@@ -380,10 +420,11 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
       const data = {binding: bindingCid, requests: entries.map(entry => own(entry.request).record)};
       const body = wire(data);
       if (Buffer.byteLength(body) > maximum) fail('MockEffectRecoveryLimit');
+      if (Buffer.byteLength(body) > maximum) fail('MockEffectRecoveryLimit');
       return {kind: 'mock-file-row-update', observationCid: hash(data), wire: body};
     },
     recoverRequests: recover, recoverMemberRequests: recover,
-    async send({member, request, current: selected, authorization: supplied, signal, runOriginal}) {
+    async send({member, request, current: selected, authorization: supplied, signal, runOriginal, physicalOperation}) {
       memberCurrent(member); description(selected, runOriginal); runCurrent(runOriginal);
       const {record, cid: requestCid} = own(request, runOriginal);
       let use, primary, failed = false;
@@ -391,13 +432,19 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
         assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
         authorize() {use = consume('write', supplied, selected);},
         replace(bytes) {
+          physicalOperation?.chargeBytes(BigInt(bytes.length));
           const document = admit(bytes), observed = observe(document, record.target);
           if (observed.versionCid !== record.version || wire(observed.before) !== wire(record.before)) {
             fail('MockTargetVersionConflict');
           }
-          return checked(call('update', document.selected, observed.row, record.version, wire(record.value), work));
+          const replacement = checked(call('update', document.selected, observed.row, record.version, wire(record.value), work));
+          physicalOperation?.chargeBytes(BigInt(replacement.length));
+          return replacement;
         }});
-      try {await child.prepare();} catch (cause) {primary = cause; failed = true;}
+      try {
+        physicalOperation?.retainPhysicalChild(child);
+        await child.prepare();
+      } catch (cause) {primary = cause; failed = true;}
       await retireChild(child, failed, primary);
       current();
       return Object.freeze({observation: Object.freeze({useCid: use.useCid, statusCode: 200,

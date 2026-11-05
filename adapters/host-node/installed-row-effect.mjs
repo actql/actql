@@ -1586,8 +1586,20 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const prepareCredentialOperation = async ({member, rowIndex, phase, operation,
     site, originalAuthorization, useId, resource, purpose, invoke,
     managedEffect, requestChildren, retireRequestAliases, runInvocationCid,
-    dispatchRequestCid, assertCurrent, signal, maxResponseBytes}) => {
+    dispatchRequestCid, assertCurrent, signal, maxResponseBytes, constructChild}) => {
     const recipe = recipeOf(member);
+    const ownedRead = recipe?.ownedReadOperations?.find(entry => entry.phase === phase);
+    if (ownedRead !== undefined) {
+      if (recipe.rowOperations[ownedRead.operationIndex].operation !== operation ||
+          managedEffect?.runtime !== moon || !Array.isArray(requestChildren) ||
+          typeof retireRequestAliases !== 'function' || typeof constructChild !== 'function') {
+        fail('InstalledEffectPhysicalPlanUnavailable');
+      }
+      return prepareInstalledRowCaptureChild({children: requestChildren,
+        create: () => prepareInstalledEffectOwnedRequestChild({run: managedEffect,
+          memberIndex: member.memberIndex, rowIndex, operationIndex: ownedRead.operationIndex, operation,
+          constructChild, requestsRetired: retireRequestAliases}), assertCurrent, signal});
+    }
     if (recipe?.physicalWrite !== undefined) {
       const selected = recipe.physicalWrite;
       if (phase !== 'write' || recipe.rowOperations[selected.operationIndex].operation !== operation ||
@@ -1632,6 +1644,18 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const managedReadChild = ({member, phase, physicalOperations, runInvocationCid,
     dispatchRequestCid, assertCurrent, signal}) => {
     const recipe = recipeOf(member);
+    const ownedRead = recipe?.ownedReadOperations?.find(entry => entry.phase === phase);
+    if (ownedRead !== undefined) {
+      if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
+      return Object.freeze({owned(constructChild, rowIndex) {
+        if (typeof constructChild !== 'function' || !Number.isSafeInteger(rowIndex) || rowIndex < 0) {
+          fail('ForeignInstalledEffectReadChild');
+        }
+        return physicalOperations({member, rowIndex, phase,
+          operation: recipe.rowOperations[ownedRead.operationIndex].operation,
+          constructChild, assertCurrent, signal});
+      }});
+    }
     const selected = recipe?.credentialOperations?.find(entry => entry.phase === phase);
     if (selected === undefined) return undefined;
     if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
@@ -1758,8 +1782,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       physicalOperations, runInvocationCid, dispatchRequestCid, assertCurrent, signal});
     const observed = await owned.observeTargets({member, entries, current,
       authorizationForRow: read.authorizationForRow, signal,
-      ...(readChild === undefined ? {} : {readChild: (authorization, input, rowIndex) =>
-        readChild(read.consumeOriginal(authorization, rowIndex), input, rowIndex)}),
+      ...(readChild === undefined ? {} : typeof readChild === 'function' ? {
+        readChild: (authorization, input, rowIndex) => readChild(read.consumeOriginal(authorization, rowIndex), input, rowIndex)
+      } : {ownedReadChild: readChild.owned}),
       ...resourceFields(member)});
     assertCurrent?.();
     if (!Array.isArray(observed) || observed.length !== entries.length) {

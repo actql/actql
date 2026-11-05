@@ -150,7 +150,8 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
 // Non-HTTP providers retain their actual pure constructor metadata. These six
 // extents describe returned/workspace DATA, never policy, grants or a Plan.
 // Common alone composes the native quantities, control codec and operation slots.
-export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputLimits, limits, construction}) {
+export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputLimits, limits, construction,
+  requestConstruction, physicalConstruction, targetReadOperation}) {
   if (typeof operation !== 'string' || !operation || !operation.isWellFormed() ||
       !construction || nodeTypes.isProxy(construction) || !Object.isFrozen(construction)) {
     fail('InstalledPhysicalWriteConstructionUnavailable');
@@ -175,16 +176,20 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
       !Number.isSafeInteger(limits[name]) || limits[name] < 1 || limits[name] > 2147483647)) {
     fail('InstalledPhysicalWriteConstructionUnavailable');
   }
-  const physical = checked(moon.clientProgramInstalledSourceConstructionCapacity(...selected));
+  const provider = checked(moon.clientProgramInstalledSourceConstructionCapacity(...selected));
+  const physical = physicalConstruction === undefined ? provider : checked(
+    moon.clientProgramComposeInstalledSourceConstructionCapacity(provider, [physicalConstruction]));
   const controlEntryBytes = checked(moon.clientProgramInstalledEffectControlWireBound(
     limits.maxOutcomeBytes, effectLedgerImplementationBounds.maxEntryBytes));
-  const quote = controlWireBytes => checked(moon.clientProgramInstalledPhysicalWriteRecipeCapacities(
+  const quote = controlWireBytes => checked(Reflect.apply(requestConstruction === undefined
+    ? moon.clientProgramInstalledPhysicalWriteRecipeCapacities
+    : moon.clientProgramInstalledPhysicalWriteRecipeCapacitiesWithRequest, moon, [
     inputLimits.body.maxBytes, inputLimits.body.maxNodes, inputLimits.body.maxDepth,
     inputLimits.preview.maxWireBytes, inputLimits.preview.maxNodes, inputLimits.preview.maxDepth,
     limits.maxRequestBytes, limits.maxRecoveryBytes, limits.maxResponseBytes,
     Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
     effectLedgerImplementationBounds.maxOutcomeNodes, effectLedgerImplementationBounds.maxOutcomeDepth,
-    physical, controlWireBytes));
+    physical, controlWireBytes, ...(requestConstruction === undefined ? [] : [requestConstruction])]));
   const quantities = quote(controlEntryBytes), fallback = quote(0);
   if (!Array.isArray(quantities) || quantities.length !== 6 || !Array.isArray(fallback) || fallback.length !== 6) {
     fail('InstalledPhysicalWriteConstructionUnavailable');
@@ -193,19 +198,32 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
   const capture = checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare(captureOperation, quantities));
   const extent = (name, capacity, transfer, physical) => checked(
     moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(name, capacity, transfer, physical));
+  const rowOperations = [
+    Object.freeze({operation: requestOperation, extent: extent(requestOperation, quantities[2], 0n, false)}),
+    Object.freeze({operation, extent: extent(operation, quantities[3], BigInt(limits.maxTransferBytes), true)}),
+  ];
+  let ownedReadOperations;
+  if (targetReadOperation !== undefined) {
+    if (requestConstruction === undefined || !text(targetReadOperation) || !targetReadOperation.isWellFormed()) {
+      fail('InstalledPhysicalWriteConstructionUnavailable');
+    }
+    ownedReadOperations = Object.freeze(['capture-target', 'apply-target', 'resume-target'].map(phase => {
+      const name = targetReadOperation + '.' + phase, operationIndex = rowOperations.length;
+      rowOperations.push(Object.freeze({operation: name, extent: extent(name, quantities[2], 0n, false)}));
+      return Object.freeze({phase, operationIndex});
+    }));
+  }
   return captureInstalledEffectPlanRecipe(Object.freeze({
     memberOperations: Object.freeze([Object.freeze({operation: captureOperation, extent: capture}),
       Object.freeze({operation: captureOperation, extent: capture})]),
-    rowOperations: Object.freeze([
-      Object.freeze({operation: requestOperation, extent: extent(requestOperation, quantities[2], 0n, false)}),
-      Object.freeze({operation, extent: extent(operation, quantities[3], BigInt(limits.maxTransferBytes), true)}),
-    ]),
+    rowOperations: Object.freeze(rowOperations),
+    ...(ownedReadOperations === undefined ? {} : {ownedReadOperations}),
     savedControlCodec: Object.freeze({maxEntryBytes: controlEntryBytes, fallbackCapacity: fallback[4]}),
     controlsPerRow: quantities[4], captureConstruction: Object.freeze({operationIndex: 0}),
     recoveryConstruction: Object.freeze({operationIndex: 1}),
     requestConstruction: Object.freeze({operationIndex: 0}),
     physicalWrite: Object.freeze({operationIndex: 1, transferBytes: BigInt(limits.maxTransferBytes)}),
-  }), 4);
+  }), rowOperations.length + 2);
 }
 
 // The selected Host supplies original typed extents from its actual implementation
@@ -233,6 +251,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(Object.hasOwn(recipe, 'captureConstruction') ? ['captureConstruction'] : []),
     ...(Object.hasOwn(recipe, 'recoveryConstruction') ? ['recoveryConstruction'] : []),
     ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : []),
+    ...(Object.hasOwn(recipe, 'ownedReadOperations') ? ['ownedReadOperations'] : []),
     ...(Object.hasOwn(recipe, 'physicalWrite') ? ['physicalWrite'] : [])]);
   const operations = name => {
     const values = fields[name].value;
@@ -352,7 +371,26 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
         typeof transferBytes !== 'bigint' || transferBytes < 0n) fail('InvalidInstalledEffectPlanRecipe');
     physicalWrite = Object.freeze({operationIndex, transferBytes});
   }
+  let ownedReadOperations;
+  if (fields.ownedReadOperations !== undefined) {
+    const values = fields.ownedReadOperations.value;
+    if (!Array.isArray(values) || values.length < 1 || values.length > 3 || credentialOperations !== undefined) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    const phases = new Set(), indexes = new Set([requestConstruction?.operationIndex,
+      requestFinalization?.operationIndex, physicalWrite?.operationIndex]);
+    ownedReadOperations = Object.freeze(values.map(value => {
+      const entry = own(value, ['phase', 'operationIndex']);
+      const phase = entry.phase.value, operationIndex = entry.operationIndex.value;
+      if (!['capture-target', 'apply-target', 'resume-target'].includes(phase) || phases.has(phase) ||
+          !Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= rowOperations.length ||
+          indexes.has(operationIndex)) fail('InvalidInstalledEffectPlanRecipe');
+      phases.add(phase); indexes.add(operationIndex);
+      return Object.freeze({phase, operationIndex});
+    }));
+  }
   return Object.freeze({memberOperations, rowOperations,
+    ...(ownedReadOperations === undefined ? {} : {ownedReadOperations}),
     ...(savedControlCodec === undefined ? {} : {savedControlCodec}),
     ...(controlsPerRow === undefined ? {} : {controlsPerRow}),
     ...(requestConstruction === undefined ? {} : {requestConstruction}),
@@ -460,7 +498,7 @@ export function prepareInstalledEffectOwnedRequestChild({constructChild, ...opti
       if (typeof methods[name] !== 'function') fail('InvalidInstalledRowRequestChild');
     }
   };
-  const managed = prepareInstalledEffectRequestChild({...options,
+  const managed = prepareInstalledEffectConstructorChild({...options,
     requestsRetired: () => retired && requestsRetired() === true,
     construct() {
       child = constructChild(); // Retain before even a fallible method getter.
@@ -477,7 +515,7 @@ export function prepareInstalledEffectOwnedRequestChild({constructChild, ...opti
       const result = Reflect.apply(methods.prepare, child, []);
       if (stopping) fail('InstalledEffectRequestChildRetired');
       return result;
-    }});
+    }}, true);
   const drain = retry => {
     stopping = true;
     if (opening || invoking) return false;
@@ -512,8 +550,14 @@ export function prepareInstalledEffectOwnedRequestChild({constructChild, ...opti
     release: () => drain(false), retry: () => drain(true), status: managed.status});
 }
 
-export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
-  operationIndex, operation, perRow = true, construct: originalConstruct, inputExtent: originalInputExtent, requestsRetired}) {
+export function prepareInstalledEffectRequestChild(options) {
+  return prepareInstalledEffectConstructorChild(options);
+}
+
+// Only the retained owned-child wrapper above can join asynchronous physical
+// preparation. An arbitrary constructor Promise keeps the strict refusal below.
+function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
+  operationIndex, operation, perRow = true, construct: originalConstruct, inputExtent: originalInputExtent, requestsRetired}, ownedChild = false) {
   if (run === undefined || typeof perRow !== 'boolean' || typeof originalConstruct !== 'function' ||
       typeof requestsRetired !== 'function') fail('InstalledEffectConstructorUnavailable');
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run;
@@ -576,6 +620,30 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
         const value = construct();
         if (nodeTypes.isPromise(value)) {
           pendingConstructor = value;
+          if (ownedChild) {
+            // The private wrapper already retained the actual child and all
+            // cleanup methods BEFORE calling prepare. Keep construction live
+            // until that same native task settles, then recheck its original.
+            return new NativePromise((resolve, reject) => {
+              const failed = cause => {
+                pendingConstructor = undefined;
+                preparing = false;
+                state = 'failed';
+                reject(cause);
+              };
+              Reflect.apply(nativePromiseThen, value, [result => {
+                pendingConstructor = undefined;
+                try {
+                  originalRecord();
+                  checked(Reflect.apply(complete, runtime, [token]));
+                  originalRecord();
+                  preparing = false;
+                  state = 'prepared';
+                  resolve(result);
+                } catch (cause) {failed(cause);}
+              }, failed]);
+            });
+          }
           // Observe the native original before any replaceable public then.
           // Failed species/constructor observation rejects this wrapper, but
           // leaves the SAME unjoined task and its body in this child's custody.
