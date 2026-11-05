@@ -503,3 +503,82 @@ test('same-stage Source admission reentry preserves the original pending Scope d
   assert.equal(await f.cleanup().cleanup(), true);
   assert.deepEqual(f.calls.slice(-2), ['same read retirement', 'same Scope finish']);
 });
+
+function restoredComposedSourceFixture({missing, retireAfterFirst = false} = {}) {
+  const source = readFileSync(new URL('./installed-composed-infer-run.mjs', import.meta.url), 'utf8');
+  let branch;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'IfStatement' && source.slice(node.test.start, node.test.end) ===
+        'restoredSourceCount !== undefined && !sourceFree') {
+      assert.equal(branch, undefined); branch = node;
+    }
+    for (const child of Object.values(node)) {
+      if (Array.isArray(child)) child.forEach(visit); else if (child && typeof child === 'object') visit(child);
+    }
+  })(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert(branch);
+  const prepared = {}, saved = {}, selected = [{}, {}], metadata = [{}, {}], adapters = [{}, {}],
+    accesses = [{}, {}], calls = [], boundary = new Error('same continuation authorization boundary');
+  const coordinates = [[4, 1, 0], [6, 2, 1]], token = {snapshot: {sourceContinuation: saved}};
+  let current = true;
+  const continuation = {
+    accessFor(access, occurrence) {assert.equal(access, accesses[occurrence.task]); calls.push('same access');},
+    async prepared(originals) {
+      assert.deepEqual(originals.map(value => value.preparedSource), metadata);
+      assert.deepEqual(originals.map(value => value.adapter), adapters);
+      calls.push('same original continuation'); throw boundary;
+    },
+  };
+  const original = {
+    sourceCoordinates: coordinates, sourceLedger() {assert.fail('No physical restore before authorization');},
+    prepareSource(occurrence, construct) {
+      assert.deepEqual([occurrence.stage, occurrence.input, occurrence.task], coordinates[occurrence.task]);
+      assert(Object.isFrozen(occurrence)); calls.push('same recovery reservation');
+      return construct(selected[occurrence.task]);
+    },
+  };
+  const ports = {restoredSourceCount: 2, sourceFree: false, originalPreparation: original,
+    acquiredInfer: undefined, historical: {token}, children: [{token}, {token}],
+    checkpoints: {}, submission: {}, declaredResults: [], principalId: 'fixture', signal: new AbortController().signal,
+    runId: 'fixture', plan: {runDefinition: {identity: 'fixture'}}, preparedProgram: prepared, moon: {}, control: {},
+    assertCurrent() {if (!current) throw boundary;}, canonicalJson: JSON.stringify,
+    prepareAcquisition() {assert.fail('No fresh ManagedRun, Source or capture preparation');},
+    prepareRetainedAcquisition(p, occurrence, source) {
+      assert.equal(p, prepared); assert.equal(source, selected[occurrence.task]);
+      calls.push('retained metadata'); if (retireAfterFirst) current = false;
+      return metadata[occurrence.task];
+    },
+    sourceAdapterFor(value) {return adapters[metadata.indexOf(value)];},
+    sourceAccessFor(value) {return accesses[metadata.indexOf(value)];},
+    acquiredEffectContinuation(options) {
+      assert.equal(options.restore.continuation, saved); assert.equal(options.acquired.prepared, prepared);
+      calls.push('retain same continuation'); return continuation;
+    },
+  };
+  if (missing === 'prepareSource') delete original.prepareSource;
+  if (missing === 'prepareRetainedAcquisition') ports.prepareRetainedAcquisition = undefined;
+  const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
+  const run = new AsyncFunction(...Object.keys(ports),
+    `let sourceContinuation;try {${source.slice(branch.consequent.start, branch.consequent.end)}}
+     catch(error) {return {error, sourceContinuation};}throw new Error('Expected original boundary');`);
+  return {run: () => run(...Object.values(ports)), calls, boundary, continuation};
+}
+
+test('restored composed Model uses its existing funded retained Source metadata path', async () => {
+  const f = restoredComposedSourceFixture(), result = await f.run();
+  assert.equal(result.error, f.boundary); assert.equal(result.sourceContinuation, f.continuation);
+  assert.deepEqual(f.calls, ['retain same continuation', 'same recovery reservation', 'retained metadata',
+    'same access', 'same recovery reservation', 'retained metadata', 'same access', 'same original continuation']);
+});
+
+test('restored composed Source missing ports or current loss never falls back to fresh preparation', async () => {
+  for (const missing of ['prepareSource', 'prepareRetainedAcquisition']) {
+    const f = restoredComposedSourceFixture({missing}), result = await f.run();
+    assert.equal(result.error.message, 'ModelSourceClosureCustodyUnavailable');
+    assert.equal(result.sourceContinuation, undefined); assert.deepEqual(f.calls, []);
+  }
+  const f = restoredComposedSourceFixture({retireAfterFirst: true}), result = await f.run();
+  assert.equal(result.error, f.boundary); assert.equal(result.sourceContinuation, f.continuation);
+  assert.deepEqual(f.calls, ['retain same continuation', 'same recovery reservation', 'retained metadata']);
+});

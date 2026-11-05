@@ -169,7 +169,7 @@ function sourceFreeModelsPreparation(moon, control, prepared, plan, selected, mo
 
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
-  checkpoints, prepareAcquisition, prepareRetainedAcquisition, sourceAccessFor, sourceAdapterFor, runContent, prepareKeyedRecovery,
+  checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor, runContent, prepareKeyedRecovery,
   prepareOriginalMockRun, prepareOriginalModelRun, prepareModelRecoveryPlan,
   computeConfigurations = {}}) {
   const control = core.publicationControl;
@@ -265,7 +265,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           selected: selected.components === undefined ? {...selected, components: [selected]} : selected,
           store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork, submission,
           existingModel, modelClaim, assertCurrent, modelController, inferEvidence, checkpoints,
-          prepareAcquisition, sourceAccessFor, sourceAdapterFor, namespaceId, authorityScopeCid, storeAuthorityCid,
+          prepareAcquisition, prepareRetainedAcquisition, sourceAccessFor, sourceAdapterFor, namespaceId, authorityScopeCid, storeAuthorityCid,
           now, faultInjection, registry, values, fragment, ordered, computeConfigurations,
           originalPreparation: restoredRequestModel});
       }
