@@ -5744,7 +5744,11 @@ saved material funds those metadata constructors before they run.
 
 The recovery Request grows its original preparation census before binding the
 existing Model Scope or closed Scope group. Selected opaque Limits and actual
-installed read/model extents remain separate from construction costs. The group
+installed read/model extents remain separate from construction costs. Scope
+admission preserves the stored Model Ledger floor independently of the legacy
+nine-field read allowances; a larger installed Model envelope remains required
+where declared. The Read descriptor and later consumer keep their original
+read-side amounts. The group
 uses the existing quantity-contract fold and original read partitions. The Host
 retains the entire returned Scope array before any current callback, and retains
 one attempted Read or its exact thrown failure on the same member. Restored
