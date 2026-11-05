@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "1ab824c7ad999ac143351395f7b1e6d7ce5143b9c1bf202190bf12c20a4b5cbe",
+      "sha256": "2bbe4e404d040abe7527babb1f349da6fb47a15a16f9c29a712f889a7bb7e973",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -105,14 +105,14 @@
           "async": true
         },
         {
-          "name": "openAcquiredEffectComputation/handleModelPause/handleModelPause",
+          "name": "openAcquiredEffectComputation/handleModelPause",
           "parameters": [
             "boundary"
           ],
           "async": true
         },
         {
-          "name": "openAcquiredEffectComputation/handleModelPause/handleModelPause/cleanupHandle/cleanupHandle",
+          "name": "openAcquiredEffectComputation/handleModelPause/cleanupHandle/cleanupHandle",
           "parameters": [],
           "async": false
         },
@@ -184,6 +184,13 @@
           "async": false
         },
         {
+          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
           "parameters": [
             "slot"
@@ -235,7 +242,7 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#9",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
@@ -298,6 +305,22 @@
         },
         {
           "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/sourceEvidence/sourceEvidence",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectRestoredKeyedSource",
+          "parameters": [
+            "moon",
+            "originals",
+            "direct"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectRestoredKeyedSource/matching/matching",
           "parameters": [
             "value"
           ],
@@ -390,8 +413,8 @@
             "openAcquiredEffectComputation/custody/custody",
             "openAcquiredEffectComputation/custody/init:cleanup/init:cleanup",
             "openAcquiredEffectComputation/custody/init:close/init:close",
-            "openAcquiredEffectComputation/handleModelPause/handleModelPause",
-            "openAcquiredEffectComputation/handleModelPause/handleModelPause/cleanupHandle/cleanupHandle",
+            "openAcquiredEffectComputation/handleModelPause",
+            "openAcquiredEffectComputation/handleModelPause/cleanupHandle/cleanupHandle",
             "openAcquiredEffectComputation/inferCleanupPending/inferCleanupPending",
             "openAcquiredEffectComputation/init:observeAccount/init:observeAccount",
             "openAcquiredEffectComputation/init:retain/init:retain",
@@ -875,6 +898,84 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
+            "selectRestoredKeyedSource",
+            "selectRestoredKeyedSource/matching/matching"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The cold JS caller drives the same restored operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Publication projects the original Source leaves"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The private control unwraps the actual compiled and Definition tokens"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The existing computation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Construction reentry remains pending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "False or throwing retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "existing stop, reverse output close and retention refresh engine"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "must still fund the simultaneous constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('failed restored Host constructor keeps the original pin"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('restored composed provider drives its same original operation"
+              },
+              {
+                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
+                "anchor": "captured consumer retirement retains original Result pins through same retry"
               }
             ]
           }

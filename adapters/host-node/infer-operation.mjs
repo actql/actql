@@ -5,7 +5,7 @@ import {runtimeFailure, runtimeField, runtimeTriple} from '../host-common/compil
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {types as utilTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
-import {claimInferIoNotification} from './infer-io-notification.mjs';
+import {claimInferIoNotification, createInferIoNotification} from './infer-io-notification.mjs';
 import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits,
   selectedInferOriginalPublicationCapacity, selectedInferOriginalCurrentStateCodec} from './infer-original-installation.mjs';
 import {originalModelRawTransportPersistenceMatches, bindOriginalModelRawTransportPersistence}
@@ -353,7 +353,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     throw new TypeError('InvalidSerializedInferInput');
   }
   if (ioNotification !== undefined && (provider === undefined ||
-      composedInput !== undefined && !originalComposedRun)) {
+      composedInput !== undefined && !originalComposedRun && !restoringOriginal)) {
     throw new TypeError('InvalidInferIoNotificationProfile');
   }
   let io = ioNotification === undefined ? undefined : claimInferIoNotification(ioNotification);
@@ -589,7 +589,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
 
   function run() {
-    if (composedInput !== undefined && !originalComposedRun || serializedInput?.inputs !== undefined) {
+    if (composedInput !== undefined && !originalComposedRun && !restoringOriginal || serializedInput?.inputs !== undefined) {
       return Promise.reject(new Error('InferComponentDrivenByLocal'));
     }
     if (closing || reclaimed) {
@@ -1225,8 +1225,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 }
 
 // One original Model component is opened by the common Local task driver,
-// after it has bound actual producer reads. Local alone advances it. The
-// installing Run retains physical custody before binding current admissions.
+// after it has bound actual producer reads. Local advances fresh components;
+// the genuine restored entrance can drive its retained input before Host open.
+// The installing Run retains custody before binding current admissions.
 export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
   durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false,
@@ -1270,8 +1271,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   const generated = generatedInput !== undefined || deferredGeneratedInput;
   const selectProvider = generated
     ? moon.clientProgramGeneratedInferLocalProvider : moon.clientProgramComposedInferLocalProvider;
-  const provider = selectProvider(
-    selected.occurrence, inputs => {
+  const openOriginal = (inputs, ioNotification) => {
       try {
         if (attempted || operation !== undefined || readAttempted || deferredRead && failure !== undefined) {
           if (failureRecorded) throw failure;
@@ -1316,7 +1316,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
             ? selected.computeSuffix : undefined, provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
-          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,
+          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput, ioNotification,
           ...(restoredInput === undefined ? {originalPreparation: preparation}
             : {restoredPreparation: preparation}), bindComputeSuffix, assertRuntimeCurrent,
           retainOperation(value) { operation = value; retainOperation(value); }});
@@ -1329,7 +1329,9 @@ export function openNodeComposedInferProvider({moon, selected, sources,
         recordFailure(error);
         return undefined;
       }
-    }, issue => {
+    };
+  const provider = selectProvider(
+    selected.occurrence, openOriginal, issue => {
       recordFailure(Object.assign(new Error('ComposedInferComponentFailed'),
         {code: 'MoonBitHostFailure', cause: issue}));
     }, active => {
@@ -1348,6 +1350,19 @@ export function openNodeComposedInferProvider({moon, selected, sources,
     ...(!generated ? [computePrefix] : []));
   const component = Object.freeze({provider, operation: () => operation,
     failure: () => failure, hasFailure: () => failureRecorded,
+    startRestored() {
+      if (failureRecorded) throw failure;
+      if (attempted) throw new Error('ComposedInferAlreadyOpened');
+      if (!bound || generated || restoredInput?.savedScope === undefined || !deferredRead) {
+        throw new Error('RestoredComposedInferOriginalUnavailable');
+      }
+      // The typed restored entrance uses the original retained input/Saved
+      // Scope. No Local input array or second provider read is substituted.
+      openOriginal([], selected.entryPersistence === 'async' ? createInferIoNotification() : undefined);
+      if (failureRecorded) throw failure;
+      if (operation === undefined) throw new Error('RestoredComposedInferOriginalUnavailable');
+      return operation;
+    },
     ...(deferred ? {bindOriginal(context) {
       if (bound || attempted) throw new Error('ComposedInferAlreadyBound');
       const read = name => Object.getOwnPropertyDescriptor(context ?? {}, name)?.value;

@@ -1991,3 +1991,24 @@ test "next Ledger codec funds its own retained demand beside original controls a
     is None,
   )
 }
+
+///|
+test "partial restored Host cleanup fences construction and preserves the same original parent" {
+  let (_, _, _, owner, ledger) = effect_operation_borrow_fixture()
+  let before = @resources.ledger_usage(ledger)
+  owner.source_free_opening = true
+  assert_true(retire_installed_effect_captured_consumers(owner) is Ok(false))
+  owner.source_free_opening = false
+  owner.effect_operation_opening = true
+  assert_true(retire_installed_effect_captured_consumers(owner) is Ok(false))
+  owner.effect_operation_opening = false
+  let copied = { ..owner, source_free_opening: false, }
+  assert_true(
+    retire_installed_effect_captured_consumers(copied) is Err(ForeignOriginal),
+  )
+  // No captured DAG was attached at this boundary. The same original owner's
+  // closed constructor proves that, not absence of a JS Host wrapper.
+  assert_true(retire_installed_effect_captured_consumers(owner) is Ok(true))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  retire_installed_managed_run(owner).unwrap()
+}

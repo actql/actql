@@ -1788,9 +1788,6 @@
             "publicationControl/init:bindTableInput/init:bindTableInput",
             "publicationControl/init:bindTablePreview/init:bindTablePreview",
             "publicationControl/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
-            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
-            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
-            "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:capturedContentGenerationCount/init:capturedContentGenerationCount",
             "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
             "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
@@ -1821,15 +1818,15 @@
             "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#2",
             "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#3",
             "publicationControl/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
+            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
             "publicationControl/init:checkCheckedClientInferOriginalPreRestoreOrigin/init:checkCheckedClientInferOriginalPreRestoreOrigin",
             "publicationControl/init:checkClientCompiledEffectRunOwner/init:checkClientCompiledEffectRunOwner",
             "publicationControl/init:checkClientCompiledRunDefinition/init:checkClientCompiledRunDefinition",
             "publicationControl/init:checkClientCompiledRunOwner/init:checkClientCompiledRunOwner",
             "publicationControl/init:checkClientRunDefinitionBinding/init:checkClientRunDefinitionBinding",
-            "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
-            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
-            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
             "publicationControl/init:checkedClientCompiledEffectProgram/init:checkedClientCompiledEffectProgram",
             "publicationControl/init:checkedClientEffectInferInvocation/init:checkedClientEffectInferInvocation",
             "publicationControl/init:checkedClientInferOriginalReadScopeLive/init:checkedClientInferOriginalReadScopeLive",
@@ -1845,6 +1842,9 @@
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "publicationControl/init:checkedClientStoredRunCapturedContentCandidate/init:checkedClientStoredRunCapturedContentCandidate",
+            "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
+            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
+            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
             "publicationControl/init:claimCheckedClientInferNodePreparationLayout/init:claimCheckedClientInferNodePreparationLayout",
             "publicationControl/init:committedPublicationFinalizationAction/init:committedPublicationFinalizationAction",
             "publicationControl/init:compiledInferEvaluationPolicy/init:compiledInferEvaluationPolicy",
@@ -1867,6 +1867,10 @@
             "publicationControl/init:effectComputationRecordHoldingCid/init:effectComputationRecordHoldingCid",
             "publicationControl/init:effectFreeChainValid/init:effectFreeChainValid",
             "publicationControl/init:effectFreeCommitValid/init:effectFreeCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
+            "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
             "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState",
             "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState",
@@ -1875,10 +1879,6 @@
             "publicationControl/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
             "publicationControl/init:effectSourceArtifactPreviewBinding/init:effectSourceArtifactPreviewBinding",
             "publicationControl/init:effectTableSourceArtifactPreviewBinding/init:effectTableSourceArtifactPreviewBinding",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
-            "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:existingDeliveryAttemptAction/init:existingDeliveryAttemptAction",
@@ -1916,6 +1916,12 @@
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt#2",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
+            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
+            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueEffectResultImportObservation/init:issueEffectResultImportObservation",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
@@ -1923,12 +1929,6 @@
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
             "publicationControl/init:issueEffectSourceArtifactFromExport/init:issueEffectSourceArtifactFromExport",
             "publicationControl/init:issueEffectTableSourceArtifactFromExport/init:issueEffectTableSourceArtifactFromExport",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
-            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
-            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/owned/owned",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value",
@@ -1936,10 +1936,10 @@
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest/owned/owned",
             "publicationControl/init:issueManifestReadGrant/init:issueManifestReadGrant",
-            "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
             "publicationControl/init:issuePublicationAttempt/init:issuePublicationAttempt",
             "publicationControl/init:issuePublicationRecord/init:issuePublicationRecord",
             "publicationControl/init:issuePublicationRequest/init:issuePublicationRequest",
+            "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
             "publicationControl/init:issueResultArtifact/init:issueResultArtifact",
             "publicationControl/init:issueResultDeliveryReceipt/init:issueResultDeliveryReceipt",
             "publicationControl/init:issueResultManifest/init:issueResultManifest",
@@ -1987,7 +1987,6 @@
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
             "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
             "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
-            "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
             "publicationControl/init:publicationAttemptAction/init:publicationAttemptAction",
             "publicationControl/init:publicationCancellationAction/init:publicationCancellationAction",
             "publicationControl/init:publicationCleanupOwnerAction/init:publicationCleanupOwnerAction",
@@ -2001,6 +2000,7 @@
             "publicationControl/init:publicationPreparedReleaseAction/init:publicationPreparedReleaseAction",
             "publicationControl/init:publicationSetupAction/init:publicationSetupAction",
             "publicationControl/init:publicationUnknownRetryAction/init:publicationUnknownRetryAction",
+            "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
             "publicationControl/init:readCheckedClientComposedInferSavedInputScope/init:readCheckedClientComposedInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSavedInputScope/init:readCheckedClientInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSlotReplay/init:readCheckedClientInferSlotReplay",
@@ -2009,10 +2009,10 @@
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
+            "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "publicationControl/init:readModelOriginalResourceDocument/init:readModelOriginalResourceDocument",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
-            "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "publicationControl/init:recordAllowsCommit/init:recordAllowsCommit",
             "publicationControl/init:recordResultAccessGrant/init:recordResultAccessGrant",
             "publicationControl/init:recordResultAccessInitialAvailability/init:recordResultAccessInitialAvailability",
@@ -2095,6 +2095,10 @@
             "publicationControl/token/token",
             "remoteBundleControl",
             "remoteBundleControl/remoteBundleControl",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
             "remoteBundleControl/remoteBundleControl#10",
             "remoteBundleControl/remoteBundleControl#11",
             "remoteBundleControl/remoteBundleControl#12",
@@ -2138,10 +2142,6 @@
             "remoteBundleControl/remoteBundleControl#7",
             "remoteBundleControl/remoteBundleControl#8",
             "remoteBundleControl/remoteBundleControl#9",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
             "remoteCredentialControl",
             "remoteCredentialControl/grantFields/grantFields",
             "remoteCredentialControl/init:authorizeUse/init:authorizeUse",
@@ -2286,6 +2286,9 @@
             "remoteTransferControl",
             "remoteTransferControl/int64/int64",
             "remoteTransferControl/remoteTransferControl",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
             "remoteTransferControl/remoteTransferControl#10",
             "remoteTransferControl/remoteTransferControl#11",
             "remoteTransferControl/remoteTransferControl#12",
@@ -2323,9 +2326,6 @@
             "remoteTransferControl/remoteTransferControl#7",
             "remoteTransferControl/remoteTransferControl#8",
             "remoteTransferControl/remoteTransferControl#9",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
             "remoteTransferControl/requestFields/requestFields",
             "remoteTransferControl/requestFields/requestFields/requestFields",
             "remoteTransferControl/requestFields/requestFields/requestFields#2",
@@ -2359,9 +2359,9 @@
             "runtimeCore/runtimeCore#9",
             "siteControl",
             "siteControl/siteControl",
+            "siteControl/siteControl/siteControl",
             "siteControl/siteControl#2",
             "siteControl/siteControl#3",
-            "siteControl/siteControl/siteControl",
             "tuplePair/tuplePair",
             "usageKeys/usageKeys",
             "usageKeys/usageKeys/usageKeys"
@@ -3900,11 +3900,11 @@
         },
         {
           "operations": [
-            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
             "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
             "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
             "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
-            "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals#2"
+            "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals#2",
+            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner"
           ],
           "exports": [],
           "attributes": {
@@ -5206,11 +5206,11 @@
             "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelProviderComponentCaptureModule/init:prepareCheckedClientRequestModelProviderComponentCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreeComponentModule/init:prepareCheckedClientRequestModelSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
@@ -6946,6 +6946,84 @@
               {
                 "path": "src/client_local_host/installed_effect_content_wbtest.mbt",
                 "anchor": "test \"Effect Content plan retains and quotes the same original family without physical entry\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:openCheckedClientInstalledRestoredModelEffectHost/init:openCheckedClientInstalledRestoredModelEffectHost",
+            "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
+            "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The cold JS caller drives the same restored operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Publication projects the original Source leaves"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The private control unwraps the actual compiled and Definition tokens"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The existing computation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Construction reentry remains pending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "False or throwing retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "existing stop, reverse output close and retention refresh engine"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "must still fund the simultaneous constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('failed restored Host constructor keeps the original pin"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('restored composed provider drives its same original operation"
+              },
+              {
+                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
+                "anchor": "captured consumer retirement retains original Result pins through same retry"
               }
             ]
           }
@@ -10927,6 +11005,19 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:openCheckedClientInstalledRestoredModelEffectHost/init:openCheckedClientInstalledRestoredModelEffectHost",
+          "parameters": [
+            "compiled",
+            "definition",
+            "managedRun",
+            "bound",
+            "sources",
+            "heldOutput",
+            "graph"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:openCheckedClientRequestModelRecoveryHost/init:openCheckedClientRequestModelRecoveryHost",
           "parameters": [
             "parent",
@@ -12084,6 +12175,24 @@
             "compiled",
             "definition",
             "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
+          "parameters": [
+            "compiled",
+            "definition",
+            "scope",
+            "occurrence",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -14963,7 +15072,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "12163e5d2e21f305416d493b8438bd44e1ce1fb7d585a0940cef72b2125751bd"
+      "sha256": "fc824a364648125a3e92aaea91da7e50336a661203203dc7836d53f648b400fa"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -15686,11 +15795,11 @@
             "openNodeComposedInferProvider/component/component#3",
             "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal",
             "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal/read/read",
+            "openNodeComposedInferProvider/openOriginal/openOriginal",
+            "openNodeComposedInferProvider/openOriginal/openOriginal/init:retainOperation/init:retainOperation",
             "openNodeComposedInferProvider/provider/provider",
             "openNodeComposedInferProvider/provider/provider#2",
             "openNodeComposedInferProvider/provider/provider#3",
-            "openNodeComposedInferProvider/provider/provider#4",
-            "openNodeComposedInferProvider/provider/provider/init:retainOperation/init:retainOperation",
             "openNodeComposedInferProvider/recordFailure/recordFailure",
             "openNodeComposedInferProvider/selectRead/selectRead",
             "openNodeInferOperation",
@@ -15702,13 +15811,13 @@
             "openNodeInferOperation/drive",
             "openNodeInferOperation/observeOriginalRuntime",
             "openNodeInferOperation/openNodeInferOperation",
+            "openNodeInferOperation/openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/openNodeInferOperation#2",
             "openNodeInferOperation/openNodeInferOperation#3",
             "openNodeInferOperation/openNodeInferOperation#4",
             "openNodeInferOperation/openNodeInferOperation#5",
             "openNodeInferOperation/openNodeInferOperation#6",
             "openNodeInferOperation/openNodeInferOperation#7",
-            "openNodeInferOperation/openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparison/init:advanceOriginalCurrentStateComparison",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparisonWithMatch/init:advanceOriginalCurrentStateComparisonWithMatch",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateDecode/init:advanceOriginalCurrentStateDecode",
@@ -15739,6 +15848,14 @@
             "openNodeInferOperation/operation/init:startOriginalCurrentStateComparison/init:startOriginalCurrentStateComparison",
             "openNodeInferOperation/operation/init:startOriginalCurrentStateDecode/init:startOriginalCurrentStateDecode",
             "openNodeInferOperation/operation/operation",
+            "openNodeInferOperation/operation/operation/operation",
+            "openNodeInferOperation/operation/operation/operation#2",
+            "openNodeInferOperation/operation/operation/operation#3",
+            "openNodeInferOperation/operation/operation/operation#4",
+            "openNodeInferOperation/operation/operation/operation#5",
+            "openNodeInferOperation/operation/operation/owners/owners",
+            "openNodeInferOperation/operation/operation/saved/saved",
+            "openNodeInferOperation/operation/operation/slotWires/slotWires",
             "openNodeInferOperation/operation/operation#10",
             "openNodeInferOperation/operation/operation#11",
             "openNodeInferOperation/operation/operation#12",
@@ -15787,14 +15904,6 @@
             "openNodeInferOperation/operation/operation#7",
             "openNodeInferOperation/operation/operation#8",
             "openNodeInferOperation/operation/operation#9",
-            "openNodeInferOperation/operation/operation/operation",
-            "openNodeInferOperation/operation/operation/operation#2",
-            "openNodeInferOperation/operation/operation/operation#3",
-            "openNodeInferOperation/operation/operation/operation#4",
-            "openNodeInferOperation/operation/operation/operation#5",
-            "openNodeInferOperation/operation/operation/owners/owners",
-            "openNodeInferOperation/operation/operation/saved/saved",
-            "openNodeInferOperation/operation/operation/slotWires/slotWires",
             "openNodeInferOperation/prepare/prepare",
             "openNodeInferOperation/requestStop/requestStop",
             "openNodeInferOperation/retainRawCaptureBinder/retainRawCaptureBinder",
@@ -16216,7 +16325,7 @@
         },
         {
           "operations": [
-            "openNodeComposedInferProvider/provider/provider/provider"
+            "openNodeComposedInferProvider/openOriginal/openOriginal/openOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -16629,6 +16738,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openNodeComposedInferProvider/component/init:startRestored/init:startRestored"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The cold JS caller drives the same restored operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Publication projects the original Source leaves"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The private control unwraps the actual compiled and Definition tokens"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The existing computation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Construction reentry remains pending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "False or throwing retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "existing stop, reverse output close and retention refresh engine"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "must still fund the simultaneous constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('failed restored Host constructor keeps the original pin"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('restored composed provider drives its same original operation"
+              },
+              {
+                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
+                "anchor": "captured consumer retirement retains original Result pins through same retry"
+              }
+            ]
+          }
         }
       ],
       "exports": [
@@ -16755,40 +16940,46 @@
           "async": false
         },
         {
-          "name": "openNodeComposedInferProvider/provider/provider",
+          "name": "openNodeComposedInferProvider/component/init:startRestored/init:startRestored",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeComposedInferProvider/openOriginal/openOriginal",
           "parameters": [
-            "inputs"
+            "inputs",
+            "ioNotification"
           ],
           "async": false
         },
         {
-          "name": "openNodeComposedInferProvider/provider/provider/init:retainOperation/init:retainOperation",
+          "name": "openNodeComposedInferProvider/openOriginal/openOriginal/init:retainOperation/init:retainOperation",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "openNodeComposedInferProvider/provider/provider/provider",
+          "name": "openNodeComposedInferProvider/openOriginal/openOriginal/openOriginal",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openNodeComposedInferProvider/provider/provider#2",
+          "name": "openNodeComposedInferProvider/provider/provider",
           "parameters": [
             "issue"
           ],
           "async": false
         },
         {
-          "name": "openNodeComposedInferProvider/provider/provider#3",
+          "name": "openNodeComposedInferProvider/provider/provider#2",
           "parameters": [
             "active"
           ],
           "async": false
         },
         {
-          "name": "openNodeComposedInferProvider/provider/provider#4",
+          "name": "openNodeComposedInferProvider/provider/provider#3",
           "parameters": [
             "active"
           ],
@@ -17764,7 +17955,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "1eb1d4d75303a38a44518669e3468238686db498c4487a1f7ebff1666aed940c"
+      "sha256": "ccaa3c9ee9e10711e3bae44ad796d31bf85d1c790e39c8de1e5e4a6b8bedba52"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -32835,7 +33026,7 @@
     },
     {
       "module": "src/client_local_host/host.mbt",
-      "sha256": "f92cc9302c850abc2c979d54f3044113798d65c0c407f3be9336fe01331b87c3",
+      "sha256": "cb6c7774fdfa8779d646d3111642a9850e3f451f303740ec2c2bb0ef9f885858",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -64897,7 +65088,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "31cb8785e6d607d0f5d018f416f5502ff4cf7f86ba005a277612dc3454c16b95",
+      "sha256": "079988913a004143c2b08e65e230d550b6267a738f55d52e97bc182b1abfff2e",
       "exports": [],
       "operations": [
         {

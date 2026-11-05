@@ -5099,7 +5099,7 @@
     },
     {
       "module": "src/run_publication_host/client_infer_call_scope.mbt",
-      "sha256": "11f4d2c1971fbba7276f4dd1c936f2e07b6a16c8d00697ff2004b47fc98e0d4f",
+      "sha256": "a682d4daacca457092c6e2828b01164d2cfd53f8ef99c205683696a5dd72af49",
       "exports": [],
       "operations": [
         {
@@ -5147,8 +5147,24 @@
           "declaration": "client_infer_saved_call_scope_matches_occurrence ( value : ClientInferSavedCallScope , occurrence : ClientInferOccurrence , plan : ClientInferPlanGraph , ) - > Bool"
         },
         {
+          "name": "client_infer_saved_call_scope_matches_originals",
+          "declaration": "client_infer_saved_call_scope_matches_originals ( value : ClientInferSavedCallScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : ClientInferOccurrence , plan : ClientInferPlanGraph , ) - > Bool"
+        },
+        {
           "name": "client_infer_saved_call_scope_matches_run",
           "declaration": "client_infer_saved_call_scope_matches_run ( value : ClientInferSavedCallScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Bool"
+        },
+        {
+          "name": "client_infer_saved_source_originals",
+          "declaration": "client_infer_saved_source_originals ( value : ClientInferSavedCallScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : ClientInferOccurrence , plan : ClientInferPlanGraph , ) - > Result [ Array [ ( @ publication . RunEvidenceValue , @ publication . RunEvidenceValue ) ] , ClientInferCallScopeIssue , ]"
+        },
+        {
+          "name": "infer_saved_call_scope_occurrence_originals",
+          "declaration": "infer_saved_call_scope_occurrence_originals ( value : ClientInferSavedCallScope , occurrence : ClientInferOccurrence , plan : ClientInferPlanGraph , ) - > Bool"
+        },
+        {
+          "name": "infer_saved_call_scope_run_originals",
+          "declaration": "infer_saved_call_scope_run_originals ( value : ClientInferSavedCallScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Bool"
         },
         {
           "name": "infer_scope_evidence",
@@ -5201,7 +5217,10 @@
             "client_infer_call_scope_source_observations",
             "client_infer_call_scope_unit_id",
             "client_infer_saved_call_scope_matches_occurrence",
+            "client_infer_saved_call_scope_matches_originals",
             "client_infer_saved_call_scope_matches_run",
+            "infer_saved_call_scope_occurrence_originals",
+            "infer_saved_call_scope_run_originals",
             "infer_scope_evidence",
             "infer_scope_expected_sources",
             "infer_scope_string",
@@ -5307,6 +5326,82 @@
               {
                 "path": "src/model_execution/mock_selection_wbtest.mbt",
                 "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_infer_saved_source_originals"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The cold JS caller drives the same restored operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Publication projects the original Source leaves"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The private control unwraps the actual compiled and Definition tokens"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The existing computation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Construction reentry remains pending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "False or throwing retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "existing stop, reverse output close and retention refresh engine"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "must still fund the simultaneous constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('failed restored Host constructor keeps the original pin"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('restored composed provider drives its same original operation"
+              },
+              {
+                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
+                "anchor": "captured consumer retirement retains original Result pins through same retry"
               }
             ]
           }

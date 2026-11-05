@@ -32,6 +32,7 @@ import {
   "actql/actql/execution_query" @query,
   "actql/actql/execution_relation" @execution,
   "actql/actql/value_admission" @admitted,
+  "actql/actql/model_execution" @model,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/run_publication_host" @publication_host,
   "actql/actql/run_publication" @publication,

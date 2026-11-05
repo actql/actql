@@ -1,0 +1,700 @@
+{
+  "qualification": "Source responsibility for the existing restored Model output and managed Host join; no runtime, distribution or physical acceptance",
+  "declarations": [
+    {
+      "module": "src/client_infer_host/original_restored_host_output.mbt",
+      "sha256": "58fc2fe05b3b48f922e4e03f4b860befb0b8eb0de57c03342a5a91b249f22a84",
+      "exports": [],
+      "operations": [
+        {
+          "name": "borrow_original_restored_host_output",
+          "declaration": "borrow_original_restored_host_output ( held : OutputUse , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , ) - > ( @ relation . CompletedOutput , @ model . ModelExecution ) ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing original Model execution, managed Effect Plan and captured DAG owners; borrowed completion only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "borrow_original_restored_host_output"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Completed restored Model task in its original Effect Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "the actual retained-input identity scan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "equal limits or matching identifiers do not replace that parent"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The original Model execution keeps its work history"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output.mbt",
+                "anchor": "if held.released ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Constructor failure, a stopped DAG"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output.mbt",
+                "anchor": "!active.cancelled"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "It neither consumes another attempt nor reserves a"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "leaves the deferred keyed Source slot unissued"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output_wbtest.mbt",
+                "anchor": "restored Host output borrows the actual completed execution and retains cleanup"
+              },
+              {
+                "path": "src/client_infer_host/original_restored_host_output_wbtest.mbt",
+                "anchor": "restored Host output fences a saved custody callback releasing its original pin"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_effect_retained_model_host.mbt",
+      "sha256": "ba0f2950d4d546a79064c1f34a2e658fb776a62aa91ab27736806faa436072c6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "open_installed_effect_retained_model_host",
+          "declaration": "open_installed_effect_retained_model_host ( owner : ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , model_graph : @ publication_host . ClientInferPlanGraph , output : @ execution . CompletedOutput , completed_model : @ model . ModelExecution , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedEffectRunDAG , Array [ @ execution . GeneratedSequence ] , ) ? , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "retire_installed_effect_captured_consumers",
+          "declaration": "retire_installed_effect_captured_consumers ( owner : ClientInstalledManagedRun , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "select_installed_effect_retained_model_host",
+          "declaration": "select_installed_effect_retained_model_host ( owner : ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , model_graph : @ publication_host . ClientInferPlanGraph , output : @ execution . CompletedOutput , completed_model : @ model . ModelExecution , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedEffectRunDAG , Array [ @ execution . GeneratedSequence ] , ) ? , ClientInstalledManagedRunIssue , ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing original Model execution, managed Effect Plan and captured DAG owners; borrowed completion only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "open_installed_effect_retained_model_host",
+            "select_installed_effect_retained_model_host"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Completed restored Model task in its original Effect Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "the actual retained-input identity scan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "equal limits or matching identifiers do not replace that parent"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The original Model execution keeps its work history"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output.mbt",
+                "anchor": "if held.released ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Constructor failure, a stopped DAG"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output.mbt",
+                "anchor": "!active.cancelled"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "It neither consumes another attempt nor reserves a"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "leaves the deferred keyed Source slot unissued"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output_wbtest.mbt",
+                "anchor": "restored Host output borrows the actual completed execution and retains cleanup"
+              },
+              {
+                "path": "src/client_infer_host/original_restored_host_output_wbtest.mbt",
+                "anchor": "restored Host output fences a saved custody callback releasing its original pin"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retire_installed_effect_captured_consumers"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The cold JS caller drives the same restored operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Publication projects the original Source leaves"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The private control unwraps the actual compiled and Definition tokens"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The existing computation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Construction reentry remains pending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "False or throwing retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "existing stop, reverse output close and retention refresh engine"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "must still fund the simultaneous constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('failed restored Host constructor keeps the original pin"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('restored composed provider drives its same original operation"
+              },
+              {
+                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
+                "anchor": "captured consumer retirement retains original Result pins through same retry"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_restored_model_host_bridge.mbt",
+      "sha256": "4ecb79d9e8e747d1104e73159a14bb2d84bcd19a3369ab3f065e993b213913c4",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_effect_managed_restored_model_host_open",
+          "declaration": "client_program_installed_effect_managed_restored_model_host_open ( owner : @ client_local_host . ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , held : @ infer_host . OutputUse , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ ClientLocalEffectHost ? , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_restored_infer_source_originals",
+          "declaration": "client_program_restored_infer_source_originals ( scope : @ publication_host . ClientInferSavedCallScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ Array [ ( @ publication . RunEvidenceValue , @ publication . RunEvidenceValue ) ] , @ publication_host . ClientInferCallScopeIssue , ]"
+        },
+        {
+          "name": "client_program_retire_installed_effect_captured_consumers",
+          "declaration": "client_program_retire_installed_effect_captured_consumers ( owner : @ client_local_host . ClientInstalledManagedRun , ) - > Result [ Bool , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing original Model execution, managed Effect Plan and captured DAG owners; borrowed completion only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_effect_managed_restored_model_host_open"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Completed restored Model task in its original Effect Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "the actual retained-input identity scan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "equal limits or matching identifiers do not replace that parent"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The original Model execution keeps its work history"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output.mbt",
+                "anchor": "if held.released ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Constructor failure, a stopped DAG"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output.mbt",
+                "anchor": "!active.cancelled"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "It neither consumes another attempt nor reserves a"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "leaves the deferred keyed Source slot unissued"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output_wbtest.mbt",
+                "anchor": "restored Host output borrows the actual completed execution and retains cleanup"
+              },
+              {
+                "path": "src/client_infer_host/original_restored_host_output_wbtest.mbt",
+                "anchor": "restored Host output fences a saved custody callback releasing its original pin"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_restored_infer_source_originals",
+            "client_program_retire_installed_effect_captured_consumers"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The cold JS caller drives the same restored operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Publication projects the original Source leaves"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The private control unwraps the actual compiled and Definition tokens"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The existing computation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Construction reentry remains pending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "False or throwing retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "existing stop, reverse output close and retention refresh engine"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "must still fund the simultaneous constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('failed restored Host constructor keeps the original pin"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('restored composed provider drives its same original operation"
+              },
+              {
+                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
+                "anchor": "captured consumer retirement retains original Result pins through same retry"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/model_execution/original_completed_parent.mbt",
+      "sha256": "fb680f9a8954e235a478474765711f466bb264891033eb608a3236b9956747fe",
+      "exports": [],
+      "operations": [
+        {
+          "name": "original_completed_model_matches_parent",
+          "declaration": "original_completed_model_matches_parent ( execution : ModelExecution , ledger : @ resources . Ledger , ) - > Bool"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing original Model execution, managed Effect Plan and captured DAG owners; borrowed completion only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "original_completed_model_matches_parent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Completed restored Model task in its original Effect Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "the actual retained-input identity scan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "equal limits or matching identifiers do not replace that parent"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The original Model execution keeps its work history"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output.mbt",
+                "anchor": "if held.released ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Constructor failure, a stopped DAG"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output.mbt",
+                "anchor": "!active.cancelled"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "It neither consumes another attempt nor reserves a"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "leaves the deferred keyed Source slot unissued"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output_wbtest.mbt",
+                "anchor": "restored Host output borrows the actual completed execution and retains cleanup"
+              },
+              {
+                "path": "src/client_infer_host/original_restored_host_output_wbtest.mbt",
+                "anchor": "restored Host output fences a saved custody callback releasing its original pin"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_strategy_host/retained_model_task.mbt",
+      "sha256": "09bfebde95489c78b4434b2f460ed4c702681616168b8b9609a91ce2b8354155",
+      "exports": [],
+      "operations": [
+        {
+          "name": "open_multi_captured_effect_run_retained_model_dag",
+          "declaration": "open_multi_captured_effect_run_retained_model_dag ( checked : CheckedEffectRunDAG , sources : Array [ ( Int , @ query . CapturedInputSource ) ] , ledger : @ resources . Ledger , task : Int , model_step : Int , output : @ execution . CompletedOutput , ) - > Result [ CapturedEffectRunDAG , RunIssue ]"
+        },
+        {
+          "name": "retire_captured_task_outputs",
+          "declaration": "retire_captured_task_outputs ( run : CapturedDAG ) - > Bool"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing original Model execution, managed Effect Plan and captured DAG owners; borrowed completion only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "open_multi_captured_effect_run_retained_model_dag"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Completed restored Model task in its original Effect Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "the actual retained-input identity scan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "equal limits or matching identifiers do not replace that parent"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The original Model execution keeps its work history"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output.mbt",
+                "anchor": "if held.released ||"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Constructor failure, a stopped DAG"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output.mbt",
+                "anchor": "!active.cancelled"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "It neither consumes another attempt nor reserves a"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "leaves the deferred keyed Source slot unissued"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/original_restored_host_output_wbtest.mbt",
+                "anchor": "restored Host output borrows the actual completed execution and retains cleanup"
+              },
+              {
+                "path": "src/client_infer_host/original_restored_host_output_wbtest.mbt",
+                "anchor": "restored Host output fences a saved custody callback releasing its original pin"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retire_captured_task_outputs"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The cold JS caller drives the same restored operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Publication projects the original Source leaves"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The private control unwraps the actual compiled and Definition tokens"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The existing computation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Construction reentry remains pending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "False or throwing retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "existing stop, reverse output close and retention refresh engine"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "must still fund the simultaneous constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('failed restored Host constructor keeps the original pin"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('restored composed provider drives its same original operation"
+              },
+              {
+                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
+                "anchor": "captured consumer retirement retains original Result pins through same retry"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

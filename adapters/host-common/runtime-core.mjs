@@ -4077,6 +4077,25 @@ function publicationControl(moon) {
         readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes,
         referenceIssuer));
     },
+    openCheckedClientInstalledRestoredModelEffectHost(compiled, definition,
+      managedRun, bound, sources, heldOutput, graph) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramInstalledEffectManagedRestoredModelHostOpen(
+        managedRun, bound, sources, heldOutput, value, token(definition), graph));
+    },
+    restoredInferSourceOriginals(compiled, definition, scope, occurrence, graph) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return Object.freeze(checked(moon.clientProgramRestoredInferSourceOriginals(
+        scope, value, token(definition), occurrence, graph)).map(original =>
+        Object.freeze({source: inspectEvidence(runtimeField(original, 0)),
+          logicalRelationCid: moon.strategyRunEvidenceIdentity(runtimeField(original, 1))})));
+    },
     // Reuse the original compiled/definition token domains. A public wrapper
     // object cannot be passed as a nominal MoonBit compiled Run or contract.
     claimCheckedClientInferNodePreparationLayout(compiled, definition, graph, read,

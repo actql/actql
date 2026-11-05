@@ -77,6 +77,8 @@ pub fn bind_quantity_capacity(Execution, @model_execution.ModelQuantityCapacity)
 
 pub fn bind_run(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, InvocationBindingIssue]
 
+pub fn borrow_original_restored_host_output(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> (@execution_relation.CompletedOutput, @model_execution.ModelExecution)?
+
 pub fn call_scope(Execution) -> @run_publication_host.ClientInferCallScope?
 
 pub fn call_settlement(Execution) -> @model_execution.ModelCallSettlement?

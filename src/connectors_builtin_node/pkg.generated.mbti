@@ -1622,6 +1622,8 @@ pub fn client_program_installed_effect_managed_provider_plan_prepare(@run_public
 
 pub fn client_program_installed_effect_managed_provider_plan_prepare_at_query_time(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientQueryTimePreparation, Array[@client_row_source_host.RowDeclaration], Array[@execution_relation.ExecutionCapacity], String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@client_local_host.ClientInstalledEffectOperationDemand]) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_managed_restored_model_host_open(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource], @client_infer_host.OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Result[ClientLocalEffectHost?, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_managed_run_check(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_managed_run_prepare_ledger(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[@physical_resources.Ledger, @client_local_host.ClientInstalledManagedRunIssue]
@@ -3310,6 +3312,8 @@ pub fn client_program_restore_requested_effect_stop(@run_publication_host.Client
 
 pub fn client_program_restore_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger?, @client_local_host.ClientInstalledCaptureCapacity, () -> Bool, @value_admission.ReferenceIssuer?, (String, String, Array[String])?) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
 
+pub fn client_program_restored_infer_source_originals(@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[Array[(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue)], @run_publication_host.ClientInferCallScopeIssue]
+
 pub fn client_program_restrict_infer_send_slots(@client_infer_host.Execution, Array[Bool]) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
 pub fn client_program_result_count(@run_publication_host.PreparedClientProgram) -> Int
@@ -3339,6 +3343,8 @@ pub fn client_program_retire_infer_original_current_state_document(@physical_res
 pub fn client_program_retire_infer_original_current_state_match(@physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> Unit
 
 pub fn client_program_retire_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_retire_installed_effect_captured_consumers(@client_local_host.ClientInstalledManagedRun) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_retire_installed_source_material(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, (ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)], ClientLocalPreparationInputOriginal) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
 

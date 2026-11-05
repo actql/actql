@@ -485,7 +485,8 @@ function acquiredCleanupFixture({dagRetired = true, physicalReady = true, keyedR
     async cleanup() {events.push('keyed'); return keyedReady;}, cleanupPending:() => !keyedReady};
   const value = new Function('moon', 'checkedHost', 'execution', 'keyedCleanup', `
     let pending=true,closed=true,settled=true,unresolved=false;
-    let recovery,contentFamily,contentFamilyCleanup,contentRecovery,sourceContinuation,modelToken;
+    let recovery,contentFamily,contentFamilyCleanup,contentRecovery,sourceContinuation,modelToken,restoredModelOutput;
+    const restoredModelHostAttempted=false;
     const captures=[]; let originalPreparationRetained=false;
     const cleanupInfer=async()=>true; const observeUsage=()=>{};
     ${source.slice(custody.start, custody.end)}
@@ -570,7 +571,7 @@ for (const [name, options] of [
 
 // Actual cleanup and successful publication block, extracted unchanged. The
 // Core/Store/Task owner ports are explicit; this is not ordinary funding proof.
-function persistedModelScratchFixture({retire = true, releaseFailure} = {}) {
+function persistedModelScratchFixture({retire = true, releaseFailure, heldOutput = false} = {}) {
   const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const declaration = ast.body.map(node => node.declaration ?? node)
@@ -600,7 +601,7 @@ function persistedModelScratchFixture({retire = true, releaseFailure} = {}) {
   const run = new Function('inferCapture', 'inferOperation', 'execution', 'events', `
     let inferReleased=false,inferCloseAttempted=false,modelReleased=false,modelCloseAttempted=false;
     const modelContinuation={close(){throw Error('same journal continuation must remain');}};
-    const originalPreparation={},component={};
+    const originalPreparation={},component={},restoredModelOutput=${heldOutput ? '{}' : 'undefined'};
     let publicationPlan;
     const current=()=>{};
     const faultInjection=async()=>{events.push('capture-committed');};
@@ -727,7 +728,7 @@ function inferOriginalComponentFixture({refusal} = {}) {
       assert.strictEqual(context.control, control); calls.push('provider'); context.retainOperation(operation); return operation;
     }, originalModelComponent: undefined, keyedFamily: undefined};
   const actual = inferSourceText.slice(inferComponentNode[0].init.start, inferComponentNode[0].init.end);
-  const invoke = new Function(...Object.keys(ports), 'let modelPlan,inferOperation,inferCapture;return (' + actual + ')();');
+  const invoke = new Function(...Object.keys(ports), 'let modelPlan,inferOperation,inferCapture,restoredKeyedSource;return (' + actual + ')();');
   return {invoke: () => invoke(...Object.values(ports)), operation, calls};
 }
 
@@ -804,4 +805,148 @@ test('restored Model Source evidence refusal retains the original capture for cl
   assert.throws(f.invoke, error => error === refusal);
   assert.deepEqual(f.captures, [f.captured]); assert.deepEqual(f.evidence, []);
   assert.deepEqual(f.calls, ['restore', 'current', 'admit-original']);
+});
+
+// Execute the actual cold branch and existing custody, with explicit Core and
+// physical ports. No Common ABI, Store, ordinary funding or Source IO claim.
+function restoredHostCallerFixture({hostFailure, waiting = false} = {}) {
+  const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const main = tree.body.find(node => node.declaration?.id?.name === 'openAcquiredEffectComputation').declaration;
+  const body = main.body.body.find(node => node.type === 'TryStatement').block.body;
+  const cold = body.find(node => node.type === 'IfStatement' && source.slice(node.test.start, node.test.end) === 'restoredModel');
+  const custody = main.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'custody'));
+  assert.ok(cold && custody);
+  const pin = {}, compiled = {}, definition = {}, managedRun = {}, owner = {}, graph = {}, host = {};
+  const capture = {}, settlement = {}, events = [];
+  let complete = false, started = 0, retired = false, constructorCalls = 0;
+  let retirementFailure;
+  const operation = {async run() {
+    events.push('run');
+    if (waiting) return {status: 'waiting'};
+    if (!complete) {complete = true; return {status: 'settling', settlement};}
+    return {actualOutput: true};
+  }, settlementSlot(value) {assert.strictEqual(value, settlement); return 4;},
+  acquireOutput() {events.push('pin'); return pin;}};
+  const context = {component: {startRestored() {started++; return operation;}},
+    current() {}, inferCapture: {retainCompleted() {events.push('capture'); return true;}},
+    async handleModelPause(boundary) {
+      events.push(boundary.status);
+      if (waiting) return {action: 'waiting_checkpoint', checkpoint: 'same checkpoint'};
+      assert.equal(boundary.slot, 4); assert.strictEqual(boundary.settlement, settlement);
+      return {action: 'resume'};
+    }, modelPlan: {compiled, runDefinition: definition}, managedRun, owner,
+    captures: [{capture: {source: () => capture}, async close() {events.push('source-close');}}],
+    originalModelSelection: {graph}, infer: {graph},
+    acquired: {control: {openCheckedClientInstalledRestoredModelEffectHost(...args) {
+      constructorCalls++;
+      assert.deepEqual(args, [compiled, definition, managedRun, owner, [capture], pin, graph]);
+      assert.equal(events.at(-1), 'pin'); events.push('host');
+      if (hostFailure) hostFailure(); return host;
+    }}},
+    moon: {clientProgramRetireInstalledEffectCapturedConsumers(actual) {
+      assert.strictEqual(actual, managedRun); events.push('retire-consumers');
+      if (retirementFailure) retirementFailure(); return {$tag: 1, _0: retired};
+    }, clientProgramReleaseInferOutput(actual) {
+      assert.strictEqual(actual, pin); assert(retired); events.push('unpin'); return true;
+    }, clientProgramRefreshAcquiredEffectCleanup(actual) {
+      assert.strictEqual(actual, host); events.push('refresh-host'); return retired;
+    }}, checked(value) {assert.equal(value.$tag, 1); return value._0;},
+    cleanupInfer: async () => {events.push('cleanup-model'); return true;},
+    observeUsage() {}, execution: undefined};
+  const invoke = new Function(...Object.keys(context), `
+    const restoredModel=true;
+    let restoredModelOutput,restoredModelHostAttempted=false,checkedHost;
+    let closed=false,settled=false,unresolved=false,pending=true;
+    let recovery,contentFamily,contentFamilyCleanup,contentRecovery,keyedCleanup,sourceContinuation,modelToken;
+    let originalPreparationRetained=false;
+    ${source.slice(custody.start, custody.end)}
+    return {custody, async run() {try {${source.slice(cold.start, cold.end)}
+      return checkedHost;} finally {settled=true;}}};
+  `)(...Object.values(context));
+  return {...invoke, events, host, counts: () => ({started, constructorCalls}),
+    retire(value) {retired = value;}, retirementThrows(callback) {retirementFailure = callback;},
+    };
+}
+
+test('restored Model caller settles the same operation and retains its output before original Host construction', async () => {
+  const f = restoredHostCallerFixture(); assert.strictEqual(await f.run(), f.host);
+  assert.deepEqual(f.events, ['run', 'settling', 'run', 'capture', 'pin', 'host']);
+  assert.deepEqual(f.counts(), {started: 1, constructorCalls: 1});
+  await f.custody.close();
+  assert.equal(await f.custody.cleanup(), false);
+  assert.equal(f.events.includes('unpin'), false);
+  assert.equal(f.events.includes('cleanup-model'), false);
+  f.retire(true); assert.equal(await f.custody.cleanup(), true);
+  assert(f.events.indexOf('retire-consumers') < f.events.indexOf('unpin'));
+  assert(f.events.indexOf('unpin') < f.events.indexOf('cleanup-model'));
+  const count = f.events.length; assert.equal(await f.custody.cleanup(), true); assert.equal(f.events.length, count);
+});
+
+test('failed restored Host constructor keeps the original pin across false throw and same cleanup retry', async () => {
+  for (const original of [undefined, new Error('original Host constructor')]) {
+    const f = restoredHostCallerFixture({hostFailure() {throw original;}});
+    let failed = false;
+    try {await f.run();} catch (error) {failed = true; assert.strictEqual(error, original);}
+    assert(failed); await f.custody.close(); assert.equal(await f.custody.cleanup(), false);
+    assert.equal(f.events.includes('unpin'), false);
+    const cleanupFailure = new Error('actual retained child close');
+    f.retirementThrows(() => {throw cleanupFailure;});
+    await assert.rejects(f.custody.cleanup(), error => error === cleanupFailure);
+    assert.equal(f.custody.cleanupPending(), true); assert.equal(f.events.includes('unpin'), false);
+    f.retirementThrows(undefined); f.retire(true);
+    assert.equal(await f.custody.cleanup(), true); assert.equal(f.custody.cleanupPending(), false);
+    assert.deepEqual(f.counts(), {started: 1, constructorCalls: 1});
+    assert.equal(f.events.filter(value => value === 'unpin').length, 1);
+  }
+});
+
+test('restored Model waiting keeps its same custody without pinning or constructing a Host', async () => {
+  const f = restoredHostCallerFixture({waiting: true});
+  const result = await f.run();
+  assert.strictEqual(result.cleanupOwner, f.custody); assert.equal(result.status, 'waiting_checkpoint');
+  assert.deepEqual(f.events, ['run', 'waiting']); assert.deepEqual(f.counts(), {started: 1, constructorCalls: 0});
+});
+
+test('restored keyed publication uses the actual saved Source leaves and refuses changed direct evidence', () => {
+  const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const fn = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'selectRestoredKeyedSource');
+  const select = new Function('return (' + source.slice(fn.start, fn.end) + ');')();
+  const left = {source: {identity: 'left-evidence'}, logicalRelationCid: 'left'},
+    right = {source: {identity: 'right-evidence'}, logicalRelationCid: 'right'},
+    keyed = {source: {identity: 'keyed-evidence'}, logicalRelationCid: 'keyed'};
+  const moon = {clientProgramCapturedSourceLogicalCid: value => value};
+  const direct = [left, right].map(value => ({captured: {identity: value.logicalRelationCid}, sourceEvidence: value.source}));
+  assert.strictEqual(select(moon, [keyed, right, left], direct), keyed);
+  assert.throws(() => select(moon, [keyed, right, left], [{...direct[0], sourceEvidence: right.source}, direct[1]]),
+    {message: 'RestoredModelSourceOriginalsUnavailable'});
+  assert.throws(() => select(moon, [keyed, keyed, left], direct), {message: 'RestoredModelSourceOriginalsUnavailable'});
+});
+
+
+test('persisted restored Host output keeps its Model aliases until the actual Host consumer retirement', async () => {
+  const f = persistedModelScratchFixture({heldOutput: true});
+  assert.strictEqual(await f.run(), f.plan);
+  assert.deepEqual(f.events, ['persist', 'capture-committed']);
+});
+
+test('saved non-keyed Model preserves the ordinary Host route without projecting a keyed Source', () => {
+  const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
+  const nodes = [];
+  (function walk(node) {if (!node || typeof node !== 'object') return; if (node.type) nodes.push(node);
+    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(walk);
+    else if (value && typeof value === 'object') walk(value);
+  })(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  const branch = nodes.find(node => node.type === 'IfStatement' &&
+    source.slice(node.test.start, node.test.end).startsWith('savedOriginal && multiple &&'));
+  assert.ok(branch);
+  let selections = 0, projections = 0;
+  const moon = {clientProgramEffectComposedModelKeyedAcquisition() {selections++; return {$tag: 1, _0: undefined};}};
+  const checked = value => value._0;
+  const acquired = {prepared: {}, control: {restoredInferSourceOriginals() {projections++; assert.fail('not a keyed Plan');}}};
+  new Function('moon', 'checked', 'acquired', `const savedOriginal=true,multiple=true,infer={graph:{}};
+    ${source.slice(branch.start, branch.end)}`)(moon, checked, acquired);
+  assert.deepEqual({selections, projections}, {selections: 1, projections: 0});
 });
