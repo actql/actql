@@ -52640,7 +52640,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "c6b9f5a50c5dcf16d9e77f1900825fc627b785561d773f5447294d033305260f",
+      "sha256": "c244ad5b0c4d8368b7b8d541edb82260b7e5ec068ea3dad00564cc779f8b5046",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -52772,6 +52772,10 @@
           "declaration": "client_program_installed_effect_row_source_input_prepare ( declaration : @ client_row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , ) - > Result [ @ client_local_host . ClientInstalledEffectSourceInput , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_file_effect_construction_capacity",
+          "declaration": "client_program_installed_file_effect_construction_capacity ( provider : @ execution . ExecutionCapacity , bytes : Int , nodes : Int , depth : Int , ) - > Result [ @ execution . ExecutionCapacity , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_local_file_store_control_wire_bound",
           "declaration": "client_program_installed_local_file_store_control_wire_bound ( ) - > Int"
         },
@@ -52782,6 +52786,10 @@
         {
           "name": "client_program_installed_physical_write_recipe_capacities",
           "declaration": "client_program_installed_physical_write_recipe_capacities ( body_bytes : Int , body_nodes : Int , body_depth : Int , preview_bytes : Int , preview_nodes : Int , preview_depth : Int , request_bytes : Int , recovery_bytes : Int , response_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , physical : @ execution . ExecutionCapacity , control_wire_bytes : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_physical_write_recipe_capacities_with_request",
+          "declaration": "client_program_installed_physical_write_recipe_capacities_with_request ( body_bytes : Int , body_nodes : Int , body_depth : Int , preview_bytes : Int , preview_nodes : Int , preview_depth : Int , request_bytes : Int , recovery_bytes : Int , response_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , physical : @ execution . ExecutionCapacity , control_wire_bytes : Int , request_construction : @ execution . ExecutionCapacity , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_standard_create_recipe_capacities",
@@ -52808,6 +52816,8 @@
             "client_program_installed_effect_content_managed_plan_prepare",
             "client_program_installed_effect_content_preparation_prepare",
             "client_program_installed_effect_content_preparation_provider",
+            "client_program_installed_effect_duckdb_source_input_prepare",
+            "client_program_installed_effect_managed_duckdb_capture",
             "client_program_installed_effect_managed_host_open",
             "client_program_installed_effect_managed_operation_plan",
             "client_program_installed_effect_managed_plan_capture_children",
@@ -52819,19 +52829,17 @@
             "client_program_installed_effect_managed_plan_source",
             "client_program_installed_effect_managed_provider_plan_prepare",
             "client_program_installed_effect_managed_provider_plan_prepare_at_query_time",
+            "client_program_installed_effect_managed_source_plan_prepare",
             "client_program_installed_effect_managed_source_read",
             "client_program_installed_effect_operation_demand_prepare",
             "client_program_installed_effect_operation_demand_with_controls_prepare",
             "client_program_installed_effect_operation_extent_from_capacity_prepare",
             "client_program_installed_effect_operation_extent_prepare",
             "client_program_installed_effect_operation_staged_extent_prepare",
+            "client_program_installed_effect_row_source_input_prepare",
             "client_program_installed_standard_create_recipe_capacities",
             "client_program_installed_standard_driver_recipe_capacities",
-            "client_program_node_effect_managed_plan_cleanup",
-            "client_program_installed_effect_duckdb_source_input_prepare",
-            "client_program_installed_effect_managed_duckdb_capture",
-            "client_program_installed_effect_managed_source_plan_prepare",
-            "client_program_installed_effect_row_source_input_prepare"
+            "client_program_node_effect_managed_plan_cleanup"
           ],
           "exports": [],
           "attributes": {
@@ -52970,9 +52978,11 @@
             "client_program_installed_described_effect_input_recipe_capacities",
             "client_program_installed_described_effect_recipe_capacities",
             "client_program_installed_effect_control_wire_bound",
+            "client_program_installed_file_effect_construction_capacity",
             "client_program_installed_local_file_store_control_wire_bound",
             "client_program_installed_local_file_store_recipe_capacities",
             "client_program_installed_physical_write_recipe_capacities",
+            "client_program_installed_physical_write_recipe_capacities_with_request",
             "client_program_installed_standard_create_request_recipe_capacities"
           ],
           "exports": [],
@@ -53079,6 +53089,10 @@
               {
                 "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
                 "anchor": "test('physical writer composer keeps typed original and shared control codec without a credential occurrence'"
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
               }
             ]
           }
@@ -79524,9 +79538,13 @@
     },
     {
       "module": "src/client_local_host/installed_physical_write_recipe.mbt",
-      "sha256": "fbfcf93732e4b8ae6614ee57c1a3e0863dc377add52acd327833382b962c302d",
+      "sha256": "c5bc22b1e1e28187faf2264469f4cab29047169a5f86fca193138ad6730fcc24",
       "exports": [],
       "operations": [
+        {
+          "name": "installed_file_effect_constructor_capacity",
+          "declaration": "installed_file_effect_constructor_capacity ( provider : @ execution . ExecutionCapacity , bytes : Int , nodes : Int , depth : Int , ) - > Result [ @ execution . ExecutionCapacity , ClientInstalledManagedRunIssue ]"
+        },
         {
           "name": "installed_physical_write_recipe_capacities",
           "declaration": "installed_physical_write_recipe_capacities ( body_bytes : Int , body_nodes : Int , body_depth : Int , preview_bytes : Int , preview_nodes : Int , preview_depth : Int , request_bytes : Int , recovery_bytes : Int , response_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , physical : @ execution . ExecutionCapacity , control_wire_bytes ? : Int ?"
@@ -79540,6 +79558,7 @@
         {
           "operations": [
             "<module>",
+            "installed_file_effect_constructor_capacity",
             "installed_physical_write_recipe_capacities"
           ],
           "exports": [],
@@ -79607,6 +79626,10 @@
               {
                 "path": "src/client_local_host/installed_physical_write_recipe_wbtest.mbt",
                 "anchor": "test \"physical writer refuses invalid bounds and retains full failed request envelope\""
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
               }
             ]
           }

@@ -35,7 +35,7 @@ pub fn start_client_keyed_file_locator(
   read : @execution.SuppliedRelationRead,
 ) -> Result[ClientKeyedFileLocator, ClientKeyedRequestIssue] {
   if !client_keyed_file_locator_available(lookup, request) ||
-    !physical_equal(source, lookup.left.source) {
+    !client_keyed_left_source_matches(lookup.left, source) {
     return Err(Assembly("invalid_file_locator_request"))
   }
   if !charge_keyed_lookup_input_work(lookup, 1) {

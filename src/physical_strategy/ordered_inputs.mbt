@@ -79,20 +79,20 @@ pub fn graph_ordered_inputs_complete(graph : CheckedDAG) -> Bool {
 /// downstream keyed request before Model input. Its exact checked request and
 /// upstream key port describe a future producer, not startup CapturedRows.
 /// Never insert these requirements into the graph's live supplied inventory.
-pub fn graph_keyed_model_plan_inputs_complete(
+fn graph_keyed_model_plan_input(
   graph : CheckedDAG,
   consumer : Int,
   model_step : Int,
-) -> Bool {
+) -> LocalInputSlot? {
   if graph.captured_prefix != 2 ||
     model_step < 0 ||
     consumer < graph.captured_prefix ||
     consumer >= graph.owners.length() ||
     graph.selected_steps[consumer] is Some(_) {
-    return false
+    return None
   }
   if graph.prefix_ends[consumer] is Some(last) && last < model_step {
-    return false
+    return None
   }
   let mut stage = -1
   for index in 0..<graph.stage_tasks.length() {
@@ -104,12 +104,12 @@ pub fn graph_keyed_model_plan_inputs_complete(
     }
   }
   if stage < graph.captured_prefix {
-    return false
+    return None
   }
   if graph.stage_tasks[stage].length() != 1 {
     for step in 0..<(model_step + 1) {
       if graph.stage_tasks[stage].get(step) != Some(consumer) {
-        return false
+        return None
       }
     }
   }
@@ -119,7 +119,7 @@ pub fn graph_keyed_model_plan_inputs_complete(
     physical_equal(pipeline, original_pipeline) &&
     @lower.node_at(prepared, model_step) is Some(model) &&
     @lower.payload(model) is @lower.Infer(_) else {
-    return false
+    return None
   }
   let identity = @checked.source_identity(graph.program)
   let mut deferred : LocalInputSlot? = None
@@ -158,10 +158,10 @@ pub fn graph_keyed_model_plan_inputs_complete(
       physical_equal(mode, original_mode) &&
       physical_equal(request, original_request) &&
       physical_equal(@acquisition.keyed_join_request(binding.join), request) else {
-      return false
+      return None
     }
     if deferred is Some(_) {
-      return false
+      return None
     }
     // Source request ordinals exclude imported Result ports. Resolve the
     // original declared name into the pipeline before marking its plan slot.
@@ -175,12 +175,33 @@ pub fn graph_keyed_model_plan_inputs_complete(
   // This is the existing single-keyed producer/factory's construction scope.
   // More requests need their own original producer connection, never a count
   // inferred from aliases, sample rows or a caller-authored URI.
-  deferred is Some(_) &&
-  ordered_data_inputs_complete(
+  guard deferred is Some(slot) && ordered_data_inputs_complete(
     graph.input_counts,
     graph.data,
     supplied_slots=graph.supplied_slots,
     deferred_slot=deferred,
     captured_prefix=graph.captured_prefix,
-  )
+  ) else { return None }
+  Some(slot)
+}
+
+///|
+pub fn graph_keyed_model_plan_inputs_complete(
+  graph : CheckedDAG, consumer : Int, model_step : Int,
+) -> Bool { graph_keyed_model_plan_input(graph, consumer, model_step) is Some(_) }
+
+///|
+// Runtime binding only: an actual currently readable checked keyed input is
+// required. The original graph and its plan-only supplied inventory stay
+// unchanged; this private physical view borrows the same original Owners.
+pub fn graph_with_completed_keyed_model_input(
+  graph : CheckedDAG, consumer : Int, model_step : Int,
+  read : @execution.SuppliedRelationRead,
+) -> CheckedDAG? {
+  guard graph_keyed_model_plan_input(graph, consumer, model_step) is Some(slot) &&
+    @execution.supplied_relation_read_matches_input(read, graph.owners[consumer], slot.source_input) &&
+    @execution.supplied_relation_read_available(read) else { return None }
+  let supplied_slots = graph.supplied_slots.copy()
+  supplied_slots.push(slot)
+  Some({..graph, supplied_slots,})
 }

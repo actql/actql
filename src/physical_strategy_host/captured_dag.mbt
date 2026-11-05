@@ -351,6 +351,43 @@ fn open_effect_run_captures(
 }
 
 ///|
+// The selected caller supplies an actual completed keyed read. The checked
+// Source port and original live input, never planned metadata, discharge the
+// one deferred slot. No original graph or Source holding is mutated.
+pub fn open_multi_captured_effect_run_keyed_dag(
+  checked : CheckedEffectRunDAG,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+  task : Int,
+  model_step : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Result[CapturedEffectRunDAG, RunIssue] {
+  let original = checked.computation.graph_value()
+  guard @graph.graph_with_completed_keyed_model_input(original, task, model_step, read)
+    is Some(graph) else { return Err(ForeignCapture) }
+  let mut slot = None
+  for value in graph.supplied_slots_iter() {
+    if value.consumer == task && @execution.supplied_relation_read_matches_input(
+      read, graph.owners_at(task).unwrap(), value.source_input,
+    ) {
+      if slot is Some(_) { return Err(ForeignCapture) }
+      slot = Some(value.input)
+    }
+  }
+  guard slot is Some(input) else { return Err(ForeignCapture) }
+  let dependencies = match effect_dependency_ports(checked.computation, 4096, 65536, 64) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let captured = match open_checked_dag(graph, sources, ledger, [], supplied_reads=[(task, input, read)]) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  for dependency in dependencies { captured.effect_dependency_outputs[dependency.task] = true }
+  Ok({checked, captured,})
+}
+
+///|
 pub fn captured_effect_run_dag(value : CapturedEffectRunDAG) -> CapturedDAG {
   value.captured
 }

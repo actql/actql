@@ -438,6 +438,8 @@ pub fn installed_effect_plan_matches_model_demand(ClientInstalledEffectManagedPl
 
 pub fn installed_effect_response_buffer_construction_capacity(Int, response_read_quantum? : Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn installed_file_effect_constructor_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> Result[@execution_relation.ExecutionCapacity, ClientInstalledManagedRunIssue]
+
 pub fn installed_gmail_thread_reader_capacity(Array[Int], Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_json_effect_request_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
@@ -498,7 +500,7 @@ pub fn installed_native_source_reader_capacity(Array[Int], Int, Int, @execution_
 
 pub fn installed_pending_duckdb_capture_capacity(ClientDuckDBCaptureCapacity) -> ClientInstalledCaptureCapacity
 
-pub fn installed_physical_write_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.ExecutionCapacity, control_wire_bytes? : Int?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
+pub fn installed_physical_write_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.ExecutionCapacity, control_wire_bytes? : Int?, request_construction? : @execution_relation.ExecutionCapacity?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
 
 pub fn installed_preparation_payload_severed(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity) -> Bool
 

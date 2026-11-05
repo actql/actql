@@ -4089,6 +4089,18 @@ fn serve_holder_output(
   }
   // The caller retains the same resources for checked Host -> ordinary ->
   // environment/process-hold -> slot closure. No close result is discarded here.
+  // Every exact report and reverse-order release above has completed. Retire
+  // the disposable task references explicitly before the enclosing Library
+  // close; ending this helper frame alone does not promise finalizer timing.
+  // Pending cleanup never reaches here, and the durable Journal is unchanged.
+  for task in tasks.values() {
+    if task.released {
+      task.executed = None
+      task.consumer = None
+      task.handoff = None
+    }
+  }
+  tasks.clear()
 }
 
 ///|

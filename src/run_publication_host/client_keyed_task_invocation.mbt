@@ -112,7 +112,7 @@ fn client_keyed_invocation_original_facts(
   let acquisition = lookup.left.acquisition
   guard acquisition.program is KeyedPure(owner) &&
     physical_equal(owner, run.owner) &&
-    physical_equal(capture, lookup.left.source) &&
+    client_keyed_left_single_source_matches(lookup.left, capture) &&
     client_captured_task_tuple_matches(owner, capture, identity, requirement, 0) &&
     client_keyed_lookup_observation_wires(keyed) is Some(_) else {
     return Err(@publication.RunEvidenceReferenceMismatch("source_owner"))

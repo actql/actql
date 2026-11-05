@@ -118928,7 +118928,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "248e164851fe7f6238235e61adb934885ea8c1701d925cba52ebfdff1e8efe6f",
+      "sha256": "01033298619c9757fa023561dc0baa6ae1b8e846d09db59a6a3f8682f36e0353",
       "exports": [
         "installPreparedProjectMockEffects",
         "observeInstalledMockEffectResources"
@@ -119058,6 +119058,31 @@
           "async": false
         },
         {
+          "name": "mockFileEffectPlanRecipe",
+          "parameters": [
+            "moon",
+            "bundle",
+            "operation",
+            "targetReadOperation"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockFileEffectPlanRecipe/capacity/capacity",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockFileEffectPlanRecipe/projections/projections",
+          "parameters": [
+            "sum",
+            "source"
+          ],
+          "async": false
+        },
+        {
           "name": "mockRowEffectDriver",
           "parameters": [
             "bundle",
@@ -119164,26 +119189,37 @@
             "selected",
             "authorizationForRow",
             "signal",
-            "runOriginal"
+            "runOriginal",
+            "ownedReadChild"
           ],
           "async": true
         },
         {
-          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/child/child",
+          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild",
           "parameters": [],
           "async": false
         },
         {
-          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/child/init:authorize/init:authorize",
+          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/child/child",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/child/init:authorize/init:authorize",
           "parameters": [],
           "async": true
         },
         {
-          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/child/init:consume/init:consume",
+          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/child/init:consume/init:consume",
           "parameters": [
             "bytes"
           ],
           "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "mockRowEffectDriver/driver/init:prepareRequest/init:prepareRequest",
@@ -119237,7 +119273,8 @@
             "selected",
             "supplied",
             "signal",
-            "runOriginal"
+            "runOriginal",
+            "physicalOperation"
           ],
           "async": true
         },
@@ -119477,6 +119514,7 @@
         "../host-common/authorization-gate.mjs",
         "../host-common/runtime-result.mjs",
         "../host-node/installed-effect-inventory.mjs",
+        "../host-node/installed-effect-plan.mjs",
         "../host-node/installed-row-effect.mjs",
         "../host-node/mock-file-target.mjs",
         "node:crypto"
@@ -119503,6 +119541,9 @@
             "installPreparedProjectMockEffects/resourceMethods/resourceMethods",
             "installPreparedProjectMockEffects/resources/resources",
             "installPreparedProjectMockEffects/resources/resources/resources",
+            "mockFileEffectPlanRecipe",
+            "mockFileEffectPlanRecipe/capacity/capacity",
+            "mockFileEffectPlanRecipe/projections/projections",
             "mockRowEffectDriver",
             "mockRowEffectDriver/admit",
             "mockRowEffectDriver/consume",
@@ -119514,9 +119555,11 @@
             "mockRowEffectDriver/driver/driver#2",
             "mockRowEffectDriver/driver/driver#3",
             "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets",
-            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/child/child",
-            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/child/init:authorize/init:authorize",
-            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/child/init:consume/init:consume",
+            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild",
+            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/child/child",
+            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/child/init:authorize/init:authorize",
+            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/child/init:consume/init:consume",
+            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/init:prepare/init:prepare",
             "mockRowEffectDriver/driver/init:prepareRequest/init:prepareRequest",
             "mockRowEffectDriver/driver/init:project/init:project",
             "mockRowEffectDriver/driver/init:recheckRequests/init:recheckRequests",
@@ -119717,6 +119760,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
               }
             ]
           }

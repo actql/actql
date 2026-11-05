@@ -481,5 +481,15 @@ pub fn close_native_strategy_compute_runtime(
   if file_failure is Some(issue) {
     return Err(FileRelease(issue))
   }
-  common.map_err(issue => Ledger(issue))
+  match common {
+    Ok(true) => {
+      // The attempt retains its transport verifier, which captures this same
+      // authority. Retire that managed cycle only after every original
+      // physical/file/Common cleanup above has acknowledged completion.
+      runtime.authority.settled = None
+      Ok(true)
+    }
+    Ok(false) => Ok(false)
+    Err(issue) => Err(Ledger(issue))
+  }
 }

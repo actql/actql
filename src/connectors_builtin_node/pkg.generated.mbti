@@ -1690,6 +1690,8 @@ pub fn client_program_installed_effect_response_buffer_construction_capacity(Int
 
 pub fn client_program_installed_effect_row_source_input_prepare(@client_row_source_host.RowDeclaration, @execution_relation.ExecutionCapacity?) -> Result[@client_local_host.ClientInstalledEffectSourceInput, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_file_effect_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> Result[@execution_relation.ExecutionCapacity, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_gmail_thread_reader_capacity(Array[Int], Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
@@ -1807,6 +1809,8 @@ pub fn client_program_installed_node_effect_model_demand_prepare(@run_publicatio
 pub fn client_program_installed_pending_duckdb_capture_capacity(@client_local_host.ClientDuckDBCaptureCapacity) -> @client_local_host.ClientInstalledCaptureCapacity
 
 pub fn client_program_installed_physical_write_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.ExecutionCapacity, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_physical_write_recipe_capacities_with_request(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.ExecutionCapacity, Int, @execution_relation.ExecutionCapacity) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_preparation_payload_severed(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity) -> Bool
 
