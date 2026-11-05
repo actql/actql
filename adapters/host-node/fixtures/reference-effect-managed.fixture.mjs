@@ -47,7 +47,7 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save'], sta
       const tokens = [];
       let closed = false, started = false;
       let running = true, inputsReleased = false, disposed = false, active, physicalClosing = false;
-      let release, dispose, releasing = false, disposing = false, closing = false;
+      let release, dispose, after, releasing = false, disposing = false, closing = false;
       const retainInputCleanup = original => {
         assert.equal(typeof original, 'function');assert.equal(release, undefined);
         assert.equal(inputsReleased, false);release = original;
@@ -55,6 +55,10 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save'], sta
       const retainStageCleanup = original => {
         assert.equal(typeof original, 'function');assert.equal(dispose, undefined);
         assert.equal(disposed, false);dispose = original;
+      };
+      const afterConstruction = original => {
+        assert.equal(typeof original, 'function');assert.equal(after, undefined);
+        after = original;
       };
       const releaseInputs = async () => {
         if (running || releasing) return false;
@@ -160,14 +164,8 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save'], sta
           beginConstruction();
         }
         const stage = await construct({physical, completed, stopped, physicalOwner, controlConstruction: run.controlConstruction,
-          retainInputCleanup, retainStageCleanup, beginConstruction});
+          retainInputCleanup, retainStageCleanup, beginConstruction, afterConstruction});
         assert.equal(started, true, 'actual capture must enter its original constructors before asynchronous capture work');
-        // The original constructor has returned its Stage. Keep its retained
-        // inputs/outputs and cleanup owner, but not completed decode workspace
-        // while the later physical Effect uses this SAME Run.
-        for (const token of tokens) {
-          checked(runtime.clientProgramInstalledEffectOperationConstructionComplete(token));
-        }
         stage.referencePhysical = physical;stage.referenceCompleted = completed;
         if (stage.releaseInputs !== undefined) {
           if (release === undefined) retainInputCleanup(stage.releaseInputs);
@@ -183,8 +181,18 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save'], sta
         stage.dispose = async () => {
           if (!await disposeStage()) throw new Error('ReferenceEffectStageCleanupPending');
         };
+        // The original constructor has returned its Stage and its actual
+        // cleanup callbacks are retained. Keep all outputs/R while returning
+        // completed workspace before a separate Ledger control constructor.
+        for (const token of tokens) {
+          checked(runtime.clientProgramInstalledEffectOperationConstructionComplete(token));
+        }
+        let finish = after;
+        after = undefined;
+        try { finish?.(); }
+        finally { finish = undefined; }
         return stage;
-      } finally {construct = facts = undefined;running = false;}
+      } finally {construct = facts = after = undefined;running = false;}
     },
   });
 }

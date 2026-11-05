@@ -535,7 +535,8 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
 }
 
 function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
-  loseReply, failRow, physical, completed, stopped, physicalOwner, controlConstruction, retainStageCleanup}) {
+  loseReply, failRow, physical, completed, stopped, physicalOwner, controlConstruction,
+  retainStageCleanup, afterConstruction}) {
   const {moon, control, store, recovered, continuation} = facts;
   const {requestIdentity, requestScope, computation: durable} = recovered;
   const {computation, preview, storedResults} = durable;
@@ -554,12 +555,9 @@ function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
     body.authoring_context.authoring_context_cid, requestScope, keys,
     localContractLimits.maxWireBytes, localContractLimits.maxNodes,
     localContractLimits.maxDepth);
-  const recorded = ledger.recoverClaimFacts({preview: admitted,
-    scope: requestScope, programId: 'client-values', nodeId: 'source',
-    maxRows: effectLimits.maxRows, maxWork: effectLimits.maxWork});
   const preflight = referencePreflight({moon, preview: {wire: previewWire},
     mappingCids, requestScope, keys});
-  return {preview, computation, storedResults,
+  const stage = {preview, computation, storedResults,
     apply: {moon, store, publicationControl: control, computation, preview,
       ledger, requestScope, programId: 'client-values', nodeId: 'source',
       maxRows: effectLimits.maxRows,
@@ -573,8 +571,7 @@ function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
     receipt: {ledger, preview: applyPreview, commonMoon: moon,
       publicationPreview: preview,
       authorizeEvidenceRead: async () => true,
-      members: recorded.members.map(member => ({rowOwners:
-        member.claims.map(claim => ({claim})), replayed: true})),
+      members: undefined,
       limits: localContractLimits},
     publication: {execution: null, store, storedResults, control,
       computation, preview, ledger, request: continuation.provider.request,
@@ -589,6 +586,16 @@ function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
     cleanupOwner: physicalOwner ?? {async close() {}, async cleanup() { return true; },
       cleanupPending: () => false},
     dispose};
+  // The same Ledger read has its own existing control frame. It follows
+  // completed Preview/apply/preflight construction, before this Stage escapes.
+  afterConstruction(() => {
+    const recorded = ledger.recoverClaimFacts({preview: admitted,
+      scope: requestScope, programId: 'client-values', nodeId: 'source',
+      maxRows: effectLimits.maxRows, maxWork: effectLimits.maxWork});
+    stage.receipt.members = recorded.members.map(member => ({rowOwners:
+      member.claims.map(claim => ({claim})), replayed: true}));
+  });
+  return stage;
 }
 const owner = userInfo().username;
 const crashFixtureKeys = process.env.ACTQL_TEST_HOST_CRASH_KEYS === undefined
