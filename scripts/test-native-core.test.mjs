@@ -20,6 +20,7 @@ import './native-sqlite-link-driver.test.mjs';
 import './native-signature-linux-declarations.test.mjs';
 import './native-core-progress.test.mjs';
 import './native-core-c-compiler.test.mjs';
+import './native-core-test-selection.test.mjs';
 
 test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-capture-progress-'));
@@ -665,7 +666,7 @@ function fixture(t) {
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
-    'native-core-c-compiler.mjs',
+    'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'verification-actions.mjs',
     'native-client-checkpoint-fixture.mjs', 'native-private-host-fixture.mjs',
     'native-filesystem-observation-fixture.mjs',
     'native-runtime-reader-custody-fixture.mjs', 'native-project-configuration-fixture.mjs',
@@ -687,12 +688,31 @@ function fixture(t) {
     'trusted-clock.sqlite-shm'];
   for (const name of originals) writeFileSync(join(parent, name), `external ${name}`);
   const moon = join(bin, 'moon');
+  for (const name of ['fixture-native', 'fixture-empty']) {
+    mkdirSync(join(checkout, 'src', name), {recursive: true});
+    writeFileSync(join(checkout, 'src', name, 'main.mbt'), 'Original compiler-input fixture\n');
+  }
   writeFileSync(moon, `#!${process.execPath}
 const assert = require('node:assert/strict');
 const {writeFileSync, existsSync, statSync, readlinkSync} = require('node:fs');
 const {createHash, verify} = require('node:crypto');
 const {join} = require('node:path');
+if (process.argv[2] === 'generate-test-driver') {
+  const args = process.argv.slice(2), metadata = args[args.indexOf('--output-metadata') + 1];
+  require('node:fs').mkdirSync(require('node:path').dirname(metadata), {recursive:true});
+  writeFileSync(metadata, JSON.stringify({tests:{'main.mbt':metadata.includes('fixture-empty')?[]:
+    [{index:0,name:'original fixture case',attrs:[],line_number:1}]}}));
+  process.exit(0);
+}
 assert.deepEqual(process.argv.slice(2, 5), ['test', '--target', 'native']);
+if (process.argv.includes('--dry-run')) {
+  for (const name of process.argv.includes('src/fixture-native') ? ['fixture-native']
+    : ['fixture-native','fixture-empty']) console.log('moon generate-test-driver ' +
+      '--output-driver _build/native/release/test/'+name+'/driver.mbt '+
+      '--output-metadata _build/native/release/test/'+name+'/info.json '+
+      'src/'+name+'/main.mbt --target native --pkg-name fixture/'+name+' --driver-kind internal');
+  process.exit(0);
+}
 if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
   require('node:fs').appendFileSync(process.env.ACTQL_FIXTURE_NATIVE_COMMANDS,
     JSON.stringify({args:process.argv.slice(2),path:process.env.PATH,
@@ -1137,7 +1157,7 @@ test('strict Native checkpoint producers share the full release child compilatio
   const compilation = args => args.filter(arg =>
     ['--target', 'native', '--strip', '--deny-warn', '--release'].includes(arg)).sort();
   assert.deepEqual(calls[2], ['test', '--target', 'native',
-    '--deny-warn', '--release', '--strip', '-j', '3', '--verbose']);
+    '--deny-warn', '--release', '--strip', '-j', '3', '--verbose', 'src/fixture-native']);
   assert(records[0].path === records[1].path);
   assert.equal(records[0].path, records[2].path,
     'the same selected compiler executable must populate and reuse the test cache');
@@ -1213,7 +1233,7 @@ test('Native checkpoint and full child keep the selected backend and explicit co
       assert.equal(record.allocator, records[0].allocator);
     }
     assert.deepEqual(records[2].args, ['test', '--target', 'native',
-      '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose']);
+      '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose', 'src/fixture-native']);
     f.verifyExternal();
   }
 });

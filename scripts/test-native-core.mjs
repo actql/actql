@@ -13,6 +13,7 @@ import {nativePrivateHostFixture} from './native-private-host-fixture.mjs';
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
+import {nativeCoreTestSelection} from './native-core-test-selection.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -42,6 +43,12 @@ const testCompiler = full && args.lastIndexOf('--release') >
     Math.max(args.lastIndexOf('--debug'), args.lastIndexOf('-g'))
   ? nativeCoreCCompiler(root, namespace) : {};
 const compilerEnvironment = {...process.env, ...testCompiler};
+// Keep the original full classification and fixture/budget decisions. These
+// compiler-selected directories omit only packages with no Native test cases.
+const selection = full ? nativeCoreTestSelection(root, args, {env: compilerEnvironment}) : undefined;
+const selectedArgs = selection?.args ?? args;
+if (selection) console.log('Native test selection: ' + JSON.stringify({cases: selection.cases,
+  packages: selection.packages, prunedDrivers: selection.prunedDrivers}));
 const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_client'))
   ? nativeProjectConfigurationFixture(namespace)
   : {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: undefined};
@@ -74,7 +81,7 @@ if (full || args.some(arg => arg.includes('platform_native/remote_journal'))) {
 // The full suite includes real target-observation tests. Provision their
 // private HTTPS/credential fixture instead of treating missing inputs as passes.
 const result = spawnSync(full ? process.execPath : 'moon', full
-  ? ['scripts/test-native-salesforce-effect-preview.mjs', '--core-test-json', JSON.stringify(args)]
+  ? ['scripts/test-native-salesforce-effect-preview.mjs', '--core-test-json', JSON.stringify(selectedArgs)]
   : ['test', '--target', 'native', ...args], {cwd: root, stdio: 'inherit', env: {
   ...process.env,
   ...bundle,
