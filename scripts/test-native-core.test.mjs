@@ -751,7 +751,7 @@ if (process.argv[2] === 'generate-test-driver') {
   const args = process.argv.slice(2), metadata = args[args.indexOf('--output-metadata') + 1];
   require('node:fs').mkdirSync(require('node:path').dirname(metadata), {recursive:true});
   const tests = Object.fromEntries(args.filter(value => value.startsWith('src/') && value.endsWith('.mbt'))
-    .map(value => [require('node:path').basename(value), metadata.includes('fixture-empty') ? [] :
+    .map(value => [require('node:path').basename(value), value.startsWith('src/fixture-empty/') ? [] :
       [{index:0,name:'original fixture case',attrs:[],line_number:1}]]));
   writeFileSync(metadata, JSON.stringify({tests}));
   process.exit(0);
