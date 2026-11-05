@@ -933,6 +933,11 @@ test "single native Model retains original Request Query capacity without a Row 
   assert_true(after.0 > before.0 && after.1 > before.1)
   assert_true(after.0 - before.0 < legacy)
   assert_true(after.1 - before.1 < legacy)
+  let query_peak = request_local_query_construction_bytes().unwrap()
+  // Finished Query writers and native protocol parse frames are absent from
+  // the returned module. The original Query/documents and earlier debit live.
+  assert_true(after.0 - before.0 < query_peak)
+  assert_true(after.1 - before.1 < query_peak)
   assert_eq(original.captures.length(), 1)
   let capture = original.captures[0]
   assert_false(capture.original_input)

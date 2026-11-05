@@ -5030,6 +5030,14 @@ in the same Plan; a Row declaration, Row provider or second acquisition cannot
 stand in for it. Source execution borrows that exact capture through the existing
 managed DuckDB accessor, and keeps the original Model component and Scope.
 
+Native pending capacity retains the Query requirement and scalar envelope, not
+the protocol admission trees or completed Query writers. After all of those
+constructors return, the same working Request reservation reconciles only their
+finished parser and writer-frame/key-Map scratch. Both encoded-document output
+domains, six returned CID Strings, existing collections/controls and every
+earlier compiler/Graph/input debit remain charged. This is logical construction
+retirement; it issues no Source permission or physical cleanup acknowledgment.
+
 Source preparation consumes the adopted Plan's existing acquisition. Content
 borrows that same Run's Ledger and passes the same retained Row capture to the
 acquired prefix entry. Its private capture accessor checks the original receiver,

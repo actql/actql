@@ -312,6 +312,54 @@ fn[I] request_native_model_protocol_construction_bytes(
 }
 
 ///|
+// Native pending capacity retains only its original Query requirement and
+// scalar capacity. Its protocol parse/admission/registry and all completed
+// Query writer frames have returned before any module/provider callback.
+// Keep every later Graph/input grow and all actual Query output backing.
+fn[I] reconcile_request_native_model_construction(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  prepared : @publication_host.PreparedClientProgram,
+  scratch : Int64,
+) -> Result[Unit, ClientRequestProgramPlanIssue] {
+  guard owner.phase == Selecting &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(body) &&
+    physical_equal(body, prepared) &&
+    owner.program_capacity is Some(capacity) &&
+    owner.program_domain_quote is Some((r, e)) &&
+    scratch >= 0L &&
+    scratch < r &&
+    scratch <= e else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  let result = @resources.reconcile_working_preparation_phase(
+    capacity,
+    input,
+    r - scratch,
+    e - scratch,
+  )
+  guard owner.phase == Selecting &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(body) &&
+    physical_equal(body, prepared) &&
+    owner.program_capacity is Some(original_capacity) &&
+    physical_equal(original_capacity, capacity) &&
+    owner.program_domain_quote == Some((r, e)) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  match result {
+    Err(issue) => Err(Preparation(Capacity(issue)))
+    Ok(_) => {
+      owner.program_domain_quote = Some((r - scratch, e - scratch))
+      Ok(())
+    }
+  }
+}
+
+///|
 // The actual existing input/suffix lowering, selected by the SAME checked
 // occurrence. Each constructor grows the same Request before invoking it.
 fn[I] construct_request_model_input(
@@ -902,6 +950,24 @@ pub fn[I] prepare_request_model_capture_module(
           Some(value) => value
         }
         captures.push(capacity)
+      }
+      if native {
+        guard request_local_query_finished_writer_bytes() is Some(writers) &&
+          @execution.checked_preparation_add_product(
+            protocol_bytes,
+            writers,
+            count.to_int64(),
+          )
+          is Some(returned) else {
+          return Err(Preparation(Policy))
+        }
+        match
+          reconcile_request_native_model_construction(
+            owner, input, prepared, returned,
+          ) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
       }
       let original = match
         prepare_installed_mock_model_capture_plan(
