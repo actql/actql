@@ -2507,7 +2507,7 @@ try {
       currentSite = rejecting;
       const dispatch = dispatchFor(`packed-materials-refusal-${index}`, 90 + index);
       const envelope = JSON.parse(materialsEnvelope(dispatch));
-      envelope.run_materials_json = JSON.stringify(mutate(projected));
+      envelope.run_materials_json = JSON.stringify(mutate(JSON.parse(materials)));
       const outcome = gateway.dispatch({dispatch, inputBindingBody: '{}',
         dispatchEnvelope: JSON.stringify(envelope)}).catch(error => error);
       await waitFor(() => rejecting.lines.some(line => line.kind === 'refused' &&
