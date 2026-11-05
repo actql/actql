@@ -56,9 +56,10 @@ test "shared Mock cap counts authenticated saved and Unknown attempts as spent" 
 // are not an SDK grant, authenticated saved call or normal physical recipe.
 fn shared_quantity_test_execution(
   capacity : ModelQuantityCapacity,
+  retained? : Int64 = 100L,
 ) -> ModelExecution raise {
   let rows = prepared_capacity_test_rows()
-  let base = prepared_capacity_test_limits(100L)
+  let base = prepared_capacity_test_limits(retained)
   let limits = {
     ..base,
     ledger: { ..base.ledger, attempts: 10, transfer_bytes: 20000L, },
@@ -280,4 +281,89 @@ test "shared Model component ceilings refuse below the parent for reserved and U
       assert_true(cleanup_model_execution(active).unwrap())
     }
   }
+}
+
+///|
+// Actual Resource tokens on the same original Model's ledger isolate the
+// read-versus-dispatch dimension. Historical evidence is an explicit fixture;
+// this does not issue a Model reconciliation token or qualify public recovery.
+test "original response lookup retains Unknown without another invocation budget" {
+  let quantities : ModelQuantityCapacity = {
+    limits: { tokens: 66L, cost_units: 0L, duration_ms: 1000L, },
+    per_attempt: { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+  }
+  let active = shared_quantity_test_execution(
+    quantities,
+    retained=100L + 2L * 83920L,
+  )
+  let state = active.state
+  let original = state.original_startup.unwrap()
+  let purpose = original.shared_mock.unwrap()
+  let limits = {
+    ..purpose.limits,
+    ledger: { ..purpose.limits.ledger, attempts: 2, },
+  }
+  state.original_startup = Some({
+    ..original,
+    shared_mock: Some({ ..purpose, limits, }),
+  })
+  let unsent = @resources.reserve_attempt(
+    state.ledger,
+    2000L,
+    83920L,
+    0L,
+    quantities=Some(quantities.per_attempt),
+  ).unwrap()
+  state.reservations[1] = unsent
+  let (authority, _, _, _) = restored_attachment_test_originals()
+  state.unknown_calls[0] = { attempt: authority, authority, }
+  let before = @resources.ledger_usage(state.ledger)
+  // Another INVOCATION is still refused: the original Unknown and the
+  // unsent slot already occupy this selected two-attempt Model contract.
+  assert_true(
+    check_original_mock_attempt_capacity(state, 2000L, 83920L, 0L)
+    is Err(Ledger(@resources.AttemptLimit)),
+  )
+  check_original_mock_capacity(state, 83920L, 0L, reserve_quantities=true).unwrap()
+  assert_eq(@resources.ledger_usage(state.ledger), before)
+  // The separate same-Run lookup custody still charges actual finite bytes
+  // and Unknown quantities. It neither refunds that history nor permits send.
+  let lookup = @resources.reserve_attempt(
+    state.ledger,
+    2000L,
+    83920L,
+    0L,
+    quantities=Some(quantities.per_attempt),
+  ).unwrap()
+  state.reservations[0] = lookup
+  @resources.consume_reserved_attempt(state.ledger, lookup).unwrap()
+  @resources.mark_quantities_uncertain(state.ledger, lookup).unwrap()
+  assert_eq(@resources.ledger_usage(state.ledger).attempts, 1)
+  assert_eq(
+    @resources.ledger_usage(state.ledger).reserved_retention_bytes,
+    before.reserved_retention_bytes + 83920L,
+  )
+  assert_true(state.unknown_calls.contains(0))
+  assert_true(
+    state.reservations.get(1) is Some(same) && physical_equal(same, unsent),
+  )
+  let (_, uncertain, _) = @resources.reservation_quantity_state(
+    state.ledger,
+    lookup,
+  ).unwrap()
+  assert_eq(uncertain, Some(quantities.per_attempt))
+  assert_true(
+    check_original_mock_attempt_capacity(state, 2000L, 83920L, 0L)
+    is Err(Ledger(@resources.AttemptLimit)),
+  )
+  request_model_cancel(active) |> ignore
+  advance_model_execution(active, 1).unwrap() |> ignore
+  assert_true(cleanup_model_execution(active).unwrap())
+  assert_eq(@resources.ledger_usage(state.ledger).attempts, 1)
+  // Cleanup retires physical custody without erasing historical Unknown.
+  assert_true(state.unknown_calls.contains(0))
+  assert_eq(
+    @resources.reservation_quantity_state(state.ledger, lookup).unwrap().1,
+    Some(quantities.per_attempt),
+  )
 }

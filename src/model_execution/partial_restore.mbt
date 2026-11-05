@@ -201,12 +201,15 @@ pub fn prepare_model_response_reconciliation(
     Err(issue) => return Err(InvocationEvidence(issue))
     Ok(_) => ()
   }
+  // This lookup observes the SAME already-entered Unknown attempt. Its
+  // actual read/quantity custody is funded below on the same Run, but it
+  // cannot require or grant another Model dispatch/retry attempt.
   match
-    check_original_mock_attempt_capacity(
+    check_original_mock_capacity(
       state,
-      state.limits.max_request_bytes + state.limits.max_response_bytes,
       state.limits.max_request_bytes + state.limits.max_response_bytes + 81920L,
       0L,
+      reserve_quantities=true,
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
