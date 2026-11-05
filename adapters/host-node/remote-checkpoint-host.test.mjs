@@ -369,11 +369,12 @@ function referencePreflight({moon, preview, mappingCids, requestScope,
     maxFootprintWork: 4, maxWork: effectLimits.maxWork};
 }
 
-function referenceDispatch({ledger, preview, sends, loseReply, failRow, physical, completed}) {
+function referenceDispatch({ledger, preview, sends, loseReply, failRow, physical, completed, stopped}) {
   return async ({memberIndex, rowIndex, claim}) => {
     sends.push([memberIndex, rowIndex]);
     const failed = failRow?.(memberIndex, rowIndex) === true;
-    await captureClaimedEffectResponse({ledger, claim,
+    try {
+      await captureClaimedEffectResponse({ledger, claim,
       requestCid: claim.canonicalRequestCid,
       execute: () => {
         const invoke = async () => {
@@ -385,6 +386,11 @@ function referenceDispatch({ledger, preview, sends, loseReply, failRow, physical
         };
         return physical === undefined ? invoke() : physical({memberIndex, rowIndex}, invoke);
       }});
+    } finally {
+      // The bridge has ended this SAME ledger physical flight, including a
+      // lost response. This reference callback launches no detached I/O.
+      stopped?.({memberIndex, rowIndex});
+    }
     ledger.recordAdmittedRowOutcome({claim, preview,
       memberIndex, previewRowIndex: rowIndex,
       outcomeWire: canonicalJson(failed
@@ -406,7 +412,7 @@ function referenceLedger(directory, moon, requestIdentity, controlConstruction) 
 }
 
 async function prepareReferenceCapture(facts, {directory, mappingCids,
-  sends, loseReply, failRow, physical, completed, controlConstruction,
+  sends, loseReply, failRow, physical, completed, stopped, controlConstruction,
   retainInputCleanup, retainStageCleanup, beginConstruction, maxInputPins = 2,
   expectedDependencyCount = maxInputPins === 3 ? 2 : undefined}) {
   const {moon, control, store, execution, publicationPlan: plan,
@@ -510,7 +516,7 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
       ledger, members, maxFrontierWork: effectLimits.maxFrontierWork,
       refreshPreflight: async () => preflight,
       dispatchRow: referenceDispatch({ledger, preview: applyPreview,
-        sends, loseReply, failRow, physical, completed})},
+        sends, loseReply, failRow, physical, completed, stopped})},
     receipt: {ledger, preview: applyPreview, commonMoon: moon,
       publicationPreview: preview,
       authorizeEvidenceRead: async () => true,
@@ -530,7 +536,7 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
 }
 
 function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
-  loseReply, failRow, physical, completed, controlConstruction, retainStageCleanup}) {
+  loseReply, failRow, physical, completed, stopped, physicalOwner, controlConstruction, retainStageCleanup}) {
   const {moon, control, store, recovered, continuation} = facts;
   const {requestIdentity, requestScope, computation: durable} = recovered;
   const {computation, preview, storedResults} = durable;
@@ -564,7 +570,7 @@ function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
         maxWork: effectLimits.maxWork},
       refreshPreflight: async () => preflight,
       dispatchRow: referenceDispatch({ledger, preview: applyPreview,
-        sends, loseReply, failRow, physical, completed})},
+        sends, loseReply, failRow, physical, completed, stopped})},
     receipt: {ledger, preview: applyPreview, commonMoon: moon,
       publicationPreview: preview,
       authorizeEvidenceRead: async () => true,
@@ -581,7 +587,7 @@ function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
     scopes: mappingCids.map(() => ({connection: 'reference',
       resource: 'records'})),
     continuationWire: canonicalJson(continuation.provider),
-    cleanupOwner: {async close() {}, async cleanup() { return true; },
+    cleanupOwner: physicalOwner ?? {async close() {}, async cleanup() { return true; },
       cleanupPending: () => false},
     dispose};
 }
@@ -1917,16 +1923,22 @@ test(`a ${damage} acquired input rejects only its Run after Host restart`,
     let reportRecoveryFailure;
     const recoveryFailure = new Promise(resolve => { reportRecoveryFailure = resolve; });
     const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds,
+    program.stages.findIndex(stage => stage.effects !== undefined));
     const installed = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 24),
       prepareCaptured(facts) {
         captures++;
-        return prepareReferenceCapture(facts, hooks);
+        return managed.stage(facts, false,
+          owned => prepareReferenceCapture(facts, {...hooks, ...owned}));
       },
       prepareRecovered(facts) {
         recoveries++;
-        return prepareReferenceRecovery(facts, hooks);
+        return managed.stage(facts, true,
+          owned => prepareReferenceRecovery(facts, {...hooks, ...owned}));
       },
     });
     const effectInstallation = {...installed, async resume(facts) {
@@ -1938,6 +1950,10 @@ test(`a ${damage} acquired input rejects only its Run after Host restart`,
       const configuration = JSON.parse(effectCommitConfiguration());
       configuration.entries[1].connection = {all: true};
       configuration.entries[1].resource = {all: true};
+      configuration.entries.push({entry_id: 'owner-read', outcome: 'allow',
+        principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/answer', 'run']}, operation: {any_of: ['read']}, exclusions: []});
+      configuration.entries.sort((a, b) => a.entry_id < b.entry_id ? -1 : a.entry_id > b.entry_id ? 1 : 0);
       return protectedHost(undefined, {accountConfiguration: canonicalJson(configuration)});
     };
     const first = await remoteHost(t, account(), options);
