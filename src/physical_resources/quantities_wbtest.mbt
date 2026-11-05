@@ -166,3 +166,43 @@ test "a provider overrun remains charged and cannot overflow later admission" {
   assert_eq(quantity_usage(ledger).consumed.tokens, 9223372036854775807L)
   assert_eq(quantity_usage(ledger).reserved.tokens, 0L)
 }
+
+///|
+test "shared two-Model duration covers four retained unknown attempts without refund" {
+  let per_attempt : QuantityAmounts = {
+    tokens: 33L,
+    cost_units: 0L,
+    duration_ms: 500L,
+  }
+  for (duration_ms, calls) in [(1000L, 2), (2000L, 4)] {
+    let ledger = quantity_test_ledger()
+    configure_quantities(ledger, { tokens: 66L, cost_units: 0L, duration_ms, }).unwrap()
+    for _ in 0..<calls {
+      let reservation = reserve_attempt(
+        ledger,
+        0L,
+        0L,
+        0L,
+        quantities=Some(per_attempt),
+      ).unwrap()
+      mark_quantities_uncertain(ledger, reservation).unwrap()
+      // The original response proves three tokens and no duration. Settling
+      // the physical reservation cannot turn that unobserved time into zero.
+      observe_quantities(ledger, reservation, tokens=Some(3L)).unwrap()
+      settle_reservation(ledger, reservation).unwrap()
+    }
+    let before = quantity_usage(ledger)
+    let physical = ledger_usage(ledger)
+    assert_eq(before.consumed.tokens, calls.to_int64() * 3L)
+    assert_eq(before.consumed.duration_ms, 0L)
+    assert_eq(before.uncertain.duration_ms, duration_ms)
+    assert_eq(before.reserved, zero_quantities())
+    assert_true(
+      reserve_attempt(ledger, 0L, 0L, 0L, quantities=Some(per_attempt))
+      is Err(DurationLimit),
+    )
+    assert_eq(quantity_usage(ledger), before)
+    assert_eq(ledger_usage(ledger), physical)
+    assert_eq(physical.attempts, calls)
+  }
+}
