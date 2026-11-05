@@ -35,7 +35,8 @@ assert.equal(preparationNode.type, 'ArrowFunctionExpression');
 
 function fixture({composed = false} = {}) {
   const calls = [], prepared = {}, compilation = {}, allowed = {}, definition = {};
-  const identity = {request: 'original'}, compiled = {}, runDefinition = {identity: 'actual-run'};
+  const identity = {request: 'original'}, readmittedIdentity = {request: 'original'},
+    compiled = {}, runDefinition = {identity: 'actual-run'};
   const updateTargetSelections = Object.freeze([]);
   const facts = {prepared, compilation, allowed, definition, identity,
     modelCompiled: compiled, runDefinition, updateTargetSelections};
@@ -43,7 +44,8 @@ function fixture({composed = false} = {}) {
   const registry = {}, values = {}, fragment = {}, ordered = {};
   const infer = composed ? Object.freeze({graph: {}}) : undefined;
   const inferSelections = new WeakMap(infer === undefined ? [] : [[prepared, infer]]);
-  let current = true, ownedRecovery = true, physicalFailure, savedAuthorization = 'saved-authorization';
+  let current = true, ownedRecovery = true, journalIdentity = identity, physicalFailure,
+    savedAuthorization = 'saved-authorization';
   const reissuedAllowed = {}, reissuedDefinition = {};
   const refusal = new Error('OriginalHostNotCurrent');
   const currentHost = () => {if (!current) throw refusal;};
@@ -65,7 +67,12 @@ function fixture({composed = false} = {}) {
     assert.strictEqual(p, prepared);
     assert(a === allowed && d === definition || a === reissuedAllowed && d === reissuedDefinition);
     calls.push('typed-run'); return {$tag: 1, _0: {}};
-  }, clientRequestCallerId(value) {assert.strictEqual(value, identity); return value.request;},
+  },
+  // This DATA projection does not establish the nominal request relation.
+  clientRequestCallerId(value) {return value?.request;},
+  clientRequestRelation(left, right) {
+    return [left, right].every(value => value === identity || value === readmittedIdentity) ? 1 : 0;
+  },
   strategyPublicationContractJson(value) {
     return value === definition || value === reissuedDefinition ? 'saved-definition' : value?.wire;
   }, clientProgramAllowedEffectRunPrepared(value) {
@@ -97,7 +104,7 @@ function fixture({composed = false} = {}) {
   };
   const journal = {lookupOwnedDefinition(key, core, control) {
     assert.strictEqual(core, moon); assert.equal(key.requestId, identity.request);
-    calls.push('saved-journal'); return ownedRecovery ? {runDefinition} : undefined;
+    calls.push('saved-journal'); return ownedRecovery ? {runDefinition, requestIdentity: journalIdentity} : undefined;
   }, resolveDefinition(originalIdentity, {namespaceId}, core, owner) {
     assert.strictEqual(originalIdentity, identity); assert.equal(namespaceId, 'namespace');
     assert.strictEqual(core, moon); assert.strictEqual(owner, control);
@@ -145,6 +152,8 @@ function fixture({composed = false} = {}) {
     refusal, revoke() {current = false;}, failPhysical(value) {physicalFailure = value;},
     denyRecovery() {ownedRecovery = false;},
     changeSavedAuthorization() {savedAuthorization = 'different-authorization';},
+    changeJournalIdentity() {journalIdentity = {};},
+    readmittedIdentity,
     readmittedFacts: {...facts, allowed: reissuedAllowed, definition: reissuedDefinition}};
 }
 
@@ -277,5 +286,67 @@ test('cold saved readmission refuses lost Journal changed authority and copied t
     assert.equal(f.calls.filter(call => call === 'physical-original').length, 1);
     assert.equal(f.calls.filter(call => call === 'typed-run').length, 1);
     if (change !== 'revoke') assert.strictEqual(f.mockEffectResources.bindRunOriginal(f.facts), original);
+  }
+});
+
+
+test('cold Journal handle cannot replace the already bound physical request original', () => {
+  const f = fixture({composed: true}); f.prepareDefinition(f.facts);
+  const original = f.mockEffectResources.bindRunOriginal(f.facts);
+  const recovered = {...f.readmittedFacts, requestIdentity: f.readmittedIdentity};
+  assert.notStrictEqual(recovered.identity, recovered.requestIdentity);
+  assert.strictEqual(f.mockEffectResources.bindRunOriginal({recovered}), original);
+  assert.strictEqual(f.mockEffectResources.bindRunOriginal({recovered}), original);
+  assert.equal(f.calls.filter(call => call === 'same-journal').length, 1);
+  assert.equal(f.calls.filter(call => call === 'typed-run').length, 2);
+  assert.equal(f.calls.filter(call => call === 'physical-original').length, 1);
+  // The original pointer fence remains strict outside the saved handoff.
+  assert.throws(() => f.mockEffectResources.bindRunOriginal({...f.readmittedFacts,
+    identity: f.readmittedIdentity}), {code: 'ForeignInstalledMockEffectRun'});
+});
+
+test('cold binding refuses foreign original request, saved handle and current Journal identity', () => {
+  for (const change of ['original', 'saved', 'journal']) {
+    const f = fixture(); f.prepareDefinition(f.facts);
+    const original = f.mockEffectResources.bindRunOriginal(f.facts);
+    let recovered = {...f.readmittedFacts, requestIdentity: f.readmittedIdentity};
+    if (change === 'original') recovered = {...recovered, identity: {request: 'original'}};
+    else if (change === 'saved') recovered = {...recovered, requestIdentity: {request: 'original'}};
+    else f.changeJournalIdentity();
+    assert.throws(() => f.mockEffectResources.bindRunOriginal({recovered}),
+      {code: 'ForeignInstalledMockEffectRun'});
+    assert.equal(f.calls.filter(call => call === 'typed-run').length, 1);
+    assert.equal(f.calls.filter(call => call === 'physical-original').length, 1);
+    assert.strictEqual(f.mockEffectResources.bindRunOriginal(f.facts), original);
+  }
+});
+
+
+test('cold bound request readmission authenticates the winning evidence before physical reuse', () => {
+  for (const change of [undefined, 'changeSavedAuthorization', 'denyRecovery', 'revoke']) {
+    const f = fixture({composed: true}); f.prepareDefinition(f.facts);
+    const original = f.mockEffectResources.bindRunOriginal(f.facts);
+    const recovered = {...f.readmittedFacts, identity: f.readmittedIdentity,
+      requestIdentity: f.readmittedIdentity};
+    if (change !== undefined) {
+      f[change]();
+      assert.throws(() => f.mockEffectResources.bindRunOriginal({recovered}));
+      assert.equal(f.calls.filter(call => call === 'typed-run').length, 1);
+    } else {
+      assert.strictEqual(f.mockEffectResources.bindRunOriginal({recovered}), original);
+      assert.strictEqual(f.mockEffectResources.bindRunOriginal({recovered}), original);
+      assert.equal(f.calls.filter(call => call === 'same-journal').length, 2);
+      assert.equal(f.calls.filter(call => call === 'typed-run').length, 3);
+      assert.throws(() => f.mockEffectResources.bindRunOriginal({recovered: {...recovered,
+        compilation: {}}}), {code: 'ForeignInstalledMockEffectRun'});
+      // A matching readmission cache is no substitute for current saved evidence.
+      f.changeSavedAuthorization();
+      assert.throws(() => f.mockEffectResources.bindRunOriginal({recovered}),
+        {code: 'ForeignInstalledMockEffectRun'});
+      assert.equal(f.calls.filter(call => call === 'same-journal').length, 3);
+      assert.equal(f.calls.filter(call => call === 'typed-run').length, 3);
+    }
+    assert.equal(f.calls.filter(call => call === 'physical-original').length, 1);
+    assert.equal(f.calls.filter(call => call === 'shared-plan').length, 1);
   }
 });
