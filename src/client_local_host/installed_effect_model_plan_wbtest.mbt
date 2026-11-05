@@ -117,25 +117,30 @@ fn effect_model_plan_inputs() -> (
 fn effect_model_plan_for_prepared(
   prepared : @publication_host.PreparedClientEffectComputation,
   acquired? : Bool = false,
+  infers? : Array[@publication_host.ClientInferPlanGraph] = [],
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
   ClientInstalledSequenceContracts,
   ClientInstalledEffectModelDemand,
 ) {
-  let occurrence = @publication_host.prepared_client_effect_infer_occurrence(
-    prepared,
-  ).unwrap()
+  let occurrence = @publication_host.prepared_client_effect_infer_occurrences(
+      prepared,
+    ).unwrap()[0]
   let execution = effect_model_plan_execution(occurrence)
-  let graph = @publication_host.issue_installed_client_composed_infer_plan_graph(
-    occurrence,
-    execution,
-    @publication_host.client_standard_values_sequence_limits(),
-    1000000,
-    100000,
-    100,
-  ).unwrap()
-  effect_model_plan_for_graph(prepared, graph, acquired~)
+  let graph = if !infers.is_empty() {
+    infers[0]
+  } else {
+    @publication_host.issue_installed_client_composed_infer_plan_graph(
+      occurrence,
+      execution,
+      @publication_host.client_standard_values_sequence_limits(),
+      1000000,
+      100000,
+      100,
+    ).unwrap()
+  }
+  effect_model_plan_for_graph(prepared, graph, acquired~, infers~)
 }
 
 ///|
@@ -143,6 +148,7 @@ fn effect_model_plan_for_graph(
   prepared : @publication_host.PreparedClientEffectComputation,
   graph : @publication_host.ClientInferPlanGraph,
   acquired? : Bool = false,
+  infers? : Array[@publication_host.ClientInferPlanGraph] = [],
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
@@ -166,7 +172,8 @@ fn effect_model_plan_for_graph(
     1000000,
     100000,
     100,
-    infer=Some(graph),
+    infer=if infers.is_empty() { Some(graph) } else { None },
+    infers~,
   ).unwrap()
   let allowed = @publication_host.issue_client_effect_allowed_run(
     compilation,

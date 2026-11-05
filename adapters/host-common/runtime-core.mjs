@@ -3378,6 +3378,9 @@ function publicationControl(moon) {
         captures.map(value => value.requirement), captures.map(value => value.logicalInput),
         sourceEvidence.map(evidenceToken), authorityScopeCid, startedAt, completedAt, keyed));
     },
+    composedInferSourcesFor(occurrence, original) {
+      return moon.clientProgramComposedInferSourcesMatch(original, occurrence) === true ? original : undefined;
+    },
     startOriginalComposedKeyedPrefix(compiled, definition, graph, scope, keyed, captures, prefix) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {

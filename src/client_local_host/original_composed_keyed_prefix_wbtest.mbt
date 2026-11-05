@@ -36,6 +36,16 @@ test "adopted Effect Model borrows shared Source tokens and its original prefix 
 }
 
 ///|
+test "downstream Model retains complete original keyed Source provenance without reusing its live lookup" {
+  original_composed_keyed_consumer(following=true)
+}
+
+///|
+test "complete keyed Source closure refuses a same-graph non-ancestor Model" {
+  original_composed_keyed_consumer(following=true, parallel=true)
+}
+
+///|
 fn original_composed_keyed_consumer(
   prepare_parent? : ((String, @checked.CheckEnvironment) -> (
     ClientRequestPreparation[Array[Int]],
@@ -43,6 +53,8 @@ fn original_composed_keyed_consumer(
     @publication_host.PreparedClientEffectComputation,
   ) raise)? = None,
   foreign_run? : (() -> @publication_host.PreparedClientEffectRun raise)? = None,
+  following? : Bool = false,
+  parallel? : Bool = false,
 ) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
@@ -55,8 +67,55 @@ fn original_composed_keyed_consumer(
     declaration=Some(declaration),
     lookup_policy=Some(policy["lookup_execution"]),
   )
-  let document =
+  let mut document =
     #|{"version":"actql/0.1","id":"two-direct-keyed-model","stages":[{"id":"left","inputs":{"files":{"connector":"content-fixture","resource":"files"}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["name","resource","version"]}}},{"id":"right","inputs":{"files":{"connector":"content-fixture","resource":"files"}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["name","resource","version"]}}},{"id":"classify","inputs":{"a":{"result":{"stage":"left","result":"rows"}},"b":{"result":{"stage":"right","result":"rows"}},"contents":{"connector":"content-fixture","resource":"contents"}},"steps":[{"from":"a","join":{"with":"b","kind":"inner","on":[{"left":"name","right":"name"}],"select":{"name":"left.name","resource":"left.resource","version":"left.version"}},"as":"joined"},{"from":"joined","join":{"with":"contents","kind":"inner","on":[{"left":"resource","right":"resource"},{"left":"version","right":"version"}],"select":{"name":"left.name","content":"right.content"}},"as":"captured"},{"assert_rows":{"unique_by":["name"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"classified"},{"derive":{"id":{"literal":1}},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"classify","result":"rows"}}}}
+  if following {
+    let parsed = @json.parse(document)
+    guard parsed is Object(fields) && fields["stages"] is Array(stages) else {
+      fail("the original keyed document is required")
+    }
+    guard stages[2] is Object(first) &&
+      first["results"] is Object(results) &&
+      results["rows"] is Object(rows) &&
+      rows["fields"] is Array(output_fields) else {
+      fail("the original first Model Result is required")
+    }
+    output_fields.push(Json::string("name"))
+    let independent =
+      #|{"id":"following","inputs":{"rows":{"result":{"stage":"right","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["name"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"assessed"},{"derive":{"id":{"literal":1}},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","name","outcome"]}}}
+    let dependent =
+      #|{"id":"following","inputs":{"rows":{"result":{"stage":"classify","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"name"}}},"as":"assessed"}],"results":{"rows":{"from":"assessed","fields":["id","outcome"]}}}
+    let next = @json.parse(if parallel { independent } else { dependent })
+    guard next is Object(next_fields) else {
+      fail("the downstream Model stage is required")
+    }
+    // The original write remains after the selected computation. A Result
+    // consumed by the next Model must not also be an unresolved Effect receipt.
+    let effects = first["effects"]
+    first.remove("effects")
+    stages.push(next)
+    if parallel {
+      // Both independent Model outputs remain selected by the original write;
+      // this target has no data edge from the keyed Model into the other Model.
+      let combine_wire =
+        #|{"id":"combine","inputs":{"a":{"result":{"stage":"classify","result":"rows"}},"b":{"result":{"stage":"following","result":"rows"}}},"steps":[{"from":"a","join":{"with":"b","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}
+      let combine = @json.parse(combine_wire)
+      guard combine is Object(combined) else {
+        fail("the original write join is required")
+      }
+      combined["effects"] = effects
+      stages.push(combine)
+      fields["results"] = @json.parse(
+        "{\"rows\":{\"from\":{\"stage\":\"combine\",\"result\":\"rows\"}}}",
+      )
+    } else {
+      next_fields["effects"] = effects
+      fields["results"] = @json.parse(
+        "{\"rows\":{\"from\":{\"stage\":\"following\",\"result\":\"rows\"}}}",
+      )
+    }
+    document = parsed.stringify()
+  }
   let shared = prepare_parent is Some(_)
   let request_parent = match prepare_parent {
     None => None
@@ -109,9 +168,26 @@ fn original_composed_keyed_consumer(
       }),
     )
   }
+  let graphs = if following {
+    @publication_host.prepared_client_effect_infer_occurrences(prepared)
+    .unwrap()
+    .map(occurrence => {
+      @publication_host.issue_installed_client_composed_infer_plan_graph(
+        occurrence,
+        effect_model_plan_execution(occurrence),
+        @publication_host.client_standard_values_sequence_limits(),
+        1000000,
+        100000,
+        100,
+      ).unwrap()
+    })
+  } else {
+    []
+  }
   let (_, request, contracts, model) = effect_model_plan_for_prepared(
     prepared,
     acquired=true,
+    infers=graphs,
   )
   let keyed = @publication_host.select_client_effect_composed_model_keyed_acquisition(
       prepared,
@@ -603,6 +679,66 @@ fn original_composed_keyed_consumer(
       model._occurrence,
     ),
   )
+  if following {
+    assert_eq(graphs.length(), 2)
+    let second = graphs[1].occurrence
+    assert_true(
+      @publication_host.select_client_effect_composed_model_keyed_acquisition(
+        prepared,
+        graphs[1],
+      )
+      is Ok(None),
+    )
+    assert_true(
+      @publication_host.admit_client_infer_composed_sources(
+        model._occurrence,
+        [sources[0]],
+        identities,
+        requirements,
+        logicals,
+        observations,
+        authority,
+        started,
+        completed,
+        keyed=Some(keyed_observation),
+      )
+      is Err(_),
+    )
+    assert_eq(
+      @publication_host.client_infer_composed_sources_matches(
+        source_closure, second,
+      ),
+      !parallel,
+    )
+    assert_true(
+      @publication_host.client_infer_composed_keyed_lookup(
+        source_closure, second,
+      )
+      is None,
+    )
+    assert_eq(
+      @publication_host.client_infer_composed_source_observations(
+        source_closure,
+      ).length(),
+      3,
+    )
+    let foreign = @publication_host.prepare_client_effect_computation(
+      document,
+      Json,
+      environment,
+      None,
+      [],
+      @publication_host.client_standard_effect_computation_limits(),
+    ).unwrap()
+    let foreign_second = @publication_host.prepared_client_effect_infer_occurrences(
+        foreign,
+      ).unwrap()[1]
+    assert_false(
+      @publication_host.client_infer_composed_sources_matches(
+        source_closure, foreign_second,
+      ),
+    )
+  }
   let inputs = original.inputs.map(value => {
     @local.managed_provider_relation_input(value.2)
   })
@@ -675,6 +811,70 @@ fn original_composed_keyed_consumer(
     }
   }
   assert_eq(@execution.prepared_infer_rows_count(rows.unwrap()), 1)
+  if following {
+    let completed_input = client_infer_completed_input(input).unwrap()
+    let scan = @execution.start_completed_relation_identity_scan(
+      completed_input,
+      20,
+      limits.values,
+      limits.payload_wire,
+      limits.logical_wire,
+      limits.schema,
+      10000,
+      10000,
+    ).unwrap()
+    while !@execution.advance_completed_relation_identity_scan(scan, 7).unwrap().0 {
+      ()
+    }
+    let receipt = @execution.finish_completed_relation_identity_scan(scan).unwrap()
+    let call_scope = @publication_host.issue_client_infer_occurrence_call_scope(
+      model._occurrence,
+      model.graph,
+      completed_input,
+      receipt,
+      1000000,
+      100000,
+      100,
+      sources=Some(source_closure),
+    ).unwrap()
+    let snapshot = @publication_host.client_infer_call_scope_snapshot(
+      call_scope,
+    ).unwrap()
+    let saved = @publication_host.read_client_infer_saved_call_scope(
+      model.compiled,
+      model.definition,
+      model._occurrence,
+      model.graph,
+      snapshot,
+      authority,
+      () => true,
+    ).unwrap()
+    assert_eq(
+      @publication_host.client_infer_saved_source_originals(
+        saved,
+        model.compiled,
+        model.definition,
+        model._occurrence,
+        model.graph,
+      )
+      .unwrap()
+      .length(),
+      3,
+    )
+    assert_true(
+      @publication_host.read_client_infer_saved_call_scope(
+        model.compiled,
+        model.definition,
+        model._occurrence,
+        model.graph,
+        snapshot,
+        authority,
+        () => false,
+      )
+      is Err(_),
+    )
+  }
+
   assert_true(input.work >= work)
   // Only the two Direct reads and the keyed response are actual attempts.
   // The completed assembly settled its unused attempt; the live prefix still

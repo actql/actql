@@ -24,7 +24,35 @@ pub fn select_client_effect_composed_model_keyed_acquisition(
   guard client_infer_occurrence_matches_effect(plan.occurrence, prepared) else {
     return Err(ForeignPipeline)
   }
-  let checked = @strategy.graph_program(plan.owner.graph)
+  match client_composed_keyed_source_coordinates(plan.owner) {
+    Err(issue) => Err(issue)
+    Ok(None) => Ok(None)
+    Ok(Some((stage, input, join))) => {
+      if stage != plan.stage {
+        return Ok(None)
+      }
+      if join >= plan.source_ordinal {
+        return Err(ForeignPipeline)
+      }
+      prepare_client_effect_keyed_acquisition(
+        prepared,
+        stage,
+        input,
+        1000000,
+        join_step=Some(join),
+      ).map(value => Some(value))
+    }
+  }
+}
+
+///|
+// The same original checked inventory, not a Direct-only physical profile.
+// Logical Source facts remain available to the saved provenance reader after
+// the actual lookup has ended; they issue neither a request nor a Row owner.
+fn client_composed_keyed_source_coordinates(
+  owner : PreparedClientProgram,
+) -> Result[(Int, Int, Int)?, ClientKeyedAcquisitionIssue] {
+  let checked = @strategy.graph_program(owner.graph)
   let mut selected = None
   let count = @checked.source_execution_count(checked)
   if count > 1000000 {
@@ -33,27 +61,20 @@ pub fn select_client_effect_composed_model_keyed_acquisition(
   for index in 0..<count {
     let check = @checked.source_execution_at(checked, index).unwrap()
     if @checked.source_execution_kind(check) is @checked.KeyedRequest(binding) {
-      let subject = @checked.source_execution_subject(check)
-      let step = @acquisition.keyed_join_step(binding.join)
-      if selected is Some(_) ||
-        subject.stage != plan.stage ||
-        step >= plan.source_ordinal {
+      if selected is Some(_) {
         return Err(ForeignPipeline)
       }
-      selected = Some((subject.stage, subject.input, step))
+      let subject = @checked.source_execution_subject(check)
+      selected = Some(
+        (
+          subject.stage,
+          subject.input,
+          @acquisition.keyed_join_step(binding.join),
+        ),
+      )
     }
   }
-  match selected {
-    None => Ok(None)
-    Some((stage, input, join)) =>
-      prepare_client_effect_keyed_acquisition(
-        prepared,
-        stage,
-        input,
-        1000000,
-        join_step=Some(join),
-      ).map(value => Some(value))
-  }
+  Ok(selected)
 }
 
 ///|
