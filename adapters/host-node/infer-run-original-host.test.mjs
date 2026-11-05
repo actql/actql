@@ -10,6 +10,7 @@ import {installNodeClientProgramPreparation} from './client-program-preparation.
 import {restoreInferTaskRunAdmission} from './local-values-plan.mjs';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
+import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {identity, configuration, program} from '../../scripts/fixtures/first-m1-common-materials.mjs';
 
 const runtimeUrl = process.env.ACTQL_INFER_ORIGINAL_RUNTIME === undefined
@@ -30,6 +31,10 @@ function original(parameters = null) {
   assert.ok(environment);
   const prepare = installNodeClientProgramPreparation({moon, environment});
   const prepared = prepare({kind: 'program', input: program, parameters});
+  return compileOriginal(prepare, prepared, environment, installation);
+}
+
+function compileOriginal(prepare, prepared, environment, installation) {
   const inputs = prepare.originalInputs(prepared);
   const {execution} = readInstalledModelExecution(moon, prepared, installation);
   const graph = checked(moon.clientProgramInstalledInferPlanGraph(prepared, 2, execution));
@@ -91,8 +96,16 @@ test('Common compiled Infer projection rejects foreign nominal preparation and c
   assert.throws(() => control.checkedClientCompiledInferOriginal({...value.compiled}, value.prepared, value.definition), /Foreign/u);
 });
 
-test('actual Common boxed plural originals retain fresh and restored compiler members', () => {
-  const value = original(), restored = value.restore();
+test('actual Common boxed plural originals retain fresh and restored compiler members', async t => {
+  const installation = configuration(base);
+  const environment = moon.clientProgramCheckEnvironment(installation.environmentWire,
+    JSON.parse(installation.environmentWire).evidence_bundle_cid, ...profiles);
+  assert.ok(environment);
+  const funded = await openFundedClientPreparation({moon, environment});
+  t.after(funded.close);
+  const prepared = await funded.prepare({kind: 'program', input: program, parameters: null});
+  const value = compileOriginal(funded.prepare, prepared, environment, installation);
+  const restored = value.restore();
   for (const selected of [value, restored]) {
     const definition = selected.runDefinition ?? value.definition;
     const singular = control.checkedClientCompiledInferOriginal(selected.compiled, selected.prepared, definition);
