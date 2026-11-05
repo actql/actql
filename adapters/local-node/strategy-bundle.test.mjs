@@ -818,6 +818,7 @@ test('standard Host runs Local with mixed memory and provider inputs',
         storage_bytes: 16,
         close() {},
         cleanup_refresh: () => true,
+        cleanup_local_continuation: () => -1n,
       };
       const local = localStrategyContribution({
         ...portableRuntime,
