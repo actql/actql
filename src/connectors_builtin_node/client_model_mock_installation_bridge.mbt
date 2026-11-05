@@ -135,3 +135,26 @@ pub fn client_program_retire_mock_profile(
 ) -> Bool {
   @check_environment.retire_model_mock_profile(original)
 }
+
+///|
+#export_name("clientProgramReadOriginalMockModelDependencies")
+pub fn client_program_read_original_mock_model_dependencies(
+  original : @model.ModelMockInstallation,
+  execution : @check_environment.ModelExecutionContract,
+  prompt : String?,
+  retry : String?,
+  backoff : String?,
+) -> Result[
+  @check_environment.SingleAttemptModelDependencies,
+  @check_environment.ModelDependencyIssue,
+] {
+  @model.read_original_model_mock_dependencies(
+    original,
+    execution,
+    prompt.map(value => @utf8.encode(value)),
+    retry.map(value => @utf8.encode(value)),
+    backoff.map(value => @utf8.encode(value)),
+    { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_members: 10000, },
+    1000000,
+  )
+}

@@ -91,6 +91,42 @@ test('original native Model metadata rejection follows returned material funding
   }
 });
 
+test('original Mock dependencies keep the same funded materials and nominal reader without physical fallback', () => {
+  const execution = {}, original = {}, dependencies = {};
+  const installation = frozen([], [
+    {cid: 'prompt', bodyWire: 'original-prompt'}, {cid: 'retry', bodyWire: 'original-retry'},
+    {cid: 'backoff', bodyWire: 'original-backoff'},
+  ]);
+  let funded = false, reads = 0;
+  const moon = {clientProgramInferDependencyReferences: () => ({_0: 'prompt', _1: 'retry', _2: 'backoff'}),
+    clientProgramInferMediaDependencyReferences: () => [],
+    clientProgramReadInferModelDependencies() {assert.fail('No physical dependency fallback');},
+    clientProgramReadOriginalMockModelDependencies(owner, selected, prompt, retry, backoff) {
+      assert.equal(funded, true); assert.strictEqual(owner, original); assert.strictEqual(selected, execution);
+      assert.deepEqual([prompt, retry, backoff], ['original-prompt', 'original-retry', 'original-backoff']);
+      reads++; return {$tag: 1, _0: dependencies};
+    }};
+  const beforeRead = (count, at, containers) => {
+    assert.equal(count, 3); assert.equal(containers, 3);
+    assert.deepEqual(Array.from({length: count}, (_, index) => at(index)),
+      ['original-prompt', 'original-retry', 'original-backoff']); funded = true;
+  };
+  assert.strictEqual(readInstalledModelDependencies(moon, execution, installation,
+    beforeRead, {}, {}, original), dependencies);
+  assert.equal(reads, 1);
+  const issue = {}, failed = {...moon, clientProgramReadOriginalMockModelDependencies(owner) {
+    assert.strictEqual(owner, original); return {$tag: 0, _0: issue};
+  }};
+  assert.throws(() => readInstalledModelDependencies(failed, execution, installation,
+    beforeRead, {}, {}, original), error => error.code === 'MoonBitHostFailure' && error.cause === issue);
+  const missing = {...moon, clientProgramReadOriginalMockModelDependencies: undefined};
+  assert.throws(() => readInstalledModelDependencies(missing, execution, installation,
+    beforeRead, {}, {}, original), TypeError);
+  assert.throws(() => readInstalledModelDependencies(moon, execution, installation,
+    () => {throw Error('OriginalCurrentRefused');}, {}, {}, original), /OriginalCurrentRefused/u);
+  assert.equal(reads, 1);
+});
+
 test('native metadata witness excludes funding throws, native throws, foreign callbacks and asynchronous funding', () => {
   const prepared = {}, occurrence = {}, installation = frozen([{modelTaskCid: 'task', cid: 'execution', bodyWire: '{}'}], []);
   const lookalike = Object.assign(new Error('MoonBitHostFailure'), {code: 'MoonBitHostFailure', cause: {}});

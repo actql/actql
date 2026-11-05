@@ -278,6 +278,8 @@ pub fn read_model_mock_answer_document(@check_environment.PublicModelTaskDeclara
 
 pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
+pub fn read_original_model_mock_dependencies(ModelMockInstallation, @check_environment.ModelExecutionContract, Bytes?, Bytes?, Bytes?, @check_environment.Limits, Int) -> Result[@check_environment.SingleAttemptModelDependencies, @check_environment.ModelDependencyIssue]
+
 pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
 pub fn release_model_outcomes(ModelOutcomeRead) -> Bool

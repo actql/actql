@@ -473,7 +473,8 @@ export function installModelProviders(moon, register, assertHostRuntime,
   return result;
 }
 
-export function readInstalledModelDependencies(moon, execution, installation, beforeRead, prepared, occurrence) {
+export function readInstalledModelDependencies(moon, execution, installation, beforeRead, prepared, occurrence,
+  originalMock) {
   if (beforeRead !== undefined) {
     const original = originalModelMaterialArrays(installation);
     const references = moon.clientProgramInferDependencyReferences(execution);
@@ -491,6 +492,11 @@ export function readInstalledModelDependencies(moon, execution, installation, be
       ? {prepared, installation, occurrence, beforeRead, execution} : undefined;
     checkInstallation(installation);
     const bodies = new Map(original.bodies.map(entry => [entry.cid, entry.bodyWire]));
+    if (originalMock !== undefined) {
+      return checkedModelMetadata(moon.clientProgramReadOriginalMockModelDependencies(originalMock, execution,
+        bodies.get(runtimeField(references, 0)), bodies.get(runtimeField(references, 1)),
+        bodies.get(runtimeField(references, 2))), witness);
+    }
     if (media.length !== 0) {
       return checkedModelMetadata(Reflect.apply(read, moon, [execution,
         bodies.get(runtimeField(references, 0)), bodies.get(runtimeField(references, 1)), bodies.get(runtimeField(references, 2)),
@@ -501,15 +507,20 @@ export function readInstalledModelDependencies(moon, execution, installation, be
       bodies.get(runtimeField(references, 0)), bodies.get(runtimeField(references, 1)),
       bodies.get(runtimeField(references, 2))]), witness);
   }
-  return readInstalledModelDependenciesLegacy(moon, execution, installation);
+  return readInstalledModelDependenciesLegacy(moon, execution, installation, originalMock);
 }
 
-function readInstalledModelDependenciesLegacy(moon, execution, installation) {
+function readInstalledModelDependenciesLegacy(moon, execution, installation, originalMock) {
   checkInstallation(installation);
   const references = moon.clientProgramInferDependencyReferences(execution);
   const bodies = new Map((installation.dependencyBodies ?? [])
     .map(entry => [entry.cid, entry.bodyWire]));
   const media = moon.clientProgramInferMediaDependencyReferences(execution);
+  if (originalMock !== undefined) {
+    return checked(moon.clientProgramReadOriginalMockModelDependencies(originalMock, execution,
+      bodies.get(runtimeField(references, 0)), bodies.get(runtimeField(references, 1)),
+      bodies.get(runtimeField(references, 2))));
+  }
   if (media.length !== 0) {
     // Preserve the checked role-to-CID relation. Missing bodies are reported
     // by the common dependency owner; another role or a provider callback

@@ -20920,7 +20920,7 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "542c2f684a276a24f6e60a238546a684498646e01f0e8ca9792612ea3ed3ea77",
+      "sha256": "435466141a01264b25fc1b6252740677927af4237abcb0c4b310aecf8e812f30",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
@@ -21219,7 +21219,8 @@
             "installation",
             "beforeRead",
             "prepared",
-            "occurrence"
+            "occurrence",
+            "originalMock"
           ],
           "async": false
         },
@@ -21263,7 +21264,8 @@
           "parameters": [
             "moon",
             "execution",
-            "installation"
+            "installation",
+            "originalMock"
           ],
           "async": false
         },
