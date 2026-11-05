@@ -8,13 +8,12 @@ No preload, attach, ASLR/security change or second execution is attempted.
 import json
 import os
 from pathlib import Path
-import pty
 import re
 import shutil
 import signal
 import subprocess
 import sys
-import termios
+import tempfile
 import threading
 
 
@@ -55,41 +54,41 @@ def run(report, target):
     if debugger is None:
         conditions.add("debugger-unavailable")
     else:
-        master, slave = pty.openpty()
-        attributes = termios.tcgetattr(slave)
-        attributes[1] &= ~termios.OPOST
-        attributes[3] &= ~(termios.ECHO | termios.ICANON | termios.ISIG)
-        termios.tcsetattr(slave, termios.TCSANOW, attributes)
         commands = ["set pagination off", "set confirm off", "set startup-with-shell off",
                     "set print inferior-events off", "set print frame-arguments none",
                     "set print entry-values no", "set print address off",
                     "set disable-randomization off", "set follow-fork-mode parent",
-                    "set detach-on-fork on", "handle SIGPIPE nostop noprint pass",
+                    "set detach-on-fork on", "set follow-exec-mode same",
+                    "handle SIGPIPE nostop noprint pass",
                     "handle SIGCHLD nostop noprint pass", "handle SIGUSR1 nostop noprint pass",
                     "handle SIGTERM nostop noprint pass", "unset environment LINES",
-                    "unset environment COLUMNS", "set inferior-tty " + os.ttyname(slave),
+                    "unset environment COLUMNS",
                     "run", "thread apply all backtrace 16", "continue"]
         arguments = [debugger, "-q", "-nx", "-batch", "--return-child-result"]
         for command in commands:
             arguments.extend(["-ex", command])
-        arguments.extend(["--args", *target])
         # This hash-fenced caller's exact original Native environment consists
         # of PATH and LANG. Exclude Python's own C-locale coercion variable.
         environment = {name: os.environ[name] for name in ("PATH", "LANG")}
-        child = subprocess.Popen(arguments, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT, text=True, env=environment)
-
-        def forward_target():
-            while True:
-                try:
-                    data = os.read(master, 65536)
-                    if not data:
-                        return
-                    cursor = 0
-                    while cursor < len(data):
-                        cursor += os.write(1, data[cursor:])
-                except OSError:
-                    return
+        streams = [os.dup(descriptor) for descriptor in range(3)]
+        try:
+            with tempfile.TemporaryFile() as original:
+                original.write(json.dumps({"argv": target, "environment": environment}).encode("utf8"))
+                original.flush()
+                original.seek(0)
+                # GDB preserves the FDs it inherited when starting an inferior.
+                # Keep its own output pipe separate from all three real target
+                # streams; the bootstrap closes every surplus FD before exec.
+                inherited = (*streams, original.fileno())
+                arguments.extend(["--args", sys.executable,
+                                  str(Path(__file__).with_name("native-resident-function-bootstrap.py")),
+                                  *(str(descriptor) for descriptor in inherited)])
+                child = subprocess.Popen(arguments, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                         stderr=subprocess.STDOUT, text=True, env=environment,
+                                         pass_fds=inherited)
+        finally:
+            for descriptor in streams:
+                os.close(descriptor)
 
         def interrupt_after_entry():
             try:
@@ -127,8 +126,6 @@ def run(report, target):
 
         signal.signal(signal.SIGTERM, stop)
         signal.signal(signal.SIGINT, stop)
-        output_thread = threading.Thread(target=forward_target, daemon=True)
-        output_thread.start()
         threading.Thread(target=interrupt_after_entry, daemon=True).start()
         try:
             for line in child.stdout:
@@ -153,9 +150,6 @@ def run(report, target):
             code = child.wait()
         finally:
             done.set()
-            os.close(slave)
-            output_thread.join(timeout=1)
-            os.close(master)
     publish()
     return code if code >= 0 else 128 - code
 

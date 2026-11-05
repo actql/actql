@@ -32,9 +32,9 @@ async function fixture(t, body) {
   }
   const target = ['/verified/native-original', 'run', '--executor-entry-log', entry,
     '--private-input', 'private-original-value'];
-  return {directory, entry, report, spy, target, start: () => {
+  return {directory, entry, report, spy, target, start: ({pipeInput = false} = {}) => {
     const child = spawn(python, [wrapper, report, ...target], {
-      env: {PATH: bin, LANG: 'C'}, stdio: ['ignore', 'pipe', 'pipe']});
+      env: {PATH: bin, LANG: 'C'}, stdio: [pipeInput ? 'pipe' : 'ignore', 'pipe', 'pipe']});
     let stdout = '', stderr = '';
     child.stdout.on('data', data => { stdout += data; });
     child.stderr.on('data', data => { stderr += data; });
@@ -98,18 +98,17 @@ test('fake debugger samples only after consumer entry and reports functions with
   const f = await fixture(t, `
 args=sys.argv[1:]
 original=args[args.index('--args')+1:]
-tty=next(x[len('set inferior-tty '):] for x in args if x.startswith('set inferior-tty '))
-with open(tty,'wb',buffering=0) as output:output.write(b'{"kind":"target-original","private":"native-original"}\\n')
+payload=json.loads(os.pread(int(original[-1]),1048576,0))
 print('private debugger argv '+repr(args),flush=True)
 print('#0 must_not_capture_before_entry (private="value")',flush=True)
 def interrupted(sig,frame):
- spy.write_text(json.dumps({'target':original,'entryCount':len(entry.read_bytes().splitlines()),
+ spy.write_text(json.dumps({'target':payload['argv'],'entryCount':len(entry.read_bytes().splitlines()),
                            'disableRandomizationOff':'set disable-randomization off' in args,
                            'returnChildResult':'--return-child-result' in args,
-                           'environment':dict(os.environ)}))
+                           'followExecSame':'set follow-exec-mode same' in args,
+                           'environment':payload['environment']}))
  print('#0 0x1234 in busy_function (private="value") at /private/source:19',flush=True)
  print('private body and arguments',flush=True)
- with open(tty,'wb',buffering=0) as output:output.write(b'{"kind":"target-final"}\\n')
  sys.exit(23)
 signal.signal(signal.SIGINT,interrupted)
 spy.write_text(json.dumps({'ready':True}))
@@ -122,19 +121,68 @@ while True:time.sleep(.02)
   assert.equal(result.code, 23);
   assert.equal(result.signal, null);
   assert.equal(result.stderr, '');
-  assert.equal(result.stdout, '{"kind":"target-original","private":"native-original"}\n{"kind":"target-final"}\n');
+  assert.equal(result.stdout, '');
   const spy = JSON.parse(await readFile(f.spy, 'utf8'));
   assert.deepEqual(spy.target, f.target);
   assert.equal(spy.entryCount, 2);
   assert.equal(spy.disableRandomizationOff, true);
   assert.equal(spy.returnChildResult, true);
-  assert.equal(spy.environment.PATH, join(f.directory, 'bin'));
-  assert.equal(spy.environment.LANG, 'C');
+  assert.equal(spy.followExecSame, true);
+  assert.deepEqual(spy.environment, {PATH: join(f.directory, 'bin'), LANG: 'C'});
   const report = JSON.parse(await readFile(f.report, 'utf8'));
   assert.deepEqual(report, {consumerExecutorEntered: true, sampleRequested: true,
     functions: ['busy_function'], conditions: []});
   assert.equal(JSON.stringify(report).includes('private'), false);
   assert.equal((await stat(f.report)).mode & 0o777, 0o600);
+});
+
+test('real inferior bootstrap preserves request/response pipes, separate stderr, exact argv/environment and nonzero exit', {timeout: 10000}, async t => {
+  const f = await fixture(t, `
+import subprocess
+args=sys.argv[1:]
+inferior=args[args.index('--args')+1:]
+print('private debugger console and arguments '+repr(args),flush=True)
+child=subprocess.Popen(inferior,pass_fds=tuple(int(value) for value in inferior[2:]),
+                       stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+code=child.wait()
+print('private debugger final output',flush=True)
+sys.exit(code)
+`);
+  const target = join(f.directory, 'real-target.mjs');
+  await writeFile(target, `import{writeFileSync}from'node:fs';
+writeFileSync(${JSON.stringify(f.spy)},JSON.stringify({argv:process.argv.slice(1),environment:process.env}));
+process.stdout.write('{"kind":"ready"}\\n');
+let input='';process.stdin.setEncoding('utf8');process.stdin.on('data',chunk=>{input+=chunk;});
+process.stdin.on('end',()=>{process.stdout.write(JSON.stringify({kind:'reply',input})+'\\n');
+process.stderr.write('native-stderr-only\\n');process.exitCode=19;});
+`);
+  f.target.splice(0, f.target.length, process.execPath, target,
+    'argument with spaces', 'literal-$;`value`', '--executor-entry-log', f.entry);
+  const run = f.start({pipeInput: true});
+  const [ready] = await once(run.child.stdout, 'data');
+  assert.equal(ready.toString(), '{"kind":"ready"}\n');
+  const input = 'original request: λ\r\n';
+  run.child.stdin.end(input);
+  const result = await run.closed;
+  assert.equal(result.code, 19);
+  assert.equal(result.signal, null);
+  assert.equal(result.stdout, '{"kind":"ready"}\n' + JSON.stringify({kind: 'reply', input}) + '\n');
+  assert.equal(result.stderr, 'native-stderr-only\n');
+  const original = JSON.parse(await readFile(f.spy, 'utf8'));
+  assert.deepEqual(original.argv, f.target.slice(1));
+  // Compare the real target against the unwrapped original OS launch too:
+  // macOS's Node runtime itself adds its CoreFoundation locale variable.
+  const direct = spawnSync(f.target[0], f.target.slice(1), {input, encoding: 'utf8',
+    env: {PATH: join(f.directory, 'bin'), LANG: 'C'}, timeout: 3000});
+  assert.equal(direct.status, 19);
+  assert.equal(direct.stdout, result.stdout);
+  assert.equal(direct.stderr, result.stderr);
+  assert.deepEqual(original, JSON.parse(await readFile(f.spy, 'utf8')));
+  assert.equal(result.stdout.includes('private debugger'), false);
+  assert.equal(result.stderr.includes('private debugger'), false);
+  const report = JSON.parse(await readFile(f.report, 'utf8'));
+  assert.deepEqual(report, {consumerExecutorEntered: false, sampleRequested: false,
+    functions: [], conditions: ['stage-not-observed']});
 });
 
 test('fake debugger early failure stays nonzero with stage unavailable and no private error output', {timeout: 5000}, async t => {
@@ -239,4 +287,6 @@ test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized 
   assert(lint.run.includes('scripts/native-resident-function-diagnostic.test.mjs'));
   assert.equal(spawnSync(python, ['-c',
     'import ast,sys;ast.parse(open(sys.argv[1]).read())', wrapper]).status, 0);
+  assert.equal(spawnSync(python, ['-c', 'import ast,sys;ast.parse(open(sys.argv[1]).read())',
+    fileURLToPath(new URL('./fixtures/native-resident-function-bootstrap.py', import.meta.url))]).status, 0);
 });
