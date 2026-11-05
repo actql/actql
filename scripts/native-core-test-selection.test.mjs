@@ -92,4 +92,8 @@ test('actual Native package selection preserves full WB/BB/inline/doc outline an
   // the selected build must never compile/link its empty driver.
   assert.equal(built.some(path=>path.includes('/empty/') && /\.(?:c|core|exe)$/u.test(path)),false);
   assert(existsSync(join(root,'full-outline/native/release/test/empty/empty.blackbox_test.exe')));
+  // Warm every driver, including the empty package, in the SAME target dir.
+  // Discovery must still enumerate all original cases and the omitted drivers.
+  assert.equal(run([...args,'--outline']).stdout,full.stdout);
+  assert.deepEqual(nativeCoreTestSelection(root,args,{env}),selected);
 });
