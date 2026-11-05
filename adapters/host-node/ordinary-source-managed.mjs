@@ -600,18 +600,29 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       recovery.model = model;
       const moon = state.context.runtime, graphs = plural ? graph : [graph];
       const publication = model.publicationCapacity;
-      const assertOriginal = () => {
-        current();
-        if (producer.finished || producer.preparation !== state || state.recovery !== recovery ||
+      const assertOriginalIdentity = () => {
+        if (closed || receipts.get(producer.receipt) !== producer || !producers.has(producer) ||
+            producer.finished || producer.preparation !== state || state.recovery !== recovery ||
             recovery.restored !== restored || recovery.model !== model || state.prepared !== prepared ||
             model.selection !== selected || model.graph !== graph || model.compiled !== compiled ||
             model.runDefinition !== definition || model.control !== control || model.budget !== budget ||
             model.publicationCapacity !== publication || plan.compiled !== compiled || plan.runDefinition !== definition) {
           fail('ForeignInstalledSourceProducer');
         }
+      };
+      const assertOriginal = () => {
+        current();
+        assertOriginalIdentity();
         recovery.assertCurrent();
-        if (producer.finished || producer.preparation !== state || state.recovery !== recovery ||
-            recovery.model !== model) fail('ForeignInstalledSourceProducer');
+        assertOriginalIdentity();
+      };
+      const assertRetainedOriginal = () => {
+        // Cancellation revokes new work, not the same retained Read/Scope's
+        // retirement duty. Keep installation and exact ownership fences while
+        // ingress closes; actual child cleanup still decides completion.
+        assertOriginalIdentity();
+        callbacks.retainedValidator(originals);
+        assertOriginalIdentity();
       };
       try {
         // The legacy nine-field suffix describes read-side allowances, not
@@ -646,14 +657,14 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         const componentViews = Object.freeze(members.map((member, index) => {
           const scope = scopes[index], selection = selections[index], memberGraph = graphs[index],
             memberBudget = member.budget, physical = member.originalReadInstallation;
-          const currentMember = () => {
-            assertOriginal();
+          const assertMemberIdentity = () => {
             if (member.closed || member.scopeFinished || member.scope !== scope ||
                 member.selection !== selection || member.graph !== memberGraph || member.budget !== memberBudget ||
                 member.originalReadInstallation !== physical || model.scopes !== scopes || scopes[index] !== scope) {
               fail('ForeignInstalledModelRecoveryScope');
             }
           };
+          const currentMember = () => {assertOriginal(); assertMemberIdentity();};
           const publicationCapacity = () => {currentMember(); return Reflect.apply(publication, model, []);};
           const fields = {selection, control, compiled, runDefinition: definition, scope,
             publicationCapacity, assertRuntimeCurrent: currentMember,
@@ -689,7 +700,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             },
             async retire() {
               if (member.closed && member.scopeFinished) return true;
-              currentMember();
+              assertRetainedOriginal();
+              assertMemberIdentity();
               retireNodeInferOriginalRead(member);
               member.read = undefined;
               if (plural) return true; // The original group finishes after all reads.
@@ -765,7 +777,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           retain() {assertOriginal(); for (const original of componentViews) original.retain(); model.taken = true;},
           async retire() {
             if (model.closed && model.scopeFinished) return true;
-            assertOriginal();
+            assertRetainedOriginal();
             for (const original of componentViews) await original.retire();
             if (!finishNodeInferOriginalReadScopes(model)) return false;
             model.closed = true; return true;

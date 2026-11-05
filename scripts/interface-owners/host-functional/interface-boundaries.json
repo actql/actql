@@ -112029,7 +112029,10 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#3",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/assertOriginal/assertOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/assertOriginalIdentity/assertOriginalIdentity",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/assertRetainedOriginal/assertRetainedOriginal",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/assertMemberIdentity/assertMemberIdentity",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/currentMember/currentMember",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/init:restoreRead/init:restoreRead",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/init:retain/init:retain",
@@ -116610,11 +116613,26 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/assertOriginalIdentity/assertOriginalIdentity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/assertRetainedOriginal/assertRetainedOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews",
           "parameters": [
             "member",
             "index"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/assertMemberIdentity/assertMemberIdentity",
+          "parameters": [],
           "async": false
         },
         {
@@ -117095,7 +117113,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "8b4a970af87438e37735c9dd81cf85259f60acdb6e4e86168f0013402bf14c22"
+      "sha256": "29b8a16b90f84b30b0395346d7a31af7071987b19c2bc6217025a76631c8ae96"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

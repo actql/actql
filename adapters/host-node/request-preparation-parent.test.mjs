@@ -1866,7 +1866,7 @@ async function restoredModelRecoveryFixture(options) {
     return ok(selected);
   };
   const recovery = f.view.retainModelRecovery(request, identity, definition,
-    () => events.push('original recovery current'), () => false);
+    () => {events.push('original recovery current'); options?.assertRecoveryCurrent?.();}, () => false);
   try {assert.equal(f.view.restoreModelOriginal(request, original, definition, identity, () => restored), restored);}
   catch (cause) {f.view.finishSourceProducer(recovery.receipt,'failed');await f.view.close();throw cause;}
   return {...f, moon, recovery, request, identity, definition, nativeDefinition, control, prepared, compiled, graph, selected, original, restored, events};
@@ -1883,8 +1883,8 @@ test('cold Model Source selection consumes the same restored Request without an 
   await f.view.close();
 });
 
-async function recoveryReadFixture({readFailure, failRead = false, afterScopes, validate, ledgerFloor = [7n,9n], expectedModel = [11n,13n]} = {}) {
-  const f = await restoredModelRecoveryFixture({validate}), scope = {}, read = {}, bounds = {}, savedScope = {}, events = [];
+async function recoveryReadFixture({readFailure, failRead = false, afterScopes, validate, validateRetained, assertRecoveryCurrent, finishScope, ledgerFloor = [7n,9n], expectedModel = [11n,13n]} = {}) {
+  const f = await restoredModelRecoveryFixture({validate, validateRetained, assertRecoveryCurrent}), scope = {}, read = {}, bounds = {}, savedScope = {}, events = [];
   const budget = Object.freeze({modelRetainedBytes: 11n, modelExecutionBytes: 13n,
     readRetainedBytes: 7n, readExecutionBytes: 5n, maxReservations: 20, maxHoldings: 20, maxDelegations: 20});
   f.moon.clientProgramComposedInferModelLedgerBytes = original => {assert.equal(original,bounds);return ledgerFloor;};
@@ -1910,7 +1910,8 @@ async function recoveryReadFixture({readFailure, failRead = false, afterScopes, 
       assert.equal(r, read); assert.equal(complete, true); events.push('settle original Read');
     },
     finishCheckedClientInferOriginalReadScope(c, d, g, s, complete) {
-      assert.equal(s, scope); assert.equal(complete, true); events.push('finish original Scope'); return true;
+      assert.equal(s, scope); assert.equal(complete, true); events.push('finish original Scope');
+      return finishScope === undefined ? true : finishScope();
     },
   };
   const model = {prepared: f.prepared, selection, graph: f.graph, compiled: f.compiled,
@@ -1935,6 +1936,34 @@ test('cold Model recovery view retains original Scope before current and restore
   assert.equal(await original.retire(), true); assert.equal(await original.retire(), true);
   assert.deepEqual(f.readEvents, ['same parent Scope', 'same Scope Read', 'stop original Read', 'settle original Read', 'finish original Scope']);
   f.view.finishSourceProducer(f.recovery.receipt, 'returned'); await f.view.close();
+});
+
+test('cancelled cold Model retains only same Read retirement through ingress closure and pending Scope cleanup', async () => {
+  const cancelled = new Error('ClientRunCancellationRequested'), ingressClosed = new Error('ingress closed');
+  let cancelling = false, closing = false, finish = false, retainedChecks = 0;
+  const f = await recoveryReadFixture({
+    validate() {if (closing) throw ingressClosed;},
+    validateRetained() {retainedChecks++;},
+    assertRecoveryCurrent() {if (cancelling) throw cancelled;},
+    finishScope() {return finish;},
+  });
+  const original = f.prepare(); original.retain(); original.restoreRead({savedScope: f.savedScope});
+  cancelling = true;
+  assert.throws(() => original.assertRuntimeCurrent(), cause => cause === cancelled);
+  assert.throws(() => original.prepareRead(), cause => cause === cancelled);
+  closing = true;
+  assert.equal(await original.retire(), false, 'Pending original Scope is not acknowledged');
+  assert.equal(f.model.closed, undefined); assert.equal(f.model.scopeFinished, undefined);
+  f.model.scope = {};
+  await assert.rejects(original.retire(), {code: 'ForeignInstalledModelRecoveryScope'});
+  f.model.scope = f.scope; finish = true;
+  assert.equal(await original.retire(), true); assert.equal(await original.retire(), true);
+  assert.ok(retainedChecks >= 2);
+  assert.equal(f.readEvents.filter(value => value === 'same Scope Read').length, 1);
+  assert.equal(f.readEvents.filter(value => value === 'stop original Read').length, 1);
+  assert.equal(f.readEvents.filter(value => value === 'settle original Read').length, 1);
+  assert.equal(f.readEvents.filter(value => value === 'finish original Scope').length, 2);
+  f.view.finishSourceProducer(f.recovery.receipt, 'failed'); await f.view.close();
 });
 
 test('cold Model recovery keeps thrown undefined sticky and cannot replace its original Scope', async () => {
