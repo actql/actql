@@ -13,12 +13,14 @@ pub fn local_component(
     active.cancelled ||
     active.advancing ||
     !(active.phase is Input) ||
-    active.work != 0L ||
+    !execution_input_unadvanced(active) ||
     active.local_component_bound {
     return Err(InvalidAdvance)
   }
   active.local_component_bound = true
-  let charged = Ref(0L)
+  // The original producer's completed work stays in the cumulative report.
+  // Local owns only new deltas from this fresh component entrance onward.
+  let charged = Ref(active.entry_work)
   Ok(
     @local.managed_provider_execution(
       quantum => {

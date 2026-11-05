@@ -2012,3 +2012,175 @@ test "partial restored Host cleanup fences construction and preserves the same o
   assert_eq(@resources.ledger_usage(ledger), before)
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+fn effect_output_refinement_fixture(
+  current : () -> Unit,
+) -> (
+  ClientInstalledEffectOperationBorrow,
+  ClientInstalledManagedRun,
+  @resources.Ledger,
+) {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let base = effect_operation_plan_fixture(prepared, request, contracts)
+  let before = base.operations[0]
+  let rows = before.row_extents.copy()
+  rows[2] = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(100000L, 150000L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "save",
+    before.member_extents,
+    rows,
+  ).unwrap()
+  let plan = prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+    current~,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, true, 2, 0, "operation",
+  ).unwrap()
+  (child, owner, owner.ledger.unwrap())
+}
+
+///|
+test "owned constructor output refines same live backing once without resetting history" {
+  let calls = Ref(0)
+  let (child, owner, ledger) = effect_output_refinement_fixture(() => {
+    calls.val += 1
+  })
+  assert_true(
+    complete_installed_effect_operation_construction_output(child, "{\"id\":1}")
+    is Err(Unsupported),
+  )
+  begin_installed_effect_operation_construction(child).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let quantities = @resources.quantity_usage(ledger)
+  let backing = child.backing.unwrap()
+  let expected = local_file_store_json_capacity(8, 8, 8).unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(expected)
+  let observations = calls.val
+  complete_installed_effect_operation_construction_output(child, "{\"id\":1}").unwrap()
+  assert_eq(calls.val, observations + 1)
+  assert_eq(@resources.ledger_usage(ledger), {
+    ..before,
+    reserved_retention_bytes: before.reserved_retention_bytes -
+    100000L +
+    retained,
+    reserved_execution_bytes: before.reserved_execution_bytes -
+    150000L +
+    retained,
+  })
+  assert_eq(@resources.quantity_usage(ledger), quantities)
+  assert_true(child.input_selected)
+  assert_true(child.started)
+  assert_true(
+    match (backing, child.backing.unwrap()) {
+      (
+        @resources.NodeManagedRunOperationBacking::Construction(a),
+        @resources.NodeManagedRunOperationBacking::Construction(b),
+      ) => physical_equal(a, b)
+      _ => false
+    },
+  )
+  let completed = @resources.ledger_usage(ledger)
+  assert_true(
+    complete_installed_effect_operation_construction_output(child, "{}")
+    is Err(AlreadyBound),
+  )
+  assert_true(
+    begin_installed_effect_operation_construction(child) is Err(AlreadyBound),
+  )
+  assert_eq(@resources.ledger_usage(ledger), completed)
+  assert_false(retire_installed_effect_operation(child, false).unwrap())
+  assert_eq(@resources.ledger_usage(ledger), completed)
+  let limits = @resources.ledger_limits(ledger)
+  assert_true(limits.retained_bytes < 536870912L)
+  let available = limits.retained_bytes -
+    completed.held_bytes -
+    completed.reserved_retention_bytes
+  assert_true(available >= 100000L - retained)
+  // The same finite parent can now reserve real sibling capacity before
+  // allocation. Its exact cap and failed one-byte growth still apply.
+  let sibling = @resources.reserve_capacity(ledger, available, 0L).unwrap()
+  let full = @resources.ledger_usage(ledger)
+  assert_true(
+    @resources.reserve_capacity(ledger, 1L, 0L) is Err(RetentionLimit),
+  )
+  assert_eq(@resources.ledger_usage(ledger), full)
+  @resources.settle_capacity(ledger, sibling).unwrap()
+  assert_eq(@resources.quantity_usage(ledger), quantities)
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  assert_true(
+    complete_installed_effect_operation_construction_output(child, "{}")
+    is Err(Retired),
+  )
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "owned constructor output refuses foreign wire bounds and current retirement without a refund" {
+  let action : Ref[(() -> Unit)?] = Ref(None)
+  let (child, owner, ledger) = effect_output_refinement_fixture(() => {
+    if action.val is Some(run) {
+      action.val = None
+      run()
+    }
+  })
+  begin_installed_effect_operation_construction(child).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    complete_installed_effect_operation_construction_output({ ..child, }, "{}")
+    is Err(ForeignOriginal),
+  )
+  for wire in ["", "x".repeat(100001)] {
+    assert_true(
+      complete_installed_effect_operation_construction_output(child, wire)
+      is Err(InsufficientCapacity),
+    )
+  }
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_false(child.input_selected)
+  action.val = Some(() => {
+    match retire_installed_effect_operation(child, true) {
+      Ok(true) => ()
+      _ => abort("same original constructor cleanup must complete")
+    }
+  })
+  assert_true(
+    complete_installed_effect_operation_construction_output(child, "{}")
+    is Err(Retired),
+  )
+  assert_false(child.input_selected)
+  assert_eq(@resources.ledger_usage(ledger), {
+    ..before,
+    reserved_retention_bytes: before.reserved_retention_bytes - 100000L,
+    reserved_execution_bytes: before.reserved_execution_bytes - 150000L,
+    live_reservations: before.live_reservations - 1,
+  })
+  retire_installed_managed_run(owner).unwrap()
+}

@@ -2,6 +2,7 @@
 fn physical_write_recipe_fixture(
   physical : @execution.ExecutionCapacity,
   request? : Int = 100000,
+  preview? : Int = 1000000,
   response? : Int = 2,
   control? : Int = 0,
   request_construction? : @execution.ExecutionCapacity? = None,
@@ -10,7 +11,7 @@ fn physical_write_recipe_fixture(
     100000,
     10000,
     16,
-    1000000,
+    preview,
     100000,
     64,
     request,
@@ -129,4 +130,52 @@ test "physical writer refuses invalid bounds and retains full failed request env
     @execution.execution_capacity_execution_bytes(wide[2]) >
     @execution.execution_capacity_execution_bytes(narrow[2]),
   )
+}
+
+///|
+test "whole Preview remains captured once while row requests keep only returned retention" {
+  let physical = @execution.execution_capacity(10L, 20L).unwrap()
+  let small = physical_write_recipe_fixture(physical, preview=10000).unwrap()
+  let large = physical_write_recipe_fixture(physical).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(large[0]) >
+    @execution.execution_capacity_retained_bytes(small[0]),
+  )
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(large[2]),
+    @execution.execution_capacity_retained_bytes(small[2]),
+  )
+  // Preserve the original complete construction/failure peak. Failed input
+  // aliases stay on this SAME constructor until real cleanup, even though
+  // successful per-row request DATA cannot own a second whole Preview.
+  assert_true(
+    @execution.execution_capacity_execution_bytes(large[2]) >
+    @execution.execution_capacity_execution_bytes(small[2]),
+  )
+  let input = local_file_store_json_capacity(100000, 10000, 16).unwrap()
+  let request = local_file_store_json_capacity(100000, 10000, 16).unwrap()
+  let preview = local_file_store_json_capacity(1000000, 100000, 64).unwrap()
+  let complete = standard_create_sum_capacities(
+    [input, preview, request],
+    sequential_workspace=true,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(large[2]),
+    @execution.execution_capacity_retained_bytes(input) +
+    @execution.execution_capacity_retained_bytes(request),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(large[2]),
+    @execution.execution_capacity_execution_bytes(complete),
+  )
+  for index in [1, 3, 4, 5] {
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(large[index]),
+      @execution.execution_capacity_retained_bytes(small[index]),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(large[index]),
+      @execution.execution_capacity_execution_bytes(small[index]),
+    )
+  }
 }

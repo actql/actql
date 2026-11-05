@@ -489,7 +489,7 @@ export function prepareInstalledEffectOwnedRequestChild({constructChild, ...opti
   if (typeof constructChild !== 'function' || options.construct !== undefined) {
     fail('InstalledEffectConstructorUnavailable');
   }
-  let child, methods, retired = false, opening = false, invoking = false, stopping = false, flight;
+  let child, methods, retainedWire, retired = false, opening = false, invoking = false, stopping = false, flight;
   const requestsRetired = options.requestsRetired;
   if (typeof requestsRetired !== 'function') fail('InstalledEffectConstructorUnavailable');
   const captureMethods = names => {
@@ -511,11 +511,46 @@ export function prepareInstalledEffectOwnedRequestChild({constructChild, ...opti
       if (typeof Reflect.apply(methods.status, child, [])?.pending !== 'boolean') {
         fail('InvalidInstalledRowRequestChild');
       }
+      const outputWire = child.retainedOutputWire;
+      if (outputWire !== undefined) {
+        if (typeof outputWire !== 'function') fail('InvalidInstalledRowRequestChild');
+        methods.retainedOutputWire = outputWire;
+        if (typeof options.run?.runtime?.clientProgramInstalledEffectOperationConstructionCompleteOutput !== 'function') {
+          fail('InstalledEffectOperationRuntimeUnavailable');
+        }
+      }
       if (stopping) fail('InstalledEffectRequestChildRetired');
       const result = Reflect.apply(methods.prepare, child, []);
       if (stopping) fail('InstalledEffectRequestChildRetired');
-      return result;
-    }}, true);
+      if (outputWire === undefined) return result;
+      const finish = async value => {
+        managed.checkOriginal();
+        if (stopping) fail('InstalledEffectRequestChildRetired');
+        // SAME captured physical method, real close, then its original status.
+        // Neither a fulfilled prepare nor a measured wire acknowledges close.
+        const released = await Reflect.apply(methods.release, child, []);
+        if (released === false || Reflect.apply(methods.status, child, [])?.pending !== false) {
+          fail('InstalledEffectRequestChildCleanupPending');
+        }
+        managed.checkOriginal();
+        if (stopping) fail('InstalledEffectRequestChildRetired');
+        const wire = Reflect.apply(methods.retainedOutputWire, child, [value]);
+        if (typeof wire !== 'string') fail('InvalidInstalledRowRequestChild');
+        retainedWire = wire;
+        return value;
+      };
+      if (nodeTypes.isPromise(result)) {
+        return new NativePromise((resolve, reject) => {
+          Reflect.apply(nativePromiseThen, result, [value => {
+            const closed = finish(value);
+            Reflect.apply(nativePromiseThen, closed, [resolve, reject]);
+          }, reject]);
+        });
+      }
+      if (result !== null && (typeof result === 'object' || typeof result === 'function') &&
+          typeof result.then === 'function') fail('InstalledEffectConstructorNotSynchronous');
+      return finish(result);
+    }}, true, () => retainedWire);
   const drain = retry => {
     stopping = true;
     if (opening || invoking) return false;
@@ -533,7 +568,7 @@ export function prepareInstalledEffectOwnedRequestChild({constructChild, ...opti
             const result = await Reflect.apply(release, child, []);
             if (result === false || Reflect.apply(methods.status, child, [])?.pending !== false) return false;
           }
-          child = methods = constructChild = undefined;
+          child = methods = constructChild = retainedWire = undefined;
           retired = true;
         }
         return managed.release();
@@ -557,7 +592,7 @@ export function prepareInstalledEffectRequestChild(options) {
 // Only the retained owned-child wrapper above can join asynchronous physical
 // preparation. An arbitrary constructor Promise keeps the strict refusal below.
 function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
-  operationIndex, operation, perRow = true, construct: originalConstruct, inputExtent: originalInputExtent, requestsRetired}, ownedChild = false) {
+  operationIndex, operation, perRow = true, construct: originalConstruct, inputExtent: originalInputExtent, requestsRetired}, ownedChild = false, ownedOutputWire) {
   if (run === undefined || typeof perRow !== 'boolean' || typeof originalConstruct !== 'function' ||
       typeof requestsRetired !== 'function') fail('InstalledEffectConstructorUnavailable');
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run;
@@ -565,6 +600,7 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
   const begin = runtime?.clientProgramInstalledEffectOperationConstructionBegin;
   const retire = runtime?.clientProgramInstalledEffectOperationRetire;
   const complete = runtime?.clientProgramInstalledEffectOperationConstructionComplete;
+  const completeOutput = runtime?.clientProgramInstalledEffectOperationConstructionCompleteOutput;
   const beginInput = runtime?.clientProgramInstalledEffectOperationInputBegin;
   if (originalInputExtent !== undefined && (typeof originalInputExtent !== 'function' || typeof beginInput !== 'function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
@@ -594,7 +630,7 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
     if (preparing || requestsRetired() !== true) return false;
     // Clear this child's last input/callback references BEFORE the same native
     // body token may settle. The enclosing capture has already severed output.
-    construct = inputExtent = undefined;
+    construct = inputExtent = ownedOutputWire = undefined;
     if (checked(Reflect.apply(retire, runtime, [token, true])) !== true) return false;
     token = undefined;
     state = 'retired';
@@ -635,7 +671,14 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
                 pendingConstructor = undefined;
                 try {
                   originalRecord();
-                  checked(Reflect.apply(complete, runtime, [token]));
+                  const wire = ownedOutputWire?.();
+                  if (wire === undefined) checked(Reflect.apply(complete, runtime, [token]));
+                  else {
+                    if (typeof wire !== 'string' || typeof completeOutput !== 'function') {
+                      fail('InstalledEffectOperationRuntimeUnavailable');
+                    }
+                    checked(Reflect.apply(completeOutput, runtime, [token, wire]));
+                  }
                   originalRecord();
                   preparing = false;
                   state = 'prepared';

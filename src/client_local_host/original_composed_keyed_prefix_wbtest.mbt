@@ -3,16 +3,47 @@
 // The exact authored reference issuer is the existing component fixture;
 // this test supplies no installed physical provider or Model send permission.
 test "two original Direct captures execute one keyed prefix and feed the same Model input without replay" {
-  original_composed_keyed_consumer(false)
+  original_composed_keyed_consumer()
 }
 
 ///|
+#cfg(target="js")
 test "adopted Effect Model borrows shared Source tokens and its original prefix exactly once" {
-  original_composed_keyed_consumer(true)
+  original_composed_keyed_consumer(
+    prepare_parent=Some((wire, selectedEnvironment) => {
+      let (parent, child, _, input) = registration_parent_fixture(
+        text=wire,
+        environment=Some(selectedEnvironment),
+        effect_limits=Some(
+          @publication_host.client_standard_effect_computation_limits(),
+        ),
+      )
+      finish_effect_program_check_preparation(child).unwrap() |> ignore
+      let prepared = compile_effect_program_check_preparation(child).unwrap()
+      assert_true(
+        physical_equal(
+          continue_request_effect_preparation(parent, input).unwrap(),
+          prepared,
+        ),
+      )
+      (parent, input, prepared)
+    }),
+    foreign_run=Some(() => {
+      let (prepared, _, _) = effect_operation_plan_inputs()
+      effect_parent_bound_run(prepared)
+    }),
+  )
 }
 
 ///|
-fn original_composed_keyed_consumer(shared : Bool) -> Unit raise {
+fn original_composed_keyed_consumer(
+  prepare_parent? : ((String, @checked.CheckEnvironment) -> (
+    ClientRequestPreparation[Array[Int]],
+    Array[Int],
+    @publication_host.PreparedClientEffectComputation,
+  ) raise)? = None,
+  foreign_run? : (() -> @publication_host.PreparedClientEffectRun raise)? = None,
+) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
   )
@@ -26,25 +57,10 @@ fn original_composed_keyed_consumer(shared : Bool) -> Unit raise {
   )
   let document =
     #|{"version":"actql/0.1","id":"two-direct-keyed-model","stages":[{"id":"left","inputs":{"files":{"connector":"content-fixture","resource":"files"}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["name","resource","version"]}}},{"id":"right","inputs":{"files":{"connector":"content-fixture","resource":"files"}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["name","resource","version"]}}},{"id":"classify","inputs":{"a":{"result":{"stage":"left","result":"rows"}},"b":{"result":{"stage":"right","result":"rows"}},"contents":{"connector":"content-fixture","resource":"contents"}},"steps":[{"from":"a","join":{"with":"b","kind":"inner","on":[{"left":"name","right":"name"}],"select":{"name":"left.name","resource":"left.resource","version":"left.version"}},"as":"joined"},{"from":"joined","join":{"with":"contents","kind":"inner","on":[{"left":"resource","right":"resource"},{"left":"version","right":"version"}],"select":{"name":"left.name","content":"right.content"}},"as":"captured"},{"assert_rows":{"unique_by":["name"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"classified"},{"derive":{"id":{"literal":1}},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"classify","result":"rows"}}}}
-  let request_parent = if shared {
-    let (parent, child, _, input) = registration_parent_fixture(
-      text=document,
-      environment=Some(environment),
-      effect_limits=Some(
-        @publication_host.client_standard_effect_computation_limits(),
-      ),
-    )
-    finish_effect_program_check_preparation(child).unwrap() |> ignore
-    let prepared = compile_effect_program_check_preparation(child).unwrap()
-    assert_true(
-      physical_equal(
-        continue_request_effect_preparation(parent, input).unwrap(),
-        prepared,
-      ),
-    )
-    Some((parent, input, prepared))
-  } else {
-    None
+  let shared = prepare_parent is Some(_)
+  let request_parent = match prepare_parent {
+    None => None
+    Some(prepare) => Some(prepare(document, environment))
   }
   let prepared = match request_parent {
     Some((_, _, prepared)) => prepared
@@ -61,6 +77,37 @@ fn original_composed_keyed_consumer(shared : Bool) -> Unit raise {
         Ok(value) => value
         Err(_) => fail("two-Direct keyed Model fixture preparation")
       }
+  }
+  // These are three distinct checked response originals even though the two
+  // Direct occurrences select the same SourceView. The keyed response is not
+  // one of those Direct roots and cannot be dropped from the whole Run policy.
+  let checked_program = @strategy.graph_program(
+    @strategy.checked_effect_computation_graph(
+      @publication_host.prepared_client_effect_computation_graph(prepared),
+    ),
+  )
+  let final_publication = @checked.unit_publication_at(checked_program, 2, 0).unwrap()
+  let policy = @checked.publication_source_policy(final_publication).unwrap()
+  assert_eq(@checked.publication_policy_source_count(policy), 3)
+  assert_eq(
+    @publication_host.prepared_client_effect_publication_data_policy_cid(
+      prepared,
+    ),
+    Some(policy.cid),
+  )
+  let bodies = @publication_host.prepared_client_effect_publication_policy_bodies(
+    prepared, 1000000, 100000, 64,
+  ).unwrap()
+  assert_eq(bodies[0].1, policy.cid)
+  for index in 0..<@checked.publication_policy_source_count(policy) {
+    let original = @checked.publication_policy_source_at(policy, index).unwrap()
+    assert_true(
+      bodies.any(body => {
+        body.0 == "data_policy" &&
+        body.1 ==
+        @checked.source_execution_subject(original).response_policy_cid
+      }),
+    )
   }
   let (_, request, contracts, model) = effect_model_plan_for_prepared(
     prepared,
@@ -559,8 +606,53 @@ fn original_composed_keyed_consumer(shared : Bool) -> Unit raise {
   let inputs = original.inputs.map(value => {
     @local.managed_provider_relation_input(value.2)
   })
-  inputs.push(@local.managed_provider_supplied_relation_input(right))
+  let keyed_current = Ref(true)
+  let restricted_right = @execution.restrict_supplied_relation_read(right, () => {
+    keyed_current.val
+  })
+  assert_false(physical_equal(restricted_right, right))
+  assert_true(
+    @execution.supplied_relation_read_same_binding(restricted_right, right),
+  )
+  inputs.push(@local.managed_provider_supplied_relation_input(restricted_right))
   let before = @resources.ledger_usage(ledger)
+  let foreign_read = @row_source_host.keyed_row_capture_read(captured).unwrap()
+  assert_eq(@execution.supplied_relation_read_row_count(foreign_read), 1)
+  assert_false(
+    @execution.supplied_relation_read_same_binding(foreign_read, right),
+  )
+  let foreign_inputs = inputs.copy()
+  foreign_inputs[foreign_inputs.length() - 1] = @local.managed_provider_supplied_relation_input(
+    foreign_read,
+  )
+  assert_true(
+    start_client_composed_infer_input(
+      model._occurrence,
+      prefix,
+      foreign_inputs,
+      execution,
+      measurement,
+      mapping,
+      keyed=Some(lookup),
+    )
+    is Err(UnsupportedProgram),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  keyed_current.val = false
+  assert_true(
+    start_client_composed_infer_input(
+      model._occurrence,
+      prefix,
+      inputs,
+      execution,
+      measurement,
+      mapping,
+      keyed=Some(lookup),
+    )
+    is Err(UnsupportedProgram),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  keyed_current.val = true
   let input = start_client_composed_infer_input(
     model._occurrence,
     prefix,
@@ -652,8 +744,8 @@ fn original_composed_keyed_consumer(shared : Bool) -> Unit raise {
       ),
     )
     assert_true(physical_equal(@strategy.captured_dag_ledger(dag), ledger))
-    let (foreign_prepared, _, _) = effect_operation_plan_inputs()
-    let foreign_bound = effect_parent_bound_run(foreign_prepared)
+    let make_foreign = foreign_run.unwrap()
+    let foreign_bound = make_foreign()
     let foreign_graph = @strategy.checked_effect_run_graph(
       @publication_host.prepared_client_effect_run_graph(foreign_bound),
     )

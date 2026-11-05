@@ -198,6 +198,8 @@ pub fn client_local_checkpoint_run_lifetime(@run_publication.PublicationContract
 
 pub fn client_local_preparation_resource_limits(@client_local_host.ClientLocalResourcePolicy) -> Array[Int64]
 
+pub fn client_local_resource_policy_model_request_byte_ceiling(@client_local_host.ClientLocalResourcePolicy) -> Int64
+
 pub fn client_local_resource_policy_original() -> @client_local_host.ClientLocalResourcePolicy
 
 pub fn client_local_resource_policy_row_ceiling(@client_local_host.ClientLocalResourcePolicy) -> Int
@@ -1649,6 +1651,8 @@ pub fn client_program_installed_effect_operation_charge(@client_local_host.Clien
 pub fn client_program_installed_effect_operation_construction_begin(@client_local_host.ClientInstalledEffectOperationBorrow) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_construction_complete(@client_local_host.ClientInstalledEffectOperationBorrow) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_operation_construction_complete_output(@client_local_host.ClientInstalledEffectOperationBorrow, String) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_construction_retain(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, Int, Bool, Int, Int, String) -> Result[@client_local_host.ClientInstalledEffectOperationBorrow, @client_local_host.ClientInstalledManagedRunIssue]
 

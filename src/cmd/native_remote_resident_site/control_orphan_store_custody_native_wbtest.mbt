@@ -125,6 +125,7 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
   writer.append(b"x").unwrap()
   let retained : Ref[ControlReplayJournalCustody?] = Ref(None)
   let slot_progress = Ref(ControlSlotPending)
+  let failures = Ref(0)
   let observed = reclaim_orphaned_outputs(
     settings,
     environment,
@@ -133,6 +134,7 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
     retained,
     failed,
     slot_progress,
+    failures,
   )
   assert_true(observed is OrphanStoreOpen(same) && physical_equal(same, store))
   assert_true(retained.val is None)
@@ -148,6 +150,7 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
       retained,
       failed,
       slot_progress,
+      failures,
     )
     is OrphansDone,
   )

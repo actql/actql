@@ -77,3 +77,41 @@ test "Model input wire preserves an available ContentRef and explicit NULL" {
   )
   assert_true(live.val)
 }
+
+///|
+test "Content input wire retains the explicit per-request byte ceiling" {
+  let live = Ref(true)
+  let content = model_content_wire_fixture(live)
+  let value = @admitted.array_value([content.value, content.value])
+  // Each envelope is individually valid. The whole input must still fit the
+  // SAME explicit request ceiling; opaque Mock purpose cannot waive it.
+  let bounded = @encode.measuring_writer(1000, 1000, 1000)
+  let cursor = @admitted.start_wire_emit(value, bounded)
+  let mut refused = false
+  for _ in 0..<1024 {
+    match advance_model_input_wire(cursor) {
+      Ok(true) => break
+      Ok(false) => ()
+      Err(RequestLimit) => {
+        refused = true
+        break
+      }
+      Err(_) => abort("unexpected Content wire refusal")
+    }
+  }
+  assert_true(refused)
+  @admitted.cancel_wire_emit(cursor)
+  assert_true(live.val)
+  let installed = @encode.measuring_writer(65536, 65536, 65536)
+  let cursor = @admitted.start_wire_emit(value, installed)
+  let mut complete = false
+  for _ in 0..<1024 {
+    if advance_model_input_wire(cursor).unwrap() {
+      complete = true
+      break
+    }
+  }
+  assert_true(complete)
+  assert_true(@encode.finish_measurement(installed) > 1000)
+  assert_true(live.val)
+}

@@ -473,6 +473,25 @@ their identity, bounds and execution checks. This nominal reader issues no media
 body, attachment evidence or egress allowance. Physical Provider dependency reads
 still require every declared media role, and Mock startup still refuses physical
 preflight. A caller flag or provider name cannot select this purpose.
+Request encoding rechecks the same live installation, provider and checked Task
+for opaque Content values. Every reference frame still checks availability and
+uses the bounded wire encoder; the physical-provider preflight requirement stays
+with its existing purpose.
+
+The ordinary Local default installation selects its existing standard 64 KiB
+Model request window before declaration construction, alongside its installed
+row policy. The generic Environment's fixture defaults remain unchanged. An
+explicit Host policy keeps its request ceiling, including a lower one, and the
+whole input wire still refuses an over-limit request before any Model call.
+This service-policy DATA supplies neither an allocation nor dispatch authority.
+
+Owned Mock file request and target-recheck children retain their physical child
+before preparation. Only its actual original release and close observation
+permit successful output refinement: the same pure constructor keeps its
+existing bounded native wire/tree retention before returning the immutable
+original. This does not parse or serialize the value again, create another
+reservation, or reset spent work. Failure, pending close and lost currentness
+keep the old backing for the same cleanup retry; ordinary completion is unchanged.
 
 Installation retains the same public Task declaration, normalization and typed
 answer inventory. The first successful original startup binds the checked Task

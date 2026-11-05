@@ -329,7 +329,8 @@ pub fn start_client_composed_infer_input(
                 matched = false
               }
             @local.SuppliedRelationInput(read) if index == slot =>
-              if !physical_equal(read, original) {
+              if !@execution.supplied_relation_read_same_binding(read, original) ||
+                !@execution.supplied_relation_read_available(read) {
                 matched = false
               }
             _ => matched = false

@@ -146,11 +146,21 @@ async function acquiringHost(t, {readOutcome = 'delegate',
     hostCapacityPolicy: fixtureHostCapacityPolicy,
   });
   let host = await openHost();
+  const closeOriginalHost = () => host.close().catch(error => {
+    t.diagnostic(JSON.stringify({phase: 'close_host', code: error.code,
+      owners: error.cleanupErrors?.map(({owner, error: failure}) => ({owner,
+        code: failure.code,
+        message: /^[A-Za-z][A-Za-z0-9_ ]{0,100}$/u.test(failure.message ?? '')
+          ? failure.message : undefined,
+        frames: failure.stack?.split('\n').slice(1, 4)}))}));
+    throw error;
+  });
   const seedHistorical = async (requestId, {runHeld} = {}) => {
-    await host.close();
+    await closeOriginalHost();
     const original = await writeSyntheticHistoricalHeldQuery({directory: join(root, 'state'), document: program,
       requestId, authorization, sourceProfile: JSON.parse(await readFile(source.path, 'utf8')),
-      runtimeRootUrl: new URL('../../', import.meta.url), runHeld});
+      runtimeRootUrl: new URL('../../', import.meta.url), runHeld,
+      hostCapacityPolicy: fixtureHostCapacityPolicy});
     await writeFile(join(root, 'synthetic-original.json'), JSON.stringify(original), {flag: 'wx', mode: 0o600});
     host = await openHost();
   };
@@ -163,7 +173,7 @@ async function acquiringHost(t, {readOutcome = 'delegate',
     closed = true;
     server.closeAllConnections?.();
     await new Promise(resolve => server.close(resolve));
-    await host.close();
+    await closeOriginalHost();
   };
   t.after(async () => {
     await close();
@@ -393,6 +403,7 @@ test('A5: an expired read approval or a changed source account acquires nothing'
     await waitFor(async () => (await owner2.lookupRequest('expired-a'))
       .state === 'ended');
     assert.equal(restarted.count('acquisition_started'), 0);
+    await restarted.close();
     // The source account changed to deny while a read waited: the held
     // request ends at revalidation and nothing is acquired.
     const changing = await acquiringHost(t, {extra: {
@@ -415,6 +426,7 @@ test('A5: an expired read approval or a changed source account acquires nothing'
     });
     assert.equal(ended.endReason, 'revalidation_failed');
     assert.equal(after.count('acquisition_started'), 0);
+    await after.close();
   });
 
 test('A3: Run acceptance and the read are held and answered in turn',
@@ -491,6 +503,7 @@ test('A3: an approved read never reads a different physical target',
       assert.equal(ended.kind, 'held', name);
       assert.equal(second.count('dispatch_reserved'), 0, name);
       assert.equal(second.count('acquisition_started'), 0, name);
+      await second.close();
     }
   });
 
@@ -704,6 +717,7 @@ test('A3: an approved read binds the exact physical name, not its NFC form',
         assert.equal(second.count('dispatch_reserved'), 0, name);
         assert.equal(second.count('acquisition_started'), 0, name);
       }
+      await second.close();
     }
   });
 

@@ -150,3 +150,43 @@ test "two-source observation keeps both task ordered evidence CIDs" {
     assert_eq(cid, sources[task])
   }
 }
+
+///|
+test "whole Run policy covers same original responses and refuses equal foreign or missing coverage" {
+  let prepared = multi_source_prepared(multi_source_program)
+  let program = @strategy.graph_program(prepared.graph)
+  let policy = @checked.publication_source_policy(
+    @checked.unit_publication_at(program, 2, 0).unwrap(),
+  ).unwrap()
+  assert_true(
+    client_publication_policy_covers_source_responses(program, policy),
+  )
+  let foreign = multi_source_prepared(multi_source_program)
+  let foreign_program = @strategy.graph_program(foreign.graph)
+  let foreign_policy = @checked.publication_source_policy(
+    @checked.unit_publication_at(foreign_program, 2, 0).unwrap(),
+  ).unwrap()
+  assert_eq(policy.cid, foreign_policy.cid)
+  assert_false(
+    client_publication_policy_covers_source_responses(program, foreign_policy),
+  )
+  assert_false(
+    client_publication_policy_covers_source_responses(foreign_program, policy),
+  )
+  let partial = multi_source_prepared(
+    multi_source_program.replace(
+      old="\"joined\":{\"from\":{\"result\":\"rows\",\"stage\":\"join_sources\"}}",
+      new="\"joined\":{\"from\":{\"result\":\"rows\",\"stage\":\"acquire_left\"}}",
+    ),
+  )
+  let partial_program = @strategy.graph_program(partial.graph)
+  let partial_policy = @checked.publication_source_policy(
+    @checked.unit_publication_at(partial_program, 0, 0).unwrap(),
+  ).unwrap()
+  assert_eq(@checked.publication_policy_source_count(partial_policy), 1)
+  assert_false(
+    client_publication_policy_covers_source_responses(
+      partial_program, partial_policy,
+    ),
+  )
+}

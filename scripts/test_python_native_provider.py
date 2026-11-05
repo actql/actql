@@ -8,6 +8,7 @@ from pathlib import Path
 import tempfile
 import os
 import shlex
+import re
 from types import SimpleNamespace
 from unittest.mock import patch
 import unittest
@@ -97,6 +98,32 @@ class NativeProviderRecipeTests(unittest.TestCase):
     def test_same_process_owner_foreign_c_input_is_selected_once(self):
         selected = ('platform_native/executor_slot/executor_slot_stub.c', 'executor-slot')
         self.assertEqual(PRODUCER.FOREIGN_SOURCES.count(selected), 1)
+
+    def test_ordinary_entry_links_each_real_registration_shim_without_python_initializer(self):
+        entry = PRODUCER.ROOT / PRODUCER.ENTRY
+        package = (entry / 'moon.pkg').read_text()
+        declared = re.search(r'"native-stub"\s*:\s*\[([^]]+)\]', package)
+        self.assertIsNotNone(declared)
+        ordinary = re.findall(r'"([^\"]+\.c)"', declared.group(1))
+        sources = PRODUCER.provider_c_sources(Path('/emitted.c'), Path('/moon'), None,
+                                             python_initial_control=False)
+        private = [path.name for path, _ in sources if path.parent == entry]
+        self.assertEqual(len(private), len(set(private)))
+        self.assertEqual(private.count('runtime_initialization_shim.c'), 1)
+        self.assertEqual(ordinary, [name for name in private
+                                   if name != 'runtime_initialization_shim.c'])
+        registrations = re.findall(r'=\s*"(actql_native_control_register_[^\"]+)"',
+                                   (entry / 'main_native.mbt').read_text())
+        self.assertTrue(registrations)
+        for name in registrations:
+            definitions = sum(len(re.findall(r'^void ' + re.escape(name) + r'\(',
+                                             (entry / path).read_text(), re.MULTILINE))
+                              for path in ordinary)
+            self.assertEqual(definitions, 1, name)
+
+    def test_private_emission_does_not_duplicate_ordinary_native_stub_commands(self):
+        ordinary = 'cc -c src/platform_native/installed_arena_entry/control_shim.c -o /control.o'
+        self.assertEqual(self.parse([ordinary] + self.lines), self.parse(self.lines))
 
     def test_image_adapter_is_separate_in_the_same_single_provider_recipe(self):
         image = PRODUCER.ROOT / 'packages/python-local-runtime/native/pre-root/owned_image.c'

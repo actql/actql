@@ -281,7 +281,7 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
     const beforeWire = call('before', row), versionCid = call('version', row);
     if (typeof beforeWire !== 'string' || !cid(versionCid)) fail('InvalidMockTargetObservation');
     const before = snapshot(JSON.parse(beforeWire));
-    return {row, before, versionCid};
+    return {row, before, versionCid, beforeWire};
   }
   function own(request, runOriginal) {
     current();
@@ -301,8 +301,13 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
     }
     const value = snapshot(record.value), before = snapshot(record.before);
     const original = Object.freeze({...record, value, before});
+    // This is the canonical wire already needed for the original request CID.
+    // Retain it for SAME-child output geometry instead of serializing again.
+    const retainedWire = wire(original);
     const request = Object.freeze({});
-    requests.set(request, Object.freeze({record: original, cid: hash(original), runOriginal}));
+    requests.set(request, Object.freeze({record: original,
+      cid: 'sha256:' + createHash('sha256').update(retainedWire).digest('hex'),
+      runOriginal, retainedWire}));
     return request;
   }
   function readChild({member, selector, value, current: selected, authorizationForRow, signal,
@@ -310,8 +315,8 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
     memberCurrent(member);
     description(selected, runOriginal);
     runCurrent(runOriginal);
-    let use;
-    return file.readChild({signal, runOriginal,
+    let use, output;
+    const child = file.readChild({signal, runOriginal,
       assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
       async authorize() {use = consume('read', await authorizationForRow(), selected);},
       consume(bytes) {
@@ -322,7 +327,15 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
           target: selector, value, version: observed.versionCid, before: observed.before}, runOriginal);
         const original = requests.get(request);
         requests.set(request, Object.freeze({...original, observedAt: selected}));
-        return Object.freeze({request, requestCid: original.cid});
+        output = Object.freeze({request, requestCid: original.cid});
+        return output;
+      }});
+    return Object.freeze({prepare: child.prepare, release: child.release, retry: child.retry, status: child.status,
+      retainedOutputWire(value) {
+        if (value !== output || output === undefined || child.status().pending !== false) {
+          fail('ForeignMockEffectRequest');
+        }
+        return own(output.request, runOriginal).retainedWire;
       }});
   }
   async function retireChild(child, failed, primary) {
@@ -393,14 +406,24 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
           result.push({identity: record.target, versionCid: record.version, before: record.before});
           continue;
         }
-        let use, primary, observed, failed = false;
+        let use, primary, observed, retainedWire, failed = false;
         const constructChild = () => {
           const child = file.readChild({signal, runOriginal,
           assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
           async authorize() {use = consume('read', await authorizationForRow(index), selected);},
           consume(bytes) {const value = observe(admit(bytes), record.target);
-            return {identity: record.target, versionCid: value.versionCid, before: value.before};}});
+            // Reuse the already emitted native before wire. Only the two
+            // original scalar fields need their ordinary JSON string quoting.
+            retainedWire = '{"before":' + value.beforeWire + ',"identity":' + wire(record.target) +
+              ',"versionCid":' + wire(value.versionCid) + '}';
+            return Object.freeze({identity: record.target, versionCid: value.versionCid, before: value.before});}});
           return Object.freeze({status: child.status, release: child.release, retry: child.retry,
+            retainedOutputWire(value) {
+              if (value !== observed || failed || observed === undefined || child.status().pending !== false) {
+                fail('ForeignMockTargetObservation');
+              }
+              return retainedWire;
+            },
             async prepare() {
               try {observed = await child.prepare();} catch (cause) {primary = cause; failed = true;}
               // The detached before/version DATA cannot retain the file's

@@ -163,6 +163,21 @@ fn original_mock_provider_matches(
 }
 
 ///|
+// This installed typed-answer purpose consumes opaque, checked input values.
+// Its same live original and Task remain mandatory; no media bytes or egress
+// are supplied by carrying a ContentRef through the bounded request encoder.
+fn original_mock_accepts_opaque_references(
+  provider : ModelProvider,
+  task : @environment.ModelTaskContract,
+) -> Bool {
+  match provider.invocation {
+    OriginalMock(original) =>
+      original_mock_provider_matches(original, provider, task)
+    SynchronousFixture(_) | AsynchronousPhysical => false
+  }
+}
+
+///|
 fn original_mock_scope_matches(
   original : ModelMockInstallation,
   scope : @publication.BoundModelInvocationScope,
