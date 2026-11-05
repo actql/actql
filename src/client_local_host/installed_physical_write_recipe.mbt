@@ -17,6 +17,7 @@ pub fn installed_physical_write_recipe_capacities(
   stored_depth : Int,
   physical : @execution.ExecutionCapacity,
   control_wire_bytes? : Int? = None,
+  request_construction? : @execution.ExecutionCapacity? = None,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   let control_bytes = control_wire_bytes.unwrap_or(stored_bytes)
   if control_bytes < 1 ||
@@ -64,7 +65,40 @@ pub fn installed_physical_write_recipe_capacities(
     return Err(Unsupported)
   }
   let no_additional_effect_id = @execution.execution_capacity(0L, 0L).unwrap()
+  let request = match request_construction {
+    None => request
+    Some(original) =>
+      match @execution.add_execution_capacity(request, original) {
+        Some(combined) => combined
+        None => return Err(Unsupported)
+      }
+  }
   Ok([
     capture_fixed, capture_row, request, physical, controls, no_additional_effect_id,
   ])
+}
+
+///|
+// A guarded file Effect constructs a span-free immutable request/response.
+// Its original Bytes/parser/cursors do not escape that constructor. Preserve
+// their complete construction/failure peak as workspace beside the provider's
+// actual returned values; completion is still the SAME operation token's duty.
+pub fn installed_file_effect_constructor_capacity(
+  provider : @execution.ExecutionCapacity,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> Result[@execution.ExecutionCapacity, ClientInstalledManagedRunIssue] {
+  guard installed_json_effect_request_construction_capacity(
+      provider, bytes, nodes, depth,
+    )
+    is Some(complete) &&
+    @execution.execution_capacity(
+      @execution.execution_capacity_retained_bytes(provider),
+      @execution.execution_capacity_execution_bytes(complete),
+    )
+    is Some(capacity) else {
+    return Err(Unsupported)
+  }
+  Ok(capacity)
 }

@@ -383,6 +383,17 @@ It never selects a live Credential/Provider fallback or automatically approves
 an Effect. The Host reconstructs restart handles from durable installation and
 current authority; it does not demand a pointer survive process termination.
 
+The selected Mock UPDATE composes its bounded file decoder, actual declared
+projections and simultaneous original/replacement buffers into the same managed
+request and write recipe. Capture/apply/resume target rechecks have distinct
+owned read constructor slots on that parent. Each read closes its original file
+before completing temporary workspace; returned before/version and request DATA
+remain covered by the existing JSON/control recipe. Only an already retained
+owned child may join asynchronous preparation. Failed preparation or physical
+close retains that same child and constructor token for cleanup retry; the
+ordinary synchronous constructor still refuses a Promise. This adds no grant,
+Ledger, policy ceiling or reservation for every future row upfront.
+
 ### Interface responsibilities during migration
 
 These references describe the ordinary target and the remaining private helpers.
