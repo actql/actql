@@ -14,6 +14,39 @@ import {execFileSync} from 'node:child_process';
 import {once} from 'node:events';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 
+// Run completion does not wait for its optional Evidence projection. Observe
+// this fixture's actual sink write before reading that same original receipt;
+// never turn a missing receipt into success or change the Host's completion law.
+function captureSinkWithCompletion(original, targets) {
+  const writes = new Map(targets.map(target => {
+    const completion = Promise.withResolvers();
+    // record may fail before lookup starts. Keep that exact rejection for the
+    // later lookup without creating an unrelated unhandled rejection.
+    void completion.promise.catch(() => {});
+    return [target, completion];
+  }));
+  return Object.freeze({...original,
+    capture: original.capture.bind(original),
+    pendingBytes: original.pendingBytes.bind(original),
+    cleanupPending: original.cleanupPending.bind(original),
+    async record(receipt) {
+      try {
+        const result = await original.record(receipt);
+        writes.get(receipt.target)?.resolve(receipt.subject);
+        return result;
+      } catch (cause) {
+        writes.get(receipt.target)?.reject(cause);
+        throw cause;
+      }
+    },
+    async lookup(subject, target) {
+      const completion = writes.get(target);
+      assert.ok(completion, 'Only the two declared Evidence targets are observed');
+      assert.deepEqual(await completion.promise, subject);
+      return original.lookup(subject, target);
+    }});
+}
+
 const runtime = process.env.ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS === undefined ? undefined :
   JSON.parse(await readFile(process.env.ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS, 'utf8'));
 const {connect} = runtime === undefined
@@ -84,9 +117,9 @@ try {
   };
   let settlements = 0;
   const destination = 'local:source-multi-infer-evaluator';
-  const sink = await createCaptureSink({directory: join(root, 'evidence'), destination,
+  const sink = captureSinkWithCompletion(await createCaptureSink({directory: join(root, 'evidence'), destination,
     maxBytes: 131072, maxPendingBytes: 1048576, retentionMs: 300000,
-    authorize: facts => facts.destination === destination});
+    authorize: facts => facts.destination === destination}), ['first_assessment', 'second_assessment']);
   if (observationMode === 'sampling-zero') {
     collector = httpServer((request, response) => {otlpRequests++; request.resume(); response.end();}).listen(0, '127.0.0.1');
     await once(collector, 'listening');
