@@ -205,6 +205,19 @@ for (const route of ['local-node', 'node']) test('the actual eager '+route+' pre
     'import assert from "node:assert/strict";',
     'import{createRequire}from"node:module";',
     'const require=createRequire(import.meta.url);',
+    // This selected eager recipe has a narrower runtime premise than the
+    // ordinary Host. Other platforms must refuse before fixture compilation
+    // or raw input observation, rather than claim successful eager admission.
+    'if(process.version!=="v22.22.0"||process.platform!=="darwin"||process.arch!=="arm64"||process.versions.openssl!=="3.5.4"){',
+    'for(const name of ["actualHostImageValue","originalDelivery","originalLocalDispatch","initialDispatchReads","initialDispatchCause","actualConsumerCalls","localPublicInitializations","originalNodeDelivery","originalNodeDispatch","actualPublicNodeValue"]){assert.equal(Object.hasOwn(globalThis,name),false,name);}',
+    'const delivery=require("@actql/'+route+'/selected-infer-startup");',
+    'assert.ok(Object.isFrozen(delivery));assert.equal(Object.getPrototypeOf(delivery),null);',
+    'let reads=0;const raw=new Proxy({},{get(){reads++;throw new Error("RawInput");},ownKeys(){reads++;throw new Error("RawInput");}});',
+    'assert.throws(()=>delivery.selectedInitialControlHostPreparation("open",raw),{code:"NodeInitialControlAdmissionUnavailable"});',
+    'assert.equal(reads,0);',
+    'assert.equal(Object.hasOwn(globalThis,"actualHostImageValue"),false);',
+    'assert.equal(Object.hasOwn(globalThis,"actualConsumerCalls"),false);',
+    '}else{',
     'assert.equal(actualHostImageValue,"original");',
     'assert.equal(originalDelivery,require("@actql/local-node/selected-infer-startup"));',
     'assert.equal(Object.getPrototypeOf(originalDelivery),null);',
@@ -246,6 +259,7 @@ for (const route of ['local-node', 'node']) test('the actual eager '+route+' pre
     'assert.equal(fakeCalls,0);',
     'assert.equal(reads,0);',
     'assert.equal(actualConsumerCalls,1);',
+    '}',
   ].join('\n'));
   const result = spawnSync(process.execPath,
     ['--no-lazy', '--require', '@actql/'+route+'/selected-infer-startup', entry], {
