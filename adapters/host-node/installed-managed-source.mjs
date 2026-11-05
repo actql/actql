@@ -14,7 +14,7 @@ export function bindInstalledManagedSources(profile, runFor) {
     }
     const forwarded = {};
     for (const name of ['open', 'openCapture', 'close', 'admitsSource', 'retainedCapture', 'managedEffectPlanSelection',
-      'retirePreparedSource']) {
+      'retirePreparedSource', 'prepareRetained']) {
       const method = source[name];
       if (method !== undefined) {
         if (typeof method !== 'function') throw new TypeError('InstalledManagedSourceUnavailable');

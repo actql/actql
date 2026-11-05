@@ -16266,7 +16266,8 @@
             "sameEmbeddedInstallation",
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
             "validateSourceNamespace",
-            "validateValuesMaxRows"
+            "validateValuesMaxRows",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedAcquisition/prepareRetainedAcquisition"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -19623,6 +19624,15 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedAcquisition/prepareRetainedAcquisition",
+          "parameters": [
+            "preparedProgram",
+            "occurrence",
+            "selectedSource"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit",
           "parameters": [
             "request",
@@ -22437,7 +22447,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "636a7d2b078ec9d008ee0122a29478a48049e5edbd0424ef7241d52ef4d4f126"
+      "sha256": "5fae9c807edb17d0b68d43d1a3b238b9a0ed4e8efe0719625991a9bfbec4c2b8"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

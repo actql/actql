@@ -56594,7 +56594,8 @@
             "openInstalledHost/retireModelRuntime",
             "openInstalledHost/runtimeOriginals/runtimeOriginals",
             "openInstalledHost/runtimeTarget/runtimeTarget",
-            "openInstalledHost/selectedInstalledEffect"
+            "openInstalledHost/selectedInstalledEffect",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedAcquisition/prepareRetainedAcquisition"
           ],
           "exports": [],
           "attributes": {
@@ -59810,6 +59811,15 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedAcquisition/prepareRetainedAcquisition",
+          "parameters": [
+            "preparedProgram",
+            "occurrence",
+            "selectedSource"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit",
           "parameters": [
             "request",
@@ -62624,7 +62634,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "636a7d2b078ec9d008ee0122a29478a48049e5edbd0424ef7241d52ef4d4f126"
+      "sha256": "5fae9c807edb17d0b68d43d1a3b238b9a0ed4e8efe0719625991a9bfbec4c2b8"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -70482,7 +70492,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0314179d5828b7834b92d056dbb3aaeaf030c548fcdb4f94614745d124eb390e",
+      "sha256": "24e3f1f1d542a81635ab071db20df4eb8f55c853abee6cf0322b06f14c863165",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -70508,6 +70518,7 @@
             "inferEvidence",
             "checkpoints",
             "prepareAcquisition",
+            "prepareRetainedAcquisition",
             "sourceAccessFor",
             "sourceAdapterFor",
             "runContent",
@@ -70733,6 +70744,13 @@
           "name": "installNodeInferRun/run/run/original/init:retainOperation/init:retainOperation",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/preparedSource/preparedSource",
+          "parameters": [
+            "selectedSource"
           ],
           "async": false
         },
@@ -71082,7 +71100,8 @@
             "installNodeInferRun/run/run/current/current#2",
             "installNodeInferRun/run/run/declaredResults/declaredResults#3",
             "installNodeInferRun/run/run/run#19",
-            "installNodeInferRun/run/run/run#20"
+            "installNodeInferRun/run/run/run#20",
+            "installNodeInferRun/run/run/preparedSource/preparedSource"
           ],
           "exports": [
             "installNodeInferRun"
@@ -87513,7 +87532,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "eb37c4402a3730fcaf7ff5994914bda8c42cacb83a5a3227d6b7c41a7cef82ab",
+      "sha256": "5f6e2a147c7361954f68f460fcc35afec4b5623f1e909e017b83b986c3d930d2",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -87860,6 +87879,31 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/describePreparedSource",
+          "parameters": [
+            "requirement",
+            "occurrence",
+            "checkedOwner",
+            "wholeInput",
+            "plannedAcquisition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/describePreparedSource/describePreparedSource",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/describePreparedSource/describePreparedSource#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/invalidReaderField",
           "parameters": [
             "name"
@@ -88187,20 +88231,6 @@
           "async": true
         },
         {
-          "name": "createInstalledRowSource/prepare/prepare",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/prepare/prepare#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledRowSource/prepare/recheck/recheck",
           "parameters": [],
           "async": false
@@ -88233,6 +88263,27 @@
           "name": "createInstalledRowSource/prepareOriginalAcquisition",
           "parameters": [
             "requirement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepareRetained",
+          "parameters": [
+            "preparedProgram",
+            "requestIdentity",
+            "occurrence",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "access"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepareRetained/prepareRetained",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -89718,7 +89769,6 @@
             "createInstalledRowSource/ordinarySubject/ordinarySubject",
             "createInstalledRowSource/prepare",
             "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
-            "createInstalledRowSource/prepare/prepare",
             "createInstalledRowSource/prepare/recheck/recheck",
             "createInstalledRowSource/prepareKeyed",
             "createInstalledRowSource/prepareKeyed/prepareKeyed",
@@ -89734,7 +89784,12 @@
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/mismatch/mismatch",
-            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets"
+            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
+            "createInstalledRowSource/describePreparedSource",
+            "createInstalledRowSource/describePreparedSource/describePreparedSource",
+            "createInstalledRowSource/describePreparedSource/describePreparedSource#2",
+            "createInstalledRowSource/prepareRetained",
+            "createInstalledRowSource/prepareRetained/prepareRetained"
           ],
           "exports": [
             "createInstalledRowSource"
@@ -90737,8 +90792,7 @@
         },
         {
           "operations": [
-            "createInstalledRowSource/managedWholeSourceCapacity",
-            "createInstalledRowSource/prepare/prepare#2"
+            "createInstalledRowSource/managedWholeSourceCapacity"
           ],
           "exports": [],
           "attributes": {

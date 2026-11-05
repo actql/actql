@@ -1897,6 +1897,69 @@ export async function createInstalledRowSource({moon, declaration, commands,
       connectorRegistration, connectorRevision, bindingCid, connection: site.connection});
   }
 
+  function describePreparedSource(requirement, occurrence, checkedOwner, wholeInput = false, plannedAcquisition) {
+    const facts = wholeInput ? moon.clientProgramWholeSourceFacts(plannedAcquisition)
+      : checked(moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
+    if (!Array.isArray(facts) || facts.length !== 6 ||
+        !facts.every(value => typeof value === 'string')) {
+      fail('InstalledSourceEvidenceFactsUnavailable');
+    }
+    const [sourceRef, sourceContractCid, carrierSchemaContractCid,
+      sourceDataPolicyCid, dataClassification, sourceViewContractCid] = facts;
+    if (!sourceRefs.has(sourceRef)) fail('InstalledSourceProgramMismatch');
+    const [resource, ...fields] = wholeInput ? moon.clientProgramWholeSourceTarget(plannedAcquisition)
+      : checked(moon.clientProgramRowSourceTarget(declaration, requirement));
+    const sourceInputOption = wholeInput ? moon.clientProgramWholeSourceInputIdentity(checkedOwner, requirement) : undefined;
+    const sourceInput = wholeInput && runtimeIsBoxedSome(sourceInputOption)
+      ? runtimeField(sourceInputOption, 0) : undefined;
+    if (wholeInput && (!Array.isArray(sourceInput) || sourceInput.length !== 2 ||
+        sourceInput.some(value => typeof value !== 'string' || !cidPattern.test(value)))) {
+      fail('InstalledSourceProgramMismatch');
+    }
+    const prepared = Object.freeze({
+      checkedSource: Object.freeze({
+        ...(wholeInput ? {sourceInput: Object.freeze([...sourceInput])}
+          : {requirementCid: moon.clientProgramQueryRequirementCid(requirement)}),
+        sourceRef, sourceContractCid, carrierSchemaContractCid,
+        sourceDataPolicyCid, dataClassification, sourceViewContractCid,
+        ...(wholeInput ? {} : {
+          inputContractCid: moon.clientProgramQueryRequirementInputContractCid(requirement),
+          outputContractCid: moon.clientProgramQueryRequirementOutputContractCid(requirement)}),
+      }),
+      readTuple: Object.freeze({connection: site.connection, resource,
+        operation: 'read'}),
+      physicalBinding: physicalTarget(resource, fields),
+      occurrence,
+    });
+    return {prepared, resource};
+  }
+
+  // Metadata for consuming already retained Model input. This entry creates
+  // no Source read, acquisition, capture capacity or authorization decision.
+  // The recovery Request backs the constructor before calling this Owner.
+  function prepareRetained({preparedProgram, requestIdentity, occurrence,
+    registry, values, fragment, ordered, sourceAccess: access = sourceAccess}) {
+    if (immutableTargets !== undefined && physicalTargetGeneration === undefined) {
+      fail('InstalledSourceInitializationClosed');
+    }
+    if (preparedProgram === undefined || requestIdentity === undefined ||
+        moon.clientProgramMatchesRequestIdentity(preparedProgram, requestIdentity) !== true ||
+        occurrence === undefined || !['stage', 'input', 'task'].every(name =>
+          Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0)) {
+      fail('InstalledSourcePreparationMismatch');
+    }
+    const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
+      preparedProgram, occurrence.stage, occurrence.input, registry, values, fragment, ordered));
+    const {prepared, resource} = describePreparedSource(requirement, Object.freeze({...occurrence}), preparedProgram);
+    preparations.set(prepared, Object.freeze({checkedOwner: preparedProgram, effectful: false,
+      retainedOnly: true, requirement, resource, access, occurrence: prepared.occurrence,
+      physicalBindingCid: valueCid(prepared.physicalBinding),
+      ...(immutableTargets === undefined ? {} : {physicalBindingOriginal: prepared.physicalBinding,
+        physicalTargetGeneration})}));
+    ordinaryRecoveryBinding(prepared);
+    return prepared;
+  }
+
   async function prepare({preparedProgram, preparedEffect, registry, values,
     fragment, ordered, sourceAccess: access = sourceAccess,
     queryTimePreparation, requestIdentity, managedRun, preparedSource,
@@ -1989,39 +2052,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
         registry, values, fragment, ordered, queryTimePreparation, requestIdentity}).requirement
         : runtimeField(planned, 1);
       const plannedAcquisition = wholeInput ? runtimeField(planned, 2) : undefined;
-      const facts = wholeInput ? moon.clientProgramWholeSourceFacts(plannedAcquisition)
-        : checked(moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
-      if (!Array.isArray(facts) || facts.length !== 6 ||
-          !facts.every(value => typeof value === 'string')) {
-        fail('InstalledSourceEvidenceFactsUnavailable');
-      }
-      const [sourceRef, sourceContractCid, carrierSchemaContractCid,
-        sourceDataPolicyCid, dataClassification, sourceViewContractCid] = facts;
-      if (!sourceRefs.has(sourceRef)) fail('InstalledSourceProgramMismatch');
-      const [resource, ...fields] = wholeInput ? moon.clientProgramWholeSourceTarget(plannedAcquisition)
-        : checked(moon.clientProgramRowSourceTarget(declaration, requirement));
-      const sourceInputOption = wholeInput ? moon.clientProgramWholeSourceInputIdentity(checkedOwner, requirement) : undefined;
-      const sourceInput = wholeInput && runtimeIsBoxedSome(sourceInputOption)
-        ? runtimeField(sourceInputOption, 0) : undefined;
-      if (wholeInput && (!Array.isArray(sourceInput) || sourceInput.length !== 2 ||
-          sourceInput.some(value => typeof value !== 'string' || !cidPattern.test(value)))) {
-        fail('InstalledSourceProgramMismatch');
-      }
-      const prepared = Object.freeze({
-        checkedSource: Object.freeze({
-          ...(wholeInput ? {sourceInput: Object.freeze([...sourceInput])}
-            : {requirementCid: moon.clientProgramQueryRequirementCid(requirement)}),
-          sourceRef, sourceContractCid, carrierSchemaContractCid,
-          sourceDataPolicyCid, dataClassification, sourceViewContractCid,
-          ...(wholeInput ? {} : {
-            inputContractCid: moon.clientProgramQueryRequirementInputContractCid(requirement),
-            outputContractCid: moon.clientProgramQueryRequirementOutputContractCid(requirement)}),
-        }),
-        readTuple: Object.freeze({connection: site.connection, resource,
-          operation: 'read'}),
-        physicalBinding: physicalTarget(resource, fields),
-        occurrence,
-      });
+      const {prepared, resource} = describePreparedSource(requirement, occurrence, checkedOwner, wholeInput, plannedAcquisition);
       const physicalBindingCid = valueCid(prepared.physicalBinding);
       const authorizePreparation = async () => {
         const decision = await decideRead(prepared, access);
@@ -2627,7 +2658,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       preparedEffect, registry, values, fragment, ordered,
       sourceAccess: access, occurrence});
     const owner = preparations.get(prepared);
-    if (owner === undefined ||
+    if (owner === undefined || owner.retainedOnly === true ||
         owner.checkedOwner !== (preparedEffect ?? preparedProgram) ||
         owner.effectful !== (preparedEffect !== undefined) ||
         owner.access !== access ||
@@ -2980,6 +3011,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       },
     admitsSource: sourceRef => sourceRefs.has(sourceRef),
     ordinaryRecoveryBinding,
+    prepareRetained,
     retirePreparedSource(prepared) {
       const owner = preparations.get(prepared);
       if (owner === undefined) fail('InstalledSourcePreparationMismatch');
@@ -2993,14 +3025,14 @@ export async function createInstalledRowSource({moon, declaration, commands,
     },
     retainedCapture(prepared) {
       const owner = preparations.get(prepared);
-      if (owner === undefined) fail('InstalledSourcePreparationMismatch');
+      if (owner === undefined || owner.retainedOnly === true) fail('InstalledSourcePreparationMismatch');
       const capacity = captureCapacity(owner);
       if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
       return Object.freeze({requirement: owner.requirement, capacity, referenceIssuer});
     },
     ledgerCapacity(prepared) {
       const owner = preparations.get(prepared);
-      if (owner === undefined) fail('InstalledSourcePreparationMismatch');
+      if (owner === undefined || owner.retainedOnly === true) fail('InstalledSourcePreparationMismatch');
       const capacity = captureCapacity(owner);
       if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
       return Object.freeze({

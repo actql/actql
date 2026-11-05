@@ -28,7 +28,7 @@ function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
   const record = {inventory: {taskIndex: 0}}, closure = {sources: [{task: 9}]};
   const snapshot = {callScopeSnapshotWire: '{"sources":[{"source_evidence_wire":"original-evidence"}]}',
     ...(missingClosure ? {} : {sourceContinuation: closure})};
-  const token = {snapshot}, preparedSource = {}, adapter = {}, access = {}, retained = {}, evidence = {};
+  const token = {snapshot}, preparedSource = {}, sourceSelection = {}, adapter = {}, access = {}, retained = {}, evidence = {};
   const checkpoints = {}, submission = {}, waiting = {status: 'waiting_checkpoint'}, events = [];
   const boundary = new Error('StopAtOriginalRestoreRead'), currentFailure = new Error('OriginalCurrentChanged');
   const counters = {prepare: 0, authorized: 0, restoredRead: 0, sourceClose: 0, scope: 0, release: 0};
@@ -51,6 +51,11 @@ function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
   const view = {control, compiled, runDefinition: definition, selection: selected, sourceCoordinates: coordinates,
     retain() {events.push('retain-original');},
     assertRuntimeCurrent() {assertCurrent();},
+    prepareSource(actualOccurrence, construct) {
+      assert.deepEqual(actualOccurrence, {stage: 4, input: 6, task: 9});
+      events.push('same-recovery-source-constructor');
+      return construct(sourceSelection);
+    },
     restoreRead(input) {
       counters.restoredRead++; events.push('restore-original-read');
       assert.strictEqual(input.token, token); assert.strictEqual(input.savedScope, savedScope);
@@ -149,9 +154,10 @@ function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
       assert.strictEqual(actual, prepared); assert.strictEqual(actualPlan, plan); assert.strictEqual(actualSelected, selected);
       return view;
     },
-    async prepareAcquisition(actual, override, actualOccurrence) {
+    prepareAcquisition() {assert.fail('Saved input must not create a fresh ManagedRun Source read');},
+    prepareRetainedAcquisition(actual, actualOccurrence, selectedSource) {
       assert(owner); assert.equal(owner.cleanupPending(), true);
-      assert.strictEqual(actual, prepared); assert.equal(override, undefined); assert(Object.isFrozen(actualOccurrence));
+      assert.strictEqual(actual, prepared); assert.strictEqual(selectedSource, sourceSelection); assert(Object.isFrozen(actualOccurrence));
       assert.deepEqual(actualOccurrence, {stage: 4, input: 6, task: 9});
       counters.prepare++; events.push('prepare-original-source'); failAt('prepare'); return preparedSource;
     },
@@ -346,4 +352,51 @@ test('fresh singleton Source retention failures preserve the original failure an
     assert.equal(await f.owner().cleanup(),true);assert.equal(f.scopeClosed(),true);
     assert(f.events.indexOf('close-source') < f.events.indexOf('retire-scope'));
   }
+});
+
+test('retained row Source metadata uses the same original Request without issuing a physical read', async () => {
+  const source = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+  let node, description;
+  (function walk(value) {
+    if (!value || typeof value !== 'object') return;
+    if (value.type === 'FunctionDeclaration' && value.id.name === 'prepareRetained') node = value;
+    if (value.type === 'FunctionDeclaration' && value.id.name === 'describePreparedSource') description = value;
+    for (const child of Object.values(value)) {
+      if (Array.isArray(child)) child.forEach(walk); else if (child && typeof child === 'object') walk(child);
+    }
+  })(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert(node); assert(description);
+  const preparedProgram = {}, requestIdentity = {}, requirement = {}, declaration = {}, sourceAccess = {};
+  const occurrence = Object.freeze({stage: 3, input: 1, task: 0}), preparations = new WeakMap();
+  const calls = [];
+  const moon = {
+    clientProgramMatchesRequestIdentity: (p, r) => p === preparedProgram && r === requestIdentity,
+    clientProgramPrepareLocalQueryRequirement(p, stage, input, ...contracts) {
+      assert.equal(p, preparedProgram); assert.deepEqual([stage, input], [3, 1]);
+      assert.deepEqual(contracts, ['registry', 'values', 'fragment', 'ordered']);
+      calls.push('original requirement'); return {$tag: 1, _0: requirement};
+    },
+    clientProgramQueryRequirementSourceEvidenceFacts: value => {
+      assert.equal(value, requirement); return {$tag: 1, _0: ['source', 'contract', 'schema', 'policy', 'internal', 'view']};
+    },
+    clientProgramRowSourceTarget(d, r) {assert.equal(d, declaration); assert.equal(r, requirement); return {$tag: 1, _0: ['table', 'id']};},
+    clientProgramQueryRequirementCid: () => 'requirement',
+    clientProgramQueryRequirementInputContractCid: () => 'input',
+    clientProgramQueryRequirementOutputContractCid: () => 'output',
+  };
+  const ports = {immutableTargets: undefined, physicalTargetGeneration: undefined, moon, checked,
+    sourceRefs: new Set(['source']), declaration, site: {connection: 'original'}, sourceAccess, preparations,
+    physicalTarget(resource, fields) {return {resource, fields};}, valueCid: value => JSON.stringify(value),
+    ordinaryRecoveryBinding(prepared) {assert.equal(preparations.get(prepared).retainedOnly, true); calls.push('actual binding');},
+    fail(code) {throw Object.assign(new Error(code), {code});}};
+  const prepare = Function(...Object.keys(ports), source.slice(description.start, description.end) + '\nreturn (' + source.slice(node.start, node.end) + ');')(...Object.values(ports));
+  const facts = {preparedProgram, requestIdentity, occurrence, registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered'};
+  assert.throws(() => prepare({...facts, requestIdentity: {}}), {code: 'InstalledSourcePreparationMismatch'});
+  const prepared = prepare(facts), owner = preparations.get(prepared);
+  assert.deepEqual(calls, ['original requirement', 'actual binding']);
+  assert.equal(owner.checkedOwner, preparedProgram); assert.equal(owner.access, sourceAccess);
+  assert.equal(owner.originalRead, undefined); assert.equal(owner.managedRun, undefined);
+  assert.equal(owner.acquisition, undefined); assert.equal(owner.providerCaptureCapacity, undefined);
+  assert.deepEqual(prepared.physicalBinding, {resource: 'table', fields: ['id']});
+  assert.deepEqual(prepared.occurrence, occurrence); assert(Object.isFrozen(prepared));
 });
