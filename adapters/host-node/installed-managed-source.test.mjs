@@ -591,3 +591,12 @@ test('dispatch retains an unreturned original Source preparation after physical 
   assert.equal(returns, 1);
   assert.equal(entries.size, 0);
 });
+
+test('managed Source capture-only entry retains its original method and receiver', () => {
+  const facts = {}, capture = {};
+  const original = {managedCaptureCapacity() {}, prepare() {}, ledgerCapacity() {},
+    openCapture(actual) {assert.strictEqual(this, original); assert.strictEqual(actual, facts); return capture;}};
+  const wrapped = bindInstalledManagedSources(original, () => ({}));
+  original.openCapture = () => assert.fail('a later function cannot replace the original capture entry');
+  assert.strictEqual(wrapped.openCapture(facts), capture);
+});

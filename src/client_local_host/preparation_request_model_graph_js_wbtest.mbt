@@ -887,6 +887,11 @@ test "single native Model retains original Request Query capacity without a Row 
   )
   let loader = publication_test_loader(publication_test_url())
   let source_ref = f.declaration.unwrap().views[0].source_ref
+  let capacity = f.parent.program_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(
+    capacity,
+    f.input,
+  ).unwrap()
   let original = prepare_request_model_capture_module(
     f.parent,
     f.input,
@@ -910,6 +915,24 @@ test "single native Model retains original Request Query capacity without a Row 
       capture_parent_contract(loader, "actql-query-two-receipt.json"),
     ),
   ).unwrap()
+  let after = @resources.preparation_capacity_working_extents(capacity, f.input).unwrap()
+  let legacy = request_model_material_body_bytes(3, index => {
+    capture_parent_contract(
+      loader,
+      if index == 0 {
+        "actql-query-acquisition.json"
+      } else if index == 1 {
+        "actql-query-process-evidence.json"
+      } else {
+        "actql-query-two-receipt.json"
+      },
+    )
+  }).unwrap()
+  // These actual protocols contain long schema Strings. Preserve the old
+  // live Request debit, without adding a hypothetical node per wire byte.
+  assert_true(after.0 > before.0 && after.1 > before.1)
+  assert_true(after.0 - before.0 < legacy)
+  assert_true(after.1 - before.1 < legacy)
   assert_eq(original.captures.length(), 1)
   let capture = original.captures[0]
   assert_false(capture.original_input)
@@ -2957,9 +2980,12 @@ test "two Model Plan current mutation refuses changed original read partition an
 ///|
 // Same Request and actual two Source/Model compiler graph. Providers below
 // are explicit pure component ports; no physical read or normal ABI is claimed.
-test "two captured Model Request keeps original Direct inventory and all scopes on its one aggregate Plan" {
-  let document =
+fn request_captured_models_original_case(native : Bool) -> Unit raise {
+  let row_document =
     #|{"version":"actql/0.1","id":"request-two-captured-models","stages":[{"id":"left","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"right","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"classify","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}}},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}},{"id":"classify-second","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}}},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"classify","result":"rows"}},"second":{"from":{"stage":"classify-second","result":"rows"}}}}
+  let native_document =
+    #|{"version":"actql/0.1","id":"request-native-source-two-models","stages":[{"id":"input","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"from":"rows","derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"from":"rows","derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"first","result":"rows"}},"second":{"from":{"stage":"second","result":"rows"}}}}
+  let document = if native { native_document } else { row_document }
   let declaration = request_model_module_declaration()
   let (parent, input, prepared) = request_model_input_fixture(
     authored=Some(document),
@@ -3017,8 +3043,13 @@ test "two captured Model Request keeps original Direct inventory and all scopes 
   let direct = request_model_direct_occurrences(parent, input).unwrap()
   assert_eq(
     @publication_host.client_direct_acquisition_occurrence_count(direct),
-    2,
+    if native {
+      1
+    } else {
+      2
+    },
   )
+  let loader = publication_test_loader(publication_test_url())
   let entries : Array[Int] = []
   let selected = prepare_request_model_capture_module(
     parent,
@@ -3027,15 +3058,47 @@ test "two captured Model Request keeps original Direct inventory and all scopes 
     compiled,
     definition,
     compilation,
-    [declaration, declaration],
-    original_row_query_contract_fixture,
-    original_row_evidence_contract_fixture,
-    [4096L, 4096L],
-    [2048L, 2048L],
+    if native {
+      []
+    } else {
+      [declaration, declaration]
+    },
+    if native {
+      capture_parent_contract(loader, "actql-query-acquisition.json")
+    } else {
+      original_row_query_contract_fixture
+    },
+    if native {
+      capture_parent_contract(loader, "actql-query-process-evidence.json")
+    } else {
+      original_row_evidence_contract_fixture
+    },
+    if native {
+      [4096L]
+    } else {
+      [4096L, 4096L]
+    },
+    if native {
+      [2048L]
+    } else {
+      [2048L, 2048L]
+    },
     contracts,
     true,
     0,
     _ => [],
+    native_source_ref=if native {
+      Some(declaration.views[0].source_ref)
+    } else {
+      None
+    },
+    native_database_schema=if native { Some("main") } else { None },
+    native_table=if native { Some("records") } else { None },
+    native_receipt_body=if native {
+      Some(capture_parent_contract(loader, "actql-query-two-receipt.json"))
+    } else {
+      None
+    },
     components_factory=Some((index, extent, _, _) => {
       entries.push(index)
       @local.managed_provider(_ => false, _ => Some(extent), (_, _, _, _, _) => {
@@ -3108,6 +3171,16 @@ test "two captured Model Request keeps original Direct inventory and all scopes 
   }
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "two captured Model Request keeps original Direct inventory and all scopes on its one aggregate Plan" {
+  request_captured_models_original_case(false)
+}
+
+///|
+test "native captured Model Request keeps one original Query and both ordered scopes on its aggregate Plan" {
+  request_captured_models_original_case(true)
 }
 
 ///|
@@ -3397,4 +3470,27 @@ test "captured unavailable originals receive no missing-copy credit or provider 
   @resources.return_preparation_body_borrow(f.holder).unwrap() |> ignore
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "native protocol preflight sizes a long String as one node and retains old refusal fallback" {
+  let wire = "\"" + "x".repeat(12000) + "\""
+  let geometry = request_model_material_source_geometry(wire).unwrap()
+  assert_eq(geometry.0, 12002)
+  assert_eq(geometry.1, 1)
+  let actual = request_model_material_body_bytes(
+    1,
+    _ => wire,
+    source_geometry=true,
+  ).unwrap()
+  let legacy = request_model_material_body_bytes(1, _ => wire).unwrap()
+  assert_true(actual < legacy / 10L)
+  let malformed = String::from_array([(0xd800).unsafe_to_char()])
+  for refused in ["", malformed] {
+    assert_true(request_model_material_source_geometry(refused) is None)
+    assert_eq(
+      request_model_material_body_bytes(1, _ => refused, source_geometry=true),
+      request_model_material_body_bytes(1, _ => refused),
+    )
+  }
 }

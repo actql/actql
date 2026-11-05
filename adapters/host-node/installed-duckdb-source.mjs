@@ -245,6 +245,12 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       preparedSource, reportAcquisitionFailure, occurrence, ledger,
       retainedRelationOutput});
     },
+    openCapture(options) {
+      // The existing native opener already omits its standalone Host when
+      // borrowing this Ledger. Capture-only must never select a fresh Ledger.
+      if (options.ledger === undefined) throw new TypeError('InstalledSourceCaptureLedgerUnavailable');
+      return adapter.open(options);
+    },
     close() {
       if (closed) return;
       closing = true;

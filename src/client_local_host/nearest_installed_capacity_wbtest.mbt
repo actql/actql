@@ -79,7 +79,7 @@ test "original installed nearest captures retain their exact graph and Host owne
 }
 
 ///|
-test "original nearest task-only transfer allowance remains a typed refusal" {
+test "original nearest one-short transfer allowance remains a typed refusal" {
   nearest_failed_capture_fixture(historical_budget=true)
 }
 
@@ -132,13 +132,12 @@ fn nearest_failed_capture_fixture(
   assert_eq(@strategy.graph_task_count(graph), 15)
   assert_eq(@strategy.graph_captured_prefix(graph), 2)
   let ledger = if historical_budget {
-    // A task-only Compute allowance counts thirteen tasks after the two
-    // captured Sources. The two acquisitions retain their separate transport.
-    // Fourteen row-wire receiving ports still make this allowance too short;
-    // the graph, offers, memory and execution limits match the positive case.
+    // Sixteen receiving ports minus two direct Carrier views and one already
+    // captured cell-access input leave thirteen row-wire imports. A one-byte
+    // short allowance must still refuse; all other dimensions match success.
     @resources.create_ledger({
       ..@resources.ledger_admission_limits(ledger),
-      transfer_bytes: 13L * 1000000L + 2L * 4096L,
+      transfer_bytes: 13L * 1000000L - 1L,
     }).unwrap()
   } else {
     ledger
@@ -148,7 +147,7 @@ fn nearest_failed_capture_fixture(
   assert_eq(
     @resources.ledger_admission_limits(ledger).transfer_bytes,
     if historical_budget {
-      13L * 1000000L + 2L * 4096L
+      13L * 1000000L - 1L
     } else {
       16008192L
     },
@@ -354,9 +353,9 @@ fn nearest_failed_offer_boundary(
     if report.rejection is Some(@resources.ExecutionLimit) {
       fail("original nearest strategy ExecutionLimit")
     }
-    // The authored graph has sixteen receiving ports. Its two nearest input
-    // Carrier views borrow vectors directly and never open row-wire importers.
-    assert_eq(report.transfer_bytes, (16L - 2L) * 1000000L)
+    // The two nearest Carrier views and the first ready captured cell-access
+    // input retain their originals without opening row-wire importers.
+    assert_eq(report.transfer_bytes, (16L - 2L - 1L) * 1000000L)
     if historical_budget {
       assert_true(report.rejection is Some(@resources.TransferLimit))
     } else {

@@ -1662,7 +1662,7 @@
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "55145ee26db603414e6e714892b4b3a208ec71a969393a4493eb8cb82fce60f6",
+      "sha256": "0e8bae34b81cc8ceaa92e81b83d4ee00e5ec45e8a405da4e1510371d201cb451",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1690,6 +1690,10 @@
         {
           "name": "[I]request_model_direct_occurrences_owned",
           "declaration": "[ I ] request_model_direct_occurrences_owned ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientDirectAcquisitionOccurrences , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "[I]request_native_model_protocol_construction_bytes",
+          "declaration": "[ I ] request_native_model_protocol_construction_bytes ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , query : String , evidence : String , receipts : String , ) - > Result [ Int64 , ClientRequestProgramPlanIssue ]"
         },
         {
           "name": "prepared_request_model_input_prefix",
@@ -1721,7 +1725,8 @@
             "prepared_request_model_input_prefix",
             "prepared_request_model_input_suffix",
             "request_model_module_container_bytes",
-            "request_model_provider_count"
+            "request_model_provider_count",
+            "[I]request_native_model_protocol_construction_bytes"
           ],
           "exports": [],
           "attributes": {

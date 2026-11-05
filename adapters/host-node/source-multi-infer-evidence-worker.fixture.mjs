@@ -98,6 +98,8 @@ try {
   const installation = {
     ...(telemetry === undefined ? {} : {observation: telemetry.connection}),
     directory: join(root, 'host'), sourceProfilePath, modelInstallation: installed.installation,
+    // Both publications retain the same finite Host policy across processes.
+    hostCapacityPolicy: base.host_policy_profile.capacity,
     inferEvidence: {target: ['first_assessment', 'second_assessment'], destination,
       maxBytes: 262144, sink, authorize: binding =>
         JSON.parse(binding.policy.wire).unknown_provenance === true},

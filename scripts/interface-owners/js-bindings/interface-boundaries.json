@@ -21945,7 +21945,8 @@
             "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule"
+            "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule"
           ],
           "exports": [],
           "attributes": {
@@ -27538,6 +27539,30 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "sourceRef",
+            "schema",
+            "table",
+            "query",
+            "evidence",
+            "receipts",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "bindOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
           "parameters": [
             "parent",
@@ -31114,7 +31139,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "323a5d886eafc5fc78e4829902987a2644b96f743b943e6de87867ee882828a9"
+      "sha256": "275fbabcbba37c8434fc22309e2e0c974a83dc1062fe118e6e8e6ea64aab7e67"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -57659,7 +57684,9 @@
             "prepareRequestMockModelPlan/retainBoundsAndBudget/retainBoundsAndBudget#2",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#12",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#13",
-            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#14"
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#14",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#15",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#16"
           ],
           "exports": [],
           "attributes": {
@@ -61757,32 +61784,30 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#10",
           "parameters": [
-            "value"
+            "member"
           ],
           "async": false
         },
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#11",
           "parameters": [
-            "_capacity",
-            "prefix",
-            "bindSuffix"
+            "value"
           ],
           "async": false
         },
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#12",
           "parameters": [
-            "_capacity",
-            "prefix",
-            "bindSuffix"
+            "value"
           ],
           "async": false
         },
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#13",
           "parameters": [
-            "value"
+            "_capacity",
+            "prefix",
+            "bindSuffix"
           ],
           "async": false
         },
@@ -61796,16 +61821,32 @@
           "async": false
         },
         {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#15",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#16",
+          "parameters": [
+            "_capacity",
+            "prefix",
+            "bindSuffix"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#2",
           "parameters": [
-            "source"
+            "value"
           ],
           "async": false
         },
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#3",
           "parameters": [
-            "source"
+            "value"
           ],
           "async": false
         },
@@ -61826,6 +61867,20 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#6",
           "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#7",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#8",
+          "parameters": [
             "index",
             "_capacity",
             "prefix",
@@ -61834,23 +61889,9 @@
           "async": false
         },
         {
-          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#7",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#8",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
           "parameters": [
-            "value"
+            "member"
           ],
           "async": false
         },
@@ -62336,7 +62377,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "1cccc38fea00b9acc2bc559f28f13e9c2ef241f0dbca88bc76184d5f45154bfc"
+      "sha256": "aa3212730f9c2ab650df86792274c1142f960ac9f16135bda2ecbe58e9017a8e"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

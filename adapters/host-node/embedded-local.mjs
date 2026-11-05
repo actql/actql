@@ -685,7 +685,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
   }
   if (model.components !== undefined) {
     const members = model.components, selected = model.selection?.components;
-    const moduleName = count === 0 ? 'prepareCheckedClientRequestModelsSourceFreeComponentModule'
+    let moduleName = count === 0 ? 'prepareCheckedClientRequestModelsSourceFreeComponentModule'
       : 'prepareCheckedClientRequestModelsProviderComponentCaptureModule';
     const planName = count === 0 ? 'prepareCheckedClientRequestModelsSourceFreePlan'
       : 'prepareCheckedClientRequestModelsCapturePlan';
@@ -695,7 +695,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
           member.group !== model || member.selection !== selected[index] || member.graph !== model.graph[index] ||
           member.occurrence !== selected[index].occurrence || member.serializationGraph !== undefined ||
           member.originalReadInstallation !== undefined || member.component !== undefined) ||
-        typeof model.control[moduleName] !== 'function' ||
+        count === 0 && typeof model.control[moduleName] !== 'function' ||
         typeof model.control[planName] !== 'function') {
       throw clientOperationError('InstalledModelGroupPreparationUnavailable');
     }
@@ -713,21 +713,43 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
       for (const coordinate of coordinates) {
         const selected = checked(moon.clientProgramSelectInstalledSourceInput(run.prepared, run.request, coordinate[0], coordinate[1]));
         if (moon.clientProgramSelectedSourceInputKind(selected) !== 'query') throw clientOperationError('InstalledModelSourcePreparationUnavailable');
-        const adapter = installedSourceFor(run.sourceProfile, moon.clientProgramSelectedSourceInputRef(selected));
+        const sourceRef = moon.clientProgramSelectedSourceInputRef(selected);
+        const adapter = installedSourceFor(run.sourceProfile, sourceRef);
         if (typeof adapter?.managedEffectPlanSelection !== 'function') throw clientOperationError('InstalledModelSourcePreparationUnavailable');
         const source = adapter.managedEffectPlanSelection(); current();
-        if (source?.declaration === undefined || source.provider === undefined ||
+        const native = source?.nativeSource;
+        if ((source?.declaration === undefined) === (native === undefined) ||
+            native === undefined && source.provider === undefined ||
             typeof source.transferBytes !== 'bigint' || source.transferBytes < 0n ||
-            typeof source.executionBytes !== 'bigint' || source.executionBytes < 0n) {
+            typeof source.executionBytes !== 'bigint' || source.executionBytes < 0n ||
+            native !== undefined && (count !== 1 || native === null || !Object.isFrozen(native) ||
+              native.sourceRef !== sourceRef || source.provider !== undefined ||
+              ![native.sourceRef, native.schema, native.table].every(value => typeof value === 'string' && value.length > 0) ||
+              !Array.isArray(native.contracts) || !Object.isFrozen(native.contracts) || native.contracts.length !== 3 ||
+              native.contracts.some(value => typeof value !== 'string' || value.length === 0))) {
           throw clientOperationError('InstalledModelSourcePreparationUnavailable');
         }
         sources.push(source);
       }
+      const native = sources[0].nativeSource;
+      if (native !== undefined) {
+        moduleName = 'prepareCheckedClientRequestModelsDuckDBComponentCaptureModule';
+        if (typeof moon.clientProgramPrepareRequestModelsDuckDBComponentCaptureModule !== 'function' ||
+            typeof model.control[moduleName] !== 'function') {
+          throw clientOperationError('InstalledModelSourcePreparationUnavailable');
+        }
+        sourceArguments = [native.sourceRef, native.schema, native.table, ...native.contracts,
+          sources[0].transferBytes, sources[0].executionBytes];
+      } else {
+        if (typeof model.control[moduleName] !== 'function') {
+          throw clientOperationError('InstalledModelGroupPreparationUnavailable');
+        }
+        sourceArguments = [sources.map(source => source.declaration), sources.map(source => source.provider),
+          readInitialControlInstallationAsset(initialControl, originals, 'spec/contracts/actql-query-acquisition.json'),
+          readInitialControlInstallationAsset(initialControl, originals, 'spec/contracts/actql-query-process-evidence.json'),
+          sources.map(source => source.transferBytes), sources.map(source => source.executionBytes)];
+      }
       run.modelSourceSelections = Object.freeze(sources);
-      sourceArguments = [sources.map(source => source.declaration), sources.map(source => source.provider),
-        readInitialControlInstallationAsset(initialControl, originals, 'spec/contracts/actql-query-acquisition.json'),
-        readInitialControlInstallationAsset(initialControl, originals, 'spec/contracts/actql-query-process-evidence.json'),
-        sources.map(source => source.transferBytes), sources.map(source => source.executionBytes)];
     }
     run.preparedSequences = Reflect.apply(model.control[moduleName], model.control, [
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
@@ -4935,7 +4957,10 @@ async function openInstalledHost(originalInstallation, preparation) {
           // Saved physical work keeps its original recovery owner. Do not
           // allocate another Model Scope for a previously started Run.
           if (retained?.physicalStartReserved === true) return;
-          prepareInstalledRequestModelRun(submission, requested, selection);
+          const model = prepareInstalledRequestModelRun(submission, requested, selection);
+          // A historical Source continuation dispatches this SAME adopted
+          // Model Run and its input borrow, just as fresh admission does.
+          if (held !== undefined) held.managedRun = model.managed.value;
           return;
         }
         const serializationCount = moon.clientProgramSerializationOccurrences(submission.preparedProgram).length;
@@ -7151,7 +7176,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
           (parent, input, compilation) => prepareRequestMockModelPlan(originals,
             run, model, compilation, parent, input));
         run.original = adopted.original; run.value = adopted.value; run.preparationFunded = true;
-        run.preparedSequences = run.modelPlan = run.modelSourceSelection = undefined;
+        run.preparedSequences = run.modelPlan = run.modelSourceSelection = run.modelSourceSelections = undefined;
         checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
         (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);

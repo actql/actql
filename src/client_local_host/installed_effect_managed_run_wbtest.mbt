@@ -48,7 +48,9 @@ test "installed Effect requirements retain the checked Effect owner without a pu
     Some(source_query_original_fragment),
     None,
   ).unwrap()
-  assert_eq(limits, [100000L, 1L, 1L, 1000000L, 200000000L, 536870912L])
+  // The same finite runtime policy as the source-free pure owner; Effect
+  // ownership does not turn the retention ceiling into an upfront reservation.
+  assert_eq(limits, [100000L, 1L, 1L, 1000000L, 536870912L, 536870912L])
   assert_eq(@publication_host.prepared_client_effect_result_count(prepared), 1)
 }
 

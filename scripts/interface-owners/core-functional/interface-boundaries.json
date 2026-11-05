@@ -5155,7 +5155,8 @@
             "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule"
+            "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule"
           ],
           "exports": [],
           "attributes": {
@@ -11140,6 +11141,30 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelsDuckDBComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "sourceRef",
+            "schema",
+            "table",
+            "query",
+            "evidence",
+            "receipts",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "bindOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
           "parameters": [
             "parent",
@@ -14716,7 +14741,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "323a5d886eafc5fc78e4829902987a2644b96f743b943e6de87867ee882828a9"
+      "sha256": "275fbabcbba37c8434fc22309e2e0c974a83dc1062fe118e6e8e6ea64aab7e67"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -41875,7 +41900,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
-      "sha256": "55145ee26db603414e6e714892b4b3a208ec71a969393a4493eb8cb82fce60f6",
+      "sha256": "0e8bae34b81cc8ceaa92e81b83d4ee00e5ec45e8a405da4e1510371d201cb451",
       "operations": [
         {
           "name": "[I]begin_request_model_module",
@@ -41900,6 +41925,10 @@
         {
           "name": "[I]request_model_direct_occurrences_owned",
           "declaration": "[ I ] request_model_direct_occurrences_owned ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientDirectAcquisitionOccurrences , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "[I]request_native_model_protocol_construction_bytes",
+          "declaration": "[ I ] request_native_model_protocol_construction_bytes ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , query : String , evidence : String , receipts : String , ) - > Result [ Int64 , ClientRequestProgramPlanIssue ]"
         },
         {
           "name": "prepared_request_model_input_prefix",
@@ -41932,7 +41961,8 @@
             "prepared_request_model_input_prefix",
             "prepared_request_model_input_suffix",
             "request_model_module_container_bytes",
-            "request_model_provider_count"
+            "request_model_provider_count",
+            "[I]request_native_model_protocol_construction_bytes"
           ],
           "exports": [],
           "attributes": {
@@ -51253,7 +51283,8 @@
             "client_request_models_plan_projection",
             "client_program_prepare_request_model_component_capture_module",
             "client_program_prepare_request_model_capture_plan",
-            "client_program_prepare_request_model_duckdb_component_capture_module"
+            "client_program_prepare_request_model_duckdb_component_capture_module",
+            "client_program_prepare_request_models_duckdb_component_capture_module"
           ],
           "exports": [],
           "attributes": {
@@ -51803,6 +51834,10 @@
           "declaration": "client_program_prepare_request_models_capture_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedCapturePlan , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_models_duckdb_component_capture_module",
+          "declaration": "client_program_prepare_request_models_duckdb_component_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , source_ref : String , database_schema : String , table : String , query_contract_body : String , evidence_contract_body : String , two_receipt_contract_body : String , transport_bytes : Int64 , transport_execution_bytes : Int64 , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( Int , @ execution . ExecutionCapacity , @ execution . GeneratedSequence , ( @ infer_host . Execution ) - > Result [ Unit , @ infer_host . Issue ] , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_models_provider_component_capture_module",
           "declaration": "client_program_prepare_request_models_provider_component_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declarations : Array [ @ client_row_source_host . RowDeclaration ] , providers : Array [ @ execution . ExecutionCapacity ? ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( Int , @ execution . ExecutionCapacity , @ execution . GeneratedSequence , ( @ infer_host . Execution ) - > Result [ Unit , @ infer_host . Issue ] , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , ClientRequestProgramModuleBridgeIssue , ]"
         },
@@ -51843,7 +51878,7 @@
           "declaration": "installed_effect_model_plan_from_original_sources ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , content ? : @ client_local_host . ClientInstalledEffectContentPreparation ?"
         }
       ],
-      "sha256": "952d8186a626463a1e0f626b13c0f7387a5c7ed3a55ae05e23ed7b95fdb4970c"
+      "sha256": "9418b7d4a3a10e15b72d6314b1ea98435fb27dc92f3d76a72bb5c22daf1145b0"
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
