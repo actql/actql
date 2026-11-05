@@ -503,13 +503,35 @@ pub fn restore_accounted_client_source_capture(
     (original_input is Some(_) && !capacity.original_input) {
     return Err(BindingMismatch)
   }
-  let quantities = installed_capture_capacity_values(capacity)
+  // The same receiving Ledger backs reconstruction/import, not the physical
+  // acquisition that already ended. Keep its original capacity identity check
+  // above, then reserve the actual receiver overlap BEFORE descriptor/row parse.
+  let quote_reservation = match
+    @resources.reserve_capacity(ledger, 0L, source_capture_restore_quote_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  let sized = source_capture_restoration_capacity(
+    descriptor_wire, rows, original_input,
+  )
+  // Only the returned two-scalar quote remains after sizing. Its caller's
+  // original closed control frame precedes the represented-body reservation.
+  match @resources.settle_capacity(ledger, quote_reservation) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  let restoring = match sized {
+    Some(value) => value
+    None => return Err(Physical(InvalidCharge))
+  }
+  let retained = @execution.execution_capacity_retained_bytes(restoring)
+  let execution = @execution.execution_capacity_execution_bytes(restoring)
   let reservation = match
     @resources.reserve_attempt(
       ledger,
       0L,
-      quantities[0],
-      quantities[1],
+      retained,
+      execution,
       // Restoring Source custody uses no Model quantities. The SAME Ledger
       // still checks its current configuration and all physical limits.
       quantities=@resources.quantity_neutral_amounts(ledger),
@@ -555,7 +577,7 @@ pub fn restore_accounted_client_source_capture(
       }
   }
   let holding = match
-    @resources.retain_allocation(ledger, reservation, quantities[0]) {
+    @resources.retain_allocation(ledger, reservation, retained) {
     Ok(value) => value
     Err(issue) => {
       close_client_source_capture(capture) |> ignore
