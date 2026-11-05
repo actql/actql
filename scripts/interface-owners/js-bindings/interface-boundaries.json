@@ -36024,6 +36024,7 @@
         "installNodeClientDispatchOwner",
         "observeNodeRestoredLocalStop",
         "observeNodeRestoredModelStop",
+        "observeNodeRunCancellation",
         "recordNodeRunPhysicalStop"
       ],
       "operations": [
@@ -36598,6 +36599,14 @@
           "async": true
         },
         {
+          "name": "observeNodeRunCancellation",
+          "parameters": [
+            "facts",
+            "originalFrame"
+          ],
+          "async": true
+        },
+        {
           "name": "observeNodeRunStop",
           "parameters": [
             "facts",
@@ -36961,10 +36970,12 @@
         },
         {
           "operations": [
-            "confirmNodeRunCancellation"
+            "confirmNodeRunCancellation",
+            "observeNodeRunCancellation"
           ],
           "exports": [
-            "confirmNodeRunCancellation"
+            "confirmNodeRunCancellation",
+            "observeNodeRunCancellation"
           ],
           "attributes": {
             "responsibility": [
@@ -38699,7 +38710,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "056246677e9b86d79207fd12c3b5b5abb856ad036a927c0f9df1ff2e377b68ca",
+      "sha256": "0e903606e4b22f1aa09c8d512ed530dae48e8362fc2232d12eea236844845868",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -63472,7 +63483,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "2183137b34ad6d0f9eec1c18a65c6141b4b457b82667c2aedb4ae416fc059ab6"
+      "sha256": "2d7b5959815ab92a763458949f1eb4b5241fc893d86f463be892c3439c7529ff"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
