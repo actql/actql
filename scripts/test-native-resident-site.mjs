@@ -299,10 +299,8 @@ try {
   await writeFile(tokenFile, `${token}\n`, {mode: 0o600});
   await chmod(tokenFile, 0o600);
   const siteKey = 'resident-site';
-  const durableObservationMode = process.argv.includes('--observation-replay-only') ||
-    process.argv.includes('--redelivery-only') || process.argv.includes('--output-report-only') ||
-    cancelMode || retainedConsumerMode;
-  const startGateway = async port => startHttpsOutboundSiteGateway({
+  const startGateway = async port => {
+  const transport = await startHttpsOutboundSiteGateway({
     ...(port === undefined ? {} : {port}),
     key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')),
@@ -352,13 +350,6 @@ try {
           if (JSON.parse(value.body).version === 'actql-remote-output-plan/0.1') {
             return Object.freeze({});
           }
-          // The foundation fixture exercises direct dispatch transport. Only
-          // its Output path uses the durable Coordinator receiver; the R1/R2
-          // modes independently exercise durable dispatch observations.
-          if (!durableObservationMode &&
-              JSON.parse(value.body).version !== 'actql-remote-output-result/0.1') {
-            return Object.freeze({});
-          }
           if (crashOutputReceiver !== undefined &&
               JSON.parse(value.body).version === 'actql-remote-output-result/0.1') {
             const crash = crashOutputReceiver;
@@ -394,6 +385,16 @@ try {
       },
     idlePollMilliseconds: 200,
   });
+  return Object.freeze({...transport,
+    async dispatch(value) {
+      // Admit the same original Coordinator intent before transport can send
+      // this dispatch. Status and Release then share its real current owner;
+      // a fixture callback without that owner is not a cleanup receipt.
+      await ensureOutputReceiver(value.dispatch);
+      return transport.dispatch(value);
+    },
+  });
+  };
   gateway = await startGateway();
 
   // The Cloud's Result ingress: a direct Transfer destination.

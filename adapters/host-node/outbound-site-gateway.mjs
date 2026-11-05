@@ -583,6 +583,21 @@ export async function startHttpsOutboundSiteGateway({
         replyJson(response, 200, {accepted: true});
         return;
       }
+      if (matched.operation === 'release' &&
+          !(receiveObservation === undefined
+            // This projection is from the admitted exact-request response,
+            // not received JSON or execution authority. CleanupReleased is
+            // independent of whether the existing execution has settled.
+            ? projected.state[2] === 2 && projected.state[3] === 0 &&
+              projected.state[4] === 0
+            : typeof observationReceipt?.canRetireReleaseDelivery === 'function' &&
+              observationReceipt.canRetireReleaseDelivery() === true)) {
+        // A delayed query or a release-in-progress reply cannot discard the
+        // exact Release offer. A durable receiver must project its current
+        // committed owner, including any later loss or quarantine.
+        replyJson(response, 200, {accepted: true});
+        return;
+      }
       if (matched.operation === 'cancel' &&
           !(receiveObservation === undefined
             ? control.responseCanRetireCancellationDelivery(admitted)

@@ -584,6 +584,16 @@ retransmit executable work. Cancellation before gateway admission creates no
 pending operation, while a caller disconnect after admission removes only
 that caller's waiter.
 
+An ordinary status can arrive after a Release waiter is registered, including
+from another control process's earlier query. It is admitted as an observation
+without retiring Release delivery. The gateway keeps offering the same Release
+until the existing Owner confirms released cleanup without retained material
+or quarantine. Cleanup is independent of execution: the existing before-start
+release path remains valid without a terminal execution observation. With a
+durable receiver, that decision
+uses its latest committed observation rather than an older reply. This delivery
+fence neither cancels the Run nor grants another execution.
+
 The required Remote Site tests cover an authenticated loopback subprocess and
 separated native Site networks. They use distinct Store roots and may not use
 shared memory, a shared filesystem, or a shared absolute path as the data
