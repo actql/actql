@@ -559,6 +559,14 @@ Source evidence admitted by Core. Its input sequence is the actual prefix
 retained by that adopted native Plan, read through the same original Run,
 Prepared, Request association and payload-retirement fence. Reading it performs
 no compiler work, current callback or debit and recreates no JS Plan root.
+The admitted same-Unit Source projects only its original Program/capture tuple;
+that immutable projection adds no Source-current observation. The input kernel
+selects the range after the original Query capture from that same sequence and
+binds each external consumer port through the existing captured-source read.
+It shares the acquired-input kernel, without regenerating a prefix, executing
+its Source scan, copying rows or introducing another cleanup owner. The full
+prefix with an empty input set remains invalid, as do foreign or retired
+captures. The original Source stays live until its own reader retires.
 The existing Model invocation binding owns
 the derived Result publication. Separate-stage composed Programs retain the
 DAG driver and its unchanged managed publication identity requirements. The

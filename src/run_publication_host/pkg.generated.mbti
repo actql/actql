@@ -650,6 +650,8 @@ pub fn client_infer_captured_input_observation(ClientInferCapturedInput) -> @run
 
 pub fn client_infer_captured_input_source(ClientInferCapturedInput, PreparedClientProgram, Int) -> @execution_query.CapturedInputSource?
 
+pub fn client_infer_composed_direct_source(ClientInferComposedSources, ClientInferOccurrence) -> (PreparedClientProgram, @execution_query.CapturedInputSource)?
+
 pub fn client_infer_composed_keyed_lookup(ClientInferComposedSources, ClientInferOccurrence) -> ClientKeyedLookupInput?
 
 pub fn client_infer_composed_source_observations(ClientInferComposedSources) -> Array[@run_publication.ModelSourceObservation]
