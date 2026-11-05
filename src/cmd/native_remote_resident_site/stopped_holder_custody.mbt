@@ -133,6 +133,10 @@ fn retry_stopped_holder_cleanup_handles(owner : StoppedReleaseRecovery) -> Bool 
     return false
   }
   owner.physical_cleanup_done = true
+  // The checked callback captures this same recovery Owner. Every original
+  // callback and child-handle ACK above has completed; retire only that
+  // managed back-reference, preserving the durable/parent cleanup below.
+  owner.physical_cleanup = None
   true
 }
 
