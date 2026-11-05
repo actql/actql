@@ -162,6 +162,12 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save'], sta
         const stage = await construct({physical, completed, stopped, physicalOwner, controlConstruction: run.controlConstruction,
           retainInputCleanup, retainStageCleanup, beginConstruction});
         assert.equal(started, true, 'actual capture must enter its original constructors before asynchronous capture work');
+        // The original constructor has returned its Stage. Keep its retained
+        // inputs/outputs and cleanup owner, but not completed decode workspace
+        // while the later physical Effect uses this SAME Run.
+        for (const token of tokens) {
+          checked(runtime.clientProgramInstalledEffectOperationConstructionComplete(token));
+        }
         stage.referencePhysical = physical;stage.referenceCompleted = completed;
         if (stage.releaseInputs !== undefined) {
           if (release === undefined) retainInputCleanup(stage.releaseInputs);
