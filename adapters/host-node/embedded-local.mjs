@@ -8151,7 +8151,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
     const services = preparation.sourceInitializationServices(moon, root, userInfo().username);
     const baseEnvironmentWire = selectInstalledLocalMaterializationEnvironment(moon,
       preparation.readEnvironmentSource().trimEnd(), originalInstallation.hostCapacityPolicy,
-      originalInstallation.hostLookupExecutionPolicy);
+      originalInstallation.hostLookupExecutionPolicy ?? localResourceLookupExecutionPolicy(moon,
+        moon.clientLocalResourcePolicyOriginal(), localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS])));
     originalInstallation.declaredFileBaseEnvironmentWire = baseEnvironmentWire;
     // Retain before module/runtime selection and before the first dynamic
     // declaration. Later Host installation borrows this same service/parent.

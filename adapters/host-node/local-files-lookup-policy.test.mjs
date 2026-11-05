@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
 import {localFilesLookupExecutionPolicy, localResourceLookupExecutionPolicy, snapshotHostLookupExecutionPolicy,
-  selectInstalledHostEnvironment} from './installed-host-policy.mjs';
+  selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment} from './installed-host-policy.mjs';
 
 import {LOCAL_FILES_DEFAULT_LIMITS} from '../connectors/local/host/installed-project-files.mjs';
 
@@ -24,6 +24,13 @@ const choice=nodes.filter(node=>node.type==='VariableDeclarator'&&node.id.name==
 assert.equal(choice.length,1);
 const choose=new Function('hostLookupExecutionPolicy','preparation','moon',
   'return '+source.slice(choice[0].init.start,choice[0].init.end));
+const earlyEnvironment=nodes.filter(node=>node.type==='VariableDeclarator'&&node.id.name==='baseEnvironmentWire'&&
+  node.init?.type==='CallExpression'&&node.init.callee.name==='selectInstalledLocalMaterializationEnvironment');
+assert.equal(earlyEnvironment.length,1);
+const prepareMockEnvironment=new Function('moon','preparation','originalInstallation',
+  'selectInstalledLocalMaterializationEnvironment','localResourceLookupExecutionPolicy',
+  'localFilesLookupExecutionPolicy','LOCAL_FILES_DEFAULT_LIMITS',
+  'return '+source.slice(earlyEnvironment[0].init.start,earlyEnvironment[0].init.end));
 const methods=nodes.filter(node=>node.type==='Property'&&node.method&&node.key.name==='localFilesLookupExecutionPolicy');
 assert.equal(methods.length,1);
 const method=methods[0].value;
@@ -148,4 +155,34 @@ test('declared Local policy requires the exact selected nominal preparation and 
   assert.ok(projection(moon));assert.equal(reads,1);
   current=false;assert.throws(()=>projection(moon),/RetiredOriginal/);assert.equal(reads,1);
   assert.throws(()=>projection({}),/ForeignInstalledProjectSourcePreparation/);
+});
+
+test('the original Mock declaration Environment includes its selected finite Local lookup policy',()=>{
+  const base=JSON.parse(readFileSync(new URL('../../spec/local-check-environment.json',import.meta.url),'utf8'));
+  const wire=JSON.stringify(base),original={},admitted=[];
+  let limitReads=0,current=true;
+  const moon={clientLocalResourcePolicyOriginal:()=>original,
+    clientLocalPreparationResourceLimits(value){assert.strictEqual(value,original);limitReads++;
+      return [1,1,1,12345n,1,1];},
+    clientLocalResourcePolicyRowCeiling(value){assert.strictEqual(value,original);return 256;},
+    clientProgramCheckEnvironment(value,cid){const body=JSON.parse(value);
+      assert.equal(body.evidence_bundle_cid,cid);admitted.push(body);return {};}},
+    preparation={readEnvironmentSource(){if(!current)throw Error('RetiredOriginal');return wire;}};
+  const prepare=installation=>prepareMockEnvironment(moon,preparation,installation,
+    selectInstalledLocalMaterializationEnvironment,localResourceLookupExecutionPolicy,
+    localFilesLookupExecutionPolicy,LOCAL_FILES_DEFAULT_LIMITS);
+  const selected=JSON.parse(prepare({}));
+  assert.deepEqual(selected.host_policy_profile.lookup_execution,
+    {...localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS]),max_total_response_bytes:12345});
+  assert.deepEqual(selected.host_policy_profile.capacity,{...base.host_policy_profile.capacity,
+    max_relation_output_rows:256,max_artifact_rows:256});
+  assert.deepEqual(admitted,[selected]);assert.equal(limitReads,1);
+  const explicit=snapshotHostLookupExecutionPolicy({...selected.host_policy_profile.lookup_execution,
+    max_total_decoded_response_bytes:17});
+  const overridden=JSON.parse(prepare({hostLookupExecutionPolicy:explicit}));
+  assert.deepEqual(overridden.host_policy_profile.lookup_execution,explicit);
+  assert.deepEqual(overridden.host_policy_profile.capacity,selected.host_policy_profile.capacity);
+  assert.equal(limitReads,1,'explicit Host selection does not evaluate the ordinary default');
+  current=false;assert.throws(()=>prepare({}),/RetiredOriginal/);
+  assert.equal(limitReads,1);assert.equal(admitted.length,2);
 });
