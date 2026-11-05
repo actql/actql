@@ -261,22 +261,8 @@ test "CLI Effect finite prefix selects an accepted original before an invalid ca
   let (reference, preparation, scope) = effect_finite_cli_submission(
     host, settings, crypto, "accepted",
   )
-  guard local_effect_prepare_start_with_clocks(
-      host,
-      settings,
-      crypto,
-      preparation,
-      reference,
-      installed,
-      scope,
-      () => "2026-10-12T00:00:00.000Z",
-      () => 1791763200002.0,
-    )
-    is AuthoritySupplierUnavailable else {
-    fail("first preparation")
-  }
-  // Observe values through the actual Policy/compilation Owners, not through
-  // an uninstalled CLI supplier carrier. Preflight above remains a refusal.
+  // Accept this preparation's first compilation before testing that lookup
+  // wins over an invalid replacement time in the later preflight call.
   let request = local_effect_request_identity(
     preparation,
     scope,
@@ -352,22 +338,8 @@ test "CLI Effect finite prefix refuses an accepted legacy missing Policy instead
   let (reference, preparation, scope) = effect_finite_cli_submission(
     host, settings, crypto, "missing",
   )
-  guard local_effect_prepare_start_with_clocks(
-      host,
-      settings,
-      crypto,
-      preparation,
-      reference,
-      installed,
-      scope,
-      () => "2026-10-12T00:00:00.000Z",
-      () => 1791763200002.0,
-    )
-    is AuthoritySupplierUnavailable else {
-    fail("first preparation")
-  }
-  // Observe values through the actual Policy/compilation Owners, not through
-  // an uninstalled CLI supplier carrier. Preflight above remains a refusal.
+  // Retain the first compilation as legacy material without a Policy record;
+  // the later preflight must refuse it instead of issuing another compilation.
   let request = local_effect_request_identity(
     preparation,
     scope,
@@ -439,22 +411,9 @@ test "actual Policy binding accepts finite retention with the same original comp
   let (reference, preparation, scope) = effect_finite_cli_submission(
     host, settings, crypto, "selected-accept",
   )
-  guard local_effect_prepare_start_with_clocks(
-      host,
-      settings,
-      crypto,
-      preparation,
-      reference,
-      installed,
-      scope,
-      () => "2026-10-12T00:00:00.000Z",
-      () => 1791763200002.0,
-    )
-    is AuthoritySupplierUnavailable else {
-    fail("selected.prepare")
-  }
-  // Observe values through the actual Policy/compilation Owners, not through
-  // an uninstalled CLI supplier carrier. Preflight above remains a refusal.
+  // The separate preflight case preserves its supplier refusal. This Policy
+  // case compiles once: preflight would retain a different live compilation
+  // on the same preparation before the original material binding below.
   let request = local_effect_request_identity(
     preparation,
     scope,
@@ -590,22 +549,8 @@ test "actual Policy binding reconciles the same original across lost acknowledge
   let (reference, preparation, scope) = effect_finite_cli_submission(
     host, settings, crypto, "selected-reopen",
   )
-  guard local_effect_prepare_start_with_clocks(
-      host,
-      settings,
-      crypto,
-      preparation,
-      reference,
-      installed,
-      scope,
-      () => "2026-10-12T00:00:00.000Z",
-      () => 1791763200002.0,
-    )
-    is AuthoritySupplierUnavailable else {
-    fail("reopen.prepare")
-  }
-  // Observe values through the actual Policy/compilation Owners, not through
-  // an uninstalled CLI supplier carrier. Preflight above remains a refusal.
+  // Exercise acceptance and ACK-loss recovery with the first compilation of
+  // this preparation; the separate preflight case retains its own refusal.
   let request = local_effect_request_identity(
     preparation,
     scope,
