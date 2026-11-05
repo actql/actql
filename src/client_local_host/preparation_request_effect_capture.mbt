@@ -43,8 +43,10 @@ fn request_effect_capture_recovery_capacity(
       // Capture wire, decoded record strings, and independently decoded typed
       // strings. A getter alias of an existing wire is not another copy.
       { unit: DecodedTextBytes, count: bytes, copies: 3, },
-      // Encrypted record/ciphertext, plaintext and retained Store writer or
-      // failed-child bytes. Directory/FD ownership stays with that Store.
+      // Encrypted record/ciphertext, plaintext and Store writer or failed-child
+      // bytes coexist during construction. Only successful Store return cuts
+      // all four buffers; retained Strings have their separate bounds above.
+      // Directory/FD ownership and failed cleanup stay with that Store.
       { unit: CanonicalWireBytes, count: bytes, copies: 4, },
     ],
     [
