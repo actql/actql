@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {dirname, join} from 'node:path';
+import {basename, dirname, join, resolve} from 'node:path';
 import test from 'node:test';
 import {nativeCoreTestSelection} from './native-core-test-selection.mjs';
 import {assertTestExecution} from './test-execution.mjs';
@@ -34,9 +35,20 @@ test('Native metadata selection retains opaque doc/skip identities and refuses a
           : [command('active'), command('empty'), 'cc must-never-execute.c']).join('\n');
       }
       assert.equal(values[0], 'generate-test-driver');generated++;
-      const path = join(root, values[values.indexOf('--output-metadata') + 1]);
+      const name = values.includes('empty/main.mbt') ? 'empty' : 'active';
+      const expected = command(name).split(' ').slice(1);
+      const output = values[values.indexOf('--output-driver') + 1];
+      const path = resolve(root, values[values.indexOf('--output-metadata') + 1]);
+      assert.notEqual(output, expected[expected.indexOf('--output-driver') + 1]);
+      assert.equal(basename(output), 'driver.mbt');
+      assert.equal(dirname(output), dirname(path));
+      const actual = [...values];
+      for (const option of ['--output-driver', '--output-metadata']) {
+        actual[actual.indexOf(option) + 1] = expected[expected.indexOf(option) + 1];
+      }
+      assert.deepEqual(actual, expected, 'Only discovery output destinations may change');
       mkdirSync(dirname(path), {recursive: true});
-      writeFileSync(path, JSON.stringify({tests:{'main.mbt':path.includes('/empty/') ? [] : [
+      writeFileSync(path, JSON.stringify({tests:{'main.mbt':name === 'empty' ? [] : [
         {index:0,name:null,attrs:[],line_number:2},
         {index:1,name:'original skipped case',attrs:['skip'],line_number:5},
       ]}}));
@@ -52,6 +64,16 @@ test('Native metadata selection retains opaque doc/skip identities and refuses a
 test('Native metadata discovery preserves original compiler failures and refuses zero cases', t => {
   const root = fixture(t), original = new Error('original metadata compiler refusal');
   assert.throws(() => nativeCoreTestSelection(root, [], {execute:()=>{throw original;}}), error=>error===original);
+  let failedScratch;
+  const command = ['moon','generate-test-driver','--output-driver','_build/active/driver.mbt',
+    '--output-metadata','_build/active/info.json','active/main.mbt','--target','native',
+    '--pkg-name','fixture/active','--driver-kind','blackbox'].join(' ');
+  assert.throws(() => nativeCoreTestSelection(root, [], {execute: (_tool, values) => {
+    if (values[0] === 'test') return command;
+    failedScratch = dirname(dirname(values[values.indexOf('--output-metadata')+1]));
+    throw original;
+  }}), error=>error===original, 'A redirected compiler refusal remains the original exception');
+  t.after(() => rmSync(failedScratch,{recursive:true,force:true}));
   assert.throws(() => nativeCoreTestSelection(root, [], {execute:()=>''}), /No compiler-owned Native test drivers/u);
 });
 
@@ -154,5 +176,18 @@ test('actual Native package selection preserves full WB/BB/inline/doc outline an
   // Warm every driver, including the empty package, in the SAME target dir.
   // Discovery must still enumerate all original cases and the omitted drivers.
   assert.equal(run([...args,'--outline']).stdout,full.stdout);
+  const drivers = files(join(root,'_build/native/release/test')).filter(path => /\.(?:mbt|json)$/u.test(path));
+  assert(drivers.length > 0, 'Actual warm test drivers and metadata required');
+  const identities = paths => paths.map(path => {
+    const stat = statSync(path, {bigint:true});
+    return {path, bytes:stat.size, inode:stat.ino, mtime:stat.mtimeNs,
+      sha256:createHash('sha256').update(readFileSync(path)).digest('hex')};
+  });
+  const before = identities(drivers);
   assert.deepEqual(nativeCoreTestSelection(root,args,{env}),selected);
+  assert.deepEqual(identities(drivers),before,'Metadata-only discovery must not rewrite warm actual Native drivers or metadata');
+  const software = files(join(root,'_build/native/release/test')).filter(path => /\.(?:c|core|exe)$/u.test(path));
+  const warm = identities(software);
+  assert.equal(run([...selected.args,'--outline']).stdout,full.stdout);
+  assert.deepEqual(identities(software),warm,'The warm outline must not regenerate or recompile Native software');
 });

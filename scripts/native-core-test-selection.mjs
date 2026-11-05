@@ -3,8 +3,9 @@
 // testless packages. Moon still owns every driver, case, ordering and execution.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {readFileSync, realpathSync} from 'node:fs';
-import {basename, dirname, relative, resolve, sep} from 'node:path';
+import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {basename, dirname, join, relative, resolve, sep} from 'node:path';
 import {parseCommands} from './verification-actions.mjs';
 
 // These existing physical cases require the selected read provider. Ordinary
@@ -95,42 +96,62 @@ export function nativeCoreTestSelection(repository, args, {
     return drivers;
   };
   const full = discover([]), packages = new Set(), cases = [], records = [];
-  for (const [key, driver] of full) {
-    // Never execute the other dry-run commands: no package build, C or link.
-    run(driver.command.slice(1));
-    const metadata = JSON.parse(readFileSync(driver.metadata, 'utf8'));
-    assert(metadata.tests && typeof metadata.tests === 'object' && !Array.isArray(metadata.tests));
-    driver.cases = [];
-    const sources = driver.command.slice(2).filter(arg => arg.endsWith('.mbt') && arg !== driver.output);
-    for (const [file, tests] of Object.entries(metadata.tests)) {
-      assert(Array.isArray(tests));
-      if (tests.length === 0) continue;
-      const originals = sources.filter(path => basename(path) === file);
-      assert.equal(originals.length, 1, 'Native test file must have one compiler input');
-      const directory = relative(repository, dirname(realpathSync(resolve(repository, originals[0]))));
-      assert(directory !== '..' && !directory.startsWith('..' + sep));
-      packages.add(directory || '.');
-      const source = relative(repository, realpathSync(resolve(repository, originals[0]))).split(sep).join('/');
-      for (const test of tests) {
-        const entry = [key, file, test];
-        driver.cases.push(entry);
-        records.push({entry, source, directory: directory || '.'});
+  const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-test-metadata-')));
+  let complete = false, ordinal = 0;
+  try {
+    for (const [key, driver] of full) {
+      // Keep the original command for exact full/selected comparison. Only this
+      // metadata invocation's two output destinations move to private scratch;
+      // rewriting a byte-identical real test driver invalidates Moon's C cache.
+      // Driver kind/package pairs are unique even when they have no cases.
+      const privateDirectory = join(scratch, String(ordinal++));
+      mkdirSync(privateDirectory, {mode: 0o700});
+      const command = driver.command.slice(1);
+      const metadataPath = join(privateDirectory, basename(driver.metadata));
+      command[command.indexOf('--output-driver') + 1] = join(privateDirectory, basename(driver.output));
+      command[command.indexOf('--output-metadata') + 1] = metadataPath;
+      // Never execute the other dry-run commands: no package build, C or link.
+      run(command);
+      const metadata = JSON.parse(readFileSync(metadataPath, 'utf8'));
+      assert(metadata.tests && typeof metadata.tests === 'object' && !Array.isArray(metadata.tests));
+      driver.cases = [];
+      const sources = driver.command.slice(2).filter(arg => arg.endsWith('.mbt') && arg !== driver.output);
+      for (const [file, tests] of Object.entries(metadata.tests)) {
+        assert(Array.isArray(tests));
+        if (tests.length === 0) continue;
+        const originals = sources.filter(path => basename(path) === file);
+        assert.equal(originals.length, 1, 'Native test file must have one compiler input');
+        const directory = relative(repository, dirname(realpathSync(resolve(repository, originals[0]))));
+        assert(directory !== '..' && !directory.startsWith('..' + sep));
+        packages.add(directory || '.');
+        const source = relative(repository, realpathSync(resolve(repository, originals[0]))).split(sep).join('/');
+        for (const test of tests) {
+          const entry = [key, file, test];
+          driver.cases.push(entry);
+          records.push({entry, source, directory: directory || '.'});
+        }
       }
+      cases.push(...driver.cases);
     }
-    cases.push(...driver.cases);
+    assert(cases.length > 0, 'No compiler-owned Native test cases');
+    const paths = [...packages], selected = discover(paths), selectedCases = [];
+    for (const [key, driver] of selected) {
+      const original = full.get(key);
+      assert(original, 'Foreign selected Native driver');
+      assert.deepEqual(driver.command, original.command,
+        'Selected Native driver inputs must retain their complete original case inventory');
+      selectedCases.push(...original.cases);
+    }
+    assert.deepEqual(selectedCases, cases, 'Native selection changed case identity or order');
+    const result = {args: [...args, ...paths], cases: cases.length, packages: paths.length,
+      prunedDrivers: full.size - selected.size};
+    if (splitProfiles) result.profiles = partitionProfiles(args, records);
+    complete = true;
+    return result;
+  } finally {
+    // Every compiler child above is synchronous and reaped. Preserve failed
+    // discovery for diagnosis; never adopt or remove the real build outputs.
+    if (complete) rmSync(scratch, {recursive: true});
+    else console.error('Native metadata discovery failed; scratch kept: ' + scratch);
   }
-  assert(cases.length > 0, 'No compiler-owned Native test cases');
-  const paths = [...packages], selected = discover(paths), selectedCases = [];
-  for (const [key, driver] of selected) {
-    const original = full.get(key);
-    assert(original, 'Foreign selected Native driver');
-    assert.deepEqual(driver.command, original.command,
-      'Selected Native driver inputs must retain their complete original case inventory');
-    selectedCases.push(...original.cases);
-  }
-  assert.deepEqual(selectedCases, cases, 'Native selection changed case identity or order');
-  const result = {args: [...args, ...paths], cases: cases.length, packages: paths.length,
-    prunedDrivers: full.size - selected.size};
-  if (splitProfiles) result.profiles = partitionProfiles(args, records);
-  return result;
 }
