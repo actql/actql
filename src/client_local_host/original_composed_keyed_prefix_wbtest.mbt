@@ -95,6 +95,20 @@ fn original_composed_keyed_consumer(
     ),
     Some(policy.cid),
   )
+  let bodies = @publication_host.prepared_client_effect_publication_policy_bodies(
+    prepared, 1000000, 100000, 64,
+  ).unwrap()
+  assert_eq(bodies[0].1, policy.cid)
+  for index in 0..<@checked.publication_policy_source_count(policy) {
+    let original = @checked.publication_policy_source_at(policy, index).unwrap()
+    assert_true(
+      bodies.any(body => {
+        body.0 == "data_policy" &&
+        body.1 ==
+        @checked.source_execution_subject(original).response_policy_cid
+      }),
+    )
+  }
   let (_, request, contracts, model) = effect_model_plan_for_prepared(
     prepared,
     acquired=true,

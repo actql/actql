@@ -14,7 +14,12 @@ pub fn prepared_client_effect_publication_policy_bodies(
     prepared_client_effect_computation_candidate(value),
   )
   checked_client_publication_policy_bodies(
-    program, cid, max_bytes, max_nodes, max_depth,
+    program,
+    cid,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    retain_catalog=true,
   )
 }
 
