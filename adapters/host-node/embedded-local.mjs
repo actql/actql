@@ -2528,7 +2528,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       typeof moon.clientProgramPreparationBorrowSibling === 'function';
     // This selects custody only. The registry still requires the SAME
     // Request's actual Core borrower, not an INFER shape or a permission.
-    if (count !== 0) return count === 1 && typeof moon.clientProgramPreparationBorrowSibling === 'function';
+    if (count !== 0) return typeof moon.clientProgramPreparationBorrowSibling === 'function';
     return moon.clientProgramAcquisitionCount(prepared) === 0 ||
       preparation.managesInstalledSources?.() === true;
   }, prepared => {
