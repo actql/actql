@@ -42,7 +42,8 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   if (records.length === 0 && acquiredInfer?.captured === undefined && !multiple && !sourceFree) {
     throw new Error('InstalledComposedInferInputUnavailable');
   }
-  const children = selected.components.map(selection => ({selection}));
+  const children = selected.components.map((selection, index) => ({selection,
+    originalPreparation: completeOriginal ? originalComponents[index] : originalPreparation}));
   const installedCaptured = originalPreparation !== undefined &&
     typeof originalPreparation.openCapturedHost === 'function';
   const installedSourceFree = sourceFree && (completeOriginal || selected.components[0].localMock !== true);
@@ -279,7 +280,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   const captures = sourceFree ? [] : multiple ? input.sources.map(source => source.captured) : [captured];
   const sourceEvidence = sourceFree ? [] : multiple ? input.sourceEvidence : [input.sourceEvidence];
   for (const [index, child] of children.entries()) {
-    const childOriginal = completeOriginal ? originalComponents[index] : originalPreparation;
+    const childOriginal = child.originalPreparation;
     const sources = child.restoredInput === undefined && !sourceFree ? control.admitComposedInferSources(
       child.selection.occurrence, captures, sourceEvidence, authorityScopeCid,
       captureStartedAt, captureCompletedAt) : undefined;
@@ -333,7 +334,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       if (preparedCallSet === undefined) throw new Error('ModelPausePreparedOwnerMissing');
       child.continuation = await modelController.open({operation: child.operation, preparedCallSet,
         plan, selected: child.selection, principalId, declaredResults, submission, signal,
-        originalPreparation,
+        originalPreparation: child.originalPreparation,
         retainEvidenceCopy(copy) {
           if (child.copy?.cleanupPending()) throw new Error('InferEvidenceCopyAlreadyRetained');
           child.copy = copy;

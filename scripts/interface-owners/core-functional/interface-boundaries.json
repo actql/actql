@@ -17545,7 +17545,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "71ed71c087608d1f6d447483521314fd1f8093b66978e3b43ad02a1ac14edbb3",
+      "sha256": "aa120b68b9ea3de16a3c75809ad0fa35fe25a45d77fa7a157dbd5e882680f188",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -17615,7 +17615,8 @@
         {
           "name": "runInstalledComposedInfers/children/children",
           "parameters": [
-            "selection"
+            "selection",
+            "index"
           ],
           "async": false
         },
