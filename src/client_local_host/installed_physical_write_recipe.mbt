@@ -44,6 +44,17 @@ pub fn installed_physical_write_recipe_capacities(
       [input, preview, immutable_request],
       sequential_workspace=true,
     )
+    is Some(request_envelope) &&
+    // The original member capture owns the whole Preview before row requests
+    // start, through their alias retirement. A returned request contains only
+    // its row input and bounded immutable record. Preserve the full old peak
+    // for construction and failed prefixes; do not retain a second Preview
+    // for every successful row on top of that same live capture original.
+    @execution.execution_capacity(
+      @execution.execution_capacity_retained_bytes(request_envelope) -
+      @execution.execution_capacity_retained_bytes(preview),
+      @execution.execution_capacity_execution_bytes(request_envelope),
+    )
     is Some(request) &&
     standard_create_saved_control_capacity(
       control_bytes, stored_nodes, stored_depth,

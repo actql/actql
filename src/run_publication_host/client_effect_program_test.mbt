@@ -953,24 +953,63 @@ test "two independent acquisitions retain the checked Effect graph owner" {
     let policy_bodies = prepared_client_effect_publication_policy_bodies(
       prepared, 100000, 10000, 32,
     ).unwrap()
-    assert_eq(policy_bodies.length(), 3)
+    let admitted = policy_bodies.map(body => {
+      @publication.admit_captured_effect_dependency_body(
+        body.0,
+        Some(body.1),
+        body.2,
+        100000,
+        10000,
+        32,
+      ).unwrap()
+    })
+    let closure_limits : @publication.CapturedEffectDependencyLimits = {
+      max_entries: 16,
+      max_total_bytes: 100000,
+      max_depth: 32,
+      max_references: 64,
+    }
+    assert_true(
+      @publication.validate_captured_effect_dependency_bodies(
+        admitted,
+        [admitted[0]],
+        0,
+        closure_limits,
+      )
+      is Ok(_),
+    )
+    // Independently pinned from the same Catalog preimages as the ordinary
+    // two-Direct policy vector; individual body admission is not a closure.
+    let identities = policy_bodies.map(body => body.1)
+    identities.sort()
+    let expected = [
+      "sha256:bfb29a3ad6c5f1f3e72e2a59b17ee8df772f88fa8b37ee0f958d6b07cb20c670",
+      "sha256:3cb8e71bd9a1e3a94be47534bd54e21c0e9367b2b5cfa6acd1022a131b12aecc",
+      "sha256:63add453865c70e632fc7d5c48708701382e3618db01480fa07967730abf5043",
+      "sha256:605efefa0cce486485b8d8bc350cfe7a7d84de4741496b8466503038714da786",
+      "sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf",
+      "sha256:3e9acc1b4279fc56faba3fd1fd060d15305bb0c2f3e4e1bd2de827e4991e6246",
+      "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3",
+    ]
+    expected.sort()
+    assert_eq(identities, expected)
     assert_eq(
       policy_bodies[0].1,
       "sha256:bfb29a3ad6c5f1f3e72e2a59b17ee8df772f88fa8b37ee0f958d6b07cb20c670",
     )
-    for (kind, cid, wire) in policy_bodies {
-      assert_true(
-        @publication.admit_captured_effect_dependency_body(
-          kind,
-          Some(cid),
-          wire,
-          100000,
-          10000,
-          32,
-        )
-        is Ok(_),
+    let missing = admitted.filter(body => {
+      @publication.captured_effect_dependency_body_cid(body) !=
+      "sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf"
+    })
+    assert_true(
+      @publication.validate_captured_effect_dependency_bodies(
+        missing,
+        [admitted[0]],
+        0,
+        closure_limits,
       )
-    }
+      is Err(@publication.MissingDependency),
+    )
     assert_true(
       prepared_client_effect_publication_policy_bodies(prepared, 1, 10000, 32)
       is Err(_),

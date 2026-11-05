@@ -66818,12 +66818,16 @@
     {
       "module": "src/run_publication_host/client_acquisition.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b068f13ab711af46e395fd997b7dac641b7143868c9b5a650d900b66ad4d815e",
+      "sha256": "65d41a6fb83e7166166554415494d1b4009dc6df8c2f35dcc09db7635ae75e24",
       "exports": [],
       "operations": [
         {
           "name": "client_captured_task_tuple_matches",
           "declaration": "client_captured_task_tuple_matches ( value : PreparedClientProgram , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , requirement : @ planning . QueryRequirement , task : Int , ) - > Bool"
+        },
+        {
+          "name": "client_publication_policy_covers_source_responses",
+          "declaration": "client_publication_policy_covers_source_responses ( program : @ checked . CheckedProgram , policy : @ checked . PublicationSourcePolicy , ) - > Bool"
         },
         {
           "name": "client_query_requirement_matches_effect_program",
@@ -66881,6 +66885,7 @@
           "operations": [
             "<module>",
             "client_captured_task_tuple_matches",
+            "client_publication_policy_covers_source_responses",
             "client_query_requirement_matches_effect_program",
             "client_query_requirement_matches_program",
             "prepare_client_effect_query_acquisition",
@@ -66958,6 +66963,10 @@
               {
                 "path": "src/client_local_host/installed_source_read_wbtest.mbt",
                 "anchor": "test \"Source read requirement keeps the same checked Program and occurrence\""
+              },
+              {
+                "path": "src/run_publication_host/client_multi_source_wbtest.mbt",
+                "anchor": "test \"whole Run policy covers same original responses and refuses equal foreign or missing coverage\""
               }
             ]
           }
@@ -79923,7 +79932,7 @@
     },
     {
       "module": "src/client_local_host/installed_physical_write_recipe.mbt",
-      "sha256": "c5bc22b1e1e28187faf2264469f4cab29047169a5f86fca193138ad6730fcc24",
+      "sha256": "ad4ccd8890724ff4a506a2baccfae7b15fdb9496c74e160d77aea869b4d06896",
       "exports": [],
       "operations": [
         {
