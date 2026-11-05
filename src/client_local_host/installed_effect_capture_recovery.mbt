@@ -240,17 +240,20 @@ fn resize_installed_effect_capture_recovery_material(
     @execution.execution_capacity_execution_bytes(base)
   if completed {
     // The full parsed capture container no longer exists after the trusted
-    // Store return. Preserve the other two tree inventories, every original
-    // decoded string/wire bound and all returned schema/member owners. This
-    // is one completed constructor role, not a measured byte/cleanup claim.
+    // Store return. That return also cuts the envelope/ciphertext/plaintext
+    // buffers and completed schema-writer bytes; failures never enter here.
+    // Preserve the other two tree inventories, all three decoded String
+    // bounds (including the retained record wire), and schema/member owners.
+    // No returned original borrows those four binary constructor buffers.
     guard @execution.execution_capacity_inventory_bytes([
         { unit: ValueNodeSlots, count: bytes.to_int64(), copies: 1, },
+        { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 4, },
       ])
-      is Some(container) else {
+      is Some(completed_material) else {
       return Err(InsufficientCapacity)
     }
     return @resources.complete_prepared_run_operation_construction_output(
-      admission, plan, ledger, original, backing, retained - container,
+      admission, plan, ledger, original, backing, retained - completed_material,
     ).map_err(installed_effect_operation_reservation_issue)
   }
   if @resources.capacity_reservation_covers(
