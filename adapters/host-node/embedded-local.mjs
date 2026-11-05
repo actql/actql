@@ -148,7 +148,7 @@ import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installHostObservation, observationTraceParent,
   captureManagedRunObservation} from '../host-common/observation.mjs';
 import {ledgerLimitsFields, ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
-import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRunContinuation,
+import {installNodeClientDispatchOwner, observeNodeRunCancellation, cancelNodeRunContinuation,
   observeNodeRestoredModelStop, observeNodeRestoredLocalStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
 import {prepareOrdinaryHostJournal} from './ordinary-host-journal.mjs';
 import {prepareOrdinaryHostResult} from './ordinary-host-result.mjs';
@@ -6021,12 +6021,14 @@ async function openInstalledHost(originalInstallation, preparation) {
             // it must not leave a Running journal that only public lookup projects.
             if (retainStoppedModelReconciliation()) return;
             const stopped = journal.lookupRunDefinition(ref, moon, control);
-            if (stopped?.physicalCloseConfirmed === true &&
-                await confirmNodeRunCancellation({ref, journal, store, checkpoints,
+            const cancellation = stopped?.physicalCloseConfirmed === true
+              ? await observeNodeRunCancellation({ref, journal, store, checkpoints,
                   moon, control, cleanupConfirmed: restorationReclaimed(),
-                  physicalStopConfirmed: stopped.physicalCloseConfirmed}) &&
+                  physicalStopConfirmed: stopped.physicalCloseConfirmed}, stopped)
+              : {cancelled: false};
+            if (cancellation.cancelled &&
                 restorationReclaimed() &&
-                journal.lookupRunDefinition(ref, moon, control)?.revision === stopped.revision) {
+                journal.lookupRunDefinition(ref, moon, control, cancellation.frame) === cancellation.frame) {
               const state = checkpoints.journal.getRunState(runId);
               if (claim !== undefined && state?.status === 'resuming' && leaseFailure === undefined) {
                 checkpoints.journal.completeResume(claim, {status: 'cancelled'});

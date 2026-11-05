@@ -97,8 +97,23 @@ async function collectNodeRunStop({ref, journal, store,
   return {cancelled, publicationCommitted, revisionUnchanged: after === before, frame: after};
 }
 
+export async function observeNodeRunCancellation(facts, originalFrame) {
+  if (typeof facts.journal?.lookupRunDefinition !== 'function' ||
+      typeof facts.journal?.lookupReconciliationState !== 'function') return {cancelled: false};
+  const before = originalFrame ?? facts.journal.lookupRunDefinition(facts.ref, facts.moon, facts.control);
+  let observation = await collectNodeRunStop(facts, before);
+  // A public status publication can race this asynchronous Store inspection.
+  // Recollect every fact once only when the Journal proves that all control
+  // and immutable fields remained exact; never accept a changed frame itself.
+  if (observation.revisionUnchanged === false &&
+      facts.journal.canReinspectRunStopAfterStatePublication?.(before, observation.frame) === true) {
+    observation = await collectNodeRunStop(facts, observation.frame);
+  }
+  return observation;
+}
+
 export async function confirmNodeRunCancellation(facts) {
-  return (await collectNodeRunStop(facts)).cancelled;
+  return (await observeNodeRunCancellation(facts)).cancelled;
 }
 
 export async function cancelNodeRunContinuation({currentDispatchIdle, ...facts}) {
@@ -108,7 +123,7 @@ export async function cancelNodeRunContinuation({currentDispatchIdle, ...facts})
   // its temporary resources. Require the persisted stop receipt as well as
   // absence of a newer live or pending-cleanup owner; neither alone suffices.
   if (retained?.physicalCloseConfirmed !== true) return false;
-  const observation=await collectNodeRunStop({...facts,physicalStopConfirmed:true,
+  const observation=await observeNodeRunCancellation({...facts,physicalStopConfirmed:true,
     cleanupConfirmed:true},retained);
   if (!observation.cancelled || !currentDispatchIdle() ||
       facts.journal.lookupRunDefinition(facts.ref,facts.moon,facts.control,
