@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
+import {buildNodeDirectoryNative} from '../../scripts/build-node-directory-native.mjs';
 import {
   chmod,
   link,
@@ -196,6 +197,7 @@ test('fresh Store coverage shares its original native schema commit', async t =>
 });
 
 test('fresh Store coverage uses the same actual prepared owner creation', async t => {
+  buildNodeDirectoryNative();
   const directory = await mkdtemp(join(tmpdir(), 'actql-prepared-empty-store-'));
   let store, original;
   t.after(async () => {
