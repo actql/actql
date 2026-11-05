@@ -73,6 +73,8 @@ pub fn configured_broad_capacity(BroadHostConfiguration) -> NativeCapacity?
 
 pub fn configured_broad_host_limits(BroadHostConfiguration) -> BroadHostLimits
 
+pub fn configured_broad_physical_capacity(BroadHostConfiguration, Int64) -> NativeCapacity?
+
 pub fn configured_capture_capacity(CaptureConfiguration) -> NativeCapacity?
 
 pub fn configured_capture_requirement(CaptureConfiguration) -> @query_planning.QueryRequirement

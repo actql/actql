@@ -47,17 +47,79 @@ pub fn prepared_broad_capacity(
 }
 
 ///|
+/// The same selected Broad attempt has two serial phases. Physical transport
+/// retains its admitted scan, but cannot start residual/evidence construction
+/// until its exact session owner confirms cleanup. Fund both peaks up front;
+/// this quote does not release a resource or establish that confirmation.
+pub fn configured_broad_physical_capacity(
+  setup : BroadHostConfiguration,
+  physical_execution : Int64,
+) -> NativeCapacity? {
+  guard configured_broad_capacity(setup) is Some(full) else { return None }
+  broad_physical_capacity(setup.limits, full, physical_execution)
+}
+
+///|
+fn broad_physical_capacity(
+  limits : BroadHostLimits,
+  full : NativeCapacity,
+  physical_execution : Int64,
+) -> NativeCapacity? {
+  guard broad_receiving_retention(limits) is Some(scan) &&
+    broad_receiving_scratch(limits) is Some(scratch) &&
+    @execution.execution_capacity_inventory_bytes([
+      { unit: QuotedBytes, count: physical_execution, copies: 1, },
+      { unit: QuotedBytes, count: scan, copies: 1, },
+      { unit: QuotedBytes, count: scratch, copies: 1, },
+    ])
+    is Some(receiving) else {
+    return None
+  }
+  Some({
+    retained_bytes: full.retained_bytes,
+    execution_bytes: Int64::max(receiving, full.execution_bytes),
+  })
+}
+
+///|
 fn broad_capacity(
   l : BroadHostLimits,
   residual : @execution.ExecutionCapacity,
 ) -> NativeCapacity? {
-  let c = l.completion
-  let mut retained = @execution.execution_capacity_retained_bytes(residual)
-  let mut scratch = @execution.execution_capacity_execution_bytes(residual)
-  // The scan and guarded residual completion coexist until the exact source
-  // capture closes. Include schema and every retained evidence document too.
-  for
-    n in [
+  guard broad_receiving_retention(l) is Some(scan) &&
+    broad_evidence_retention(l) is Some(evidence) &&
+    broad_receiving_scratch(l) is Some(scratch) &&
+    @execution.execution_capacity_inventory_bytes([
+      {
+        unit: QuotedBytes,
+        count: @execution.execution_capacity_retained_bytes(residual),
+        copies: 1,
+      },
+      { unit: QuotedBytes, count: scan, copies: 1, },
+      { unit: QuotedBytes, count: evidence, copies: 1, },
+    ])
+    is Some(retained) &&
+    @execution.execution_capacity_inventory_bytes([
+      {
+        unit: QuotedBytes,
+        count: @execution.execution_capacity_execution_bytes(residual),
+        copies: 1,
+      },
+      { unit: QuotedBytes, count: scratch, copies: 1, },
+    ])
+    is Some(execution) else {
+    return None
+  }
+  Some({ retained_bytes: retained, execution_bytes: execution, })
+}
+
+///|
+// Physical conversion and the owned scan coexist. Row containers and admitted
+// immutable cell backing survive transport settlement; neither output aliasing
+// nor a completed Promise permits omitting this original retained inventory.
+fn broad_receiving_retention(l : BroadHostLimits) -> Int64? {
+  broad_inventory_bytes(
+    [
       l.physical.max_rows,
       l.physical.max_cells,
       l.physical.max_nodes,
@@ -65,33 +127,40 @@ fn broad_capacity(
       l.transport.max_columns,
       l.transport.max_columns,
       l.transport.max_columns,
+    ],
+    [l.physical.max_text_bytes, l.retention.max_text_bytes],
+  )
+}
+
+///|
+// These documents and residual outputs are constructed only after the physical
+// session settles. Their full retained allowance is still reserved at entry.
+fn broad_evidence_retention(l : BroadHostLimits) -> Int64? {
+  let c = l.completion
+  broad_inventory_bytes(
+    [
       c.records.max_nodes,
       c.records.max_nodes,
       c.records.max_nodes,
       c.capture.max_nodes,
-    ] {
-    if n < 0 || n.to_int64() * 256L > 9223372036854775807L - retained {
-      return None
-    }
-    retained += n.to_int64() * 256L
-  }
-  for
-    n in [
-      l.physical.max_text_bytes,
-      l.retention.max_text_bytes,
+    ],
+    [
       c.retention.retained_wire_bytes,
       c.records.max_bytes,
       c.records.max_bytes,
       c.records.max_bytes,
       c.capture.max_bytes,
-    ] {
-    if n < 0 || n.to_int64() * 8L > 9223372036854775807L - retained {
-      return None
-    }
-    retained += n.to_int64() * 8L
-  }
-  for
-    n in [
+    ],
+  )
+}
+
+///|
+// Preserve every existing non-residual scratch term in BOTH phase peaks. Some
+// are needed only later; retaining them here avoids an unproved early credit.
+fn broad_receiving_scratch(l : BroadHostLimits) -> Int64? {
+  let c = l.completion
+  broad_inventory_bytes(
+    [
       l.transport.max_nodes,
       l.transport.max_rows,
       l.transport.max_columns,
@@ -105,25 +174,46 @@ fn broad_capacity(
       c.records.max_parameters,
       c.capture.max_depth,
       l.retention.max_depth,
-    ] {
-    if n < 0 || n.to_int64() * 256L > 9223372036854775807L - scratch {
-      return None
-    }
-    scratch += n.to_int64() * 256L
-  }
-  for
-    n in [
+    ],
+    [
       l.transport.max_bytes,
       l.transport.max_text_bytes,
       c.guards.max_bytes,
       c.retention.measurement.max_bytes,
-    ] {
-    if n < 0 || n.to_int64() * 8L > 9223372036854775807L - scratch {
+    ],
+  )
+}
+
+///|
+// Domain occurrences stay here; conversions and checked arithmetic stay with
+// the existing shared capacity owner. No local memory tariff or grant is added.
+fn broad_inventory_bytes(nodes : Array[Int], text : Array[Int]) -> Int64? {
+  let mut total = 0L
+  for count in nodes {
+    guard @execution.execution_capacity_inventory_add(
+        total,
+        ValueNodeSlots,
+        count.to_int64(),
+        1,
+      )
+      is Some(next) else {
       return None
     }
-    scratch += n.to_int64() * 8L
+    total = next
   }
-  Some({ retained_bytes: retained, execution_bytes: scratch, })
+  for count in text {
+    guard @execution.execution_capacity_inventory_add(
+        total,
+        DecodedTextBytes,
+        count.to_int64(),
+        1,
+      )
+      is Some(next) else {
+      return None
+    }
+    total = next
+  }
+  Some(total)
 }
 
 ///|
