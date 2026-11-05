@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {fork} from 'node:child_process';
-import {once} from 'node:events';
+import {EventEmitter, once} from 'node:events';
 import {readFileSync} from 'node:fs';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -107,6 +107,42 @@ test('Native Resident concurrent stop identifies the remaining control without c
   assert.equal(reports.some(value => value.phase === 'concurrent-right-exit-return'), false);
   assert.deepEqual(reports.at(-1), {event: 'timeout', phase: 'concurrent-left-exit-return',
     line: 7, cleanup: 'unconfirmed'});
+});
+
+test('Native Resident watchdog settles after force stop precedes child close while the group remains observable', async () => {
+  const child = new EventEmitter();
+  child.pid = 43123;
+  const supervisor = new EventEmitter();
+  supervisor.argv = ['node', 'watchdog'];
+  const signals = [], timers = [], reports = [];
+  supervisor.kill = (pid, signal) => {
+    assert.equal(pid, -child.pid);
+    signals.push(signal);
+    return true; // The original group remains observable, not a cleanup ACK.
+  };
+  const run = Function('fork', 'residentPhaseKinds', 'process', 'setTimeout', 'clearTimeout',
+    `return (${source.slice(original.start, original.end)});`)(() => child, kinds, supervisor,
+      callback => { timers.push(callback); return callback; }, () => {});
+  let completed;
+  const outcome = run('original.mjs', {report: value => reports.push(value)});
+  outcome.then(value => { completed = value; });
+  child.emit('message', {kind: 'native-resident-phase', phase: 'bundle-activated', line: 7});
+  assert.equal(timers.length, 1);
+  timers.shift()(); // Original phase timeout, then its original KILL grace.
+  assert.equal(timers.length, 1);
+  timers.shift()(); // Direct child's close notification has not arrived yet.
+  assert.equal(completed, undefined);
+  assert.deepEqual(signals, ['SIGTERM', 'SIGKILL']);
+  child.emit('close', null, 'SIGKILL');
+  await new Promise(resolve => setImmediate(resolve));
+  assert(completed, 'closed child must settle after its already-dispatched force stop');
+  assert.equal(completed.code, 124);
+  assert.equal(completed.timedOut, true);
+  assert.equal(completed.signal, 'SIGKILL');
+  assert.deepEqual(completed.lastPhase, {phase: 'bundle-activated', line: 7});
+  assert.deepEqual(reports.at(-1), {event: 'timeout', phase: 'bundle-activated',
+    line: 7, cleanup: 'unconfirmed'});
+  assert.equal(reports.some(value => value.cleanup === 'confirmed'), false);
 });
 
 test('Native Resident watchdog preserves natural success and ignores unselected diagnostic payloads', {timeout: 5000}, async t => {

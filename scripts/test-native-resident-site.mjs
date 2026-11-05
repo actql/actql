@@ -105,7 +105,8 @@ async function runResidentPhaseWatchdog(script, {
     env: {...process.env, ACTQL_TEST_RESIDENT_PHASE_CHILD: '1'},
     detached: true, stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
   });
-  let timer, forceTimer, armed = false, timedOut = false, supervisorSignal, lastPhase;
+  let timer, forceTimer, armed = false, timedOut = false, forceStopRequested = false,
+    supervisorSignal, lastPhase;
   const signalOriginalGroup = signal => {
     try { process.kill(-child.pid, signal); }
     catch (error) { if (error.code !== 'ESRCH') throw error; }
@@ -131,6 +132,7 @@ async function runResidentPhaseWatchdog(script, {
       signalOriginalGroup('SIGTERM');
       forceTimer = setTimeout(() => {
         signalOriginalGroup('SIGKILL');
+        forceStopRequested = true;
         finish();
       }, killGraceMilliseconds);
     };
@@ -160,9 +162,11 @@ async function runResidentPhaseWatchdog(script, {
     });
     child.once('close', (code, signal) => {
       closed = {code, signal};
-      if ((!timedOut && supervisorSignal === undefined) || !groupExists()) finish();
+      if ((!timedOut && supervisorSignal === undefined) || forceStopRequested || !groupExists()) finish();
       // A descendant that ignored TERM still belongs to this original test
       // group. Keep the existing grace before its bounded forced shutdown.
+      // If KILL preceded this close event, its expired timer cannot settle us
+      // again. Return the same nonzero/unconfirmed result as close-before-KILL.
     });
   });
 }
