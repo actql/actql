@@ -20,10 +20,10 @@ const load = compileFunction(`return (${source.slice(declaration.start, declarat
 function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
   missingRetained = false, missingAdapter = false, fault, loseCurrentAt,
   continueToModel = false} = {}) {
-  const prepared = {}, graph = {}, compiled = {}, occurrence = {}, savedScope = {}, read = {};
+  const prepared = {}, graph = {}, compiled = {}, occurrence = {}, savedScope = {}, read = {}, prefix = {}, suffix = {};
   const definition = {identity: 'original-definition', wire: '{"run_id":"original-run"}'};
   const restoredRun = {compiled, graph, runDefinition: definition};
-  const selected = {graph, occurrence, restoredRun};
+  const selected = {graph, occurrence, restoredRun, deferredRestoredSegments: true};
   const plan = {inferGraph: graph, compiled, runDefinition: definition};
   const record = {inventory: {taskIndex: 0}}, closure = {sources: [{task: 9}]};
   const snapshot = {callScopeSnapshotWire: '{"sources":[{"source_evidence_wire":"original-evidence"}]}',
@@ -33,7 +33,7 @@ function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
   const boundary = new Error('StopAtOriginalRestoreRead'), currentFailure = new Error('OriginalCurrentChanged');
   const counters = {prepare: 0, authorized: 0, restoredRead: 0, sourceClose: 0, scope: 0, release: 0};
   const sourceClose = {}, ready = {capture: false, model: false};
-  let owner, original, current = true, captureClosed = false, modelClosed = false, tokenAvailable = true;
+  let owner, original, current = true, captureClosed = false, modelClosed = false, tokenAvailable = true, kernelOpened = false;
   const failAt = phase => {
     if (loseCurrentAt === phase) current = false;
     if (fault?.phase === phase) throw fault.cause;
@@ -67,7 +67,7 @@ function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
     sourceLedger() {assert.fail('SavedInputScope already owns the Model input');},
     async retire() {
       assert.equal(original === undefined || original.closed, true, 'Source continuation must close before Scope');
-      assert.equal(!continueToModel || captureClosed && modelClosed, true, 'Model children must close before Scope');
+      assert.equal(!kernelOpened || captureClosed && modelClosed, true, 'Model children must close before Scope');
       counters.scope++; events.push('retire-original-scope'); return true;
     },
   };
@@ -133,6 +133,9 @@ function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
   const install = load((tuple, index) => tuple[index], checked, continuationPort, options => {
     assert(continueToModel); assert.strictEqual(options.restoredPreparation, read);
     assert.strictEqual(options.restoredInput.token, token); assert.equal(counters.authorized, count === 0 ? 0 : 1);
+    assert.strictEqual(options.composedInput.prefix, prefix); assert.strictEqual(options.computeSuffix, suffix);
+    assert.equal(events.filter(event => event === 'lower-original-segments').length, 1);
+    kernelOpened = true;
     events.push('open-original-kernel'); options.retainOperation(operation); return operation;
   }, options => {
     assert.strictEqual(options.operation, operation); assert.deepEqual(options.sourceEvidence, [evidence]);
@@ -147,6 +150,12 @@ function fixture({count = 1, coordinates = [[4, 6, 9]], missingClosure = false,
     clientProgramSelectSingleKeyedAcquisition: () => ({$tag: 1, _0: undefined}),
     clientProgramInferPlanBoundary: () => [0], clientProgramResultCount: () => 1,
     clientProgramResultName: () => 'answer',
+    clientProgramPrepareComposedInferSegments(actual, actualOccurrence) {
+      assert.strictEqual(actual, prepared); assert.strictEqual(actualOccurrence, occurrence);
+      assert.equal(counters.restoredRead, 1, 'same retained Read precedes checked segment construction');
+      events.push('lower-original-segments'); failAt('segments');
+      return {$tag: 1, _0: [prefix, suffix]};
+    },
     clientProgramRestoreSourceCapture() {assert.fail('no redundant Source capture');},
   }, core: {publicationControl: control}, selections: new Map([[prepared, selected]]), modelController,
     checkpoints,
@@ -258,6 +267,32 @@ test('Model and capture child acknowledgements precede Source continuation and r
   assert(f.events.indexOf('cleanup-capture') < f.events.indexOf('close-source-continuation'));
   assert(f.events.lastIndexOf('cleanup-model-continuation') < f.events.indexOf('close-source-continuation'));
   assert(f.events.indexOf('close-source-continuation') < f.events.indexOf('retire-original-scope'));
+});
+
+test('failed restored segment construction retains the same Read and Source cleanup without starting Model', async () => {
+  for (const cause of [new Error('OriginalSegmentConstructionFailed'), undefined]) {
+    const f = fixture({continueToModel: true, fault: {phase: 'segments', cause}});
+    let caught = false;
+    try {await f.run();} catch (actual) {caught = true; assert.strictEqual(actual, cause);}
+    assert.equal(caught, true);
+    assert.equal(f.counters.restoredRead, 1);
+    assert.equal(f.events.filter(event => event === 'lower-original-segments').length, 1);
+    assert.equal(f.events.includes('open-original-kernel'), false);
+    f.sourceClose.pending = true;
+    assert.equal(await f.owner().cleanup(), false); assert.equal(f.counters.scope, 0);
+    f.sourceClose.pending = false;
+    assert.equal(await f.owner().cleanup(), true);
+    assert.equal(f.counters.scope, 1); assert.equal(f.counters.prepare, 1);
+  }
+});
+
+test('current loss during restored segment construction refuses Model and keeps original cleanup', async () => {
+  const f = fixture({continueToModel: true, loseCurrentAt: 'segments'});
+  await assert.rejects(f.run(), actual => actual === f.currentFailure);
+  assert.equal(f.counters.restoredRead, 1);
+  assert.equal(f.events.includes('open-original-kernel'), false);
+  assert.equal(await f.owner().cleanup(), true);
+  assert.equal(f.counters.scope, 1); assert.equal(f.counters.sourceClose, 1);
 });
 
 // Execute the fresh single-Unit producer with its existing adapter/Source

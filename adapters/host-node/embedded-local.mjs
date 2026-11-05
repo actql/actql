@@ -3118,15 +3118,17 @@ async function openInstalledHost(originalInstallation, preparation) {
           (!retain || acquisitionCount === 1 ||
             acquisitionCount === 0 && physical.originalReadInstallation === undefined &&
               physical.originalReadRecipe === undefined);
-        // A restored input already owns its original prefix. Its checked
-        // suffix still has to run before the compiled Result can consume the
-        // completion; select only that same occurrence's native suffix.
+        // The one-Unit recovery consumer lowers its checked segments only
+        // after retaining its same funded Read. Saved rows do not contain a
+        // GeneratedSequence, so they cannot substitute for that prefix.
+        const deferredRestoredSegments = restoredInfer !== undefined && !effectful &&
+          serializationGraph === undefined && moon.clientProgramTaskCount(preparedProgram) === 1;
         const segments = deferredModelInput || restoredInfer !== undefined ||
           occurrence === undefined || serializationGraph !== undefined ? undefined : checked(
           (prepareSubmit.kindOf(preparedProgram) === 'effectful'
             ? moon.clientProgramPrepareEffectInferSegments : moon.clientProgramPrepareComposedInferSegments)(preparedProgram, occurrence,
             registry, values, fragment, ordered));
-        const computeSuffix = deferredModelInput || effectGraph !== undefined ||
+        const computeSuffix = deferredModelInput || deferredRestoredSegments || effectGraph !== undefined ||
           effectful && serializationGraph !== undefined ? undefined : serializationGraph !== undefined
           ? checked(moon.clientProgramPrepareComposedInferComputeSuffix(preparedProgram,
             occurrence, registry, values, fragment, ordered))
@@ -3199,6 +3201,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               ? (id, installation, contract, configuration) => preparation.prepareManagedModelBinding(
                 moon, preparedProgram, id, installation, contract, configuration) : undefined) : undefined;
         const selection = Object.freeze({step, graph, computeSuffix, serializationGraph, selectedBounds, sourceCoordinates,
+          deferredRestoredSegments,
           ...(restoredRun === undefined ? {} : {restoredRun}),
           occurrence, computePrefix: runtimeOptionalField(segments, 0),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),

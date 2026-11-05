@@ -180,6 +180,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
     }
+    let computeSuffix = selected.computeSuffix;
     if (selected.restoredRun === undefined && selected.components !== undefined &&
         typeof prepareOriginalModelRun === 'function') {
       const sourceCount = moon.clientProgramAcquisitionCount(preparedProgram);
@@ -642,8 +643,20 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         // Authorization consumes retained custody only. Do not restore a
         // second Source capture, parse its rows or borrow another Ledger.
       }
-      composedInput = {occurrence: selected.occurrence, prefix: selected.computePrefix, inputs: []};
       originalPreparation = restoredRequestModel.restoreRead(restoredInput);
+      let prefix = selected.computePrefix;
+      if (selected.deferredRestoredSegments === true) {
+        // The same recovery Scope already retains this fallible Read. Lower
+        // its checked segments once; restoring saved rows never runs the
+        // prefix or issues another Source read, Request, Plan or Ledger.
+        restoredRequestModel.assertRuntimeCurrent();
+        const segments = checked(moon.clientProgramPrepareComposedInferSegments(
+          preparedProgram, selected.occurrence, registry, values, fragment, ordered));
+        prefix = runtimeField(segments, 0);
+        computeSuffix = runtimeField(segments, 1);
+        restoredRequestModel.assertRuntimeCurrent();
+      }
+      composedInput = {occurrence: selected.occurrence, prefix, inputs: []};
     } else if (directRequestModel !== undefined) {
       // Retained cleanup precedes the original Source admission and read. A
       // refusal keeps this same Scope; there is no unowned/standalone fallback.
@@ -889,7 +902,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       acquiredInput: restoredInput === undefined && directRequestModel === undefined ? acquiredInfer?.input : undefined,
       composedInput,
       restoredInput, serializedInput, restoredReferenceIssuer, keyedInput,
-      durableCalls: true, computeSuffix: selected.computeSuffix,
+      durableCalls: true, computeSuffix,
       observeProgress: () => faultInjection?.('infer_execution_advanced', {}),
       provider: selected.provider, quantityCapacity: selected.quantityCapacity,
       physicalPreflight: selected.physicalPreflight, egressAdmission: selected.egressAdmission,

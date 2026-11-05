@@ -49429,7 +49429,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "        // A restored input already owns its original prefix. Its checked"
+                "anchor": "        // The one-Unit recovery consumer lowers its checked segments only"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -57096,7 +57096,7 @@
                 "path": "docs/design/local-input-preparation.md"
               },
               {
-                "anchor": "        // A restored input already owns its original prefix. Its checked",
+                "anchor": "        // The one-Unit recovery consumer lowers its checked segments only",
                 "path": "adapters/host-node/embedded-local.mjs"
               },
               {
@@ -62691,7 +62691,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "5fae9c807edb17d0b68d43d1a3b238b9a0ed4e8efe0719625991a9bfbec4c2b8"
+      "sha256": "170875f626da3a6b69ff8da39bb2438843b7c7d8c2b165228b6a95a9fcf19f63"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -70549,7 +70549,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "24e3f1f1d542a81635ab071db20df4eb8f55c853abee6cf0322b06f14c863165",
+      "sha256": "d5893cda7a283cdbcb6f2c986d25700eee1116e2fa59ef4cf1dcaf20a72306e9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
