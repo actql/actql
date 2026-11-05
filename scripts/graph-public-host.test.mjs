@@ -515,6 +515,19 @@ for (const {mode,profile,name,partition} of graphPublicHostCases) {
         snapshotWaiters.get(detail.ref.runDefinitionCid)?.();
       }
     }};
+    const waitForCompletedSnapshots = async run => {
+      if (relationSnapshots.has(run.ref.runDefinitionCid)) return;
+      const signal = AbortSignal.timeout(5_000);
+      await new Promise((resolve, reject) => {
+        const abort = () => reject(signal.reason);
+        signal.addEventListener('abort', abort, {once: true});
+        snapshotWaiters.set(run.ref.runDefinitionCid, () => {
+          signal.removeEventListener('abort', abort);
+          snapshotWaiters.delete(run.ref.runDefinitionCid);
+          resolve();
+        });
+      });
+    };
     const assertSnapshot = async (run, task = 2, expectedCid = snapshotCid, expectedBytes = expectedSnapshot) => {
       // This awaited installed fault hook observes the completed physical
       // route, not an SDK-created diagnostic or a new execution authority.
@@ -634,18 +647,7 @@ for (const {mode,profile,name,partition} of graphPublicHostCases) {
         // Result publication is durable before the physical completion hook.
         // Observe that exact hook before asserting its Store receipts/counts;
         // an absent observation must never become an empty successful receipt.
-        if (!relationSnapshots.has(run.ref.runDefinitionCid)) {
-          const signal = AbortSignal.timeout(5_000);
-          await new Promise((resolve, reject) => {
-            const abort = () => reject(signal.reason);
-            signal.addEventListener('abort', abort, {once: true});
-            snapshotWaiters.set(run.ref.runDefinitionCid, () => {
-              signal.removeEventListener('abort', abort);
-              snapshotWaiters.delete(run.ref.runDefinitionCid);
-              resolve();
-            });
-          });
-        }
+        await waitForCompletedSnapshots(run);
         const physicalCount = () => physicalSteps.filter(name =>
           name === 'physical_start_reserved' || name === 'computed').length;
         const completedCount = physicalCount();
@@ -759,6 +761,9 @@ for (const {mode,profile,name,partition} of graphPublicHostCases) {
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         // Preserve the independently specified canonical Graph row order on
         // both initial read and reattach; sorting actual results hides damage.
+        // The original computed hook follows publication; include it before
+        // freezing the no-recomputation counters for subsequent Saved reads.
+        await waitForCompletedSnapshots(run);
         const startsBeforeRead = physicalSteps.filter(step => step === 'physical_start_reserved').length;
         const computesBeforeRead = physicalSteps.filter(step => step === 'computed').length;
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));

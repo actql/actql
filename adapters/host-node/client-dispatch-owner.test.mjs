@@ -1307,9 +1307,23 @@ if (phase === 'initial') {
     assert.deepEqual(lifecycle(records), {definition_admitted: 1, dispatch_reserved: 1,
       physical_start_reserved: 1, dispatch_failed: 0});
     assert.ok(count(records, 'compute', 'task_started') > 0);
+    // Result publication may precede the original physical retirement. The
+    // Journal advances control revision exactly once on that confirmed close;
+    // Saved/replay identity must freeze the retired frame, not the earlier
+    // published observation before retirement.
+    const retirementDeadline = AbortSignal.timeout(15000);
+    let retired = state;
+    while (retired.control.physical_stop !== 'confirmed') {
+      retirementDeadline.throwIfAborted();
+      await new Promise(resolve => setTimeout(resolve, 10));
+      retired = await execution.status();
+      assertSucceeded(retired, state.run_id);
+    }
+    assert.equal(retired.control.revision, state.control.revision +
+      (state.control.physical_stop === 'confirmed' ? 0 : 1));
     const original = {ref: execution.ref, submissionRef, runId: state.run_id,
-      physicalStop: state.control.physical_stop,
-      controlRevision: state.control.revision};
+      physicalStop: retired.control.physical_stop,
+      controlRevision: retired.control.revision};
     await assertOriginalSuccess(context, original);
     return original;
   });
