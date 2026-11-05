@@ -5732,3 +5732,30 @@ material bytes, compilation, Request and Run correspondence. Textual Source
 continues to use its original text/frontend rather than the material's lowered
 Program. Failed comparison, capacity, currentness or construction remains on the
 same Request's existing abort and retirement chain.
+
+### Retained Model recovery Request
+
+A cold Model continuation borrows the Journal's original Request, Definition,
+compiler and complete ordered Model graph inventory. It has a physical-process
+Request preparation for restored material; it is not a new ordinary Program
+preparation, module or ManagedRun. Its Source metadata selectors use that same
+retained Program and the existing direct-acquisition inventory. The original
+saved material funds those metadata constructors before they run.
+
+The recovery Request grows its original preparation census before binding the
+existing Model Scope or closed Scope group. Selected opaque Limits and actual
+installed read/model extents remain separate from construction costs. The group
+uses the existing quantity-contract fold and original read partitions. The Host
+retains the entire returned Scope array before any current callback, and retains
+one attempted Read or its exact thrown failure on the same member. Restored
+input requires the original saved scope at the existing checked consumer; it
+cannot acquire fresh-input permission by omitting that original.
+
+Captured and source-free Local drivers use the recovery Request's original
+Ledger and installed contracts/providers. No standalone acquisition Ledger or
+ordinary preparation holder is reconstructed. After actual driver and Read
+cleanup, accounting may distinguish this still-retained working preparation
+from other live children through the existing isolated-usage predicate. That
+observation neither returns the parent reservation nor acknowledges physical
+cleanup. Scope retirement, failed construction, pending children and final
+Request abort remain on their original owners.

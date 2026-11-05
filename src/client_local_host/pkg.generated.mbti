@@ -786,6 +786,8 @@ pub fn[I] prepare_request_model_provider_binding(ClientRequestPreparation[I], I,
 
 pub fn[I] prepare_request_model_read_scope(ClientRequestPreparation[I], I, ClientInstalledManagedModelPlan, quantity_limits? : @physical_resources.QuantityAmounts?) -> Result[@run_publication_host.ClientModelReadScope, ClientInstalledManagedRunIssue]
 
+pub fn[I] prepare_request_model_recovery_read_scopes(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, Array[@run_publication_host.ClientInferPlanGraph], @physical_resources.LedgerLimits, Array[Int64], Array[Int64], Int, Int, Int, quantity_limits? : @physical_resources.QuantityAmounts?) -> Result[Array[@run_publication_host.ClientModelReadScope], ClientInstalledManagedRunIssue]
+
 pub fn[I] prepare_request_model_serialization_plan(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.ExecutionCapacity?, @run_publication_host.ClientQueryTimePreparation?) -> Result[ClientInstalledManagedSerializationPreparation, ClientInstalledManagedRunIssue]
 
 pub fn[I] prepare_request_model_source_free_module(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientTaskCompilation, ClientInstalledSequenceContracts, Bool, Int, (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider], query_time? : @run_publication_host.ClientQueryTimePreparation?, component_factory? : ((@execution_relation.ExecutionCapacity, @execution_relation.GeneratedSequence, @execution_relation.GeneratedSequence?) -> @local.ManagedProvider)?, components_factory? : ((Int, @execution_relation.ExecutionCapacity, @execution_relation.GeneratedSequence, @execution_relation.GeneratedSequence?) -> @local.ManagedProvider)?) -> Result[ClientInstalledManagedSourceFreePreparation, ClientRequestProgramPlanIssue]
@@ -945,6 +947,12 @@ pub fn[I, P] reconcile_program_json_preparation_structure(ClientProgramJsonPrepa
 pub fn[I] request_computation_policy_subject(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, Int) -> Result[String, ClientRequestTerminalIssue]
 
 pub fn[I] request_model_direct_occurrences(ClientRequestPreparation[I], I) -> Result[@run_publication_host.ClientDirectAcquisitionOccurrences, ClientInstalledManagedRunIssue]
+
+pub fn[I] request_model_recovery_direct_occurrences(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientDirectAcquisitionOccurrences, ClientInstalledManagedRunIssue]
+
+pub fn[I] request_model_recovery_ledger(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract) -> Result[@physical_resources.Ledger, ClientRequestPreparationIssue]
+
+pub fn[I] request_model_recovery_usage_isolated(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG) -> Bool
 
 pub fn[I] request_preparation_accounting(ClientRequestPreparation[I]) -> (Int64, Int64, Int64, Int64, Int64, Int64)
 

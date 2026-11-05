@@ -10,6 +10,7 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 import {withOriginalFile} from './source-profile-json.mjs';
 import resourceRuntime from './ordinary-node-resource-runtime.cjs';
+import {retireNodeInferOriginalRead, finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
 
 // Existing Source/Compute responsibility, using real ordinary Node allocation
 // and FileHandles rather than a startup-wide provenance proof. Actual Account
@@ -536,6 +537,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const recovery = state.recovery;
       reserveModelRecovery(producer, state, 3, index => index === 0 ? original.materialsWire
         : index === 1 ? original.resultPolicyOriginal.wire : definition.wire, 3);
+      // Retain the SAME already-funded material record before the restored
+      // owner constructor/current can fail. Later metadata construction uses
+      // this immutable original, never a recompiled/current Source surrogate.
+      recovery.original = original;
       return constructRequestDomain(state, () => {
         const restored = construct();
         if (restored?.runDefinition !== definition || restored.prepared === undefined ||
@@ -548,6 +553,184 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         if (producer.finished || producer.preparation !== state || state.recovery !== recovery) fail('ForeignInstalledSourceProducer');
         return restored;
       });
+    },
+    modelRecoveryLedger(prepared, request) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation, recovery = state?.recovery;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (recovery?.restored?.prepared !== prepared || state.prepared !== prepared ||
+          state.preparing || state.adopting) fail('ForeignInstalledSourceProducer');
+      if (typeof recovery.model?.control.checkedClientRequestModelRecoveryLedger !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      return recovery.model.control.checkedClientRequestModelRecoveryLedger(
+        state.parent, producer.receipt, recovery.request, recovery.definition);
+    },
+    prepareModelRecoveryPlan(prepared, request, plan, selected, model) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation, recovery = state?.recovery;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      const restored = recovery?.restored, control = model?.control, compiled = plan?.compiled,
+        definition = plan?.runDefinition, graph = selected?.graph, budget = model?.budget;
+      const plural = Array.isArray(graph), members = plural ? model?.components : [model],
+        selections = plural ? selected?.components : [selected];
+      if (restored === undefined || state.prepared !== prepared || restored.prepared !== prepared ||
+          state.compilationFamily !== 'model-recovery' || state.preparing || state.adopting ||
+          selected?.restoredRun !== restored || restored.compiled !== compiled ||
+          restored.runDefinition !== definition || recovery.definition !== definition ||
+          restored.graph !== graph || model?.prepared !== prepared || model.selection !== selected ||
+          model.compiled !== compiled || model.runDefinition !== definition || model.graph !== graph ||
+          model.closed || model.scopeFinished || budget === undefined || control === undefined ||
+          !Array.isArray(members) || members.length === 0 || !Array.isArray(selections) ||
+          members.length !== selections.length || plural && members.length !== graph.length ||
+          members.some((member, index) => member?.selection !== selections[index] ||
+            member.graph !== (plural ? graph[index] : graph) || member.budget === undefined ||
+            member.selectedBounds === undefined || member.scope !== undefined && recovery.model !== model || member.closed ||
+            member.control !== control || member.compiled !== compiled || member.runDefinition !== definition) ||
+          typeof control.prepareCheckedClientRequestModelRecoveryReadScopes !== 'function' ||
+          typeof model.publicationCapacity !== 'function') fail('ForeignInstalledSourceProducer');
+      if (recovery.model !== undefined) {
+        if (recovery.model !== model || recovery.modelView === undefined) fail('ForeignInstalledSourceProducer');
+        recovery.modelView.assertRuntimeCurrent();
+        return recovery.modelView;
+      }
+      // This original Host record owns a partial returned Scope before any
+      // current callback can fail. No ordinary ManagedRun or module is issued.
+      recovery.model = model;
+      const moon = state.context.runtime, graphs = plural ? graph : [graph];
+      const publication = model.publicationCapacity;
+      const assertOriginal = () => {
+        current();
+        if (producer.finished || producer.preparation !== state || state.recovery !== recovery ||
+            recovery.restored !== restored || recovery.model !== model || state.prepared !== prepared ||
+            model.selection !== selected || model.graph !== graph || model.compiled !== compiled ||
+            model.runDefinition !== definition || model.control !== control || model.budget !== budget ||
+            model.publicationCapacity !== publication || plan.compiled !== compiled || plan.runDefinition !== definition) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        recovery.assertCurrent();
+        if (producer.finished || producer.preparation !== state || state.recovery !== recovery ||
+            recovery.model !== model) fail('ForeignInstalledSourceProducer');
+      };
+      try {
+        const scopes = control.prepareCheckedClientRequestModelRecoveryReadScopes(
+          state.parent, producer.receipt, recovery.request, definition, prepared, compiled, graphs,
+          members.map(member => member.selectedBounds),
+          members.map(member => member.budget.modelRetainedBytes),
+          members.map(member => member.budget.modelExecutionBytes),
+          members.map(member => member.budget.readRetainedBytes),
+          members.map(member => member.budget.readExecutionBytes),
+          budget.maxReservations, budget.maxHoldings, budget.maxDelegations,
+          selected.quantityCapacity?.limits);
+        // Retain the complete native return before examining it or calling out.
+        model.scopes = scopes;
+        if (!Array.isArray(scopes) || scopes.length !== members.length) fail('InvalidHostRuntimeResult');
+        Object.freeze(scopes);
+        model.scope = scopes[0];
+        for (let index = 0; index < members.length; index++) members[index].scope = scopes[index];
+        assertOriginal();
+        const componentViews = Object.freeze(members.map((member, index) => {
+          const scope = scopes[index], selection = selections[index], memberGraph = graphs[index],
+            memberBudget = member.budget, physical = member.originalReadInstallation;
+          const currentMember = () => {
+            assertOriginal();
+            if (member.closed || member.scopeFinished || member.scope !== scope ||
+                member.selection !== selection || member.graph !== memberGraph || member.budget !== memberBudget ||
+                member.originalReadInstallation !== physical || model.scopes !== scopes || scopes[index] !== scope) {
+              fail('ForeignInstalledModelRecoveryScope');
+            }
+          };
+          const publicationCapacity = () => {currentMember(); return Reflect.apply(publication, model, []);};
+          const fields = {selection, control, compiled, runDefinition: definition, scope,
+            publicationCapacity, assertRuntimeCurrent: currentMember,
+            readRetainedBytes: memberBudget.readRetainedBytes, readExecutionBytes: memberBudget.readExecutionBytes,
+            modelRetainedBytes: memberBudget.modelRetainedBytes, modelExecutionBytes: memberBudget.modelExecutionBytes,
+            ...(physical === undefined ? {} : {nodeInstallation: physical.nodeInstallation, metadataInstallation: physical})};
+          const prepareRead = () => {
+            currentMember();
+            if (Object.hasOwn(member, 'readFailure')) throw member.readFailure;
+            if (!member.taken || member.readAttempted) fail('ForeignInstalledModelRecoveryScope');
+            member.readAttempted = true;
+            try {
+              member.read = physical === undefined
+                ? control.prepareCheckedClientInferOriginalRead(compiled, definition, memberGraph, scope, memberBudget)
+                : control.prepareCheckedClientInferNodeReadLayout(compiled, definition, memberGraph, scope, physical.nodeInstallation);
+              return Object.freeze({...fields, read: member.read});
+            } catch (cause) {member.readFailure = cause; throw cause;}
+          };
+          return Object.freeze({...fields,
+            retain() {
+              currentMember();
+              if (member.taken || member.readAttempted) fail('ForeignInstalledModelRecoveryScope');
+              member.taken = true;
+            },
+            prepareRead,
+            restoreRead(input) {
+              currentMember();
+              if (input?.savedScope === undefined ||
+                  typeof control.startCheckedClientOriginalRestoredComposedInferExecution !== 'function') {
+                fail('InstalledModelRecoveryRuntimeUnavailable');
+              }
+              return prepareRead();
+            },
+            async retire() {
+              if (member.closed && member.scopeFinished) return true;
+              currentMember();
+              retireNodeInferOriginalRead(member);
+              member.read = undefined;
+              if (plural) return true; // The original group finishes after all reads.
+              if (control.finishCheckedClientInferOriginalReadScope(compiled, definition, memberGraph, scope, true) !== true) return false;
+              member.scopeFinished = member.closed = true;
+              return true;
+            }});
+        }));
+        const openHost = (captures, registry, values, fragment, ordered, providers) => {
+          assertOriginal();
+          if (!model.taken || model.hostAttempted || !Array.isArray(captures) || !Array.isArray(providers) ||
+              captures.length !== moon.clientProgramAcquisitionCount(prepared)) fail('ForeignInstalledModelRecoveryScope');
+          model.hostAttempted = true;
+          return control.openCheckedClientRequestModelRecoveryHost(state.parent, producer.receipt,
+            recovery.request, definition, prepared, captures.map(value => value.capture.source()),
+            registry, values, fragment, ordered, providers);
+        };
+        const hostFields = {
+          sourceLedger() {return view.modelRecoveryLedger(prepared, request);},
+          setupUsageIsolated(dag) {
+            assertOriginal();
+            return control.checkedClientRequestModelRecoveryUsageIsolated(state.parent, producer.receipt,
+              recovery.request, definition, dag) === true;
+          },
+          openSourceFreeHost(registry, values, fragment, ordered, providers) {
+            return openHost([], registry, values, fragment, ordered, providers);
+          },
+          openCapturedHost(captures, providers) {
+            const contracts = originalsInstallationContracts();
+            return openHost(captures, contracts.admission, contracts.contracts.values, contracts.contracts.expression, contracts.contracts.ordered, providers);
+          },
+        };
+        // Reuse this installation's original contract/codec bodies. They are
+        // immutable construction inputs, never reconstructed from a profile ID.
+        function originalsInstallationContracts() {
+          const contracts = originalsInstallation.sequenceContractOriginal;
+          if (contracts === undefined || contracts.moon !== moon) fail('NodeManagedRunRuntimeUnavailable');
+          return contracts;
+        }
+        const originalsInstallation = originals.installation;
+        recovery.modelView = plural ? Object.freeze({selection: selected, control, compiled, runDefinition: definition,
+          components: componentViews, scopes, assertRuntimeCurrent: assertOriginal, ...hostFields,
+          get sourceCoordinates() {return view.modelSourceCoordinates(prepared, request);},
+          retain() {assertOriginal(); for (const original of componentViews) original.retain(); model.taken = true;},
+          async retire() {
+            if (model.closed && model.scopeFinished) return true;
+            assertOriginal();
+            for (const original of componentViews) await original.retire();
+            if (!finishNodeInferOriginalReadScopes(model)) return false;
+            model.closed = true; return true;
+          }}) : Object.freeze({...componentViews[0], ...hostFields,
+          get sourceCoordinates() {return view.modelSourceCoordinates(prepared, request);}});
+        return recovery.modelView;
+      } catch (cause) {
+        state.preparationFailed = true; state.preparationFailure = cause;
+        throw cause;
+      }
     },
     retainRequestInput(request, intent, captured, materialWire) {
       if (request === null || typeof request !== 'object' || requestProducers.has(request) ||
@@ -1390,6 +1573,23 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     modelSourceCoordinates(prepared, request) {
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
+      if (state?.recovery !== undefined) {
+        const recovery = state.recovery;
+        if (state.prepared !== prepared || recovery.restored?.prepared !== prepared || state.preparing || state.adopting) fail('ForeignInstalledSourceProducer');
+        if (state.modelSourceCoordinates !== undefined) return state.modelSourceCoordinates;
+        reserveModelRecovery(producer, state, 1, () => recovery.original.materialsWire, 1);
+        return constructRequestDomain(state, () => {
+          const coordinates = recovery.model?.control.checkedClientRequestModelRecoverySourceCoordinates(
+            state.parent, producer.receipt, recovery.request, recovery.definition, prepared);
+          if (!Array.isArray(coordinates) || coordinates.some(value => !Array.isArray(value) || value.length !== 3 ||
+              value.some(coordinate => !Number.isSafeInteger(coordinate) || coordinate < 0))) fail('InvalidHostRuntimeResult');
+          for (const coordinate of coordinates) Object.freeze(coordinate);
+          state.modelSourceCoordinates = Object.freeze(coordinates);
+          current(); recovery.assertCurrent();
+          if (producer.finished || producer.preparation !== state || state.recovery !== recovery) fail('ForeignInstalledSourceProducer');
+          return state.modelSourceCoordinates;
+        });
+      }
       if (state === undefined || state.compilationFamily !== 'model') return undefined;
       current();
       if (state.prepared !== prepared || state.holder === undefined || state.parent === undefined || state.preparing ||
@@ -1419,6 +1619,31 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
       if (state === undefined) return undefined; // A separately owned legacy purpose.
+      if (state.recovery !== undefined) {
+        const recovery = state.recovery, restored = recovery.restored, parent = state.parent;
+        if (state.compilationFamily !== 'model-recovery' || state.preparing || state.adopting ||
+            state.prepared !== prepared || restored?.prepared !== prepared || parent === undefined ||
+            identity !== recovery.request || restored.runDefinition !== recovery.definition ||
+            typeof recovery.original?.materialsWire !== 'string' ||
+            !Number.isSafeInteger(stage) || stage < 0 ||
+            !Number.isSafeInteger(sourceIndex) || sourceIndex < 0) fail('ForeignInstalledSourceProducer');
+        // The original saved material bounds this derived metadata constructor
+        // too. This consumes no Source bytes and issues no Model read/Run.
+        reserveModelRecovery(producer, state, 1, () => recovery.original.materialsWire, 1);
+        const moon = state.context.runtime;
+        return constructRequestDomain(state, () => {
+          recovery.assertCurrent();
+          const selected = checked(moon.clientProgramSelectInstalledSourceInput(prepared, identity, stage, sourceIndex));
+          current();
+          if (producer.finished || producer.preparation !== state || state.parent !== parent ||
+              state.prepared !== prepared || state.recovery !== recovery || recovery.restored !== restored ||
+              recovery.request !== identity || restored.runDefinition !== recovery.definition) fail('ForeignInstalledSourceProducer');
+          recovery.assertCurrent();
+          if (producer.finished || producer.preparation !== state || state.recovery !== recovery ||
+              recovery.restored !== restored) fail('ForeignInstalledSourceProducer');
+          return selected;
+        });
+      }
       if (state.prepared !== prepared || state.compilationKind !== 'effect_free') fail('ForeignInstalledSourceProducer');
       if (state.compilationFamily === 'pure') return undefined;
       if (!['model', 'content'].includes(state.compilationFamily) || state.holder === undefined ||

@@ -1834,3 +1834,148 @@ test('physical Effect Model configures its SAME selected quantity limits before 
   f.finishPhysicalRetirement(); f.view.retireSeveredPreparation(f.original);
   f.view.finishSourceProducer(f.receipt, 'returned'); await f.view.close();
 });
+
+// Actual manager/Request registration with explicit Core material/selection
+// ports. This admits no Source read, Model dispatch or normal backing claim.
+async function restoredModelRecoveryFixture(options) {
+  const f = await fixture(options), moon = f.context.runtime;
+  const request = {}, identity = {}, definition = {wire: '{}'}, prepared = {},
+    compiled = {}, graph = {}, selected = {}, events = [];
+  const original = Object.freeze({materialsWire: '{"original":"saved-model"}',
+    resultPolicyOriginal: Object.freeze({kind: 'data_policy', cid: 'fixture', wire: '{}'})});
+  const restored = Object.freeze({prepared, compiled, graph, runDefinition: definition});
+  moon.clientProgramReserveRequestModelRecoveryMaterials = function(parent, receipt, actualRequest, actualDefinition, count, wireAt, containers) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(receipt, recovery.receipt);
+    assert.equal(actualRequest, identity); assert.equal(actualDefinition, definition);
+    events.push(['before constructor', count, Array.from({length: count}, (_, index) => wireAt(index)), containers]);
+    return ok(undefined);
+  };
+  moon.clientProgramSelectInstalledSourceInput = function(actual, pair, stage, sourceIndex) {
+    assert.equal(this, moon); assert.equal(actual, prepared); assert.equal(pair, identity);
+    assert.equal(stage, 3); assert.equal(sourceIndex, 1); events.push('same Source occurrence');
+    return ok(selected);
+  };
+  const recovery = f.view.retainModelRecovery(request, identity, definition,
+    () => events.push('original recovery current'), () => false);
+  assert.equal(f.view.restoreModelOriginal(request, original, definition, identity, () => restored), restored);
+  return {...f, moon, recovery, request, identity, definition, prepared, compiled, graph, selected, original, restored, events};
+}
+
+test('cold Model Source selection consumes the same restored Request without an ordinary preparation holder', async () => {
+  const f = await restoredModelRecoveryFixture();
+  assert.equal(f.view.selectDomainSourceInput(f.prepared, f.request, f.identity, 3, 1), f.selected);
+  assert.equal(f.events.filter(value => value === 'same Source occurrence').length, 1);
+  assert.equal(f.events.filter(Array.isArray).length, 2, 'saved material then Source construction each funded before its callback');
+  const quote = f.events.filter(Array.isArray).at(-1);
+  assert.deepEqual(quote[2], [f.original.materialsWire]);
+  f.view.finishSourceProducer(f.recovery.receipt, 'returned');
+  await f.view.close();
+});
+
+async function recoveryReadFixture({readFailure, failRead = false, afterScopes, validate} = {}) {
+  const f = await restoredModelRecoveryFixture({validate}), scope = {}, read = {}, bounds = {}, savedScope = {}, events = [];
+  const budget = Object.freeze({modelRetainedBytes: 11n, modelExecutionBytes: 13n,
+    readRetainedBytes: 7n, readExecutionBytes: 5n, maxReservations: 20, maxHoldings: 20, maxDelegations: 20});
+  const selection = Object.freeze({graph: f.graph, restoredRun: f.restored});
+  const control = {
+    prepareCheckedClientRequestModelRecoveryReadScopes(...args) {
+      assert.deepEqual(args, [f.parent, f.recovery.receipt, f.identity, f.definition, f.prepared, f.compiled,
+        [f.graph], [bounds], [11n], [13n], [7n], [5n], 20, 20, 20, undefined]);
+      events.push('same parent Scope'); return [scope];
+    },
+    prepareCheckedClientInferOriginalRead(compiled, definition, graph, actualScope, actualBudget) {
+      assert.equal(compiled, f.compiled); assert.equal(definition, f.definition); assert.equal(graph, f.graph);
+      assert.equal(actualScope, scope); assert.equal(actualBudget, budget); events.push('same Scope Read');
+      if (failRead) throw readFailure;
+      return read;
+    },
+    startCheckedClientOriginalRestoredComposedInferExecution() {},
+    stopCheckedClientInferOriginalReadPreparation(c, d, g, s, r) {
+      assert.equal(r, read); assert.equal(s, scope); events.push('stop original Read');
+    },
+    settleCheckedClientInferOriginalReadPreparation(c, d, g, r, complete) {
+      assert.equal(r, read); assert.equal(complete, true); events.push('settle original Read');
+    },
+    finishCheckedClientInferOriginalReadScope(c, d, g, s, complete) {
+      assert.equal(s, scope); assert.equal(complete, true); events.push('finish original Scope'); return true;
+    },
+  };
+  const model = {prepared: f.prepared, selection, graph: f.graph, compiled: f.compiled,
+    runDefinition: f.definition, selectedBounds: bounds, budget, control,
+    publicationCapacity: () => 'original publication capacity'};
+  if (afterScopes) Object.defineProperty(model, 'scopes', {configurable: true,
+    set(value) {Object.defineProperty(model, 'scopes', {value, writable: true, configurable: true}); afterScopes(f, model, value);}});
+  return {...f, model, selection, control, scope, read, savedScope, readEvents: events,
+    prepare() {return f.view.prepareModelRecoveryPlan(f.prepared, f.request,
+      {compiled: f.compiled, runDefinition: f.definition}, selection, model);}};
+}
+
+test('cold Model recovery view retains original Scope before current and restores one original Read', async () => {
+  const f = await recoveryReadFixture();
+  const original = f.prepare(); assert.equal(f.model.scope, f.scope); assert.equal(f.model.scopes[0], f.scope);
+  assert.equal(f.prepare(), original, 'Same original preparation is not issued twice');
+  original.retain(); assert.throws(() => original.restoreRead({}), {code: 'InstalledModelRecoveryRuntimeUnavailable'});
+  const result = original.restoreRead({savedScope: f.savedScope});
+  assert.equal(result.read, f.read); assert.equal(result.scope, f.scope);
+  assert.equal(result.publicationCapacity(), 'original publication capacity');
+  assert.throws(() => original.prepareRead(), {code: 'ForeignInstalledModelRecoveryScope'});
+  assert.equal(await original.retire(), true); assert.equal(await original.retire(), true);
+  assert.deepEqual(f.readEvents, ['same parent Scope', 'same Scope Read', 'stop original Read', 'settle original Read', 'finish original Scope']);
+  f.view.finishSourceProducer(f.recovery.receipt, 'returned'); await f.view.close();
+});
+
+test('cold Model recovery keeps thrown undefined sticky and cannot replace its original Scope', async () => {
+  const f = await recoveryReadFixture({failRead: true, readFailure: undefined});
+  const original = f.prepare(); original.retain();
+  for (let index = 0; index < 2; index++) {
+    let caught = false;
+    try {original.restoreRead({savedScope: f.savedScope});} catch (cause) {caught = true; assert.equal(cause, undefined);}
+    assert.equal(caught, true);
+  }
+  assert.equal(f.readEvents.filter(event => event === 'same Scope Read').length, 1);
+  assert.equal(await original.retire(), true);
+  f.view.finishSourceProducer(f.recovery.receipt, 'failed'); await f.view.close();
+});
+
+test('cold Model recovery retains returned Scope through current reentry failure', async () => {
+  const failure = new Error('original current failed'); let failing = false;
+  const f = await recoveryReadFixture({validate() {if (failing) throw failure;}, afterScopes(f, model, scopes) {
+    assert.equal(scopes.length, 1); failing = true;
+  }});
+  assert.throws(() => f.prepare(), cause => cause === failure);
+  assert.equal(f.model.scopes[0], f.scope); assert.equal(f.model.scope, f.scope);
+  // Explicit original native child cleanup: the failed constructor retained it.
+  f.control.finishCheckedClientInferOriginalReadScope(f.compiled, f.definition, f.graph, f.scope, true);
+  failing = false;
+  f.view.finishSourceProducer(f.recovery.receipt, 'failed'); await f.view.close();
+});
+
+
+test('cold Model recovery opens captured Local host and observes cleanup on the same original ledger', async () => {
+  const f = await recoveryReadFixture(), ledger = {}, capture = {}, provider = {}, dag = {}, setup = {}, admission = {};
+  const contracts = Object.freeze({values: 'values', expression: 'fragment', ordered: 'ordered'});
+  f.originals.installation = {sequenceContractOriginal: {moon: f.moon, admission, contracts}};
+  f.moon.clientProgramAcquisitionCount = actual => {assert.equal(actual, f.prepared); return 1;};
+  let coordinates = 0;
+  f.control.checkedClientRequestModelRecoverySourceCoordinates = function(...args) {
+    assert.equal(this, f.control); assert.deepEqual(args, [f.parent,f.recovery.receipt,f.identity,f.definition,f.prepared]);
+    coordinates++; return [[3,1,0]];
+  };
+  f.control.checkedClientRequestModelRecoveryLedger = function(...args) {
+    assert.equal(this, f.control); assert.deepEqual(args,[f.parent,f.recovery.receipt,f.identity,f.definition]);return ledger;
+  };
+  f.control.openCheckedClientRequestModelRecoveryHost = function(...args) {
+    assert.equal(this, f.control); assert.deepEqual(args,[f.parent,f.recovery.receipt,f.identity,f.definition,f.prepared,
+      [capture],admission,'values','fragment','ordered',[provider]]); return setup;
+  };
+  f.control.checkedClientRequestModelRecoveryUsageIsolated = function(...args) {
+    assert.equal(this, f.control); assert.deepEqual(args,[f.parent,f.recovery.receipt,f.identity,f.definition,dag]);return true;
+  };
+  const original = f.prepare(); original.retain();
+  assert.deepEqual(original.sourceCoordinates, [[3,1,0]]); assert.equal(Object.isFrozen(original.sourceCoordinates),true);
+  assert.equal(coordinates,1);assert.equal(original.sourceLedger(),ledger);
+  assert.equal(original.openCapturedHost([{capture: {source: () => capture}}],[provider]),setup);
+  assert.throws(() => original.openCapturedHost([{capture: {source: () => capture}}],[provider]),{code:'ForeignInstalledModelRecoveryScope'});
+  assert.equal(await original.retire(),true);assert.equal(original.setupUsageIsolated(dag),true);
+  f.view.finishSourceProducer(f.recovery.receipt,'returned');await f.view.close();
+});

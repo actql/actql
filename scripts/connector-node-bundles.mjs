@@ -345,6 +345,7 @@ if (existsSync(join(sourceRoot, bridgePackage,
   'client_preparation_root_bridge.mbt')) || existsSync(join(sourceRoot,
   bridgePackage, 'client_program_bridge.mbt'))) {
   dependencies.set('actql/actql/stage_parameters', 'stage_parameters');
+  dependencies.set('actql/actql/client_infer_host', 'infer_host');
 }
 // A bridge package may also contain the handwritten Carrier adapter. Keep its
 // runtime dependency after generated connector aliases so their stable names

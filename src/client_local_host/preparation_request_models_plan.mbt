@@ -377,21 +377,33 @@ fn request_model_group_quantity_limits(
   first_graph : @publication_host.ClientInferPlanGraph,
   models : Array[ClientInstalledModelReadPartition]?,
   installed : @resources.QuantityAmounts,
+  graphs? : Array[@publication_host.ClientInferPlanGraph]? = None,
 ) -> @resources.QuantityAmounts? {
+  if models is Some(_) && graphs is Some(_) {
+    return None
+  }
   let mut tokens = 0L
   let mut cost = 0L
   let mut duration = 0L
   // Borrow the actual compiler group already retained on this Plan. Singles
   // keep exactly their original execution contract and min intersection.
   let mut index = 0
-  let count = match models {
-    None => 1
-    Some(models) => models.length()
+  let count = match graphs {
+    Some(originals) => originals.length()
+    None =>
+      match models {
+        None => 1
+        Some(models) => models.length()
+      }
   }
   while index < count {
-    let graph = match models {
-      None => first_graph
-      Some(models) => models[index].graph
+    let graph = match graphs {
+      Some(originals) => originals[index]
+      None =>
+        match models {
+          None => first_graph
+          Some(models) => models[index].graph
+        }
     }
     let execution = @publication_host.client_infer_plan_graph_execution_contract(
       graph,

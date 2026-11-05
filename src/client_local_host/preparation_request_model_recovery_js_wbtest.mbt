@@ -171,3 +171,114 @@ test "saved Model growth failure keeps original capacity and physical cleanup pe
   assert_true(abort_request_preparation_after_cleanup(owner) is Err(Initial(_)))
   assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
 }
+
+///|
+// Original checked compiler/Graph from the existing fixture, then a distinct
+// physical-process Request parent. No compiler is entered by recovery here.
+test "cold Model Scope binds the original recovery Request census and ledger without a replacement Run" {
+  let f = request_serialized_model_fixture(serialized=false)
+  let input = [188]
+  let owner = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  reserve_request_model_recovery_materials(
+    owner,
+    input,
+    f.request,
+    f.definition,
+    1,
+    _ => "{}",
+    1,
+  ).unwrap()
+  let original = owner.capacity
+  let ledger = request_model_recovery_ledger(
+    owner,
+    input,
+    f.request,
+    f.definition,
+  ).unwrap()
+  assert_true(physical_equal(ledger, owner.ledger))
+  let before = @resources.ledger_usage(ledger)
+  let scopes = prepare_request_model_recovery_read_scopes(
+    owner,
+    input,
+    f.request,
+    f.definition,
+    f.prepared,
+    f.compiled,
+    [f.graph],
+    effect_model_plan_limits,
+    [7L],
+    [5L],
+    20,
+    20,
+    20,
+  ).unwrap()
+  assert_eq(scopes.length(), 1)
+  assert_true(physical_equal(owner.capacity, original))
+  assert_true(owner.program_capacity is None && owner.compiled_program is None)
+  assert_true(owner.program_compilation is None && owner.program_model is None)
+  assert_true(owner.phase == ModelRecovery)
+  let scope = scopes[0]
+  let identity = @resources.preparation_capacity_inventory_original(
+    original, input,
+  ).unwrap()
+  assert_true(
+    @publication_host.client_model_read_scope_original_inventory(
+      scope, ledger, identity,
+    ),
+  )
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.attempts, before.attempts)
+  assert_eq(after.transferred_bytes, before.transferred_bytes)
+  assert_eq(after.live_reservations, before.live_reservations)
+  assert_true(after.reserved_retention_bytes > before.reserved_retention_bytes)
+  assert_false(
+    @publication_host.client_compiled_run_infer_originals_match(f.compiled, []),
+  )
+  assert_false(
+    @publication_host.client_compiled_run_infer_originals_match(f.compiled, [
+      f.graph,
+      f.graph,
+    ]),
+  )
+  let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
+  @publication_host.stop_client_model_read(read).unwrap()
+  @publication_host.settle_client_model_read(read, true).unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  assert_true(
+    @resources.preparation_capacity_working_usage_isolated(
+      owner.capacity,
+      input,
+      ledger,
+    ),
+  )
+  assert_false(
+    @resources.preparation_capacity_working_usage_isolated(
+      owner.capacity,
+      [188],
+      ledger,
+    ),
+  )
+  assert_false(
+    @resources.preparation_capacity_working_usage_isolated(
+      owner.capacity,
+      input,
+      f.parent.ledger,
+    ),
+  )
+  abort_request_preparation_after_cleanup(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  abort_request_preparation_after_cleanup(f.parent).unwrap()
+}
