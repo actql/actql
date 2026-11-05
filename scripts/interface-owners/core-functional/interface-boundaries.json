@@ -15072,7 +15072,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fc824a364648125a3e92aaea91da7e50336a661203203dc7836d53f648b400fa"
+      "sha256": "2f3720c2cf430ed64a8cfda92bca437b4c83e69bb36b7e3a2cfbe6e2b64030ea"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",

@@ -91,6 +91,24 @@ test('Common compiled Infer projection rejects foreign nominal preparation and c
   assert.throws(() => control.checkedClientCompiledInferOriginal({...value.compiled}, value.prepared, value.definition), /Foreign/u);
 });
 
+test('actual Common boxed plural originals retain fresh and restored compiler members', () => {
+  const value = original(), restored = value.restore();
+  for (const selected of [value, restored]) {
+    const definition = selected.runDefinition ?? value.definition;
+    const singular = control.checkedClientCompiledInferOriginal(selected.compiled, selected.prepared, definition);
+    const plural = control.checkedClientCompiledInferOriginals(selected.compiled, selected.prepared, definition);
+    assert.equal(plural.length, 1);
+    assert.strictEqual(plural[0].graph, singular.graph);
+    assert.strictEqual(plural[0].execution, singular.execution);
+    assert.ok(Object.isFrozen(plural));
+    assert.ok(Object.isFrozen(plural[0]));
+    assert.throws(() => control.checkedClientCompiledInferOriginals(
+      selected.compiled, {}, definition), /Foreign Client original Infer preparation/u);
+    assert.throws(() => control.checkedClientCompiledInferOriginals(
+      {...selected.compiled}, selected.prepared, definition), /Foreign/u);
+  }
+});
+
 test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers', () => {
   const value = original(), restored = value.restore();
   let issued = 0;
