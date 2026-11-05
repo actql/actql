@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { validate } from './audit.mjs';
 import { snapshot } from '../inventory.mjs';
 import { unionCapacityParts } from './parts.mjs';
@@ -68,10 +68,12 @@ for (const slot of ['healthy', 'js', 'wasm', 'bytes', 'edge', 'history', 'compil
   }
   const fixture = join(directory, `${slot}.json`);
   phase = performance.now();
-  const retained = retainCapacityRegressionFixture(fixture, report);
+  const retained = await retainCapacityRegressionFixture(fixture, report);
   timing.writeFixtureMs = performance.now() - phase;
   timing.fixtureBytes = retained.bytes;
   timing.retainedFixtureBytes = retained.compressedBytes;
+  timing.fixtureArchive = basename(retained.archivePath);
+  timing.fixtureSha256 = retained.sha256;
   let result;
   if (original.kind === 'capacity-union' && slot !== 'healthy') {
     // Corrupt cloned producer views as well as their derived union, so these

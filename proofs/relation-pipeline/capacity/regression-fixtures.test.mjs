@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -15,18 +16,19 @@ const fixture = t => {
   return name => join(directory, `${name}.json`);
 };
 
-test('every archived substitution retains exact complete bytes without accumulated plain reports', t => {
+test('every archived substitution retains exact complete bytes without accumulated plain reports', async t => {
   const path = fixture(t);
   const source = { dictionary: 'original Source bytes\n'.repeat(4096) };
-  const original = { source, targets: ['js', 'wasm', 'native'], negative: null };
+  const original = { source, unicode: '😀'.repeat(40000), targets: ['js', 'wasm', 'native'], negative: null };
   const before = structuredClone(original);
   const archives = [];
   for (const negative of ['healthy', 'js', 'wasm', 'bytes', 'edge', 'history', 'compiler',
     'core-js', 'core-wasm', 'custody-js', 'custody-wasm']) {
     const report = { ...original, negative };
-    const retained = retainCapacityRegressionFixture(path(negative), report);
+    const retained = await retainCapacityRegressionFixture(path(negative), report);
     const bytes = Buffer.from(JSON.stringify(report) + '\n');
     assert.deepEqual(gunzipSync(readFileSync(retained.archivePath)), bytes);
+    assert.equal(retained.sha256, createHash('sha256').update(bytes).digest('hex'));
     assert.equal(retained.bytes, bytes.length);
     assert.equal(retained.compressedBytes, readFileSync(retained.archivePath).length);
     archives.push(retained);
@@ -42,10 +44,10 @@ test('every archived substitution retains exact complete bytes without accumulat
   for (const archive of archives) assert(existsSync(archive.archivePath));
 });
 
-test('actual child consumes the same full plain fixture while its compressed original stays intact', t => {
+test('actual child consumes the same full plain fixture while its compressed original stays intact', async t => {
   const path = fixture(t)('healthy');
   const report = { source: { digest: 'original' }, targets: ['js', 'wasm', 'native'] };
-  const retained = retainCapacityRegressionFixture(path, report);
+  const retained = await retainCapacityRegressionFixture(path, report);
   const before = readFileSync(retained.archivePath);
   const result = retained.withUncompressed(actual => spawnSync(process.execPath,
     ['--input-type=module', '-e', 'import{readFileSync}from"node:fs";process.stdout.write(readFileSync(process.argv[1]));', actual],
@@ -57,9 +59,9 @@ test('actual child consumes the same full plain fixture while its compressed ori
   assert.deepEqual(readFileSync(retained.archivePath), before);
 });
 
-test('failed validation keeps its exact original failure and archive while retiring only the temporary copy', t => {
+test('failed validation keeps its exact original failure and archive while retiring only the temporary copy', async t => {
   const path = fixture(t)('negative');
-  const retained = retainCapacityRegressionFixture(path, { complete: false });
+  const retained = await retainCapacityRegressionFixture(path, { complete: false });
   const before = readFileSync(retained.archivePath);
   const failure = new Error('OriginalSemanticRefusal');
   assert.throws(() => retained.withUncompressed(() => { throw failure; }), error => error === failure);
@@ -74,15 +76,15 @@ test('failed validation keeps its exact original failure and archive while retir
   assert.deepEqual(readFileSync(retained.archivePath), before);
 });
 
-test('existing originals are never overwritten or removed when a temporary name is occupied', t => {
+test('existing originals are never overwritten or removed when a temporary name is occupied', async t => {
   const path = fixture(t)('occupied');
-  const retained = retainCapacityRegressionFixture(path, { target: 'js' });
+  const retained = await retainCapacityRegressionFixture(path, { target: 'js' });
   writeFileSync(path, 'existing original');
   let consumed = false;
   assert.throws(() => retained.withUncompressed(() => { consumed = true; }), { code: 'EEXIST' });
   assert.equal(consumed, false);
   assert.equal(readFileSync(path, 'utf8'), 'existing original');
   const before = readFileSync(retained.archivePath);
-  assert.throws(() => retainCapacityRegressionFixture(path, { target: 'foreign' }), { code: 'EEXIST' });
+  await assert.rejects(retainCapacityRegressionFixture(path, { target: 'foreign' }), { code: 'EEXIST' });
   assert.deepEqual(readFileSync(retained.archivePath), before);
 });
