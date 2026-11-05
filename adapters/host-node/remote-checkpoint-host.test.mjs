@@ -238,7 +238,7 @@ async function effectFixture({twoMembers = false} = {}) {
       from: {result: 'rows'}, id: 'id',
       set: {Name: {field: 'id'}}}};
   }
-  return {document: canonicalJson(program), mappingCid:
+  return {document: canonicalJson(program), effectIds: Object.keys(program.stages[0].effects), mappingCid:
     mapping.mapping_contract_cid,
     mappingCids: environment.mapping_contracts.map(value =>
       value.mapping_contract_cid),
@@ -1049,20 +1049,29 @@ test('installed Effect factory resumes an approved captured Set',
     t.after(() => rm(directory, {recursive: true, force: true}));
     const sends = [];
     const diagnostics = [];
+    const account = JSON.parse(effectCommitConfiguration());
+    account.entries.push({entry_id: 'owner-read', outcome: 'allow',
+      principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['result/answer', 'run']}, operation: {any_of: ['read']}, exclusions: []});
+    account.entries.sort((a, b) => a.entry_id < b.entry_id ? -1 : a.entry_id > b.entry_id ? 1 : 0);
+    const accountConfiguration = canonicalJson(account);
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const installed = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 4),
       async prepareCaptured(facts) {
         try {
-          return await prepareReferenceCapture(facts,
-            {directory, mappingCids: fixture.mappingCids, sends});
+          return await managed.stage(facts, false, owned => prepareReferenceCapture(facts,
+            {directory, mappingCids: fixture.mappingCids, sends, ...owned}));
         } catch (error) {
           diagnostics.push({name: 'capture_stack', detail: error.stack});
           throw error;
         }
       },
-      prepareRecovered: facts => prepareReferenceRecovery(facts,
-        {directory, mappingCids: fixture.mappingCids, sends}),
+      prepareRecovered: facts => managed.stage(facts, true, owned => prepareReferenceRecovery(facts,
+        {directory, mappingCids: fixture.mappingCids, sends, ...owned})),
     });
     const effectInstallation = {...installed,
       async resume(facts) {
@@ -1074,7 +1083,7 @@ test('installed Effect factory resumes an approved captured Set',
         }
       }};
     const host = await remoteHost(t, protectedHost(undefined,
-      {accountConfiguration: effectCommitConfiguration(),
+      {accountConfiguration,
         observe: (name, detail) => diagnostics.push({name, detail})}),
     {directory, effectInstallation});
     const client = await host.as('owner-token');
@@ -1094,7 +1103,7 @@ test('installed Effect factory resumes an approved captured Set',
     assert.equal(checkpoint.phase, 'commit');
     await host.close();
     const awaitingAnswer = await remoteHost(t, protectedHost(undefined,
-      {accountConfiguration: effectCommitConfiguration(),
+      {accountConfiguration,
         resumeAfterAnswer: false,
         observe: (name, detail) => diagnostics.push({name, detail})}),
     {directory, effectInstallation});
@@ -1113,7 +1122,7 @@ test('installed Effect factory resumes an approved captured Set',
     let barrierReached = false;
     const resumeBarrier = new Promise(resolve => { releaseResume = resolve; });
     const opening = remoteHost(t, protectedHost(undefined,
-      {accountConfiguration: effectCommitConfiguration(),
+      {accountConfiguration,
         observe: (name, detail) => diagnostics.push({name, detail})}),
     {directory, effectInstallation, async beforeDispatch() {
       barrierReached = true;
@@ -1185,7 +1194,7 @@ test('installed Effect factory resumes an approved captured Set',
       });
     }
     const finalHost = await remoteHost(t, protectedHost(undefined,
-      {accountConfiguration: effectCommitConfiguration()}),
+      {accountConfiguration}),
     {directory, effectInstallation}).catch(error => {
       // The direct cause, the primary failure and each initialization
       // cleanup failure are kept apart; none replaces another.

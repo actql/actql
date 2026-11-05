@@ -6,7 +6,11 @@ import {checked} from '../../host-common/runtime-result.mjs';
 import {prepareInstalledPhysicalWritePlanRecipe, prepareInstalledEffectManagedPlan}
   from '../installed-effect-plan.mjs';
 
-export function referenceEffectManagedFixture(runtime) {
+export function referenceEffectManagedFixture(runtime, effectIds = ['save']) {
+  assert(Array.isArray(effectIds) && effectIds.length > 0);
+  assert(effectIds.every(id => typeof id === 'string' && id.length > 0));
+  assert.equal(new Set(effectIds).size, effectIds.length);
+  const members = Object.freeze(effectIds.map(effectId => Object.freeze({effectId})));
   let recipe;
   const selected = moon => {
     if (recipe !== undefined) {assert.equal(moon, runtime);return recipe;}
@@ -32,16 +36,15 @@ export function referenceEffectManagedFixture(runtime) {
     prepareManagedPlan(facts, inputs) {
       const recipe = selected(runtime);
       return prepareInstalledEffectManagedPlan({moon: runtime, facts, inputs,
-        unit: {stageIndex: 0}, members: [{effectId: 'save'}], recipeFor: () => recipe});
+        unit: {stageIndex: 0}, members, recipeFor: () => recipe});
     },
     async stage(facts, recovery, construct, aliasesRetired = () => true) {
       const run = facts.managedEffect, recipe = selected(facts.moon);
       original(run);
       const slot = recovery ? recipe.recoveryConstruction : recipe.captureConstruction;
       const operation = recipe.memberOperations[slot.operationIndex].operation;
-      let token = checked(runtime.clientProgramInstalledEffectOperationConstructionRetain(
-        run.value, run.prepared, run.request, run.operationPlan, 0, false,
-        slot.operationIndex, 0, operation));
+      const tokens = [];
+      let closed = false;
       let running = true, inputsReleased = false, disposed = false, active;
       let release, dispose, releasing = false, disposing = false, closing = false;
       const retainInputCleanup = original => {
@@ -73,7 +76,7 @@ export function referenceEffectManagedFixture(runtime) {
       const owner = Object.freeze({
         releaseInputs,
         async close() {
-          if (token === undefined) return true;
+          if (closed) return true;
           // A resolved callback does not acknowledge its returned payload,
           // physical ledger, or external receipt borrower. Common cuts those
           // SAME aliases before invoking this original retirement callback.
@@ -81,11 +84,15 @@ export function referenceEffectManagedFixture(runtime) {
           closing = true;
           try {
             if (!await releaseInputs() || !await disposeStage()) return false;
-            if (checked(runtime.clientProgramInstalledEffectOperationRetire(token, true)) !== true) return false;
-            token = undefined;return true;
+            for (let index = 0; index < tokens.length; index++) {
+              if (tokens[index] === undefined) continue;
+              if (checked(runtime.clientProgramInstalledEffectOperationRetire(tokens[index], true)) !== true) return false;
+              tokens[index] = undefined;
+            }
+            tokens.length = 0;closed = true;return true;
           } finally {closing = false;}
         },
-        status: () => Object.freeze({pending: token !== undefined}),
+        status: () => Object.freeze({pending: !closed}),
       });
       facts.retainConstructionOwner(owner);
       const physical = async (row, invoke) => {
@@ -107,7 +114,15 @@ export function referenceEffectManagedFixture(runtime) {
         active = undefined;
       };
       try {
-        checked(runtime.clientProgramInstalledEffectOperationConstructionBegin(token));
+        // The real combined Preview/export constructor visits each authored
+        // member. Keep every original before fallible work or a later retain.
+        for (let memberIndex = 0; memberIndex < members.length; memberIndex++) {
+          const token = checked(runtime.clientProgramInstalledEffectOperationConstructionRetain(
+            run.value, run.prepared, run.request, run.operationPlan, memberIndex, false,
+            slot.operationIndex, 0, operation));
+          tokens.push(token);
+          checked(runtime.clientProgramInstalledEffectOperationConstructionBegin(token));
+        }
         const stage = await construct({physical, completed, controlConstruction: run.controlConstruction,
           retainInputCleanup, retainStageCleanup});
         stage.referencePhysical = physical;stage.referenceCompleted = completed;
