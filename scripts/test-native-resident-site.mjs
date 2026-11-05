@@ -3247,7 +3247,7 @@ try {
   const oversized = dispatchFor('resident-oversized-materials', 80);
   const oversizedEnvelope = JSON.parse(materialsEnvelope(oversized));
   oversizedEnvelope.run_materials_json = 'x'.repeat(262145);
-  assert.throws(() => gateway.dispatch({dispatch: oversized,
+  await assert.rejects(gateway.dispatch({dispatch: oversized,
     inputBindingBody: '{}',
     dispatchEnvelope: JSON.stringify(oversizedEnvelope)}),
   {code: 'MoonBitHostFailure'});

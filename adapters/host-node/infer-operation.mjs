@@ -1232,7 +1232,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
   durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false,
   deferredGeneratedInput = false, capturedInput,
-  inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent}) {
+  inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent, prepareInputSegments}) {
   if (selected?.occurrence === undefined ||
       typeof deferred !== 'boolean' || typeof deferredGeneratedInput !== 'boolean' ||
       deferredGeneratedInput && !deferred || !deferred && typeof retainOperation !== 'function' ||
@@ -1241,6 +1241,10 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   }
   if (bindComputeSuffix !== undefined && typeof bindComputeSuffix !== 'function') {
     throw new TypeError('InvalidInferOriginalSuffixBinding');
+  }
+  if (prepareInputSegments !== undefined && (typeof prepareInputSegments !== 'function' ||
+      originalPreparation === undefined || inputPrefix !== undefined || bindComputeSuffix !== undefined)) {
+    throw new TypeError('InvalidComposedInferInputPreparation');
   }
   const selectRead = (preparation, restored) => {
     if (restored !== undefined && preparation !== undefined) {
@@ -1267,7 +1271,8 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let bound = !deferred, attempted = false;
   // A Request module can supply its already-backed original before this
   // native component selects input-dependent capacity. Never reprepare it.
-  const computePrefix = inputPrefix;
+  let computePrefix = inputPrefix;
+  let computeSuffix = selected.computeSuffix;
   const generated = generatedInput !== undefined || deferredGeneratedInput;
   const selectProvider = generated
     ? moon.clientProgramGeneratedInferLocalProvider : moon.clientProgramComposedInferLocalProvider;
@@ -1302,6 +1307,14 @@ export function openNodeComposedInferProvider({moon, selected, sources,
             throw new TypeError('InvalidComposedInferOriginalPreparation');
           }
         }
+        if (prepareInputSegments !== undefined) {
+          // The same parent already retains this actual fallible Read. Lower
+          // its checked segments once, before the existing consumer claims it;
+          // saved rows are never a GeneratedSequence or a new Source read.
+          const segments = prepareInputSegments();
+          computePrefix = runtimeField(segments, 0);
+          computeSuffix = runtimeField(segments, 1);
+        }
         operation = openNodeInferOperation({moon, graph: selected.graph,
           composedInput: generated ? undefined : {occurrence: selected.occurrence,
             prefix: computePrefix, inputs, sources,
@@ -1313,7 +1326,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           // The Request module's original binder already owns this suffix.
           // An earlier query-selection suffix is not a second issuer for it.
           computeSuffix: !generated && bindComputeSuffix === undefined
-            ? selected.computeSuffix : undefined, provider: selected.provider,
+            ? computeSuffix : undefined, provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
           egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput, ioNotification,

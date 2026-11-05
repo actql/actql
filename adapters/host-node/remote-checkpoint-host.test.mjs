@@ -26,7 +26,6 @@ import {fileURLToPath} from 'node:url';
 import {connect, RequestHeld, explainRequestLookup, explainSubmission, explainRequestCancellation,
   getSubmissionOutcome, getSubmissionAttempt} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
-import {runCapturedEffectComputation} from './entry.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
@@ -1021,29 +1020,28 @@ test('a synthetic historical held request is reviewed, answered and resumed by t
 test('installed Effect owner recovers one synthetic historical Run acceptance',
   async t => {
     const fixture = await effectFixture();
-    const registry = await readFile(join(repository,
-      'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
-    const aoa = JSON.parse(await readFile(join(repository,
-      'spec/contracts/actql-aoa.json'), 'utf8'));
-    const values = JSON.stringify(aoa.execution_contracts['REL.values']);
     let starts = 0;
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const effectInstallation = {
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 4),
-      async execute({owner: checkedOwner, moon, retainExecution}) {
+      async execute({openComputation, retainExecution}) {
         starts++;
-        const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
-          checkedOwner, registry, values, 1n, 0n, 0n, 0n);
-        assert.ok(setup);
-        const execution = await runCapturedEffectComputation(setup);
+        const {execution} = await openComputation();
         retainExecution(execution);
         return {status: 'captured_without_apply'};
       },
       resume() { assert.fail('Run acceptance cannot resume an Effect apply'); },
     };
     const directory = await mkdtemp(join(scratch, 'effect-acceptance-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
-    const first = await remoteHost(t, protectedHost('delegate',
+    let currentHost;
+    t.after(async () => {
+      await currentHost?.close();
+      await rm(directory, {recursive: true, force: true});
+    });
+    const first = currentHost = await remoteHost(t, protectedHost('delegate',
       {resumeAfterAnswer: false}), {directory, effectInstallation});
     const client = await first.as('owner-token');
     const [original] = await historicalFixtureWriters.get(client)([
@@ -1052,7 +1050,10 @@ test('installed Effect owner recovers one synthetic historical Run acceptance',
     assert.equal((await client.lookupRequest('effect-held-a')).state,
       'waiting_checkpoint');
     await first.close();
-    const restarted = await remoteHost(t, protectedHost('delegate'),
+    const diagnostics = [];
+    const restarted = currentHost = await remoteHost(t, protectedHost('delegate', {observe(name, detail) {
+      diagnostics.push({name, code: detail.code});
+    }}),
       {directory, effectInstallation});
     const reviewer = await restarted.as('reviewer-token');
     const [checkpoint] = (await reviewer.checkpoints()).items;
@@ -1061,7 +1062,14 @@ test('installed Effect owner recovers one synthetic historical Run acceptance',
     const ownerClient = await restarted.as('owner-token');
     const found = await waitFor(async () => {
       const value = await ownerClient.lookupRequest('effect-held-a');
+      if (value.kind === 'held' && value.state === 'ended') {
+        assert.fail(JSON.stringify({state: value.state, endReason: value.endReason,
+          terminalErrorCode: value.terminalErrorCode, diagnostics}));
+      }
       return value.kind === 'found' ? value : undefined;
+    }).catch(error => {
+      error.message += ` ${JSON.stringify({diagnostics, starts})}`;
+      throw error;
     });
     const execution = await ownerClient.attach(found.ref);
     await waitFor(async () => (await execution.status()).status ===
@@ -1071,7 +1079,8 @@ test('installed Effect owner recovers one synthetic historical Run acceptance',
     assert.deepEqual((await ownerClient.lookupRequest('effect-held-a')).ref, found.ref);
     assert.deepEqual((await ownerClient.attach(found.ref)).ref, found.ref);
     await assert.rejects(ownerClient.startSource(fixture.document,
-      {format: 'json', requestId: 'effect-held-a'}), {code: 'SubmissionReferenceRequired'});
+      {format: 'json', requestId: 'effect-held-a', unresolvedHistory: found}),
+    {code: 'SubmissionReferenceRequired'});
     assert.equal(starts, 1);
     await restarted.close();
 });
@@ -1403,7 +1412,11 @@ for (const readDecision of ['deny']) {
       program.stages[1].effects.save.update.from.result = 'r';
       program.results = {answer: {from: {stage: 'compute_a', result: 'r'}}};
       let providerPreparations = 0;
+      const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+        'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds,
+      program.stages.findIndex(stage => stage.effects !== undefined));
       const effectInstallation = createInstalledEffectSite({
+        prepareManagedPlan: managed.prepareManagedPlan,
         environmentWire: fixture.environmentWire,
         prepareCaptured() {
           providerPreparations++;
@@ -2115,7 +2128,8 @@ test('coinstalled historical read and current commit approvals survive the same 
     });
     const options = {directory, sourceProfilePath, effectInstallation};
     const account = (extra = {}) => {
-      const configuration = JSON.parse(effectCommitConfiguration());
+      const configuration = JSON.parse(effectCommitConfiguration(
+        'allow', 'delegate', ['answer', 'b']));
       configuration.entries[1].connection = {all: true};
       configuration.entries[1].resource = {all: true};
       return protectedHost(undefined, {...extra,
@@ -2249,6 +2263,7 @@ test('public Effect dispatch waits for and obeys the Host barrier',
 
     let refusedCaptures = 0;
     const refused = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 10),
       prepareCaptured() {
@@ -2642,11 +2657,6 @@ test('installed Effect keeps independent members after a halted row',
 test('installed Effect commit resumes the same Run without resending',
   async t => {
     const fixture = await effectFixture();
-    const registry = await readFile(join(repository,
-      'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
-    const aoa = JSON.parse(await readFile(join(repository,
-      'spec/contracts/actql-aoa.json'), 'utf8'));
-    const values = JSON.stringify(aoa.execution_contracts['REL.values']);
     const directory = await mkdtemp(join(scratch, 'effect-commit-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     const subjectFor = ref => contentCid({effect: 'save',
@@ -2657,10 +2667,13 @@ test('installed Effect commit resumes the same Run without resending',
     let sends = 0;
     let resumed = 0;
     const diagnostics = [];
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const effectInstallation = {
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 4),
-      async execute({owner: checkedOwner, moon, control, ref, runDefinition,
+      async execute({openComputation, control, ref, runDefinition,
         publicationPlan, effectAuthorization, retainExecution}) {
         computes++;
         assert.equal(publicationPlan.runDefinition.identity,
@@ -2668,10 +2681,7 @@ test('installed Effect commit resumes the same Run without resending',
         assert.equal(publicationPlan.results.length, 1);
         assert.ok(publicationPlan.invocation.identity);
         const subjectCid = subjectFor(ref);
-        const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
-          checkedOwner, registry, values, 1n, 0n, 0n, 0n);
-        assert.ok(setup);
-        const execution = await runCapturedEffectComputation(setup);
+        const {execution} = await openComputation();
         retainExecution(execution);
         const runId = control.runDefinitionRunId(runDefinition);
         const gate = await effectAuthorization({runId,
@@ -2843,7 +2853,10 @@ test('deferred target read starts no Effect and leaves no held Checkpoint',
     t.after(() => rm(directory, {recursive: true, force: true}));
     let reads = 0;
     let sends = 0;
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds);
     const effectInstallation = {
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 4),
       async execute({control, runDefinition, effectAuthorization,
@@ -3274,6 +3287,7 @@ test('historical original recovery refuses damaged private evidence without disp
   const original = await readFile(heldPath);
   const summary = items.find(item => item.subject.requestId === 'held-b');
   const review = await reader.reviewCheckpoint(summary);
+  const heldOriginal = await client.lookupRequest('held-b');
   try {
     for (const [label, damage] of [
       ['corrupt', () => writeFile(heldPath, '{broken')],
@@ -3289,7 +3303,8 @@ test('historical original recovery refuses damaged private evidence without disp
       const changed = JSON.parse(document);
       changed.stages[0].steps[0].values.rows = [{id: 999}];
       for (const text of [document, JSON.stringify(changed)]) {
-        await assert.rejects(client.startSource(text, {format: 'json', requestId: 'held-b'}),
+        await assert.rejects(client.startSource(text, {format: 'json', requestId: 'held-b',
+            unresolvedHistory: heldOriginal}),
           {code: 'SubmissionReferenceRequired'});
       }
     }

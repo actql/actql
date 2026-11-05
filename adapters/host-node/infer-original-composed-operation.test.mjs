@@ -696,3 +696,51 @@ test('restored composed async driver keeps the existing original IO notification
   const notification = operation.ioNotification;
   await operation.close(); assert.equal(notification.notify(), false);
 });
+
+for (const refusal of [undefined, 'lowering']) {
+  test(`cold composed input lowers its original segments after retained Read (refusal=${refusal ?? 'none'})`, async () => {
+    const f = originalRestoredFixture(), suffix = {}, events = [];
+    const failure = new Error('OriginalSegmentPreparationRefused');
+    let open, reads = 0, lowered = 0, retained;
+    f.moon.clientProgramComposedInferLocalProvider = (_occurrence, callback, _issue, _retain, _cleanup, prefix) => {
+      assert.equal(prefix, undefined); open = callback; return {};
+    };
+    f.moon.clientProgramBindInferComputeSuffix = (active, actual) => {
+      assert.strictEqual(active, f.active); assert.strictEqual(actual, suffix);
+      events.push('bind-suffix'); return {$tag: 1, _0: undefined};
+    };
+    f.moon.clientProgramRequireInferCallEntry = () => ({$tag: 1, _0: undefined});
+    const selected = {occurrence: f.occurrence, graph: f.graph, provider: f.provider};
+    const original = {restoreRead(input) {
+      assert.strictEqual(input, f.restoredInput); reads++; events.push('retain-read');
+      return f.originalPreparation;
+    }};
+    const component = openNodeComposedInferProvider({moon: f.moon, selected,
+      restoredInput: f.restoredInput, originalPreparation: original,
+      prepareInputSegments() {
+        assert.equal(reads, 1); assert.equal(f.calls.length, 0, 'lowering precedes the original consumer claim');
+        lowered++; events.push('lower-segments');
+        if (refusal !== undefined) throw failure;
+        return {_0: f.prefix, _1: suffix};
+      }, control: {bindCheckedClientInferRun() {events.push('bind-run');}},
+      plan: {compiled: f.originalPreparation.compiled, runDefinition: f.originalPreparation.runDefinition},
+      durableCalls: true, retainOperation(value) {retained = value; events.push('retain-operation');}});
+    assert.equal(reads, 0); assert.equal(lowered, 0);
+    if (refusal === undefined) {
+      const opened = open([]); assert.ifError(component.failure());
+      assert.strictEqual(opened, f.active); assert.strictEqual(retained, component.operation());
+      const restored = f.calls.find(call => call[0] === 'restore');
+      assert.strictEqual(restored[3], f.prefix);
+      assert.deepEqual(events, ['retain-read', 'lower-segments', 'retain-operation', 'bind-suffix', 'bind-run']);
+      assert.equal(open([]), undefined); assert.equal(reads, 1); assert.equal(lowered, 1);
+      await retained.close(); assert.equal(originalReadCleaned(f.originalPreparation.read), true);
+    } else {
+      assert.equal(open([]), undefined); assert.strictEqual(component.failure(), failure);
+      assert.equal(open([]), undefined); assert.strictEqual(component.failure(), failure);
+      assert.equal(reads, 1); assert.equal(lowered, 1); assert.equal(f.calls.length, 0);
+      assert.equal(component.operation(), undefined);
+      assert.equal(originalReadCleaned(f.originalPreparation.read), false,
+        'failed lowering keeps the actual retained Read with its existing parent cleanup');
+    }
+  });
+}
