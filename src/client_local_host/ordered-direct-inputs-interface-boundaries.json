@@ -1662,7 +1662,7 @@
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0e8bae34b81cc8ceaa92e81b83d4ee00e5ec45e8a405da4e1510371d201cb451",
+      "sha256": "5a79d4e9cbf85f8a39ee0351cdceae6053b0028e33dd9c84c630ccb992f4ad93",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1682,6 +1682,10 @@
         {
           "name": "[I]prepare_request_model_source_free_module",
           "declaration": "[ I ] prepare_request_model_source_free_module ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : ClientInstalledSequenceContracts , retained_output : Bool , installed_providers : Int , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "[I]reconcile_request_native_model_construction",
+          "declaration": "[ I ] reconcile_request_native_model_construction ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , scratch : Int64 , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
         },
         {
           "name": "[I]request_model_direct_occurrences",
@@ -1726,7 +1730,8 @@
             "prepared_request_model_input_suffix",
             "request_model_module_container_bytes",
             "request_model_provider_count",
-            "[I]request_native_model_protocol_construction_bytes"
+            "[I]request_native_model_protocol_construction_bytes",
+            "[I]reconcile_request_native_model_construction"
           ],
           "exports": [],
           "attributes": {

@@ -8,17 +8,11 @@
 // Provider read, execution capacity or successful admission is inferred here.
 fn request_local_query_construction_bytes() -> Int64? {
   let limits = installed_local_query_material_limits()
-  guard @encode.text_writer_construction_inventory(
-      limits.max_bytes,
+  guard request_local_query_writer_construction_units(
       limits.max_nodes,
       limits.max_depth,
     )
-    is Some(text) &&
-    @encode.hash_writer_construction_inventory(
-      limits.max_nodes,
-      limits.max_depth,
-    )
-    is Some(hash) &&
+    is Some(writers) &&
     @shape.collection_construction_extent({
       records: limits.max_fields.to_int64(),
       record_references: 2L * limits.max_fields.to_int64(),
@@ -33,13 +27,7 @@ fn request_local_query_construction_bytes() -> Int64? {
     })
     is Some(collections) &&
     @execution.compose_preparation_representation([
-      {
-        record_headers: 2L * text.record_headers + hash.record_headers,
-        reference_slots: 2L * text.reference_slots + hash.reference_slots,
-        scalar_words: 2L * text.scalar_words + hash.scalar_words,
-        owned_utf16_units: 2L * text.owned_utf16_units,
-        owned_wire_bytes: 2L * limits.max_bytes.to_int64(),
-      },
+      writers,
       {
         record_headers: collections.record_headers,
         reference_slots: collections.reference_slots,
@@ -61,6 +49,65 @@ fn request_local_query_construction_bytes() -> Int64? {
     return None
   }
   @execution.preparation_representation_cost(units)
+}
+
+///|
+// The SAME canonical writer inventories as the original constructor quote.
+// Output domains remain unchanged when only live cursor geometry is reduced.
+fn request_local_query_writer_construction_units(
+  nodes : Int,
+  depth : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  let limits = installed_local_query_material_limits()
+  guard @encode.text_writer_construction_inventory(
+      limits.max_bytes,
+      nodes,
+      depth,
+    )
+    is Some(text) &&
+    @encode.hash_writer_construction_inventory(nodes, depth) is Some(hash) else {
+    return None
+  }
+  Some({
+    record_headers: 2L * text.record_headers + hash.record_headers,
+    reference_slots: 2L * text.reference_slots + hash.reference_slots,
+    scalar_words: 2L * text.scalar_words + hash.scalar_words,
+    owned_utf16_units: 2L * text.owned_utf16_units,
+    owned_wire_bytes: 2L * limits.max_bytes.to_int64(),
+  })
+}
+
+///|
+// Both QueryMaterial and QueryRequirement return immutable EncodedDocuments,
+// never their writers/frames/key Maps. All text/wire output bounds, collection
+// and original issuer controls remain charged. Six separate returned CID
+// Strings (material's three plus requirement/schema's three) are kept too.
+// Only completed writer traversal scratch is returned, never output backing.
+fn request_local_query_finished_writer_bytes() -> Int64? {
+  let limits = installed_local_query_material_limits()
+  guard request_local_query_writer_construction_units(
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    is Some(full) &&
+    request_local_query_writer_construction_units(1, 0) is Some(closed) &&
+    @execution.preparation_representation_cost(full) is Some(full_bytes) &&
+    @execution.compose_preparation_representation([
+      closed,
+      {
+        record_headers: 6L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 6L * (7L + 64L),
+        owned_wire_bytes: 0L,
+      },
+    ])
+    is Some(retained) &&
+    @execution.preparation_representation_cost(retained) is Some(retained_bytes) &&
+    full_bytes >= retained_bytes else {
+    return None
+  }
+  Some(full_bytes - retained_bytes)
 }
 
 ///|
