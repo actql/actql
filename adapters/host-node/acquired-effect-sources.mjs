@@ -66,13 +66,15 @@ export function selectAcquiredEffectPlanInputs({moon, preparedEffect, requestIde
 }
 
 export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,
-  registry, values, fragment, ordered, queryTimePreparation, requestIdentity, managedPlan, managedRun}) {
+  registry, values, fragment, ordered, queryTimePreparation, requestIdentity, managedPlan, managedRun,
+  onUnsupportedSelection}) {
   const count = moon.clientProgramEffectAcquisitionCount(preparedEffect);
   if (![0, 1, 2].includes(count)) {
     throw new TypeError('UnsupportedEffectSourceCount');
   }
   const selected = [];
   const owners = new Set();
+  let firstRef;
   for (let task = 0; task < count; task++) {
     let sourceRef;
     if (requestIdentity !== undefined) {
@@ -112,10 +114,20 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
     if (typeof adapter.prepare !== 'function' || typeof adapter.open !== 'function') {
       throw new TypeError('InvalidAcquiredEffectComputationPort');
     }
-    if (count === 2 && !['duckdb-acquired', 'row-source-acquired'].includes(adapter.realizationKey)) {
-      throw new TypeError('UnsupportedEffectSourceRealization');
+    const realization = count === 2 ? adapter.realizationKey : undefined;
+    if (count === 2 && !['duckdb-acquired', 'row-source-acquired'].includes(realization)) {
+      const error = new TypeError('UnsupportedEffectSourceRealization');
+      onUnsupportedSelection?.(error, Object.freeze({reason: 'unsupported-realization', count,
+        sourceRef, adapter, realization, previousRef: firstRef, previousAdapter: selected[0]?.adapter}));
+      throw error;
     }
-    if (owners.has(adapter)) throw new TypeError('DuplicateEffectSourceOwner');
+    if (owners.has(adapter)) {
+      const error = new TypeError('DuplicateEffectSourceOwner');
+      onUnsupportedSelection?.(error, Object.freeze({reason: 'duplicate-owner', count,
+        sourceRef, adapter, realization, previousRef: firstRef, previousAdapter: selected[0]?.adapter}));
+      throw error;
+    }
+    if (selected.length === 0) firstRef = sourceRef;
     owners.add(adapter);
     selected.push(Object.freeze({adapter,
       occurrence: Object.freeze({stage: task, input: 0, task})}));

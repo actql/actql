@@ -1647,18 +1647,20 @@ test(`acquired Effect second Source approval restores the first ${realization} c
       resolveSourceSecret() { assert.fail('UnusedSourceSecret'); }};
     let host = await remoteHost(t, account(), options);
     const client = await host.as('owner-token');
-    for (const fault of ['duplicate-owner', 'unsupported-realization']) {
+    // The unused Table now has the supported row-source-acquired realization.
+    // Unsupported realizations retain their exact inert-selector controls;
+    // this installed boundary refuses a duplicate original owner before I/O.
+    for (const fault of ['duplicate-owner']) {
       const rejected = structuredClone(program);
-      rejected.stages[1].inputs.remote = fault === 'duplicate-owner'
-        ? {...rejected.stages[0].inputs.remote}
-        : {connector: 'unused-table', resource: 'rows'};
+      rejected.stages[1].inputs.remote = {...rejected.stages[0].inputs.remote};
       const rejectedRef = client.newSubmission({nonce: `second-source-${realization}-${fault}`});
       let rejectedOutcome;
       await assert.rejects(client.startSource(JSON.stringify(rejected),
         {format: 'json', submissionRef: rejectedRef}), error => {
-        assert.equal(error.code, 'SubmissionPreparationFailed');
+        // The inert selector refuses before the first durable acceptance.
+        assert.equal(error.code, 'SubmissionNotAccepted');
         rejectedOutcome = getSubmissionOutcome(error);
-        assert.equal(rejectedOutcome.kind, 'preparation_failed');
+        assert.equal(rejectedOutcome.kind, 'not_accepted');
         assert.deepEqual(rejectedOutcome.submissionRef, rejectedRef);
         assert.deepEqual(rejectedOutcome.problem,
           {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
