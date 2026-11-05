@@ -485,6 +485,14 @@ explicit Host policy keeps its request ceiling, including a lower one, and the
 whole input wire still refuses an over-limit request before any Model call.
 This service-policy DATA supplies neither an allocation nor dispatch authority.
 
+Owned Mock file request and target-recheck children retain their physical child
+before preparation. Only its actual original release and close observation
+permit successful output refinement: the same pure constructor keeps its
+existing bounded native wire/tree retention before returning the immutable
+original. This does not parse or serialize the value again, create another
+reservation, or reset spent work. Failure, pending close and lost currentness
+keep the old backing for the same cleanup retry; ordinary completion is unchanged.
+
 Installation retains the same public Task declaration, normalization and typed
 answer inventory. The first successful original startup binds the checked Task
 from those same prepared rows, and subsequent equal re-parsed Tasks cannot

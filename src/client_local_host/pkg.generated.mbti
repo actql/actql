@@ -339,6 +339,8 @@ pub fn complete_client_original_composed_keyed_prefix(ClientOriginalComposedKeye
 
 pub fn complete_installed_effect_operation_construction(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
 
+pub fn complete_installed_effect_operation_construction_output(ClientInstalledEffectOperationBorrow, String) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn complete_installed_effect_operation_control_construction(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn complete_installed_effect_operation_ledger_codec(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[Unit, ClientInstalledManagedRunIssue]

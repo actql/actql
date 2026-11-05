@@ -21170,7 +21170,8 @@
             "originalConstruct",
             "originalInputExtent",
             "requestsRetired",
-            "ownedChild"
+            "ownedChild",
+            "ownedOutputWire"
           ],
           "async": false
         },
@@ -21622,7 +21623,34 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct/finish/finish",
+          "parameters": [
+            "value"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct/init:construct",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct/init:construct/init:construct",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectOwnedRequestChild/managed/managed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/managed/managed#2",
           "parameters": [],
           "async": false
         },
@@ -21764,7 +21792,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "958b21ceb0d04f46ba68504f31276813da0c8736394ae90b4b935115479e8c9c",
+      "sha256": "c62216fed3f57da583773117d9c1b089d933b690122eacc2017884140a211840",
       "contracts": [
         {
           "operations": [
@@ -22188,7 +22216,11 @@
             "prepareInstalledEffectOwnedRequestChild/drain/drain/drain#2",
             "prepareInstalledEffectOwnedRequestChild/init:prepare/init:prepare",
             "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct",
+            "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct/finish/finish",
+            "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct/init:construct",
+            "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct/init:construct/init:construct",
             "prepareInstalledEffectOwnedRequestChild/managed/managed",
+            "prepareInstalledEffectOwnedRequestChild/managed/managed#2",
             "prepareInstalledEffectOwnedRequestChild/prepareInstalledEffectOwnedRequestChild",
             "prepareInstalledEffectOwnedRequestChild/prepareInstalledEffectOwnedRequestChild#2"
           ],
@@ -22278,6 +22310,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test('owned request cleanup retains native backing on rejected or pending original release'"
+              },
+              {
+                "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
+                "anchor": "test('owned output never refines on pending or thrown physical close and keeps the same retry'"
               }
             ]
           }
