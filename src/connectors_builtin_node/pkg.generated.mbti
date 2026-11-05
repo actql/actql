@@ -756,6 +756,8 @@ pub fn client_program_compiled_effect_program(@run_publication_host.ClientCompil
 
 pub fn client_program_compiled_infer_original(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientProgram) -> (@run_publication_host.ClientInferPlanGraph, @check_environment.ModelExecutionContract)?
 
+pub fn client_program_compiled_infer_originals(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientProgram) -> Array[(@run_publication_host.ClientInferPlanGraph, @check_environment.ModelExecutionContract)]?
+
 pub fn client_program_compiled_run_admission(@run_publication_host.ClientCompiledRun) -> @run_publication.RunPublicationAdmission
 
 pub fn client_program_compiled_run_authorization(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
@@ -1529,6 +1531,8 @@ pub fn client_program_infer_run_materials_compiled(@run_publication_host.ClientT
 pub fn client_program_infer_run_materials_definition(@run_publication_host.ClientTaskRunMaterials) -> @run_publication.PublicationContract
 
 pub fn client_program_infer_run_materials_graph(@run_publication_host.ClientTaskRunMaterials) -> @run_publication_host.ClientInferPlanGraph?
+
+pub fn client_program_infer_run_materials_graphs(@run_publication_host.ClientTaskRunMaterials) -> Array[@run_publication_host.ClientInferPlanGraph]
 
 pub fn client_program_infer_run_materials_prepared(@run_publication_host.ClientTaskRunMaterials) -> @run_publication_host.PreparedClientProgram
 

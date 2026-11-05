@@ -200,6 +200,9 @@ pub fn admit_client_effect_run_materials(
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
   }
+  if body.infer_inputs_wire is Some(_) {
+    return Err(Input(MaterialsEvidence("infer_execution_contracts")))
+  }
   match original_materials {
     Some(issued) =>
       if body.normalization_wire is None ||

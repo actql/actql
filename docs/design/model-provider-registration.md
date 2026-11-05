@@ -93,10 +93,15 @@ its original Environment and the original selected INFER execution contract.
 The dedicated installed-INFER reader checks that same saved Program and
 parameters, reconstructs the ordinary installed graph, and re-admits its saved
 prepared invocation, authorization and complete Run definition CID. It does not
-consult a current project registry or repeat default selection. Projection is
-limited to the codec's existing single installed, non-serialized INFER form;
-custom dependency graphs refuse before projection rather than emitting an
-unrestorable bundle. Other compositions retain their distinct original-material
+consult a current project registry or repeat default selection. The existing
+single installed, non-serialized INFER form retains its exact wire representation.
+A complete composed inventory uses the optional `infer_execution_contracts_json`
+field, mutually exclusive with the single-contract pair. Each ordered entry
+binds the saved execution to its checked task, stage and step. Distinct
+occurrences may share the same Task and execution contract; omitting, duplicating
+or reordering an occurrence refuses. Every projected graph must match the
+ordinary installed inverse, and custom dependency graphs refuse before emitting
+an unrestorable bundle. Other compositions retain their distinct original-material
 paths; this is not a language restriction or permission to discard them.
 
 The reconstructed preparation and graph are a new in-process nominal pair
@@ -406,7 +411,7 @@ original execution contract; current Provider/dependency, Account, egress,
 physical-input, reservation, claim, cancellation and cleanup gates remain.
 
 Other live graph profiles retain their existing first-admission behavior, but
-missing original single-graph materials are not permission to reconstruct an
+missing original graph materials are not permission to reconstruct an
 ordinary cold continuation from current configuration. Legacy missing evidence
 and unsupported durable graph forms remain unavailable rather than silently
 acquiring a new original. Effect continuation retains its distinct original
