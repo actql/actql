@@ -1234,8 +1234,12 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
       if (state?.recovery !== undefined) {
-        if (state.recovery.restored?.prepared !== prepared || state.prepared !== prepared ||
-            state.modelProviderBinding !== undefined) fail('ForeignInstalledSourceProducer');
+        if (state.recovery.restored?.prepared !== prepared || state.prepared !== prepared) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        // A restored Program can contain several original Model occurrences.
+        // Each binding reserves its own materials on this same recovery parent;
+        // an earlier occurrence's binding is not a foreign preparation.
         const recovery = state.recovery;
         reserveModelRecovery(producer, state, 3,
           index => index === 0 ? installation : index === 1 ? contract : configuration, 3);

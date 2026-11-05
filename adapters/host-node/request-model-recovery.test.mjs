@@ -26,32 +26,38 @@ function fixture({reserveFailure, constructFailure} = {}) {
   const request = {}, identity = {}, definition = {wire: 'definition'}, parent = {}, receipt = {};
   const restored = {prepared: {}, compiled: {}, graph: {}, runDefinition: definition};
   const original = {materialsWire: 'saved', resultPolicyOriginal: {wire: 'policy'}};
-  const calls = [], binding = {};
+  const calls = [], binding = {}, bindings = [];
   let active = true;
   const state = {parent, context: {}, recovery: {request: identity, definition, assertCurrent() {
     calls.push('original current'); if (!active) fail('OriginalRecoveryRetired');
   }}};
   const producer = {receipt, request, preparation: state};
-  const moon = state.context.runtime = {
-    clientProgramReserveRequestModelRecoveryMaterials(p, input, r, d, count, wireAt, containers) {
-      assert.equal(this, moon); assert.deepEqual([p, input, r, d], [parent, receipt, identity, definition]);
+  const control = {
+    reserveCheckedClientRequestModelRecoveryMaterials(p, input, r, d, count, wireAt, containers) {
+      assert.equal(this, control); assert.deepEqual([p, input, r, d], [parent, receipt, identity, definition]);
       calls.push({reserve: Array.from({length: count}, (_, i) => wireAt(i)), containers});
       if (reserveFailure !== undefined) throw reserveFailure;
     },
+  };
+  const moon = state.context.runtime = {
     clientProgramModelProviderBinding(id, installation, contract, configuration) {
-      calls.push({binding: [id, installation, contract, configuration]}); return binding;
+      const value = bindings.length === 0 ? binding : {};
+      bindings.push(value);
+      calls.push({binding: [id, installation, contract, configuration]}); return value;
     },
   };
-  const api = Function('current', 'producerForRequest', 'fail', 'checked',
+  const api = Function('current', 'producerForRequest', 'fail', 'checked', 'runtimeCore',
     helpers + `return ({${methods}});`)(() => {}, actual => {
       assert.equal(actual, request); return producer;
-    }, fail, value => value);
+    }, fail, value => value, actual => {
+      assert.equal(actual, moon); return {publicationControl: control};
+    });
   let constructed = 0;
   const restore = () => api.restoreModelOriginal(request, original, definition, identity, () => {
     constructed++; calls.push('original reader'); if (constructFailure !== undefined) throw constructFailure;
     return restored;
   });
-  return {api, restore, calls, state, producer, request, identity, definition, restored, binding,
+  return {api, restore, calls, state, producer, request, identity, definition, restored, binding, bindings,
     constructed: () => constructed, revoke: () => {active = false;}};
 }
 test('saved original and both material constructors reserve on one restoration parent without fresh compilation', () => {
@@ -71,8 +77,40 @@ test('saved original and both material constructors reserve on one restoration p
   assert.throws(f.restore, {code: 'ForeignInstalledSourceProducer'});
   assert.throws(() => f.api.prepareModelMaterials({}, f.request, 0, () => '', 0),
     {code: 'ForeignInstalledSourceProducer'});
-  assert.throws(() => f.api.prepareModelBinding(f.restored.prepared, f.request,
+  assert.throws(() => f.api.prepareModelBinding({}, f.request,
     'provider', 'installation', 'contract', 'configuration'), {code: 'ForeignInstalledSourceProducer'});
+});
+test('restored Model occurrences retain distinct bindings funded by the same original recovery', () => {
+  const f = fixture(); f.restore();
+  const first = f.api.prepareModelBinding(f.restored.prepared, f.request,
+    'first', 'installation-1', 'contract-1', 'configuration-1');
+  const second = f.api.prepareModelBinding(f.restored.prepared, f.request,
+    'second', 'installation-2', 'contract-2', 'configuration-2');
+  assert.notEqual(first, second);
+  assert.deepEqual(f.bindings, [first, second]);
+  assert.deepEqual(f.calls.filter(value => typeof value === 'object'), [
+    {reserve: ['saved', 'policy', 'definition'], containers: 3},
+    {reserve: ['installation-1', 'contract-1', 'configuration-1'], containers: 3},
+    {binding: ['first', 'installation-1', 'contract-1', 'configuration-1']},
+    {reserve: ['installation-2', 'contract-2', 'configuration-2'], containers: 3},
+    {binding: ['second', 'installation-2', 'contract-2', 'configuration-2']},
+  ]);
+  assert.equal(f.state.prepared, f.restored.prepared);
+  assert.equal(f.state.recovery.restored, f.restored);
+  assert.equal(f.constructed(), 1);
+});
+test('a later restored binding preserves current refusal and the already returned original', () => {
+  const f = fixture(); f.restore();
+  const first = f.api.prepareModelBinding(f.restored.prepared, f.request,
+    'first', 'installation-1', 'contract-1', 'configuration-1');
+  f.revoke();
+  const next = () => f.api.prepareModelBinding(f.restored.prepared, f.request,
+    'second', 'installation-2', 'contract-2', 'configuration-2');
+  assert.throws(next, {code: 'OriginalRecoveryRetired'});
+  assert.throws(next, {code: 'OriginalRecoveryRetired'});
+  assert.deepEqual(f.bindings, [first]);
+  assert.equal(f.state.modelProviderBinding, first);
+  assert.equal(f.state.recovery.restored, f.restored);
 });
 test('original reservation and reader failures latch without a second constructor or substituted preparation', () => {
   for (const kind of ['reserveFailure', 'constructFailure']) {

@@ -107,8 +107,12 @@ export function prepareRetainedCapturedDuckDBSource({moon, preparedProgram, requ
   const admittedLimits = admittedTransportPolicy(transportLimits);
   const planning = acquisitionPlanning === undefined ? undefined
     : checkDuckDBAcquisitionPlanning(acquisitionPlanning);
-  return describeCapturedSource(checkedSource, undefined, admittedLimits, planning,
+  const prepared = describeCapturedSource(checkedSource, undefined, admittedLimits, planning,
     occurrence, sourceAccess, database, schema, table);
+  // Retain only this checked requirement for explicit saved-capture restoration.
+  // This record has no acquisition, physical configuration or new-read owner.
+  preparations.set(prepared, Object.freeze({requirement, retainedOnly: true}));
+  return prepared;
 }
 
 // Checked preparation for the Host's acquisition Checkpoint. It does not
@@ -220,7 +224,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       database, schema, table, sourceAccess, transportLimits, acquisitionPlanning, occurrence});
     owner = preparations.get(prepared);
     const effectful = preparedEffect !== undefined;
-    if (owner === undefined || owner.moon !== moon ||
+    if (owner === undefined || owner.retainedOnly === true || owner.moon !== moon ||
         owner.checkedOwner !== (preparedEffect ?? preparedProgram) ||
         owner.effectful !== effectful ||
         owner.occurrence.stage !== occurrence.stage ||

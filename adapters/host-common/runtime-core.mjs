@@ -2773,7 +2773,11 @@ function publicationControl(moon) {
           typeof moon.clientProgramCompiledInferOriginals !== 'function') {
         throw new TypeError('Foreign Client original Infer compilation');
       }
-      const originals = moon.clientProgramCompiledInferOriginals(value, checkedProgram);
+      const originalOption = moon.clientProgramCompiledInferOriginals(value, checkedProgram);
+      // This exact export specializes Option<Array<Tuple>> as a boxed Option.
+      // The singular tuple export above has a different, unboxed layout.
+      const originals = runtimeIsBoxedSome(originalOption)
+        ? runtimeField(originalOption, 0) : undefined;
       if (!Array.isArray(originals) || originals.length < 1 || originals.length > 128 ||
           originals.some(original => runtimeField(original, 0) === undefined ||
             runtimeField(original, 1) === undefined)) {

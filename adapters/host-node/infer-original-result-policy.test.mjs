@@ -134,7 +134,8 @@ test('plural saved Infer preserves each opaque graph and execution in a copied o
   f.moon.clientProgramCompiledInferOriginals = (raw, prepared) => {
     assert.strictEqual(raw, f.restoredRaw);
     return prepared === f.restoredPrepared
-      ? f.restoredGraphs.map((graph, index) => ({_0: graph, _1: f.restoredExecutions[index]})) : undefined;
+      ? {$tag: 1, _0: f.restoredGraphs.map((graph, index) => ({_0: graph, _1: f.restoredExecutions[index]}))}
+      : {$tag: 0};
   };
   const restored = f.restore(f.original());
   assert.ok(Object.isFrozen(restored.graph));
@@ -155,6 +156,19 @@ test('plural saved Infer preserves each opaque graph and execution in a copied o
     {...restored.compiled}, f.restoredPrepared, f.definition), /Foreign/u);
   assert.throws(() => f.control.checkedClientCompiledInferOriginals(
     restored.compiled, {}, f.definition), /Foreign/u);
+});
+
+test('plural original Infer projection refuses None, bare arrays and malformed boxed inventories', () => {
+  const f = fixture(), restored = f.restore(f.original());
+  const tuple = {_0: f.restoredGraphs[0], _1: f.restoredExecutions[0]};
+  for (const invalid of [{$tag: 0}, undefined, [tuple], {$tag: 1},
+    {$tag: 1, _0: []}, {$tag: 1, _0: Array(129).fill(tuple)},
+    {$tag: 1, _0: [{_0: tuple._0}]}, {$tag: 1, _0: [{_1: tuple._1}]}]) {
+    f.moon.clientProgramCompiledInferOriginals = () => invalid;
+    assert.throws(() => f.control.checkedClientCompiledInferOriginals(
+      restored.compiled, f.restoredPrepared, f.definition),
+    /Foreign Client original Infer preparation/u);
+  }
 });
 
 test('saved Infer rejects missing, empty and oversized graph inventories before retaining a restored owner', () => {

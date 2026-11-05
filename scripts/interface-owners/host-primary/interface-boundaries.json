@@ -1598,7 +1598,7 @@
     },
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
-      "sha256": "249b957c701fe05c5c3a4ec19f07bf7075c358771c9548cb66976383f2b79948",
+      "sha256": "283a33719e43444b6374bfd89b2787c64d217e113d14f4204c67b6ba06d155f9",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -7988,7 +7988,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -11417,7 +11417,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -14687,7 +14687,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -16313,6 +16313,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareKeyedSources/prepareKeyedSources",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedAcquisition/prepareRetainedAcquisition",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedCaptureAcquisition/prepareRetainedCaptureAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/projectRunObservation/projectRunObservation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/reconcile/reconcile",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture",
@@ -17635,7 +17636,7 @@
                 "path": "adapters/host-node/infer-run-original-host.test.mjs"
               },
               {
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1",
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921",
                 "path": "adapters/host-node/model-resume-public.test.mjs"
               },
               {
@@ -19800,6 +19801,15 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedAcquisition/prepareRetainedAcquisition",
+          "parameters": [
+            "preparedProgram",
+            "occurrence",
+            "selectedSource"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedCaptureAcquisition/prepareRetainedCaptureAcquisition",
           "parameters": [
             "preparedProgram",
             "occurrence",
@@ -22622,12 +22632,12 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "6fb27154bb52cd2bb25efb569daf9651c250e74b4523f0b88de1f3546ad7a343"
+      "sha256": "6f3117fd0193bd06eaf386c503019b29e997846088df0e493a12d486559ddb73"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A — existing Host preparation input boundary",
+      "owner": "A \u2014 existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -24469,7 +24479,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -24772,7 +24782,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -25293,7 +25303,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
