@@ -11,6 +11,7 @@ import {parseCommands} from './verification-actions.mjs';
 const runtimeNames = new Set(['backtrace.c', 'env.c', 'runtime.c', 'sync_io.c', 'utf.c']);
 const cSource = value => /\.(?:c|cc|cpp|cxx)$/u.test(value);
 const allocator = '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC';
+const profiles = new Set(['runtime-values', 'scoped-review-values']);
 const canonicalSource = (root, value) => resolve(root, value);
 
 export function nativeCoreScopedInputs(root, plan, moonHome) {
@@ -48,6 +49,7 @@ export function nativeCoreScopedInputs(root, plan, moonHome) {
 }
 
 export function nativeCoreScopedCArguments(config, args) {
+  assert(profiles.has(config.profile), 'Unknown Native Core allocation profile');
   const sources = args.filter(cSource);
   assert.equal(sources.length, 1, 'One original scoped C source per invocation');
   assert.equal(args.filter(value => value === '-o').length, 1, 'One scoped C output');
@@ -63,7 +65,7 @@ export function nativeCoreScopedCArguments(config, args) {
     value === sources[0] && dirname(source) === join(config.moonHome, 'lib/runtime')
       ? join(config.sourceDirectory, basename(source)) : value);
   const prefix = ['-I' + config.sourceDirectory, '-DACTQL_SCOPED_READ_ALLOCATOR',
-    '-DACTQL_RUNTIME_MANAGED_VALUES=1'];
+    ...(config.profile === 'runtime-values' ? ['-DACTQL_RUNTIME_MANAGED_VALUES=1'] : [])];
   if (source === join(config.repository, 'src/platform_native/host_bootstrap/bootstrap_stub.c')) {
     prefix.push('-DACTQL_SCOPED_READ_PROVIDER=' + JSON.stringify(join(config.sourceDirectory, 'owned_capacity.c')));
   }
@@ -85,8 +87,9 @@ export function runNativeCoreScopedCompiler(configPath, kind, args) {
 
 export function prepareNativeCoreScopedProfile(repository, scratch, args, {
   env = process.env, platform = process.platform, arch = process.arch,
-  execute = execFileSync,
+  execute = execFileSync, profile = 'runtime-values',
 } = {}) {
+  assert(profiles.has(profile), 'Unknown Native Core allocation profile');
   assert.equal(platform, 'darwin', 'This scoped Core test profile requires Darwin arm64');
   assert.equal(arch, 'arm64', 'This scoped Core test profile requires Darwin arm64');
   assert.equal(env.MOON_CC, undefined, 'Keep an explicit Moon compiler profile authoritative');
@@ -134,7 +137,7 @@ export function prepareNativeCoreScopedProfile(repository, scratch, args, {
   const inputs = nativeCoreScopedInputs(repository, plan, moonHome);
   const configPath = join(directory, 'compiler-inputs.json');
   const config = {repository, moonHome, sourceDirectory, targetDirectory, inputs,
-    compilers};
+    compilers, profile};
   writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', {flag: 'wx'});
   const bin = join(directory, 'bin'); mkdirSync(bin);
   for (const kind of Object.keys(compilers)) writeFileSync(join(bin, kind),
@@ -147,7 +150,7 @@ export function prepareNativeCoreScopedProfile(repository, scratch, args, {
     CXX: join(bin, env.CXX === undefined ? 'c++' : 'package-c++')};
   return {environment, targetDirectory, compilerInputs: {
     qualification: 'selected-provider compiler inputs only; no test execution or artifact authority',
-    configPath, sourceDirectory, inputs, recipeSha256: record.recipe_sha256,
+    configPath, sourceDirectory, inputs, profile, recipeSha256: record.recipe_sha256,
     patchSha256: record.patch_sha256, target: record.target,
   }};
 }

@@ -24,7 +24,7 @@ function plan(root, moon, target, driver = '/original/cc') {
 function config() {
   const repository = '/original', moonHome = '/pinned/moon', sourceDirectory = '/owned/read';
   const target = '/original/_build/scoped-owned';
-  return {repository, moonHome, sourceDirectory,
+  return {repository, moonHome, sourceDirectory, profile: 'runtime-values',
     inputs: nativeCoreScopedInputs(repository, plan(repository, moonHome, target), moonHome)};
 }
 
@@ -50,6 +50,21 @@ test('closed selected C profile preserves original FFI/link flags and changes on
     assert.deepEqual(selected.slice(3), [...original.slice(0, -1), '/owned/read/' + input.source.split('/').at(-1)]);
     assert(!selected.some(value => value.startsWith('-DACTQL_SCOPED_READ_PROVIDER=')));
   }
+});
+
+
+test('explicit scoped review changes only the copied-value allocation selector for every original C input', () => {
+  const c = config();
+  for (const input of c.inputs) {
+    const args = ['-o', input.output, '-O2', '-fwrapv', input.source, 'original.a', '-lm'];
+    const runtime = nativeCoreScopedCArguments(c, args);
+    const scoped = nativeCoreScopedCArguments({...c, profile:'scoped-review-values'}, args);
+    assert(runtime.includes('-DACTQL_RUNTIME_MANAGED_VALUES=1'));
+    assert.deepEqual(scoped, runtime.filter(value => value !== '-DACTQL_RUNTIME_MANAGED_VALUES=1'));
+  }
+  const input = c.inputs[0];
+  for (const profile of [undefined, '', 'foreign']) assert.throws(() =>
+    nativeCoreScopedCArguments({...c, profile}, ['-o',input.output,input.source]), /Unknown Native Core allocation profile/u);
 });
 
 test('closed C plan refuses missing/duplicate provider or runtime and foreign invocations', () => {
@@ -104,6 +119,8 @@ test('preparation uses the normal verified source copier and preserves compiler/
     {env, platform: 'darwin', arch: 'arm64', execute});
   assert.equal(prepared.targetDirectory, join(f.scratch, 'native-core-scoped-profile/target'));
   assert.equal(prepared.compilerInputs.inputs.length, 7);
+  assert.equal(prepared.compilerInputs.profile, 'runtime-values');
+  assert.equal(JSON.parse(readFileSync(prepared.compilerInputs.configPath)).profile, 'runtime-values');
   assert.equal(prepared.environment.MOON_HOME, f.moonHome);
   assert.equal(prepared.environment.MOONBIT_NEW_NATIVE, '0');
   assert.equal(realpathSync(join(prepared.environment.PATH.split(':')[0], 'ar')), ar);
@@ -125,12 +142,26 @@ test('preparation uses the normal verified source copier and preserves compiler/
   }
   assert.deepEqual(JSON.parse(readFileSync(prepared.compilerInputs.configPath)).compilers,
     {'cc':compiler,'c++':cxx,'package-cc':packageCC,'package-c++':packageCXX});
+  const reviewScratch = join(f.repository, '_build/scoped-review');mkdirSync(reviewScratch);
+  const review = prepareNativeCoreScopedProfile(f.repository, reviewScratch, args,
+    {env, platform:'darwin', arch:'arm64', execute, profile:'scoped-review-values'});
+  assert.equal(review.compilerInputs.profile, 'scoped-review-values');
+  assert.equal(JSON.parse(readFileSync(review.compilerInputs.configPath)).profile, 'scoped-review-values');
+  assert.notEqual(review.targetDirectory, prepared.targetDirectory);
+  const reviewInput = review.compilerInputs.inputs.at(-1);
+  const reviewResult = spawnSync(review.environment.CC, ['-o',reviewInput.output,'-O2',reviewInput.source],
+    {cwd:f.repository,env:review.environment,encoding:'utf8',timeout:5000});
+  assert.equal(reviewResult.status, 7, reviewResult.stderr);
+  const reviewArgs = JSON.parse(reviewResult.stdout).args;
+  assert(reviewArgs.includes('-DACTQL_SCOPED_READ_ALLOCATOR'));
+  assert(!reviewArgs.includes('-DACTQL_RUNTIME_MANAGED_VALUES=1'));
+  assert(reviewArgs.includes('-O0'));
 });
 
 test('unsupported host or an explicit foreign compiler/allocator refuses instead of skipping', t => {
   const f = fixture(t);
   const base = {env: {MOON_HOME: f.moonHome}, platform: 'darwin', arch: 'arm64', execute() {assert.fail('no execution');}};
-  for (const changed of [{platform: 'linux'}, {arch: 'x64'}, {env: {...base.env, MOON_CC: '/original/owner'}},
+  for (const changed of [{profile:'foreign'}, {platform: 'linux'}, {arch: 'x64'}, {env: {...base.env, MOON_CC: '/original/owner'}},
     {env: {...base.env, MOONBIT_ALLOCATOR: 'foreign'}}]) {
     assert.throws(() => prepareNativeCoreScopedProfile(f.repository, f.scratch, ['--target', 'native'], {...base, ...changed}));
   }
