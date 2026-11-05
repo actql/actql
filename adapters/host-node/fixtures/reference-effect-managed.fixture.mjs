@@ -1,12 +1,13 @@
 // The historical reference provider's real component work uses the SAME Plan
-// and Ledger as its checked VALUES input. This qualifies the fixture's bounded
+// and Ledger as its checked Program. This qualifies the fixture's bounded
 // in-process protocol, not an installed UPDATE provider or an HTTP transport.
 import assert from 'node:assert/strict';
 import {checked} from '../../host-common/runtime-result.mjs';
 import {prepareInstalledPhysicalWritePlanRecipe, prepareInstalledEffectManagedPlan}
   from '../installed-effect-plan.mjs';
 
-export function referenceEffectManagedFixture(runtime, effectIds = ['save']) {
+export function referenceEffectManagedFixture(runtime, effectIds = ['save'], stageIndex = 0) {
+  assert(Number.isSafeInteger(stageIndex) && stageIndex >= 0);
   assert(Array.isArray(effectIds) && effectIds.length > 0);
   assert(effectIds.every(id => typeof id === 'string' && id.length > 0));
   assert.equal(new Set(effectIds).size, effectIds.length);
@@ -36,7 +37,7 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save']) {
     prepareManagedPlan(facts, inputs) {
       const recipe = selected(runtime);
       return prepareInstalledEffectManagedPlan({moon: runtime, facts, inputs,
-        unit: {stageIndex: 0}, members, recipeFor: () => recipe});
+        unit: {stageIndex}, members, recipeFor: () => recipe});
     },
     async stage(facts, recovery, construct, aliasesRetired = () => true) {
       const run = facts.managedEffect, recipe = selected(facts.moon);
@@ -44,7 +45,7 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save']) {
       const slot = recovery ? recipe.recoveryConstruction : recipe.captureConstruction;
       const operation = recipe.memberOperations[slot.operationIndex].operation;
       const tokens = [];
-      let closed = false;
+      let closed = false, started = false;
       let running = true, inputsReleased = false, disposed = false, active;
       let release, dispose, releasing = false, disposing = false, closing = false;
       const retainInputCleanup = original => {
@@ -113,9 +114,11 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save']) {
         assert.equal(checked(runtime.clientProgramInstalledEffectOperationRetire(active.value, true)), true);
         active = undefined;
       };
-      try {
-        // The real combined Preview/export constructor visits each authored
-        // member. Keep every original before fallible work or a later retain.
+      const beginConstruction = () => {
+        assert.equal(started, false);started = true;
+        original(run);
+        // Original input metadata selects the actual row inventory first;
+        // every member's body then precedes asynchronous export/Preview work.
         for (let memberIndex = 0; memberIndex < members.length; memberIndex++) {
           const token = checked(runtime.clientProgramInstalledEffectOperationConstructionRetain(
             run.value, run.prepared, run.request, run.operationPlan, memberIndex, false,
@@ -123,8 +126,17 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save']) {
           tokens.push(token);
           checked(runtime.clientProgramInstalledEffectOperationConstructionBegin(token));
         }
+      };
+      try {
+        if (recovery) {
+          run.controlConstruction.retainRecoveredInputs(facts.control,
+            run.definitionOriginal.allowed, run.definitionOriginal.definition,
+            facts.recovered.computation.invocation, facts.recovered.computation.preview);
+          beginConstruction();
+        }
         const stage = await construct({physical, completed, controlConstruction: run.controlConstruction,
-          retainInputCleanup, retainStageCleanup});
+          retainInputCleanup, retainStageCleanup, beginConstruction});
+        assert.equal(started, true, 'actual capture must enter its original constructors before asynchronous capture work');
         stage.referencePhysical = physical;stage.referenceCompleted = completed;
         if (stage.releaseInputs !== undefined) {
           if (release === undefined) retainInputCleanup(stage.releaseInputs);

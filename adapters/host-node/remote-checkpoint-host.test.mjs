@@ -407,7 +407,7 @@ function referenceLedger(directory, moon, requestIdentity, controlConstruction) 
 
 async function prepareReferenceCapture(facts, {directory, mappingCids,
   sends, loseReply, failRow, physical, completed, controlConstruction,
-  retainInputCleanup, retainStageCleanup, maxInputPins = 2,
+  retainInputCleanup, retainStageCleanup, beginConstruction, maxInputPins = 2,
   expectedDependencyCount = maxInputPins === 3 ? 2 : undefined}) {
   const {moon, control, store, execution, publicationPlan: plan,
     prepared, checkedHost, identity} = facts;
@@ -416,9 +416,16 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
     invocation: plan.invocation, results: plan.results,
     outputLimits: plan.outputLimits,
     contractLimits: plan.contractLimits});
+  // Completed-output storage has its original managed Result-import owner.
+  // Match captureStage: retain actual input inventory after storage, then
+  // enter each capture constructor before asynchronous Source export/Preview.
   const inputs = checked(moon.clientProgramPinEffectSources(checkedHost, maxInputPins));
   const releaseInputs = () => {moon.clientProgramReleaseEffectInputs(inputs);};
   retainInputCleanup?.(releaseInputs);
+  if (beginConstruction !== undefined) {
+    controlConstruction.retainInputs(inputs);
+    beginConstruction();
+  }
   const sourceSet = await preparePinnedEffectSourceSet({moon,
     checkedOwner: prepared, execution, inputs,
     maxMembers: mappingCids.length,
@@ -1719,12 +1726,17 @@ test(outcome === 'cancel' || outcome === 'reject'
       // The final response is lost after three durable successes. This is
       // interrupted-Host recovery, not an adapter's handled row-failure case.
       loseReply: (member, row) => lostReply && member === 1 && row === 1};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)), fixture.effectIds,
+    program.stages.findIndex(stage => stage.effects !== undefined));
     const installed = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 24),
       async prepareCaptured(facts) {
         captures++;
-        try { return await prepareReferenceCapture(facts, hooks); }
+        try { return await managed.stage(facts, false,
+          owned => prepareReferenceCapture(facts, {...hooks, ...owned})); }
         catch (error) {
           diagnostics.push({name: 'capture_failure', stack: error.stack,
             cause: error.cause});
@@ -1733,7 +1745,8 @@ test(outcome === 'cancel' || outcome === 'reject'
       },
       prepareRecovered(facts) {
         recoveries++;
-        return prepareReferenceRecovery(facts, hooks);
+        return managed.stage(facts, true,
+          owned => prepareReferenceRecovery(facts, {...hooks, ...owned}));
       },
     });
     const checkedUnitFacts = facts => ({...facts,
@@ -1752,6 +1765,10 @@ test(outcome === 'cancel' || outcome === 'reject'
       const configuration = JSON.parse(effectCommitConfiguration());
       configuration.entries[1].connection = {all: true};
       configuration.entries[1].resource = {all: true};
+      configuration.entries.push({entry_id: 'owner-read', outcome: 'allow',
+        principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/answer', 'run']}, operation: {any_of: ['read']}, exclusions: []});
+      configuration.entries.sort((a, b) => a.entry_id < b.entry_id ? -1 : a.entry_id > b.entry_id ? 1 : 0);
       return protectedHost(undefined, {
         accountConfiguration: canonicalJson(configuration),
         observe: (name, detail) => diagnostics.push({name, detail}),
@@ -3565,6 +3582,8 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
                 facts.moon.clientProgramReleaseEffectInputs(inputs);
                 return true;
               });
+              owned.controlConstruction.retainInputs(inputs);
+              owned.beginConstruction();
               const ledger = referenceLedger(directory, facts.moon, facts.identity, owned.controlConstruction);
               owned.retainStageCleanup(() => {
                 ledgerCloses++;
