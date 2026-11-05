@@ -113,7 +113,7 @@ const checkChild = result => {
   }
 };
 if (full) {
-  // Both configurations execute their original compiler-owned cases. The
+  // Each configuration executes its original compiler-owned cases. The
   // ordinary configuration also checks that no physical provider was selected;
   // physical custody cases must instead run with the real scoped provider.
   const runProfile = (profile, environment) => {
@@ -134,37 +134,50 @@ if (full) {
     // provider. Raw system SQLite/OpenSSL remain the ordinary fixture inputs.
     const components = prepareNativeRuntimeBundleLibraries(root,
       join(scopedScratch.path, 'components'), {seconds: 900});
-    // Start from the original PATH, not the ordinary test-only compiler shim.
-    const scoped = prepareNativeCoreScopedProfile(root, scopedScratch.path,
-      ['--target', 'native', ...selection.profiles.scoped.args], {env: fixtureEnvironment});
     // These physical cases use the SQLite/Reader fixtures above. Salesforce's
     // request/response oracle belongs to the ordinary selection and remains
     // required there; the selected cases must not pretend to execute it again.
     console.log(`Native Core scoped profile: ${selection.profiles.scoped.cases} required cases`);
     const scopedDeadline = Date.now() + 3600000;
-    // Each original case initializes its own physical region header. Closing
-    // that region does not erase the header, and the cases require different
-    // exact backing extents. Keep the compiled target, never reset a used file.
-    for (const [ordinal, test] of selection.profiles.scoped.tests.entries()) {
-      const caseNamespace = join(namespace, `scoped-case-${ordinal}`);
-      mkdirSync(caseNamespace, {mode: 0o700});
-      const physical = nativeCoreScopedFixture(caseNamespace, {
-        cryptoLibrary: components.cryptoLibrary,
-        sqliteLibrary: components.sqliteLibrary,
-        backingPages: test.source ===
-          'src/platform_native/installed_arena_control/local_host_crypto_physical_scoped_wbtest.mbt'
-          ? 8192 : 256,
-      });
-      const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
-        '--target-dir', scoped.targetDirectory];
-      const timeout = scopedDeadline - Date.now();
-      if (timeout <= 0) throw new Error('Selected Native Core deadline exhausted');
-      checkChild(spawnSync(process.execPath, ['--input-type=module', '-e',
-        "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
-        "process.exitCode = runFocusedTests('moon', " + JSON.stringify(scopedArgs) +
-        ", {timeout: " + timeout + ", expectedTests: 1, evidenceScratch: " +
-        JSON.stringify(scopedScratch.path) + "});"],
-      {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment, ...physical}}));
+    const arenaSource = 'src/platform_native/installed_arena_control/';
+    // Local keeps ordinary copied Moon values on the runtime. The explicitly
+    // scoped Arena diagnostics instead exercise Read-owned managed aliases.
+    // Their existing allocation profiles must never share a compiled target.
+    for (const profile of ['runtime-values', 'scoped-review-values']) {
+      const tests = selection.profiles.scoped.tests.filter(test =>
+        test.source.startsWith(arenaSource) === (profile === 'scoped-review-values'));
+      if (tests.length === 0) continue;
+      const profileNamespace = join(scopedScratch.path, profile);
+      mkdirSync(profileNamespace, {mode: 0o700});
+      // Start from the original PATH, not the ordinary test-only compiler shim.
+      const scoped = prepareNativeCoreScopedProfile(root, profileNamespace,
+        ['--target', 'native', ...args, ...new Set(tests.map(test => test.source))],
+        {env: fixtureEnvironment, profile});
+      console.log(`Native Core ${profile}: ${tests.length} required cases`);
+      // Each original case initializes its own physical region header. Closing
+      // that region does not erase the header, and the cases require different
+      // exact backing extents. Keep the compiled target, never reset a used file.
+      for (const [ordinal, test] of tests.entries()) {
+        const caseNamespace = join(namespace, `scoped-${profile}-case-${ordinal}`);
+        mkdirSync(caseNamespace, {mode: 0o700});
+        const physical = nativeCoreScopedFixture(caseNamespace, {
+          cryptoLibrary: components.cryptoLibrary,
+          sqliteLibrary: components.sqliteLibrary,
+          backingPages: test.source ===
+            'src/platform_native/installed_arena_control/local_host_crypto_physical_scoped_wbtest.mbt'
+            ? 8192 : 256,
+        });
+        const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
+          '--target-dir', scoped.targetDirectory];
+        const timeout = scopedDeadline - Date.now();
+        if (timeout <= 0) throw new Error('Selected Native Core deadline exhausted');
+        checkChild(spawnSync(process.execPath, ['--input-type=module', '-e',
+          "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+          "process.exitCode = runFocusedTests('moon', " + JSON.stringify(scopedArgs) +
+          ", {timeout: " + timeout + ", expectedTests: 1, evidenceScratch: " +
+          JSON.stringify(scopedScratch.path) + "});"],
+        {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment, ...physical}}));
+      }
     }
     scopedScratch.passed();
   }
