@@ -2325,3 +2325,41 @@ pub fn client_program_complete_installed_effect_capture_recovery(
 ) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
   @client_local_host.complete_installed_effect_capture_recovery(original)
 }
+
+///|
+#export_name("clientProgramPrepareRequestEffectModelsReadScopes")
+pub fn client_program_prepare_request_effect_models_read_scopes(
+  parent : @client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal],
+  input : ClientLocalPreparationInputOriginal, plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[Array[@publication_host.ClientModelReadScope], @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.prepare_request_effect_models_read_scopes(parent, input, plan)
+}
+
+///|
+#export_name("clientProgramPrepareRequestEffectModelsReadScopesWithQuantities")
+pub fn client_program_prepare_request_effect_models_read_scopes_with_quantities(
+  parent : @client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal],
+  input : ClientLocalPreparationInputOriginal, plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  tokens : Int64, cost_units : Int64, duration_ms : Int64,
+) -> Result[Array[@publication_host.ClientModelReadScope], @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.prepare_request_effect_models_read_scopes(parent, input, plan,
+    quantity_limits=Some({ tokens, cost_units, duration_ms, }))
+}
+
+///|
+#export_name("clientProgramAdoptRequestEffectModelsPreparation")
+pub fn client_program_adopt_request_effect_models_preparation(
+  parent : @client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal],
+  request : @publication_host.ClientRequestIdentity, scopes : Array[@publication_host.ClientModelReadScope],
+) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue] {
+  guard scopes.get(0) is Some(scope) else { return Err(@client_local_host.ForeignOriginal) }
+  @client_local_host.begin_request_effect_model_managed_run(parent, request, scope, scopes=Some(scopes))
+}
+
+///|
+#export_name("clientProgramInstalledEffectModelsDemandPrepare")
+pub fn client_program_installed_effect_models_demand_prepare(
+  originals : Array[@client_local_host.ClientInstalledEffectModelDemand],
+) -> Result[@client_local_host.ClientInstalledEffectModelDemand, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.prepare_installed_effect_models_demand(originals)
+}

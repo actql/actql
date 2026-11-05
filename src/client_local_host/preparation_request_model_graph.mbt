@@ -109,7 +109,8 @@ pub fn[I] prepare_request_model_graph(
   let multi = match prepared {
     Pure(original) =>
       @publication_host.prepared_client_composed_infer_occurrences(original)
-    Effect(_) => None
+    Effect(original) =>
+      @publication_host.prepared_client_effect_infer_occurrences(original)
   }
   if multi is Some(occurrences) && occurrences.length() > 1 {
     guard prior_count < occurrences.length() &&

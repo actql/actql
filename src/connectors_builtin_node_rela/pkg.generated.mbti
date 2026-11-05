@@ -268,6 +268,8 @@ pub fn client_program_adopt_request_content_preparation(@client_local_host.Clien
 
 pub fn client_program_adopt_request_effect_model_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientModelReadScope) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_adopt_request_effect_models_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientRequestIdentity, Array[@run_publication_host.ClientModelReadScope]) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_adopt_request_effect_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_adopt_request_model_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientModelReadScope) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
@@ -482,6 +484,8 @@ pub fn client_program_compilation_template_wire(@run_publication_host.ClientValu
 
 pub fn client_program_compile_local_effects(@run_publication_host.PreparedClientEffectComputation) -> Result[@run_publication_host.ClientEffectCompilation, ClientProgramEffectCompilationBridgeIssue]
 
+pub fn client_program_compile_local_effects_with_infers(@run_publication_host.PreparedClientEffectComputation, Array[@run_publication_host.ClientInferPlanGraph]) -> Result[@run_publication_host.ClientEffectCompilation, ClientProgramEffectCompilationBridgeIssue]
+
 pub fn client_program_compile_local_tasks(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientTaskCompilation, ClientProgramTaskCompilationBridgeIssue]
 
 pub fn client_program_compile_local_values(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientProgramValuesCompilationBridgeIssue]
@@ -604,6 +608,8 @@ pub fn client_program_effect_compilation_fact_manifest_wire(@run_publication_hos
 
 pub fn client_program_effect_compilation_infer_original(@run_publication_host.ClientEffectCompilation) -> (@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract)?
 
+pub fn client_program_effect_compilation_infer_originals(@run_publication_host.ClientEffectCompilation) -> Array[(@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract)]?
+
 pub fn client_program_effect_compilation_issue_code(Result[@run_publication_host.ClientEffectCompilation, ClientProgramEffectCompilationBridgeIssue]) -> String?
 
 pub fn client_program_effect_compilation_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
@@ -623,6 +629,8 @@ pub fn client_program_effect_definition_cid(@run_publication_host.PreparedClient
 pub fn client_program_effect_dependency_body_cid(@run_publication.CapturedEffectDependencyBody) -> String
 
 pub fn client_program_effect_environment_cid(@run_publication_host.PreparedClientEffectComputation) -> String
+
+pub fn client_program_effect_infer_occurrences(@run_publication_host.PreparedClientEffectComputation) -> Result[Array[@run_publication_host.ClientInferOccurrence], @client_infer_host.Issue]
 
 pub fn client_program_effect_input_at(@physical_strategy_host.CapturedEffectInputs, Int) -> @physical_strategy_host.CapturedEffectInput?
 
@@ -957,6 +965,8 @@ pub fn client_program_infer_run_materials_prepared(@run_publication_host.ClientT
 pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
 
 pub fn client_program_installed_duckdb_capture_capacity_accepts(@client_local_host.ClientInstalledCaptureCapacity, @actql/actql/connectors/duckdb/host.CaptureConfiguration) -> Bool
+
+pub fn client_program_installed_effect_models_demand_prepare(Array[@client_local_host.ClientInstalledEffectModelDemand]) -> Result[@client_local_host.ClientInstalledEffectModelDemand, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
 
@@ -1661,6 +1671,10 @@ pub fn client_program_prepare_request_computation_check(@client_local_host.Clien
 pub fn client_program_prepare_request_effect_model_read_scope(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[@run_publication_host.ClientModelReadScope, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_prepare_request_effect_model_read_scope_with_quantities(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledEffectManagedPlan, Int64, Int64, Int64) -> Result[@run_publication_host.ClientModelReadScope, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_prepare_request_effect_models_read_scopes(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[Array[@run_publication_host.ClientModelReadScope], @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_prepare_request_effect_models_read_scopes_with_quantities(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledEffectManagedPlan, Int64, Int64, Int64) -> Result[Array[@run_publication_host.ClientModelReadScope], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_prepare_request_keyed_serialization_compilation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedKeyedPreparation, @run_publication_host.ClientSerializationPlanGraph) -> Result[@run_publication_host.ClientTaskCompilation, ClientRequestProgramModuleBridgeIssue]
 

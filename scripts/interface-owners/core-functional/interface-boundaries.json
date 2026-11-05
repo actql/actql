@@ -32821,7 +32821,7 @@
     },
     {
       "module": "src/client_local_host/client_sequence.mbt",
-      "sha256": "367b18dc260f7857579835a70c5d740d3554c1d99aa6fa4a614c9962ef37517d",
+      "sha256": "9626d33f751e82a352c8ad82ffb65881b072cf1c1c29e474d57944bfc6218eda",
       "exports": [],
       "operations": [
         {
@@ -33970,12 +33970,16 @@
     },
     {
       "module": "src/client_local_host/installed_effect_model_demand.mbt",
-      "sha256": "e27d887d7e2a8e9aa10b0f59041eb3f99aacb39528bc3a45547aef43d7b562cc",
+      "sha256": "716b302d35b4f150b2719a77585271fb5aa7e7b37cee0cf55381b4a059a2ebad",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
+        {
+          "name": "installed_effect_model_demand_complete",
+          "declaration": "installed_effect_model_demand_complete ( model : ClientInstalledEffectModelDemand ) - > Bool"
+        },
         {
           "name": "installed_effect_model_read_window",
           "declaration": "installed_effect_model_read_window ( model : ClientInstalledEffectModelDemand , ) - > Array [ Int64 ]"
@@ -33991,6 +33995,10 @@
         {
           "name": "prepare_installed_effect_model_demand",
           "declaration": "prepare_installed_effect_model_demand ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , read_retained_bytes : Int64 , read_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap ? : ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "prepare_installed_effect_models_demand",
+          "declaration": "prepare_installed_effect_models_demand ( components : Array [ ClientInstalledEffectModelDemand ] , ) - > Result [ ClientInstalledEffectModelDemand , ClientInstalledManagedRunIssue ]"
         }
       ],
       "contracts": [
@@ -34000,7 +34008,9 @@
             "installed_effect_model_read_window",
             "installed_effect_plan_matches_model_demand",
             "prepare_installed_effect_model_demand",
-            "installed_model_demand_limits"
+            "installed_model_demand_limits",
+            "installed_effect_model_demand_complete",
+            "prepare_installed_effect_models_demand"
           ],
           "exports": [],
           "attributes": {
@@ -34834,7 +34844,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "4e669dce3c1b3a53072ea189cab2deac887771673967e81e621110f437f02829",
+      "sha256": "4a48f7e363d662a14073cb8f979b89620992e9504dc7f204cd806c7b2bb54790",
       "exports": [],
       "operations": [
         {
@@ -36329,7 +36339,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "68893a4e6e79fd222351c814c40dd7f643bd5d5cff299321b12bef6a55fcea54"
+      "sha256": "d107fd987258bd0916ec6aacf3250b78d262172474a0234b74d2285e21b79bfc"
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
@@ -41641,18 +41651,22 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "46364495b374df520eafd57fc1137a8e4902d31420fe8eff81154dd0bf155d1a",
+      "sha256": "6f0c09bb6e4ef0add0a13561b93868bea4ef4f58b6673fe64c50c6ecfd093e3a",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
       "operations": [
+        {
+          "name": "[I,T]prepare_request_effect_model_scopes_owned",
+          "declaration": "[ I , T ] prepare_request_effect_model_scopes_owned ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , quantity_limits : @ resources . QuantityAmounts ? , bind : ( ClientInstalledEffectModelDemand , @ resources . Ledger , @ resources . OriginalLedgerIdentity ) - > Result [ T , @ publication_host . ClientModelReadPreparationIssue ] , ) - > Result [ T , ClientInstalledManagedRunIssue ]"
+        },
         {
           "name": "[I]begin_request_effect_managed_run",
           "declaration": "[ I ] begin_request_effect_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "[I]begin_request_effect_model_managed_run",
-          "declaration": "[ I ] begin_request_effect_model_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+          "declaration": "[ I ] begin_request_effect_model_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , scopes ? : Array [ @ publication_host . ClientModelReadScope ] ?"
         },
         {
           "name": "[I]borrow_request_effect_plan_input",
@@ -41677,6 +41691,10 @@
         {
           "name": "[I]prepare_request_effect_model_read_scope",
           "declaration": "[ I ] prepare_request_effect_model_read_scope ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , quantity_limits ? : @ resources . QuantityAmounts ?"
+        },
+        {
+          "name": "[I]prepare_request_effect_models_read_scopes",
+          "declaration": "[ I ] prepare_request_effect_models_read_scopes ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , quantity_limits ? : @ resources . QuantityAmounts ?"
         },
         {
           "name": "[I]request_effect_plan_quote",
@@ -41859,7 +41877,9 @@
         {
           "operations": [
             "[I]prepare_request_effect_model_read_scope",
-            "[I]begin_request_effect_model_managed_run"
+            "[I]begin_request_effect_model_managed_run",
+            "[I,T]prepare_request_effect_model_scopes_owned",
+            "[I]prepare_request_effect_models_read_scopes"
           ],
           "exports": [],
           "attributes": {
@@ -55717,7 +55737,11 @@
             "client_program_prepare_request_effect_model_read_scope_with_quantities",
             "client_program_prepare_request_model_recovery_read_scopes",
             "client_program_prepare_request_model_recovery_read_scopes_with_quantities",
-            "prepare_request_model_recovery_scopes_original"
+            "prepare_request_model_recovery_scopes_original",
+            "client_program_adopt_request_effect_models_preparation",
+            "client_program_installed_effect_models_demand_prepare",
+            "client_program_prepare_request_effect_models_read_scopes",
+            "client_program_prepare_request_effect_models_read_scopes_with_quantities"
           ],
           "exports": [],
           "attributes": {
@@ -55978,6 +56002,10 @@
           "declaration": "client_program_adopt_request_effect_model_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_adopt_request_effect_models_preparation",
+          "declaration": "client_program_adopt_request_effect_models_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal ] , request : @ publication_host . ClientRequestIdentity , scopes : Array [ @ publication_host . ClientModelReadScope ] , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_adopt_request_effect_preparation",
           "declaration": "client_program_adopt_request_effect_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -56094,6 +56122,10 @@
           "declaration": "client_program_finish_request_submitted_intent ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
+          "name": "client_program_installed_effect_models_demand_prepare",
+          "declaration": "client_program_installed_effect_models_demand_prepare ( originals : Array [ @ client_local_host . ClientInstalledEffectModelDemand ] , ) - > Result [ @ client_local_host . ClientInstalledEffectModelDemand , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_installed_managed_capture_plan_prepare",
           "declaration": "client_program_installed_managed_capture_plan_prepare ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , captures : Array [ @ client_local_host . ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -56180,6 +56212,14 @@
         {
           "name": "client_program_prepare_request_effect_model_read_scope_with_quantities",
           "declaration": "client_program_prepare_request_effect_model_read_scope_with_quantities ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledEffectManagedPlan , tokens : Int64 , cost_units : Int64 , duration_ms : Int64 , ) - > Result [ @ publication_host . ClientModelReadScope , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_effect_models_read_scopes",
+          "declaration": "client_program_prepare_request_effect_models_read_scopes ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_prepare_request_effect_models_read_scopes_with_quantities",
+          "declaration": "client_program_prepare_request_effect_models_read_scopes_with_quantities ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledEffectManagedPlan , tokens : Int64 , cost_units : Int64 , duration_ms : Int64 , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_prepare_request_keyed_serialization_compilation",
@@ -56422,11 +56462,11 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "4bb0f55bf3c83564028bad1d6afe13fc708d9cedca7fc344d742232ba18f9eec"
+      "sha256": "9c26cc655257375326ac75d093a3e2641931bdff2d5ff60d968d6c849d5e439f"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "e8e745fc0ab7c102141138f5824be41cbacb97bffb389fdd55ef6c03123d61d5",
+      "sha256": "3c6046ed62fbd7486ece4d4d528e54d5723574daefc391dd77806b47700a7704",
       "exports": [],
       "operations": [
         {
@@ -56746,6 +56786,10 @@
           "declaration": "client_program_compile_local_effects ( prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ @ publication_host . ClientEffectCompilation , ClientProgramEffectCompilationBridgeIssue , ]"
         },
         {
+          "name": "client_program_compile_local_effects_with_infers",
+          "declaration": "client_program_compile_local_effects_with_infers ( prepared : @ publication_host . PreparedClientEffectComputation , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , ) - > Result [ @ publication_host . ClientEffectCompilation , ClientProgramEffectCompilationBridgeIssue , ]"
+        },
+        {
           "name": "client_program_compile_local_tasks",
           "declaration": "client_program_compile_local_tasks ( prepared : @ publication_host . PreparedClientProgram , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientProgramTaskCompilationBridgeIssue , ]"
         },
@@ -56890,6 +56934,10 @@
           "declaration": "client_program_effect_compilation_infer_original ( value : @ publication_host . ClientEffectCompilation , ) - > ( @ publication_host . ClientInferPlanGraph , @ publication_host . ClientInferOccurrence , @ check_environment . ModelExecutionContract , ) ?"
         },
         {
+          "name": "client_program_effect_compilation_infer_originals",
+          "declaration": "client_program_effect_compilation_infer_originals ( value : @ publication_host . ClientEffectCompilation , ) - > Array [ ( @ publication_host . ClientInferPlanGraph , @ publication_host . ClientInferOccurrence , @ check_environment . ModelExecutionContract , ) , ] ?"
+        },
+        {
           "name": "client_program_effect_compilation_issue_code",
           "declaration": "client_program_effect_compilation_issue_code ( outcome : Result [ @ publication_host . ClientEffectCompilation , ClientProgramEffectCompilationBridgeIssue , ] , ) - > String ?"
         },
@@ -56928,6 +56976,10 @@
         {
           "name": "client_program_effect_environment_cid",
           "declaration": "client_program_effect_environment_cid ( value : @ publication_host . PreparedClientEffectComputation , ) - > String"
+        },
+        {
+          "name": "client_program_effect_infer_occurrences",
+          "declaration": "client_program_effect_infer_occurrences ( prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ Array [ @ publication_host . ClientInferOccurrence ] , @ infer_host . Issue ]"
         },
         {
           "name": "client_program_effect_input_at",
@@ -58523,7 +58575,7 @@
         },
         {
           "name": "compile_client_local_effects",
-          "declaration": "compile_client_local_effects ( prepared : @ publication_host . PreparedClientEffectComputation , infer : @ publication_host . ClientInferPlanGraph ? , ) - > Result [ @ publication_host . ClientEffectCompilation , ClientProgramEffectCompilationBridgeIssue , ]"
+          "declaration": "compile_client_local_effects ( prepared : @ publication_host . PreparedClientEffectComputation , infer : @ publication_host . ClientInferPlanGraph ? , infers ? : Array [ @ publication_host . ClientInferPlanGraph ]"
         },
         {
           "name": "identify_installed_captured_source",
@@ -59078,7 +59130,10 @@
             "client_program_query_time_invocation_original",
             "client_program_row_source_acquisition_contracts_construction_capacity",
             "client_program_row_source_issue_source_evidence_original",
-            "client_program_query_lowering_issue_code"
+            "client_program_query_lowering_issue_code",
+            "client_program_compile_local_effects_with_infers",
+            "client_program_effect_compilation_infer_originals",
+            "client_program_effect_infer_occurrences"
           ],
           "exports": [],
           "attributes": {
@@ -67420,7 +67475,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_compilation.mbt",
-      "sha256": "b102e73796816cc16b1a8bb38d31a5e3e2133288681f7ce11f22a6e3e7f40829",
+      "sha256": "a126a53698cdcc84c695ee3da81792d33831297260c41c76161828f91b468f1c",
       "operations": [
         {
           "name": "admit_client_effect_allowed_run",
@@ -67437,6 +67492,10 @@
         {
           "name": "bind_client_effect_compiled_run",
           "declaration": "bind_client_effect_compiled_run ( owner : PreparedClientEffectComputation , allowed : ClientEffectAllowedRun , definition : @ publication . PublicationContract , ) - > Result [ PreparedClientEffectRun , ClientEffectCompiledRunIssue ]"
+        },
+        {
+          "name": "bind_client_effect_model_read_scopes",
+          "declaration": "bind_client_effect_model_read_scopes ( compilation : ClientEffectCompilation , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , retained_bytes : Array [ Int64 ] , execution_bytes : Array [ Int64 ] , ) - > Result [ Array [ ClientModelReadScope ] , ClientModelReadPreparationIssue ]"
         },
         {
           "name": "client_effect_allowed_component_run",
@@ -67477,6 +67536,10 @@
         {
           "name": "client_effect_compilation_infer_original",
           "declaration": "client_effect_compilation_infer_original ( value : ClientEffectCompilation , ) - > ( ClientInferPlanGraph , ClientInferOccurrence ) ?"
+        },
+        {
+          "name": "client_effect_compilation_infer_originals",
+          "declaration": "client_effect_compilation_infer_originals ( value : ClientEffectCompilation , ) - > Array [ ( ClientInferPlanGraph , ClientInferOccurrence ) ] ?"
         },
         {
           "name": "client_effect_compilation_owner",
@@ -67555,7 +67618,9 @@
             "issue_client_effect_allowed_run",
             "issue_client_effect_compilation_internal",
             "issue_client_effect_run_definition",
-            "issue_prepared_client_effect_compilation"
+            "issue_prepared_client_effect_compilation",
+            "bind_client_effect_model_read_scopes",
+            "client_effect_compilation_infer_originals"
           ],
           "exports": [],
           "attributes": {
@@ -73612,7 +73677,7 @@
     },
     {
       "module": "src/client_local_host/preparation_owned_run.mbt",
-      "sha256": "2784116fcd8ad439bd03b1b82bc9848ce7268598240ea54bec5107399b3a028c",
+      "sha256": "8086153581159290f28ebf76316b1986652ffa27ef84eb8f51686ca5e862e38f",
       "exports": [],
       "operations": [
         {
@@ -73657,7 +73722,7 @@
         },
         {
           "name": "[I]begin_preparation_owned_installed_effect_model_run",
-          "declaration": "[ I ] begin_preparation_owned_installed_effect_model_run ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , ClientInstalledEffectManagedPlan ] , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ledger : @ resources . Ledger , scope : @ publication_host . ClientModelReadScope , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+          "declaration": "[ I ] begin_preparation_owned_installed_effect_model_run ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , ClientInstalledEffectManagedPlan ] , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ledger : @ resources . Ledger , scope : @ publication_host . ClientModelReadScope , scopes ? : Array [ @ publication_host . ClientModelReadScope ] ?"
         },
         {
           "name": "[I]begin_preparation_owned_installed_managed_run",
@@ -81027,7 +81092,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "f79f5a5767626ef961d0c28920db19733ccaae7924aba72626c9739d585284bf"
+      "sha256": "847f3739ff42298e1eafb3069f1e9e0f06e03cbe0a3d1e47a960d9472dfe90f6"
     },
     {
       "module": "src/run_publication_host/client_model_read_consumer.mbt",

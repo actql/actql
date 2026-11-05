@@ -141,7 +141,7 @@ pub fn[I] begin_request_content_managed_run(ClientRequestPreparation[I], @run_pu
 
 pub fn[I] begin_request_effect_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
-pub fn[I] begin_request_effect_model_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientModelReadScope) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
+pub fn[I] begin_request_effect_model_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientModelReadScope, scopes? : Array[@run_publication_host.ClientModelReadScope]?) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
 pub fn[I] begin_request_model_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientModelReadScope, scopes? : Array[@run_publication_host.ClientModelReadScope]?) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
@@ -673,6 +673,8 @@ pub fn prepare_installed_effect_managed_source_plan(@run_publication_host.Prepar
 
 pub fn prepare_installed_effect_model_demand(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @physical_resources.LedgerLimits, Int64, Int64, Int, Int, Int, bootstrap? : (Int64, Int64)?) -> Result[ClientInstalledEffectModelDemand, ClientInstalledManagedRunIssue]
 
+pub fn prepare_installed_effect_models_demand(Array[ClientInstalledEffectModelDemand]) -> Result[ClientInstalledEffectModelDemand, ClientInstalledManagedRunIssue]
+
 pub fn prepare_installed_effect_operation_demand(@run_publication_host.PreparedClientEffectComputation, Int, String, Array[ClientInstalledEffectOperationExtent], Array[ClientInstalledEffectOperationExtent]) -> Result[ClientInstalledEffectOperationDemand, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_operation_demand_with_controls(@run_publication_host.PreparedClientEffectComputation, Int, String, Array[ClientInstalledEffectOperationExtent], Array[ClientInstalledEffectOperationExtent], @execution_relation.ExecutionCapacity) -> Result[ClientInstalledEffectOperationDemand, ClientInstalledManagedRunIssue]
@@ -786,6 +788,8 @@ pub fn[I] prepare_request_computation_policy_subjects(ClientRequestPreparation[I
 pub fn[I] prepare_request_effect_check_preparation(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientEffectComputationLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, Unit], ClientRequestPreparationIssue]
 
 pub fn[I] prepare_request_effect_model_read_scope(ClientRequestPreparation[I], I, ClientInstalledEffectManagedPlan, quantity_limits? : @physical_resources.QuantityAmounts?) -> Result[@run_publication_host.ClientModelReadScope, ClientInstalledManagedRunIssue]
+
+pub fn[I] prepare_request_effect_models_read_scopes(ClientRequestPreparation[I], I, ClientInstalledEffectManagedPlan, quantity_limits? : @physical_resources.QuantityAmounts?) -> Result[Array[@run_publication_host.ClientModelReadScope], ClientInstalledManagedRunIssue]
 
 pub fn[I] prepare_request_keyed_content_plan(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, @client_row_source_host.RowKeyedLimits, String, String, Array[Int64], Array[Int64], Int, Int, ClientInstalledSequenceContracts, Int, Int, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.ExecutionCapacity?) -> Result[ClientInstalledManagedKeyedPreparation, ClientRequestProgramPlanIssue]
 

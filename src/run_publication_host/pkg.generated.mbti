@@ -213,6 +213,8 @@ pub fn bind_client_acquired_serialization_input_identity(ClientCompiledRun, Clie
 
 pub fn bind_client_effect_compiled_run(PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectCompiledRunIssue]
 
+pub fn bind_client_effect_model_read_scopes(ClientEffectCompilation, ClientCompiledRun, @run_publication.PublicationContract, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, Array[Int64], Array[Int64]) -> Result[Array[ClientModelReadScope], ClientModelReadPreparationIssue]
+
 pub fn bind_client_effect_producer_artifact(PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, ClientEffectLocalResultArtifact) -> Result[ClientEffectProducerArtifact, ClientEffectTransferredArtifactIssue]
 
 pub fn bind_client_effect_query_evaluation_time(ClientQueryTimePreparation, PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract, ClientRequestIdentity) -> Result[@run_publication.QueryEvaluationTime, ClientQueryTimeIssue]
@@ -484,6 +486,8 @@ pub fn client_effect_command_content_wire(ClientEffectCommandContent) -> Result[
 pub fn client_effect_compilation_compiled_plan(ClientEffectCompilation) -> @run_publication.PublicationContract
 
 pub fn client_effect_compilation_infer_original(ClientEffectCompilation) -> (ClientInferPlanGraph, ClientInferOccurrence)?
+
+pub fn client_effect_compilation_infer_originals(ClientEffectCompilation) -> Array[(ClientInferPlanGraph, ClientInferOccurrence)]?
 
 pub fn client_effect_compilation_owner(ClientEffectCompilation) -> PreparedClientEffectComputation
 
@@ -1677,7 +1681,7 @@ pub fn issue_prepared_client_direct_task_result_root(PreparedClientProgram, Int,
 
 pub fn issue_prepared_client_direct_values_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
 
-pub fn issue_prepared_client_effect_compilation(PreparedClientEffectComputation, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, infer? : ClientInferPlanGraph?, normalization? : ClientEffectNormalization?, source_free_policy? : @run_publication.CapturedEffectDependencyBody?) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue]
+pub fn issue_prepared_client_effect_compilation(PreparedClientEffectComputation, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, infer? : ClientInferPlanGraph?, infers? : Array[ClientInferPlanGraph], normalization? : ClientEffectNormalization?, source_free_policy? : @run_publication.CapturedEffectDependencyBody?) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue]
 
 pub fn issue_prepared_client_effect_local_update_normalization(PreparedClientEffectComputation) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue]
 
@@ -2074,6 +2078,8 @@ pub fn prepared_client_effect_computation_source(PreparedClientEffectComputation
 pub fn prepared_client_effect_identity(PreparedClientEffectComputation) -> ClientProgramIdentity
 
 pub fn prepared_client_effect_infer_occurrence(PreparedClientEffectComputation) -> ClientInferOccurrence?
+
+pub fn prepared_client_effect_infer_occurrences(PreparedClientEffectComputation) -> Array[ClientInferOccurrence]?
 
 pub fn prepared_client_effect_normalization_evidence(PreparedClientEffectComputation, ClientEffectNormalization) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
 

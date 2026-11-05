@@ -233,37 +233,34 @@ fn installed_managed_owner_shape_supported(
   let original_occurrences = match owner {
     Pure(prepared) =>
       @publication_host.prepared_client_composed_infer_occurrences(prepared)
-    Effect(_) => None
+    Effect(prepared) => @publication_host.prepared_client_effect_infer_occurrences(prepared)
   }
-  let boundary_count = match owner {
-    Pure(_) => original_occurrences.map(value => value.length())
-    Effect(prepared) =>
-      Some(
-        if @publication_host.prepared_client_effect_infer_occurrence(prepared)
-          is Some(_) {
-          1
-        } else {
-          0
-        },
-      )
-  }
+  let boundary_count = original_occurrences.map(value => value.length())
   if model_graphs is Some(graphs) {
     guard mock_model &&
       model is None &&
       model_occurrences is None &&
-      owner is Pure(prepared) &&
       original_occurrences is Some(expected) &&
       graphs.length() > 1 &&
       graphs.length() == expected.length() else {
       return false
     }
     for index, selected in graphs {
-      if !physical_equal(selected.owner, prepared) ||
-        !@publication_host.client_infer_occurrence_matches_plan(
-          expected[index],
-          selected,
-        ) ||
-        selected.serialization is Some(_) {
+      if !(match owner {
+          Pure(prepared) => physical_equal(selected.owner, prepared)
+          Effect(prepared) => @publication_host.client_infer_occurrence_matches_effect(expected[index], prepared)
+        }) ||
+        !(match owner {
+          Pure(_) => @publication_host.client_infer_occurrence_matches_plan(expected[index], selected)
+          Effect(prepared) => @publication_host.client_infer_occurrence_matches_effect(selected.occurrence, prepared) &&
+            @publication_host.client_infer_occurrence_coordinates(selected.occurrence) ==
+            @publication_host.client_infer_occurrence_coordinates(expected[index])
+        }) ||
+        (match (owner, selected.serialization) {
+          (_, None) => false
+          (Effect(_), Some(component)) => !content.map(original => physical_equal(original.component, component)).unwrap_or(false)
+          _ => true
+        }) {
         return false
       }
     }
@@ -276,16 +273,16 @@ fn installed_managed_owner_shape_supported(
       }
     Some(originals) => {
       guard mock_model &&
-        owner is Pure(prepared) &&
         originals.length() > 1 &&
         original_occurrences is Some(expected) &&
         expected.length() == originals.length() else {
         return false
       }
       for index, original in originals {
-        if !@publication_host.client_infer_occurrence_matches(
-            original, prepared,
-          ) ||
+        if !(match owner {
+            Pure(prepared) => @publication_host.client_infer_occurrence_matches(original, prepared)
+            Effect(prepared) => @publication_host.client_infer_occurrence_matches_effect(original, prepared)
+          }) ||
           @publication_host.client_infer_occurrence_coordinates(original) !=
           @publication_host.client_infer_occurrence_coordinates(expected[index]) {
           return false
