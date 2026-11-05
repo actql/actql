@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 import zipfile
 
@@ -40,6 +41,20 @@ def external_destination(value: Path) -> Path:
     if path == ROOT or ROOT in path.parents or path.exists():
         raise ValueError('Destination must be a fresh directory outside the checkout')
     return path
+
+
+def open_duckdb_release():
+    # Retry only transient HTTP rejection of this same pinned, read-only GET.
+    # Size/digest validation below remains mandatory; no alternate release or
+    # partially read archive is accepted or retried here.
+    for attempt in range(3):
+        try:
+            return urllib.request.urlopen(DUCKDB_URL, timeout=120)
+        except urllib.error.HTTPError as error:
+            if error.code not in (408, 429, 500, 502, 503, 504) or attempt == 2:
+                raise
+            error.close()
+            time.sleep(2 ** (attempt + 1))
 
 
 def extract_duckdb(archive: Path, destination: Path) -> Path:
@@ -91,7 +106,7 @@ def run_acceptance(destination: Path) -> None:
                                 '--index-url', 'https://pypi.org/simple', *BUILD_REQUIREMENTS])
     run('platform-vm-original', [python, ROOT / 'scripts/fixtures/python-local-platform-vm-original.py'])
     archive = destination / 'duckdb.zip'
-    with urllib.request.urlopen(DUCKDB_URL, timeout=120) as response, archive.open('xb') as target:
+    with open_duckdb_release() as response, archive.open('xb') as target:
         body = response.read(DUCKDB_BYTES + 1)
         target.write(body)
     library = extract_duckdb(archive, destination / 'libduckdb.dylib')

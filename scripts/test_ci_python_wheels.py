@@ -1,6 +1,7 @@
 """Harness unit tests only: these fixtures are not installed product acceptance."""
 import hashlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 import sys
@@ -23,6 +24,38 @@ audit = load('ci_python_audit', SCRIPTS / 'fixtures/ci-python-installed-audit.py
 
 
 class OrchestrationTests(unittest.TestCase):
+    def test_transient_release_rejection_retries_same_pinned_get(self):
+        error = ci.urllib.error.HTTPError(ci.DUCKDB_URL, 504, 'gateway', {}, None)
+        response = io.BytesIO(b'bounded transport fixture')
+        with patch.object(ci.urllib.request, 'urlopen', side_effect=[error, response]) as request, \
+                patch.object(ci.time, 'sleep') as sleep:
+            with ci.open_duckdb_release() as opened:
+                self.assertEqual(opened.read(), b'bounded transport fixture')
+        self.assertEqual(request.call_args_list,
+                         [unittest.mock.call(ci.DUCKDB_URL, timeout=120)] * 2)
+        sleep.assert_called_once_with(2)
+
+    def test_permanent_release_rejection_keeps_original_failure(self):
+        error = ci.urllib.error.HTTPError(ci.DUCKDB_URL, 404, 'missing', {}, None)
+        with patch.object(ci.urllib.request, 'urlopen', side_effect=error) as request, \
+                patch.object(ci.time, 'sleep') as sleep:
+            with self.assertRaises(ci.urllib.error.HTTPError) as observed:
+                ci.open_duckdb_release()
+        self.assertIs(observed.exception, error)
+        self.assertEqual(request.call_count, 1)
+        sleep.assert_not_called()
+
+    def test_repeated_transient_release_failure_stays_bounded(self):
+        errors = [ci.urllib.error.HTTPError(ci.DUCKDB_URL, 504, 'gateway', {}, None)
+                  for _ in range(3)]
+        with patch.object(ci.urllib.request, 'urlopen', side_effect=errors) as request, \
+                patch.object(ci.time, 'sleep') as sleep:
+            with self.assertRaises(ci.urllib.error.HTTPError) as observed:
+                ci.open_duckdb_release()
+        self.assertIs(observed.exception, errors[-1])
+        self.assertEqual(request.call_count, 3)
+        self.assertEqual(sleep.call_args_list, [unittest.mock.call(2), unittest.mock.call(4)])
+
     def test_linux_is_not_reported_as_local_acceptance(self):
         with patch.object(ci.sys, 'platform', 'linux'), self.assertRaisesRegex(ValueError, 'darwin-arm64'):
             ci.run_acceptance(Path('/unused'))
