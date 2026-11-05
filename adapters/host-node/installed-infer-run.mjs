@@ -778,7 +778,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       assertRuntimeCurrent: directRequestModel?.assertRuntimeCurrent ??
         (originalInstallation === undefined ? undefined : assertOriginalRuntime),
       originalPreparation,
-      ioNotification: composedInput === undefined && selected.entryPersistence === 'async' ? createInferIoNotification() : undefined,
+      ioNotification: (composedInput === undefined || directRequestModel !== undefined) &&
+        selected.entryPersistence === 'async' ? createInferIoNotification() : undefined,
       retainOperation(value) { operation = value; }});
     captureOwner = openNodeInferCaptureCustody({moon, control, operation,
       plan, store, storeAuthorityCid, replay: false, durableCalls: true, faultInjection,
