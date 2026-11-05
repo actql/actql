@@ -473,6 +473,10 @@ their identity, bounds and execution checks. This nominal reader issues no media
 body, attachment evidence or egress allowance. Physical Provider dependency reads
 still require every declared media role, and Mock startup still refuses physical
 preflight. A caller flag or provider name cannot select this purpose.
+Request encoding rechecks the same live installation, provider and checked Task
+for opaque Content values. Every reference frame still checks availability and
+uses the bounded wire encoder; the physical-provider preflight requirement stays
+with its existing purpose.
 
 Installation retains the same public Task declaration, normalization and typed
 answer inventory. The first successful original startup binds the checked Task

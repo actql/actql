@@ -4550,7 +4550,7 @@
     },
     {
       "module": "src/model_execution/mock_installation.mbt",
-      "sha256": "af1af184047b7f730fbdb76f9fe97036cb405a2e17a3b994cd5c5a55da5762a5",
+      "sha256": "f11c4e6362f5fdb31885a6b3ae44ac164ada63409d2bbe3de5054eca8013183b",
       "exports": [],
       "operations": [
         {
@@ -4564,6 +4564,10 @@
         {
           "name": "ModelMockInstallation::require_original",
           "declaration": "ModelMockInstallation : : require_original ( self : Self , ) - > Result [ Unit , ModelMockInstallationIssue ]"
+        },
+        {
+          "name": "original_mock_accepts_opaque_references",
+          "declaration": "original_mock_accepts_opaque_references ( provider : ModelProvider , task : @ environment . ModelTaskContract , ) - > Bool"
         },
         {
           "name": "original_mock_provider_matches",
@@ -4601,16 +4605,17 @@
         {
           "operations": [
             "<module>",
+            "ModelMockInstallation::require_original",
             "install_original_model_mock",
             "invoke_original_mock",
-            "ModelMockInstallation::require_original",
+            "original_mock_accepts_opaque_references",
             "original_mock_provider_matches",
             "original_mock_request_values_current",
             "original_mock_scope_matches",
             "original_model_mock_provider",
+            "read_original_model_mock_dependencies",
             "retire_original_model_mock",
-            "select_mock_answer",
-            "read_original_model_mock_dependencies"
+            "select_mock_answer"
           ],
           "exports": [],
           "attributes": {
@@ -4724,6 +4729,10 @@
               {
                 "path": "src/model_execution/mock_provider_admission_wbtest.mbt",
                 "anchor": "test \"original Mock Content dependencies retain opaque input and strict physical media admission\" {"
+              },
+              {
+                "path": "src/model_execution/mock_provider_admission_wbtest.mbt",
+                "anchor": "test \"original Mock Content dependencies retain opaque input and strict physical media admission\""
               }
             ]
           }
