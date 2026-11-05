@@ -1138,8 +1138,9 @@ test('retained Effect constructor failure stays original without a fresh Run or 
   assert(threw); assert.deepEqual(f.calls, ['original-journal', 'intent-current', 'compile-once', 'same-original', 'original-constructor']);
 });
 
-function retainedHostPreparationFixture({reuse = false, failPrepare = false, cleanupFailure = false, material = true, target = true} = {}) {
+function retainedHostPreparationFixture({reuse = false, failPrepare = false, cleanupFailure = false, material = true, target = true, infer = false} = {}) {
   const ref = {runDefinitionCid: 'original-ref'}, identity = {}, prepared = {}, managed = {}, intent = {}, originalBinding = {};
+  const occurrence = {};
   const runDefinition = {identity: ref.runDefinitionCid}, calls = [];
   const materialWire = 'same Journal-retained complete material';
   const originalSubmittedIntent = {intent, assertCurrent() {calls.push('intent-current');}};
@@ -1147,7 +1148,15 @@ function retainedHostPreparationFixture({reuse = false, failPrepare = false, cle
   const prepareSubmit = async value => {assert.strictEqual(value, request); calls.push('same-request-check'); if (failPrepare) throw undefined; return prepared;};
   prepareSubmit.assertSubmittedIntent = (p, i) => {assert.strictEqual(p, prepared); assert.strictEqual(i, intent);};
   prepareSubmit.kindOf = p => {assert.strictEqual(p, prepared); return 'effectful';};
-  const ports = {moon: {clientProgramEffectInferOccurrence: () => undefined}, control: {}, namespaceId: 'namespace',
+  const ports = {moon: {clientProgramEffectInferOccurrences(value) {
+      assert.strictEqual(value, prepared); return ok(infer ? [occurrence] : []);
+    }}, checked,
+    prepareInferSelection(value, original) {
+      assert.equal(infer, true); assert.strictEqual(value, prepared);
+      assert.strictEqual(original, occurrence); calls.push('same-original-infer');
+    },
+    prepareComposedInferSelection() {assert.fail('this original fixture has at most one Model occurrence');},
+    control: {}, namespaceId: 'namespace',
     authorityScopeCid: 'authority', journal: {
       lookupRunDefinition: value => {assert.strictEqual(value, ref); return {requestId: 'original-request'};},
       lookupOwnedDefinition: key => {assert.equal(key.requestId, 'original-request'); return {requestIdentity: identity,
@@ -1170,17 +1179,19 @@ function retainedHostPreparationFixture({reuse = false, failPrepare = false, cle
       calls.push('same-original-constructor'); return originalBinding;
     }},
     clientOperationError: code => Object.assign(new Error(code), {code})};
-  const source = retainedRequestSourceMember('./embedded-local.mjs', 'restoreEffectManagedPreparation', 'VariableDeclarator');
-  const restore = new Function(...Object.keys(ports), 'const ' + source + ';return restoreEffectManagedPreparation;')(...Object.values(ports));
+  const source = ['prepareEffectInferSelection', 'restoreEffectManagedPreparation']
+    .map(name => 'const ' + retainedRequestSourceMember('./embedded-local.mjs', name, 'VariableDeclarator') + ';').join('');
+  const restore = new Function(...Object.keys(ports), source + 'return restoreEffectManagedPreparation;')(...Object.values(ports));
   return {restore: () => restore(ref), calls, managed, originalBinding};
 }
 
 test('retained Host binds the Journal Request directly through one checked preparation and original Plan', async () => {
-  for (const target of [true, false]) {
-    const f = retainedHostPreparationFixture({target}), result = await f.restore();
+  for (const target of [true, false]) for (const infer of [false, true]) {
+    const f = retainedHostPreparationFixture({target, infer}), result = await f.restore();
     assert.strictEqual(result.managedEffect, f.managed); assert.strictEqual(result.original, f.originalBinding);
     assert.deepEqual(f.calls, ['original-intent', 'intent-current', 'same-parent-input', 'same-request-check',
-      'bind-original-alias', 'same-original-constructor', 'same-adopted-plan', 'finish-returned']);
+      'bind-original-alias', ...(infer ? ['same-original-infer'] : []),
+      'same-original-constructor', 'same-adopted-plan', 'finish-returned']);
   }
   const reused = retainedHostPreparationFixture({reuse: true});
   assert.strictEqual((await reused.restore()).managedEffect, reused.managed); assert.deepEqual(reused.calls, []);
