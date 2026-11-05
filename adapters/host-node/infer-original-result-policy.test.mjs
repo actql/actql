@@ -230,3 +230,20 @@ test('recovery Host and usage bindings unwrap only the retained Definition and p
     index === 3 ? {...f.definition} : value)), /Foreign/u);
   assert.equal(open, 2);
 });
+
+test('recovery material reservation binds the same native Definition used by later ledger and Scope calls', () => {
+  const f = fixture(), parent = {}, input = {}, wireAt = () => 'same original material';
+  let reservations = 0;
+  f.moon.clientProgramReserveRequestModelRecoveryMaterials = (...actual) => {
+    reservations++;
+    [parent, input, f.request, f.definitionToken, 1, wireAt, 2]
+      .forEach((value, index) => assert.strictEqual(actual[index], value));
+    assert.notStrictEqual(actual[3], f.definition, 'the JS facade is not the physical original');
+    return {$tag: 1, _0: undefined};
+  };
+  assert.equal(f.control.reserveCheckedClientRequestModelRecoveryMaterials(
+    parent, input, f.request, f.definition, 1, wireAt, 2), undefined);
+  assert.throws(() => f.control.reserveCheckedClientRequestModelRecoveryMaterials(
+    parent, input, f.request, {...f.definition}, 1, wireAt, 2), /Foreign/u);
+  assert.equal(reservations, 1);
+});

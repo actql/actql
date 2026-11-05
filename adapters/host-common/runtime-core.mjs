@@ -3690,6 +3690,11 @@ function publicationControl(moon) {
       return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation, sourceRef, schema, table, query, evidence, receipts,
         transport, scratch, contracts, retainedOutput, queryTime, bindOriginal]));
     },
+    reserveCheckedClientRequestModelRecoveryMaterials(parent, input, request, definition, count, wireAt, containers) {
+      const reserve = moon.clientProgramReserveRequestModelRecoveryMaterials;
+      if (typeof reserve !== 'function') throw new TypeError('Installed Model recovery material reservation unavailable');
+      return checked(Reflect.apply(reserve, moon, [parent, input, request, token(definition), count, wireAt, containers]));
+    },
     checkedClientRequestModelRecoverySourceCoordinates(parent, input, request, definition, prepared) {
       const select = moon.clientProgramRequestModelRecoverySourceCoordinates;
       if (typeof select !== 'function') throw new TypeError('Installed Model recovery Source unavailable');

@@ -3394,6 +3394,7 @@
             "publicationControl/init:openCheckedClientRequestModelRecoveryHost/init:openCheckedClientRequestModelRecoveryHost",
             "publicationControl/init:prepareCheckedClientInferOriginalRead/init:prepareCheckedClientInferOriginalRead",
             "publicationControl/init:prepareCheckedClientRequestModelRecoveryReadScopes/init:prepareCheckedClientRequestModelRecoveryReadScopes",
+            "publicationControl/init:reserveCheckedClientRequestModelRecoveryMaterials/init:reserveCheckedClientRequestModelRecoveryMaterials",
             "publicationControl/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution",
             "publicationControl/init:startCheckedClientOriginalRestoredComposedInferExecution/init:startCheckedClientOriginalRestoredComposedInferExecution"
           ],
@@ -11994,6 +11995,19 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:reserveCheckedClientRequestModelRecoveryMaterials/init:reserveCheckedClientRequestModelRecoveryMaterials",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "definition",
+            "count",
+            "wireAt",
+            "containers"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:reserveEffectCaptureRecovery/init:reserveEffectCaptureRecovery",
           "parameters": [
             "parent",
@@ -14851,7 +14865,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "4f61c068f6a355e612cb7a24e8ea63894ea23d57a5715cef2171feb2baaf0458"
+      "sha256": "29698f9a6d1d0c54f1fecde61e405e4d4121f25d36193c4a8b0f98a66c684809"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
