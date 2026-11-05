@@ -365,6 +365,16 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     const context = {moon, selected: child.selection, sources,
       control, plan, principalId, now, signal, durableCalls: true, restoredInput: child.restoredInput,
       originalPreparation: childOriginal, assertRuntimeCurrent: childOriginal?.assertRuntimeCurrent,
+      prepareInputSegments: selected.restoredRun === undefined || child.selection.computePrefix !== undefined
+        ? undefined : () => {
+          assertCurrent();
+          childOriginal.assertRuntimeCurrent();
+          const segments = checked(moon.clientProgramPrepareComposedInferSegments(
+            preparedProgram, child.selection.occurrence, registry, values, fragment, ordered));
+          childOriginal.assertRuntimeCurrent();
+          assertCurrent();
+          return segments;
+        },
       retainOperation(operation) {
         child.operation = operation;
         childOriginal?.retainOperation?.(operation);
