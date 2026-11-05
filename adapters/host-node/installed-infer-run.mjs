@@ -169,7 +169,7 @@ function sourceFreeModelsPreparation(moon, control, prepared, plan, selected, mo
 
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
-  checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor, runContent, prepareKeyedRecovery,
+  checkpoints, prepareAcquisition, prepareRetainedAcquisition, sourceAccessFor, sourceAdapterFor, runContent, prepareKeyedRecovery,
   prepareOriginalMockRun, prepareOriginalModelRun, prepareModelRecoveryPlan,
   computeConfigurations = {}}) {
   const control = core.publicationControl;
