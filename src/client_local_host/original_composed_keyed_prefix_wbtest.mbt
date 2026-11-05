@@ -559,8 +559,53 @@ fn original_composed_keyed_consumer(shared : Bool) -> Unit raise {
   let inputs = original.inputs.map(value => {
     @local.managed_provider_relation_input(value.2)
   })
-  inputs.push(@local.managed_provider_supplied_relation_input(right))
+  let keyed_current = Ref(true)
+  let restricted_right = @execution.restrict_supplied_relation_read(right, () => {
+    keyed_current.val
+  })
+  assert_false(physical_equal(restricted_right, right))
+  assert_true(
+    @execution.supplied_relation_read_same_binding(restricted_right, right),
+  )
+  inputs.push(@local.managed_provider_supplied_relation_input(restricted_right))
   let before = @resources.ledger_usage(ledger)
+  let foreign_read = @row_source_host.keyed_row_capture_read(captured).unwrap()
+  assert_eq(@execution.supplied_relation_read_row_count(foreign_read), 1)
+  assert_false(
+    @execution.supplied_relation_read_same_binding(foreign_read, right),
+  )
+  let foreign_inputs = inputs.copy()
+  foreign_inputs[foreign_inputs.length() - 1] = @local.managed_provider_supplied_relation_input(
+    foreign_read,
+  )
+  assert_true(
+    start_client_composed_infer_input(
+      model._occurrence,
+      prefix,
+      foreign_inputs,
+      execution,
+      measurement,
+      mapping,
+      keyed=Some(lookup),
+    )
+    is Err(UnsupportedProgram),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  keyed_current.val = false
+  assert_true(
+    start_client_composed_infer_input(
+      model._occurrence,
+      prefix,
+      inputs,
+      execution,
+      measurement,
+      mapping,
+      keyed=Some(lookup),
+    )
+    is Err(UnsupportedProgram),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  keyed_current.val = true
   let input = start_client_composed_infer_input(
     model._occurrence,
     prefix,
