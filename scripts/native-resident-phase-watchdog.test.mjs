@@ -58,6 +58,33 @@ test('Native Resident watchdog retains an original nonzero child outcome without
   assert.equal(reports.some(value => value.event === 'timeout'), false);
 });
 
+test('Native Resident concurrent stop identifies the remaining control without confirming cleanup', {timeout: 5000}, async t => {
+  const declaration = syntax.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'stopConcurrentResidentControls');
+  assert(declaration);
+  const f = await childFixture(t, `import{fork}from'node:child_process';import{once}from'node:events';
+    process.on('SIGTERM',()=>{});
+    const residentPhase=phase=>process.send({kind:'native-resident-phase',phase,line:7});
+    const stop=${source.slice(declaration.start, declaration.end)};
+    const start=mode=>{const child=fork(new URL('./control.mjs',import.meta.url),[mode],
+      {stdio:['ignore','ignore','ignore','ipc']});return{child,exited:once(child,'exit')};};
+    const left=start('normal'),right=start('ignore-term');
+    await Promise.all([once(left.child,'message'),once(right.child,'message')]);
+    residentPhase('bundle-activated');await stop(left,right);`);
+  await writeFile(join(f.directory, 'control.mjs'), `
+    if(process.argv[2]==='ignore-term')process.on('SIGTERM',()=>{});
+    setInterval(()=>{},1000);process.send({ready:true});`);
+  const reports = [];
+  const result = await supervise(f.script, {phaseTimeoutMilliseconds: 200,
+    killGraceMilliseconds: 100, report: value => reports.push(value)});
+  assert.equal(result.code, 124);
+  assert.equal(result.timedOut, true);
+  assert.deepEqual(result.lastPhase, {phase: 'concurrent-left-exit-return', line: 7});
+  assert.equal(reports.some(value => value.phase === 'concurrent-right-exit-return'), false);
+  assert.deepEqual(reports.at(-1), {event: 'timeout', phase: 'concurrent-left-exit-return',
+    line: 7, cleanup: 'unconfirmed'});
+});
+
 test('Native Resident watchdog preserves natural success and ignores unselected diagnostic payloads', {timeout: 5000}, async t => {
   const f = await childFixture(t, `${phase('bundle-activated', 1)}
     process.send({kind:'native-resident-phase',phase:'unselected-payload',line:3,body:'never-forward'});

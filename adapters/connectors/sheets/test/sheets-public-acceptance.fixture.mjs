@@ -303,7 +303,7 @@ test('Sheets clear Command retains original requests through Local and HTTPS app
 });
 
 test('Sheets clear keeps a lost response Unknown after cold restart without resend', async t => {
-  const setup = await installation(t, {rangeCommand: 'clear', reviewerPrincipal: owner,
+  const setup = await installation(t, {rangeCommand: 'clear', reviewerPrincipal: owner, resumeAfterAnswer: true,
     faults: [{kind: 'apply-then-lose-reply', method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate'}]});
   const [command] = (await setup.publish(true)).commands;
   const first = await setup.open(true, true), client = first.client;
@@ -387,7 +387,7 @@ test('Sheets range Command uses the real Local and HTTPS approval owners and ori
 });
 
 test('Sheets range Command retains an unknown acknowledgement across process restart without resend', async t => {
-  const setup = await installation(t, {rangeCommand: true, reviewerPrincipal: owner,
+  const setup = await installation(t, {rangeCommand: true, reviewerPrincipal: owner, resumeAfterAnswer: true,
     faults: [{kind: 'apply-then-lose-reply', method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate'}]});
   const [command] = (await setup.publish(true)).commands;
   const first = await setup.open(true, true);
