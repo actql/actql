@@ -728,11 +728,28 @@ pub fn ResidentRetainedConsumer::execute(
 }
 
 ///|
+/// Keep the exact consumer identity through either pending cleanup order.
+/// Once both existing Owners have completed, retire only their managed
+/// back-reference. The reclaimed handoff still refuses another acquisition;
+/// this does not close a Journal, release a resource or manufacture an ACK.
+fn ResidentRetainedTransfer::retire_closed_consumer_link(
+  self : ResidentRetainedTransfer,
+) -> Unit {
+  if self.reclaimed &&
+    self.consumer is Some(original) &&
+    original.closed &&
+    physical_equal(original.handoff, self) {
+    self.consumer = None
+  }
+}
+
+///|
 /// Release through Runtime, then return only this borrow. Receiver and producer
 /// holdings remain with their separate existing Owners. Failed cleanup keeps
 /// the same Runtime/material for retry and returns no holding reservation.
 pub fn ResidentRetainedConsumer::close(self : ResidentRetainedConsumer) -> Bool {
   if self.closed {
+    self.handoff.retire_closed_consumer_link()
     return true
   }
   self.closing = true
@@ -760,6 +777,7 @@ pub fn ResidentRetainedConsumer::close(self : ResidentRetainedConsumer) -> Bool 
   }
   self.closed = true
   self.effect_computation = None
+  self.handoff.retire_closed_consumer_link()
   true
 }
 
