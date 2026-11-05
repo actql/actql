@@ -116980,6 +116980,7 @@
         "../../packages/sdk/internal/private-source-preparation.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/diagnostic-observer.mjs",
+        "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "../local-node/request-preparation-adapter.mjs",
         "./client-program-preparation.mjs",
@@ -116992,7 +116993,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "38953d57b6d12df6efdcc7496eaafdd396805e002525334550cbdceaa5580eb5"
+      "sha256": "0e9fa8208256dc135a1c73b73143d8604dfeba9f03c561101cf5bc827abc0a2a"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

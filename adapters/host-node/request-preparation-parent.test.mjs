@@ -1979,3 +1979,45 @@ test('cold Model recovery opens captured Local host and observes cleanup on the 
   assert.equal(await original.retire(),true);assert.equal(original.setupUsageIsolated(dag),true);
   f.view.finishSourceProducer(f.recovery.receipt,'returned');await f.view.close();
 });
+
+
+test('cold Model recovery coordinates and ledger precede Model Plan construction on the same cached control', async () => {
+  const {readFileSync} = await import('node:fs');
+  const source = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
+  const moon = {}, parent = {}, receipt = {}, prepared = {}, request = {}, identity = {}, definition = {}, ledger = {};
+  const recovery = {request: identity, definition, restored: {prepared}, original: {materialsWire: '{}'}, assertCurrent() {}};
+  const state = {context: {runtime: moon}, parent, prepared, recovery};
+  const producer = {receipt, preparation: state}; let projections = 0, reservations = 0, cacheReads = 0;
+  const control = {
+    checkedClientRequestModelRecoverySourceCoordinates(...args) {
+      assert.equal(this, control); assert.deepEqual(args,[parent,receipt,identity,definition,prepared]);
+      projections++; return [[3,1,0]];
+    },
+    checkedClientRequestModelRecoveryLedger(...args) {
+      assert.equal(this, control); assert.deepEqual(args,[parent,receipt,identity,definition]);return ledger;
+    },
+  };
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const load = (name, next) => {
+    const begin = source.indexOf('    '+name+'('), end = source.indexOf('    '+next+'(',begin);
+    assert.ok(begin >= 0 && end > begin);
+    // Execute these exact existing method bodies. Only their lexical original
+    // runtime/current/parent ports are supplied; no installed ABI is claimed.
+    return Function('current','producerForRequest','reserveModelRecovery','constructRequestDomain',
+      'runtimeCore','fail','checked', 'return ({'+source.slice(begin,end)+'}).'+name)(
+        () => {}, actual => {assert.equal(actual,request);return producer;},
+        (p,s,count,wireAt,containers) => {
+          assert.equal(p,producer);assert.equal(s,state);assert.equal(count,1);assert.equal(wireAt(0),'{}');
+          assert.equal(containers,1);reservations++;
+        }, (s,construct) => {assert.equal(s,state);return construct();},
+        actual => {assert.equal(actual,moon);cacheReads++;return {publicationControl:control};}, fail, value => value);
+  };
+  const coordinates = load('modelSourceCoordinates','selectDomainSourceInput');
+  const originalLedger = load('modelRecoveryLedger','prepareModelRecoveryPlan');
+  assert.equal(recovery.model,undefined,'No Model Plan/Scope exists at this original Request ordering');
+  const selected = coordinates(prepared,request);
+  assert.deepEqual(selected,[[3,1,0]]);assert.equal(coordinates(prepared,request),selected);
+  assert.equal(originalLedger(prepared,request),ledger);
+  assert.equal(projections,1);assert.equal(reservations,1);assert.equal(cacheReads,2);
+  assert.equal(recovery.model,undefined,'Metadata/Ledger projection does not construct a Model Plan');
+});
