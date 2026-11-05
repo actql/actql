@@ -39,7 +39,7 @@ test "ordinary holder acquires bounded platform input without a mapped arena pro
 fn ordinary_holder_file(
   label : String,
 ) -> (String, @filesystem.Root, @filesystem.Writer) {
-  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_CLI_PARENT_ROOT").unwrap()
   let root = @filesystem.open_root(parent).unwrap()
   root.create_directory(label).unwrap() |> ignore
   let child = root.open_child(label).unwrap()
