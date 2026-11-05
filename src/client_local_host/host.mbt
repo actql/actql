@@ -679,6 +679,7 @@ fn bind_client_local_configuration(
   per_row_ms : Int64,
   per_wire_byte_ms : Int64,
   per_pair_ms : Int64,
+  captured_effect? : @strategy.CapturedEffectRunDAG? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   let graph = original.graph
   let capacity_plan = original.capacity_plan
@@ -687,13 +688,25 @@ fn bind_client_local_configuration(
   let registry = original.registry
   let capacity = original.capacity
   let retained_output = original.retained_output
-  if !physical_equal(@strategy.captured_dag_graph(run), graph) ||
-    @strategy.captured_compute_first_task(run) != first_compute {
+  let same_graph = match captured_effect {
+    None => physical_equal(@strategy.captured_dag_graph(run), graph)
+    Some(value) =>
+      @strategy.captured_effect_run_matches_preparation(value, run, graph)
+  }
+  if !same_graph || @strategy.captured_compute_first_task(run) != first_compute {
     return reject_client_local_run(run)
   }
   let driver = @host_driver.open_dispatch_driver(run)
-  let installed = match
-    @local_driver.bind_local_dispatch_plan(driver, original.dispatch) {
+  let binding = match captured_effect {
+    None => @local_driver.bind_local_dispatch_plan(driver, original.dispatch)
+    Some(value) =>
+      @local_driver.bind_local_effect_dispatch_plan(
+        driver,
+        original.dispatch,
+        value,
+      )
+  }
+  let installed = match binding {
     Ok(value) => value
     Err(_) => return reject_client_local_run(run)
   }

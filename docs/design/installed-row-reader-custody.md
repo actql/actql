@@ -26,6 +26,12 @@ and selects the sequence from its actual retained Effect Plan. Early selection
 metadata, whole-Ledger purity and an absent prepared segment cannot substitute
 for that original. All other live children keep their original cleanup duties.
 
+The completed keyed input adds a runtime slot without replacing the checked
+preparation graph. Its existing opaque captured Effect owner binds that exact
+runtime Run to the original Local dispatch preparation; generic graph binding
+still requires physical identity. This association grants no input, budget or
+cleanup authority, and every retained Source keeps its existing owner.
+
 # Original installed row reader custody
 
 ## Original installation preparation read

@@ -204,6 +204,7 @@ fn open_installed_effect_managed_host_original(
     0L,
     0L,
     0L,
+    captured_effect=if keyed is Some(_) { Some(captured) } else { None },
   )
   match require_installed_managed_run(owner) {
     Err(issue) => {

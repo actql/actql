@@ -590,6 +590,105 @@ fn original_composed_keyed_consumer(shared : Bool) -> Unit raise {
   assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
   assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 1)
   assert_eq(@resources.quantity_usage(ledger), original_quantities)
+  if managed is Some((owner, _)) {
+    let allowed = @publication_host.issue_client_effect_allowed_run(
+      model._compilation,
+      "sha256:" + "a".repeat(64),
+      "sha256:" + "b".repeat(64),
+      "2027-01-01T00:00:00.000Z",
+    ).unwrap()
+    let bound = @publication_host.bind_client_effect_compiled_run(
+      prepared,
+      allowed,
+      model.definition,
+    ).unwrap()
+    guard owner.preparation is Some(PlannedEffectManaged(_, installed)) else {
+      fail("the same adopted Effect Plan remains retained")
+    }
+    let (model_task, _, model_step) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    // This component has a deliberately fail-closed future Model provider.
+    // Bind the actual completed keyed view to its real selected Local module;
+    // it neither claims a physical Model result nor selects an empty offer.
+    let captured = @strategy.open_multi_captured_effect_run_keyed_dag(
+      @publication_host.prepared_client_effect_run_graph(bound),
+      Array::makei(sources.length(), index => (index, sources[index])),
+      ledger,
+      model_task,
+      model_step,
+      right,
+    ).unwrap()
+    let dag = @strategy.captured_effect_run_dag(captured)
+    let original_graph = installed.configuration.graph
+    assert_false(
+      physical_equal(@strategy.captured_dag_graph(dag), original_graph),
+    )
+    assert_true(
+      @strategy.captured_effect_run_matches_preparation(
+        captured, dag, original_graph,
+      ),
+    )
+    let driver = @host_driver.open_dispatch_driver(dag)
+    assert_true(physical_equal(@host_driver.dispatch_driver_run(driver), dag))
+    // The legacy entry still rejects the distinct runtime view. Only the
+    // actual checked Effect owner supplies the exact preparation association.
+    assert_true(
+      @local_driver.bind_local_dispatch_plan(
+        driver,
+        installed.configuration.dispatch,
+      )
+      is Err(_),
+    )
+    let configured_local = @local_driver.bind_local_effect_dispatch_plan(
+      driver,
+      installed.configuration.dispatch,
+      captured,
+    ).unwrap()
+    assert_true(
+      physical_equal(
+        @local_driver.local_dispatch_original_preparation(configured_local).unwrap(),
+        installed.configuration.dispatch,
+      ),
+    )
+    assert_true(physical_equal(@strategy.captured_dag_ledger(dag), ledger))
+    let (foreign_prepared, _, _) = effect_operation_plan_inputs()
+    let foreign_bound = effect_parent_bound_run(foreign_prepared)
+    let foreign_graph = @strategy.checked_effect_run_graph(
+      @publication_host.prepared_client_effect_run_graph(foreign_bound),
+    )
+    assert_false(
+      @strategy.captured_effect_run_matches_preparation(
+        captured, dag, foreign_graph,
+      ),
+    )
+    let foreign_captured = @strategy.open_source_free_effect_run_dag(
+      @publication_host.prepared_client_effect_run_graph(foreign_bound),
+      ledger,
+    ).unwrap()
+    let foreign_dag = @strategy.captured_effect_run_dag(foreign_captured)
+    assert_false(
+      @strategy.captured_effect_run_matches_preparation(
+        captured, foreign_dag, original_graph,
+      ),
+    )
+    assert_true(
+      @local_driver.bind_local_effect_dispatch_plan(
+        driver,
+        installed.configuration.dispatch,
+        foreign_captured,
+      )
+      is Err(_),
+    )
+    @strategy.stop_captured_dag(foreign_dag)
+    assert_true(@strategy.retire_captured_task_outputs(foreign_dag))
+    assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
+    assert_eq(@resources.quantity_usage(ledger), original_quantities)
+    // Configuration runs no future Model or UPDATE provider. Stop the actual
+    // captured child before its existing owner and Scope perform retirement.
+    @strategy.stop_captured_dag(dag)
+    assert_true(@strategy.retire_captured_task_outputs(dag))
+  }
   if !shared {
     assert_false(
       @publication_host.finish_client_model_read_scope(

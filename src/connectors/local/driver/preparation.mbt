@@ -324,13 +324,39 @@ pub fn bind_local_dispatch_plan(
 }
 
 ///|
+// A completed keyed-input view borrows its original checked Effect graph.
+// Only that same opaque Effect owner can bind the pre-Run configuration.
+pub fn bind_local_effect_dispatch_plan(
+  driver : @host.DispatchDriver,
+  original : LocalDispatchPreparation,
+  captured : @strategy.CapturedEffectRunDAG,
+) -> Result[LocalDispatchModule, LocalDispatchIssue] {
+  bind_local_dispatch_original(
+    driver,
+    original,
+    true,
+    captured_effect=Some(captured),
+  )
+}
+
+///|
 fn bind_local_dispatch_original(
   driver : @host.DispatchDriver,
   original : LocalDispatchPreparation,
   freeze_policy : Bool,
+  captured_effect? : @strategy.CapturedEffectRunDAG? = None,
 ) -> Result[LocalDispatchModule, LocalDispatchIssue] {
   let run = @host.dispatch_driver_run(driver)
-  if !physical_equal(@strategy.captured_dag_graph(run), original.graph) {
+  let same = match captured_effect {
+    None => physical_equal(@strategy.captured_dag_graph(run), original.graph)
+    Some(value) =>
+      @strategy.captured_effect_run_matches_preparation(
+        value,
+        run,
+        original.graph,
+      )
+  }
+  if !same {
     return Err(Configuration(ForeignPreparation))
   }
   let carrier_paths = local_dispatch_carrier_path_table(

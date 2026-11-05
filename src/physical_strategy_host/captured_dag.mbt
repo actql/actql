@@ -408,6 +408,19 @@ pub fn captured_effect_run_dag(value : CapturedEffectRunDAG) -> CapturedDAG {
 }
 
 ///|
+// The runtime keyed-input view is constructed from this exact checked Effect
+// graph. Its added live input slot does not replace the preparation original.
+// This nominal association conveys no input liveness, capacity or permission.
+pub fn captured_effect_run_matches_preparation(
+  value : CapturedEffectRunDAG,
+  run : CapturedDAG,
+  graph : CheckedDAG,
+) -> Bool {
+  physical_equal(value.captured, run) &&
+  physical_equal(checked_effect_run_graph(value.checked), graph)
+}
+
+///|
 pub fn captured_effect_run_owner(
   value : CapturedEffectRunDAG,
 ) -> @effect_binding.EffectProgramRunCandidate {

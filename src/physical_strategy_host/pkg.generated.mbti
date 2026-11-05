@@ -253,6 +253,8 @@ pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
 
 pub fn captured_effect_run_matches_checked(CapturedEffectRunDAG, @physical_strategy.CheckedEffectRunDAG) -> Bool
 
+pub fn captured_effect_run_matches_preparation(CapturedEffectRunDAG, CapturedDAG, @physical_strategy.CheckedDAG) -> Bool
+
 pub fn captured_effect_run_owner(CapturedEffectRunDAG) -> @effect_program_binding.EffectProgramRunCandidate
 
 pub fn captured_effect_run_source_at(CapturedEffectRunDAG, Int) -> @physical_strategy.CheckedEffectSourcePort?

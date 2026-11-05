@@ -33026,7 +33026,7 @@
     },
     {
       "module": "src/client_local_host/host.mbt",
-      "sha256": "cb6c7774fdfa8779d646d3111642a9850e3f451f303740ec2c2bb0ef9f885858",
+      "sha256": "182a34a4c4629f6b2f800881e5a2c482c3bc785785d2ad095ae7572ecd7cb02e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -33034,7 +33034,7 @@
       "operations": [
         {
           "name": "bind_client_local_configuration",
-          "declaration": "bind_client_local_configuration ( run : @ strategy . CapturedDAG , original : ClientPreparedLocalConfiguration , fixed_ms : Int64 , per_row_ms : Int64 , per_wire_byte_ms : Int64 , per_pair_ms : Int64 , ) - > @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] ?"
+          "declaration": "bind_client_local_configuration ( run : @ strategy . CapturedDAG , original : ClientPreparedLocalConfiguration , fixed_ms : Int64 , per_row_ms : Int64 , per_wire_byte_ms : Int64 , per_pair_ms : Int64 , captured_effect ? : @ strategy . CapturedEffectRunDAG ?"
         },
         {
           "name": "client_local_export_limits",
@@ -33133,6 +33133,10 @@
               {
                 "path": "src/client_local_host/host.mbt",
                 "anchor": "let client_local_adaptive_revisions"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "inputsOutputs": [
@@ -33143,6 +33147,10 @@
               {
                 "path": "src/client_local_host/host.mbt",
                 "anchor": "let client_local_adaptive_revisions"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "identity": [
@@ -33153,6 +33161,10 @@
               {
                 "path": "src/client_local_host/host.mbt",
                 "anchor": "let client_local_adaptive_revisions"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "ownership": [
@@ -33163,6 +33175,10 @@
               {
                 "path": "src/client_local_host/host.mbt",
                 "anchor": "let client_local_adaptive_revisions"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "synchronization": [
@@ -33173,6 +33189,10 @@
               {
                 "path": "src/client_local_host/host.mbt",
                 "anchor": "let client_local_adaptive_revisions"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "failure": [
@@ -33183,6 +33203,10 @@
               {
                 "path": "src/client_local_host/host.mbt",
                 "anchor": "let client_local_adaptive_revisions"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "cancellation": [
@@ -33193,6 +33217,10 @@
               {
                 "path": "src/client_local_host/host.mbt",
                 "anchor": "let client_local_adaptive_revisions"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "resources": [
@@ -33203,6 +33231,10 @@
               {
                 "path": "src/client_local_host/host.mbt",
                 "anchor": "let client_local_adaptive_revisions"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "extension": [
@@ -33213,6 +33245,10 @@
               {
                 "path": "src/client_local_host/host.mbt",
                 "anchor": "let client_local_adaptive_revisions"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "verification": [
@@ -33227,6 +33263,10 @@
               {
                 "path": "src/client_local_host/model_scope_demand_js_wbtest.mbt",
                 "anchor": "same Request Model Scope uses configured planning demand and keeps original cleanup"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
               }
             ]
           }
@@ -65088,7 +65128,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "079988913a004143c2b08e65e230d550b6267a738f55d52e97bc182b1abfff2e",
+      "sha256": "13a3f394e2fd914c4aaa043d44a085d655620fea2a31b1f63530a24108e96d39",
       "exports": [],
       "operations": [
         {
@@ -65146,6 +65186,10 @@
         {
           "name": "captured_effect_run_matches_checked",
           "declaration": "captured_effect_run_matches_checked ( run : CapturedEffectRunDAG , checked : CheckedEffectRunDAG , ) - > Bool"
+        },
+        {
+          "name": "captured_effect_run_matches_preparation",
+          "declaration": "captured_effect_run_matches_preparation ( value : CapturedEffectRunDAG , run : CapturedDAG , graph : CheckedDAG , ) - > Bool"
         },
         {
           "name": "captured_effect_run_owner",
@@ -65401,6 +65445,7 @@
             "captured_dag_strategy",
             "captured_effect_run_dag",
             "captured_effect_run_matches_checked",
+            "captured_effect_run_matches_preparation",
             "captured_effect_run_owner",
             "captured_effect_run_source_at",
             "captured_effect_run_source_count",
@@ -65466,60 +65511,100 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "The existing RowRun has a complete-input alternative"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same acquisition, request wire and provider"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "exact supplied-read"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same original Request supplies the Run ledger"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Current callbacks may reenter close"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "validation failure or cancellation retains them"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Retirement invalidates new reads"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "existing capacity functions and units"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "native file listings require their different Resource"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "focused Core and explicit-port Node cases"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
               }
             ]
           }
