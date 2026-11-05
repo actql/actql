@@ -6,6 +6,13 @@ test "prepared composed bounds precede Run construction with the same Host and P
   let bounds = prepared_composed_bounds(occurrence, graph).unwrap()
   assert_eq(bounds.model.max_items, 100)
   assert_eq(bounds.model.max_request_bytes, 1000L)
+  assert_eq(
+    @node_fixture.client_local_resource_policy_model_request_byte_ceiling(
+      @input.client_local_resource_policy(),
+    ),
+    standard_limits().model.max_request_bytes,
+  )
+  assert_eq(standard_limits().model.max_request_bytes, 65536L)
   assert_eq(bounds.model.max_response_bytes, 65536L)
   assert_eq(bounds.model.ledger.attempts, 4)
   assert_eq(bounds.model.ledger.transfer_bytes, 133072L)

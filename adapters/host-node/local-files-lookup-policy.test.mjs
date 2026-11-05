@@ -165,6 +165,7 @@ test('the original Mock declaration Environment includes its selected finite Loc
     clientLocalPreparationResourceLimits(value){assert.strictEqual(value,original);limitReads++;
       return [1,1,1,12345n,1,1];},
     clientLocalResourcePolicyRowCeiling(value){assert.strictEqual(value,original);return 256;},
+    clientLocalResourcePolicyModelRequestByteCeiling(value){assert.strictEqual(value,original);return 65536n;},
     clientProgramCheckEnvironment(value,cid){const body=JSON.parse(value);
       assert.equal(body.evidence_bundle_cid,cid);admitted.push(body);return {};}},
     preparation={readEnvironmentSource(){if(!current)throw Error('RetiredOriginal');return wire;}};
@@ -175,7 +176,7 @@ test('the original Mock declaration Environment includes its selected finite Loc
   assert.deepEqual(selected.host_policy_profile.lookup_execution,
     {...localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS]),max_total_response_bytes:12345});
   assert.deepEqual(selected.host_policy_profile.capacity,{...base.host_policy_profile.capacity,
-    max_relation_output_rows:256,max_artifact_rows:256});
+    max_relation_output_rows:256,max_artifact_rows:256,max_model_request_bytes_per_item:65536});
   assert.deepEqual(admitted,[selected]);assert.equal(limitReads,1);
   const explicit=snapshotHostLookupExecutionPolicy({...selected.host_policy_profile.lookup_execution,
     max_total_decoded_response_bytes:17});
