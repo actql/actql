@@ -69,7 +69,7 @@ pub fn bind_run(
     }
     return Err(ForeignRun)
   }
-  if !(active.phase is Input) || active.work != 0L {
+  if !(active.phase is Input) || !execution_input_unadvanced(active) {
     return Err(IncompleteExecution)
   }
   active.run_binding = Some({ compiled, definition, })
@@ -95,7 +95,7 @@ pub fn bind_dispatch_admission(
     active.cancelled ||
     active.advancing ||
     !(active.phase is Input) ||
-    active.work != 0L ||
+    !execution_input_unadvanced(active) ||
     !(active.source is Physical(_)) ||
     active.dispatch_admission is Some(_) {
     return Err(IncompleteExecution)
