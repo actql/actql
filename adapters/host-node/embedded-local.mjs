@@ -3789,6 +3789,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       throw clientOperationError('ForeignInstalledModelRecovery');
     }
     control.checkRestoredClientInferRunOwner(restored, prepared);
+    // This process owns a newly restored checked Program object. Admit that
+    // exact original to the existing Result service before its same Model
+    // owner asks for terminal publication capacity; no Run is reissued.
+    preparation.admitResultPublicationRun(prepared);
     let early = earlyMockInferPlans.get(prepared);
     if (early !== undefined) {
       if (Object.hasOwn(early, 'failure')) throw early.failure;
