@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
@@ -7,11 +7,13 @@ import { validate } from './audit.mjs';
 import { snapshot } from '../inventory.mjs';
 import { unionCapacityParts } from './parts.mjs';
 import { prepareCapacityRegressionInputs } from './regression-inputs.mjs';
+import { retainCapacityRegressionFixture } from './regression-fixtures.mjs';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const path = join(root, '.artifacts/relation-pipeline/capacity/all.json');
 const original = JSON.parse(readFileSync(path));
-const directory = join(root, '.artifacts/relation-pipeline/capacity/target-substitution');
-mkdirSync(directory, { recursive: true });
+const parent = join(root, '.artifacts/relation-pipeline/capacity/target-substitution');
+mkdirSync(parent, { recursive: true });
+const directory = mkdtempSync(join(parent, 'run-'));
 // Only immutable same-source preparation is shared. The healthy CLI and every
 // negative's full union/semantic validation remain independent below.
 const timings = { preparation: {}, cases: [] };
@@ -66,8 +68,10 @@ for (const slot of ['healthy', 'js', 'wasm', 'bytes', 'edge', 'history', 'compil
   }
   const fixture = join(directory, `${slot}.json`);
   phase = performance.now();
-  writeFileSync(fixture, JSON.stringify(report) + '\n');
+  const retained = retainCapacityRegressionFixture(fixture, report);
   timing.writeFixtureMs = performance.now() - phase;
+  timing.fixtureBytes = retained.bytes;
+  timing.retainedFixtureBytes = retained.compressedBytes;
   let result;
   if (original.kind === 'capacity-union' && slot !== 'healthy') {
     // Corrupt cloned producer views as well as their derived union, so these
@@ -94,8 +98,9 @@ for (const slot of ['healthy', 'js', 'wasm', 'bytes', 'edge', 'history', 'compil
     } catch (error) { result = { status: 1, stdout: '', stderr: error.stack }; }
   } else {
     phase = performance.now();
-    result = spawnSync(process.execPath, ['proofs/relation-pipeline/capacity/audit.mjs', fixture],
-      { cwd: root, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
+    result = retained.withUncompressed(path => spawnSync(process.execPath,
+      ['proofs/relation-pipeline/capacity/audit.mjs', path],
+      { cwd: root, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }));
     timing.cliMs = performance.now() - phase;
   }
   writeFileSync(join(directory, `${slot}.log`), `${result.stdout ?? ''}${result.stderr ?? ''}`);
