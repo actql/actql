@@ -17988,6 +17988,7 @@
             "inferEvidence",
             "checkpoints",
             "prepareAcquisition",
+            "prepareRetainedAcquisition",
             "sourceAccessFor",
             "sourceAdapterFor",
             "namespaceId",
@@ -18136,6 +18137,13 @@
           "name": "runInstalledComposedInfers/originals/originals",
           "parameters": [
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/preparedSource/preparedSource",
+          "parameters": [
+            "selectedSource"
           ],
           "async": false
         },
@@ -18307,6 +18315,7 @@
             "runInstalledComposedInfers/local/local/child/child",
             "runInstalledComposedInfers/local/local/init:retainEvidenceCopy/init:retainEvidenceCopy",
             "runInstalledComposedInfers/occurrences/occurrences",
+            "runInstalledComposedInfers/preparedSource/preparedSource",
             "runInstalledComposedInfers/runInstalledComposedInfers",
             "runInstalledComposedInfers/runInstalledComposedInfers#10",
             "runInstalledComposedInfers/runInstalledComposedInfers#11",
