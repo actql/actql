@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/original_captured_inputs.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "f512be0e425bd58d92dd91e5c3948ac8f40303101939185f6fb7b0e272ee6dad",
+      "sha256": "27e7414e7c9df020ddae05187039b8bdc8d35c9fea31d3c55139431d90a55544",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -32,6 +32,10 @@
         {
           "name": "row_captured_inputs_current",
           "declaration": "row_captured_inputs_current ( value : RowCapturedInputs ) - > Bool"
+        },
+        {
+          "name": "row_captured_inputs_live",
+          "declaration": "row_captured_inputs_live ( value : RowCapturedInputs , ledger : @ resources . Ledger , ) - > Bool"
         },
         {
           "name": "row_captures_original_keyed_child_available",
@@ -68,6 +72,7 @@
             "row_captured_inputs_construction_inventory",
             "row_captured_inputs_count",
             "row_captured_inputs_current",
+            "row_captured_inputs_live",
             "row_captures_original_keyed_child_available",
             "row_captures_original_keyed_lookup_dependents_retired",
             "row_captures_original_keyed_prefix_dependents_retired",

@@ -476,7 +476,7 @@ export function acquiredEffectPublicationPlan({acquired, captured,
 // input retention carries each original policy; derived publication carries
 // the checked combined policy with exactly the same custody/time bounds.
 export function acquiredMultiEffectPublicationPlan({acquired, sources,
-  captureStartedAt, captureCompletedAt, issuedModel, modelEvidence = []}) {
+  captureStartedAt, captureCompletedAt, issuedModel, modelEvidence = [], keyedSource}) {
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
@@ -497,13 +497,19 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
   const sourceEvidence = sources.map(source => source.sourceEvidence === undefined
     ? control.admitRunEvidence('source_evidence', source.sourceEvidenceWire, limits)
     : source.sourceEvidence);
+  if (keyedSource !== undefined) {
+    if (issuedModel === undefined || keyedSource.source === undefined ||
+        typeof keyedSource.logicalRelationCid !== 'string') throw new TypeError('IncompleteAcquiredEffectSources');
+    sourceEvidence.push(keyedSource.source);
+  }
   const run = JSON.parse(runDefinition.wire);
   const {plan, retention, retentionDependencies} = buildLocalPublicationPlan({
     control, admission, runDefinition, invocation, observation,
     compiledPlanCid: compiledPlan.identity,
     programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
-    inputRelationCids: sources.map(({captured}) =>
+    inputRelationCids: [...sources.map(({captured}) =>
       moon.clientProgramCapturedSourceLogicalCid(captured.identity)),
+      ...(keyedSource === undefined ? [] : [keyedSource.logicalRelationCid])],
     sourceEvidence, modelEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid, createdAt: run.created_at, now,
     resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
@@ -553,12 +559,12 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
 // The original Model issuer has already adopted the real capture into the
 // original Effect Run. Its live binding remains held by capture custody.
 export function acquiredInferEffectPublicationPlan({acquired, sources,
-  compiled, operation, issuance, modelEvidence, captureStartedAt, captureCompletedAt}) {
+  compiled, operation, issuance, modelEvidence, captureStartedAt, captureCompletedAt, keyedSource}) {
   const issued = operation.bindIssuedInvocation(acquired.control, {
     compiled, runDefinition: acquired.runDefinition, issued: issuance});
   try {
     const plan = acquiredMultiEffectPublicationPlan({acquired, sources,
-      captureStartedAt, captureCompletedAt, issuedModel: issued, modelEvidence});
+      captureStartedAt, captureCompletedAt, issuedModel: issued, modelEvidence, keyedSource});
     const contentGenerations = operation.contentGenerations?.();
     const completePlan = contentGenerations === undefined ? plan : Object.freeze({...plan,
       receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations}),

@@ -106,7 +106,7 @@ fn start_client_keyed_lookup_input_owned(
     max_work < 1 ||
     left.assembly_started ||
     left.lookup_issue is Some(_) ||
-    !@execution.producer_read_available(left.read) {
+    !client_keyed_left_available(left) {
     return Err(Assembly("unavailable"))
   }
   let rows = @execution.producer_read_row_count(left.read)
@@ -133,11 +133,21 @@ fn start_client_keyed_lookup_input_owned(
     return Err(Assembly("capacity_overflow"))
   }
   let owner = left.acquisition.owner
-  let index = @acquisition.keyed_join_input(left.acquisition.binding.join)
+  let index = match
+    @query.keyed_response_input_index(owner, left.acquisition.binding.join) {
+    Ok(value) => value
+    Err(_) => return Err(Assembly("foreign_response_port"))
+  }
   // Admit the existing layout/workspace envelope before materializing the
   // input buffer. The original per-key holdings are independent live owners.
   let reserve = match
-    @resources.reserve_attempt(ledger, 0L, retained_bytes, execution_bytes) {
+    @resources.reserve_attempt(
+      ledger,
+      0L,
+      retained_bytes,
+      execution_bytes,
+      quantities=@resources.quantity_neutral_amounts(ledger),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
@@ -439,13 +449,21 @@ pub fn begin_client_keyed_lookup_response(
     Err(issue) => return Err(issue)
   }
   let acquisition = state.left.acquisition
+  let response_input = match
+    @query.keyed_response_input_index(
+      acquisition.owner,
+      acquisition.binding.join,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Assembly("foreign_response_port"))
+  }
   if state.growing ||
     !request.io_complete ||
     request.attempts == 0L ||
     !@execution.supplied_relation_read_matches_input(
       read,
       acquisition.owner,
-      @acquisition.keyed_join_input(acquisition.binding.join),
+      response_input,
     ) ||
     @execution.supplied_relation_read_row_count(read) != 1 {
     return Err(Assembly("unverified_response"))
@@ -484,7 +502,7 @@ pub fn begin_client_keyed_lookup_response(
     state.copying is Some(_) ||
     state.completed is Some(_) ||
     state.left.lookup_issue is Some(_) ||
-    !@execution.producer_read_available(state.left.read) ||
+    !client_keyed_left_available(state.left) ||
     !@execution.supplied_relation_read_available(read) ||
     !(state.input is Some(original) && physical_equal(original, input)) ||
     !(state.selected_request is Some(original) &&
@@ -516,7 +534,7 @@ pub fn advance_client_keyed_lookup_input(
   if state.closed ||
     quantum <= 0 ||
     state.left.lookup_issue is Some(_) ||
-    !@execution.producer_read_available(state.left.read) {
+    !client_keyed_left_available(state.left) {
     return Err(Assembly("unavailable"))
   }
   guard state.input is Some(_) else { return Err(Assembly("closed_input")) }
@@ -565,7 +583,7 @@ pub fn finish_client_keyed_lookup_input(
     state.copying is Some(_) ||
     state.accepted != state.rows ||
     state.left.lookup_issue is Some(_) ||
-    !@execution.producer_read_available(state.left.read) {
+    !client_keyed_left_available(state.left) {
     return Err(Assembly("incomplete"))
   }
   if state.completed is None {
@@ -615,15 +633,23 @@ pub fn finish_client_keyed_lookup_input(
     }
     return Err(Assembly("closed_response"))
   }
+  let response_input = match
+    @query.keyed_response_input_index(
+      state.left.acquisition.owner,
+      state.left.acquisition.binding.join,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Assembly("foreign_response_port"))
+  }
   let read = match
     @execution.prepare_supplied_relation_read(
       state.left.acquisition.owner,
-      @acquisition.keyed_join_input(state.left.acquisition.binding.join),
+      response_input,
       state.completed.unwrap(),
       () => {
         !state.closed &&
         state.left.lookup_issue is None &&
-        @execution.producer_read_available(state.left.read) &&
+        client_keyed_left_available(state.left) &&
         state.known.all(entry => {
           entry.1
           .map(@execution.supplied_relation_read_available)
@@ -676,7 +702,10 @@ pub fn open_client_keyed_lookup_dag(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  @strategy.open_captured_dag(prepared.graph, lookup.left.source, ledger, supplied_reads=[
+  guard lookup.left.composed is None && lookup.left.source is Some(source) else {
+    return Err(ForeignLeft)
+  }
+  @strategy.open_captured_dag(prepared.graph, source, ledger, supplied_reads=[
     (task, 1, read),
   ]).map_err(_ => Assembly("ForeignCapturedGraph"))
 }
@@ -761,7 +790,7 @@ pub fn prepare_client_keyed_serialization_inputs(
       state.left.acquisition,
       prepared,
     ) &&
-    physical_equal(source, state.left.source) &&
+    client_keyed_left_single_source_matches(state.left, source) &&
     physical_equal(ledger, state.ledger) else {
     return Err(ForeignLeft)
   }
@@ -778,7 +807,7 @@ pub fn client_keyed_lookup_input_identity(
     state.left.lookup_issue is Some(_) ||
     state.holding is None ||
     @resources.reservation_open(state.reservation) ||
-    !@execution.producer_read_available(state.left.read) ||
+    !client_keyed_left_available(state.left) ||
     !(state.read is Some(read) &&
     @execution.supplied_relation_read_available(read)) {
     None

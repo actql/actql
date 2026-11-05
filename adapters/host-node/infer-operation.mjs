@@ -673,8 +673,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     contentGenerations: () => serializedInput === undefined ? undefined
       : Object.freeze([serializedInput.generation]),
     contentRecovery: () => serializedInput?.recovery,
-    capturedContentRecovery: () => serializedInput?.capturedRecovery ?? keyedInput?.capturedRecovery,
-    capturedContentBinding: () => serializedInput?.capturedBinding ?? keyedInput?.capturedBinding,
+    capturedContentRecovery: () => serializedInput?.capturedRecovery ?? keyedInput?.capturedRecovery ?? composedInput?.capturedRecovery,
+    capturedContentBinding: () => serializedInput?.capturedBinding ?? keyedInput?.capturedBinding ?? composedInput?.capturedBinding,
     installSettlementCleanup(callback) {
       if (cleanupSettlement !== undefined || typeof callback !== 'function') {
         throw new TypeError('InvalidInferSettlementCleanup');
@@ -1230,7 +1230,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
   durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false,
-  deferredGeneratedInput = false,
+  deferredGeneratedInput = false, capturedInput,
   inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent}) {
   if (selected?.occurrence === undefined ||
       typeof deferred !== 'boolean' || typeof deferredGeneratedInput !== 'boolean' ||
@@ -1304,7 +1304,8 @@ export function openNodeComposedInferProvider({moon, selected, sources,
         }
         operation = openNodeInferOperation({moon, graph: selected.graph,
           composedInput: generated ? undefined : {occurrence: selected.occurrence,
-            prefix: computePrefix, inputs, sources},
+            prefix: computePrefix, inputs, sources,
+            capturedRecovery: capturedInput?.recovery, capturedBinding: capturedInput?.binding},
           serializedInput: !generated ? undefined : {
             control, compiled: plan.compiled, definition: plan.runDefinition,
             generation: generatedInput.generation(), inputs,
@@ -1364,6 +1365,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       retainOperation = read('retainOperation'); retainCompleted = read('retainCompleted');
       durableCalls = read('durableCalls') === true; restoredInput = read('restoredInput');
       generatedInput = generatedOriginal;
+      capturedInput = read('capturedInput');
       assertRuntimeCurrent = read('assertRuntimeCurrent');
       if (assertRuntimeCurrent !== undefined && typeof assertRuntimeCurrent !== 'function') {
         throw new TypeError('InferTrustedRuntimeScopeUnavailable');

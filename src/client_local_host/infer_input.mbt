@@ -302,13 +302,50 @@ pub fn start_client_composed_infer_input(
     )
   }
   if keyed is Some(lookup) {
+    let composed = @publication_host.client_composed_keyed_lookup_sources(
+      lookup, occurrence,
+    )
+    let originals_match = match composed {
+      None => inputs.is_empty()
+      Some(sources) => {
+        guard inputs.length() == sources.length() + 1 &&
+          @publication_host.client_composed_keyed_lookup_input_slot(
+            lookup, occurrence,
+          )
+          is Some(slot) &&
+          slot == sources.length() &&
+          @publication_host.finish_client_keyed_lookup_input(lookup)
+          is Ok(original) else {
+          return Err(UnsupportedProgram)
+        }
+        let mut matched = true
+        for index, input in inputs {
+          match input {
+            @local.RelationInput(read) if index < sources.length() =>
+              if !@query.captured_source_matches_segment_input(
+                  sources[index],
+                  read,
+                ) {
+                matched = false
+              }
+            @local.SuppliedRelationInput(read) if index == slot =>
+              if !physical_equal(read, original) {
+                matched = false
+              }
+            _ => matched = false
+          }
+        }
+        matched
+      }
+    }
+
     // The existing lookup owns both admitted inputs. Execute only the suffix
     // after its acquired filter/select prefix; never replay a Source scan.
     let acquisition = @publication_host.client_keyed_lookup_acquisition(lookup)
     let (task, stage, _) = @publication_host.client_infer_occurrence_coordinates(
       occurrence,
     )
-    guard inputs.is_empty() &&
+    guard originals_match &&
       @publication_host.client_keyed_acquisition_coordinates(acquisition)
       is Some((source_stage, source_task, join)) &&
       source_stage == stage &&
@@ -326,6 +363,16 @@ pub fn start_client_composed_infer_input(
       is Some(selected) else {
       return Err(UnsupportedProgram)
     }
+    let prior_work = if composed is Some(_) {
+      @publication_host.client_composed_keyed_lookup_prefix_work(
+        lookup, occurrence,
+      ).unwrap()
+    } else {
+      0L
+    }
+    if prior_work < 0L || prior_work > execution.max_work.to_int64() {
+      return Err(InvalidLimits)
+    }
     return start_client_infer_input_sequence(
       selected,
       step,
@@ -333,10 +380,13 @@ pub fn start_client_composed_infer_input(
         @local.managed_provider_relation_input(left),
         @local.managed_provider_supplied_relation_input(right),
       ],
-      execution,
+      { ..execution, max_work: execution.max_work - prior_work.to_int(), },
       measurement,
       mapping,
-    )
+    ).map(active => {
+      active.work = prior_work
+      active
+    })
   }
   start_client_infer_input_sequence(
     sequence, step, inputs, execution, measurement, mapping,

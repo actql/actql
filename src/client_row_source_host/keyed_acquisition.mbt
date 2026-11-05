@@ -579,11 +579,17 @@ pub fn keyed_row_capture_read(
   if !keyed_retention_live(run, retained) {
     return Err(InvalidState)
   }
+  let index = match
+    @query.keyed_response_input_index(
+      retained.requirement.owner,
+      @sourcequery.keyed_source_join(retained.requirement.facts),
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidState)
+  }
   @execution.prepare_supplied_relation_read(
     retained.requirement.owner,
-    @sourcequery.keyed_join_input(
-      @sourcequery.keyed_source_join(retained.requirement.facts),
-    ),
+    index,
     retained.rows,
     () => keyed_retention_live(run, retained),
   ).map_err(_ => InvalidState)

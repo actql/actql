@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "159397704850e990f871a494f419eca438ce1075351a2c30881c154c22729b70",
+      "sha256": "1ab824c7ad999ac143351395f7b1e6d7ce5143b9c1bf202190bf12c20a4b5cbe",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -127,6 +127,13 @@
           "async": false
         },
         {
+          "name": "openAcquiredEffectComputation/init:retain/init:retain",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
           "name": "openAcquiredEffectComputation/init:retainCleanup/init:retainCleanup",
           "parameters": [
             "value"
@@ -164,6 +171,13 @@
         },
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#11",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#12",
           "parameters": [
             "task"
           ],
@@ -214,7 +228,7 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#8",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
@@ -380,11 +394,13 @@
             "openAcquiredEffectComputation/handleModelPause/handleModelPause/cleanupHandle/cleanupHandle",
             "openAcquiredEffectComputation/inferCleanupPending/inferCleanupPending",
             "openAcquiredEffectComputation/init:observeAccount/init:observeAccount",
+            "openAcquiredEffectComputation/init:retain/init:retain",
             "openAcquiredEffectComputation/init:retainExecution/init:retainExecution",
             "openAcquiredEffectComputation/observeUsage/observeUsage",
             "openAcquiredEffectComputation/openAcquiredEffectComputation",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#10",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#11",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#12",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#4",
@@ -871,6 +887,7 @@
         "../host-common/effect-preparation-result.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
+        "./acquired-effect-keyed-prefix.mjs",
         "./acquired-effect-sources.mjs",
         "./entry.mjs",
         "./infer-capture-custody.mjs",
@@ -1238,9 +1255,13 @@
             "acquiredEffectContinuation/init:beforeRead/init:beforeRead",
             "acquiredEffectContinuation/init:beforeRead/init:beforeRead/init:beforeRead",
             "acquiredEffectContinuation/init:captured/init:captured",
+            "acquiredEffectContinuation/init:captured/init:captured/init:captured",
+            "acquiredEffectContinuation/init:captured/init:captured/init:captured#2",
+            "acquiredEffectContinuation/init:captured/init:captured/matches/matches",
             "acquiredEffectContinuation/init:close/init:close",
             "acquiredEffectContinuation/init:prepared/init:prepared",
             "acquiredEffectContinuation/init:prepared/init:prepared/init:prepared",
+            "acquiredEffectContinuation/init:prepared/init:prepared/init:prepared#2",
             "acquiredEffectContinuation/init:restore/init:restore",
             "acquiredEffectContinuation/init:restore/init:restore/captured/captured",
             "acquiredEffectContinuation/init:restore/init:restore/captured/captured#2",
@@ -1257,15 +1278,11 @@
             "acquiredEffectContinuation/persistSource",
             "acquiredEffectContinuation/sourceCurrent/sourceCurrent",
             "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent",
+            "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent/sourceOriginalCurrent",
             "bindingFor/bindingFor",
             "fail/fail",
             "same/same",
-            "sourceScope/sourceScope",
-            "acquiredEffectContinuation/init:captured/init:captured/init:captured",
-            "acquiredEffectContinuation/init:captured/init:captured/init:captured#2",
-            "acquiredEffectContinuation/init:captured/init:captured/matches/matches",
-            "acquiredEffectContinuation/init:prepared/init:prepared/init:prepared#2",
-            "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent/sourceOriginalCurrent"
+            "sourceScope/sourceScope"
           ],
           "exports": [
             "acquiredEffectContinuation"
@@ -1736,7 +1753,10 @@
             "capturedDuckDBPendingCapacity",
             "capturedDuckDBPhysicalCapacity",
             "capturedDuckDBRequirement",
+            "checkedSourceForRequirement",
+            "checkedSourceForRequirement/checkedSourceForRequirement",
             "currentReadDecision",
+            "describeCapturedSource",
             "openCapturedDuckDBSource",
             "openCapturedDuckDBSource/failAcquisition/failAcquisition",
             "openCapturedDuckDBSource/openCapturedDuckDBSource",
@@ -1748,12 +1768,9 @@
             "openCapturedDuckDBSource/recovery/recovery",
             "prepareCapturedDuckDBSource",
             "prepareCapturedDuckDBSource/contracts/contracts",
-            "selectAcquisition",
-            "checkedSourceForRequirement",
-            "checkedSourceForRequirement/checkedSourceForRequirement",
-            "describeCapturedSource",
             "prepareRetainedCapturedDuckDBSource",
-            "prepareRetainedCapturedDuckDBSource/prepareRetainedCapturedDuckDBSource"
+            "prepareRetainedCapturedDuckDBSource/prepareRetainedCapturedDuckDBSource",
+            "selectAcquisition"
           ],
           "exports": [
             "capturedDuckDBConfiguration",
@@ -8231,6 +8248,7 @@
         {
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/selected/selected",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/init:isOriginalPreparationRefusal/init:isOriginalPreparationRefusal",
             "openPreparedInstalledHost/preparation/init:admitResultPublicationRun/init:admitResultPublicationRun",
             "openPreparedInstalledHost/preparation/init:assertResultPublicationCurrent/init:assertResultPublicationCurrent",
@@ -8239,8 +8257,7 @@
             "openPreparedInstalledHost/preparation/init:prepareResultPublication/init:prepareResultPublication",
             "openPreparedInstalledHost/preparation/init:prepareResultPublication/init:prepareResultPublication/init:prepareResultPublication",
             "readHostResultPublicationPreparation",
-            "readHostResultPublicationRunRequirements",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/selected/selected"
+            "readHostResultPublicationRunRequirements"
           ],
           "exports": [
             "assertOriginalHostPublicationStoreFacilityCurrent",
@@ -9787,6 +9804,7 @@
           "operations": [
             "installedManagedRunContracts",
             "managedComputeSubmittedIntentCid",
+            "openPreparedInstalledHost/preparation/init:assertUnadmittedSourceRequest/init:assertUnadmittedSourceRequest",
             "openPreparedInstalledHost/preparation/init:isOriginalManagedComputePreparationRefusal/init:isOriginalManagedComputePreparationRefusal",
             "openPreparedInstalledHost/preparation/init:prepareManagedCompute/init:prepareManagedCompute",
             "openPreparedInstalledHost/preparation/init:prepareManagedCompute/init:prepareManagedCompute/init:prepareManagedCompute",
@@ -9796,8 +9814,7 @@
             "readManagedComputeRunRequirements",
             "readManagedComputeRunRequirements/asset/asset",
             "readManagedComputeRunRequirements/readManagedComputeRunRequirements",
-            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#2",
-            "openPreparedInstalledHost/preparation/init:assertUnadmittedSourceRequest/init:assertUnadmittedSourceRequest"
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#2"
           ],
           "exports": [
             "managedComputeSubmittedIntentCid",
@@ -16194,6 +16211,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareKeyedSources/prepareKeyedSources",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedAcquisition/prepareRetainedAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/projectRunObservation/projectRunObservation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/reconcile/reconcile",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture",
@@ -16323,8 +16341,7 @@
             "sameEmbeddedInstallation",
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
             "validateSourceNamespace",
-            "validateValuesMaxRows",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedAcquisition/prepareRetainedAcquisition"
+            "validateValuesMaxRows"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -22739,7 +22756,7 @@
     },
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
-      "sha256": "157c140866c1d1d45286317a2476ed6f90ef40328ad5ebaa414ae87417e5c04a",
+      "sha256": "8f9da3d997159dcf3e3129c465ba7fcbacfdecab15562f47c13dae09a312fbad",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -22751,6 +22768,8 @@
             "publications",
             "control",
             "preparedProgram",
+            "preparedEffect",
+            "compilation",
             "plan",
             "acquisition",
             "ledger",
@@ -23452,7 +23471,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "da85ef35ee43bcbc429290e159f97860e17d332ed931a0ba31a38c477ab4efc0",
+      "sha256": "e410a4db88c534e862deb28891fa1e01b1dad7a9fee115d4f47113f3bac8064d",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -23520,7 +23539,8 @@
             "issuance",
             "modelEvidence",
             "captureStartedAt",
-            "captureCompletedAt"
+            "captureCompletedAt",
+            "keyedSource"
           ],
           "async": false
         },
@@ -23552,7 +23572,8 @@
             "captureStartedAt",
             "captureCompletedAt",
             "issuedModel",
-            "modelEvidence"
+            "modelEvidence",
+            "keyedSource"
           ],
           "async": false
         },
@@ -26138,6 +26159,193 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../store-local/representations.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+      "sha256": "e8403fb694d28f25a703e6b4a0ad765b41bea8da63dce860846163daa50326bd",
+      "exports": [
+        "prepareAcquiredEffectKeyedPrefix"
+      ],
+      "operations": [
+        {
+          "name": "prepareAcquiredEffectKeyedPrefix",
+          "parameters": [
+            "moon",
+            "acquired",
+            "managedRun",
+            "infer",
+            "selected",
+            "originalPreparation",
+            "plan",
+            "captures",
+            "sourceProfile",
+            "ledger",
+            "contentRun",
+            "store",
+            "principalId",
+            "signal",
+            "now",
+            "current",
+            "retain"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareAcquiredEffectKeyedPrefix/cleanup/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareAcquiredEffectKeyedPrefix/frame/frame",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareAcquiredEffectKeyedPrefix/frame/frame#2",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareAcquiredEffectKeyedPrefix",
+            "prepareAcquiredEffectKeyedPrefix/cleanup/cleanup",
+            "prepareAcquiredEffectKeyedPrefix/frame/frame",
+            "prepareAcquiredEffectKeyedPrefix/frame/frame#2",
+            "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix",
+            "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix#2"
+          ],
+          "exports": [
+            "prepareAcquiredEffectKeyedPrefix"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
+                "anchor": "export async function prepareAcquiredEffectKeyedPrefix"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
+                "anchor": "test('same two captured originals execute one prefix and one keyed observation before Model'"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/acquisition-outcome.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-source.mjs",
+        "node:timers/promises"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

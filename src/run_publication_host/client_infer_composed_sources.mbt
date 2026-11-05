@@ -162,25 +162,46 @@ pub fn admit_client_infer_composed_sources(
     }
     Some(value) => {
       let acquisition = value.lookup.left.acquisition
-      guard count == 1 &&
-        client_keyed_acquisition_matches_program(acquisition, owner) &&
-        physical_equal(value.lookup.left.source, inputs[0].source) &&
+      let composed = client_composed_keyed_lookup_sources_match(
+        value.lookup,
+        occurrence,
+        captures,
+      )
+      guard (
+          composed ||
+          (
+            count == 1 &&
+            client_keyed_acquisition_matches_program(acquisition, owner) &&
+            client_keyed_left_single_source_matches(
+              value.lookup.left,
+              inputs[0].source,
+            )
+          )
+        ) &&
         client_keyed_acquisition_coordinates(acquisition)
         is Some((stage, task, join)) &&
         stage == occurrence.stage &&
         task == occurrence.task &&
         join < occurrence.step &&
-        client_keyed_observation_covers_sources(
-          owner,
-          acquisition,
-          inputs[0].requirement,
+        (
+          composed ||
+          client_keyed_observation_covers_sources(
+            owner,
+            acquisition,
+            inputs[0].requirement,
+          )
         ) &&
         client_keyed_lookup_observation_wires(value) is Some(_) &&
         @planning.keyed_source_evidence_facts(acquisition.facts) is Some(facts) else {
         return Err(ForeignInput)
       }
       let subject = @checked.source_execution_subject(acquisition.check)
-      guard @pipeline.input_at(pipeline, subject.input) is Some((name, _)) &&
+      let source_input = if composed {
+        client_composed_keyed_lookup_input_slot(value.lookup, occurrence).unwrap()
+      } else {
+        subject.input
+      }
+      guard @pipeline.input_at(pipeline, source_input) is Some((name, _)) &&
         !names.contains(name) else {
         return Err(ForeignInput)
       }
@@ -238,9 +259,25 @@ pub fn client_infer_composed_sources_matches(
       }
     Some((_, keyed, _)) => {
       let acquisition = keyed.lookup.left.acquisition
-      if value.inputs.length() != 1 ||
-        !client_keyed_acquisition_matches_program(acquisition, occurrence.owner) ||
-        !physical_equal(keyed.lookup.left.source, value.inputs[0].source) ||
+      let composed = client_composed_keyed_lookup_sources_match(
+        keyed.lookup,
+        occurrence,
+        value.inputs.map(input => input.source),
+      )
+      if (
+          !composed &&
+          (
+            value.inputs.length() != 1 ||
+            !client_keyed_acquisition_matches_program(
+              acquisition,
+              occurrence.owner,
+            ) ||
+            !client_keyed_left_single_source_matches(
+              keyed.lookup.left,
+              value.inputs[0].source,
+            )
+          )
+        ) ||
         client_keyed_lookup_observation_wires(keyed) is None {
         return false
       }

@@ -633,7 +633,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           await closePhysicalRead(held.read);
           return Object.freeze({pending: false});
         },
-        prepareKeyedSourceRead({checkedOwner, keyedAcquisition, request, declaration: selected, managedRun, originalRead}) {
+        prepareKeyedSourceRead({checkedOwner, keyedAcquisition, request, declaration: selected, managedRun, originalRead, rowLimits}) {
           const run = sameRun(checkedOwner);
           if (selected !== declaration || run.closed || run.retiringMockSources ||
               managedRun !== undefined && managedRun !== run.value ||
@@ -648,8 +648,11 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           read.bytes = Object.getOwnPropertyDescriptor(raw, 'readOriginalBytes')?.value;
           if (typeof read.close !== 'function' || typeof read.bytes !== 'function') fail('InstalledMockSourceUnavailable');
           sameRun(checkedOwner);
-          read.value = originalRead ?? checked(moon.clientProgramInstalledManagedKeyedSourceRead(
-            run.value, keyedAcquisition, request, declaration));
+          read.value = originalRead ?? checked(run.preparationKind === 'effect-plan'
+            ? moon.clientProgramInstalledManagedModelKeyedSourceRead(run.value,
+              keyedAcquisition, request, declaration,
+              rowLimits.maxPageBytes, rowLimits.maxTextBytes, rowLimits.maxWork)
+            : moon.clientProgramInstalledManagedKeyedSourceRead(run.value, keyedAcquisition, request, declaration));
           originalReads.set(read.value, {run, read}); return read.value;
         },
         async closeKeyedSourceRead(value) {

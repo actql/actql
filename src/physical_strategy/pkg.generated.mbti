@@ -124,6 +124,8 @@ pub fn graph_task_target(CheckedDAG, Int) -> @pipeline_typing.Target?
 
 pub fn graph_task_unit_index(CheckedDAG, Int) -> Int?
 
+pub fn graph_with_completed_keyed_model_input(CheckedDAG, Int, Int, @execution_relation.SuppliedRelationRead) -> CheckedDAG?
+
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[CheckedDAG, GraphIssue]
 
 pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[CheckedEffectComputationDAG, GraphIssue]

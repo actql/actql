@@ -235,15 +235,43 @@ pub fn check_installed_managed_keyed_content_preparation(
 }
 
 ///|
+priv struct ClientInstalledModelKeyedSource {
+  plan : ClientInstalledEffectManagedPlan
+  model : ClientInstalledEffectModelDemand
+  keyed : @publication_host.ClientKeyedAcquisition
+  request : @publication_host.ClientKeyedRequest
+}
+
+///|
 struct ClientInstalledKeyedSourceRead {
   mut original : ClientInstalledKeyedSourceRead?
   mut parent : ClientInstalledManagedRun?
   mut selected : ClientInstalledManagedKeyedPreparation?
+  mut model : ClientInstalledModelKeyedSource?
   request : @publication_host.ClientKeyedRequest?
   mut acquisition : @row_source_host.RowKeyedAcquisition?
   mut run : @row_source_host.RowRun?
   mut started : Bool
   mut retired : Bool
+}
+
+///|
+// Shared spent-request history. Retiring a physical child never returns this
+// occurrence or permits another child for the same original keyed request.
+fn installed_keyed_source_request_available(
+  value : ClientInstalledManagedRun,
+  request : @publication_host.ClientKeyedRequest,
+  max_requests : Int,
+) -> Result[Unit, ClientInstalledSourceReadIssue] {
+  if value.keyed_reads.length() >= max_requests {
+    return Err(ManagedRun(InsufficientCapacity))
+  }
+  for previous in value.keyed_reads {
+    if previous.request is Some(original) && physical_equal(original, request) {
+      return Err(AlreadyBound)
+    }
+  }
+  Ok(())
 }
 
 ///|
@@ -263,13 +291,14 @@ pub fn begin_installed_managed_keyed_source_read(
     @publication_host.client_keyed_request_matches_acquisition(request, keyed) else {
     return Err(ForeignOriginal)
   }
-  if value.keyed_reads.length() >= selected.max_requests {
-    return Err(ManagedRun(InsufficientCapacity))
-  }
-  for previous in value.keyed_reads {
-    if previous.request is Some(original) && physical_equal(original, request) {
-      return Err(AlreadyBound)
-    }
+  match
+    installed_keyed_source_request_available(
+      value,
+      request,
+      selected.max_requests,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   guard @publication_host.client_keyed_request_value(request, keyed)
     is Some(input) else {
@@ -302,6 +331,147 @@ pub fn begin_installed_managed_keyed_source_read(
     original: None,
     parent: Some(value),
     selected: Some(selected),
+    model: None,
+    request: Some(request),
+    acquisition: Some(acquisition),
+    run: None,
+    started: false,
+    retired: false,
+  }
+  read.original = Some(read)
+  value.keyed_reads.push(read)
+  Ok(read)
+}
+
+///|
+fn installed_model_keyed_source_ledger(
+  value : ClientInstalledManagedRun,
+  selected : ClientInstalledModelKeyedSource,
+) -> Result[@resources.Ledger, ClientInstalledSourceReadIssue] {
+  let ledger = match require_installed_managed_run(value) {
+    Err(issue) => return Err(ManagedRun(issue))
+    Ok(ledger) => ledger
+  }
+  guard value.preparation is Some(PlannedEffectManaged(_, plan)) &&
+    physical_equal(plan, selected.plan) &&
+    plan.model is Some(model) &&
+    physical_equal(model, selected.model) &&
+    physical_equal(value.request, plan.request) &&
+    @publication_host.client_keyed_acquisition_matches_effect_program(
+      selected.keyed,
+      plan.prepared,
+    ) &&
+    // The private selection already bound this immutable request/acquisition
+    // pair. The retained-parent proof observes its producer current once.
+    @publication_host.client_composed_keyed_request_retained_model_parent(
+      selected.request,
+      model.compiled,
+      model.definition,
+      model.graph,
+      ledger,
+    ) &&
+    // The producer's current callback may reenter retirement. Check the same
+    // parent originals after it without issuing another current observation.
+    value.ledger is Some(original) &&
+    physical_equal(original, ledger) &&
+    value.preparation is Some(PlannedEffectManaged(_, after)) &&
+    physical_equal(after, plan) else {
+    return Err(ForeignOriginal)
+  }
+  Ok(ledger)
+}
+
+///|
+pub fn begin_installed_managed_model_keyed_source_read(
+  value : ClientInstalledManagedRun,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  request : @publication_host.ClientKeyedRequest,
+  declaration : @row_source_host.RowDeclaration,
+  row_limits : @row_source_host.RowKeyedLimits,
+) -> Result[ClientInstalledKeyedSourceRead, ClientInstalledSourceReadIssue] {
+  let ledger = match require_installed_managed_run(value) {
+    Err(issue) => return Err(ManagedRun(issue))
+    Ok(ledger) => ledger
+  }
+  guard value.preparation is Some(PlannedEffectManaged(_, plan)) &&
+    plan.model is Some(model) &&
+    @publication_host.client_keyed_acquisition_matches_effect_program(
+      keyed,
+      plan.prepared,
+    ) &&
+    @publication_host.client_composed_keyed_request_matches_model_parent(
+      request,
+      model.compiled,
+      model.definition,
+      model.graph,
+      ledger,
+    ) &&
+    @publication_host.client_composed_keyed_request_model_rows(
+      request,
+      model.compiled,
+      model.definition,
+      model.graph,
+      ledger,
+    )
+    is Some(max_requests) &&
+    max_requests > 0 else {
+    return Err(ForeignOriginal)
+  }
+  match installed_keyed_source_request_available(value, request, max_requests) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard @publication_host.client_keyed_request_value(request, keyed)
+    is Some(input) else {
+    return Err(ForeignOriginal)
+  }
+  let selected : ClientInstalledModelKeyedSource = {
+    plan,
+    model,
+    keyed,
+    request,
+  }
+  let acquisition = match
+    @row_source_host.prepare_keyed_row_acquisition(
+      @publication_host.client_keyed_acquisition_owner(keyed),
+      @publication_host.client_keyed_acquisition_facts(keyed),
+      input,
+      declaration,
+      row_limits,
+      input_available=Some(() => {
+        installed_model_keyed_source_ledger(value, selected) is Ok(_)
+      }),
+    ) {
+    Err(issue) => return Err(Acquisition(issue))
+    Ok(acquisition) => acquisition
+  }
+  match installed_model_keyed_source_ledger(value, selected) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // Selection may advance only after this original child is published. A
+  // current callback cannot spend or replace its request while constructing.
+  if !@publication_host.client_composed_keyed_request_matches_model_parent(
+      request,
+      model.compiled,
+      model.definition,
+      model.graph,
+      ledger,
+    ) ||
+    !(value.ledger is Some(original) && physical_equal(original, ledger)) ||
+    !(value.preparation is Some(PlannedEffectManaged(_, after)) &&
+    physical_equal(after, plan)) {
+    return Err(ForeignOriginal)
+  }
+  match installed_keyed_source_request_available(value, request, max_requests) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let read : ClientInstalledKeyedSourceRead = {
+    original: None,
+    parent: Some(value),
+    selected: None,
+    model: Some(selected),
     request: Some(request),
     acquisition: Some(acquisition),
     run: None,
@@ -324,10 +494,20 @@ fn require_installed_keyed_source_read(
     return Err(Retired)
   }
   guard value.parent is Some(parent) &&
-    value.selected is Some(selected) &&
-    parent.content is KeyedContent(original, _) &&
-    physical_equal(original, selected) &&
     parent.keyed_reads.any(read => physical_equal(read, value)) else {
+    return Err(ForeignOriginal)
+  }
+  if value.model is Some(model) {
+    guard value.selected is None &&
+      value.request is Some(request) &&
+      physical_equal(request, model.request) else {
+      return Err(ForeignOriginal)
+    }
+    return installed_model_keyed_source_ledger(parent, model)
+  }
+  guard value.selected is Some(selected) &&
+    parent.content is KeyedContent(original, _) &&
+    physical_equal(original, selected) else {
     return Err(ForeignOriginal)
   }
   require_installed_managed_run(parent).map_err(issue => ManagedRun(issue))
@@ -432,6 +612,7 @@ pub fn retire_installed_keyed_source_read(
   value.run = None
   value.acquisition = None
   value.selected = None
+  value.model = None
   value.parent = None
   value.retired = true
   // Keep the original request identity in the bounded parent history until

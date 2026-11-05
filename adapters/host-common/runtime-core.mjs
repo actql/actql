@@ -3182,6 +3182,13 @@ function publicationControl(moon) {
         throw new TypeError('Foreign Client compiled Run');
       }
     },
+    checkClientCompiledEffectRunOwner(compiled, prepared, compilation) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined ||
+          moon.clientProgramCompiledRunEffectMatches(value, prepared, compilation) !== true) {
+        throw new TypeError('Foreign Client compiled Run');
+      }
+    },
     checkClientCompiledRunDefinition(compiled, definition) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
@@ -3366,6 +3373,15 @@ function publicationControl(moon) {
         captures.map(value => value.capture.source()), captures.map(value => value.identity),
         captures.map(value => value.requirement), captures.map(value => value.logicalInput),
         sourceEvidence.map(evidenceToken), authorityScopeCid, startedAt, completedAt, keyed));
+    },
+    startOriginalComposedKeyedPrefix(compiled, definition, graph, scope, keyed, captures, prefix) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramStartOriginalComposedKeyedPrefix(scope,
+        value, token(definition), graph, keyed,
+        captures.map(value => value.capture.originalRowCapture()), prefix));
     },
     takeSourceEvidenceOriginal(capture) {
       const take = Object.getOwnPropertyDescriptor(capture ?? {}, 'takeSourceEvidenceOriginal')?.value;

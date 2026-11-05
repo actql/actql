@@ -1,3 +1,22 @@
+# Original composed keyed Model prefix
+
+The existing Model Scope and admitted Effect Plan may borrow two original Row
+captures to execute their checked keyed JOIN left prefix once. The prefix keeps
+its existing reservation and actual completed input receipt. Its keyed request,
+response, observation and Model suffix remain bound to those same captures,
+checked graph, compiled Run, Definition and Ledger. Planned Source metadata
+does not satisfy live input admission. Imported Result positions and Source
+inventory positions are distinct; the original JOIN right port selects the
+runtime response schema and input without changing the Catalog coordinate.
+
+The Node composition retains cleanup before asynchronous work. A failed or
+pending original reader keeps its child and prefix until real cleanup completes;
+undefined failure remains the primary failure and cannot imply an ACK or retry.
+The prefix and assembly reserve their actual finite workspaces on the same
+Ledger without spending Model quantities. The Model input reports the prefix's
+already completed work and runs only its remaining suffix. Existing standalone
+keyed readers keep their original owner, current, capacity and cleanup checks.
+
 # Original installed row reader custody
 
 ## Original installation preparation read
