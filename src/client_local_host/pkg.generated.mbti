@@ -1026,7 +1026,7 @@ pub fn start_client_acquired_serialization_prefix(@run_publication_host.Prepared
 
 pub fn start_client_completed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.CompletedOutput, @execution_relation.InferPreparationLimits) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
-pub fn start_client_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, keyed? : @run_publication_host.ClientKeyedLookupInput?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+pub fn start_client_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, keyed? : @run_publication_host.ClientKeyedLookupInput?, captured? : (@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource)?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
 pub fn start_client_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, ClientInstalledSequenceContracts, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 

@@ -270,6 +270,31 @@ pub fn client_infer_composed_keyed_lookup(
 }
 
 ///|
+/// Borrow only the admitted same-Unit acquisition, with its original Program.
+/// The input kernel selects the retained prefix after that capture; this does
+/// not issue reads, regenerate the prefix or transfer Source custody. This
+/// immutable projection invokes no Source-current callback; the existing
+/// composed admission and captured producer binding own those boundaries.
+pub fn client_infer_composed_direct_source(
+  value : ClientInferComposedSources,
+  occurrence : ClientInferOccurrence,
+) -> (PreparedClientProgram, @query.CapturedInputSource)? {
+  guard value.keyed is None &&
+    value.inputs.length() == 1 &&
+    occurrence.task == 0 &&
+    @strategy.graph_task_count(occurrence.owner.graph) == 1 &&
+    @strategy.graph_captured_prefix(occurrence.owner.graph) == 1 &&
+    client_infer_occurrence_matches(value.occurrence, occurrence.owner) &&
+    client_infer_occurrence_coordinates(value.occurrence) ==
+    client_infer_occurrence_coordinates(occurrence) &&
+    client_acquired_infer_prefix_owner(occurrence.owner, 0, occurrence.step)
+    is Some(_) else {
+    return None
+  }
+  Some((occurrence.owner, value.inputs[0].source))
+}
+
+///|
 fn client_infer_composed_named_source_observations(
   value : ClientInferComposedSources,
 ) -> Array[(String, @publication.ModelSourceObservation)] {

@@ -806,6 +806,11 @@ pub fn start_composed(
             value, occurrence,
           )
         }),
+        captured=sources.bind(value => {
+          @publication_host.client_infer_composed_direct_source(
+            value, occurrence,
+          )
+        }),
       )
     },
     composed_sources=sources,

@@ -123,8 +123,32 @@ pub fn start_client_acquired_infer_input(
       fragment_body~,
       ordered_body~,
     )
-    is Some(prefix) &&
-    @execution.select_generated_sequence_range(prefix, capture + 1, step - 1)
+    is Some(prefix) else {
+    return Err(UnsupportedProgram)
+  }
+  start_client_captured_infer_input_sequence(
+    owner, prefix, capture, step, source, execution, measurement, mapping,
+  )
+}
+
+///|
+/// Consume the original capture with the supplied immutable prefix. Selecting
+/// its suffix neither regenerates a sequence nor replays the acquired scan.
+fn start_client_captured_infer_input_sequence(
+  owner : @lower.BoundPrepared,
+  prefix : @execution.GeneratedSequence,
+  capture : Int,
+  step : Int,
+  source : @query.CapturedInputSource,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  mapping : @execution.InferPreparationLimits,
+) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
+  guard @execution.select_generated_sequence_range(
+      prefix,
+      capture + 1,
+      step - 1,
+    )
     is Some(sequence) else {
     return Err(UnsupportedProgram)
   }
@@ -240,6 +264,10 @@ pub fn start_client_composed_infer_input(
   measurement : @execution.FixedInputGuardMeasureLimits,
   mapping : @execution.InferPreparationLimits,
   keyed? : @publication_host.ClientKeyedLookupInput? = None,
+  captured? : (
+    @publication_host.PreparedClientProgram,
+    @query.CapturedInputSource,
+  )? = None,
 ) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
   let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
     occurrence,
@@ -256,6 +284,22 @@ pub fn start_client_composed_infer_input(
       Some(index) {
       return Err(UnsupportedProgram)
     }
+  }
+  if captured is Some((prepared, source)) {
+    guard inputs.is_empty() &&
+      keyed is None &&
+      @publication_host.client_infer_occurrence_matches(occurrence, prepared) &&
+      @publication_host.client_acquired_infer_prefix_owner(prepared, 0, step)
+      is Some(owner) &&
+      @publication_host.prepare_client_query_acquisition(prepared, 0, 0)
+      is Ok(query) &&
+      @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) &&
+      capture + 1 < step else {
+      return Err(UnsupportedProgram)
+    }
+    return start_client_captured_infer_input_sequence(
+      owner, sequence, capture, step, source, execution, measurement, mapping,
+    )
   }
   if keyed is Some(lookup) {
     // The existing lookup owns both admitted inputs. Execute only the suffix

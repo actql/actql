@@ -590,6 +590,7 @@ fn request_serialized_model_fixture(
   two_captures? : Bool = false,
   serialized? : Bool = true,
   nonterminal? : Bool = false,
+  authored? : String? = None,
 ) -> RequestSerializedModelFixture raise {
   let declaration = if single_capture || two_captures {
     Some(request_model_module_declaration())
@@ -598,6 +599,7 @@ fn request_serialized_model_fixture(
   }
   let (parent, input, prepared) = request_model_input_fixture(
     with_serialization=serialized,
+    authored~,
     captured=two_captures,
     single_capture~,
     nonterminal~,
@@ -1954,10 +1956,14 @@ test "Request acquired Node Model binds original provider and physical Plan on t
 // Real checked one-Source occurrence, compiler, provider capacity and shared
 // Scope. Resource admission/physical transport are explicit component ports;
 // no normal Account, Model send, Store operation or ACK is issued here.
-test "plain acquired Model constructs its original Graph module and Source reader on one Request without Content" {
+fn request_plain_captured_model_case(
+  authored? : String? = None,
+  consume_input? : Bool = false,
+) -> Unit raise {
   let f = request_serialized_model_fixture(
     single_capture=true,
     serialized=false,
+    authored~,
   )
   assert_true(f.graph.serialization is None)
   assert_true(
@@ -2063,6 +2069,123 @@ test "plain acquired Model constructs its original Graph module and Source reade
     f.contracts.original.ordered_body,
   ).unwrap()
   assert_true(physical_equal(ledger, f.parent.ledger))
+  if consume_input {
+    let source = start_installed_source_read_rows(
+      read,
+      acquisition,
+      "same-unit-model-input",
+      _ => true,
+      4096L,
+      2048L,
+    ).unwrap()
+    @row_source_host.begin_row_run(source, 128, 1, 1).unwrap()
+    assert_eq(
+      @row_source_host.accept_row_run_page(
+        source,
+        @utf8.encode("[{\"id\":1,\"amount\":7}]"),
+      ).unwrap(),
+      1,
+    )
+    @row_source_host.finish_row_run(source).unwrap()
+    @row_source_host.begin_row_capture(source).unwrap()
+    let mut captured = false
+    for _ in 0..<10000 {
+      if @row_source_host.advance_row_capture(source, 7).unwrap().0 {
+        captured = true
+        break
+      }
+    }
+    assert_true(captured)
+    let original_source = @row_source_host.row_capture_source(
+      @row_source_host.capture_row_run(source).unwrap(),
+    ).unwrap()
+    let prefix = installed_managed_run_model_input_prefix(run, f.prepared).unwrap()
+    let (_, execution, measurement) = client_local_execution_limits(max_rows=1)
+    let mapping : @execution.InferPreparationLimits = {
+      max_items: 1,
+      max_work: 100000,
+      max_frames: 100,
+      max_workspace_slots: 10000,
+      values: { max_nodes: 10000, max_depth: 100, max_text_bytes: 10000, },
+      logical: {
+        max_input_rows: 1L,
+        max_value_bytes: 10000L,
+        max_live_value_bytes: 100000L,
+        max_work: 100000L,
+      },
+    }
+    let before = @resources.ledger_usage(ledger)
+    // The old whole-prefix/empty-input route keeps its exact refusal.
+    assert_true(
+      start_client_composed_infer_input(
+        f.occurrence,
+        prefix,
+        [],
+        execution,
+        measurement,
+        mapping,
+      )
+      is Err(Local(@connector.Execution(@execution.InputSet))),
+    )
+    let child = start_client_composed_infer_input(
+      f.occurrence,
+      prefix,
+      [],
+      execution,
+      measurement,
+      mapping,
+      captured=Some((f.prepared, original_source)),
+    ).unwrap()
+    assert_true(
+      physical_equal(
+        @execution.generated_sequence_owner(child.sequence.unwrap()),
+        @execution.generated_sequence_owner(prefix),
+      ),
+    )
+    assert_true(
+      physical_equal(
+        @execution.generated_prepared_sequence(child.sequence.unwrap()),
+        @execution.generated_prepared_sequence(prefix),
+      ),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    let mut mapped = None
+    for _ in 0..<10000 {
+      match advance_client_infer_input(child, 1).unwrap() {
+        Continue(..) => ()
+        Complete(rows, ..) => {
+          mapped = Some(rows)
+          break
+        }
+        _ =>
+          abort(
+            "the retained capture must reach Model rows without scan replay",
+          )
+      }
+    }
+    let rows = mapped.unwrap()
+    assert_eq(@execution.prepared_infer_rows_count(rows), 1)
+    assert_true(
+      @execution.prepared_infer_rows_value(rows, 0, 0).unwrap().value
+      is @admitted.Text("hello"),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    assert_true(cleanup_client_infer_input(child).unwrap())
+    assert_true(@query.captured_source_statistics(original_source) is Some(_))
+    @row_source_host.close_accounted_row_run(source).unwrap()
+    assert_true(
+      start_client_composed_infer_input(
+        f.occurrence,
+        prefix,
+        [],
+        execution,
+        measurement,
+        mapping,
+        captured=Some((f.prepared, original_source)),
+      )
+      is Err(Capture(@query.Unavailable)),
+    )
+  }
   retire_installed_source_read(read).unwrap()
   assert_true(
     @publication_host.finish_client_model_read_scope(
@@ -2075,6 +2198,18 @@ test "plain acquired Model constructs its original Graph module and Source reade
   )
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+test "plain acquired Model constructs its original Graph module and Source reader on one Request without Content" {
+  request_plain_captured_model_case()
+}
+
+///|
+test "same Unit captured Model consumes its original generated prefix without replaying Source" {
+  let document =
+    #|{"version":"actql/0.1","id":"same-unit-captured-model","stages":[{"id":"main","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
+  request_plain_captured_model_case(authored=Some(document), consume_input=true)
 }
 
 ///|
