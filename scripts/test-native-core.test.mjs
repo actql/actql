@@ -717,6 +717,11 @@ if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
 }
 const root = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT;
 console.log('CHILD_ROOT=' + root);
+const cliParent = process.env.ACTQL_TEST_NATIVE_CLI_PARENT_ROOT;
+assert.equal(cliParent, join(root, 'cli-parent'));
+assert.equal(statSync(cliParent).mode & 0o777, 0o700);
+assert.deepEqual(require('node:fs').readdirSync(cliParent), []);
+console.log('CLI_PARENT_FIXTURE_PROVISIONED');
 if (process.env.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT) {
   const project = process.env.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT;
   assert.equal(project, join(root, 'project-configuration'));
@@ -814,7 +819,8 @@ process.exit(result.status ?? 1);
     ACTQL_TEST_PRESERVE_SCRATCH: '',
     ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: parent,
     ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: parent,
-    ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: parent};
+    ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: parent,
+    ACTQL_TEST_NATIVE_CLI_PARENT_ROOT: parent};
   delete env.ACTQL_TEST_NATIVE_STORE_ROOT;
   delete env.NODE_TEST_CONTEXT;
   function verifyExternal() {
@@ -847,6 +853,7 @@ test('two local native verification invocations own fresh roots', t => {
     assert.match(result.stdout, /child stopped/u);
     assert.match(result.stdout, /Native core SQLite: removed/u);
     assert.match(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+    assert.match(result.stdout, /CLI_PARENT_FIXTURE_PROVISIONED/u);
   }
   assert.equal(new Set(paths).size, 4);
   assert.deepEqual(readdirSync(f.parent).sort(), f.originals.sort());
