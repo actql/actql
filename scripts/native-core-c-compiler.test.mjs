@@ -115,14 +115,14 @@ test('actual package C++ driver deoptimizes only generated release test C and re
   const stub = join(root, 'original.cpp'), object = join(root, 'original.o');
   writeFileSync(stub, '#ifndef __OPTIMIZE__\n#error original C++ stub must stay optimized\n#endif\n' +
     '#include <sstream>\nextern "C" int original_stub(void) { std::ostringstream out; out << 7; return out.str().size() == 1 ? 7 : 0; }\n');
-  const compile = spawnSync('c++', ['-O2', '-c', stub, '-o', object],
+  const compile = spawnSync('c++', ['-O2', '-Werror', '-c', stub, '-o', object],
     {cwd: root, env: {...env, ...profile}, encoding: 'utf8', timeout: 10000});
   assert.ifError(compile.error); assert.equal(compile.signal, null); assert.equal(compile.status, 0, compile.stderr);
   for (const [directory, optimized] of [[testDirectory, false], [productDirectory, true]]) {
     const input = join(directory, optimized ? 'pkg.c' : 'pkg.whitebox_test.c'), executable = join(directory, 'original.exe');
     writeFileSync(input, (optimized ? '#ifndef' : '#ifdef') + ' __OPTIMIZE__\n#error wrong C optimization boundary\n#endif\n' +
       'extern int original_stub(void);\nint main(void) { return original_stub() == 7 ? 0 : 1; }\n');
-    const linked = spawnSync(driver, ['-O2', input, object, '-o', executable],
+    const linked = spawnSync(driver, ['-O2', '-Werror', input, object, '-o', executable],
       {cwd: root, env: {...env, ...profile}, encoding: 'utf8', timeout: 10000});
     assert.ifError(linked.error); assert.equal(linked.signal, null); assert.equal(linked.status, 0, linked.stderr);
     const result = spawnSync(executable, [], {encoding: 'utf8', timeout: 5000});
