@@ -2956,10 +2956,22 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (absent) missingModelExecutionRefusals.add(error);
         throw error;
       }
-      let dependencies;
+      let dependencies, originalMockInstallation;
       try {
+        if (mockModels !== undefined) {
+          const taskCid = occurrence === undefined
+            ? moon.clientProgramInferModelTaskCid(preparedProgram, selectedStep)
+            : moon.clientProgramInferOccurrenceModelTaskCid(occurrence);
+          const original = mockModels.forTaskCid(moon, taskCid);
+          if (original === undefined ||
+              typeof moon.clientProgramReadOriginalMockModelDependencies !== 'function' ||
+              typeof moon.clientProgramAdmitOriginalMockProvider !== 'function') {
+            throw clientOperationError('InstalledMockModelOriginalUnavailable');
+          }
+          originalMockInstallation = original.installation;
+        }
         dependencies = readInstalledModelDependencies(moon, execution,
-          modelInstallation, requestModelMaterials, preparedProgram, occurrence);
+          modelInstallation, requestModelMaterials, preparedProgram, occurrence, originalMockInstallation);
       } catch (cause) {
         const original = consumeInstalledModelPreparationRefusal(cause,
           preparedProgram, modelInstallation, occurrence, requestModelMaterials, execution);
@@ -2972,26 +2984,17 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (original) missingModelExecutionRefusals.add(error);
         throw error;
       }
-      let admittedProvider, originalMockInstallation;
+      let admittedProvider;
       try {
         if (mockModels === undefined) {
           admittedProvider = admitInstalledModelProvider(moon, execution, dependencies,
             modelProviders);
         } else {
-          const taskCid = occurrence === undefined
-            ? moon.clientProgramInferModelTaskCid(preparedProgram, selectedStep)
-            : moon.clientProgramInferOccurrenceModelTaskCid(occurrence);
-          const original = mockModels.forTaskCid(moon, taskCid);
-          if (original === undefined ||
-              typeof moon.clientProgramAdmitOriginalMockProvider !== 'function') {
-            throw clientOperationError('InstalledMockModelOriginalUnavailable');
-          }
           // The existing Model owner validates its own original Task, prompt,
           // execution and dependencies. No JS validator, always-true callback
           // or configured physical Provider can stand in for that admission.
           admittedProvider = checked(moon.clientProgramAdmitOriginalMockProvider(
-            original.installation, execution, dependencies));
-          originalMockInstallation = original.installation;
+            originalMockInstallation, execution, dependencies));
           mockModels.originalsForRuntime(moon);
         }
       } catch (cause) {

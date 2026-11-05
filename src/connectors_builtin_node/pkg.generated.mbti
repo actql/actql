@@ -3074,6 +3074,8 @@ pub fn client_program_read_model_original_resource_document(String, Int, Int, In
 
 pub fn client_program_read_model_response_profile(String, String, Int, Int, Int, Int, Int) -> Result[@check_environment.ModelResponseProfile, @check_environment.ModelTaskIssue]
 
+pub fn client_program_read_original_mock_model_dependencies(@model_execution.ModelMockInstallation, @check_environment.ModelExecutionContract, String?, String?, String?) -> Result[@check_environment.SingleAttemptModelDependencies, @check_environment.ModelDependencyIssue]
+
 pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.PublicModelTaskDeclaration, @check_environment.ModelTaskIssue]
 
 pub fn client_program_read_reconciled_infer_raw_usage(@model_execution.ModelPhysicalCall, @model_execution.ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), @model_execution.ModelExecutionIssue]

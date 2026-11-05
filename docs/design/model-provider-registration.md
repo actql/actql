@@ -453,6 +453,15 @@ Provider entrance keeps its explicit implementation validator unchanged. This
 validation supplies no Account permission, startup admission or resource credit;
 the short-lived validator capture remains within the original preparation work.
 
+The same live `OriginalMock` installation selects the dependency reader for its
+no-transport purpose. Checked Content references remain opaque typed inputs;
+the fixture selects an admitted answer by the original key and does not read or
+transfer Content bytes. Its original prompt, retry and backoff bodies retain
+their identity, bounds and execution checks. This nominal reader issues no media
+body, attachment evidence or egress allowance. Physical Provider dependency reads
+still require every declared media role, and Mock startup still refuses physical
+preflight. A caller flag or provider name cannot select this purpose.
+
 Installation retains the same public Task declaration, normalization and typed
 answer inventory. The first successful original startup binds the checked Task
 from those same prepared rows, and subsequent equal re-parsed Tasks cannot

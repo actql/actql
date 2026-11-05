@@ -62385,7 +62385,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "8ced224dc81f6838d1cf7bb9fb18a4bb8b97395b361a65bb8bf1ed832a7bb4d2"
+      "sha256": "7c79a06bad47adf62b1d89fb1de2200ad68cc57822113309af7d0d4a038c0412"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -73930,7 +73930,7 @@
     {
       "module": "adapters/host-node/installed-model.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "542c2f684a276a24f6e60a238546a684498646e01f0e8ca9792612ea3ed3ea77",
+      "sha256": "435466141a01264b25fc1b6252740677927af4237abcb0c4b310aecf8e812f30",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -74230,7 +74230,8 @@
             "installation",
             "beforeRead",
             "prepared",
-            "occurrence"
+            "occurrence",
+            "originalMock"
           ],
           "async": false
         },
@@ -74274,7 +74275,8 @@
           "parameters": [
             "moon",
             "execution",
-            "installation"
+            "installation",
+            "originalMock"
           ],
           "async": false
         },

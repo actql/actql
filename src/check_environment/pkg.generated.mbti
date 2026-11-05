@@ -756,6 +756,8 @@ pub fn read_model_provider_defaults_configuration(Bytes, Limits, Int) -> Result[
 
 pub fn read_model_response_profile(Bytes, String, Limits, Int) -> Result[ModelResponseProfile, ModelTaskIssue]
 
+pub fn read_original_mock_model_dependencies(ModelMockProfile, NormalizedPublicModelTask, ModelExecutionContract, Bytes?, Bytes?, Bytes?, Limits, Int) -> Result[SingleAttemptModelDependencies, ModelDependencyIssue]
+
 pub fn read_project_public_model_task_environment(String, String, Array[NormalizedPublicModelTask], ModelTaskLimits) -> Result[(String, String, Int), ModelTaskIssue]
 
 pub fn read_public_model_task_contract(@decode_core.Cursor, ModelTaskLimits) -> Result[PublicModelTaskContract, ModelTaskIssue]
