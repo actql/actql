@@ -1739,7 +1739,15 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (retained === undefined || retained.runDefinition.identity !== recovered.runDefinition?.identity) {
           throw clientOperationError('ForeignInstalledMockEffectRun');
         }
-        const originalFacts = {...recovered, identity: recovered.requestIdentity};
+        // restoreOriginal may already have bound the retained physical owner
+        // to its request handle. A fresh Journal lookup admits another handle
+        // for that same complete identity; it must not replace the original.
+        const identity = recovered.identity ?? recovered.requestIdentity;
+        if (moon.clientRequestRelation(identity, recovered.requestIdentity) !== 1 ||
+            moon.clientRequestRelation(identity, retained.requestIdentity) !== 1) {
+          throw clientOperationError('ForeignInstalledMockEffectRun');
+        }
+        const originalFacts = {...recovered, identity};
         if (!mockEffectRuns.has(originalFacts.prepared)) {
           return retainMockEffectRunOriginal(originalFacts);
         }
