@@ -735,21 +735,16 @@ pub fn[T] start_local_managed_dispatch(
   // the task's scratch reservation until the installed provider actually
   // releases its owned state. Cache the existing owner's cumulative work
   // before dropping its last driver reference, without inventing cleanup work.
+  let provider_completion_retained = Ref(false)
   let release_provider_scratch = fn() {
-    match provider_execution.val {
-      None => true
-      Some(active) => {
-        if !@local.managed_provider_stopped(active) ||
-          !@local.cleanup_managed_provider(active).unwrap_or(false) {
-          return false
-        }
-        final_provider_work.val = @local.managed_provider_cumulative_work(
-          active,
-        )
-        provider_execution.val = None
-        true
-      }
-    }
+    release_local_managed_provider_scratch(
+      provider_execution,
+      provider_completion_retained,
+      live.val &&
+      settled.val &&
+      (ordinary.val is Some(_) || carrier.val is Some(_)),
+      final_provider_work,
+    )
   }
   let retired_carriers : Array[@carrier_runtime.Material] = []
   let snapshot_attempted = Ref(false)
@@ -877,7 +872,7 @@ pub fn[T] start_local_managed_dispatch(
     if !(disposed.val ||
       (settled.val && (finalization_ready.val || carrier.val is Some(_)))) ||
       scratch_uses.val != 0 ||
-      provider_execution.val is Some(_) ||
+      (provider_execution.val is Some(_) && !provider_completion_retained.val) ||
       relation_snapshot_cancel.val is Some(_) ||
       (!live.val && input_stop.phase != Stopped) {
       return
@@ -985,7 +980,7 @@ pub fn[T] start_local_managed_dispatch(
               (settled.val && carrier.val is Some(_))
             ) &&
             scratch_uses.val == 0 &&
-            provider_execution.val is None &&
+            (provider_execution.val is None || provider_completion_retained.val) &&
             (live.val || input_stop.phase == Stopped) &&
             scratch_retirement.phase == Retired &&
             (
@@ -1023,6 +1018,7 @@ pub fn[T] start_local_managed_dispatch(
                 old_carriers_released = false
               }
             }
+            provider_execution.val is None &&
             relation_released &&
             carrier_released &&
             old_carriers_released &&
@@ -2756,7 +2752,7 @@ pub fn[T] start_local_managed_dispatch(
         ordinary.val is Some(_)
       if ((!disposed.val || live.val) && !completed_relation) ||
         scratch_uses.val != 0 ||
-        provider_execution.val is Some(_) ||
+        (provider_execution.val is Some(_) && !provider_completion_retained.val) ||
         relation_snapshot_cancel.val is Some(_) ||
         (!completed_relation && input_stop.phase != Stopped) ||
         carrier.val is Some(_) ||

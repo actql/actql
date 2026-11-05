@@ -72,6 +72,7 @@ struct ManagedProviderExecution {
   cleanup : () -> Result[Bool, @connector.FixedComputeIssue]
   mut reported_work : Result[Int64, ManagedProviderWorkIssue]
   mut child_work_issue : () -> ManagedProviderWorkIssue?
+  mut retained_completion : (() -> Bool)?
 }
 
 ///|
@@ -270,6 +271,7 @@ pub fn managed_provider_execution(
     cleanup,
     reported_work: Ok(0L),
     child_work_issue: fn() { None },
+    retained_completion: None,
   }
 }
 
@@ -445,4 +447,31 @@ pub fn cleanup_managed_provider(
   execution : ManagedProviderExecution,
 ) -> Result[Bool, @connector.FixedComputeIssue] {
   (execution.cleanup)()
+}
+
+///|
+/// The same provider may separately retain a completed output and all physical
+/// cleanup duties after its enclosing Local task no longer needs scratch.
+/// This observation is not provider reclamation, output release or a stop ACK.
+/// The original four-callback constructor and its cleanup meaning are unchanged.
+pub fn managed_provider_execution_with_retained_completion(
+  advance : (Int) -> Result[ManagedProviderPoll, @connector.FixedComputeIssue],
+  cancel : () -> Bool,
+  stopped : () -> Bool,
+  cleanup : () -> Result[Bool, @connector.FixedComputeIssue],
+  retained_completion : () -> Bool,
+) -> ManagedProviderExecution {
+  let owner = managed_provider_execution(advance, cancel, stopped, cleanup)
+  owner.retained_completion = Some(retained_completion)
+  owner
+}
+
+///|
+/// Observe only the installed provider's distinct completed-scratch handoff.
+/// A true value leaves its SAME cleanup handle and output obligations live.
+pub fn managed_provider_retained_completion(
+  execution : ManagedProviderExecution,
+) -> Bool {
+  (execution.stopped)() &&
+  execution.retained_completion.map(check => check()).unwrap_or(false)
 }
