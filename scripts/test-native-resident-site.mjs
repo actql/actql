@@ -35,6 +35,7 @@ import {createRemoteSiteCoordinator} from
   '../adapters/host-node/remote-site-coordinator.mjs';
 import {allowAllAuthorization} from '../adapters/host-node/authorization-fixture.mjs';
 import {observationAckLossProxy} from './fixtures/observation-ack-loss-proxy.mjs';
+import {prepareMaintenanceTestExecutable} from './fixtures/native-maintenance-executable.mjs';
 import {signRemoteRuntimeBundle} from
   '../adapters/site-node/remote-bundle-signature.mjs';
 import {pinnedEngineContracts} from
@@ -202,6 +203,8 @@ const cancelMode = process.argv.includes('--cancel-only') ||
 const releaseMaintenanceMode = process.argv.includes('--release-maintenance-only') ||
   process.env.ACTQL_TEST_RESIDENT_RELEASE_MAINTENANCE_ONLY === '1';
 const releaseObservationMode = process.argv.includes('--release-observation-only');
+const releaseStoppedRecoveryMode = process.argv.includes('--release-stopped-recovery-only');
+const releaseColdRecoveryMode = process.argv.includes('--release-cold-recovery-only');
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
   throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
@@ -1753,10 +1756,12 @@ try {
     failing.child.kill('SIGTERM');
     await failing.exited;
     }
-  } else if (process.argv.includes('--release-recovery-only') || releaseMaintenanceMode || releaseObservationMode) {
+  } else if (process.argv.includes('--release-recovery-only') || releaseMaintenanceMode || releaseObservationMode || releaseStoppedRecoveryMode || releaseColdRecoveryMode) {
     // The same physical Site and journals must discharge release after a
     // bounded failure, a lost control reply, and loss of the live holder.
     const releaseModes = releaseObservationMode ? ['recovered-observation'] : releaseMaintenanceMode ? ['maintenance'] :
+      releaseStoppedRecoveryMode ? ['holder-exit', 'recovery-interrupted', 'maintenance'] :
+      releaseColdRecoveryMode ? ['recovery-interrupted', 'maintenance'] :
       ['recovered-observation', 'release-failure', 'lost-release', 'holder-exit', 'recovery-interrupted', 'maintenance'];
     for (const [index, mode] of releaseModes.entries()) {
       let lostRelease = false;
@@ -1795,7 +1800,7 @@ try {
       }
       let site = startSite(mode === 'release-failure' ? ['--holder-release-failures', '3'] :
         mode === 'recovered-observation' ? ['--holder-kill-at', 'report-handoff'] :
-        mode === 'maintenance' ? ['--holder-kill-at', 'report-handoff'] :
+        mode === 'maintenance' ? ['--holder-kill-at', 'report-handoff', '--control-report-kill-at', 'after-ack-save'] :
         mode === 'holder-exit' ? ['--holder-kill-at', 'report-handoff', '--release-recovery-close-failures', '1'] :
           mode === 'recovery-interrupted' ? ['--holder-kill-at', 'report-handoff', '--release-recovery-kill-at', 'after-transition'] : [],
       {controlOrigin: mode === 'lost-release' || mode === 'recovered-observation' ? ackLossProxy.origin : gateway.origin});
@@ -1806,11 +1811,14 @@ try {
       await waitFor(async () => (await entries()).length === index + 1, `${mode} entry`);
       const terminal = await settledQuery(dispatch, mode);
       await within(requestOutput(dispatch, await planOutput(dispatch, terminal, mode)), `${mode} output`);
+      const releaseObservationStart = observationBodies.length;
       let released = gateway.release({dispatch}).catch(error => error);
       if (mode === 'holder-exit' || mode === 'recovery-interrupted' || mode === 'maintenance' || mode === 'recovered-observation') {
         await waitFor(() => site.lines.some(line => line.kind === 'holder-killed'), 'holder exit');
-        await waitFor(() => pendingIntents().length === 0 && reservedPayloadBytes() === 0,
-          'orphan physical cleanup');
+        if (mode !== 'maintenance') {
+          await waitFor(() => pendingIntents().length === 0 && reservedPayloadBytes() === 0,
+            'orphan physical cleanup');
+        }
       }
       if (mode === 'lost-release') {
         await waitFor(() => lostRelease, 'lost release response');
@@ -1818,7 +1826,16 @@ try {
         await released;
         released = gateway.release({dispatch});
       }
-      const firstRelease = await within(released, `${mode} release`);
+      if (mode === 'recovery-interrupted') {
+        // The original Release remains pending across the actual cold restart;
+        // an intermediate cleanup transition cannot retire its delivery.
+        assert.deepEqual(await within(site.exited, 'recovery interrupted after durable transition'), [null, 'SIGKILL']);
+        assert(site.lines.some(line => line.kind === 'release-recovery-killed'));
+        site = startSite();
+        currentSite = site;
+      }
+      const firstRelease = mode === 'maintenance' ? undefined
+        : await within(released, `${mode} release`);
       if (mode === 'recovered-observation') {
         assert.equal(firstRelease.state[2], 2, 'the first recovery must report formal Released');
         releaseObserved = true;
@@ -1830,8 +1847,12 @@ try {
       }
       if (mode === 'maintenance') {
         await waitFor(() => reportState().pending === 0, 'maintenance durable Output ACK');
-        site.child.kill('SIGTERM');
-        await site.exited;
+        // The existing ACK-save interruption stops the controller before it
+        // can receive Release; EOF triggers the holder's original handoff kill.
+        // Keep the same waiter for the later explicit maintenance observation.
+        assert.deepEqual(await within(site.exited, 'maintenance original control stop'), [null, 'SIGKILL']);
+        assert(site.lines.some(line => line.kind === 'control-report-killed' &&
+          line.point === 'after-ack-save'));
         const savedAttempt = site.lines.find(line => line.kind === 'accepted' &&
           line.request_cid === siteControl.identity(dispatch)).attempt;
         const beforeJournal = new DatabaseSync(journalPath, {readOnly: true});
@@ -1852,13 +1873,17 @@ try {
         // enter execute without its inherited slot; cleanup acquires no
         // execution binding and does not alter executable attestation.
         const maintenanceExecutable = join(root, 'maintenance.exe');
-        await writeFile(maintenanceExecutable, Buffer.concat([
-          await readFile(executable), Buffer.from('\nmaintenance-test-binary\n')]), {mode: 0o700});
+        await prepareMaintenanceTestExecutable(executable, maintenanceExecutable);
         assert.notEqual(physicalCid(await readFile(maintenanceExecutable)), componentCid);
+        // Address the same original transfer store as the stopped controller;
+        // these two physical inputs are appended by startSite, not by common.
+        const maintenanceCommon = [...common, '--transfer-origin', receiver.origin,
+          '--transfer-journal', join(root, 'site-transfer.sqlite3')];
+        let maintenanceSequence = 0;
         const operate = async (operation, requestCid = siteControl.identity(dispatch)) => {
           const args = operation === 'recover-release' ?
-            [operation, '--attempt', savedAttempt, '--expect-dispatch', requestCid, ...common] :
-            [operation, '--attempt', savedAttempt, '--claimant', 'maintenance-must-not-execute', ...common];
+            [operation, '--attempt', savedAttempt, '--expect-dispatch', requestCid, ...maintenanceCommon] :
+            [operation, '--attempt', savedAttempt, '--claimant', 'maintenance-must-not-execute', ...maintenanceCommon];
           const process = spawn(maintenanceExecutable, args, {cwd: root,
             stdio: ['ignore', 'pipe', 'pipe']});
           running.add(process);
@@ -1867,8 +1892,12 @@ try {
           process.stdout.on('data', chunk => { stdout += chunk; });
           process.stderr.on('data', chunk => { stderr += chunk; });
           try {
-            const [code] = await within(closed, 'maintenance bounded completion');
-            return {code, stdout, stderr};
+            const [code, signal] = await within(closed, 'maintenance bounded completion');
+            const outcome = {code, signal, stdout, stderr};
+            await writeFile(join(root, `maintenance-outcome-${maintenanceSequence++}.json`),
+              JSON.stringify(outcome), {mode: 0o600, flag: 'wx'});
+            assert.equal(signal, null, 'maintenance must reach its own checked entry');
+            return outcome;
           } finally {
             if (process.exitCode === null && process.signalCode === null) {
               process.kill('SIGKILL'); await closed;
@@ -1878,15 +1907,15 @@ try {
         };
         const mismatch = await operate('execute');
         assert.notEqual(mismatch.code, 0);
-        assert.match(mismatch.stdout, /executor slot is not held/u);
+        assert.match(mismatch.stderr, /executor slot is not held/u);
         const foreign = await operate('recover-release', physicalCid('foreign-dispatch'));
         assert.notEqual(foreign.code, 0);
         assert.match(foreign.stdout, /dispatch-mismatch/u);
-        const firstObservation = gateway.query({dispatch});
         const recovered = await operate('recover-release');
         assert.equal(recovered.code, 0, recovered.stderr);
         assert.match(recovered.stdout, /release-recovery-observed/u);
-        const first = await within(firstObservation, 'maintenance formal observation');
+        const first = await within(released, 'maintenance formal release observation');
+        assert.equal(first.state[2], 2, 'only actual maintenance cleanup retires Release');
         for (let retry = 0; retry < 2; retry++) {
           const nextObservation = gateway.query({dispatch});
           const repeated = await operate('recover-release');
@@ -1901,19 +1930,21 @@ try {
         site = startSite(); currentSite = site;
       }
       if (mode === 'holder-exit') {
-        const pending = await within(gateway.release({dispatch}), 'recovery close failure');
-        assert.equal(pending.state[2], 0, 'close failure must not publish Released');
+        // A Release waiter ends only after its admitted durable cleanup ACK.
+        // Inspect the earlier admitted status from this same exchange instead
+        // of requiring a pending response to retire the Release delivery.
+        const pending = observationBodies.slice(releaseObservationStart)
+          .map(body => JSON.parse(body)).find(value =>
+            value.version === 'actql-remote-dispatch-status/0.1' &&
+            value.dispatch_request_cid === siteControl.identity(dispatch) &&
+            value.state[0] === 3 && value.state[2] === 1);
+        assert.ok(pending, 'close failure retains the admitted CleanupReleasing state');
+        assert(site.lines.some(line => line.kind === 'release-recovery-pending' &&
+          line.reason === 'bundle-close' &&
+          line.request_cid === siteControl.identity(dispatch)));
+        assert.equal(firstRelease.state[2], 2,
+          'Release delivery ends only after the real recovery publishes Released');
         await within(gateway.release({dispatch}), 'recover stopped holder release');
-      }
-      if (mode === 'recovery-interrupted') {
-        const interrupted = gateway.release({dispatch}).catch(error => error);
-        assert.deepEqual(await within(site.exited, 'recovery interrupted after durable transition'), [null, 'SIGKILL']);
-        assert(site.lines.some(line => line.kind === 'release-recovery-killed'));
-        gateway.withdraw({dispatch});
-        await interrupted;
-        site = startSite();
-        currentSite = site;
-        await within(gateway.release({dispatch}), 'resumed recovery');
       }
       const observed = await within(gateway.query({dispatch}), `${mode} cleanup observation`);
       assert.equal(observed.state[2], 2, `${mode}: physical cleanup must have a formal Released observation`);
