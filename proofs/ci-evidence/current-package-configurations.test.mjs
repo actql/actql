@@ -113,7 +113,10 @@ test('current Local Host review binds the original carrier, Source builder and M
   const modelDependency = '  "actql/actql/model_execution" @model,\n';
   assert.equal(currentBody.split(modelDependency).length, 2);
   assert.equal(currentBody.replace(modelDependency, ''), body);
-  assert.equal(packageImports(currentBody).unknown, null);
+  assert.equal(packageImports(currentBody).unknown, 'Unreviewed package configuration',
+    'existing literal selectors still require the exact finite configuration review');
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(currentBody)))?.revision,
+    entry.revision);
   assert.deepEqual(packageImports(currentBody).imports,
     [...packageImports(body).imports, 'actql/actql/model_execution'].sort());
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(body))), null,
