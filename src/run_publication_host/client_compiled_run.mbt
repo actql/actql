@@ -933,3 +933,26 @@ pub fn issue_client_compiled_captured_invocation(
     max_depth,
   )
 }
+
+///|
+/// Exact immutable compiler inventory, without copying the retained Array.
+/// A recovery consumer cannot bind a subset, reorder or equal graph copy.
+pub fn client_compiled_run_infer_originals_match(
+  value : ClientCompiledRun,
+  plans : Array[ClientInferPlanGraph],
+) -> Bool {
+  let originals = match value.compilation {
+    Values(_) => return false
+    Tasks(compilation) => compilation.infers
+    Effects(allowed) => allowed.compilation.compiled.infers
+  }
+  if plans.length() != originals.length() || plans.is_empty() {
+    return false
+  }
+  for index in 0..<plans.length() {
+    if !physical_equal(plans[index], originals[index]) {
+      return false
+    }
+  }
+  true
+}

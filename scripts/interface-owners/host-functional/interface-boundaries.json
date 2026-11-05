@@ -111980,7 +111980,34 @@
             "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery",
             "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt",
             "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt",
-            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt#2"
+            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt#2",
+            "prepareOrdinaryManagedInstallation/view/init:modelRecoveryLedger/init:modelRecoveryLedger",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/assertOriginal/assertOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/currentMember/currentMember",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/init:restoreRead/init:restoreRead",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/init:retain/init:retain",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/init:retire/init:retire",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/prepareRead/prepareRead",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/publicationCapacity/publicationCapacity",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:openCapturedHost/init:openCapturedHost",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:openSourceFreeHost/init:openSourceFreeHost",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:setupUsageIsolated/init:setupUsageIsolated",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:sourceLedger/init:sourceLedger",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan#2",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan#3",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:retain/init:retain",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:retire/init:retire",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/openHost/openHost",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/openHost/openHost/openHost",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/originalsInstallationContracts",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#2",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#3",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#4",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#5"
           ],
           "exports": [],
           "attributes": {
@@ -113187,7 +113214,13 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
-            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput"
+            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#2",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#3",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#2",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#2",
+            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#3"
           ],
           "exports": [],
           "attributes": {
@@ -116258,6 +116291,14 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:modelRecoveryLedger/init:modelRecoveryLedger",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates",
           "parameters": [
             "prepared",
@@ -116267,15 +116308,39 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+          "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
           "parameters": [
             "coordinate"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#2",
+          "parameters": [
+            "coordinate"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#3",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -116462,6 +116527,180 @@
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan",
+          "parameters": [
+            "prepared",
+            "request",
+            "plan",
+            "selected",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/assertOriginal/assertOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/currentMember/currentMember",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/init:restoreRead/init:restoreRead",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/init:retain/init:retain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/init:retire/init:retire",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/prepareRead/prepareRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/publicationCapacity/publicationCapacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "captures",
+            "providers"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:openSourceFreeHost/init:openSourceFreeHost",
+          "parameters": [
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "providers"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:setupUsageIsolated/init:setupUsageIsolated",
+          "parameters": [
+            "dag"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:sourceLedger/init:sourceLedger",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:retain/init:retain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:retire/init:retire",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/openHost/openHost",
+          "parameters": [
+            "captures",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "providers"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/openHost/openHost/openHost",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/originalsInstallationContracts",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#2",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#3",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#4",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#5",
+          "parameters": [
+            "member"
+          ],
           "async": false
         },
         {
@@ -116694,6 +116933,16 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#3",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
           "parameters": [
             "prepared",
@@ -116734,6 +116983,7 @@
         "../host-common/runtime-result.mjs",
         "../local-node/request-preparation-adapter.mjs",
         "./client-program-preparation.mjs",
+        "./infer-operation.mjs",
         "./ordinary-node-resource-runtime.cjs",
         "./source-profile-json.mjs",
         "@actql/client-wire",
@@ -116742,7 +116992,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "c97410837dd9d029f19cf4baab3207474bec7a568f2549102a094e1ce142ef56"
+      "sha256": "38953d57b6d12df6efdcc7496eaafdd396805e002525334550cbdceaa5580eb5"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

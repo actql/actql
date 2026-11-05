@@ -418,6 +418,8 @@ pub fn[I, P] preparation_capacity_reserved_extents(PreparationCapacity[I, P], I)
 
 pub fn[I, P] preparation_capacity_working_extents(PreparationCapacity[I, P], I) -> Result[(Int64, Int64), PreparationCapacityIssue]
 
+pub fn[I, P] preparation_capacity_working_usage_isolated(PreparationCapacity[I, P], I, Ledger) -> Bool
+
 pub fn preparation_inventory_growth_entry_construction() -> PreparationInventoryGrowthConstruction
 
 pub fn preparation_inventory_initial_control_slots(Int, Int, Int) -> (Int64, Int64, Int64)?

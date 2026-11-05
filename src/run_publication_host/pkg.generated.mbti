@@ -380,6 +380,8 @@ pub fn client_compiled_run_infer(ClientCompiledRun) -> ClientInferPlanGraph?
 
 pub fn client_compiled_run_infer_observation_policy(ClientCompiledRun) -> String?
 
+pub fn client_compiled_run_infer_originals_match(ClientCompiledRun, Array[ClientInferPlanGraph]) -> Bool
+
 pub fn client_compiled_run_infers(ClientCompiledRun) -> Array[ClientInferPlanGraph]
 
 pub fn client_compiled_run_matches(ClientCompiledRun, PreparedClientProgram) -> Bool

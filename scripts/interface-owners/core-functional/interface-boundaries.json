@@ -55065,7 +55065,10 @@
             "client_program_prepare_request_models_compilation",
             "client_program_prepare_request_models_read_scopes",
             "client_program_prepare_request_models_read_scopes_with_quantities",
-            "client_program_prepare_request_effect_model_read_scope_with_quantities"
+            "client_program_prepare_request_effect_model_read_scope_with_quantities",
+            "client_program_prepare_request_model_recovery_read_scopes",
+            "client_program_prepare_request_model_recovery_read_scopes_with_quantities",
+            "prepare_request_model_recovery_scopes_original"
           ],
           "exports": [],
           "attributes": {
@@ -55236,7 +55239,11 @@
             "client_program_request_program_module_capacity_refusal",
             "client_program_reserve_request_model_recovery_materials",
             "client_program_reserve_request_retained_program_material",
-            "client_program_retain_request_submitted_intent"
+            "client_program_retain_request_submitted_intent",
+            "client_program_open_request_model_recovery_host",
+            "client_program_request_model_recovery_ledger",
+            "client_program_request_model_recovery_source_coordinates",
+            "client_program_request_model_recovery_usage_isolated"
           ],
           "exports": [],
           "attributes": {
@@ -55446,6 +55453,10 @@
           "declaration": "client_program_lower_request_published_query ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , publication : @ source_publication . PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , declarations : String ? , public_primary : Bool , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , @ client_local_host . ClientRequestQueryLoweringIssue , ]"
         },
         {
+          "name": "client_program_open_request_model_recovery_host",
+          "declaration": "client_program_open_request_model_recovery_host ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , prepared : @ publication_host . PreparedClientProgram , sources : Array [ @ query . CapturedInputSource ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , providers : Array [ @ local . ManagedProvider ] , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] ? , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
           "name": "client_program_parse_request_query_syntax",
           "declaration": "client_program_parse_request_query_syntax ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , document : String , spelling : String , ) - > Result [ @ query_syntax . Query , @ client_local_host . ClientRequestQuerySyntaxIssue , ]"
         },
@@ -55552,6 +55563,14 @@
         {
           "name": "client_program_prepare_request_model_read_scope_with_quantities",
           "declaration": "client_program_prepare_request_model_read_scope_with_quantities ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , tokens : Int64 , cost_units : Int64 , duration_ms : Int64 , ) - > Result [ @ publication_host . ClientModelReadScope , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_recovery_read_scopes",
+          "declaration": "client_program_prepare_request_model_recovery_read_scopes ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , model_retained_bytes : Array [ Int64 ] , model_execution_bytes : Array [ Int64 ] , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_recovery_read_scopes_with_quantities",
+          "declaration": "client_program_prepare_request_model_recovery_read_scopes_with_quantities ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , model_retained_bytes : Array [ Int64 ] , model_execution_bytes : Array [ Int64 ] , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , tokens : Int64 , cost_units : Int64 , duration_ms : Int64 , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_prepare_request_model_serialization_graph",
@@ -55670,6 +55689,18 @@
           "declaration": "client_program_reconcile_program_json_preparation_structure ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
         },
         {
+          "name": "client_program_request_model_recovery_ledger",
+          "declaration": "client_program_request_model_recovery_ledger ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_request_model_recovery_source_coordinates",
+          "declaration": "client_program_request_model_recovery_source_coordinates ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ Array [ Array [ Int ] ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_request_model_recovery_usage_isolated",
+          "declaration": "client_program_request_model_recovery_usage_isolated ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , captured : @ strategy . CapturedDAG , ) - > Bool"
+        },
+        {
           "name": "client_program_request_parameters_original",
           "declaration": "client_program_request_parameters_original ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ decode . Cursor ? , @ client_local_host . ClientRequestPreparationIssue ]"
         },
@@ -55726,6 +55757,10 @@
           "declaration": "client_program_retire_installed_effect_capture_recovery ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "prepare_request_model_recovery_scopes_original",
+          "declaration": "prepare_request_model_recovery_scopes_original ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , model_retained_bytes : Array [ Int64 ] , model_execution_bytes : Array [ Int64 ] , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , quantities : @ resources . QuantityAmounts ? , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "strategy_begin_original_effect_free_captured_run",
           "declaration": "strategy_begin_original_effect_free_captured_run ( run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , snapshots : Array [ @ publication . CapturedResultSnapshot ] , advances : Array [ @ publication . PendingSourceStateAdvance ] , authoring : @ publication . RunEvidenceValue , models : Array [ @ publication . RunEvidenceValue ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , max_workspace : Int , content_generations : Array [ @ publication . BoundContentGeneration ] , ) - > @ publication . CapturedRunIssuancePreparation"
         },
@@ -55734,7 +55769,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "c38c164f6e8d3a7ad2649b69de1c2310c5dfbe7a588767dc2800466cd7158108"
+      "sha256": "7ef8e9165668ad87c24fb12d522b0ce20bbc92108d1568365b4b64fbc2a74fe0"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -78967,11 +79002,27 @@
     {
       "module": "src/client_local_host/preparation_request_model_recovery.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d61274a86b2a401818211442e01b7021b9716d8233890c1afcc38dc08399de60",
+      "sha256": "69ee49e5835193c4dada1bdd16b915326764266b6557c7d55dc56717a5970bb3",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
       "operations": [
+        {
+          "name": "[I]prepare_request_model_recovery_read_scopes",
+          "declaration": "[ I ] prepare_request_model_recovery_read_scopes ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , model_limits : @ resources . LedgerLimits , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , quantity_limits ? : @ resources . QuantityAmounts ?"
+        },
+        {
+          "name": "[I]request_model_recovery_direct_occurrences",
+          "declaration": "[ I ] request_model_recovery_direct_occurrences ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ @ publication_host . ClientDirectAcquisitionOccurrences , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "[I]request_model_recovery_ledger",
+          "declaration": "[ I ] request_model_recovery_ledger ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , ) - > Result [ @ resources . Ledger , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]request_model_recovery_usage_isolated",
+          "declaration": "[ I ] request_model_recovery_usage_isolated ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , captured : @ strategy . CapturedDAG , ) - > Bool"
+        },
         {
           "name": "[I]reserve_request_model_recovery_materials",
           "declaration": "[ I ] reserve_request_model_recovery_materials ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , count : Int , wire_at : ( Int ) - > String , containers : Int , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
@@ -78985,7 +79036,11 @@
         {
           "operations": [
             "[I]reserve_request_model_recovery_materials",
-            "request_model_recovery_capacity"
+            "request_model_recovery_capacity",
+            "[I]prepare_request_model_recovery_read_scopes",
+            "[I]request_model_recovery_direct_occurrences",
+            "[I]request_model_recovery_ledger",
+            "[I]request_model_recovery_usage_isolated"
           ],
           "exports": [],
           "attributes": {
@@ -79856,7 +79911,7 @@
         },
         {
           "name": "request_model_group_quantity_limits",
-          "declaration": "request_model_group_quantity_limits ( first_graph : @ publication_host . ClientInferPlanGraph , models : Array [ ClientInstalledModelReadPartition ] ? , installed : @ resources . QuantityAmounts , ) - > @ resources . QuantityAmounts ?"
+          "declaration": "request_model_group_quantity_limits ( first_graph : @ publication_host . ClientInferPlanGraph , models : Array [ ClientInstalledModelReadPartition ] ? , installed : @ resources . QuantityAmounts , graphs ? : Array [ @ publication_host . ClientInferPlanGraph ] ?"
         },
         {
           "name": "request_model_plan_quantity_limits",
@@ -80238,7 +80293,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "fb0481710b9902e7037a0c5ac510b1d7ee33736fc51c3452639477f71e98ee1c"
+      "sha256": "f79f5a5767626ef961d0c28920db19733ccaae7924aba72626c9739d585284bf"
     },
     {
       "module": "src/run_publication_host/client_model_read_consumer.mbt",

@@ -6,6 +6,7 @@ import {
   "actql/actql/canonical_json",
   "actql/actql/capacity_policy",
   "actql/actql/check_environment",
+  "actql/actql/client_infer_host",
   "actql/actql/client_local_host",
   "actql/actql/client_row_source_host",
   "actql/actql/client_source_publication",
@@ -1529,6 +1530,8 @@ pub fn client_program_open_multi_captured_local_host(@run_publication_host.Prepa
 
 pub fn client_program_open_multi_captured_local_retained_host(@run_publication_host.PreparedClientProgram, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
+pub fn client_program_open_request_model_recovery_host(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, Array[@execution_query.CapturedInputSource], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@local.ManagedProvider]) -> Result[@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?, @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_open_single_captured_local_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @physical_resources.Ledger, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
 pub fn client_program_open_source_free_local_effect_host(@run_publication_host.PreparedClientEffectRun, @client_local_host.ClientInstalledSequenceContracts, String, Int64, Int64, Int64, Int64, String?, String?) -> ClientLocalEffectHost?
@@ -1670,6 +1673,10 @@ pub fn client_program_prepare_request_model_provider_binding(@client_local_host.
 pub fn client_program_prepare_request_model_read_scope(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedModelPlan) -> Result[@run_publication_host.ClientModelReadScope, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_prepare_request_model_read_scope_with_quantities(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedModelPlan, Int64, Int64, Int64) -> Result[@run_publication_host.ClientModelReadScope, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_prepare_request_model_recovery_read_scopes(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, Array[@run_publication_host.ClientInferPlanGraph], Array[@client_infer_host.Limits], Array[Int64], Array[Int64], Array[Int64], Array[Int64], Int, Int, Int) -> Result[Array[@run_publication_host.ClientModelReadScope], @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_prepare_request_model_recovery_read_scopes_with_quantities(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, Array[@run_publication_host.ClientInferPlanGraph], Array[@client_infer_host.Limits], Array[Int64], Array[Int64], Array[Int64], Array[Int64], Int, Int, Int, Int64, Int64, Int64) -> Result[Array[@run_publication_host.ClientModelReadScope], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_prepare_request_model_serialization_graph(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientInferOccurrence, Int, Int, String, String, Int, Int, Bool, @client_local_host.ClientInstalledSequenceContracts) -> Result[@run_publication_host.ClientSerializationPlanGraph, ClientRequestProgramModuleBridgeIssue]
 
@@ -1870,6 +1877,12 @@ pub fn client_program_release_effect_input(@physical_strategy_host.CapturedEffec
 pub fn client_program_release_effect_inputs(@physical_strategy_host.CapturedEffectInputs) -> Bool
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
+
+pub fn client_program_request_model_recovery_ledger(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract) -> Result[@physical_resources.Ledger, @client_local_host.ClientRequestPreparationIssue]
+
+pub fn client_program_request_model_recovery_source_coordinates(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram) -> Result[Array[Array[Int]], @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_request_model_recovery_usage_isolated(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG) -> Bool
 
 pub fn client_program_request_parameters_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@decode_core.Cursor?, @client_local_host.ClientRequestPreparationIssue]
 

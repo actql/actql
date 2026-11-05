@@ -77,3 +77,15 @@ pub fn[I, P] check_working_preparation_capacity_current(
       }
   }
 }
+
+///|
+/// Same original working reservation accounting, without completing a fake
+/// body or acquiring a borrow. This never supplies a physical cleanup proof.
+pub fn[I, P] preparation_capacity_working_usage_isolated(
+  owner : PreparationCapacity[I, P],
+  input : I,
+  ledger : Ledger,
+) -> Bool {
+  preparation_capacity_working_extents(owner, input) is Ok(_) &&
+  preparation_capacity_usage_isolated(owner, ledger)
+}
