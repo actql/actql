@@ -43,8 +43,8 @@ pub fn broad_strategy_host_open(
   release_confirmed : () -> Bool,
 ) -> BroadNodeRun raise NodeHostFailure {
   guard @acquisition_host.configured_broad_capacity(setup) is Some(capacity) &&
-    execution >= 0L &&
-    execution <= 9223372036854775807L - capacity.execution_bytes else {
+    @acquisition_host.configured_broad_physical_capacity(setup, execution)
+    is Some(physical) else {
     raise Physical(InvalidLimits)
   }
   let reservation = match
@@ -52,7 +52,7 @@ pub fn broad_strategy_host_open(
       ledger,
       transfer,
       capacity.retained_bytes,
-      execution + capacity.execution_bytes,
+      physical.execution_bytes,
       quantities=@resources.quantity_neutral_amounts(ledger),
     ) {
     Ok(value) => value
