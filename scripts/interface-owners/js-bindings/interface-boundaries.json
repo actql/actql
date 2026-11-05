@@ -37781,7 +37781,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "3bc0e68899d4006a59f2e0a72b5734198fa77110f9919b5a2a0074df84189b34",
+      "sha256": "056246677e9b86d79207fd12c3b5b5abb856ad036a927c0f9df1ff2e377b68ca",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -56425,7 +56425,8 @@
             "openInstalledHost/runtimeTarget/runtimeTarget",
             "openInstalledHost/selectedInstalledEffect",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelSourceOccurrence/modelSourceOccurrence"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelSourceOccurrence/modelSourceOccurrence",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer#3"
           ],
           "exports": [],
           "attributes": {
@@ -59956,6 +59957,13 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer#3",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runPlan/runPlan",
           "parameters": [
             "ref"
@@ -62377,7 +62385,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "aa3212730f9c2ab650df86792274c1142f960ac9f16135bda2ecbe58e9017a8e"
+      "sha256": "0f84b9db9e69b92e8f10137a989cb88045ac63e655287bfdc9a219d0667db6f6"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -69045,7 +69053,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "40b9709c85e3d5b9a5a37c26754d48216b724cb6458a830369db4520b9fadbd9",
+      "sha256": "71ed71c087608d1f6d447483521314fd1f8093b66978e3b43ad02a1ac14edbb3",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -69076,6 +69084,7 @@
             "checkpoints",
             "prepareAcquisition",
             "sourceAccessFor",
+            "sourceAdapterFor",
             "namespaceId",
             "authorityScopeCid",
             "storeAuthorityCid",
@@ -70177,7 +70186,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "1895119780215ff37832f5bec9d203ca5f78472158f848e213cc1f6de58d9157",
+      "sha256": "33adcf750e42fd29fa320b6a6c15d9e01c8f2206e3216803be945d9b61e70b84",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -70204,6 +70213,7 @@
             "checkpoints",
             "prepareAcquisition",
             "sourceAccessFor",
+            "sourceAdapterFor",
             "runContent",
             "prepareKeyedRecovery",
             "prepareOriginalMockRun",

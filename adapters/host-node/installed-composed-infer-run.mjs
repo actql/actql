@@ -18,7 +18,7 @@ import {ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
 export async function runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
   store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork,
   submission, existingModel, modelClaim, assertCurrent = () => {},
-  modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, namespaceId, authorityScopeCid,
+  modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor, namespaceId, authorityScopeCid,
   storeAuthorityCid, now, faultInjection, registry, values, fragment, ordered, computeConfigurations,
   originalPreparation}) {
   if (modelController === undefined) {
@@ -254,7 +254,12 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     // The selected adapter's access owner revalidates retained consumption.
     const access = input?.sourceAccess ?? sourceAccessFor(preparedSource);
     sourceContinuation.accessFor(access, occurrence);
-    const source = {occurrence, preparedSource};
+    // Retain the actual installed owner with this original preparation. A
+    // retained capture uses its captured adapter; restored preparation selects
+    // the current installed owner, whose continuation binding is checked below.
+    const adapter = input?.adapter ?? sourceAdapterFor?.(preparedSource);
+    if (adapter === undefined) throw new Error('InstalledComposedInferSourceOwnerUnavailable');
+    const source = {occurrence, preparedSource, adapter};
     await sourceContinuation.prepared([source]);
     if (historical === undefined) {
       await sourceContinuation.captured(source, input.captured, input.sourceEvidenceWire,

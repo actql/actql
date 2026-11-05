@@ -5,7 +5,7 @@ import {boundSourceInventoryFixture} from './fixtures/ordinary-source-binding.fi
 
 // The actual composed caller and continuation execute with explicit physical
 // ports. These cases prove original forwarding, not a funded/installed Host.
-function fixture({refuseSecond = false} = {}) {
+function fixture({refuseSecond = false, single = false, retainedAdapter = true} = {}) {
   const calls = [], stopped = new Error('AfterOriginalSourceBinding');
   const refused = new Error('OriginalSourceOwnerRefused');
   let custody, setups = 0;
@@ -17,6 +17,7 @@ function fixture({refuseSecond = false} = {}) {
       assert.strictEqual(this, adapter);
       assert.strictEqual(actual, preparedSource);
       calls.push(index);
+      if (single) throw stopped;
       if (refuseSecond && index === 1) throw refused;
       return installationBinding;
     }});
@@ -40,6 +41,13 @@ function fixture({refuseSecond = false} = {}) {
     computeConfigurations: {}, signal: new AbortController().signal,
     retainExecution(value) {assert.equal(custody, undefined); custody = value;},
   };
+  if (single) {
+    arguments_.acquiredInfer = {captured: sources[0].captured, preparedSource: sources[0].preparedSource,
+      ...(retainedAdapter ? {adapter: sources[0].adapter} : {}), sourceAccess: sources[0].access};
+    arguments_.prepareAcquisition = () => assert.fail('reuse the original preparation');
+    arguments_.sourceAccessFor = prepared => {assert.equal(prepared, sources[0].preparedSource); return sources[0].access;};
+    arguments_.sourceAdapterFor = prepared => {assert.equal(prepared, sources[0].preparedSource); return sources[0].adapter;};
+  }
   return {arguments_, calls, stopped, refused, setups: () => setups, custody: () => custody};
 }
 
@@ -57,5 +65,22 @@ test('composed INFER preserves the same Source owner refusal before driver work'
   await assert.rejects(runInstalledComposedInfers(f.arguments_), error => error === f.refused);
   assert.deepEqual(f.calls, [0, 1]);
   assert.equal(f.setups(), 0);
+  assert.equal(await f.custody().close(), true);
+});
+
+for (const retainedAdapter of [true, false]) {
+  test(`single composed INFER keeps its original Source adapter (retained=${retainedAdapter})`, async () => {
+    const f = fixture({single: true, retainedAdapter});
+    await assert.rejects(runInstalledComposedInfers(f.arguments_), error => error === f.stopped);
+    assert.deepEqual(f.calls, [0]); assert.equal(f.setups(), 0);
+    assert.equal(await f.custody().close(), true);
+  });
+}
+
+test('single composed INFER refuses a missing original Source owner before binding or driver work', async () => {
+  const f = fixture({single: true, retainedAdapter: false});
+  delete f.arguments_.sourceAdapterFor;
+  await assert.rejects(runInstalledComposedInfers(f.arguments_), {message: 'InstalledComposedInferSourceOwnerUnavailable'});
+  assert.deepEqual(f.calls, []); assert.equal(f.setups(), 0);
   assert.equal(await f.custody().close(), true);
 });

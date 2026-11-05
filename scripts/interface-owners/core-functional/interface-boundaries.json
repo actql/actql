@@ -17545,7 +17545,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "40b9709c85e3d5b9a5a37c26754d48216b724cb6458a830369db4520b9fadbd9",
+      "sha256": "71ed71c087608d1f6d447483521314fd1f8093b66978e3b43ad02a1ac14edbb3",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -17575,6 +17575,7 @@
             "checkpoints",
             "prepareAcquisition",
             "sourceAccessFor",
+            "sourceAdapterFor",
             "namespaceId",
             "authorityScopeCid",
             "storeAuthorityCid",
@@ -18685,7 +18686,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "1895119780215ff37832f5bec9d203ca5f78472158f848e213cc1f6de58d9157",
+      "sha256": "33adcf750e42fd29fa320b6a6c15d9e01c8f2206e3216803be945d9b61e70b84",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -18711,6 +18712,7 @@
             "checkpoints",
             "prepareAcquisition",
             "sourceAccessFor",
+            "sourceAdapterFor",
             "runContent",
             "prepareKeyedRecovery",
             "prepareOriginalMockRun",
