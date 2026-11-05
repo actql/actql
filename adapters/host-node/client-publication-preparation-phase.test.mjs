@@ -680,6 +680,7 @@ function sourceRouteCallerFixture({kind = 'whole-input', queryFailure, wrapAdapt
       identityCalls++; return requested;
     },
     clientProgramSourceFreeInputIntentCid() {return 'original-input-intent';},
+    clientProgramMatchesRequestIdentity(body, identity) {return body === prepared && identity === requested;},
     clientProgramSelectInstalledSourceInput(body, request, stage, input) {
       assert.equal(body, prepared); assert.equal(request, requested);
       assert.deepEqual([stage, input], [0, 0]); events.push('typed-selection'); return ok(sourceSelection);
@@ -707,10 +708,12 @@ function sourceRouteCallerFixture({kind = 'whole-input', queryFailure, wrapAdapt
     checkpoints: undefined, ExecutionAuthorizationError: class extends Error {},
   };
   context.originalSourceFreeRequest = sourceRouteBinding('originalSourceFreeRequest', context, true);
+  const retainRestored = sourceRouteBinding('retainRestoredSourceFreeRequest', context);
   context.modelSourceOccurrence = sourceRouteBinding('modelSourceOccurrence', context);
   const requestOf = sourceRouteBinding('requestOf', context);
   const prepareAcquisition = sourceRouteBinding('prepareAcquisition', context);
   return {prepared, requested, preparedSource, events, identities,
+    retainRestored: (requestId = 'original-request', identity = requested) => retainRestored(prepared, requestId, identity),
     request: id => requestOf({preparedProgram: prepared, requestId: id ?? 'original-request'}),
     prepare: () => prepareAcquisition(prepared),
     counts: () => ({identityCalls, queryCalls})};
@@ -724,6 +727,27 @@ test('whole-input Host request and acquisition keep one original identity withou
   assert.equal(await f.prepare(), f.preparedSource);
   assert.deepEqual(f.counts(), {identityCalls: 1, queryCalls: 0});
   assert.deepEqual(f.events, ['typed-selection', 'typed-selection', 'typed-selection', 'same-adapter']);
+});
+
+test('restored Host request retains the actual Journal identity before Source selection without issuing an equal replacement', async () => {
+  const f = sourceRouteCallerFixture();
+  assert.strictEqual(f.retainRestored(), f.requested);
+  assert.strictEqual(f.request().requested, f.requested);
+  assert.strictEqual(await f.prepare(), f.preparedSource);
+  assert.deepEqual(f.counts(), {identityCalls: 0, queryCalls: 0});
+  assert.strictEqual(f.retainRestored(), f.requested);
+  assert.throws(() => f.retainRestored('different-request'), {code: 'ForeignInstalledComputeRun'});
+  assert.throws(() => f.retainRestored('original-request', {}), {code: 'ForeignInstalledComputeRun'});
+  assert.deepEqual(f.counts(), {identityCalls: 0, queryCalls: 0});
+});
+
+test('restored Host request refuses a conflicting cached original even if its request ID agrees', () => {
+  const f = sourceRouteCallerFixture();
+  const foreign = Object.freeze({requestId: 'original-request', requested: {}});
+  f.identities.set(f.prepared, foreign);
+  assert.throws(() => f.retainRestored(), {code: 'ForeignInstalledComputeRun'});
+  assert.strictEqual(f.identities.get(f.prepared), foreign);
+  assert.deepEqual(f.counts(), {identityCalls: 0, queryCalls: 0});
 });
 
 test('whole-input caller controls preserve Query refusal and reject a changed request identity', () => {

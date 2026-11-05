@@ -56463,6 +56463,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retainRestoredSourceFreeRequest/retainRestoredSourceFreeRequest",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight#2",
@@ -59991,6 +59992,15 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retainRestoredSourceFreeRequest/retainRestoredSourceFreeRequest",
+          "parameters": [
+            "preparedProgram",
+            "requestId",
+            "requested"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture",
           "parameters": [
             "ref"
@@ -62571,7 +62581,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "6f9f786917a26ed7055e0b46bdfc657ee49175366fed7ad2496c7f21dbb49051"
+      "sha256": "8a4e4f18eabbbdb2440daff6083eb2c375cf46ca4af3ff84c4fd5076968afb79"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

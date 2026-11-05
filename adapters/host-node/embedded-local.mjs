@@ -3299,6 +3299,16 @@ async function openInstalledHost(originalInstallation, preparation) {
   // reconstruction that the live Run's exact-original fence must refuse.
   // Weak ownership neither keeps the Prepared alive nor grants another Run.
   const sourceFreeRequestIdentities = new WeakMap();
+  const retainRestoredSourceFreeRequest = (preparedProgram, requestId, requested) => {
+    const original = sourceFreeRequestIdentities.get(preparedProgram);
+    if (requested === undefined || !moon.clientProgramMatchesRequestIdentity(preparedProgram, requested) ||
+        original !== undefined && (original.requestId !== requestId || original.requested !== requested)) {
+      throw clientOperationError('ForeignInstalledComputeRun');
+    }
+    if (original === undefined) sourceFreeRequestIdentities.set(preparedProgram,
+      Object.freeze({requestId, requested}));
+    return requested;
+  };
   const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {
     let original = sourceFreeRequestIdentities.get(preparedProgram);
     if (original === undefined) {
@@ -5770,6 +5780,10 @@ async function openInstalledHost(originalInstallation, preparation) {
               submission.preparedProgram = prepareSubmit.restoreInferOriginal(
                 inferOriginal, current.runDefinition, current.requestIdentity,
                 current.runAdmissionEvidence, submission);
+              // The Journal-selected identity is the actual original used by
+              // this restored Prepared. Equal fresh issuance is not custody.
+              retainRestoredSourceFreeRequest(submission.preparedProgram, submission.requestId,
+                current.requestIdentity);
             } else {
               // Restore through the SAME funded Request entrance used by cold
               // Effect recovery. A saved Prepared projection cannot stand in
