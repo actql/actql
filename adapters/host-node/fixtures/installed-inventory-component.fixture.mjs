@@ -17,7 +17,7 @@ import {captureSourceAliasConstruction, sourceAliasCollectionConstructionGeometr
   from '../source-alias-construction.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from '../installed-source-limits.mjs';
 import {installedSourceReadBindings} from '../installed-source.mjs';
-import {composeInstalledEffects} from '../installed-effect-inventory.mjs';
+import {composeInstalledEffects, validPluralEffectPaths} from '../installed-effect-inventory.mjs';
 
 const source = readFileSync(new URL('../installed-source.mjs', import.meta.url), 'utf8');
 const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
@@ -47,6 +47,24 @@ function sourceFold(loadInstalledSource) {
     composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment, verifyInstalledConnectorBindings, retainInstalledHostInitializationFailure};
   return Function(...Object.keys(ports), declaration('validPluralSourcePaths') + '\n' +
     declaration('loadInstalledSources') + '\nreturn loadInstalledSources;')(...Object.values(ports));
+}
+
+function effectFold(loadEffect) {
+  const source = readFileSync(new URL('../installed-effect.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declarations = ['refuse', 'loadInstalledEffect', 'loadInstalledEffects'].map(name => {
+    const nodes = tree.body.map(node => node.declaration ?? node).filter(node =>
+      node.type === 'FunctionDeclaration' && node.id.name === name ||
+      node.type === 'VariableDeclaration' && node.declarations.some(value => value.id.name === name));
+    assert.equal(nodes.length, 1, name);
+    return source.slice(nodes[0].start, nodes[0].end);
+  });
+  // Keep the actual absent/singular/plural entrance and its pre-I/O refusal.
+  // Only the member constructor remains the authored inventory DATA port.
+  const ports = {loadEffect, composeInstalledEffects, validPluralEffectPaths,
+    retainInstalledHostInitializationFailure};
+  return Function(...Object.keys(ports), declarations.join('\n') + '\nreturn loadInstalledEffects;')(
+    ...Object.values(ports));
 }
 
 export function installedInventoryComponent(loader, authoredMembers, effectMember) {
@@ -86,8 +104,7 @@ export function installedInventoryComponent(loader, authoredMembers, effectMembe
         }
         retain?.(value); return value;
       };
-      const fold = role === 'source' ? sourceFold(member) :
-        (paths, captured) => composeInstalledEffects(paths, captured, member);
+      const fold = role === 'source' ? sourceFold(member) : effectFold(member);
       return parent.load(fold, paths, {...options, installationServices: parent.services});
     },
   });
