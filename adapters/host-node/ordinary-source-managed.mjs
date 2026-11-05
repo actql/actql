@@ -10,6 +10,7 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 import {withOriginalFile} from './source-profile-json.mjs';
 import resourceRuntime from './ordinary-node-resource-runtime.cjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {retireNodeInferOriginalRead, finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
 
 // Existing Source/Compute responsibility, using real ordinary Node allocation
@@ -560,8 +561,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state?.preparationFailed) throw state.preparationFailure;
       if (recovery?.restored?.prepared !== prepared || state.prepared !== prepared ||
           state.preparing || state.adopting) fail('ForeignInstalledSourceProducer');
-      if (typeof recovery.model?.control.checkedClientRequestModelRecoveryLedger !== 'function') fail('NodeManagedRunRuntimeUnavailable');
-      return recovery.model.control.checkedClientRequestModelRecoveryLedger(
+      const control = recovery.model?.control ?? runtimeCore(state.context.runtime).publicationControl;
+      if (typeof control.checkedClientRequestModelRecoveryLedger !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      return control.checkedClientRequestModelRecoveryLedger(
         state.parent, producer.receipt, recovery.request, recovery.definition);
     },
     prepareModelRecoveryPlan(prepared, request, plan, selected, model) {
@@ -1579,7 +1581,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         if (state.modelSourceCoordinates !== undefined) return state.modelSourceCoordinates;
         reserveModelRecovery(producer, state, 1, () => recovery.original.materialsWire, 1);
         return constructRequestDomain(state, () => {
-          const coordinates = recovery.model?.control.checkedClientRequestModelRecoverySourceCoordinates(
+          const control = recovery.model?.control ?? runtimeCore(state.context.runtime).publicationControl;
+          const coordinates = control.checkedClientRequestModelRecoverySourceCoordinates(
             state.parent, producer.receipt, recovery.request, recovery.definition, prepared);
           if (!Array.isArray(coordinates) || coordinates.some(value => !Array.isArray(value) || value.length !== 3 ||
               value.some(coordinate => !Number.isSafeInteger(coordinate) || coordinate < 0))) fail('InvalidHostRuntimeResult');
