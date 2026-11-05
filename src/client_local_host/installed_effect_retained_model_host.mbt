@@ -23,7 +23,10 @@ pub fn open_installed_effect_retained_model_host(
     return Err(AlreadyBound)
   }
   owner.source_free_opening = true
-  let opened = select_installed_effect_retained_model_host(
+  defer {
+    owner.source_free_opening = false
+  }
+  select_installed_effect_retained_model_host(
     owner,
     bound,
     sources.copy(),
@@ -33,8 +36,6 @@ pub fn open_installed_effect_retained_model_host(
     output,
     completed_model,
   )
-  owner.source_free_opening = false
-  opened
 }
 
 ///|
@@ -135,4 +136,25 @@ fn select_installed_effect_retained_model_host(
     return Err(ForeignOriginal)
   }
   Ok(host.map(value => (value, captured, plan.sequences)))
+}
+
+///|
+/// Cleanup of this original parent's captured consumers also works when a
+/// fallible Host constructor never returned its wrapper. Revocation forbids
+/// new work, not retirement. Pending children retain the same parent for retry.
+pub fn retire_installed_effect_captured_consumers(
+  owner : ClientInstalledManagedRun,
+) -> Result[Bool, ClientInstalledManagedRunIssue] {
+  guard owner.original is Some(original) && physical_equal(owner, original) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.source_free_opening || owner.effect_operation_opening {
+    return Ok(false)
+  }
+  Ok(
+    match owner.source_free_captured {
+      Some(run) => @strategy.retire_captured_task_outputs(run)
+      None => true
+    },
+  )
 }

@@ -755,6 +755,8 @@ pub fn client_infer_saved_call_scope_matches_originals(ClientInferSavedCallScope
 
 pub fn client_infer_saved_call_scope_matches_run(ClientInferSavedCallScope, ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
+pub fn client_infer_saved_source_originals(ClientInferSavedCallScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph) -> Result[Array[(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue)], ClientInferCallScopeIssue]
+
 pub fn client_journal_issuance_count(Bytes, Int) -> Result[Int, ClientJournalDecodingIssue]
 
 pub fn client_keyed_acquisition_binding(ClientKeyedAcquisition) -> @program_check.KeyedExecution

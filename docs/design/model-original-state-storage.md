@@ -131,3 +131,41 @@ second output allocation. The original Model execution keeps its work history,
 allocation, retained input and cleanup duties. The caller releases its output
 use only after the Host's consumers retire. Constructor failure, a stopped DAG
 or release of this use alone does not acknowledge the Model's physical cleanup.
+
+The cold JS caller drives the same restored operation before opening this Host.
+It claims the existing `restoreRead` once, keeps the original durable Entry and
+settlement callbacks, and retains the completed capture before acquiring its
+additional Host output use. A waiting checkpoint returns the same computation
+custody without opening a Host. An already-selected asynchronous profile uses
+its existing nominal IO notification on that same operation; stop and cleanup
+retire the notifier without granting dispatch or inventing an IO acknowledgement.
+Fresh components continue to be driven by Local;
+a saved non-keyed Plan keeps its existing Host entrance.
+
+Publication projects the original Source leaves from that same nominal saved
+scope after the combined compiled/Definition/occurrence/Plan/current check.
+The private control unwraps the actual compiled and Definition tokens and wraps
+the returned evidence in its existing evidence namespace. Matching the actual
+direct captures identifies the remaining original keyed leaf; neither wire
+parsing nor a Source name issues another observation. A changed direct leaf or
+an incomplete inventory refuses publication. The original Source custody stays
+live through this borrow; this projection issues no read or capacity grant.
+
+Cold Host retirement precedes Model alias retirement. The existing computation
+custody holds the output use across constructor rejection, an absent wrapper,
+and a throwing cleanup callback. The managed parent's original captured DAG
+retains partially constructed consumers before fallible configuration. Its
+existing stop, reverse output close and retention refresh engine is shared by
+returned-Host and partial-parent cleanup. Construction reentry remains pending;
+a foreign parent cannot retire these consumers. False or throwing retirement
+keeps the same pin and cleanup continuation for retry. Only actual consumer
+retirement permits release of that pin, followed by the original Model cleanup.
+It does not acknowledge Source, Store, Model or parent physical cleanup.
+
+A completed publication plan therefore does not run the fresh path's early
+Model-alias retirement while the cold Host still borrows its output. Result and
+Effect consumers keep the same backing until their original cleanup returns.
+These lifetime connections do not derive a numerical allowance from a saved
+scope, output use, matching CID or spare Ledger capacity. The selected parent
+must still fund the simultaneous constructor, original output and failed-child
+backing before physical construction.

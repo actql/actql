@@ -92,12 +92,16 @@
     },
     {
       "module": "src/client_local_host/installed_effect_retained_model_host.mbt",
-      "sha256": "3390b280e9d0898fd45f502e232c976d760fdab62a09b5a3b14c00061bdf755b",
+      "sha256": "ba0f2950d4d546a79064c1f34a2e658fb776a62aa91ab27736806faa436072c6",
       "exports": [],
       "operations": [
         {
           "name": "open_installed_effect_retained_model_host",
           "declaration": "open_installed_effect_retained_model_host ( owner : ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , model_graph : @ publication_host . ClientInferPlanGraph , output : @ execution . CompletedOutput , completed_model : @ model . ModelExecution , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedEffectRunDAG , Array [ @ execution . GeneratedSequence ] , ) ? , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "retire_installed_effect_captured_consumers",
+          "declaration": "retire_installed_effect_captured_consumers ( owner : ClientInstalledManagedRun , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "select_installed_effect_retained_model_host",
@@ -181,17 +185,101 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "retire_installed_effect_captured_consumers"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The cold JS caller drives the same restored operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Publication projects the original Source leaves"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The private control unwraps the actual compiled and Definition tokens"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The existing computation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Construction reentry remains pending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "False or throwing retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "existing stop, reverse output close and retention refresh engine"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "must still fund the simultaneous constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('failed restored Host constructor keeps the original pin"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('restored composed provider drives its same original operation"
+              },
+              {
+                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
+                "anchor": "captured consumer retirement retains original Result pins through same retry"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node/client_restored_model_host_bridge.mbt",
-      "sha256": "8e3502c5135c4c1fb100609d0352cbf10eeccd91fe4576d2e596e6aa07ef442e",
+      "sha256": "4ecb79d9e8e747d1104e73159a14bb2d84bcd19a3369ab3f065e993b213913c4",
       "exports": [],
       "operations": [
         {
           "name": "client_program_installed_effect_managed_restored_model_host_open",
           "declaration": "client_program_installed_effect_managed_restored_model_host_open ( owner : @ client_local_host . ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , held : @ infer_host . OutputUse , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ ClientLocalEffectHost ? , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_restored_infer_source_originals",
+          "declaration": "client_program_restored_infer_source_originals ( scope : @ publication_host . ClientInferSavedCallScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ Array [ ( @ publication . RunEvidenceValue , @ publication . RunEvidenceValue ) ] , @ publication_host . ClientInferCallScopeIssue , ]"
+        },
+        {
+          "name": "client_program_retire_installed_effect_captured_consumers",
+          "declaration": "client_program_retire_installed_effect_captured_consumers ( owner : @ client_local_host . ClientInstalledManagedRun , ) - > Result [ Bool , @ client_local_host . ClientInstalledManagedRunIssue ]"
         }
       ],
       "role": "common-semantics",
@@ -267,6 +355,83 @@
               {
                 "path": "src/client_infer_host/original_restored_host_output_wbtest.mbt",
                 "anchor": "restored Host output fences a saved custody callback releasing its original pin"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_restored_infer_source_originals",
+            "client_program_retire_installed_effect_captured_consumers"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The cold JS caller drives the same restored operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Publication projects the original Source leaves"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The private control unwraps the actual compiled and Definition tokens"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The existing computation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Construction reentry remains pending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "False or throwing retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "existing stop, reverse output close and retention refresh engine"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "must still fund the simultaneous constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('failed restored Host constructor keeps the original pin"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('restored composed provider drives its same original operation"
+              },
+              {
+                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
+                "anchor": "captured consumer retirement retains original Result pins through same retry"
               }
             ]
           }
@@ -364,12 +529,16 @@
     },
     {
       "module": "src/physical_strategy_host/retained_model_task.mbt",
-      "sha256": "f3e83cda8549f5d4dd6f417fcd4660dae94e70edb4fe6ded64f5525e39714b84",
+      "sha256": "09bfebde95489c78b4434b2f460ed4c702681616168b8b9609a91ce2b8354155",
       "exports": [],
       "operations": [
         {
           "name": "open_multi_captured_effect_run_retained_model_dag",
           "declaration": "open_multi_captured_effect_run_retained_model_dag ( checked : CheckedEffectRunDAG , sources : Array [ ( Int , @ query . CapturedInputSource ) ] , ledger : @ resources . Ledger , task : Int , model_step : Int , output : @ execution . CompletedOutput , ) - > Result [ CapturedEffectRunDAG , RunIssue ]"
+        },
+        {
+          "name": "retire_captured_task_outputs",
+          "declaration": "retire_captured_task_outputs ( run : CapturedDAG ) - > Bool"
         }
       ],
       "role": "common-semantics",
@@ -445,6 +614,82 @@
               {
                 "path": "src/client_infer_host/original_restored_host_output_wbtest.mbt",
                 "anchor": "restored Host output fences a saved custody callback releasing its original pin"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retire_captured_task_outputs"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The cold JS caller drives the same restored operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Publication projects the original Source leaves"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The private control unwraps the actual compiled and Definition tokens"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The existing computation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Construction reentry remains pending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "False or throwing retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "existing stop, reverse output close and retention refresh engine"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "must still fund the simultaneous constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('failed restored Host constructor keeps the original pin"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('restored composed provider drives its same original operation"
+              },
+              {
+                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
+                "anchor": "captured consumer retirement retains original Result pins through same retry"
               }
             ]
           }

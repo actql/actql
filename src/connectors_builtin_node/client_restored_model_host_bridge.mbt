@@ -32,3 +32,31 @@ pub fn client_program_installed_effect_managed_restored_model_host_open(
     })
   })
 }
+
+///|
+/// The original parent, not absence of a returned Host, owns partial cleanup.
+#export_name("clientProgramRetireInstalledEffectCapturedConsumers")
+pub fn client_program_retire_installed_effect_captured_consumers(
+  owner : @client_local_host.ClientInstalledManagedRun,
+) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.retire_installed_effect_captured_consumers(owner)
+}
+
+///|
+/// Project authenticated original Source evidence from this same Saved scope.
+/// No Source observation, logical identity or capture is issued here.
+#export_name("clientProgramRestoredInferSourceOriginals")
+pub fn client_program_restored_infer_source_originals(
+  scope : @publication_host.ClientInferSavedCallScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> Result[
+  Array[(@publication.RunEvidenceValue, @publication.RunEvidenceValue)],
+  @publication_host.ClientInferCallScopeIssue,
+] {
+  @publication_host.client_infer_saved_source_originals(
+    scope, compiled, definition, occurrence, graph,
+  )
+}

@@ -967,3 +967,31 @@ pub fn restore_client_infer_call_scope(
     generation: None,
   })
 }
+
+///|
+/// Borrow only this original saved Scope's already-admitted Source leaves.
+/// The combined identity/current predicate observes custody once at entry.
+pub fn client_infer_saved_source_originals(
+  value : ClientInferSavedCallScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+) -> Result[
+  Array[(@publication.RunEvidenceValue, @publication.RunEvidenceValue)],
+  ClientInferCallScopeIssue,
+] {
+  if !client_infer_saved_call_scope_matches_originals(
+      value, compiled, definition, occurrence, plan,
+    ) {
+    return Err(ForeignOwner)
+  }
+  Ok(
+    value.named_sources.map(item => {
+      let (source, input, _, _) = @publication.model_source_observation_originals(
+        item.1,
+      )
+      (source, input)
+    }),
+  )
+}

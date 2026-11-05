@@ -1023,6 +1023,8 @@ pub fn retained_installed_source_construction_capacity(@execution_relation.Execu
 
 pub fn retire_installed_effect_capture_recovery(ClientInstalledEffectCaptureRecovery) -> Result[Unit, ClientInstalledManagedRunIssue]
 
+pub fn retire_installed_effect_captured_consumers(ClientInstalledManagedRun) -> Result[Bool, ClientInstalledManagedRunIssue]
+
 pub fn retire_installed_effect_operation(ClientInstalledEffectOperationBorrow, Bool) -> Result[Bool, ClientInstalledManagedRunIssue]
 
 pub fn retire_installed_keyed_source_read(ClientInstalledKeyedSourceRead) -> Result[Unit, ClientInstalledSourceReadIssue]

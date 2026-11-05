@@ -587,3 +587,112 @@ test('original restored single Unit drives its saved kernel for zero or one Sour
     assert.equal(originalReadCleaned(f.originalPreparation.read), true);
   }
 });
+
+
+test('restored composed provider drives its same original operation before Host construction and never reopens Local', async () => {
+  const f = fixture(), savedScope = {}, snapshot = {binding: 'saved-binding', descriptorWire: 'saved-descriptor', rows: ['same saved row']};
+  const restoredInput = {savedScope, snapshot, token: {available: true}};
+  let localOpen, retained, claims = 0, advances = 0;
+  f.moon.clientProgramComposedInferLocalProvider = (_occurrence, open) => {localOpen = open; return {};};
+  f.moon.clientProgramStartOriginalRestoredComposedInferExecution = (...args) => {
+    assert.strictEqual(args[0], f.occurrence); assert.strictEqual(args[4], snapshot.binding);
+    assert.strictEqual(args[8], savedScope); assert.strictEqual(args[9], f.rawCompiled);
+    assert.strictEqual(args[10], f.rawDefinition); return {$tag: 1, _0: f.active};
+  };
+  f.moon.clientProgramBindInferRun = () => ({$tag: 1, _0: undefined});
+  f.moon.clientProgramRequireInferCallEntry = () => ({$tag: 1, _0: undefined});
+  f.moon.clientProgramRestrictInferSendSlots = () => ({$tag: 1, _0: undefined});
+  f.moon.clientProgramAdvanceInferExecution = value => {
+    assert.strictEqual(value, f.active); assert.strictEqual(retained, component.operation());
+    advances++; return {$tag: 1, _0: {}};
+  };
+  f.moon.clientProgramInferExecutionPollKind = () => 'complete';
+  const output = {};
+  f.moon.clientProgramInferExecutionOutput = () => output;
+  const preparation = {restoreRead(actual) {assert.strictEqual(actual, restoredInput); claims++; return f.originalPreparation;}};
+  const selected = {occurrence: f.occurrence, graph: f.graph, provider: f.provider, computePrefix: f.prefix};
+  const component = openNodeComposedInferProvider({moon: f.moon, selected, deferred: true});
+  component.bindOriginal({selected, restoredInput, originalPreparation: preparation,
+    control: {bindCheckedClientInferRun() {}}, plan: {compiled: f.originalPreparation.compiled,
+      runDefinition: f.originalPreparation.runDefinition}, durableCalls: true,
+    retainOperation(value) {retained = value;}});
+  const operation = component.startRestored(); assert.strictEqual(operation, retained);
+  assert.strictEqual(await operation.run(), output); assert.equal(advances, 1); assert.equal(claims, 1);
+  assert.equal(localOpen([]), undefined); assert.equal(claims, 1);
+  assert.throws(() => component.startRestored(), {message: 'ComposedInferAlreadyOpened'});
+  await operation.close();
+});
+
+test('restored Host facade unwraps only its original compiled and definition and preserves refused results', () => {
+  const f = fixture(), managed = {}, bound = {}, sources = [{}], pin = {};
+  let calls = 0;
+  f.moon.clientProgramInstalledEffectManagedRestoredModelHostOpen = (...args) => {
+    calls++; assert.deepEqual(args, [managed, bound, sources, pin, f.rawCompiled, f.rawDefinition, f.graph]);
+    return {$tag: 0, _0: 'OriginalHostRefused'};
+  };
+  const c = f.originalPreparation.control, compiled = f.originalPreparation.compiled, definition = f.originalPreparation.runDefinition;
+  assert.throws(() => c.openCheckedClientInstalledRestoredModelEffectHost(
+    compiled, definition, managed, bound, sources, pin, f.graph),
+    error => error.cause === 'OriginalHostRefused');
+  assert.equal(calls, 1);
+  for (const pair of [[{...compiled}, definition], [compiled, {...definition}]]) {
+    assert.throws(() => c.openCheckedClientInstalledRestoredModelEffectHost(...pair, managed, bound, sources, pin, f.graph), /Foreign/u);
+  }
+  assert.equal(calls, 1);
+});
+
+test('restored Source projection preserves actual evidence originals in the private control namespace', () => {
+  const f = fixture(), scope = {}, original = {identity: 'original-source', wire: 'original-source-wire'},
+    logical = {identity: 'original-logical'};
+  let calls = 0;
+  f.moon.clientProgramRestoredInferSourceOriginals = (...args) => {
+    calls++; assert.deepEqual(args, [scope, f.rawCompiled, f.rawDefinition, f.occurrence, f.graph]);
+    return {$tag: 1, _0: [{_0: original, _1: logical}]};
+  };
+  f.moon.strategyRunEvidenceIdentity = value => value.identity;
+  f.moon.strategyRunEvidenceJson = value => value.wire;
+  const p = f.originalPreparation, values = p.control.restoredInferSourceOriginals(
+    p.compiled, p.runDefinition, scope, f.occurrence, f.graph);
+  assert.equal(values[0].logicalRelationCid, logical.identity);
+  assert.equal(values[0].source.identity, original.identity);
+  assert.equal(values[0].source.wire, original.wire);
+  assert(Object.isFrozen(values) && Object.isFrozen(values[0]));
+  f.moon.clientProgramAdmitComposedInferSources = (...args) => {
+    assert.strictEqual(args[5][0], original); return {$tag: 1, _0: {}};
+  };
+  p.control.admitComposedInferSources(f.occurrence, [{capture: {source: () => ({})}}],
+    [values[0].source], 'scope', 'start', 'end');
+  assert.throws(() => p.control.restoredInferSourceOriginals({...p.compiled},
+    p.runDefinition, scope, f.occurrence, f.graph), /Foreign/u);
+  assert.equal(calls, 1);
+});
+
+
+test('restored composed async driver keeps the existing original IO notification through stop and cleanup', async () => {
+  const f = originalRestoredFixture(), poll = {}, output = {};
+  let retained, advances = 0;
+  f.moon.clientProgramComposedInferLocalProvider = () => ({});
+  f.moon.clientProgramRequireInferCallEntry = () => ({$tag: 1, _0: undefined});
+  f.moon.clientProgramAdvanceInferExecution = active => {
+    assert.strictEqual(active, f.active);
+    if (advances++ === 0) {
+      assert(retained.ioNotification); retained.ioNotification.notify();
+      return {$tag: 1, _0: poll};
+    }
+    return {$tag: 1, _0: output};
+  };
+  f.moon.clientProgramInferExecutionPollKind = value => value === poll ? 'await_io' : 'complete';
+  f.moon.clientProgramInferExecutionOutput = value => value;
+  const selected = {occurrence: f.occurrence, graph: f.graph, provider: f.provider,
+    computePrefix: f.prefix, entryPersistence: 'async'};
+  const component = openNodeComposedInferProvider({moon: f.moon, selected, deferred: true});
+  component.bindOriginal({selected, restoredInput: f.restoredInput,
+    originalPreparation: {restoreRead: () => f.originalPreparation},
+    control: {bindCheckedClientInferRun() {}}, durableCalls: true,
+    plan: {compiled: f.originalPreparation.compiled, runDefinition: f.originalPreparation.runDefinition},
+    retainOperation(value) {retained = value;}});
+  const operation = component.startRestored();
+  assert.strictEqual(await operation.run(), output); assert.equal(advances, 2);
+  const notification = operation.ioNotification;
+  await operation.close(); assert.equal(notification.notify(), false);
+});

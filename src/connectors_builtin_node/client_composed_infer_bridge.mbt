@@ -812,11 +812,5 @@ pub fn client_program_refresh_acquired_effect_cleanup(
   value : ClientLocalEffectHost,
 ) -> Bool {
   let run = @strategy.captured_effect_run_dag(value.run)
-  @strategy.stop_captured_dag(run)
-  let count = @strategy.graph_task_count(@strategy.captured_dag_graph(run))
-  for task = count - 1; task >= 0; task = task - 1 {
-    @strategy.close_captured_task_output(run, task)
-  }
-  @strategy.refresh_captured_retention(run)
-  !@strategy.captured_task_retirement_pending(run)
+  @strategy.retire_captured_task_outputs(run)
 }

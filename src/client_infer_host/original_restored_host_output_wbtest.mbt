@@ -178,3 +178,42 @@ test "restored Host output does not accept a fresh Model completion as Saved" {
   assert_true(release_output(held))
   assert_true(cleanup(active).unwrap())
 }
+
+///|
+test "saved Source originals borrow checks the same Run scope and current once" {
+  let current = Ref(true)
+  let observations = Ref(0)
+  let (active, compiled, definition, plan, ledger, read, installation, profile) = restored_host_output_fixture(() => {
+      observations.val += 1
+      current.val
+    },
+  )
+  observations.val = 0
+  let scope = active.saved_call_scope.unwrap()
+  let originals = @publication_host.client_infer_saved_source_originals(
+    scope,
+    compiled,
+    definition,
+    active.occurrence,
+    plan,
+  ).unwrap()
+  // This existing source-free fixture has no Source leaves to fabricate.
+  assert_eq(originals.length(), 0)
+  assert_eq(observations.val, 1)
+  current.val = false
+  assert_true(
+    @publication_host.client_infer_saved_source_originals(
+      scope,
+      compiled,
+      definition,
+      active.occurrence,
+      plan,
+    )
+    is Err(ForeignOwner),
+  )
+  assert_eq(observations.val, 2)
+  current.val = true
+  restored_host_output_fixture_close(
+    active, ledger, read, installation, profile,
+  )
+}

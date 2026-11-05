@@ -36,3 +36,16 @@ pub fn open_multi_captured_effect_run_retained_model_dag(
   }
   Ok({ checked, captured, })
 }
+
+///|
+/// Retire the actual captured consumers, including a partially opened Host.
+/// This says nothing about its borrowed Model output or parent Run retirement.
+pub fn retire_captured_task_outputs(run : CapturedDAG) -> Bool {
+  stop_captured_dag(run)
+  let count = graph_task_count(captured_dag_graph(run))
+  for task = count - 1; task >= 0; task = task - 1 {
+    close_captured_task_output(run, task)
+  }
+  refresh_captured_retention(run)
+  !captured_task_retirement_pending(run)
+}
