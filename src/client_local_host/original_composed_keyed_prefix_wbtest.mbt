@@ -3,16 +3,47 @@
 // The exact authored reference issuer is the existing component fixture;
 // this test supplies no installed physical provider or Model send permission.
 test "two original Direct captures execute one keyed prefix and feed the same Model input without replay" {
-  original_composed_keyed_consumer(false)
+  original_composed_keyed_consumer()
 }
 
 ///|
+#cfg(target="js")
 test "adopted Effect Model borrows shared Source tokens and its original prefix exactly once" {
-  original_composed_keyed_consumer(true)
+  original_composed_keyed_consumer(
+    prepare_parent=Some((wire, selectedEnvironment) => {
+      let (parent, child, _, input) = registration_parent_fixture(
+        text=wire,
+        environment=Some(selectedEnvironment),
+        effect_limits=Some(
+          @publication_host.client_standard_effect_computation_limits(),
+        ),
+      )
+      finish_effect_program_check_preparation(child).unwrap() |> ignore
+      let prepared = compile_effect_program_check_preparation(child).unwrap()
+      assert_true(
+        physical_equal(
+          continue_request_effect_preparation(parent, input).unwrap(),
+          prepared,
+        ),
+      )
+      (parent, input, prepared)
+    }),
+    foreign_run=Some(() => {
+      let (prepared, _, _) = effect_operation_plan_inputs()
+      effect_parent_bound_run(prepared)
+    }),
+  )
 }
 
 ///|
-fn original_composed_keyed_consumer(shared : Bool) -> Unit raise {
+fn original_composed_keyed_consumer(
+  prepare_parent? : ((String, @checked.CheckEnvironment) -> (
+    ClientRequestPreparation[Array[Int]],
+    Array[Int],
+    @publication_host.PreparedClientEffectComputation,
+  ) raise)? = None,
+  foreign_run? : (() -> @publication_host.PreparedClientEffectRun raise)? = None,
+) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
   )
@@ -26,25 +57,10 @@ fn original_composed_keyed_consumer(shared : Bool) -> Unit raise {
   )
   let document =
     #|{"version":"actql/0.1","id":"two-direct-keyed-model","stages":[{"id":"left","inputs":{"files":{"connector":"content-fixture","resource":"files"}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["name","resource","version"]}}},{"id":"right","inputs":{"files":{"connector":"content-fixture","resource":"files"}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["name","resource","version"]}}},{"id":"classify","inputs":{"a":{"result":{"stage":"left","result":"rows"}},"b":{"result":{"stage":"right","result":"rows"}},"contents":{"connector":"content-fixture","resource":"contents"}},"steps":[{"from":"a","join":{"with":"b","kind":"inner","on":[{"left":"name","right":"name"}],"select":{"name":"left.name","resource":"left.resource","version":"left.version"}},"as":"joined"},{"from":"joined","join":{"with":"contents","kind":"inner","on":[{"left":"resource","right":"resource"},{"left":"version","right":"version"}],"select":{"name":"left.name","content":"right.content"}},"as":"captured"},{"assert_rows":{"unique_by":["name"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"classified"},{"derive":{"id":{"literal":1}},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"classify","result":"rows"}}}}
-  let request_parent = if shared {
-    let (parent, child, _, input) = registration_parent_fixture(
-      text=document,
-      environment=Some(environment),
-      effect_limits=Some(
-        @publication_host.client_standard_effect_computation_limits(),
-      ),
-    )
-    finish_effect_program_check_preparation(child).unwrap() |> ignore
-    let prepared = compile_effect_program_check_preparation(child).unwrap()
-    assert_true(
-      physical_equal(
-        continue_request_effect_preparation(parent, input).unwrap(),
-        prepared,
-      ),
-    )
-    Some((parent, input, prepared))
-  } else {
-    None
+  let shared = prepare_parent is Some(_)
+  let request_parent = match prepare_parent {
+    None => None
+    Some(prepare) => Some(prepare(document, environment))
   }
   let prepared = match request_parent {
     Some((_, _, prepared)) => prepared
@@ -697,8 +713,8 @@ fn original_composed_keyed_consumer(shared : Bool) -> Unit raise {
       ),
     )
     assert_true(physical_equal(@strategy.captured_dag_ledger(dag), ledger))
-    let (foreign_prepared, _, _) = effect_operation_plan_inputs()
-    let foreign_bound = effect_parent_bound_run(foreign_prepared)
+    let make_foreign = foreign_run.unwrap()
+    let foreign_bound = make_foreign()
     let foreign_graph = @strategy.checked_effect_run_graph(
       @publication_host.prepared_client_effect_run_graph(foreign_bound),
     )
