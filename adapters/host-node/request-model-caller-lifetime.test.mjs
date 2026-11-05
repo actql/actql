@@ -460,8 +460,7 @@ test('actual Model custody selector borrows original handler and dispatch tokens
     {canRetireManagedPreparation: () => true, managesInstalledSources: () => true},
     {kindOf: p => inventories.get(p).kind}, moon, value => value.$tag === 1, (value, index) => value['_'+index]);
   for (const facts of [{kind: 'effectful', infers: [{}], serializations: [], acquisitions: 2},
-    {kind: 'effect_free', infers: [{}], serializations: [{}], acquisitions: 0},
-    {kind: 'effect_free', infers: [{}, {}], serializations: [], acquisitions: 2}]) {
+    {kind: 'effect_free', infers: [{}], serializations: [{}], acquisitions: 0}]) {
     const foreign = {}; inventories.set(foreign, facts); assert.equal(selector(foreign), false);
   }
   let retired = 0;
@@ -1525,4 +1524,52 @@ test('historical acquired Model admission forwards the same adopted Run to origi
   assert.equal(f.calls.filter(value => value === 'compile/Definition').length, 1);
   assert.equal(f.calls.filter(value => value === 'construct').length, 1);
   assert.equal(f.failures.has(f.submission), false);
+});
+
+test('multiple Model custody keeps the same original handler and dispatch borrows through retirement', () => {
+  let selection;
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id?.name === 'localPreparationCustody') selection = node.init.arguments[0];
+    for (const child of Object.values(node)) {
+      if (Array.isArray(child)) child.forEach(walk);
+      else if (child && typeof child === 'object') walk(child);
+    }
+  };
+  walk(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'})); assert(selection);
+  const inventories = new WeakMap(), prepared = {}, holders = new Set(), handler = {};
+  inventories.set(prepared, {kind: 'effect_free', infers: [{}, {}], serializations: [], acquisitions: 2});
+  holders.add(handler);
+  const moon = {
+    clientProgramSerializationOccurrences: p => inventories.get(p).serializations,
+    clientProgramComposedInferOccurrences: p => ({$tag: 1, _0: inventories.get(p).infers}),
+    clientProgramAcquisitionCount: p => inventories.get(p).acquisitions,
+    clientProgramPreparationBorrowRead: token => {assert(holders.has(token)); return prepared;},
+    clientProgramPreparationBorrowSibling(token) {
+      assert.equal(token, handler); const child = {}; holders.add(child); return {$tag: 1, _0: child};
+    },
+    clientProgramPreparationBorrowReturn(token) {
+      assert(holders.delete(token)); return {$tag: 1, _0: holders.size === 0};
+    },
+  };
+  const selector = Function('preparation', 'prepareSubmit', 'moon', 'runtimeIsOk', 'runtimeField',
+    `return (${hostSource.slice(selection.start, selection.end)});`)(
+    {canRetireManagedPreparation: () => true, managesInstalledSources: () => true},
+    {kindOf: p => inventories.get(p).kind}, moon, value => value.$tag === 1, (value, index) => value['_'+index]);
+  for (const facts of [{kind: 'effectful', infers: [{}], serializations: [], acquisitions: 2},
+    {kind: 'effect_free', infers: [{}], serializations: [{}], acquisitions: 0}]) {
+    const foreign = {}; inventories.set(foreign, facts); assert.equal(selector(foreign), false);
+  }
+  let retired = 0;
+  const registry = installLocalPreparationRegistry(selector, p => {
+    assert.equal(p, prepared); retired++; return () => {if (holders.size) throw new Error('OriginalBorrowPending');};
+  }, {runtime: moon, borrow: p => {assert.equal(p, prepared); return handler;}});
+  const request = registry.capture({kind: 'program', input: {}, parameters: null});
+  const handle = registry.adopt(prepared, request), submission = registry.attach(registry.copy(request), handle);
+  const dispatch = registry.begin(submission); assert.equal(holders.size, 2);
+  assert.throws(dispatch.retire, /OriginalBorrowPending/); assert.equal(holders.size, 1);
+  assert.equal(submission.preparedProgram, prepared);
+  registry.finishHandler(request); assert.equal(holders.size, 0);
+  dispatch.retire(); assert.equal(retired, 1);
+  assert.throws(() => submission.preparedProgram, /Retired/);
 });
