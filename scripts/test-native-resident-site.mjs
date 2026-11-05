@@ -131,6 +131,17 @@ async function runResidentPhaseWatchdog(script, {
   });
 }
 
+// The irreconcilable-allocation fixture deliberately retains durable debt.
+// Recreate only its owned observer process abruptly: graceful close cannot
+// acknowledge that debt, and process death is never a resource cleanup ACK.
+async function crashResidentReconciliationObserver(site) {
+  assert.equal(site.child.kill('SIGKILL'), true,
+    'the original reconciliation observer must still be live');
+  const [code, signal] = await site.exited;
+  assert.equal(code, null);
+  assert.equal(signal, 'SIGKILL');
+}
+
 function residentPhase(phase) {
   if (!residentPhaseKinds.has(phase)) throw new Error('InvalidResidentDiagnosticPhase');
   const line = Number(new Error().stack?.split('\n').slice(2)
@@ -3366,8 +3377,7 @@ try {
       }
       assert.equal(blocked.lines.some(line => line.kind === 'holder-started'), false);
       assert.equal((await entries()).length, expectedEntries);
-      blocked.child.kill('SIGTERM');
-      await blocked.exited;
+      await crashResidentReconciliationObserver(blocked);
       assert.deepEqual(allocationRecords(), durable);
       assert.deepEqual(pendingIntents(siteJournal), pendingBefore);
       assert.equal(reservedPayloadBytes(publication), capacityBefore);

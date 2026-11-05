@@ -91,3 +91,23 @@ test('Native Resident supervisor TERM stops only its owned group and remains non
   assert.equal(code, 143);
   assert.equal(signal, null);
 });
+
+
+test('Native Resident reconciliation observer crash retains unknown evidence without a cleanup ACK', {timeout: 5000}, async t => {
+  const declaration = syntax.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'crashResidentReconciliationObserver');
+  assert(declaration);
+  const crashObserver = Function('assert', `return (${source.slice(declaration.start, declaration.end)});`)(assert);
+  const f = await childFixture(t, `import{writeFileSync}from'node:fs';
+    writeFileSync(new URL('./unknown.txt',import.meta.url),'original unresolved allocation debt');
+    process.on('SIGTERM',()=>{});setInterval(()=>{},1000);process.send({ready:true});`);
+  const child = fork(f.script, [], {stdio: ['ignore', 'ignore', 'inherit', 'ipc']});
+  const exited = once(child, 'exit');
+  const [ready] = await once(child, 'message');
+  assert.equal(ready.ready, true);
+  const original = await readFile(join(f.directory, 'unknown.txt'));
+  assert.equal(await crashObserver({child, exited}), undefined);
+  assert.equal(child.signalCode, 'SIGKILL');
+  assert.deepEqual(await readFile(join(f.directory, 'unknown.txt')), original);
+  // No release/close response or physical resource observation was supplied.
+});
