@@ -724,6 +724,18 @@ export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary
     ACTQL_TEST_CRYPTO_COMPONENT: cryptoLibrary, ACTQL_TEST_SQLITE_COMPONENT: sqliteLibrary};
 }
 `);
+    writeFileSync(join(checkout, 'scripts/native-runtime-bundle-fixture.mjs'), `
+import assert from 'node:assert/strict';
+import {mkdirSync} from 'node:fs';
+import {join} from 'node:path';
+export function prepareNativeRuntimeBundleLibraries(root, destination, options) {
+  assert(destination.startsWith(join(root, '_build/native-core-scoped/')));
+  assert.equal(options.seconds, 900);
+  mkdirSync(destination);
+  return {sqliteLibrary: join(destination, 'sqlite-component.dylib'),
+    cryptoLibrary: join(destination, 'crypto-component.dylib')};
+}
+`);
   }
   writeFileSync(moon, `#!${process.execPath}
 const assert = require('node:assert/strict');
@@ -769,6 +781,10 @@ if (process.env.ACTQL_FIXTURE_PROFILE === 'scoped') {
   assert(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT);
   assert(process.env.ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE);
   assert.equal(statSync(process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT).mode & 0o777, 0o700);
+  assert(process.env.ACTQL_TEST_SQLITE_COMPONENT.endsWith('/sqlite-component.dylib'));
+  assert(process.env.ACTQL_TEST_CRYPTO_COMPONENT.endsWith('/crypto-component.dylib'));
+  assert.notEqual(process.env.ACTQL_TEST_SQLITE_COMPONENT, process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY);
+  assert.notEqual(process.env.ACTQL_TEST_CRYPTO_COMPONENT, process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY);
   if (process.env.ACTQL_FIXTURE_SCOPED_FAIL === '1') process.exit(7);
   console.log('Total tests: 1, passed: 1, failed: 0.'); process.exit(0);
 }

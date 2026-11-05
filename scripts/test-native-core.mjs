@@ -129,6 +129,11 @@ if (full) {
       prefix: 'profile-', label: 'Native Core scoped compiler', preserve: true});
     const {prepareNativeCoreScopedProfile} = await import('./native-core-scoped-profile.mjs');
     const {nativeCoreScopedFixture} = await import('./native-core-scoped-fixture.mjs');
+    const {prepareNativeRuntimeBundleLibraries} = await import('./native-runtime-bundle-fixture.mjs');
+    // The scoped component entrance binds its owned API to this executable's
+    // provider. Raw system SQLite/OpenSSL remain the ordinary fixture inputs.
+    const components = prepareNativeRuntimeBundleLibraries(root,
+      join(scopedScratch.path, 'components'), {seconds: 900});
     // Start from the original PATH, not the ordinary test-only compiler shim.
     const scoped = prepareNativeCoreScopedProfile(root, scopedScratch.path,
       ['--target', 'native', ...selection.profiles.scoped.args], {env: fixtureEnvironment});
@@ -144,8 +149,8 @@ if (full) {
       const caseNamespace = join(namespace, `scoped-case-${ordinal}`);
       mkdirSync(caseNamespace, {mode: 0o700});
       const physical = nativeCoreScopedFixture(caseNamespace, {
-        cryptoLibrary: fixtureEnvironment.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY,
-        sqliteLibrary: fixtureEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+        cryptoLibrary: components.cryptoLibrary,
+        sqliteLibrary: components.sqliteLibrary,
         backingPages: test.source ===
           'src/platform_native/installed_arena_control/local_host_crypto_physical_scoped_wbtest.mbt'
           ? 8192 : 256,
