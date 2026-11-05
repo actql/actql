@@ -447,6 +447,7 @@ fn retain_control_ended_holder_lifetime(
     @publication_store.NativePublicationStoreOpenFailure?,
   ],
   slot_progress : Ref[ControlTerminalClose],
+  cleanup_wait_ms : Int,
 ) -> (@slot.NativeExecutorSlot, Ref[ControlTerminalClose]) {
   let original : ControlEndedHolderLifetime = {
     ended,
@@ -473,7 +474,11 @@ fn retain_control_ended_holder_lifetime(
       original,
       retry_control_ended_holder_lifetime,
       () => CleanupInputEnded,
-      wait_holder_cleanup_lifetime_signal,
+      // A peer Slot/Store release or an ACKed internal phase does not send a
+      // second SIGTERM. Drive only this SAME controller custody at the existing
+      // positive shutdown pace; false/unknown close remains pending. Generic
+      // holder cleanup retains its original channel/signal-driven policy.
+      () => @slot.native_wait_milliseconds(cleanup_wait_ms),
       (custody, _) => {
         report("control-cleanup-pending", [
           ("ended", custody.ended.length().to_string()),

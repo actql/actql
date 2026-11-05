@@ -87,3 +87,25 @@ fn[T] advance_holder_cleanup_pass(
   }
   true
 }
+
+///|
+// Shutdown still drives this controller's already-retained cleanup. Reuse its
+// configured backoff/idle pacing, including when idle is zero. The fallback
+// is the SAME positive holder-poll quantum already selected by run_control.
+// This interval is DATA, not a physical close, grant or retirement observation.
+fn control_shutdown_cleanup_interval(
+  idle_ms : Int,
+  minimum_backoff_ms : Int,
+  maximum_backoff_ms : Int,
+  shutdown_poll_ms : Int,
+) -> Int {
+  if maximum_backoff_ms > 0 {
+    maximum_backoff_ms
+  } else if minimum_backoff_ms > 0 {
+    minimum_backoff_ms
+  } else if idle_ms > 0 {
+    idle_ms
+  } else {
+    shutdown_poll_ms
+  }
+}

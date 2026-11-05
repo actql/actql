@@ -2693,6 +2693,10 @@ fn run_control(
   // After a termination request no new work is taken. A running holder is
   // given a bounded time to finish; after it, the durable journal keeps its
   // record and nothing unconfirmed is settled here.
+  let shutdown_poll_ms = 50
+  let cleanup_wait_ms = control_shutdown_cleanup_interval(
+    idle_wait_ms, min_backoff_ms, max_backoff_ms, shutdown_poll_ms,
+  )
   let mut waited = 0
   while holder is Some(current) && waited < shutdown_wait_ms {
     match current.child.wait(false) {
@@ -2701,8 +2705,8 @@ fn run_control(
         holder = None
       }
       _ => {
-        @slot.native_wait_milliseconds(50)
-        waited += 50
+        @slot.native_wait_milliseconds(shutdown_poll_ms)
+        waited += shutdown_poll_ms
       }
     }
   }
@@ -2722,7 +2726,7 @@ fn run_control(
     let handed = retain_control_ended_holder_lifetime(
       unsettled, holder, environment, client, observation_url, slot, slot_path, orphan_store,
       recovery, matches, recovery_close_failures, pending_custody, replay_journal,
-      pending_spawn, failed_orphan_store, slot_progress,
+      pending_spawn, failed_orphan_store, slot_progress, cleanup_wait_ms,
     )
     slot = handed.0
     slot_progress = handed.1
