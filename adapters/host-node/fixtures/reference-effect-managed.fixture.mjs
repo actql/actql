@@ -144,7 +144,12 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save'], sta
             run.value, run.prepared, run.request, run.operationPlan, memberIndex, false,
             slot.operationIndex, 0, operation));
           tokens.push(token);
-          checked(runtime.clientProgramInstalledEffectOperationConstructionBegin(token));
+          if (slot.inputExtent !== undefined) {
+            const saved = facts.recovered.computation;
+            const extent = slot.inputExtent(facts.control.effectComputationPreviewWire(saved.preview),
+              saved.connectorRecovery, memberIndex);
+            checked(runtime.clientProgramInstalledEffectOperationInputBegin(token, extent));
+          } else checked(runtime.clientProgramInstalledEffectOperationConstructionBegin(token));
         }
       };
       try {
