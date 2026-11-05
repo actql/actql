@@ -13,11 +13,14 @@ const rowSourceConstructor = rowSourceProgram.body.map(node => node.declaration 
 assert(rowSourceConstructor);
 const prepareDeclaration = rowSourceConstructor.body.body.find(node =>
   node.type === 'FunctionDeclaration' && node.id.name === 'prepare');
+const describePreparedSourceDeclaration = rowSourceConstructor.body.body.find(node =>
+  node.type === 'FunctionDeclaration' && node.id.name === 'describePreparedSource');
 const sourceBodyDeclaration = rowSourceConstructor.body.body.find(node =>
   node.type === 'VariableDeclaration' && node.declarations.some(value => value.id.name === 'sourceBody'));
 const sourceBody = sourceBodyDeclaration?.declarations.find(value => value.id.name === 'sourceBody').init;
 const closeMethod = sourceBody?.properties.find(value => value.type === 'Property' && value.key.name === 'close');
-assert(prepareDeclaration && sourceBody?.type === 'ObjectExpression' && closeMethod?.method);
+assert(prepareDeclaration && describePreparedSourceDeclaration &&
+  sourceBody?.type === 'ObjectExpression' && closeMethod?.method);
 
 test('whole input consumes the same Run/reader/evidence originals without Query or output transfer', async () => {
   const acquisition = {}, originalRead = {}, ledger = {}, provider = {}, capacity = {};
@@ -157,7 +160,9 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
     cidPattern: /^sha256:[0-9a-f]{64}$/u,
     physicalTarget: (resource, fields) => ({resource, fields}), valueCid: value => JSON.stringify(value),
     decideRead: async () => authorization === undefined ? {action: 'dispatch'} : await authorization, ordinaryRecoveryBinding() {}};
-  const fixture = new Function(...Object.keys(bindings), source.slice(start, end) +
+  const fixture = new Function(...Object.keys(bindings),
+    source.slice(describePreparedSourceDeclaration.start, describePreparedSourceDeclaration.end) + '\n' +
+    source.slice(start, end) +
     '\nreturn {prepare,' + source.slice(closeStart, closeEnd) + '};')(...Object.values(bindings));
   return {fixture, originalRead: read, pendingReads: bindings.preparingSourceReads, input: {preparedProgram, managedRun},
     retireCalls: () => retireCalls, siteCloses: () => siteCloses,
