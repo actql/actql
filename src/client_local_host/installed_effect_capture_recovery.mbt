@@ -147,8 +147,8 @@ pub fn reserve_installed_effect_capture_recovery(
 
 ///|
 /// The trusted Store consumer has returned after its original FD close and
-/// transient plaintext/cursor aliases were cut. Keep every retained output;
-/// return only this SAME constructor token's completed workspace.
+/// transient plaintext/cursor aliases and full parsed container were cut.
+/// Keep every returned typed/schema/wire output on this SAME token.
 pub fn complete_installed_effect_capture_recovery(
   owner : ClientInstalledEffectCaptureRecovery,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
@@ -216,11 +216,6 @@ fn resize_installed_effect_capture_recovery_material(
   let backing = @resources.NodeManagedRunOperationBacking::Construction(
     material,
   )
-  if completed {
-    return @resources.complete_prepared_run_operation_construction(
-      admission, plan, ledger, original, backing,
-    ).map_err(installed_effect_operation_reservation_issue)
-  }
   guard request_effect_capture_recovery_capacity(
       bytes,
       @publication.publication_contract_json(definition).length(),
@@ -243,6 +238,21 @@ fn resize_installed_effect_capture_recovery_material(
     @execution.execution_capacity_retained_bytes(base)
   let execution = @execution.execution_capacity_execution_bytes(required) -
     @execution.execution_capacity_execution_bytes(base)
+  if completed {
+    // The full parsed capture container no longer exists after the trusted
+    // Store return. Preserve the other two tree inventories, every original
+    // decoded string/wire bound and all returned schema/member owners. This
+    // is one completed constructor role, not a measured byte/cleanup claim.
+    guard @execution.execution_capacity_inventory_bytes([
+        { unit: ValueNodeSlots, count: bytes.to_int64(), copies: 1, },
+      ])
+      is Some(container) else {
+      return Err(InsufficientCapacity)
+    }
+    return @resources.complete_prepared_run_operation_construction_output(
+      admission, plan, ledger, original, backing, retained - container,
+    ).map_err(installed_effect_operation_reservation_issue)
+  }
   if @resources.capacity_reservation_covers(
       ledger, material, retained, execution,
     ) {

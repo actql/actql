@@ -1331,6 +1331,11 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
       }
     });
   }
+  // The returned owners retain their typed contracts, schemas/member handles
+  // and original record wire. None borrows this complete parsed container.
+  // Cut it before the Store returns and the SAME frame refines its backing;
+  // failed construction keeps its original peak and cleanup duties.
+  captured = undefined;
   return Object.freeze({execution: null, storedResults, computation,
     preview, invocation, connectorRecovery: Object.freeze(connectorRecovery),
     // These are the exact already admitted and Store-confirmed member handles,

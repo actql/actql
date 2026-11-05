@@ -222,11 +222,17 @@ test "live capture reserves and returns actual SAME adopted Effect Ledger withou
   ).unwrap()
   let scratch = @execution.execution_capacity_execution_bytes(full) -
     @execution.execution_capacity_retained_bytes(full)
+  let container = @execution.execution_capacity_inventory_bytes([
+    { unit: ValueNodeSlots, count: 128L, copies: 1, },
+  ]).unwrap()
   assert_true(scratch > 0L)
   complete_installed_effect_capture_recovery(recovery).unwrap()
   let completed = {
     ..held,
-    reserved_execution_bytes: held.reserved_execution_bytes - scratch,
+    reserved_retention_bytes: held.reserved_retention_bytes - container,
+    reserved_execution_bytes: held.reserved_execution_bytes -
+    scratch -
+    container,
   }
   assert_eq(@resources.ledger_usage(ledger), completed)
   assert_true(physical_equal(recovery.material.unwrap(), material))
@@ -237,7 +243,11 @@ test "live capture reserves and returns actual SAME adopted Effect Ledger withou
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
   let free = @resources.ledger_limits(ledger).execution_bytes -
     completed.reserved_execution_bytes
-  let pressure = @resources.reserve_capacity(ledger, 0L, free - scratch + 1L).unwrap()
+  let pressure = @resources.reserve_capacity(
+    ledger,
+    0L,
+    free - scratch - container + 1L,
+  ).unwrap()
   let pressured = @resources.ledger_usage(ledger)
   assert_true(
     reserve_installed_effect_capture_recovery(recovery, 128)

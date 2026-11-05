@@ -36,7 +36,9 @@ fn request_effect_capture_recovery_capacity(
       { unit: ValueNodeSlots, count: definition_units.to_int64(), copies: 1, },
       { unit: DecodedTextBytes, count: definition_units.to_int64(), copies: 1, },
       // Capture JSON, retained typed contracts, and prepared schema/member
-      // inventory coexist until the original child cleanup has completed.
+      // inventory coexist during construction. Successful Store return cuts
+      // only the full parsed container; the returned two tree inventories
+      // stay backed until their original child cleanup has completed.
       { unit: ValueNodeSlots, count: bytes, copies: 3, },
       // Capture wire, decoded record strings, and independently decoded typed
       // strings. A getter alias of an existing wire is not another copy.

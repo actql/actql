@@ -1948,7 +1948,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "02f798e8c019510a3444868dc03605f8c7439dbfa99df4f29126c25dddd9a7bc",
+      "sha256": "0682b35df00116abe8c9e57880f98e6255d04ec775637fa55e64a284e454d39a",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
