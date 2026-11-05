@@ -93,6 +93,7 @@ pub struct Execution {
   mut advancing : Bool
   mut reclaimed : Bool
   mut local_component_bound : Bool
+  priv entry_work : Int64
   mut work : Int64
   mut child_work : Int64
   mut output_uses : Int
@@ -705,6 +706,19 @@ fn start_occurrence(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  // The same completed keyed producer has already debited this work. Retain
+  // its cumulative history before constructing the remaining input, while
+  // each later child/component reports only its newly performed work.
+  let entry_work = composed_sources
+    .bind(sources => {
+      @publication_host.client_infer_composed_keyed_lookup(sources, occurrence).bind(lookup => {
+          @publication_host.client_composed_keyed_lookup_prefix_work(
+            lookup, occurrence,
+          )
+        },
+      )
+    })
+    .unwrap_or(0L)
   let input = match start_input(limits) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
@@ -736,8 +750,9 @@ fn start_occurrence(
     cancelled: false,
     advancing: false,
     reclaimed: false,
-    work: 0L,
-    child_work: 0L,
+    entry_work,
+    work: entry_work,
+    child_work: entry_work,
     output_uses: 0,
     run_binding: None,
     original_preparation: None,
@@ -860,6 +875,13 @@ pub fn advance_root(active : Execution, quantum : Int) -> Result[Poll, Issue] {
 }
 
 ///|
+fn execution_input_unadvanced(active : Execution) -> Bool {
+  active.phase is Input &&
+  active.work == active.entry_work &&
+  active.child_work == active.entry_work
+}
+
+///|
 fn account(active : Execution, child_work : Int64) -> Bool {
   if child_work < active.child_work ||
     child_work - active.child_work > 9223372036854775807L - active.work {
@@ -882,7 +904,7 @@ pub fn bind_compute_suffix(
     !active.advancing &&
     !active.cancelled &&
     active.phase is Input &&
-    active.work == 0L &&
+    execution_input_unadvanced(active) &&
     active.suffix_sequence is None &&
     physical_equal(
       @publication_host.client_infer_occurrence_preparation(active.occurrence),

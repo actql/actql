@@ -8,7 +8,7 @@ pub fn require_model_call_entry(
     active.cancelled ||
     active.advancing ||
     !(active.phase is Input) ||
-    active.work != 0L ||
+    !execution_input_unadvanced(active) ||
     !(active.source is Physical(_)) {
     return Err(IncompleteExecution)
   }
@@ -202,7 +202,7 @@ pub fn restrict_model_send_slots(
     active.cancelled ||
     active.advancing ||
     !(active.phase is Input) ||
-    active.work != 0L ||
+    !execution_input_unadvanced(active) ||
     active.model_send_mask is Some(_) ||
     eligible.length() > 128 {
     return Err(IncompleteExecution)

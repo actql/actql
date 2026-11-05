@@ -308,6 +308,7 @@ pub struct Execution {
   composed_sources : @run_publication_host.ClientInferComposedSources?
   mut serialized_output : @execution_relation.CompletedOutput?
   mut serialized_generation : @run_publication_host.ClientSerializationGeneration?
+  // private fields
 }
 
 type ExecutionRunBinding

@@ -179,7 +179,7 @@ pub fn bind_original_model_preparation(
     active.cancelled ||
     active.advancing ||
     !(active.phase is Input) ||
-    active.work != 0L ||
+    !execution_input_unadvanced(active) ||
     !(active.source is Physical(_)) ||
     active.original_preparation is Some(_) {
     return Err(InvalidAdvance)

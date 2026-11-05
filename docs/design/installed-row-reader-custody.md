@@ -17,6 +17,12 @@ Ledger without spending Model quantities. The Model input reports the prefix's
 already completed work and runs only its remaining suffix. Existing standalone
 keyed readers keep their original owner, current, capacity and cleanup checks.
 
+The Model execution retains that same prefix receipt's work as a private,
+immutable entry baseline before constructing its input. Initial bindings require
+the input phase and both existing work reports to remain at that baseline.
+The Local component reports new deltas from entry, while cumulative work and
+first-poll cancellation preserve the producer's already completed history.
+
 An adopted Effect Run may retain preparation and control originals beside its
 Source captures. Its borrowed input checks each actual reservation and holding
 through the existing serial index and physical identity; a serial alone is not
