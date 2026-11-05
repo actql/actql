@@ -51,7 +51,9 @@ test('public Model approval leaves downstream Effect writes at zero until its ow
   t.after(async () => {
     for (const session of [...sessions]) await session.close();
     setDefaultCACertificates(originalCertificates);
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
     '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
@@ -61,6 +63,12 @@ test('public Model approval leaves downstream Effect writes at zero until its ow
   setDefaultCACertificates([...originalCertificates, cert.toString()]);
   const account = accountConfiguration([
     recordEntry(orgId, 'read'), recordEntry(orgId, 'effect', 'delegate'),
+    // Host observation and this named Result have their own read tuples.
+    // Neither permission approves the Model call or downstream Effect write.
+    {entry_id: 'host-run-answer-read', outcome: 'allow', principal: {any_of: [owner]},
+      connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['result/answer', 'run']},
+      operation: {any_of: ['read']}, exclusions: []},
     {entry_id: 'run-acceptance', outcome: 'allow', principal: {all: true},
       connection: {all: true}, resource: {all: true}, operation: {any_of: ['write']}, exclusions: []},
     {entry_id: 'model-invocation', outcome: 'delegate', principal: {all: true},
