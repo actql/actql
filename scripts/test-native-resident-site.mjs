@@ -1885,6 +1885,10 @@ try {
     await failing.exited;
     }
   } else if (holderReclaimMode) {
+    // The full suite opens this Store before adding the foreign staging file.
+    // An isolated selection must do that through the same real Site too: a
+    // fresh Store correctly refuses an already populated unknown directory.
+    await provesCapacityFree('before-holder-reclaim', 49);
     await verifyKilledHolderReclamation(holderReclaimPoint === undefined
       ? holderKillPoints : [holderReclaimPoint]);
   } else if (process.argv.includes('--release-recovery-only') || releaseMaintenanceMode || releaseObservationMode || releaseStoppedRecoveryMode || releaseColdRecoveryMode) {
