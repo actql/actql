@@ -72,6 +72,30 @@ fn installed_mock_model_compute_limits(
   policy : @resources.LedgerLimits,
   occurrence : @publication_host.ClientInferOccurrence,
 ) -> @resources.LedgerLimits? {
+  installed_mock_models_compute_limits(
+    original,
+    policy,
+    if @publication_host.client_infer_occurrence_terminal(occurrence) {
+      1L
+    } else {
+      2L
+    },
+  )
+}
+
+///|
+// Singles and complete groups use this SAME configured Local charge path.
+// Bindings are the complete checked input/output occurrences, not a policy
+// multiplier or another Source/Model execution grant. Actual charges retain
+// the same finite Ledger and are never reset, refunded or clamped here.
+fn installed_mock_models_compute_limits(
+  original : ClientPreparedLocalConfiguration,
+  policy : @resources.LedgerLimits,
+  bindings : Int64,
+) -> @resources.LedgerLimits? {
+  if bindings < 1L {
+    return None
+  }
   let count = @strategy.graph_task_count(original.graph)
   let first = original.capacity_plan.graph_offset
   let edges = @strategy.graph_data_count(original.graph)
@@ -110,14 +134,14 @@ fn installed_mock_model_compute_limits(
   } else {
     tasks * offer + search
   }
-  let bindings = if @publication_host.client_infer_occurrence_terminal(
-      occurrence,
-    ) {
-    1L
-  } else {
-    2L
+  guard @execution.checked_preparation_add_product(
+      first.to_int64(),
+      bindings,
+      work,
+    )
+    is Some(work) else {
+    return None
   }
-  let work = first.to_int64() + bindings * work
   if work < 0L || work > maximum || work > policy.planning_work.to_int64() {
     None
   } else {

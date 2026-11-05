@@ -45522,7 +45522,7 @@
     },
     {
       "module": "src/client_local_host/prepared_local_capacity.mbt",
-      "sha256": "76bb9f849a2594b636b60b112350f1cc3518ab7a6dd2d8b731477b07d8eccd44",
+      "sha256": "141d82ec25d3db21ac12df3676237cb57e7cdc12333eb1b7a7ba538a796cb456",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -45535,6 +45535,10 @@
         {
           "name": "installed_mock_model_compute_limits",
           "declaration": "installed_mock_model_compute_limits ( original : ClientPreparedLocalConfiguration , policy : @ resources . LedgerLimits , occurrence : @ publication_host . ClientInferOccurrence , ) - > @ resources . LedgerLimits ?"
+        },
+        {
+          "name": "installed_mock_models_compute_limits",
+          "declaration": "installed_mock_models_compute_limits ( original : ClientPreparedLocalConfiguration , policy : @ resources . LedgerLimits , bindings : Int64 , ) - > @ resources . LedgerLimits ?"
         }
       ],
       "contracts": [
@@ -45542,7 +45546,8 @@
           "operations": [
             "<module>",
             "client_prepared_local_configuration_capacity",
-            "installed_mock_model_compute_limits"
+            "installed_mock_model_compute_limits",
+            "installed_mock_models_compute_limits"
           ],
           "exports": [],
           "attributes": {
@@ -80218,7 +80223,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "858fd85cb47b85c1547acb3d24b4c0afd1ff2f7f2cb18d29782af3305d2342f0"
+      "sha256": "fb0481710b9902e7037a0c5ac510b1d7ee33736fc51c3452639477f71e98ee1c"
     },
     {
       "module": "src/run_publication_host/client_model_read_consumer.mbt",

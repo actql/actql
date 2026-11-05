@@ -5501,6 +5501,13 @@ the original configured ceiling refuses. The same runtime constants select
 both the installed adaptive protocol and this bound. This is logical planning
 work, not a heap tariff, resource grant, new phase or placement algorithm.
 
+A complete Model group uses this same calculation with every checked original
+input/output occurrence, after its full compiler order is checked. It does not
+use only the first occurrence or add the module policy ceiling as required work.
+All per-Model budgets remain present. The original Ledger charges each real
+offer/search/observation step cumulatively; plan preparation and retirement
+neither reset nor refund those charges.
+
 The Node installation separately retains its original Scope bootstrap and its
 complete all-row read layout. Those extents can differ substantially. The
 existing two Node Plan bindings now forward the original bootstrap pair beside
