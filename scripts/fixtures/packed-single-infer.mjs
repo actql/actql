@@ -71,8 +71,8 @@ const root = join(process.cwd(), transport,
 const hostRoot = approval ? join(root, 'host') : root;
 const certificateRoot = join(process.cwd(), transport);
 mkdirSync(root, {recursive: true});
-const {installation, taskCid} = configuration(
-  JSON.parse(readFileSync('base-environment.json', 'utf8')));
+const baseEnvironment = JSON.parse(readFileSync('base-environment.json', 'utf8'));
+const {installation, taskCid} = configuration(baseEnvironment);
 const keys = generateKeyPairSync('ed25519');
 const keyPath = join(root, 'fixture-reviewer.json');
 const keyMaterial = approval && existsSync(keyPath)
@@ -163,6 +163,7 @@ const checked = result => {
   return result._0;
 };
 const installationOptions = {directory: hostRoot, authorization,
+    hostCapacityPolicy: baseEnvironment.host_policy_profile.capacity,
     modelInstallation: installation,
     registerModelProviders: moon => [{providerId: 'models/packed',
       bindingOriginals: providerBindingOriginals('models/packed', {selector: 'packed-risk-model'}),

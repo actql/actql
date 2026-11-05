@@ -50,9 +50,12 @@ async ({root, directory, run, recordTarball}) => {
   const installedRequire = createRequire(join(root, 'package.json'));
   const installedRuntime = await import(pathToFileURL(
     installedRequire.resolve('@actql/local-node/runtime')).href);
+  const baseEnvironment = (await readFile(join(repository,
+    'spec/local-check-environment.json'), 'utf8')).trimEnd();
+  const hostCapacityPolicy = JSON.parse(baseEnvironment).host_policy_profile.capacity;
   await writeFile(join(root, 'base-environment.json'),
     selectInstalledLocalMaterializationEnvironment(installedRuntime,
-      (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd()));
+      baseEnvironment, hostCapacityPolicy));
   const runtimeEnv = {...env, PATH: `${dirname(process.execPath)}:/usr/bin:/bin`};
   for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
     'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) delete runtimeEnv[name];
