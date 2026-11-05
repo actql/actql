@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
 import {boundSourceInventoryFixture} from './fixtures/ordinary-source-binding.fixture.mjs';
 
@@ -83,4 +85,36 @@ test('single composed INFER refuses a missing original Source owner before bindi
   await assert.rejects(runInstalledComposedInfers(f.arguments_), {message: 'InstalledComposedInferSourceOwnerUnavailable'});
   assert.deepEqual(f.calls, []); assert.equal(f.setups(), 0);
   assert.equal(await f.custody().close(), true);
+});
+
+test('composed Model journal receives each original component Scope rather than its group holder', async () => {
+  const text = readFileSync(new URL('./installed-composed-infer-run.mjs', import.meta.url), 'utf8');
+  let childrenInitializer, journalCall;
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id?.name === 'children') childrenInitializer = node.init;
+    if (node.type === 'CallExpression' && node.callee?.object?.name === 'modelController' && node.callee.property?.name === 'open') journalCall = node;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') visit(value);
+    }
+  };
+  visit(parse(text, {ecmaVersion: 'latest', sourceType: 'module'})); assert(childrenInitializer && journalCall);
+  const selected = {components: [{}, {}]}, originalComponents = [{scope: {}}, {scope: {}}], originalPreparation = {components: originalComponents};
+  const children = Function('selected', 'completeOriginal', 'originalComponents', 'originalPreparation',
+    'return '+text.slice(childrenInitializer.start, childrenInitializer.end))(selected, true, originalComponents, originalPreparation);
+  const boundary = new Error('original component journal reached');
+  for (let index = 0; index < children.length; index++) {
+    const child = children[index], operation = {}, preparedCallSet = {};
+    child.operation = operation;
+    const modelController = {open(options) {
+      assert.equal(options.operation, operation); assert.equal(options.selected, selected.components[index]);
+      assert.equal(options.originalPreparation, originalComponents[index]);
+      assert.notEqual(options.originalPreparation, originalPreparation); throw boundary;
+    }};
+    const names = ['modelController','child','preparedCallSet','plan','principalId','declaredResults',
+      'submission','signal','originalPreparation','existingModel','modelClaim','sourceContinuation'];
+    const invoke = Function(...names, 'return (async()=>'+text.slice(journalCall.start, journalCall.end)+')();');
+    await assert.rejects(invoke(modelController, child, preparedCallSet, {}, 'fixture', [], {}, undefined,
+      originalPreparation, undefined, undefined, undefined), error => error === boundary);
+  }
 });
