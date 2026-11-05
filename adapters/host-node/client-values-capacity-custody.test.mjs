@@ -43,17 +43,31 @@ function priorProfilePlan(prepared) {
 
 test('Embedded Local captures Values row selection once alongside the Host policy snapshot', async () => {
   let reads = 0;
-  const installation = {hostCapacityPolicy: null,
+  const installation = {
     get valuesMaxRows() {
       reads++;
       if (reads !== 1) throw new Error('ValuesSelectionReadTwice');
       return 121;
-    }};
+    }, hostCapacityPolicy: null};
+  // Ordinary configuration is captured in its original own-field order.
+  // Select the row getter before the independently invalid policy so this
+  // case reaches that snapshot rather than stopping at the prior field.
   // The independently invalid Host policy stops before opening resources.
   // Its refusal must not be replaced by another read of the row selection.
-  await assert.rejects(connectEmbeddedLocal({mode: 'local', owner: 'local', installation}),
+  const opening = connectEmbeddedLocal({mode: 'local', owner: 'local', installation});
+  assert.equal(reads, 1, 'the original selection is captured before initialization awaits');
+  await assert.rejects(opening,
     {code: 'InvalidInstalledHostCapacityPolicy'});
   assert.equal(reads, 1);
+});
+
+test('an earlier invalid Host policy refuses before a later Values selection is observed', async () => {
+  let reads = 0;
+  const installation = {hostCapacityPolicy: null,
+    get valuesMaxRows() { reads++; throw new Error('UnreachedValuesSelection'); }};
+  await assert.rejects(connectEmbeddedLocal({mode: 'local', owner: 'local', installation}),
+    {code: 'InvalidInstalledHostCapacityPolicy'});
+  assert.equal(reads, 0);
 });
 
 test('default Values capacity derives from input while an explicit insufficient ceiling rejects', async t => {
