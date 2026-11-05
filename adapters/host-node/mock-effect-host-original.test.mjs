@@ -320,3 +320,33 @@ test('cold binding refuses foreign original request, saved handle and current Jo
     assert.strictEqual(f.mockEffectResources.bindRunOriginal(f.facts), original);
   }
 });
+
+
+test('cold bound request readmission authenticates the winning evidence before physical reuse', () => {
+  for (const change of [undefined, 'changeSavedAuthorization', 'denyRecovery', 'revoke']) {
+    const f = fixture({composed: true}); f.prepareDefinition(f.facts);
+    const original = f.mockEffectResources.bindRunOriginal(f.facts);
+    const recovered = {...f.readmittedFacts, identity: f.readmittedIdentity,
+      requestIdentity: f.readmittedIdentity};
+    if (change !== undefined) {
+      f[change]();
+      assert.throws(() => f.mockEffectResources.bindRunOriginal({recovered}));
+      assert.equal(f.calls.filter(call => call === 'typed-run').length, 1);
+    } else {
+      assert.strictEqual(f.mockEffectResources.bindRunOriginal({recovered}), original);
+      assert.strictEqual(f.mockEffectResources.bindRunOriginal({recovered}), original);
+      assert.equal(f.calls.filter(call => call === 'same-journal').length, 2);
+      assert.equal(f.calls.filter(call => call === 'typed-run').length, 3);
+      assert.throws(() => f.mockEffectResources.bindRunOriginal({recovered: {...recovered,
+        compilation: {}}}), {code: 'ForeignInstalledMockEffectRun'});
+      // A matching readmission cache is no substitute for current saved evidence.
+      f.changeSavedAuthorization();
+      assert.throws(() => f.mockEffectResources.bindRunOriginal({recovered}),
+        {code: 'ForeignInstalledMockEffectRun'});
+      assert.equal(f.calls.filter(call => call === 'same-journal').length, 3);
+      assert.equal(f.calls.filter(call => call === 'typed-run').length, 3);
+    }
+    assert.equal(f.calls.filter(call => call === 'physical-original').length, 1);
+    assert.equal(f.calls.filter(call => call === 'shared-plan').length, 1);
+  }
+});

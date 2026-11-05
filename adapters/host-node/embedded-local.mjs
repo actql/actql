@@ -1758,13 +1758,19 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       const retained = mockEffectRuns.get(facts.prepared);
       if (retained === undefined || retained.compilation !== facts.compilation ||
-          retained.identity !== facts.identity) {
+          (retained.identity !== facts.identity && (recovered === undefined ||
+            moon.clientRequestRelation(retained.identity, facts.identity) !== 1))) {
         throw clientOperationError('ForeignInstalledMockEffectRun');
       }
       assertMockEffectRunOriginal(retained.original);
-      const initial = retained.definition === facts.definition &&
+      // A cold readmission can own another typed handle for this complete
+      // request. It still must authenticate the winning saved definition and
+      // evidence below; it never replaces the physical owner's original.
+      const initial = retained.identity === facts.identity &&
+        retained.definition === facts.definition &&
         (facts.allowed === undefined || retained.allowed === facts.allowed);
-      const readmitted = retained.readmittedDefinition !== undefined &&
+      const readmitted = retained.identity === facts.identity &&
+        retained.readmittedDefinition !== undefined &&
         retained.readmittedDefinition === facts.definition &&
         retained.readmittedAllowed === facts.allowed;
       if (!initial && !readmitted) {
