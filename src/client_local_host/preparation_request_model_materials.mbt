@@ -262,23 +262,27 @@ pub fn[I] prepare_request_model_contract_materials(
       }
     Effect(original) =>
       match
-        @publication_host.prepared_client_effect_infer_occurrence(original) {
-        None => false
-        Some(occurrence) => {
+        @publication_host.prepared_client_effect_infer_occurrences(original) {
+        Some(occurrences) if !occurrences.is_empty() => {
           let serialized = @publication_host.prepared_client_effect_serialization_occurrences(
             original,
           )
           match serialized {
             [] => true
-            [(task, step)] => {
-              let coordinates = @publication_host.client_infer_occurrence_coordinates(
-                occurrence,
-              )
-              task == coordinates.1 && step < coordinates.2
-            }
+            [(task, step)] =>
+              match occurrences {
+                [occurrence] => {
+                  let coordinates = @publication_host.client_infer_occurrence_coordinates(
+                    occurrence,
+                  )
+                  task == coordinates.1 && step < coordinates.2
+                }
+                _ => false
+              }
             _ => false
           }
         }
+        _ => false
       }
   }
   guard count >= 0 &&

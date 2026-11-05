@@ -3,6 +3,7 @@
 // input. No Model execution/dependency reader, Graph, binding or Scope enters.
 fn request_effect_model_material_fixture(
   current? : () -> Bool = () => true,
+  plural? : Bool = false,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
@@ -10,7 +11,7 @@ fn request_effect_model_material_fixture(
     @publication_host.PreparedClientEffectComputation,
   ],
 ) raise {
-  let (environment, text) = effect_model_plan_source()
+  let (environment, text) = effect_model_plan_source(plural~)
   let initial = @resources.add_ledger_limits(
     client_local_preparation_initial_limits(client_local_resource_policy()).unwrap(),
     effect_model_plan_limits,
@@ -447,6 +448,85 @@ test "single captured Model materials retain original current refusal before rea
     parent.program_compilation is None,
   )
   armed.val = false
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "plural Effect Model materials retain the same funded parent before both occurrence readers" {
+  let (parent, input, holder) = request_effect_model_material_fixture(
+    plural=true,
+  )
+  let prepared = parent.compiled_effect.unwrap()
+  assert_eq(
+    @publication_host.prepared_client_effect_infer_occurrences(prepared)
+    .unwrap()
+    .length(),
+    2,
+  )
+  let capacity = parent.effect_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let reads = Ref(0)
+  let observed = Ref(true)
+  for _occurrence in 0..<2 {
+    prepare_request_model_contract_materials(
+      parent,
+      input,
+      1,
+      _ => {
+        let during = @resources.preparation_capacity_working_extents(
+          capacity, input,
+        ).unwrap()
+        observed.val = observed.val &&
+          parent.phase == Selecting &&
+          during.0 > before.0 &&
+          during.1 > before.1
+        reads.val += 1
+        "{\"execution\":1}"
+      },
+      1,
+    ).unwrap()
+  }
+  assert_eq(reads.val, 2)
+  assert_true(observed.val)
+  assert_true(
+    parent.phase == EffectPlanReserved && parent.program_capacity is None,
+  )
+  assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "plural Effect Model materials refuse foreign input and current loss without entering a reader" {
+  let armed = Ref(false)
+  let (parent, input, holder) = request_effect_model_material_fixture(
+    plural=true,
+    current=() => !armed.val,
+  )
+  let before = request_preparation_accounting(parent)
+  let reads = Ref(0)
+  let reader = (_ : Int) => {
+    reads.val += 1
+    "{}"
+  }
+  assert_true(
+    prepare_request_model_contract_materials(parent, [], 1, reader, 1)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(request_preparation_accounting(parent), before)
+  armed.val = true
+  assert_true(
+    prepare_request_model_contract_materials(parent, input, 1, reader, 1)
+    is Err(Preparation(Capacity(_))),
+  )
+  armed.val = false
+  assert_eq(reads.val, 0)
+  assert_true(
+    parent.phase == EffectBodyFailed && parent.effect_capacity is Some(_),
+  )
   assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
