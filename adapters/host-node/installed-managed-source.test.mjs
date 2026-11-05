@@ -600,3 +600,14 @@ test('managed Source capture-only entry retains its original method and receiver
   original.openCapture = () => assert.fail('a later function cannot replace the original capture entry');
   assert.strictEqual(wrapped.openCapture(facts), capture);
 });
+
+
+test('retained Source metadata forwards the original readonly method without a fresh Run lookup', () => {
+  const facts = {}, metadata = {};
+  const original = {managedCaptureCapacity() {}, prepare() {}, ledgerCapacity() {},
+    prepareRetained(actual) {assert.equal(this, original); assert.equal(actual, facts); return metadata;}};
+  const wrapped = bindInstalledManagedSources(original, () => assert.fail('No fresh ManagedRun for saved input'));
+  original.prepareRetained = () => assert.fail('Use the captured original readonly method');
+  assert.equal(wrapped.prepareRetained(facts), metadata);
+  assert.throws(() => wrapped.ledgerCapacity(metadata), /ForeignInstalledManagedSource/u);
+});

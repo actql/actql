@@ -3543,6 +3543,17 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     return Object.freeze(result);
   };
+  const prepareRetainedAcquisition = (preparedProgram, occurrence, selectedSource) => {
+    const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram)?.requested;
+    if (requestIdentity === undefined || moon.clientProgramSelectedSourceInputKind(selectedSource) !== 'query') {
+      throw clientOperationError('InstalledSourcePreparationMismatch');
+    }
+    const adapter = installedSourceFor(sourceProfile, moon.clientProgramSelectedSourceInputRef(selectedSource));
+    const construct = adapter.prepareRetained;
+    if (typeof construct !== 'function') throw clientOperationError('InstalledSourceRecoveryPreparationUnavailable');
+    return Reflect.apply(construct, adapter, [{preparedProgram, requestIdentity, occurrence,
+      registry, values, fragment, ordered, sourceAccess: adapter.sourceAccess}]);
+  };
   const acquisitionDescriptor = prepared => ({checkedSource: prepared.checkedSource,
     readTuple: prepared.readTuple, physicalBinding: prepared.physicalBinding});
   const sourceDescriptors = ordinarySourceDescriptors;
@@ -3931,7 +3942,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
     storeAuthorityCid, now, modelController, inferEvidence: evidenceConfiguration,
-    checkpoints, prepareAcquisition, runContent,
+    checkpoints, prepareAcquisition, prepareRetainedAcquisition, runContent,
     prepareModelRecoveryPlan: prepareInstalledModelRecovery,
     prepareOriginalModelRun(prepared, plan, selection) {
       const early = earlyMockInferPlans.get(prepared);

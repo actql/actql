@@ -595,6 +595,17 @@ and restoration checks that original binding independently. Saved input consumes
 closure rather than issuing a replacement, and cleanup retires it before the
 original Model Scope.
 
+When a singleton Model resumes from saved input, its original recovery view
+backs Source metadata construction on the same WorkingParent before calling
+the installed Source Owner. The Owner uses the shared checked Source descriptor
+construction, with the same Request and occurrence, and retains the actual
+installed binding. This readonly preparation cannot open a Source, expose a
+capture capacity or supply a Ledger. It creates no fresh ManagedRun or physical
+read. The existing continuation then checks the original retained scope and
+current approval before restoring the Model Read. Constructor failures remain
+with that same recovery parent, including an undefined thrown primary; retired
+Scopes cannot construct another preparation.
+
 A composed input does not itself select a scheduler. The original installed
 single-Unit caller also supplies the same checked Program. The existing opaque
 compiled-owner check and immutable one-task/one-acquisition shape bind this

@@ -2067,3 +2067,54 @@ test('cold Model recovery retains stored Model ledger floor separately from unch
     assert.equal(await original.retire(),true);
   } finally {f.view.finishSourceProducer(f.recovery.receipt,'returned');await f.view.close();}
 });
+
+test('cold Model Source metadata stays on its same recovery parent before the original readonly constructor', async () => {
+  const f = await recoveryReadFixture(), occurrence = Object.freeze({stage: 3, input: 1, task: 0});
+  let reserved = false, constructions = 0;
+  f.control.checkedClientRequestModelRecoverySourceCoordinates = (...args) => {
+    assert.deepEqual(args, [f.parent, f.recovery.receipt, f.identity, f.definition, f.prepared]);
+    return [[3, 1, 0]];
+  };
+  f.control.reserveCheckedClientRequestModelRecoveryMaterials = (...args) => {
+    assert.deepEqual(args.slice(0, 4), [f.parent, f.recovery.receipt, f.identity, f.definition]);
+    assert.equal(args[4], 1); assert.equal(args[5](0), f.original.materialsWire); assert.equal(args[6], 1);
+    reserved = true;
+  };
+  const original = f.prepare();
+  try {
+    assert.throws(() => original.prepareSource(occurrence, () => assert.fail('Not retained')),
+      {code: 'ForeignInstalledModelRecoveryScope'});
+    original.retain();
+    const preparedSource = Object.freeze({readonly: true});
+    assert.equal(original.prepareSource(occurrence, selected => {
+      assert(reserved, 'Backing precedes Source metadata construction');
+      assert.equal(selected, f.selected); constructions++; return preparedSource;
+    }), preparedSource);
+    assert.equal(constructions, 1);
+    assert.equal(f.readEvents.includes('same Scope Read'), false, 'No Model Read before Source authorization');
+    assert.throws(() => original.prepareSource({...occurrence, task: 1}, () => assert.fail('Foreign coordinates')),
+      {code: 'ForeignInstalledModelRecoveryScope'});
+    assert.equal(await original.retire(), true);
+    assert.throws(() => original.prepareSource(occurrence, () => assert.fail('Retired')),
+      {code: 'ForeignInstalledModelRecoveryScope'});
+  } finally {f.view.finishSourceProducer(f.recovery.receipt, 'returned'); await f.view.close();}
+});
+
+test('cold Model Source metadata failures keep the same primary and cannot rerun the constructor', async () => {
+  for (const failure of [undefined, new Error('Original metadata constructor')]) {
+    const f = await recoveryReadFixture(), occurrence = {stage: 3, input: 1, task: 0};
+    f.control.checkedClientRequestModelRecoverySourceCoordinates = () => [[3, 1, 0]];
+    f.control.reserveCheckedClientRequestModelRecoveryMaterials = () => {};
+    const original = f.prepare(); original.retain(); let calls = 0;
+    try {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        let rejected = false;
+        try {original.prepareSource(occurrence, () => {calls++; throw failure;});}
+        catch (cause) {rejected = true; assert.equal(cause, failure);}
+        assert.equal(rejected, true);
+      }
+      assert.equal(calls, 1); assert.equal(f.model.scope, f.scope);
+      assert.equal(await original.retire(), true);
+    } finally {f.view.finishSourceProducer(f.recovery.receipt, 'failed'); await f.view.close();}
+  }
+});

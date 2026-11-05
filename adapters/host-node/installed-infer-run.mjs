@@ -169,7 +169,7 @@ function sourceFreeModelsPreparation(moon, control, prepared, plan, selected, mo
 
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
-  checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor, runContent, prepareKeyedRecovery,
+  checkpoints, prepareAcquisition, prepareRetainedAcquisition, sourceAccessFor, sourceAdapterFor, runContent, prepareKeyedRecovery,
   prepareOriginalMockRun, prepareOriginalModelRun, prepareModelRecoveryPlan,
   computeConfigurations = {}}) {
   const control = core.publicationControl;
@@ -602,7 +602,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             !Array.isArray(coordinates[0]) || coordinates[0].length !== 3 ||
             coordinates[0].some(part => !Number.isSafeInteger(part) || part < 0) ||
             saved === undefined || checkpoints === undefined ||
-            typeof prepareAcquisition !== 'function' || typeof sourceAccessFor !== 'function' ||
+            typeof prepareRetainedAcquisition !== 'function' || typeof restoredRequestModel.prepareSource !== 'function' ||
+            typeof sourceAccessFor !== 'function' ||
             typeof sourceAdapterFor !== 'function') {
           throw new Error('ModelSourceClosureCustodyUnavailable');
         }
@@ -626,7 +627,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           currentRun: () => {try {current(); return true;} catch {return false;}},
           restore: {view: {kind: 'model_invocation', prepareAttemptId: null, runId,
             runDefinitionCid: plan.runDefinition.identity}, continuation: saved}});
-        const preparedSource = await prepareAcquisition(preparedProgram, undefined, occurrence);
+        const preparedSource = restoredRequestModel.prepareSource(occurrence, selectedSource =>
+          prepareRetainedAcquisition(preparedProgram, occurrence, selectedSource));
         current();
         const adapter = sourceAdapterFor(preparedSource);
         if (adapter === undefined) throw new Error('InstalledComposedInferSourceOwnerUnavailable');

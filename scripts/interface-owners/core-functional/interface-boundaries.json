@@ -18867,7 +18867,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "0314179d5828b7834b92d056dbb3aaeaf030c548fcdb4f94614745d124eb390e",
+      "sha256": "24e3f1f1d542a81635ab071db20df4eb8f55c853abee6cf0322b06f14c863165",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -18892,6 +18892,7 @@
             "inferEvidence",
             "checkpoints",
             "prepareAcquisition",
+            "prepareRetainedAcquisition",
             "sourceAccessFor",
             "sourceAdapterFor",
             "runContent",
@@ -19117,6 +19118,13 @@
           "name": "installNodeInferRun/run/run/original/init:retainOperation/init:retainOperation",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/preparedSource/preparedSource",
+          "parameters": [
+            "selectedSource"
           ],
           "async": false
         },
@@ -19468,7 +19476,8 @@
             "installNodeInferRun/run/run/current/current#2",
             "installNodeInferRun/run/run/declaredResults/declaredResults#3",
             "installNodeInferRun/run/run/run#19",
-            "installNodeInferRun/run/run/run#20"
+            "installNodeInferRun/run/run/run#20",
+            "installNodeInferRun/run/run/preparedSource/preparedSource"
           ],
           "exports": [
             "installNodeInferRun"

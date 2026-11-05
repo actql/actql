@@ -112032,7 +112032,14 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#2",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#3",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan#4"
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan#4",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/currentSource/currentSource",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/currentSource/currentSource/currentSource",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource#2",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource#3",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource/init:prepareSource"
           ],
           "exports": [],
           "attributes": {
@@ -116630,6 +116637,51 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource",
+          "parameters": [
+            "occurrence",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/currentSource/currentSource",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/currentSource/currentSource/currentSource",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource",
+          "parameters": [
+            "coordinates"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource/init:prepareSource",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource#3",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:setupUsageIsolated/init:setupUsageIsolated",
           "parameters": [
             "dag"
@@ -117011,7 +117063,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "b19c21320d4c6e4ca931ba2396ec6ebf15c5884244c9d3d7af36374a049c0dbc"
+      "sha256": "c8d1f7d663583d6ba4463ac169f38d7092150a4698acf2c1cd316f19b4ea2774"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -124016,7 +124068,7 @@
     {
       "module": "adapters/host-node/installed-managed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1db86df58181da65a246a64ab12394240b2d2a45684858dba0d73ccdacb3360a",
+      "sha256": "3b2a378175054806d49676a145bfcff3e16b59273c6b1867b1d9149eee4ae9c6",
       "role": "physical-io",
       "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
       "exports": [
