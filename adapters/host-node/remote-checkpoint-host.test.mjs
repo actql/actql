@@ -913,7 +913,12 @@ test('delegate immediate permit runs and immediate reject records nothing',
 
 test('a synthetic historical held request is reviewed, answered and resumed by the Host',
   async t => {
-    const host = await remoteHost(t, protectedHost('delegate'));
+    const resumeFailures = [];
+    const host = await remoteHost(t, protectedHost('delegate', {faultInjection(name, detail) {
+      if (name === 'resume_failed' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail?.code ?? '')) {
+        resumeFailures.push(detail.code);
+      }
+    }}));
     const client = await host.as('owner-token');
     await historicalFixtureWriters.get(client)([{requestId: 'held-a', document}]);
     const held = await client.lookupRequest('held-a');
@@ -992,7 +997,7 @@ test('a synthetic historical held request is reviewed, answered and resumed by t
     const found = await waitFor(async () => {
       const lookup = await client.lookupRequest('held-a');
       return lookup.kind === 'found' ? lookup : undefined;
-    });
+    }).catch(cause => {throw new Error(JSON.stringify({phase: 'historical_resume', resumeFailures}), {cause});});
     assert.equal(explainRequestLookup(found).observation, 'run_reference_received');
     assert.equal(waitingExplanation.preparationState, 'waiting_checkpoint');
     const execution = await client.attach(found.ref);

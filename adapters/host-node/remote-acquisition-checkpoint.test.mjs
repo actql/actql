@@ -122,7 +122,7 @@ async function acquiringHost(t, {readOutcome = 'delegate',
   runOutcome = 'allow', extra = {}, directory, profile} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   const source = profile ?? await installedSource(root, readOutcome);
-  const steps = [];
+  const steps = [], resumeFailures = [];
   const authorization = {
       accountConfiguration: hostAccountConfiguration(runOutcome),
       reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
@@ -136,6 +136,9 @@ async function acquiringHost(t, {readOutcome = 'delegate',
       ...extra,
       faultInjection: async (name, detail) => {
         steps.push(name);
+        if (name === 'resume_failed' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail?.code ?? '')) {
+          resumeFailures.push(detail.code);
+        }
         await extra.faultInjection?.(name, detail);
       },
     };
@@ -188,7 +191,7 @@ async function acquiringHost(t, {readOutcome = 'delegate',
     }
     return client;
   };
-  return {root, steps, close, source, as, handler: (request, response) => host.handler(request, response),
+  return {root, steps, resumeFailures, close, source, as, handler: (request, response) => host.handler(request, response),
     diagnose: () => journalState(root, steps),
     count: name => steps.filter(item => item === name).length};
 }
@@ -243,8 +246,9 @@ async function held(client, requestId, original = {}) {
 async function assertResults(client, requestId, describe) {
   const found = await waitFor(async () => {
     const lookup = await client.lookupRequest(requestId);
-    return lookup.kind === 'found' ? lookup : undefined;
+    return lookup.kind === 'found' || lookup.state === 'ended' ? lookup : undefined;
   }, describe);
+  assert.equal(found.kind, 'found', found.terminalErrorCode ?? found.endReason);
   const execution = await client.attach(found.ref);
   const state = await waitFor(async () => {
     const current = await execution.wait();
@@ -709,7 +713,11 @@ test('A3: an approved read binds the exact physical name, not its NFC form',
       const second = await acquiringHost(t, {directory, profile: source});
       const owner2 = await second.as('owner-token');
       if (expected === 'result') {
-        await assertResults(owner2, `unicode-${name}`);
+        await assertResults(owner2, `unicode-${name}`, async () => {
+          const lookup = await owner2.lookupRequest(`unicode-${name}`);
+          return {kind: lookup.kind, state: lookup.state, endReason: lookup.endReason,
+            failures: second.resumeFailures, steps: second.steps.slice(-10)};
+        });
         assert.equal(second.count('acquisition_started'), 1, name);
       } else {
         await waitFor(async () =>
