@@ -1688,8 +1688,12 @@ test(`acquired Effect second Source approval restores the first ${realization} c
     const submissionRef = client.newSubmission({nonce: `second-source-${realization}`});
     const submitted = await client.startSource(JSON.stringify(program),
       {format: 'json', submissionRef});
-    const wait = async (execution, expected) => waitFor(async () =>
-      (await execution.status()).status === expected).catch(async error => {
+    const wait = async (execution, expected) => waitFor(async () => {
+      const state = await execution.status();
+      if (['failed', 'cancelled', 'succeeded', 'needs_reconciliation'].includes(state.status) &&
+          state.status !== expected) throw new Error('UnexpectedEffectTerminalState');
+      return state.status === expected;
+    }).catch(async error => {
       error.message = JSON.stringify({state: await execution.status(), diagnostics,
         provider: provider.snapshot()}); throw error;
     });
