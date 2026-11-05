@@ -6,13 +6,15 @@ import {dirname, join} from 'node:path';
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {runInNewContext} from 'node:vm';
+import {compileFunction, runInNewContext} from 'node:vm';
+import {parse as parseJavaScript} from 'acorn';
 import {parse} from 'yaml';
 import {compareReports, finishReport, markdown, summarize, exitStatus, digest, measurementProfile} from './health-monitor-report.mjs';
 import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardExit, applyComparison, environmentIdentity, verifyPythonInstalledAfter, verifyNativeInstalledAfter} from './health-monitor.mjs';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {formalCollectorVerdict, pythonRuntimeIdentity, assertPythonCollectorRuntime, pythonInstalledInventory} from './health-monitor-release.mjs';
-import {quickNodeMetrics,execute,distributionMetrics} from './health-monitor-adapters.mjs';
+import {quickNodeMetrics,execute,distributionMetrics,mockWorkflowMetrics} from './health-monitor-adapters.mjs';
+import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {createHash} from 'node:crypto';
 import {inventory} from './package-release.mjs';
@@ -25,6 +27,105 @@ const policy = JSON.parse(await readFile(new URL('../benchmarks/health/config.js
 const samples = (ms, count = 10) => Array.from({length: count}, (_, iteration) => ({iteration,
   wallNs: ms * 1e6, cpuUserUs: 1, cpuSystemUs: 1, cpuScope: 'synthetic unit caller',
   peakRssBytes: 1024, rssScope: 'synthetic child RSS', verified: true, completed: true}));
+
+const workflowSource = await readFile(new URL('../adapters/host-node/fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
+const workflowSyntax = parseJavaScript(workflowSource, {ecmaVersion: 'latest', sourceType: 'module'});
+const workflowPrefix = workflowSource.slice(workflowSource.indexOf('const [phase,'), workflowSource.indexOf('let client,'));
+const workflowChecks = ['checkRows', 'checkReview', 'expectedBytes'].map(name => {
+  const node = workflowSyntax.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
+  assert.ok(node); return workflowSource.slice(node.start, node.end);
+}).join('\n');
+
+for (const deal of [false, true]) {
+  const template = deal ? 'deal-review-mock' : 'churn-risk-mock';
+  test(`public Mock workflow ${template} keeps independent typed review and exact-write oracles`, () => {
+    // Execute only the original fixture's pure assertions with authored DATA.
+    // No connect, Core mock, model result or workflow phase runs here.
+    const checks = compileFunction(workflowPrefix + workflowChecks + '\nreturn {checkRows,checkReview,expectedBytes};',
+      ['process', 'assert'])({argv: ['node', 'fixture', 'capture', 'handoff', ...(deal ? [template] : [])]}, assert);
+    const ids = deal ? ['006Acme', '006Globex'] : ['001Acme', '001Globex'];
+    const before = deal ? [
+      {id: ids[0], name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null},
+      {id: ids[1], name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review'},
+    ] : [
+      {id: ids[0], Churn_Risk__c: 'low', Risk_Reason__c: null},
+      {id: ids[1], Churn_Risk__c: 'medium', Risk_Reason__c: null},
+    ];
+    const answers = deal ? [
+      {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'},
+      {changed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'},
+    ] : [
+      {level: 'high', reason: 'falling usage and a competitor evaluation'},
+      {level: 'high', reason: 'support tickets about pricing'},
+    ];
+    const changes = deal ? [
+      {StageName: 'Negotiation', NextStep: 'Send revised pricing by Friday'},
+      {StageName: 'Closed Lost', NextStep: 'Revisit next fiscal year'},
+    ] : answers.map(answer => ({Churn_Risk__c: 'high', Risk_Reason__c: answer.reason}));
+    const rows = before.map((row, index) => ({...row, ...(deal
+      ? {review: {outcome: 'ok', value: answers[index]}}
+      : {active_users: index === 0 ? '4' : '12', risk: {outcome: 'ok', value: answers[index]}})}));
+    checks.checkRows(rows);
+    const wrong = structuredClone(rows);
+    wrong[0][deal ? 'review' : 'risk'].outcome = 'error';
+    assert.throws(() => checks.checkRows(wrong));
+    assert.throws(() => checks.checkRows(rows.slice(1)));
+    const cid = digit => 'sha256:' + digit.repeat(64);
+    const summary = {reviewProjectionCid: cid('1'), requiredArtifact: {cid: cid('2')}, requirements: []};
+    const ref = {authorityScopeCid: cid('3')};
+    const review = {version: 'actql-review-projection/0.1', review_projection_cid: cid('1'),
+      effect_preview_cid: cid('2'), authority_scope_cid: cid('3'), approval_claims: [],
+      authoring_context_cid: cid('4'), redaction_policy_cid: cid('5'), sensitivity: 'restricted',
+      retention_class: 'approval-evidence', encryption_required: true, displayed_authoring_context: {},
+      displayed_permissions: [], displayed_scope: {effects: [{kind: 'update',
+        target: 'connector://salesforce/' + (deal ? 'Opportunity' : 'Account'), count: 2}]},
+      displayed_rows: before.map((row, index) => ({target_row_identity: row.id,
+        row_preview_cid: cid('6'), preview_strength: 'full_diff', target_guard: {state: 'version', version_cid: cid('7')},
+        before: {state: 'present', value: row}, intended_changes: {state: 'present', value: changes[index]},
+        after: {state: 'present', value: changes[index]}}))};
+    checks.checkReview(review, summary, ref);
+    const wrongReview = structuredClone(review);
+    wrongReview.displayed_rows[0].after.value = {};
+    assert.throws(() => checks.checkReview(wrongReview, summary, ref));
+    const target = deal ? 'Opportunity' : 'Account';
+    const untouched = {files: [{id: 'original-file', content_utf8: 'original document\n'}]};
+    const original = JSON.stringify({salesforce: {[target]: {key: ['id'], rows: before}}, drive: untouched}, null, 2) + '\n';
+    const expected = JSON.stringify({salesforce: {[target]: {key: ['id'], rows:
+      before.map((row, index) => ({...row, ...changes[index]}))}}, drive: untouched}, null, 2) + '\n';
+    assert.equal(checks.expectedBytes(original), expected);
+  });
+
+  test(`public Mock workflow caller selects ${template} without replacing a failed phase`, async () => {
+    const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-workflow-selection-',
+      label: 'Authored Mock selection only, no Host workflow execution'});
+    const root = join(scratch.path, 'run'), consumer = join(scratch.path, 'consumer');
+    await mkdir(root); await mkdir(join(consumer, 'node_modules'), {recursive: true});
+    const primary = new Error('Selected original workflow was not executed');
+    const observations = [];
+    let calls = 0;
+    await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root,
+      repository: new URL('../', import.meta.url).pathname, counts: {coldSamples: 1},
+      ...(deal ? {template} : {}), onMetric: metric => observations.push(metric),
+      async command(executable, args, options) {
+        calls++; assert.equal(executable, process.execPath);
+        assert.equal(args[1], 'capture'); assert.equal(args[2], join(options.cwd, 'handoff.json'));
+        assert.deepEqual(args.slice(3), deal ? [template] : []);
+        const authored = projectTemplateFiles(template);
+        for (const [name, bytes] of Object.entries(authored)) {
+          assert.equal(await readFile(join(options.cwd, name), 'utf8'), bytes);
+        }
+        assert.equal(await readFile(args[0], 'utf8'), workflowSource);
+        throw primary;
+      }}), error => error === primary);
+    assert.equal(calls, 1);
+    assert.equal(observations.length, 1);
+    assert.equal(observations[0].samples[0].completed, false);
+    assert.equal(observations[0].samples[0].verified, false);
+    assert.deepEqual(observations[0].samples[0].phases, []);
+    assert.equal((await readdir(join(root, 'mock-project-0'))).includes('node_modules'), false);
+    await scratch.passed();
+  });
+}
 
 test('browser distribution invokes the installed esbuild executable and retains import refusals', async () => {
   const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-health-browser-',
