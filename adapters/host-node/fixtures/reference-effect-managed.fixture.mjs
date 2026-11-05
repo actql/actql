@@ -46,7 +46,7 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save'], sta
       const operation = recipe.memberOperations[slot.operationIndex].operation;
       const tokens = [];
       let closed = false, started = false;
-      let running = true, inputsReleased = false, disposed = false, active;
+      let running = true, inputsReleased = false, disposed = false, active, physicalClosing = false;
       let release, dispose, releasing = false, disposing = false, closing = false;
       const retainInputCleanup = original => {
         assert.equal(typeof original, 'function');assert.equal(release, undefined);
@@ -81,10 +81,19 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save'], sta
           // A resolved callback does not acknowledge its returned payload,
           // physical ledger, or external receipt borrower. Common cuts those
           // SAME aliases before invoking this original retirement callback.
-          if (running || closing || active !== undefined || !aliasesRetired()) return false;
+          if (running || closing || active !== undefined && !active.stopped || !aliasesRetired()) return false;
           closing = true;
+          physicalClosing = true;
           try {
             if (!await releaseInputs() || !await disposeStage()) return false;
+            if (active !== undefined) {
+              // The local reference dispatch's actual flight ended, and its
+              // input/ledger/Stage aliases are now cut. Unknown remains a
+              // durable outcome; only this original physical child retires.
+              active.row = undefined;
+              if (checked(runtime.clientProgramInstalledEffectOperationRetire(active.value, true)) !== true) return false;
+              active = undefined;
+            }
             for (let index = 0; index < tokens.length; index++) {
               if (tokens[index] === undefined) continue;
               if (checked(runtime.clientProgramInstalledEffectOperationRetire(tokens[index], true)) !== true) return false;
@@ -95,18 +104,29 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save'], sta
         },
         status: () => Object.freeze({pending: !closed}),
       });
+      const physicalOwner = Object.freeze({
+        close() {physicalClosing = true;},
+        cleanup: () => physicalClosing && (active === undefined || active.stopped),
+        cleanupPending: () => !physicalClosing || active !== undefined && !active.stopped,
+      });
       facts.retainConstructionOwner(owner);
       const physical = async (row, invoke) => {
+        assert.equal(physicalClosing, false);
         original(run);assert.equal(active, undefined, 'the original apply loop awaits each reference row');
         const slot = recipe.physicalWrite, operation = recipe.rowOperations[slot.operationIndex].operation;
         const value = checked(runtime.clientProgramInstalledEffectOperationBorrow(run.value, run.prepared,
           run.request, run.operationPlan, row.memberIndex, true, slot.operationIndex, row.rowIndex, operation));
-        active = {row, value, received: false};
+        active = {row, value, received: false, stopped: false};
         checked(runtime.clientProgramInstalledEffectOperationStart(value));
         const reply = await invoke();
         assert(Buffer.isBuffer(reply.observation.body));
         checked(runtime.clientProgramInstalledEffectOperationCharge(value, BigInt(reply.observation.body.byteLength)));
         active.received = true;return reply;
+      };
+      const stopped = row => {
+        if (active === undefined) return;
+        assert.equal(active?.row.memberIndex, row.memberIndex);assert.equal(active?.row.rowIndex, row.rowIndex);
+        active.stopped = true;
       };
       const completed = row => {
         assert.equal(active?.row.memberIndex, row.memberIndex);assert.equal(active?.row.rowIndex, row.rowIndex);
@@ -134,7 +154,7 @@ export function referenceEffectManagedFixture(runtime, effectIds = ['save'], sta
             facts.recovered.computation.invocation, facts.recovered.computation.preview);
           beginConstruction();
         }
-        const stage = await construct({physical, completed, controlConstruction: run.controlConstruction,
+        const stage = await construct({physical, completed, stopped, physicalOwner, controlConstruction: run.controlConstruction,
           retainInputCleanup, retainStageCleanup, beginConstruction});
         assert.equal(started, true, 'actual capture must enter its original constructors before asynchronous capture work');
         stage.referencePhysical = physical;stage.referenceCompleted = completed;
