@@ -508,6 +508,19 @@ The original local implementation creates no Model I/O holdings. Closed-token
 byte observations do not release Source holdings, escaped aliases, unknown
 wire/quantity history or any physical backing. All slots remain reserved before
 the first dispatch; current Account, Entry and settlement rules are unchanged.
+The shared quantity configuration may cover several Model contracts. Each
+component still retains its own original immutable quantity limits. Before a
+new actual reservation, its same retained reservation map and original attempt
+traces account reserved, uncertain and observed usage. Closed tokens preserve
+uncertain quantities; observed tokens use their actual original measurements,
+not the per-attempt maximum. No second Ledger, cumulative counter, refund or
+quantity charge is inferred from a read-only saved proof. Reconciliation's
+actual read reservation goes through that same component and aggregate check.
+The bounded scan borrows the existing tokens and traces, with no current
+callback or new retained record; its result frame remains within the original
+Host's required funded scan workspace. Dedicated startup keeps exact configuration
+matching.
+
 Authenticated saved and Unknown attempts remain spent within this purpose.
 Their original Journal mask must exclude a fresh send reservation before saved
 call admission; reconciliation can add read custody, never erase that history.

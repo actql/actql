@@ -149,10 +149,15 @@ fn original_model_startup_limits_match(
 // This selected implementation creates no Model IO/holding. Closed attempt
 // amounts do not acknowledge Source holdings, escaped aliases or physical IO;
 // those remain charged/retained by their original owners on the same Run.
+// The attempt entrance folds component quantity checks into this SAME scan.
+// Actual trace observations replace their uncertain envelopes; saved-only
+// proofs add no quantity charge. No count-times-worst-case fee or counter is
+// reconstructed, and undispatched settled quantities are not spent usage.
 fn check_original_mock_capacity(
   state : ModelState,
   retained : Int64,
   execution : Int64,
+  reserve_quantities? : Bool = false,
 ) -> Result[Unit, ModelExecutionIssue] {
   guard state.original_startup is Some(startup) &&
     startup.shared_mock is Some(purpose) else {
@@ -167,7 +172,35 @@ fn check_original_mock_capacity(
   }
   let mut available_retained = bound.retained_bytes - startup.retained_bytes
   let mut available_execution = bound.execution_bytes - startup.execution_bytes
-  for (_, reservation) in state.reservations {
+  let quantities = if reserve_quantities {
+    state.quantity_capacity
+  } else {
+    None
+  }
+  let mut tokens = match quantities {
+    None => 0L
+    Some(value) => value.limits.tokens
+  }
+  let mut cost = match quantities {
+    None => 0L
+    Some(value) => value.limits.cost_units
+  }
+  let mut duration = match quantities {
+    None => 0L
+    Some(value) => value.limits.duration_ms
+  }
+  if quantities is Some(value) &&
+    (
+      tokens < 0L ||
+      cost < 0L ||
+      duration < 0L ||
+      value.per_attempt.tokens < 0L ||
+      value.per_attempt.cost_units < 0L ||
+      value.per_attempt.duration_ms < 0L
+    ) {
+    return Err(InvalidLimits)
+  }
+  for (slot, reservation) in state.reservations {
     let (retention, scratch) = match
       @resources.reservation_capacity_amounts(state.ledger, reservation) {
       Err(issue) => return Err(Ledger(issue))
@@ -181,6 +214,53 @@ fn check_original_mock_capacity(
     }
     available_retained -= retention
     available_execution -= scratch
+    if quantities is Some(_) {
+      let (reserved, uncertain, observed) = match
+        @resources.reservation_quantity_state(state.ledger, reservation) {
+        Err(issue) => return Err(Ledger(issue))
+        Ok(value) => value
+      }
+      // These are the original token's retained amounts, including after close.
+      for index in 0..<2 {
+        let amount = if index == 0 { reserved } else { uncertain }
+        if amount is Some(amount) {
+          if amount.tokens > tokens {
+            return Err(Ledger(@resources.TokenLimit))
+          }
+          if amount.cost_units > cost {
+            return Err(Ledger(@resources.CostLimit))
+          }
+          if amount.duration_ms > duration {
+            return Err(Ledger(@resources.DurationLimit))
+          }
+          tokens -= amount.tokens
+          cost -= amount.cost_units
+          duration -= amount.duration_ms
+        }
+      }
+      // Model currently observes tokens only; cost/duration stay uncertain.
+      // Never infer a missing observation from a closed token or a response name.
+      if observed.1 || observed.2 {
+        return Err(RequestIdentity)
+      }
+      if observed.0 {
+        guard state.attempts.get(slot) is Some(trace) &&
+          trace.input_tokens is Some(input) &&
+          input >= 0L &&
+          trace.output_tokens is Some(output) &&
+          output >= 0L else {
+          return Err(RequestIdentity)
+        }
+        if input > tokens {
+          return Err(Ledger(@resources.TokenLimit))
+        }
+        tokens -= input
+        if output > tokens {
+          return Err(Ledger(@resources.TokenLimit))
+        }
+        tokens -= output
+      }
+    }
   }
   if purpose.publication_retained > available_retained ||
     retained > available_retained - purpose.publication_retained {
@@ -189,6 +269,18 @@ fn check_original_mock_capacity(
   if purpose.publication_execution > available_execution ||
     execution > available_execution - purpose.publication_execution {
     return Err(Ledger(@resources.ExecutionLimit))
+  }
+  if quantities is Some(value) {
+    let next = value.per_attempt
+    if next.tokens > tokens {
+      return Err(Ledger(@resources.TokenLimit))
+    }
+    if next.cost_units > cost {
+      return Err(Ledger(@resources.CostLimit))
+    }
+    if next.duration_ms > duration {
+      return Err(Ledger(@resources.DurationLimit))
+    }
   }
   Ok(())
 }
@@ -215,7 +307,12 @@ fn check_original_mock_attempt_capacity(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  check_original_mock_capacity(state, retained, execution)
+  check_original_mock_capacity(
+    state,
+    retained,
+    execution,
+    reserve_quantities=true,
+  )
 }
 
 ///|
