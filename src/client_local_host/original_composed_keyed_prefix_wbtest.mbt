@@ -78,6 +78,23 @@ fn original_composed_keyed_consumer(
         Err(_) => fail("two-Direct keyed Model fixture preparation")
       }
   }
+  // These are three distinct checked response originals even though the two
+  // Direct occurrences select the same SourceView. The keyed response is not
+  // one of those Direct roots and cannot be dropped from the whole Run policy.
+  let checked_program = @strategy.graph_program(
+    @strategy.checked_effect_computation_graph(
+      @publication_host.prepared_client_effect_computation_graph(prepared),
+    ),
+  )
+  let final_publication = @checked.unit_publication_at(checked_program, 2, 0).unwrap()
+  let policy = @checked.publication_source_policy(final_publication).unwrap()
+  assert_eq(@checked.publication_policy_source_count(policy), 3)
+  assert_eq(
+    @publication_host.prepared_client_effect_publication_data_policy_cid(
+      prepared,
+    ),
+    Some(policy.cid),
+  )
   let (_, request, contracts, model) = effect_model_plan_for_prepared(
     prepared,
     acquired=true,
