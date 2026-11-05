@@ -24,6 +24,7 @@ import {join} from 'node:path';
 import test, {after} from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {types as utilTypes} from 'node:util';
+import {errorMonitor} from 'node:events';
 import {connect, RequestHeld, explainRequestLookup, explainSubmission, explainRequestCancellation,
   getSubmissionOutcome, getSubmissionAttempt} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
@@ -658,7 +659,7 @@ const historicalFixtureWriters = new WeakMap();
 
 async function remoteHost(t, authorization, {directory,
   effectInstallation, sourceProfilePath, sourceProfilePaths, resolveSourceSecret, beforeDispatch,
-  hostCapacityPolicy} = {}) {
+  hostCapacityPolicy, httpObserver} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   let dispatches = 0;
   const openHost = () => openInstalledRemoteHttpHost({
@@ -705,10 +706,14 @@ async function remoteHost(t, authorization, {directory,
   const responses = [];
   const server = createServer({key: tlsKey, cert: tlsCertificate},
     (request, response) => {
+      try { httpObserver?.response(request, response); }
+      catch { /* Optional diagnostics do not change the original handler. */ }
       response.once('finish', () => responses.push({
         path: request.url, status: response.statusCode}));
       return host.handler(request, response);
     });
+  try { httpObserver?.server(server); }
+  catch { /* Optional diagnostics do not change the original server. */ }
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let closed = false;
   const close = async () => {
@@ -1634,33 +1639,76 @@ function observeSecondSourceApprovalHttp(t) {
     events.push(value);
     if (events.length > 8) events.shift();
   };
+  const requestFields = (method, path) => {
+    const route = typeof path === 'string' && path.startsWith('/actql/client/0.1/')
+      ? path.slice('/actql/client/0.1/'.length) : undefined;
+    return {phase, method: ['GET', 'POST'].includes(method) ? method : 'other',
+      route: routes.has(route) ? route : 'other'};
+  };
+  const errorFields = error => ({name: token(field(error, 'name')),
+    code: token(field(error, 'code')),
+    causeCode: token(field(field(error, 'cause'), 'code'))});
+  const observe = action => { try { action(); } catch { /* Observers cannot replace original errors. */ } };
+  const sockets = new WeakMap();
+  const observer = Object.assign(next => { phase = next; }, {
+    server(server) {
+      server.on('secureConnection', socket => observe(() => {
+        const state = {lastReply: performance.now(), request: {phase}};
+        sockets.set(socket, state);
+        // errorMonitor observes without consuming an unhandled error. No
+        // timeout/clientError listener changes Node's default socket policy.
+        socket.on(errorMonitor, error => observe(() => record({event: 'server_socket_error',
+          ...state.request, ...errorFields(error)})));
+        socket.once('close', hadError => observe(() => record({event: 'server_socket_close',
+          ...state.request, hadError,
+          idleMilliseconds: Math.max(0, Math.floor(performance.now() - state.lastReply))})));
+      }));
+    },
+    response(request, response) {
+      const summary = requestFields(request.method, request.url);
+      const state = sockets.get(request.socket);
+      if (state) state.request = summary;
+      const started = performance.now();
+      response.on(errorMonitor, error => observe(() => record({event: 'server_response_error',
+        ...summary, status: response.statusCode, headersSent: response.headersSent,
+        ...errorFields(error)})));
+      response.once('finish', () => observe(() => {
+        if (state) state.lastReply = performance.now();
+        record({event: 'server_reply', ...summary, status: response.statusCode,
+          durationMilliseconds: Math.max(0, Math.floor(performance.now() - started))});
+      }));
+    },
+    failure(error, summary, diagnostics) {
+      try {
+        t.diagnostic(JSON.stringify({phase: 'second_source_approval_failure',
+          ...summary, ...errorFields(error),
+          hostEvents: diagnostics.slice(-8).map(({name, detail}) => ({name: token(name),
+            code: token(field(detail, 'code')), boundary: token(field(detail, 'boundary')),
+            causeCode: token(field(field(detail, 'cause'), 'code'))})), events}));
+      } catch { /* Preserve the same original failure even if diagnostics fail. */ }
+    },
+  });
   globalThis.fetch = async function(input, init) {
     let request;
     try {
-      const path = new URL(input).pathname;
-      const route = path.startsWith('/actql/client/0.1/')
-        ? path.slice('/actql/client/0.1/'.length) : undefined;
-      request = {phase, method: ['GET', 'POST'].includes(init?.method)
-        ? init.method : 'other', route: routes.has(route) ? route : 'other'};
+      request = requestFields(init?.method, new URL(input).pathname);
     } catch { /* Optional diagnostics cannot change the original request. */ }
     try {
       const response = await Reflect.apply(original, this, [input, init]);
       try {
-        if (request !== undefined) record({...request, status: response.status});
+        if (request !== undefined) record({event: 'client_response', ...request, status: response.status});
       } catch { /* Keep the original response authoritative. */ }
       return response;
     } catch (error) {
       try {
-        record({...request, status: null, name: token(field(error, 'name')),
-          code: token(field(error, 'code')),
-          causeCode: token(field(field(error, 'cause'), 'code'))});
+        record({event: 'client_error', ...request, status: null, ...errorFields(error)});
         t.diagnostic(JSON.stringify({phase: 'second_source_approval_http', events}));
       } catch { /* Keep the same original failure and its SDK classification. */ }
       throw error;
     }
   };
   t.after(() => { globalThis.fetch = original; });
-  return next => { phase = next; };
+  return observer;
 }
 
 for (const realization of ['native', 'broad']) {
@@ -1719,7 +1767,7 @@ test(`acquired Effect second Source approval restores the first ${realization} c
       accountConfiguration: canonicalJson(configuration), resumeAfterAnswer: false,
       observe: (name, detail) => diagnostics.push({name, detail}),
     });
-    const options = {directory, sourceProfilePaths, effectInstallation,
+    const options = {directory, sourceProfilePaths, effectInstallation, httpObserver: httpPhase,
       resolveSourceSecret() { assert.fail('UnusedSourceSecret'); }};
     let host = await remoteHost(t, account(), options);
     const client = await host.as('owner-token');
@@ -1751,15 +1799,22 @@ test(`acquired Effect second Source approval restores the first ${realization} c
     const submissionRef = client.newSubmission({nonce: `second-source-${realization}`});
     const submitted = await client.startSource(JSON.stringify(program),
       {format: 'json', submissionRef});
-    const wait = async (execution, expected) => waitFor(async () => {
-      const state = await execution.status();
-      if (['failed', 'cancelled', 'succeeded', 'needs_reconciliation'].includes(state.status) &&
-          state.status !== expected) throw new Error('UnexpectedEffectTerminalState');
-      return state.status === expected;
-    }).catch(async error => {
-      error.message = JSON.stringify({state: await execution.status(), diagnostics,
-        provider: provider.snapshot()}); throw error;
-    });
+    const wait = async (execution, expected) => {
+      let lastStatus;
+      return waitFor(async () => {
+        const state = await execution.status();
+        lastStatus = state.status;
+        if (['failed', 'cancelled', 'succeeded', 'needs_reconciliation'].includes(state.status) &&
+            state.status !== expected) throw new Error('UnexpectedEffectTerminalState');
+        return state.status === expected;
+      }).catch(error => {
+        try {
+          httpPhase.failure(error, {expected, lastStatus, captures, sends: sends.length,
+            sourceOpens: provider.snapshot().sourceProviderOpens.length}, diagnostics);
+        } catch { /* Reporting must not replace the original observation failure. */ }
+        throw error;
+      });
+    };
     await wait(submitted, 'waiting_checkpoint');
     const [read] = (await (await host.as('reviewer-token')).checkpoints()).items;
     assert.equal(read.kind, 'read_access');
