@@ -2292,10 +2292,12 @@ await assert.rejects(remoteHost.inspectAcquisition({
 {message: 'AcquisitionInspectionDenied'});
 await remoteHost.close();
 await writeFile(join(root, 'restart-remote-host.mjs'), `
-import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import {existsSync, readFileSync} from 'node:fs';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
 const hostCapacityPolicy = JSON.parse(JSON.parse(
@@ -2303,18 +2305,29 @@ const hostCapacityPolicy = JSON.parse(JSON.parse(
 const host = await openInstalledRemoteHttpHost({
   authorization: JSON.parse(readFileSync('remote-authorization.json', 'utf8')),
   directory: join(process.cwd(), 'restart-remote-state'),
-  hostCapacityPolicy,
+  hostCapacityPolicy, sourceProfilePath: join(process.cwd(), 'source-profile.json'),
   authenticate: header => header === 'Bearer packed-test-token'
     ? userInfo().username : undefined,
   beforeDispatch: process.env.ACTQL_HOLD_DISPATCH === '1'
     ? async () => new Promise(() => {}) : undefined,
 });
-const recovery = await host.inspectAcquisition({
-  requestId: 'packed-acquired-restart-before-start',
-  principalId: userInfo().username,
-  connection: {mode: 'remote', owner: 'remote'},
-});
-console.log('RECOVERY:' + recovery.state);
+let recoveryState = 'not_observed';
+if (existsSync('restart-acquired-submission-ref.json')) {
+  const original = JSON.parse(readFileSync('restart-acquired-submission-ref.json', 'utf8'));
+  const originalRef = JSON.parse(readFileSync('restart-acquired-ref.json', 'utf8'));
+  const epoch = original.epoch;
+  const installedControl = await import(pathToFileURL(join(process.cwd(), 'node_modules', '@actql',
+    'local-node', '_build', 'js', 'release', 'build', 'connectors_builtin_node', 'connectors_builtin_node.js')));
+  const requestId = installedControl.clientSubmissionRequestId(
+    installedControl.clientSubmissionEpoch(epoch.authorityScopeCid, epoch.epochNonce, epoch.notBefore, epoch.expiresAt),
+    original.nonce);
+  assert.equal(typeof requestId, 'string');
+  const recovery = await host.inspectAcquisition({requestId,
+    principalId: userInfo().username, connection: {mode: 'remote', owner: 'remote'}});
+  if (recovery.ref !== undefined) assert.deepEqual(recovery.ref, originalRef);
+  recoveryState = recovery.state;
+}
+console.log('RECOVERY:' + recoveryState);
 const server = createServer({key: readFileSync('remote.key'),
   cert: readFileSync('remote.crt')}, host.handler);
 server.listen(0, '127.0.0.1', () => {
@@ -2434,7 +2447,7 @@ async function stopRestartHost(host) {
   await stopped;
 }
 const heldHost = await startRestartHost(true);
-assert.equal(heldHost.recovery, 'not_started');
+assert.equal(heldHost.recovery, 'not_observed', 'No original submission exists at first Host startup');
 try {
   await runAsync(process.execPath, ['reserve-remote.mjs'], root, {
     ACTQL_TEST_REMOTE_ENDPOINT: `https://127.0.0.1:${heldHost.port}/`,

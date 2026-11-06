@@ -242,3 +242,66 @@ test('packed acquisition inspection consumes the original SDK outcome and existi
     control, () => ({username: 'fixture-owner'}), host);
   assert.deepEqual(calls, ['epoch', 'identity']); assert.equal(inspections, 3);
 });
+
+for (const hasOriginal of [false, true]) {
+  test(`packed restart acquisition inspection ${hasOriginal ? 'uses the saved original' : 'does not inspect before any original exists'}`, async t => {
+    const f = await sdkOriginal(t, 'packed-acquired-restart-before-start', {minimum: 1});
+    const text = actor('restart-remote-host.mjs');
+    const prefix = text.slice(0, text.indexOf('const server ='));
+    const parsed = parse(prefix, {ecmaVersion: 'latest', sourceType: 'module'});
+    let body = prefix;
+    // Evaluate the actual caller with explicit Core/Host/file ports only.
+    // This is not a compiled image, original epoch or Host initialization.
+    const replacements = nodes(parsed, node => node.type === 'ImportExpression').map(node => {
+      const path = node.source.arguments[0];
+      assert.equal(node.source.callee.name, 'pathToFileURL'); assert.equal(path.callee.name, 'join');
+      assert.deepEqual(path.arguments.slice(1).map(value => value.value),
+        ['node_modules', '@actql', 'local-node', '_build', 'js', 'release', 'build',
+          'connectors_builtin_node', 'connectors_builtin_node.js']);
+      return {start: node.start, end: node.end, replacement: 'control'};
+    });
+    replacements.push(...parsed.body.filter(node => node.type === 'ImportDeclaration')
+      .map(node => ({start: node.start, end: node.end, replacement: ''})));
+    for (const node of replacements.sort((a, b) => b.start - a.start)) {
+      body = body.slice(0, node.start) + node.replacement + body.slice(node.end);
+    }
+    const reads = [], projections = [], logs = [], epoch = {}, originalRef = f.execution.ref;
+    const control = {
+      clientSubmissionEpoch(...args) {
+        projections.push('epoch');
+        assert.deepEqual(args, [f.original.epoch.authorityScopeCid, f.original.epoch.epochNonce,
+          f.original.epoch.notBefore, f.original.epoch.expiresAt]); return epoch;
+      },
+      clientSubmissionRequestId(value, nonce) {
+        projections.push('identity'); assert.equal(value, epoch); assert.equal(nonce, f.original.nonce);
+        return 'same-original-private-id';
+      },
+    };
+    let selected, inspections = 0;
+    const host = {async inspectAcquisition(value) {
+      inspections++; assert.equal(hasOriginal, true, 'No inspection may invent an original at first startup');
+      assert.deepEqual(value, {requestId: 'same-original-private-id', principalId: 'fixture-owner',
+        connection: {mode: 'remote', owner: 'remote'}});
+      return {state: 'completed_retained', ref: originalRef};
+    }};
+    await new Function('assert', 'readFileSync', 'existsSync', 'join', 'process', 'userInfo',
+      'openInstalledRemoteHttpHost', 'control', 'console', 'return (async () => {' + body + '})();')(
+      assert, (path, encoding) => {
+        reads.push(path); assert.equal(encoding, 'utf8');
+        if (path === 'source-profile.json') return JSON.stringify({checkEnvironmentWire:
+          JSON.stringify({host_policy_profile: {capacity: {fixture: 'same-host-capacity'}}})});
+        if (path === 'remote-authorization.json') return '{}';
+        assert.equal(hasOriginal, true);
+        if (path === 'restart-acquired-submission-ref.json') return JSON.stringify(f.original);
+        assert.equal(path, 'restart-acquired-ref.json'); return JSON.stringify(originalRef);
+      }, path => {assert.equal(path, 'restart-acquired-submission-ref.json'); return hasOriginal;},
+      (...parts) => parts.join('/'), {cwd: () => 'fixture-root', env: {}}, () => ({username: 'fixture-owner'}),
+      async options => {selected = options; return host;}, control, {log: value => logs.push(value)});
+    assert.equal(selected.sourceProfilePath, 'fixture-root/source-profile.json');
+    assert.deepEqual(selected.hostCapacityPolicy, {fixture: 'same-host-capacity'});
+    assert.deepEqual(logs, ['RECOVERY:' + (hasOriginal ? 'completed_retained' : 'not_observed')]);
+    assert.equal(inspections, hasOriginal ? 1 : 0);
+    assert.deepEqual(projections, hasOriginal ? ['epoch', 'identity'] : []);
+    assert.equal(reads.includes('restart-acquired-submission-ref.json'), hasOriginal);
+  });
+}
