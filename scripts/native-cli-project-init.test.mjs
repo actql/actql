@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {copyFile, mkdir, mkdtemp, readdir, rm, readFile, writeFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, readdir, realpath, rm, readFile, writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
@@ -245,9 +245,10 @@ test('available runtime metadata preserves Native adoption dispatch and retains 
   assert.ifError(result.error); assert.equal(result.signal, null); assert.equal(result.status, 71);
   assert.equal(result.stderr, '');
   const observed = JSON.parse(result.stdout);
-  assert.deepEqual(observed.args, ['--mode', 'local', '--config', join(project, 'actql.config.json'),
-    '--state-dir', join(project, '.actql'), 'adopt', '--initialize-signing']);
-  assert.deepEqual(JSON.parse(observed.runtime), {root: f.native, sourceSha: f.expected.sourceSha,
+  const canonicalProject = await realpath(project);
+  assert.deepEqual(observed.args, ['--mode', 'local', '--config', join(canonicalProject, 'actql.config.json'),
+    '--state-dir', join(canonicalProject, '.actql'), 'adopt', '--initialize-signing']);
+  assert.deepEqual(JSON.parse(observed.runtime), {root: await realpath(f.native), sourceSha: f.expected.sourceSha,
     platform: installedPlatform, manifestSha256: f.expected.localRuntimeSha256});
   assert.deepEqual(await readdir(project), ['actql.config.json', 'connectors.json', 'model-tasks.json']);
   // Retained files are not adopted state or permission to overwrite on retry.

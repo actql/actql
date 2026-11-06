@@ -54,7 +54,7 @@ async function exercise(omitted) {
   const receipt = {omitted, computes: 0, denials: [],
     clientCloseReturned: false, serverCloseReturned: false, hostCloseReturned: false};
   receipts.push(receipt);
-  let host, server, client, primary;
+  let host, server, client, primary, rejected = false;
   const denied = async (operation, action, code, rowsYielded) => {
     await assert.rejects(action, error => {
       assert.equal(error.code, code);
@@ -101,7 +101,7 @@ async function exercise(omitted) {
       assert.equal((await execution.status()).status, 'succeeded');
     }
     assert.equal(receipt.computes, 1, 'Permission denials and observations never resend the original submission');
-  } catch (error) {primary = error;}
+  } catch (error) {primary = error; rejected = true;}
   finally {
     const cleanupErrors = [];
     for (const [resource, close, key] of [
@@ -113,10 +113,13 @@ async function exercise(omitted) {
       try {await close(); receipt[key] = true;}
       catch (error) {cleanupErrors.push(error);}
     }
-    if (cleanupErrors.length) primary = new AggregateError(
-      [...(primary === undefined ? [] : [primary]), ...cleanupErrors], 'Authorization fixture cleanup failed');
+    if (cleanupErrors.length) {
+      primary = new AggregateError([...(rejected ? [primary] : []), ...cleanupErrors],
+        'Authorization fixture cleanup failed');
+      rejected = true;
+    }
   }
-  if (primary !== undefined) throw primary;
+  if (rejected) throw primary;
 }
 
 try {
