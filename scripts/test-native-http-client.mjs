@@ -1,3 +1,4 @@
+import {nativeCoreHttpArguments} from './native-core-test-selection.mjs';
 import {installNativeApplicationBundle} from './native-application-bundle-fixture.mjs';
 import {runNativeQueryTests} from './native-query-coverage.mjs';
 import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
@@ -1107,11 +1108,8 @@ verification: try {
     }
   };
   if (focus === 'core-http') {
-    const args = JSON.parse(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_ARGS);
+    const args = nativeCoreHttpArguments(JSON.parse(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_ARGS));
     const expectedTests = Number(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_COUNT);
-    assert(Array.isArray(args) && args.every(value => typeof value === 'string'));
-    assert.equal(args.at(-1), 'src/platform_native/http_client');
-    assert(!args.includes('--target'), 'Core retains its original Native target');
     assert(Number.isSafeInteger(expectedTests) && expectedTests > 0,
       'Original compiler-owned HTTP case count required');
     await writeFile(join(root, 'credential.secret'), 'native-secret\n', {mode: 0o600});
@@ -1129,6 +1127,8 @@ verification: try {
         ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
         ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
         ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
+        ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
+        ACTQL_TEST_NATIVE_CREDENTIAL_JOURNAL: join(root, 'credential.sqlite'),
         ACTQL_TEST_NATIVE_HTTP_BEARER_URL: bearerServers.origin,
         ACTQL_TEST_NATIVE_HTTP_BEARER_FOREIGN_URL: bearerServers.foreignOrigin,
         ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT: bearerServers.directory,
