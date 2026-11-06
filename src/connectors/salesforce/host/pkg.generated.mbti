@@ -60,7 +60,7 @@ pub fn managed_query_row_count(ManagedQuery) -> Int64
 
 pub fn named_describe_construction_capacity(@catalog.DescribeLimits, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
-pub fn native_read_construction_capacity(@catalog.DescribeLimits, @catalog.QueryPageLimits, Int, Int, Int, Int, Int, Int, Int, query_geometry? : @source_value.JsonSourceGeometry?, value_nodes? : Int?) -> @execution_relation.ExecutionCapacity?
+pub fn native_read_construction_capacity(@catalog.DescribeLimits, @catalog.QueryPageLimits, Int, Int, Int, Int, Int, Int, Int, query_geometry? : @source_value.JsonSourceGeometry?, describe_geometry? : @source_value.JsonSourceGeometry?, value_nodes? : Int?) -> @execution_relation.ExecutionCapacity?
 
 pub fn prepare_installed_salesforce_declared_row_acquisition(InstalledSalesforceDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, InstalledSalesforceIssue]
 
