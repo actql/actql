@@ -59,7 +59,8 @@ test('read-only ref lookup verifies exact ref/type and never follows token-beari
   }
 });
 test('mandatory preflight admits every normal heavy primitive and does not serialize the compound spec suite', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
+  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-distribution-callers',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce',
     'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of [...heavy, 'lint', 'spec']) {

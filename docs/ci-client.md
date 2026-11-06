@@ -11,21 +11,32 @@ The `client` required check remains the aggregate result for all Client
 acceptance. The workflow now schedules these independent workloads:
 
 - `client-packages` packs the same five Client distributions once
-- `client-distribution` runs the unchanged distribution gate, including source
-  fixtures, packed Node/Checkpoint acceptance and native Client verification
+- `client-distribution` runs the source-backed distribution contract tests
+- `client-distribution-callers` runs the existing Host preparation and resource callers
+- `client-distribution-mutations` runs the four original mutation commands
+- `client-distribution-packed` uses the shared tarballs for Delivery, dependency-free
+  Local, Node, Workspace, Graph and Checkpoint acceptance without a source runtime build
+- `client-distribution-native` builds and tests the original Native Client transport
 - `client-packed` uses the shared tarballs for normal Local asset and Sheets
   consumers, and runs the unchanged Embedded Checkpoint, single INFER,
   public SQL/Pipe and Result description acceptance, with existing evidence uploads
 - `client-salesforce` runs the unchanged Salesforce and recovery gates, including
   both Compute-count probes and all nine process-death boundaries
 
-Distribution and packed-public jobs need only the package producer. Salesforce
-starts independently. Its source-backed recovery imports require the Local
-runtime bridges; it prepares these in its own checkout before the existing gates.
-Each workload retains the previous 30-minute limit. The five-minute `client`
-aggregate runs even if a dependency fails and rejects failure, cancellation and
-unexpected skip. The existing global `check` still requires `client`. Performance
-and diagnostic-probe modes retain their original conditional behavior, as does
+The package consumers and source-backed distribution jobs depend on the exact
+package producer. Native Client transport and Salesforce start independently.
+Salesforce's source-backed recovery imports require the Local runtime bridges;
+it prepares these in its own checkout before the existing gates.
+Each workload retains the previous 30-minute limit. The old 53-command
+`check:distribution-client` local umbrella is unchanged. Its independent CI
+workloads retain all 49 remaining commands once; the four common source
+preparation commands repeat only in the three source-backed jobs. Each job has
+private installation, mutation and compiler state. After successful preparation,
+independent cases continue after a sibling failure and respect cancellation.
+The five-minute `client` aggregate requires every workload and rejects failure,
+cancellation and unexpected skip. The existing global `check` still requires
+`client`. Performance and diagnostic-probe modes retain their original
+conditional behavior, as does
 the optional macOS gate.
 
 ## Immutable package handoff
@@ -60,9 +71,11 @@ Run the narrow scheduling and artifact fixtures while editing:
 node --test scripts/client-ci.test.mjs scripts/packed-client-packages.test.mjs
 ```
 
-The independent acceptance commands remain available through
-`node scripts/local-checks.mjs run client-distribution`, `client-packed` and
-`client-salesforce`. Local execution does not emulate Actions artifact transport;
+Each independent workload remains available through
+`node scripts/local-checks.mjs run <job>`, including the five
+`client-distribution*` jobs, `client-packed` and `client-salesforce`.
+`npm run check:distribution-client` retains the complete original local sequence.
+Local execution does not emulate Actions artifact transport;
 without `ACTQL_PACKED_CLIENT_PACKAGES`, scripts retain their existing normal-pack
 fallback. To reuse distributions locally, first commit all source changes, run
 `node scripts/packed-client-packages.mjs <outside-checkout-directory>` and point
