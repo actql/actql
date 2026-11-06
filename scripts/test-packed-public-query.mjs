@@ -743,11 +743,13 @@ console.log(run(process.execPath, ['readme-acceptance.mjs'], root,
   runtimeEnvironment).trimEnd());
 // A fresh process must fail for a real missing generated wire asset; module
 // caches and the checkout's dependency graph must not rescue this install.
+// The Node facade loads the SDK lazily. Select the wire owner itself rather
+// than requiring an unrelated import to eagerly load the transport graph.
 const asset = join(root, 'node_modules/@actql/client-wire/publication.generated.js');
 await rename(asset, asset + '.omitted');
 try {
   const negative = spawnSync(process.execPath, ['--input-type=module', '-e',
-    "await import('@actql/node')"], {cwd: root, env: runtimeEnvironment,
+    "await import('@actql/client-wire')"], {cwd: root, env: runtimeEnvironment,
     encoding: 'utf8', timeout: 30_000});
   await writeFile(join(directory, 'missing-generated-asset.json'), JSON.stringify({
     status: negative.status, signal: negative.signal, stderr: negative.stderr,
@@ -755,7 +757,7 @@ try {
   assert.equal(negative.error, undefined);
   assert.notEqual(negative.status, 0, 'Missing packaged asset must fail at runtime');
   assert.match(negative.stderr, /ERR_MODULE_NOT_FOUND/u);
-assert.match(negative.stderr, /publication\.generated\.js/u);
+  assert.match(negative.stderr, /publication\.generated\.js/u);
   console.log('Packed missing generated asset: child failed as expected');
 } finally { await rename(asset + '.omitted', asset); }
 async function exerciseNativeGraphSource(sourceOnly = false) {

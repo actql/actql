@@ -11,7 +11,7 @@ test('Graph row positional sets preserve authored NULL duplicates keys selectors
     assert.deepEqual(cases.get('graph-row-' + name).results, node.results);
     assert.equal(cases.get('graph-row-' + name).sourceReadCount, 0);
   }
-  assert.deepEqual(cases.get('graph-row-node-set-head').results.answer, node.results.values);
+  assert.deepEqual(cases.get('graph-row-node-set-head').results, {main: node.results.values});
   const edge = cases.get('graph-row-edge-set-json-control');
   assert.deepEqual(edge.results.values.rows, [{value: 10}, {value: 11}, {value: 11}, {value: 12}]);
   assert.deepEqual(cases.get('graph-row-edge-set-anonymous').results, edge.results);
@@ -50,7 +50,9 @@ test('WITH Graph row callers retain complete independent acceptance obligations'
       const previous = original[key].find(item => item.name === input.name);
       const {text: oldText, ...oldExpectations} = previous;
       const {text, ...expectations} = input;
-      assert.deepEqual(expectations, oldExpectations, input.name);
+      const retainedExpectations = input.name === 'graph-row-node-set-head'
+        ? {...oldExpectations, results: {main: oldExpectations.results.answer}} : oldExpectations;
+      assert.deepEqual(expectations, retainedExpectations, input.name);
       if (input.format === 'json') assert.equal(text, oldText, input.name);
       else {
         assert.ok(text.startsWith('WITH '), input.name);

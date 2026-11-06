@@ -15,10 +15,11 @@ export function selectReleaseWindowGroupCases({successes = windowGroupSourceSucc
   assert.deepEqual(successes.map(item => item.name), normal);
   assert.deepEqual(refusals.map(item => item.name), refusal);
   for (const item of successes) {
+    const resultName = item.format === 'json' ? 'answer' : 'main';
     assert.equal(item.sourceReadSessionCount, 1);
     assert.ok(Array.isArray(item.sourceRows));
-    assert.ok(Array.isArray(item.results.answer.rows));
-    assert.ok(Array.isArray(item.results.answer.columns));
+    assert.ok(Array.isArray(item.results[resultName].rows));
+    assert.ok(Array.isArray(item.results[resultName].columns));
   }
   return {successes, refusals};
 }

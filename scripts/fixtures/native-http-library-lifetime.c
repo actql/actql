@@ -76,7 +76,21 @@ int main(int argc, char **argv) {
     return 0;
   }
   assert(actql_native_http_library_ready(library)); assert(initialized() == 1);
-  if (!strcmp(argv[2], "ready-child")) {
+  if (!strcmp(argv[2], "no-ssl")) {
+    assert(!library->tls_owned && !library->tls_backend_pending);
+    assert(actql_native_http_library_close_checked(library) == 0);
+    assert(cleaned() == 1 && library->released && !library->dynamic_library);
+    assert(actql_native_http_library_close_checked(library) == 0 && cleaned() == 1);
+  } else if (!strcmp(argv[2], "ssl-pending") || !strcmp(argv[2], "unknown-pending")) {
+    assert(!library->tls_owned && library->tls_backend_pending);
+    void *original = library->dynamic_library;
+    assert(actql_native_http_library_close_checked(library) == -3);
+    int expected_cleanup = !strcmp(argv[2], "ssl-pending") ? 1 : 0;
+    assert(cleaned() == expected_cleanup && library->init_owned == !expected_cleanup);
+    assert(!library->released && library->dynamic_library == original);
+    assert(actql_native_http_library_close_checked(library) == -3 && cleaned() == expected_cleanup);
+    assert(library->dynamic_library == original);
+  } else if (!strcmp(argv[2], "ready-child")) {
     actql_native_http_client *client = child(library); assert(actql_native_http_client_ready(client));
     assert(actql_native_http_test_live_children(library) == 1);
     assert(actql_native_http_library_close_checked(library) == -2);

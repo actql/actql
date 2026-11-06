@@ -2,11 +2,13 @@
 fn file_destination_fixture(
   name : String,
   maximum? : Int = 64,
-) -> NativeLocalReadFileDestination raise {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_RESULT_FILES_ROOT") is Some(root) else {
-    fail("selected File delivery requires its own canonical directory fixtures")
-  }
-  let parent = root + "/" + name
+) -> NativeLocalReadFileDestination {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let root = @filesystem.open_private_root(path).unwrap()
+  let directory = "read-file-destination-" + name
+  root.create_directory(directory).unwrap() |> ignore
+  root.close().unwrap()
+  let parent = path + "/" + directory
   local_read_file_destination(
     parent + "/output.json",
     parent,

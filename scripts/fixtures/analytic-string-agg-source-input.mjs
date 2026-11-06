@@ -72,7 +72,7 @@ export const analyticStringAggRefusals = [
 export const analyticStringAggExecutionFailures = [{
   name: 'analytic-string-agg-demanded-expression-error', format: 'sql',
   text: `SELECT STRING_AGG(IF(1 / 0 > 0, 'a', 'b')) OVER (${frame}) AS names FROM records`,
-  resultNames: ['answer'], sourceReadSessionCount: 1,
+  resultNames: ['main'], sourceReadSessionCount: 1,
 }];
 
 

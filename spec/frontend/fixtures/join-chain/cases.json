@@ -5,7 +5,7 @@
       "format": "sql",
       "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT a.x AS y, c.z FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id ORDER BY y + 1",
       "results": {
-        "answer": {
+        "main": {
           "rows": [
             {
               "y": 1,
@@ -41,7 +41,7 @@
       "format": "sql",
       "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 10 AS y UNION ALL SELECT 2 AS id, 20 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT a.x AS y, c.z FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id ORDER BY b.y + 1",
       "results": {
-        "answer": {
+        "main": {
           "rows": [
             {
               "y": 2,
@@ -77,7 +77,7 @@
       "format": "sql",
       "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT a.x + 1 AS first, a.x + 1 AS second FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id ORDER BY a.x + 1",
       "results": {
-        "answer": {
+        "main": {
           "rows": [
             {
               "first": 2,
@@ -113,7 +113,7 @@
       "format": "sql",
       "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT DISTINCT a.x AS y FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id ORDER BY a.x",
       "results": {
-        "answer": {
+        "main": {
           "rows": [
             {
               "y": 1
@@ -140,7 +140,7 @@
       "format": "sql",
       "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT id, a.x, b.y, c.z FROM a JOIN b USING (id) JOIN c USING (id) ORDER BY id",
       "results": {
-        "answer": {
+        "main": {
           "rows": [
             {
               "id": 1,
@@ -194,7 +194,7 @@
       "format": "sql",
       "text": "WITH a AS (SELECT 1 AS id UNION ALL SELECT 2 AS id), b AS (SELECT 1 AS id, 20 AS y), c AS (SELECT 1 AS id UNION ALL SELECT 2 AS id) SELECT a.id, b.y FROM a LEFT JOIN b ON a.id = b.id JOIN c ON a.id = c.id ORDER BY a.id",
       "results": {
-        "answer": {
+        "main": {
           "rows": [
             {
               "id": 1,
@@ -228,9 +228,9 @@
     {
       "name": "join-chain-data-pipe",
       "format": "aql-text",
-      "text": "DATA a = SELECT 1 AS x; DATA b = SELECT 2 AS y; DATA c = SELECT 3 AS z; FROM a AS l |> CROSS JOIN b AS m |> CROSS JOIN c AS r |> SELECT l.x, m.y, r.z",
+      "text": "WITH a AS (SELECT 1 AS x), b AS (SELECT 2 AS y), c AS (SELECT 3 AS z) FROM a AS l |> CROSS JOIN b AS m |> CROSS JOIN c AS r |> SELECT l.x, m.y, r.z",
       "results": {
-        "answer": {
+        "main": {
           "rows": [
             {
               "x": 1,
@@ -270,7 +270,7 @@
       "format": "sql",
       "text": "WITH a AS (SELECT 2 AS id UNION ALL SELECT 1 AS id), joined AS (SELECT l.id FROM a AS l JOIN a AS m ON l.id = m.id JOIN a AS r ON m.id = r.id) SELECT id FROM joined ORDER BY id",
       "results": {
-        "answer": {
+        "main": {
           "rows": [
             {
               "id": 1
@@ -295,9 +295,9 @@
     {
       "name": "join-chain-acquired-shared-producer",
       "format": "aql-text",
-      "text": "DATA seed = FROM records |> SELECT id; DATA joined = SELECT l.id FROM seed AS l JOIN seed AS m ON l.id = m.id JOIN seed AS r ON m.id = r.id; FROM joined |> ORDER BY id",
+      "text": "WITH seed AS (FROM records |> SELECT id), joined AS (SELECT l.id FROM seed AS l JOIN seed AS m ON l.id = m.id JOIN seed AS r ON m.id = r.id) FROM joined |> ORDER BY id",
       "results": {
-        "answer": {
+        "main": {
           "rows": [
             {
               "id": 1

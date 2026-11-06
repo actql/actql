@@ -9,7 +9,7 @@ test('independent dedupe controls distinguish global NULL grouping order and emp
   for(const [name,ids] of Object.entries(expectedIds)){
     const json=successes.find(c=>c.name==='event-dedupe-json-'+name);
     const text=successes.find(c=>c.name==='event-dedupe-text-'+name);
-    assert.deepEqual(json.results,text.results);
+    assert.deepEqual(text.results,{main:json.results.answer});
     assert.deepEqual(json.results.answer.rows.map(row=>row.event_id),ids);
     assert.deepEqual(json.results.answer.columns,[
       {name:'event_id',contract:{type:'number',nullable:false}},
@@ -31,7 +31,7 @@ test('top tie remains an execution failure rather than a hidden arrival-order ch
   assert.equal(rows[0].occurred_ms,rows[1].occurred_ms);
   assert.notEqual(rows[0].event_id,rows[1].event_id);
   assert.deepEqual(steps[2].dedupe_events,{by:['bucket'],order_by:[{occurred_ms:'asc'}]});
-  assert.ok(failures.every(c=>c.resultNames.length===1&&c.resultNames[0]==='answer'));
+  assert.deepEqual(failures.map(c=>c.resultNames),[['answer'],['main']]);
   assert.equal(refusals.length,6);
   assert.ok(refusals.every(c=>c.expectedCode==='ClientProgramInvalidInput'));
   assert.equal(new Set([...successes,...refusals,...failures].map(c=>c.name)).size,18);
@@ -43,7 +43,7 @@ test('prepared dedupe cases use the ordinary packed registration and selector',(
   assert.ok(installer.includes("['scripts/fixtures/event-dedupe-source-input.mjs', 'event-dedupe-source-input.mjs']"));
   assert.ok(packed.includes("process.env.ACTQL_TEST_EVENT_DEDUPE_ONLY"));
   assert.ok(packed.includes('eventDedupeOnly ||'));
-  assert.ok(installer.includes("const narrowPublicQuery = process.argv.some(flag => ['--event-dedupe-only'"));
+  assert.match(installer, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--event-dedupe-only'[^\]]*\]\.includes\(flag\)\)/u);
   assert.ok(installer.includes("if (process.argv.includes('--event-dedupe-only')) return;"));
   assert.ok(installer.includes("runtimeEnvironment.ACTQL_TEST_EVENT_DEDUPE_ONLY = '1'"));
 });

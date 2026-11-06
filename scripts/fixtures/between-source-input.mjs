@@ -70,4 +70,4 @@ export const betweenExecutionFailures = [
   'SELECT 1 BETWEEN 2 AND (1 / 0) AS value',
   'SELECT (1 / 0) BETWEEN 0 AND 2 AS value',
 ].map((text, index) => ({name: 'between-demanded-failure-' + index, format: 'sql', text,
-  resultNames: ['answer'], sourceReadSessionCount: 0}));
+  resultNames: ['main'], sourceReadSessionCount: 0}));

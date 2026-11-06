@@ -25,7 +25,7 @@ function source(call) {
 export const temporalJoinSourceSuccesses=variants.flatMap(v=>{
   const results={answer:{rows:v.rows,columns:[{name:'id',contract:number},{name:'value',contract:{type:'number',nullable:v.body.kind==='left'}}]}};
   return [{name:'temporal-json-'+v.name,format:'json',text:JSON.stringify(program(v)),results,sourceReadCount:0},
-    ...['sql','aql-text'].map(format=>({name:'temporal-'+format+'-'+v.name,format,text:source(v.call),results,sourceReadCount:0}))];
+    ...['sql','aql-text'].map(format=>({name:'temporal-'+format+'-'+v.name,format,text:source(v.call),results:{main:results.answer},sourceReadCount:0}))];
 });
 export const temporalJoinSourceRefusals=[
   ['asof-zero-tolerance',variants[0].call.replace('tolerance: 12','tolerance: 0')],

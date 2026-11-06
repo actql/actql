@@ -60,4 +60,4 @@ export const sqrtExecutionFailures = [
   {name: 'demanded-operand', text: 'SELECT SQRT(1 / 0) AS value', sourceReadSessionCount: 0},
   {name: 'negative-after-valid-row', text: 'SELECT id, SQRT(amount) AS value FROM records ORDER BY id',
     sourceRows: [{id: 1, amount: 4}, {id: 2, amount: -1}], sourceReadSessionCount: 1},
-].map(value => ({...value, name: 'sqrt-' + value.name, format: 'sql', resultNames: ['answer']}));
+].map(value => ({...value, name: 'sqrt-' + value.name, format: 'sql', resultNames: ['main']}));

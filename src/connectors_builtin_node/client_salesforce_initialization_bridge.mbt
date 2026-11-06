@@ -43,6 +43,48 @@ pub fn client_program_salesforce_initialization_construction_capacity(
 }
 
 ///|
+#export_name("clientProgramSalesforceOriginalInitializationConstructionCapacity")
+pub fn client_program_salesforce_original_initialization_construction_capacity(
+  encoded_bodies : Array[String?],
+  observation_units : Int,
+  name_lengths : Array[Int],
+  binding_units : Int,
+  connector_units : Int,
+  revision_units : Int,
+  max_describe_bytes : Int,
+  max_describe_nodes : Int,
+  max_describe_depth : Int,
+  max_describe_fields : Int,
+  max_describe_name_units : Int,
+  max_observation_bytes : Int,
+  max_declaration_bytes : Int,
+  max_declaration_nodes : Int,
+  max_declaration_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  @salesforce_host.initialization_original_construction_capacity(
+    encoded_bodies,
+    observation_units,
+    name_lengths,
+    binding_units,
+    connector_units,
+    revision_units,
+    {
+      max_bytes: max_describe_bytes,
+      max_nodes: max_describe_nodes,
+      max_depth: max_describe_depth,
+      max_fields: max_describe_fields,
+      max_name_units: max_describe_name_units,
+    },
+    max_observation_bytes,
+    {
+      max_bytes: max_declaration_bytes,
+      max_nodes: max_declaration_nodes,
+      max_depth: max_declaration_depth,
+    },
+  )
+}
+
+///|
 #export_name("clientProgramSalesforceExecutionMappingConstructionCapacity")
 pub fn client_program_salesforce_execution_mapping_construction_capacity(
   field_count : Int,

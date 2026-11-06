@@ -35,6 +35,9 @@ if (coreArgs !== undefined) {
   assert(Array.isArray(coreArgs) && coreArgs.every(arg => typeof arg === 'string') && !residentProposals,
     'Invalid Native core fixture invocation');
 }
+// The complete file has two authored successful Provider observations: the
+// proposal case and Checkpoint custody. Its revoked-permission case sends none.
+const completeRetainedProposals = residentProposals && !residentPreview && !residentEffectRuntimeCapture;
 
 const scratch = process.env.ACTQL_TEST_SCRATCH_ROOT ?? (coreArgs === undefined ? undefined :
   join(process.cwd(), '_build', 'native-core-physical'));
@@ -406,7 +409,7 @@ try {
     assert.deepEqual(paths, []);
   } else if (residentProposals) {
     assert.deepEqual(paths, []);
-    assert.deepEqual(bearer.effectTargets(), {reads: residentMappedCreate || residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
+    assert.deepEqual(bearer.effectTargets(), {reads: completeRetainedProposals ? 2 : residentMappedCreate || residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
     assert.equal(bearer.effectTargetValue(), residentApprovedRow && !residentMappedCreate ? 3 : 7);
     if (residentMappedCreate) assert.deepEqual(bearer.effectCreatedValues(),
       [{Id: '001000000000001AAA', Count__c: 3}]);

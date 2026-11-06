@@ -148,9 +148,13 @@ fn native_bundle_fixture(
     is Some(crypto_path) else {
     return None
   }
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(parent_path) else {
-    return None
+  // Core owns an invocation-local SQLite namespace without enabling the shared
+  // optional Store root. Keep each bundle case in its existing unique child.
+  let selected_root = match @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") {
+    Some(root) => Some(root)
+    None => @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT")
   }
+  guard selected_root is Some(parent_path) else { return None }
   let sqlite = @sqlite.load_library(sqlite_path).unwrap()
   let crypto = @signature.load_library(crypto_path).unwrap()
   let token = label + "-" + @env.now().to_string()

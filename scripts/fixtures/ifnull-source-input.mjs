@@ -77,5 +77,5 @@ export const ifnullRefusals = [
 export const ifnullExecutionFailures = [{
   name: 'ifnull-demanded-failing-fallback', format: 'sql',
   text: 'SELECT IFNULL(CAST(NULL AS FLOAT64), 1 / 0) AS value',
-  resultNames: ['answer'], sourceReadSessionCount: 0,
+  resultNames: ['main'], sourceReadSessionCount: 0,
 }];

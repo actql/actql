@@ -25,7 +25,7 @@ function control(v) {
     results:{answer:{from:{stage:'main',result:'rows'}}}};
 }
 function source(v) {
-  return 'WITH rows AS ('+(v.empty?'WITH all_rows AS ('+rowsText+') SELECT id, amount FROM all_rows WHERE FALSE':rowsText)+'), '
+  return 'WITH `rows` AS ('+(v.empty?'WITH all_rows AS ('+rowsText+') SELECT id, amount FROM all_rows WHERE FALSE':rowsText)+'), '
     +'keyed AS (FROM rows |> ASSERT UNIQUE BY (id)), '
     +'lagged AS (FROM keyed AS r |> lag(partition_by: '+v.sourcePartition
     +", order_by: [{field: r.AMOUNT, dir: 'desc', nulls: 'last'}], field: r.amount, output: previous"
@@ -35,7 +35,7 @@ function source(v) {
 export const lagSourceSuccesses = variants.flatMap(v=>{
   const results = {answer:{rows:v.empty?[]:input.map((row,i)=>({...row,previous:v.previous[i]})),columns}};
   return [{name:'lag-json-'+v.name,format:'json',text:JSON.stringify(control(v)),results,sourceReadCount:0},
-    {name:'lag-text-'+v.name,format:'aql-text',text:source(v),results,sourceReadCount:0}];
+    {name:'lag-text-'+v.name,format:'aql-text',text:source(v),results:{main:results.answer},sourceReadCount:0}];
 });
 const prefix = 'WITH rows AS ('+rowsText+'), keyed AS (FROM rows |> ASSERT UNIQUE BY (id)) FROM keyed |> ';
 export const lagSourceRefusals = [

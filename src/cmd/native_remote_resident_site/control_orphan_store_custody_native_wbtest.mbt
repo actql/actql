@@ -126,6 +126,10 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
   let retained : Ref[ControlReplayJournalCustody?] = Ref(None)
   let slot_progress = Ref(ControlSlotPending)
   let failures = Ref(0)
+  // The real reporter writes the CLI protocol directly to stdout. Observe
+  // these real progress events here without corrupting the test-driver stream.
+  let reports : Array[(String, Array[(String, String)])] = []
+  let observe = (kind, fields) => reports.push((kind, fields))
   let observed = reclaim_orphaned_outputs(
     settings,
     environment,
@@ -135,7 +139,12 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
     failed,
     slot_progress,
     failures,
+    report_progress=observe,
   )
+  assert_eq(reports, [
+    ("orphans-reclaimed", [("intents", "0")]),
+    ("orphan-reclaim-pending", [("reason", "store-close")]),
+  ])
   assert_true(observed is OrphanStoreOpen(same) && physical_equal(same, store))
   assert_true(retained.val is None)
   assert_true(failed.val is None)
@@ -151,9 +160,15 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
       failed,
       slot_progress,
       failures,
+      report_progress=observe,
     )
     is OrphansDone,
   )
+  assert_eq(reports, [
+    ("orphans-reclaimed", [("intents", "0")]),
+    ("orphan-reclaim-pending", [("reason", "store-close")]),
+    ("orphans-reclaimed", [("intents", "0")]),
+  ])
   assert_true(retained.val is None)
   let independent = @slot.open_native_executor_slot(path + ".slot").unwrap()
   assert_true(independent.try_acquire().unwrap())

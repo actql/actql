@@ -101,7 +101,7 @@ analyticOrderRefusals.push({name: 'analytic-order-refuse-parameter-type', hostPr
   parameterDeclarations: {offset: number}, parameters: {offset: 'secret-value'}});
 export const analyticOrderExecutionFailures = [{name: 'analytic-order-division-failure', hostProfile: 'analytic-order',
   format: 'sql', text: 'SELECT id, ROW_NUMBER() OVER (ORDER BY id / (id - id), id) AS pos FROM records',
-  resultNames: ['answer'], sourceReadSessionCount: 1}];
+  resultNames: ['main'], sourceReadSessionCount: 1}];
 
 // The previously emitted JSON is a fixed failure reproduction. Its expected
 // result comes from the independently authored source fixture, never execution.

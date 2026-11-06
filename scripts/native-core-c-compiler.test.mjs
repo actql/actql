@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
-import {chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, delimiter} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -208,6 +208,11 @@ test('same selected Native Core compiler reuses actual release test C from prere
     return result.stdout;
   };
   assert.match(run(['pkg/case_wbtest.mbt', '--index', '0']), /Total tests: 1, passed: 1, failed: 0\./u);
+  // A later canonical invocation creates fresh fixture inputs, but must keep
+  // the exact already selected compiler profile and its actual warm software.
+  const secondScratch = join(root, 'second-scratch'); mkdirSync(secondScratch);
+  assert.deepEqual(nativeCoreCCompiler(root, secondScratch, selected), {});
+  assert.equal(existsSync(join(secondScratch, 'test-c-compiler')), false);
   const before = readFileSync(observations,'utf8').trim().split('\n').map(JSON.parse);
   const whitebox = values => values.filter(row => row.inputs.some(input => input.endsWith('.whitebox_test.c')));
   assert(whitebox(before).length > 0);
@@ -217,4 +222,31 @@ test('same selected Native Core compiler reuses actual release test C from prere
   assert(after.some(row => row.inputs.some(input => input.endsWith('.blackbox_test.c'))),
     'the remaining independent test must still be compiled and executed');
   for (const row of after) { assert.deepEqual(row.flags, ['-O0']); assert.equal(row.backend, '0'); }
+});
+
+
+test('retained Native compiler profile refuses changed launcher or companion and foreign repository reuse', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-retained-profile-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const first = join(root, 'first'); mkdirSync(first);
+  const env = {...process.env}; delete env.MOON_CC; delete env.CXX;
+  const profile = nativeCoreCCompiler(root, first, env), selected = {...env, ...profile};
+  const directory = profile.PATH.split(delimiter)[0];
+  const cc = join(directory, 'cc'), original = readFileSync(cc, 'utf8');
+  for (const mode of ['changed-launcher', 'changed-companion', 'foreign-repository']) {
+    const scratch = join(root, mode); mkdirSync(scratch);
+    if (mode === 'changed-launcher') writeFileSync(cc, original + '// changed caller shim\n');
+    if (mode === 'changed-companion') {
+      unlinkSync(join(directory, 'ar')); symlinkSync(process.execPath, join(directory, 'ar'));
+    }
+    const actual = nativeCoreCCompiler(mode === 'foreign-repository' ? scratch : root, scratch, selected);
+    assert.equal(actual.PATH.split(delimiter)[0], join(scratch, 'test-c-compiler'));
+    assert.notEqual(actual.PATH, selected.PATH);
+    writeFileSync(cc, original);
+    if (mode === 'changed-companion') {
+      unlinkSync(join(directory, 'ar'));
+      const compiler = execFileSync('/bin/sh', ['-c', 'command -v cc'], {env, encoding: 'utf8'}).trim();
+      symlinkSync(realpathSync(join(compiler, '../ar')), join(directory, 'ar'));
+    }
+  }
 });

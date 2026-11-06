@@ -188,7 +188,7 @@ limitParameterSuccesses.push(...[
     + ' |> WHERE records.id > 0 |> WHERE keys.k = 3' + selectCurrentRow + ' |> ORDER BY id',
     {parameterDeclarations: undefined, parameters: undefined,
       expected: [{amount: 30, id: 3}, {amount: 30, id: 3}]}],
-  ['join-prefix-fresh-as', currentRowJoin + ' |> AS current'
+  ['join-prefix-fresh-as', currentRowJoin + ' |> AS `current`'
     + ' |> ORDER BY current.id |> LIMIT @count OFFSET @skip'
     + ' |> SELECT current.amount AS amount, current.id AS id', {}],
   ['join-prefix-quoted-as-nullable', currentRowJoin + ' |> AS `current`'
