@@ -1433,6 +1433,10 @@ verification: try {
     });
     const [code, signal] = await once(child, 'close');
     assert.equal(code, 0, `Native Core Source fixture failed: ${code ?? signal}`);
+    // Same physical Source-package oracles as the full HTTP loop below.
+    assert.deepEqual(bearerServers.effectTargets(), {reads: 3, writes: 1});
+    assert.deepEqual(bearerServers.effectCreatedValues(),
+      [{Id: '001000000000001AAA', Count__c: 3}]);
     break verification;
   }
   if (focus?.startsWith('resident-review-')) {

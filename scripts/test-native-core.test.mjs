@@ -1412,6 +1412,21 @@ test('Core Source peer entrance retains complete package, Native target and nonz
     [...core,'--target','js'],[...core.slice(0,-1),core.at(-1)+'/retained_compute_wbtest.mbt']])
     assert.throws(()=>check(args,78));
   for(const count of [0,-1,1.5,'unknown'])assert.throws(()=>check(core,count));
+  const completed=source.indexOf('    assert.equal(code, 0, `Native Core Source fixture failed:',end);
+  const closed=source.indexOf('    break verification;',completed);
+  assert(completed>=0 && closed>completed);
+  const peer=(targets,created,code=0)=>runInNewContext(source.slice(completed,closed),{
+    assert:{equal:assert.equal,deepEqual:(actual,expected)=>
+      assert.deepEqual(actual,JSON.parse(JSON.stringify(expected)))},code,signal:null,
+    bearerServers:{effectTargets:()=>targets,effectCreatedValues:()=>created}});
+  const created=[{Id:'001000000000001AAA',Count__c:3}];
+  peer({reads:3,writes:1},created);
+  for(const targets of [{reads:2,writes:1},{reads:3,writes:0},{reads:3,writes:2}])
+    assert.throws(()=>peer(targets,created));
+  for(const rows of [[],[{Id:'001000000000001AAA',Count__c:4}],[...created,...created]])
+    assert.throws(()=>peer({reads:3,writes:1},rows));
+  assert.throws(()=>peer({reads:3,writes:1},created,1));
+
 });
 
 test('focused retained proposal modes preserve independently authored reads and no writes',()=>{
