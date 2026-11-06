@@ -9,7 +9,6 @@ import {join} from 'node:path';
 import {after, test} from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import {verifyNativeLocalCheckEnvironmentOriginal} from './test-native-local-source-result.mjs';
 
 const executable = process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY ?? fileURLToPath(new URL(
@@ -26,9 +25,12 @@ verifyNativeLocalCheckEnvironmentOriginal(originalEnvironment);
 const sqlite=process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
   crypto=process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY;
 assert.equal(sqlite===undefined,crypto===undefined,'Select both original Host libraries together');
-const libraries=sqlite===undefined?prepareNativeRuntimeBundleLibraries(
-  fileURLToPath(new URL('../',import.meta.url)),join(scratch.path,'components')):
-  {sqliteLibrary:sqlite,cryptoLibrary:crypto};
+// The configured direct CLI uses the same raw Library fixtures as Native Core.
+// Installed launchers instead supply their admitted packaged components below.
+const libraries={
+  sqliteLibrary:sqlite??(process.platform==='darwin'?'/usr/lib/libsqlite3.dylib':'libsqlite3.so.0'),
+  cryptoLibrary:crypto??(process.platform==='darwin'?'/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib':'libcrypto.so.3'),
+};
 await mkdir(join(scratch.path,'managed'),{mode:0o700});
 const permission=(entry_id,resource,operation)=>({entry_id,outcome:'allow',
   principal:{any_of:['operator']},connection:{any_of:['cli']},
