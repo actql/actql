@@ -490,6 +490,37 @@ test "acquired Unit pins its computed original Result target" {
 }
 
 ///|
+test "computed Effect Result is not a physical Source completion" {
+  unknown_effect_capture_controls(
+    effect_operation_source_plan_fixture(same_unit_results=true),
+    same_unit_results=true,
+    check_acquired_evidence=true,
+  )
+}
+
+///|
+test "captured Effect Result retains its original acquired Unit provenance" {
+  unknown_effect_capture_controls(
+    effect_operation_source_plan_fixture(),
+    check_acquired_evidence=true,
+  )
+}
+
+///|
+test "acquired provenance refuses another capture of the SAME Prepared with equal rows" {
+  let plan = effect_operation_source_plan_fixture(same_unit_results=true)
+  let previous = Ref(None)
+  for _ in 0..<2 {
+    unknown_effect_capture_controls(
+      plan,
+      same_unit_results=true,
+      check_acquired_evidence=true,
+      source_identity_history=Some(previous),
+    )
+  }
+}
+
+///|
 test "Ledger codec uses the same grown original unknown-row controls instead of the initial zero-row quote" {
   let original = effect_operation_source_plan_fixture()
   let before = original.operations[0]
@@ -525,6 +556,8 @@ fn unknown_effect_capture_controls(
   plan : ClientInstalledEffectManagedPlan,
   check_codec? : Bool = false,
   same_unit_results? : Bool = false,
+  check_acquired_evidence? : Bool = false,
+  source_identity_history? : Ref[@query.CapturedSourceRelationIdentity?]? = None,
 ) -> Unit raise {
   assert_true(plan.closed_rows is None)
   // Existing fixed policy and explicit transport/current ports. This does not
@@ -595,9 +628,26 @@ fn unknown_effect_capture_controls(
   }
   assert_true(captured_source)
   let source = @row_source_host.capture_row_run(rows).unwrap()
+  let captured_input = @row_source_host.row_capture_source(source).unwrap()
+  let source_identity = if check_acquired_evidence {
+    let limits = original_keyed_content_workspace().export_limits
+    Some(
+      @query.identify_captured_source_relation(
+        captured_input,
+        128,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        limits.max_batch_bytes,
+      ).unwrap(),
+    )
+  } else {
+    None
+  }
   let bound = effect_parent_bound_run(plan.prepared)
   let (host, captured, _) = open_installed_effect_managed_host(owner, bound, [
-      @row_source_host.row_capture_source(source).unwrap(),
+      captured_input,
     ])
     .unwrap()
     .unwrap()
@@ -749,6 +799,102 @@ fn unknown_effect_capture_controls(
     @strategy.captured_effect_inputs_row_inventory(inputs, plan.rows),
     Some(2),
   )
+  if source_identity is Some(identity) {
+    let original = @strategy.captured_effect_local_result_at(inputs, 0).unwrap()
+    assert_eq(@strategy.captured_effect_local_result_stage(original), 0)
+    assert_eq(
+      @strategy.captured_effect_local_result_matches_source(
+        inputs, original, identity,
+      ),
+      !same_unit_results,
+      msg="computed Result custody is distinct from the physical Source completion",
+    )
+    assert_true(
+      @strategy.captured_effect_inputs_acquired_source_matches(
+        inputs, 0, identity,
+      ),
+    )
+    assert_false(
+      @strategy.captured_effect_inputs_acquired_source_matches(
+        inputs, -1, identity,
+      ),
+    )
+    assert_false(
+      @strategy.captured_effect_inputs_acquired_source_matches(
+        inputs, 1, identity,
+      ),
+    )
+    let unit_inputs = @strategy.pin_captured_effect_acquired_unit_results(
+      captured, 0, 2,
+    ).unwrap()
+    let unit_result = @strategy.captured_effect_local_unit_result_at(
+      unit_inputs, 0,
+    ).unwrap()
+    assert_false(
+      @strategy.captured_effect_local_result_matches_source(
+        inputs, unit_result, identity,
+      ),
+    )
+    assert_false(
+      @strategy.captured_effect_local_unit_result_matches_source(
+        unit_inputs, original, identity,
+      ),
+    )
+    assert_eq(
+      @strategy.captured_effect_local_unit_result_matches_source(
+        unit_inputs, unit_result, identity,
+      ),
+      !same_unit_results,
+    )
+    if source_identity_history is Some(history) {
+      if history.val is Some(foreign_identity) {
+        assert_eq(
+          @query.captured_source_relation_logical_cid(foreign_identity),
+          @query.captured_source_relation_logical_cid(identity),
+        )
+        assert_false(
+          @strategy.captured_effect_inputs_acquired_source_matches(
+            inputs, 0, foreign_identity,
+          ),
+        )
+        assert_false(
+          @strategy.captured_effect_local_unit_acquired_source_matches(
+            unit_inputs, foreign_identity,
+          ),
+        )
+      }
+      history.val = Some(identity)
+    }
+    assert_true(
+      @strategy.captured_effect_local_unit_acquired_source_matches(
+        unit_inputs, identity,
+      ),
+    )
+    assert_true(
+      @strategy.release_captured_effect_local_unit_inputs(unit_inputs),
+    )
+    assert_false(
+      @strategy.captured_effect_local_unit_acquired_source_matches(
+        unit_inputs, identity,
+      ),
+    )
+    assert_true(
+      @strategy.captured_effect_inputs_acquired_source_matches(
+        inputs, 0, identity,
+      ),
+    )
+    assert_false(
+      @strategy.captured_effect_local_unit_result_matches_source(
+        unit_inputs, unit_result, identity,
+      ),
+    )
+    assert_eq(
+      @strategy.captured_effect_local_result_matches_source(
+        inputs, original, identity,
+      ),
+      !same_unit_results,
+    )
+  }
   let before = @resources.ledger_usage(ledger)
   let copied = { ..plan, rows: plan.rows, }
   assert_true(
