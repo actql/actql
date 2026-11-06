@@ -448,7 +448,14 @@ const steps = {
       assert.equal(Object.hasOwn(outcome, 'admission'), false);
       return true;
     });
-    assert.deepEqual(await owner.lookupSubmission(submissionRef), outcome);
+    if (process.env.LOOKUP === 'denied') {
+      // Missing Account configuration also withholds the independent Run read.
+      // The original preparation failure never grants a later Journal lookup.
+      await assert.rejects(owner.lookupSubmission(submissionRef),
+        {code: 'ClientConnectionDenied'});
+    } else {
+      assert.deepEqual(await owner.lookupSubmission(submissionRef), outcome);
+    }
     assert.deepEqual((await owner.checkpoints()).items, []);
   },
   async hold() { save('held-' + requestId, await held()); },
@@ -799,10 +806,11 @@ if (!recoveryOnly) {
   await withHost('epoch-replay', {OUTCOME: 'allow'}, started =>
     client(started, 'replayed', ['epoch-replay']));
   assert.deepEqual(await counts('epoch-replay'), ran());
-  for (const [outcome, code] of [['deny', 'ACTQL_E_ACCOUNT_DENIED'],
-    ['missing', 'ACTQL_E_ACCOUNT_CONFIG_INVALID']]) {
+  for (const [outcome, code, lookup] of [
+    ['deny', 'ACTQL_E_ACCOUNT_DENIED', 'allowed'],
+    ['missing', 'ACTQL_E_ACCOUNT_CONFIG_INVALID', 'denied']]) {
     await withHost(outcome, {OUTCOME: outcome}, started =>
-      client(started, 'refused', [`${outcome}-a`], {CODE: code}));
+      client(started, 'refused', [`${outcome}-a`], {CODE: code, LOOKUP: lookup}));
     assert.deepEqual(await counts(outcome), none, outcome);
   }
 
