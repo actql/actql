@@ -11,6 +11,17 @@ import {parseCommands} from './verification-actions.mjs';
 export const nativeRelationWorkTestFile =
   'src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt';
 
+export const nativeNonModelEntryTestFile =
+  'src/platform_native/installed_arena_control/nonmodel_entry_original_physical_scoped_wbtest.mbt';
+
+// These two independent fixtures use the same existing 8192-page backing.
+// All other selected Arena cases retain their original 256-page declarations.
+export function nativeCoreScopedBackingPages(source) {
+  return source === nativeNonModelEntryTestFile || source ===
+    'src/platform_native/installed_arena_control/local_host_crypto_physical_scoped_wbtest.mbt'
+    ? 8192 : 256;
+}
+
 // Keep the established profile prefixes. Only this one new public-API case
 // joins them; its package siblings and client_host retain their prior profile.
 export function nativeCoreScopedAllocationProfile(source) {
@@ -36,6 +47,7 @@ export const nativeScopedTestFiles = Object.freeze([
   'src/platform_native/installed_arena_control/store_wal_original_physical_scoped_wbtest.mbt',
   'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt',
   nativeRelationWorkTestFile,
+  nativeNonModelEntryTestFile,
 ]);
 // These existing credential cases acquire the same real HTTP Client/peer
 // fixture; the rest of credential_resource retains the ordinary write oracle.

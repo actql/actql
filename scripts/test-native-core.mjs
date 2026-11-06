@@ -13,7 +13,7 @@ import {nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-p
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
-import {nativeCoreTestSelection, nativeCoreScopedAllocationProfile,
+import {nativeCoreTestSelection, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
   nativeRelationWorkTestFile} from './native-core-test-selection.mjs';
 import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
 import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
@@ -236,9 +236,7 @@ if (full) {
           : nativeCoreScopedFixture(caseNamespace, {
           cryptoLibrary: components.cryptoLibrary,
           sqliteLibrary: components.sqliteLibrary,
-          backingPages: test.source ===
-            'src/platform_native/installed_arena_control/local_host_crypto_physical_scoped_wbtest.mbt'
-            ? 8192 : 256,
+          backingPages: nativeCoreScopedBackingPages(test.source),
         });
         const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
           '--target-dir', scoped.targetDirectory];

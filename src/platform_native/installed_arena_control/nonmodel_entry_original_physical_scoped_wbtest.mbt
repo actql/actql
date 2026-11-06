@@ -1,0 +1,274 @@
+///|
+// Keep the Read-created entry/copy in this lexical owner. Returning from this
+// helper drops both before the parent Read pair can physically retire.
+fn nonmodel_eligible_original_work(
+  host : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  execution : InstalledArenaRetainedExecution,
+  control_bytes : Int64,
+) -> Bool raise {
+  host
+  .enter_local_host_phase(pair, HostRead)
+  .retained_execution_value("eligible entry: original Read enter")
+  let entry = match
+    host.prepare_domain_nonmodel_work_entry(
+      pair, read, execution, control_bytes, control_bytes,
+    ) {
+    Some(Ok(ReadyNonModelWorkEntry(value))) => value
+    Some(Ok(PendingNonModelWorkEntry(_))) =>
+      fail("eligible entry: original preparation pending")
+    Some(Err(_)) => fail("eligible entry: original preparation refused")
+    None => fail("eligible entry: wrong preparation scope")
+  }
+  let copied = { ..entry, }
+  assert_true(entry.is_original())
+  assert_false(copied.is_original())
+  // The original could cancel in this exact Read cut. A copied projection
+  // must not settle its token, even before either projection has been claimed.
+  assert_false(copied.cancel_unclaimed_in_original_read())
+  assert_true(entry.owns_only_control())
+  assert_false(entry.claimed || entry.finished || entry.settled || entry.closed)
+  host
+  .leave_local_host_phase(pair)
+  .retained_execution_value("eligible entry: original Read leave")
+  host
+  .enter_domain_retained_execution(execution)
+  .retained_execution_value("eligible entry: actual business enter")
+  // Only primitive observations and the preowned Option are used in business.
+  // Assertion messages are deferred until after actual retirement; an
+  // unexpected failed transition remains a failed diagnostic, not a cleanup
+  // ACK or a claim that its error rendering fits the success-only 240B cut.
+  let eligible = host.nonmodel_entry_scopes_match(
+      pair, read, execution, true, false,
+    ) &&
+    entry.owns_only_control() &&
+    @resources.capacity_reservation_matches(
+      entry.ledger,
+      entry.control,
+      control_bytes,
+      control_bytes,
+    ) &&
+    !entry.claimed &&
+    !entry.finished &&
+    !entry.settled &&
+    !entry.closed
+  let copy_refused = copied.take_entered_ledger(
+      execution, control_bytes, control_bytes,
+    )
+    is None
+  let original_unchanged = !entry.claimed &&
+    !entry.finished &&
+    !entry.settled &&
+    !entry.closed &&
+    entry.owns_only_control()
+  let original_taken = match
+    entry.take_entered_ledger(execution, control_bytes, control_bytes) {
+    Some(ledger) => physical_equal(ledger, execution.ledger.unwrap())
+    None => false
+  }
+  let original_reuse_refused = entry.take_entered_ledger(
+      execution, control_bytes, control_bytes,
+    )
+    is None
+  let copied_reuse_refused = copied.take_entered_ledger(
+      execution, control_bytes, control_bytes,
+    )
+    is None
+  let same_control = entry.owns_only_control() &&
+    entry.usage().attempts == 0 &&
+    entry.usage().transferred_bytes == 0L
+  let finished = entry.finish_business_cleanup()
+  host
+  .leave_domain_retained_execution(execution)
+  .retained_execution_value("eligible entry: actual business leave")
+  // This is the existing original C retirement and exact-token settlement,
+  // not a field assignment or caller acknowledgement. Failure stops here.
+  assert_true(entry.close_after_original_return())
+  assert_true(
+    execution.physical_retired && execution.reported && execution.closed,
+  )
+  assert_true(entry.settled && entry.closed && entry.original.val is None)
+  assert_eq(entry.usage().live_reservations, 0)
+  assert_eq(entry.usage().reserved_retention_bytes, 0L)
+  assert_eq(entry.usage().reserved_execution_bytes, 0L)
+  assert_eq(entry.usage().attempts, 0)
+  assert_eq(entry.usage().transferred_bytes, 0L)
+  assert_true(entry.close_after_original_return())
+  eligible &&
+  copy_refused &&
+  original_unchanged &&
+  original_taken &&
+  original_reuse_refused &&
+  copied_reuse_refused &&
+  same_control &&
+  finished
+}
+
+///|
+// Same selected provider and original components as the existing pair and
+// retained-execution diagnostics. This is not a normal installed profile.
+test "eligible copied entry refuses while the same original takes once and physically retires" {
+  let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
+  let sqlite_path = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
+  let page = domain_page_bytes()
+  // Direct arena preparation is H33/R34/S71=1368B; the actual shallow copy
+  // adds H1/R8/S6=128B. Compose before the one-shot consumer admission.
+  let read_entry_bytes = 34L * 16L + 42L * 8L + 77L * 8L
+  assert_eq(read_entry_bytes, 1496L)
+  // Successful direct enter-after-C plus leave-before-C: H8/R4/S10.
+  // This reservation remains open until actual business C retirement.
+  let control_bytes = 8L * 16L + 4L * 8L + 10L * 8L
+  assert_eq(control_bytes, 240L)
+  // Compose the existing pair and retained-execution outer control baselines,
+  // plus the complete claimed-entry close frontier H33/R14/S79. These are
+  // distinct owners, not unexplained spare business capacity. The subset used
+  // here has no Client operation projection; the full frontier is conservative.
+  let outer_entry_bytes = 33L * 16L + 14L * 8L + 79L * 8L
+  assert_eq(outer_entry_bytes, 1272L)
+  let outer_control_bytes = 65536L + 65536L + outer_entry_bytes
+  let read_extent = 7168L * page
+  let sqlite_extent = 64L * page
+  let business_extent = 64L * page
+  let read_limits : @resources.LedgerLimits = {
+    planning_work: 2,
+    attempts: 2,
+    holdings: 2,
+    transfer_bytes: 3L,
+    retained_bytes: 32L * page + read_entry_bytes,
+    execution_bytes: 6144L * page,
+  }
+  let sqlite_limits : @resources.LedgerLimits = {
+    planning_work: 2,
+    attempts: 2,
+    holdings: 1,
+    transfer_bytes: 3L,
+    retained_bytes: 0L,
+    execution_bytes: 48L * page,
+  }
+  let business_limits : @resources.LedgerLimits = {
+    planning_work: 8,
+    attempts: 4,
+    holdings: 2,
+    transfer_bytes: 4096L,
+    retained_bytes: page,
+    execution_bytes: 32L * page,
+  }
+  let read_necessary = @bootstrap.execution_domain_necessary_bytes(
+    read_extent,
+    read_limits.retained_bytes + read_limits.execution_bytes,
+  )
+  let sqlite_necessary = @bootstrap.execution_domain_necessary_bytes(
+    sqlite_extent,
+    sqlite_limits.retained_bytes + sqlite_limits.execution_bytes,
+  )
+  let business_necessary = @bootstrap.execution_domain_necessary_bytes(
+    business_extent,
+    business_limits.retained_bytes + business_limits.execution_bytes,
+  )
+  let backing_control = @bootstrap.command_backing_control_necessary_bytes(
+    8192L * page,
+  ).unwrap()
+  assert_true(read_necessary > 0L && read_necessary <= read_extent)
+  assert_true(sqlite_necessary > 0L && sqlite_necessary <= sqlite_extent)
+  assert_true(business_necessary > 0L && business_necessary <= business_extent)
+  assert_true(
+    backing_control + read_extent + sqlite_extent + business_extent <=
+    8192L * page,
+  )
+  let descriptor = process_test_open(@utf8.encode(root + "/backing\u{0}"), 2)
+  assert_true(descriptor >= 0)
+  let host = prepare_installed_arena_host(
+    "0123456789012345678901234567890123456789",
+    Bytes::make(32, 17),
+    1L,
+    8192L * page,
+    {
+      planning_work: 20,
+      attempts: 8,
+      holdings: 8,
+      transfer_bytes: 65536L,
+      retained_bytes: 0L,
+      execution_bytes: 8192L * page,
+    },
+    outer_control_bytes,
+  ).retained_execution_value("eligible entry: Host")
+  host.acquire_fd(descriptor).retained_execution_value("eligible entry: FD")
+  let backing = host.borrow_backing().unwrap()
+  host.enter_backing_borrow_scope(backing).unwrap()
+  let read_domain = match
+    host.prepare_domain(backing, descriptor, read_extent, read_limits).unwrap() {
+    PreparedDomain(value) => value
+    PendingDomain(_, _) => fail("eligible entry: Read domain pending")
+  }
+  host.transfer_domain(read_domain).unwrap()
+  let sqlite_domain = match
+    host
+    .prepare_domain(backing, descriptor, sqlite_extent, sqlite_limits)
+    .unwrap() {
+    PreparedDomain(value) => value
+    PendingDomain(_, _) => fail("eligible entry: SQLite domain pending")
+  }
+  host.transfer_domain(sqlite_domain).unwrap()
+  let business_domain = match
+    host
+    .prepare_domain(backing, descriptor, business_extent, business_limits)
+    .unwrap() {
+    PreparedDomain(value) => value
+    PendingDomain(_, _) => fail("eligible entry: business domain pending")
+  }
+  host.transfer_domain(business_domain).unwrap()
+  host.leave_backing_borrow_scope(backing).unwrap()
+  host.return_backing_borrow(backing).unwrap()
+  host.prepare_domain_read(read_domain).unwrap()
+  host.prepare_domain_read(sqlite_domain).unwrap()
+  host.prepare_domain_read(business_domain).unwrap()
+  let execution = match
+    host.prepare_domain_retained_execution(business_domain).unwrap() {
+    ReadyRetainedExecution(value) => value
+    PendingRetainedExecution(_, _) =>
+      fail("eligible entry: original execution pending")
+  }
+  let read = match
+    host
+    .prepare_domain_original_read(read_domain, {
+      bootstrap_retained: 16L * page,
+      bootstrap_execution: 16L * page,
+      workspace_execution: 4096L * page,
+      read_retained: 16L * page + read_entry_bytes,
+      read_execution: 1024L * page + read_entry_bytes,
+    })
+    .unwrap() {
+    ReadyOriginalRead(value) => value
+    PendingOriginalRead(_, _) => fail("eligible entry: original Read pending")
+  }
+  let sqlite = match
+    host
+    .prepare_sqlite_library(sqlite_domain, sqlite_path, 32L * page, 128)
+    .unwrap() {
+    ReadySqlite(value) => value
+    PendingSqlite(_, _) => fail("eligible entry: original SQLite pending")
+  }
+  let pair = host.bind_local_host_resources(read, sqlite).unwrap()
+  let consumer = host
+    .prepare_domain_original_read_consumer(
+      read,
+      16L * page + read_entry_bytes,
+      1024L * page + read_entry_bytes,
+    )
+    .unwrap()
+  let proved = nonmodel_eligible_original_work(
+    host, pair, read, execution, control_bytes,
+  )
+  assert_true(consumer.scope == ConsumerScopeLeft)
+  // The distinct business owner must retire its real loan before the Read
+  // pair. This helper has already dropped its Read-created entry and copy.
+  host.close_domain_after_owner_ack(business_domain).unwrap()
+  host.close_local_host_resources(pair).unwrap()
+  assert_true(pair.closed && read.closed && sqlite.closed)
+  host.close_domain_after_owner_ack(read_domain).unwrap()
+  host.close_domain_after_owner_ack(sqlite_domain).unwrap()
+  host.try_close().unwrap()
+  assert_eq(process_test_close(descriptor), 0)
+  assert_true(proved)
+}
