@@ -185,7 +185,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     return record;
   }
   const rows = text => text.trim().split('\n').map(line => JSON.parse(line));
-  let receipt, failure;
+  let receipt, failure, runIngress;
   try {
     for (const path of [prefix, env.HOME, env.TMPDIR, join(root, 'empty-path')]) await mkdir(path);
     await writeFile(join(root, 'npmrc'), `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
@@ -200,6 +200,23 @@ async function observeInstalledSourceFree(input, observationPath) {
     const originalBinary = await readFile(join(platformRoot, 'bin/actql-native-client'));
     assert.equal(originalBinary.length, expected.binaryBytes);
     assert.equal(createHash('sha256').update(originalBinary).digest('hex'), expected.binarySha256);
+    // Reuse this same installed cohort and its actual launcher/runtime. The
+    // Remote-only CLI harness cannot supply the Local preparation constructor.
+    const localRuntime=admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime,
+      expected:{sourceSha:manifest.sourceSha,platform,localRuntimeSha256:artifact.localRuntime.sha256}});
+    runIngress=async()=>{
+      env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER=launcher;
+      env.ACTQL_TEST_NATIVE_CLIENT_BINARY=join(platformRoot,'bin/actql-native-client');
+      for(const [role,key] of [['sqlite','ACTQL_TEST_NATIVE_SQLITE_LIBRARY'],
+        ['crypto','ACTQL_TEST_NATIVE_CRYPTO_LIBRARY']]) {
+        const library=localRuntime.libraries.find(value=>value.role===role);assert(library);
+        env[key]=join(platformRoot,library.path);
+      }
+      const focused=new URL('./test-execution.mjs',import.meta.url).href;
+      const fixture=fileURLToPath(new URL('./test-native-local-cli.test.mjs',import.meta.url));
+      await run(process.execPath,['--input-type=module','-e',
+        `import {runFocusedTests} from ${JSON.stringify(focused)};process.exitCode=runFocusedTests('node',[${JSON.stringify(fixture)}],{cwd:process.cwd(),expectedTests:12});`]);
+    };
     // Node launches only the installed npm entry. Neither it nor the Native child
     // can discover a compiler, a repository executable, a provider or a Node Host.
     env.PATH = join(root, 'empty-path');
@@ -233,21 +250,6 @@ async function observeInstalledSourceFree(input, observationPath) {
     }
     await cli(['result', state.run_id, '--format', 'jsonl', '--output', 'saved.jsonl']);
     assert.deepEqual(rows(await readFile(join(project, 'saved.jsonl'), 'utf8')), [{id: 1}]);
-    // Reuse this same installed cohort and its actual launcher/runtime. The
-    // Remote-only CLI harness cannot supply the Local preparation constructor.
-    const localRuntime=admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime,
-      expected:{sourceSha:manifest.sourceSha,platform,localRuntimeSha256:artifact.localRuntime.sha256}});
-    env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER=launcher;
-    env.ACTQL_TEST_NATIVE_CLIENT_BINARY=join(platformRoot,'bin/actql-native-client');
-    for(const [role,key] of [['sqlite','ACTQL_TEST_NATIVE_SQLITE_LIBRARY'],
-      ['crypto','ACTQL_TEST_NATIVE_CRYPTO_LIBRARY']]) {
-      const library=localRuntime.libraries.find(value=>value.role===role);assert(library);
-      env[key]=join(platformRoot,library.path);
-    }
-    const focused=new URL('./test-execution.mjs',import.meta.url).href;
-    const fixture=fileURLToPath(new URL('./test-native-local-cli.test.mjs',import.meta.url));
-    await run(process.execPath,['--input-type=module','-e',
-      `import {runFocusedTests} from ${JSON.stringify(focused)};process.exitCode=runFocusedTests('node',[${JSON.stringify(fixture)}],{cwd:process.cwd(),expectedTests:12});`]);
     assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), originalBinary);
     assert.deepEqual(checkoutState(repository), source);
     receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
@@ -259,6 +261,14 @@ async function observeInstalledSourceFree(input, observationPath) {
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
   } catch (error) { failure = error; }
+  // Independent Local controls share only the verified installed cohort. A
+  // business-case failure cannot hide their result, and either failure rejects
+  // the consumer before its existing registry/physical cleanup certification.
+  if(runIngress) {
+    try {await runIngress();}
+    catch(error) {failure=failure===undefined?error:
+      new AggregateError([failure,error],'Installed Local execution and ingress failed');}
+  }
   await finishSourceFreeObservations(receipt, failure, {
     close: () => registry.close(),
     saveObserved: value => writeFile(observationPath,

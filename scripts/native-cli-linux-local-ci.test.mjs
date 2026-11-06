@@ -70,4 +70,6 @@ test('mandatory Local installation retains ingress controls on its actual instal
   }
   assert(!transport.includes("import('./test-native-local-cli.test.mjs')"));
   assert(!fixture.includes('prepareNativeRuntimeBundleLibraries'));
+  assert(installed.indexOf('if(runIngress)')>installed.indexOf('} catch (error) { failure = error; }'));
+  assert(installed.includes("new AggregateError([failure,error],'Installed Local execution and ingress failed')"));
 });
