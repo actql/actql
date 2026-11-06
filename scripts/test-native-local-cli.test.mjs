@@ -30,15 +30,22 @@ const libraries=sqlite===undefined?prepareNativeRuntimeBundleLibraries(
   fileURLToPath(new URL('../',import.meta.url)),join(scratch.path,'components')):
   {sqliteLibrary:sqlite,cryptoLibrary:crypto};
 await mkdir(join(scratch.path,'managed'),{mode:0o700});
+const permission=(entry_id,resource,operation)=>({entry_id,outcome:'allow',
+  principal:{any_of:['operator']},connection:{any_of:['cli']},
+  resource:{any_of:[resource]},operation:{any_of:[operation]},exclusions:[]});
 await writeFile(join(scratch.path,'account.json'),JSON.stringify({
-  version:'actql-execution-account-config/0.1',account_id:'operator',entries:[],
+  version:'actql-execution-account-config/0.1',account_id:'operator',entries:[
+    permission('submit','run','submit'),permission('run-read','run','read'),
+    permission('result-read','result/answer','read')],
 })+'\r\n');
 const configuration=JSON.parse(await readFile(join(scratch.path,'actql.config.json'),'utf8'));
 configuration.account_config='account.json';
 configuration.native.local={account_id:'operator',principal:'operator',connection:'cli',
   state_parent:scratch.path,state_name:'host',managed_root:join(scratch.path,'managed'),
   sqlite_library:libraries.sqliteLibrary,signature_library:libraries.cryptoLibrary,
-  submission_ttl_ms:60000,journal_record_limit:8,journal_snapshot_bytes:8388608};
+  submission_ttl_ms:60000,journal_record_limit:8,journal_snapshot_bytes:8388608,
+  installation_files:['run-installation.json','read-installation.json'],
+  run_file:'run-installation.json',read_file:'read-installation.json'};
 const originalConfiguration=Buffer.from(JSON.stringify(configuration)+'\r\n');
 await writeFile(join(scratch.path,'actql.config.json'),originalConfiguration);
 const adopted=runNative(['--mode','local','--config-root',scratch.path,
@@ -189,3 +196,40 @@ test('Native Local human preparation output does not claim Run acceptance', () =
   assert.equal(outcome.report.verdict,'verified');
   assert.equal(result.stdout.includes('"id"'), false);
 });
+
+// These are the independently authored 101/1000-row controls used by the
+// compilation/explain whitebox case, now driven through the actual CLI Host.
+for (const count of [101,1000]) {
+  test(`Native Local explains and publishes all authored ${count} rows within original read bounds`, async()=>{
+    const document={version:'actql/0.1',id:'cli-static-chain',stages:[{id:'main',inputs:{},
+      steps:[{values:{schema:{id:{type:'number',nullable:false}},
+        rows:Array.from({length:count},(_,id)=>({id}))},as:'original'},
+        {from:'original',filter:'id > 1',as:'filtered'},
+        {from:'filtered',select:['id'],as:'selected'}],
+      results:{rows:{from:'selected',fields:['id']}}}],
+      results:{answer:{from:{stage:'main',result:'rows'}}}};
+    const file=`authored-${count}.json`;
+    await writeFile(join(scratch.path,file),JSON.stringify(document));
+    const invoke=args=>runNative(['--mode','local','--config-root',scratch.path,
+      '--config-file','actql.config.json',...args]);
+    const success=result=>{assert.equal(result.status,0,result.stderr);return JSON.parse(result.stdout);};
+    const explanation=success(invoke(['explain','--program-file',file,'--format','json','--json']));
+    assert.equal(explanation.version,'actql-plan-view/0.1');
+    assert.equal(explanation.provider_io,0);
+    const submission=success(invoke(['new-submission','--request-id',`authored-${count}`]));
+    const submissionFile=`submission-${count}.json`,refFile=`run-${count}.json`;
+    await writeFile(join(scratch.path,submissionFile),JSON.stringify(submission));
+    const published=success(invoke(['start','--program-file',file,'--submission-ref-file',
+      submissionFile,'--operation-attempt-id',`start-${count}`]));
+    assert.equal(published.kind,'local_run_published');
+    assert.deepEqual(published.resultNames,['answer']);
+    await writeFile(join(scratch.path,refFile),JSON.stringify(published.ref));
+    const delivered=invoke(['read','--submission-ref-file',submissionFile,'--ref-file',refFile,
+      '--result-name','answer','--purpose','inspection','--format','jsonl',
+      '--attempt-id',`read-${count}`,'--max-output-bytes','65536']);
+    assert.equal(delivered.status,0,delivered.stderr);
+    assert(Buffer.byteLength(delivered.stdout)<=65536);
+    assert.deepEqual(delivered.stdout.trimEnd().split('\n').map(line=>JSON.parse(line)),
+      Array.from({length:count-2},(_,index)=>({id:index+2})));
+  });
+}
