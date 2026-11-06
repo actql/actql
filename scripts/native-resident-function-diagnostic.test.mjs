@@ -271,11 +271,17 @@ test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized 
   assert.equal(original['continue-on-error'], undefined);
   assert(original.run.includes('node scripts/test-native-resident-site.mjs'));
   const dependencies = jobs.native.steps.find(step => step.name === 'Select the original pinned Noble static Crypto inputs');
-  assert(dependencies.run.includes('sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv gdb'));
+  assert(dependencies.run.includes('sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv'));
+  assert(!/\bgdb\b/u.test(dependencies.run));
   const diagnostic = jobs.native.steps.find(step => step.name === 'Diagnose only failed Linux Effect consumer functions');
   assert.equal(diagnostic.if, "${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}");
   assert.equal(diagnostic['continue-on-error'], true);
   assert.equal(diagnostic['timeout-minutes'], 6);
+  const debuggerSetup = jobs.native.steps.find(step => step.id === 'native-debugger');
+  assert.equal(debuggerSetup.if, diagnostic.if);
+  assert.equal(debuggerSetup['continue-on-error'], true);
+  assert.equal(debuggerSetup['timeout-minutes'], 5);
+  assert.equal(debuggerSetup.run, 'sudo apt-get install --yes --no-install-recommends gdb');
   assert(diagnostic.run.includes('ulimit -S -s 65536'));
   const helper = readFileSync(new URL('./diagnose-native-resident-functions.mjs', import.meta.url), 'utf8');
   assert(helper.includes('timeoutSeconds: 295, graceSeconds: 5'));
