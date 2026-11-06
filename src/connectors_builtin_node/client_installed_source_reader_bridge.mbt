@@ -405,25 +405,11 @@ fn installed_salesforce_describe_source_geometry(
   body : Bytes,
   limits : Array[Int],
 ) -> @source.JsonSourceGeometry? {
-  if body.length() > limits[0] {
-    return None
-  }
-  let text = @utf8.decode(body[:], ignore_bom=false) catch { _ => return None }
-  let preflight = match
-    @source.start_json_source_preflight(text, {
-      max_input_bytes: limits[0],
-      max_nodes: limits[1],
-      max_depth: limits[2],
-    }) {
-    Ok(value) => value
-    Err(_) => return None
-  }
-  defer @source.cancel_json_source_preflight(preflight)
-  for tick = 0 {
-    match @source.advance_json_source_preflight(preflight, 4096) {
-      Ok(JsonSourceContinue(..)) => continue tick + 1
-      Ok(JsonSourceReady(geometry, ..)) => break Some(geometry)
-      _ => break None
-    }
-  }
+  @salesforce_host.named_describe_response_geometry(body, {
+    max_bytes: limits[0],
+    max_nodes: limits[1],
+    max_depth: limits[2],
+    max_fields: limits[3],
+    max_name_units: limits[4],
+  })
 }

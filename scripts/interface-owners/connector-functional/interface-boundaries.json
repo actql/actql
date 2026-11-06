@@ -21811,7 +21811,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "34579ab00dd39c2d1c0ff42e43dce0b83b7267c03c7f8915c998d61986acd3cc",
+      "sha256": "8482cfae94135227efe9adf3682ed7417852d55eea0f74b9b00e62ded7e06869",
       "contracts": [
         {
           "operations": [
@@ -23157,7 +23157,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-plan.mjs",
-      "sha256": "8abd2134e5893000fb7c47dd0a16a56d83fcc205ea2134560ff07c536a2cde07",
+      "sha256": "26e3257f944a253613f3f48ffc4ee21a611e4b891d4000f903d382be569fa0df",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -23248,7 +23248,8 @@
         {
           "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/responseExtent/responseExtent",
           "parameters": [
-            "bytes"
+            "bytes",
+            "originalBody"
           ],
           "async": false
         },
@@ -23354,6 +23355,10 @@
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "bounded cumulatively"
+              },
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "### Current Describe construction geometry"
               }
             ],
             "extension": [
@@ -23366,6 +23371,10 @@
               {
                 "path": "adapters/connectors/salesforce/test/effect-target-read-inventory.test.mjs",
                 "anchor": "Salesforce managed recipes retain original native profiles"
+              },
+              {
+                "path": "src/connectors/salesforce/host_node/effect_recipe_wbtest.mbt",
+                "anchor": "test \"current Effect metadata uses original Source geometry within the unchanged normal parent\""
               }
             ]
           }
