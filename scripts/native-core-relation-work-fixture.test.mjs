@@ -135,10 +135,10 @@ function configuration(root) {
 
 test('Native relation refusal modes preserve canonical inputs except the exact Source Account change', () => {
   const expected = ['positive', 'run-only', 'wrong-connection', 'wrong-resource',
-    'short-capacity', 'foreign-declaration', 'wrong-selection'];
+    'short-capacity', 'foreign-declaration', 'wrong-selection', 'source-incomplete'];
   assert.deepEqual(nativeRelationWorkModes, expected);
   assert(Object.isFrozen(nativeRelationWorkModes));
-  for (const mode of ['positive', 'short-capacity', 'foreign-declaration', 'wrong-selection'])
+  for (const mode of ['positive', 'short-capacity', 'foreign-declaration', 'wrong-selection', 'source-incomplete'])
     assert.equal(nativeRelationWorkInputVariant(mode), 'positive');
   for (const mode of ['run-only', 'wrong-connection', 'wrong-resource'])
     assert.equal(nativeRelationWorkInputVariant(mode), mode);
@@ -191,4 +191,74 @@ test('Native relation backing refuses foreign aliases, broad roots, and partial 
   rmSync(join(root, 'account.json'));
   assert.throws(() => provisionNativeRelationBacking(root));
   assert.equal(existsSync(join(root, 'backing')), false);
+});
+
+test('one-phase Source stop proves acquired failure through the original first-start path', () => {
+  const native = readFileSync(new URL('../src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt', import.meta.url), 'utf8');
+  const work = readFileSync(new URL('../src/platform_native/client_host/local_relation_file_work.mbt', import.meta.url), 'utf8');
+  const capture = readFileSync(new URL('../src/platform_native/row_source/capture.mbt', import.meta.url), 'utf8');
+  const position = (source, marker, from = 0) => {
+    const index = source.indexOf(marker, from);
+    assert(index >= 0, `Missing ordered marker: ${marker}`);
+    return index;
+  };
+  const ordered = (source, markers) => {
+    let previous = -1;
+    for (const marker of markers) {
+      const next = position(source, marker, previous + 1);
+      assert(next > previous, `Out-of-order marker: ${marker}`);
+      previous = next;
+    }
+  };
+  const between = (source, first, last) => {
+    const start = position(source, first);
+    const end = position(source, last, start + first.length);
+    assert(end > start, `Invalid source slice: ${first}`);
+    return source.slice(start, end);
+  };
+  const failureStart = '        Err(failure) => {\n          escaped_failure.val = Some(failure)\n          // Retain the original refusal';
+  const failureEnd = '      assert_eq(original_entry.usage().live_reservations, 1)';
+  const cleanupStart = '    if prepared_entry.val is Some(original_entry)';
+  const verify = (native, work, capture) => {
+    assert(/64,\s*if mode == "source-incomplete" \{\s*1\s*\} else \{\s*100000\s*\}/u.test(native));
+    const failBranch = between(native, failureStart, failureEnd);
+    assert.match(failBranch, /mode == "source-incomplete" \{[\s\S]*?assert_true\(failure.issue\(\) is Configuration\)[\s\S]*?assert_eq\(original_entry.usage\(\).attempts, 1\)/u);
+    assert.equal((failBranch.match(/failure\.close\(\)/gu) ?? []).length, 2);
+    const firstClose = position(failBranch, 'if !failure.close()');
+    const secondClose = position(failBranch, 'if !failure.close()', firstClose + 1);
+    const afterClose = failBranch.slice(secondClose);
+    assert.match(afterClose, /mode == "source-incomplete" \{[\s\S]*?assert_true\(failure.issue\(\) is Configuration\)[\s\S]*?assert_eq\(original_entry.usage\(\).attempts, 1\)/u);
+    assert.match(afterClose, /assert_eq\(original_entry.usage\(\).transferred_bytes, 0L\)/u);
+    ordered(work, ['let start = match access.claim()', 'access.require_start_current(start)',
+      '@row_file.prepare_native_relation_file_capture(', 'for _ in 0..<max_rounds',
+      'source.advance(quantum)', 'if !complete {', 'Configuration,']);
+    const open = between(capture, 'fn NativeRelationFileCapture::open_file(',
+      'fn NativeRelationFileCapture::read_chunk(');
+    ordered(open, ['begin_row_run_response_attempt', 'observation.open_reader_with_custody()',
+      'self.reader = Some(reader)', 'self.phase = Reading']);
+    assert.match(capture, /Prepared => self.open_file\(\)/u);
+    assert.match(capture, /Ok\(self.phase is Captured\)/u);
+    // Source-shape evidence only. The actual case must independently prove
+    // alias-held refusal, child cleanup and same-original physical retirement.
+    const cleanup = native.slice(position(native, cleanupStart));
+    ordered(cleanup, ['assert_false(original_entry.close_after_original_return())',
+      'escaped_failure.val = None', 'if !original_entry.close_after_original_return()',
+      'assert_eq(closed.live_reservations, 0)']);
+  };
+  verify(native, work, capture);
+  // Removal cannot pass via indexOf's -1 sentinel; reordered markers also fail.
+  for (const marker of ['let start = match access.claim()', 'access.require_start_current(start)',
+    '@row_file.prepare_native_relation_file_capture(', 'for _ in 0..<max_rounds',
+    'source.advance(quantum)', 'if !complete {', 'Configuration,'])
+    assert.throws(() => verify(native, work.replaceAll(marker, ''), capture));
+  for (const marker of ['fn NativeRelationFileCapture::open_file(',
+    'fn NativeRelationFileCapture::read_chunk(', 'begin_row_run_response_attempt',
+    'observation.open_reader_with_custody()', 'self.reader = Some(reader)', 'self.phase = Reading'])
+    assert.throws(() => verify(native, work, capture.replaceAll(marker, '')));
+  for (const marker of [failureStart, failureEnd, 'if !failure.close()', cleanupStart,
+    'assert_false(original_entry.close_after_original_return())', 'escaped_failure.val = None',
+    'if !original_entry.close_after_original_return()', 'assert_eq(closed.live_reservations, 0)'])
+    assert.throws(() => verify(native.replaceAll(marker, ''), work, capture));
+  assert.throws(() => ordered('second first', ['first', 'second']));
+  assert.throws(() => between('last first', 'first', 'last'));
 });

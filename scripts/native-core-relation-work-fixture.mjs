@@ -17,10 +17,11 @@ const emitterKeys = ['ACTQL_TEST_NATIVE_RELATION_ENVIRONMENT_OUTPUT',
   'ACTQL_TEST_NATIVE_RELATION_BASELINE_ASSETS_OUTPUT', 'ACTQL_TEST_NATIVE_RELATION_CONFIGURATION_INPUTS'];
 export const nativeRelationWorkBackingBytes = 768 * 1024 ** 2;
 export const nativeRelationWorkModes = Object.freeze(['positive', 'run-only',
-  'wrong-connection', 'wrong-resource', 'short-capacity', 'foreign-declaration', 'wrong-selection']);
+  'wrong-connection', 'wrong-resource', 'short-capacity', 'foreign-declaration', 'wrong-selection',
+  'source-incomplete']);
 
-// These last three refusals are made by the actual Native owner, not by
-// malformed configuration. Preserve the ordinary canonical setup bytes.
+// Non-Account refusals and the acquired-Source stop use the actual Native
+// owner with ordinary canonical setup bytes, never malformed configuration.
 export function nativeRelationWorkInputVariant(mode) {
   assert(nativeRelationWorkModes.includes(mode), 'Unknown Native relation Work mode');
   return ['run-only', 'wrong-connection', 'wrong-resource'].includes(mode) ? mode : 'positive';

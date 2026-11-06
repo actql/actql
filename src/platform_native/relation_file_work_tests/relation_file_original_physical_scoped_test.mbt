@@ -833,7 +833,11 @@ fn relation_original_run(
           requirements,
           "original-relation-source",
           64,
-          100000,
+          if mode == "source-incomplete" {
+            1
+          } else {
+            100000
+          },
         ) {
         Ok(work) => {
           escaped_work.val = Some(work)
@@ -931,6 +935,18 @@ fn relation_original_run(
             )
           } else if mode == "short-capacity" {
             assert_true(failure.issue() is Configuration)
+          } else if mode == "source-incomplete" {
+            // This is a normal bounded caller stop after an acquired Source,
+            // not a fault port. Claim/current must precede Source preparation.
+            // One successful Prepared phase acquires the real Reader and
+            // reaches Reading; it cannot finish capture in that same call.
+            // A failed open would be RelationFile, while earlier Configuration
+            // refusals cannot have consumed this original Source attempt.
+            assert_true(failure.issue() is Configuration)
+            assert_eq(original_entry.usage().attempts, 1)
+            assert_eq(original_entry.usage().transferred_bytes, 0L)
+            assert_eq(original_entry.usage().reserved_attempts, 0)
+            assert_true(original_entry.usage().live_reservations > 1)
           } else if mode == "foreign-declaration" {
             // The original acquisition check denies current before claim.
             assert_true(
@@ -951,7 +967,14 @@ fn relation_original_run(
             raise Failure(relation_return_work_label(failure.issue()))
           }
           if mode != "positive" {
-            assert_eq(original_entry.usage().attempts, 0)
+            if mode == "source-incomplete" {
+              // Same failure, no reopen or replay: child close retains both
+              // the original issue and the spent first Source attempt.
+              assert_true(failure.issue() is Configuration)
+              assert_eq(original_entry.usage().attempts, 1)
+            } else {
+              assert_eq(original_entry.usage().attempts, 0)
+            }
             assert_eq(original_entry.usage().transferred_bytes, 0L)
           }
         }
@@ -1132,6 +1155,9 @@ test "actual original Account Journal StoreOperation captures relation and execu
   // The fixture export-limit projection adds360 before business entry.
   // Immutable API arguments (Limits+Page+fragment Some) add128 in Read;
   // no argument construction precedes the wrong-scope primitive refusal.
+  // source-incomplete adds only primitive/borrowed observations and uses
+  // the already-owned Source failure/cleanup branch. Its one-phase argument
+  // reduces work, not capacity; the exact original quotas stay unchanged.
   // The live Work return/reentry adds Read H314/R121/S578 (10616 bytes);
   // its business H86/R23/S149 is in the exact Work control token.
   let read_addition = source_preparation +
