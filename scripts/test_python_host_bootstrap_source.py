@@ -68,9 +68,26 @@ class SourceClosureTests(unittest.TestCase):
 
     def test_source_closure_does_not_claim_physical_or_installed_success(self):
         result = self.check()
-        self.assertEqual(result['verified_inputs'], 26)
+        self.assertEqual(result['verified_inputs'], 29)
         self.assertEqual(result['native_execution'], 0)
         self.assertIs(result['installed_capability'], False)
+
+    def test_request_original_carriers_cannot_be_omitted(self):
+        for required in (
+            'src/platform_native/host_bootstrap/backed_live_child_native.mbt',
+            'src/platform_native/host_bootstrap/backed_request_preparation_native.mbt',
+            'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt',
+        ):
+            with self.subTest(path=required):
+                self.assertIn(required, INPUTS)
+                original = self.manifest['inputs']
+                self.manifest['inputs'] = [entry for entry in original
+                                           if entry['path'] != required]
+                self.write_manifest()
+                with self.assertRaisesRegex(ValueError, 'source manifest'):
+                    self.check()
+                self.manifest['inputs'] = original
+                self.write_manifest()
 
     def test_extent_work_observer_cannot_be_omitted(self):
         required = 'src/platform_native/host_bootstrap/extent_work_native.mbt'

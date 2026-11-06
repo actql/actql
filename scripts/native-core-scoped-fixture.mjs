@@ -8,6 +8,7 @@ import {isAbsolute, join} from 'node:path';
 
 const namedBackingFiles = Object.freeze([
   'initialization-original.backing', 'initialization-budget-refused.backing',
+  'request-original.backing', 'request-run-transfer.backing', 'request-unstarted.backing',
   'consumer-current.backing', 'consumer-managed-graph.backing',
   'consumer-alias.backing', 'consumer-usage-alias.backing',
   'consumer-serial.backing', 'consumer-entry-first.backing',

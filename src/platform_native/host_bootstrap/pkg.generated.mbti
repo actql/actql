@@ -105,6 +105,11 @@ pub(all) enum NativeBackedReadScope {
   BackedReadEntered
 } derive(Eq, @debug.Debug)
 
+pub(all) enum NativeBackedRequestPreparationIssue {
+  Domain(NativeBackedExecutionIssue)
+  Child(@physical_resources.ImportedChildLedgerIssue)
+}
+
 pub(all) enum NativeBackedViewAcquisition[T, C] {
   Mapped(NativeBackedExecutionView[T, C])
   PendingView(NativeBackedExecutionView[T, C], NativeBackedExecutionIssue)
@@ -175,6 +180,7 @@ pub fn[T, C] NativeHostBootstrap::close_backed_domain(Self[T], T, NativeBackedEx
 pub fn[T, C, I] NativeHostBootstrap::close_backed_preparation(Self[T], T, NativeBackedLiveChild[T, C, I]) -> Result[Unit, NativeBackedInitializationIssue]
 pub fn[T, C] NativeHostBootstrap::close_backed_read_context(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::close_backed_region(Self[T], T, NativeBackedExecutionRegion[T, C]) -> Result[Bool, NativeBackedExecutionIssue]
+pub fn[T, C, I] NativeHostBootstrap::close_backed_request_preparation(Self[T], T, NativeBackedLiveChild[T, C, I]) -> Result[Unit, NativeBackedRequestPreparationIssue]
 pub fn[T, C] NativeHostBootstrap::close_backed_view(Self[T], T, NativeBackedExecutionView[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::delegate(Self[T], T, @physical_resources.LedgerLimits) -> Result[NativeBootstrapDelegation[T], NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::enter_backed_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
@@ -206,6 +212,8 @@ pub fn[T, C, I] NativeHostBootstrap::prepare_backed_original_initialization_admi
 pub fn[T, C, R] NativeHostBootstrap::prepare_backed_original_read_ledger(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[@physical_resources.ImportedChildLedger, NativeBackedOriginalReadIssue]
 pub fn[T, C] NativeHostBootstrap::prepare_backed_read_context(Self[T], T, NativeBackedExecutionDomain[T, C], C, execution_ceiling? : Int64) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::prepare_backed_read_live_child(Self[T], T, NativeBackedExecutionDomain[T, C], C, R) -> Result[NativeBackedLiveChildAcquisition[T, C, R], NativeBackedExecutionIssue]
+pub fn[T, C, I] NativeHostBootstrap::prepare_backed_request_admission(Self[T], T, NativeBackedLiveChild[T, C, I], I) -> Result[@physical_resources.BackedPreparationAdmission[I], NativeBackedRequestPreparationIssue]
+pub fn[T, C, I] NativeHostBootstrap::prepare_backed_request_live_child(Self[T], T, NativeBackedExecutionDomain[T, C], C, I) -> Result[NativeBackedLiveChildAcquisition[T, C, I], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::prepared_process_region_descriptor(Self[T], T, NativeBackedProcessRegion[T, C]) -> Result[Int, NativeBackedProcessRegionIssue]
 pub fn[T, C] NativeHostBootstrap::project_backed_extent(Self[T], T, NativeBackedExecutionLoan[T, C], C) -> Result[NativeBackedExtentTransport, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::project_prepared_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativePreparedDomainTransport, NativeBackedExecutionIssue]

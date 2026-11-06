@@ -41,6 +41,9 @@ INPUTS = (
     'src/platform_native/host_bootstrap/read_cleanup_observation_native.mbt',
     'src/platform_native/host_bootstrap/extent_work_native.mbt',
     'src/platform_native/host_bootstrap/domain_inventory_native.mbt',
+    'src/platform_native/host_bootstrap/backed_live_child_native.mbt',
+    'src/platform_native/host_bootstrap/backed_request_preparation_native.mbt',
+    'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt',
 )
 MANIFEST = 'packages/python-local-runtime/native/pre-root/host-bootstrap-source.json'
 

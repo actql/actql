@@ -276,6 +276,8 @@ pub fn holding_belongs_to(Ledger, Holding) -> Bool
 
 pub fn holding_serial(Holding) -> Int
 
+pub fn imported_child_retirement_readiness(ImportedChildLedger) -> Result[Bool, ImportedChildLedgerIssue]
+
 pub fn[P, C, R] issue_backed_execution_live_access(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], BackedExecutionReadUse[P, C], R) -> Result[BackedExecutionLiveAccess[P, C, R], BackedExecutionIssue]
 
 pub fn[P, C] issue_backed_execution_original_data(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[BackedExecutionOriginalData, BackedExecutionIssue]
