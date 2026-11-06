@@ -63,5 +63,5 @@ export const distinctJoinOrderExecutionFailures = [{
   name: 'distinct-join-order-demanded-sort-failure', format: 'sql',
   text: 'SELECT DISTINCT -l.amount AS amount ' + joined
     + ' WHERE l.id > 0 ORDER BY 1 / (amount + 2)',
-  sourceRows, sourceReadSessionCount: 1, resultNames: ['answer'],
+  sourceRows, sourceReadSessionCount: 1, resultNames: ['main'],
 }];

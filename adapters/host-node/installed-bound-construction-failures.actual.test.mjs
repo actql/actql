@@ -590,6 +590,7 @@ test('pure Environment failure debt survives sibling reconciliation and changes 
   const {loadInstalledBigQuerySource} = await import('../connectors/bigquery/host/installed-bigquery-source.mjs');
   const base = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
   let derivedDelta, probeQuantity, probeBytes;
+  const probePrefixes = [];
   const contains = (error, expected) => {
     const pending = [error], seen = new Set();
     while (pending.length) {
@@ -601,7 +602,8 @@ test('pure Environment failure debt survives sibling reconciliation and changes 
     return false;
   };
   async function probe(failed) {
-    const f = await boundConstructionActualFixture(t);
+    const capacityEvents = [];
+    const f = await boundConstructionActualFixture(t, {capacityEvents});
     const nativeQuote = (n, text, wire) => checked(f.moon.clientProgramInstalledSourceConstructionCapacity(n, text, wire, 0n, 0n, 0n));
     const bytes = value => runtimeField(f.moon.clientProgramSerializationCapacityBytes(
       checked(f.moon.clientProgramComposeInstalledSourceConstructionCapacity(nativeQuote(0n, 0n, 0n), [value]))), 1);
@@ -648,18 +650,24 @@ test('pure Environment failure debt survives sibling reconciliation and changes 
     assert.ok(delta > 0n);
     // Reconcile after failure on the same original parent with a real sibling.
     await f.load(await f.profile());
-    // A bounded diagnostic established a success threshold of
-    // [408 MiB, 410 MiB] for this matched fixture under the unchanged normal
-    // parent. Choose half the derived debt below its admitted lower bound,
-    // not a new runtime limit or a permanent capacity-search loop.
-    probeBytes ??= 408n * 1024n * 1024n - derivedDelta / 2n;
-    assert.ok(probeBytes > 0n);
-    probeQuantity ??= nativeQuote(0n, 0n, probeBytes);
     const probeDone = new Error('ActualProbeAdmitted');
     let entered = 0;
     const probeTable = faultyBigQuery(async (_profile, {construction}) => {
       construction.prepareNativeDeclaration(Object.freeze({
-        capacity() {return probeQuantity;},
+        capacity() {
+          // Use the actual completed prefix immediately before this original
+          // reserve. The old empirical 408-MiB offset is invalid when an
+          // earlier sibling legitimately retires its own closed workspace.
+          const prefix = capacityEvents.at(-1);
+          assert.equal(prefix.operation, 'clientProgramReconcileInstalledSourceConstruction');
+          assert.equal(prefix.accepted, true);
+          assert.equal(prefix.retained, prefix.peak);
+          probePrefixes.push(prefix.peak);
+          probeBytes ??= 536870912n - prefix.peak - derivedDelta / 2n;
+          assert.ok(probeBytes > 0n);
+          probeQuantity ??= nativeQuote(0n, 0n, probeBytes);
+          return probeQuantity;
+        },
         project() {entered++; throw probeDone;},
       }));
     });
@@ -674,6 +682,8 @@ test('pure Environment failure debt survives sibling reconciliation and changes 
   }
   assert.equal(await probe(false), true);
   assert.equal(await probe(true), false);
+  assert.equal(probePrefixes[1] - probePrefixes[0], derivedDelta,
+    'only the complete independently derived pure failure debt differs');
   t.diagnostic(JSON.stringify({pureEnvironmentDebtBytes: String(derivedDelta),
     sameNativeProbeBytes: String(probeBytes)}));
 });

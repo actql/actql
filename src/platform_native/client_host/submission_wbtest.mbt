@@ -266,6 +266,12 @@ test "Native original Submission has explicit finite custody and never repairs m
     )
     is Err(CapacityExceeded),
   )
+  let issuance = database
+    .read("client_submitted_intent_custody", "issued")
+    .unwrap()
+  let usage = database
+    .read("client_submitted_intent_usage", "retained")
+    .unwrap()
   let namespace_bytes = @utf8.encode("client_submitted_intents")
   let key = @utf8.encode(reference.request_id)
   assert_true(
@@ -279,13 +285,13 @@ test "Native original Submission has explicit finite custody and never repairs m
   )
   assert_true(
     journal.lookup_submitted_intent(authority, reference, scope, true, 1003.0)
-    is Err(CustodyLost),
+    is Ok(UnresolvedSubmissionHistory),
   )
   assert_true(
     journal.record_submitted_intent(
       authority, reference, original, scope, true, 1003.0,
     )
-    is Err(CustodyLost),
+    is Err(CapacityExceeded),
   )
   let library = @sqlite.load_library(
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
@@ -299,6 +305,20 @@ test "Native original Submission has explicit finite custody and never repairs m
   assert_eq(
     database.read("client_submitted_intent_custody", "issued").unwrap().body,
     b"1",
+  )
+  let unchanged_issuance = database
+    .read("client_submitted_intent_custody", "issued")
+    .unwrap()
+  let unchanged_usage = database
+    .read("client_submitted_intent_usage", "retained")
+    .unwrap()
+  assert_eq(unchanged_issuance.body, issuance.body)
+  assert_eq(unchanged_issuance.revision, issuance.revision)
+  assert_eq(unchanged_usage.body, usage.body)
+  assert_eq(unchanged_usage.revision, usage.revision)
+  assert_true(
+    database.read("client_submitted_intents", reference.request_id)
+    is Err(@sqlite.NotFound),
   )
   database.close_checked().unwrap()
 }

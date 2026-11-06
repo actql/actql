@@ -64,6 +64,23 @@ test "true strict property guards refine the same original Object receivers only
     assert_true(@schema.all_fields_required(output))
     assert_eq(@relation_typing.form(checked), Predicate)
   }
+  // The leaf itself may also be nullable. A TRUE strict comparison proves
+  // that same leaf and its receivers non-null independently of row values.
+  let nullable_leaf = @relation_typing.check(
+    Filter,
+    cursor("\"risk.value.unrelated > 'a'\""),
+    input,
+    None,
+    limits(),
+  ).unwrap()
+  let refined = property_guard_value(
+    @relation_typing.output_schema(nullable_leaf),
+  )
+  assert_false(refined.nullable)
+  assert_false(property_guard_child(refined, "unrelated").nullable)
+  assert_true(
+    property_guard_child(property_guard_value(input), "unrelated").nullable,
+  )
 }
 
 ///|

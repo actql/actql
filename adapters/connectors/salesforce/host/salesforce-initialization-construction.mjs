@@ -65,6 +65,7 @@ function evidenceGeometry(generation) {
   const describeLimits = [...limits(describe), integer(own(describe, 'maxFields'), 1),
     integer(own(describe, 'maxNameUnits'), 1)];
   const bodyLengths = [];
+  const encodedBodies = [];
   const nameLengths = [];
   let encodedUnits = 0;
   for (let index = 0; index < names.length; index += 1) {
@@ -72,12 +73,13 @@ function evidenceGeometry(generation) {
     const encoded = own(bodies, String(index));
     nameLengths.push(integer(name.length));
     bodyLengths.push(bodyBytes(encoded, describeLimits[0]));
+    encodedBodies.push(encoded === null ? undefined : encoded);
     if (encoded !== null) encodedUnits = add(encodedUnits, encoded.length);
   }
   const observation = string(own(evidence, 'observationJson'));
   const maxObservationBytes = integer(own(evidence, 'maxObservationBytes'), 1);
   if (observation.length > maxObservationBytes) fail();
-  return {names, bodyLengths, nameLengths, encodedUnits,
+  return {names, bodyLengths, encodedBodies, nameLengths, encodedUnits,
     observationUnits: integer(observation.length), describeLimits, maxObservationBytes,
     connectorUnits: integer(string(own(generation, 'connector_id')).length)};
 }
@@ -93,8 +95,28 @@ function quote(common, exportName, args) {
   return capacity;
 }
 
-export function salesforceInitializationConstructionCapacity(common,
-  {generation, siteBinding, declarationLimits = defaultDeclarationLimits}) {
+export function salesforceInitializationConstructionCapacity(common, options) {
+  return initializationCapacity(common, options,
+    'clientProgramSalesforceOriginalInitializationConstructionCapacity');
+}
+
+export function salesforceObservationConstructionCapacity(common, options) {
+  return initializationCapacity(common, options,
+    'clientProgramSalesforceObservationConstructionCapacity');
+}
+
+export function salesforceDeclarationConstructionCapacity(common, options) {
+  const dimensions = array(own(options, 'dimensions'));
+  const measured = [];
+  for (let index = 0; index < dimensions.length; index++) {
+    measured.push(integer(own(dimensions, String(index))));
+  }
+  return initializationCapacity(common, options,
+    'clientProgramSalesforceDeclarationConstructionCapacity', measured);
+}
+
+function initializationCapacity(common,
+  {generation, siteBinding, declarationLimits = defaultDeclarationLimits}, exportName, dimensions) {
   const geometry = evidenceGeometry(generation);
   // The observation's original text bounds its binding without JSON.parse.
   // Current Site string fields are independent: a mismatched binding can fail
@@ -104,8 +126,8 @@ export function salesforceInitializationConstructionCapacity(common,
     const value = own(siteBinding, key);
     if (typeof value === 'string') bindingUnits = add(bindingUnits, value.length);
   }
-  return quote(common, 'clientProgramSalesforceInitializationConstructionCapacity', [
-    geometry.bodyLengths, geometry.encodedUnits, geometry.observationUnits,
+  return quote(common, exportName, [
+    dimensions ?? geometry.encodedBodies, geometry.observationUnits,
     geometry.nameLengths, bindingUnits, geometry.connectorUnits, revision.length,
     ...geometry.describeLimits, geometry.maxObservationBytes, ...limits(declarationLimits),
   ]);

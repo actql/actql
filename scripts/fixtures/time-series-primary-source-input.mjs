@@ -15,7 +15,7 @@ function control(name,arguments_,params) {
     results:{answer:{from:{stage:'main',result:'rows'}}}};
 }
 const success=(name,text,format='aql-text',expected=rows,extra={})=>({name:'time-series-primary-'+name,format,text,
-  results:{answer:{rows:expected,columns}},sourceReadCount:0,sourceReadSessionCount:0,...extra});
+  results:{[format==='json'?'answer':'main']:{rows:expected,columns}},sourceReadCount:0,sourceReadSessionCount:0,...extra});
 export const timeSeriesPrimarySuccesses=[
   success('json',JSON.stringify(control('literal',{start,end,step:'1m'})),'json'),
   success('sql',source,'sql'),success('text',source),

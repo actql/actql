@@ -43,7 +43,7 @@ export const aggregateFilterSuccesses = [
     sourceReadSessionCount: 0,
   }),
   success('retained-alias-value', 'FROM records |> WHERE id > 0 |> AS before |> SET amount = 0 '
-    + '|> AGGREGATE COUNT(* WHERE before.amount > 0) AS originals, COUNT(* WHERE amount > 0) AS current', {
+    + '|> AGGREGATE COUNT(* WHERE before.amount > 0) AS originals, COUNT(* WHERE amount > 0) AS `current`', {
     format: 'aql-text', expected: [{originals: 2, current: 0}], columns: [column('originals'), column('current')],
   }),
   success('analytic-caller', 'SELECT id, COUNT(* WHERE amount > 0) OVER '
@@ -67,4 +67,4 @@ export const aggregateFilterRefusals = [
   'FROM records |> AS old |> AS current |> AGGREGATE COUNT(* WHERE old.amount > 0) AS n',
 ].map((text, index) => ({name: 'aggregate-filter-refuse-' + index, format: 'aql-text', text}));
 export const aggregateFilterExecutionFailures = [{name: 'aggregate-filter-demanded-argument', format: 'sql',
-  text: 'SELECT SUM(1 / 0 WHERE TRUE) AS total', resultNames: ['answer'], sourceReadSessionCount: 0}];
+  text: 'SELECT SUM(1 / 0 WHERE TRUE) AS total', resultNames: ['main'], sourceReadSessionCount: 0}];

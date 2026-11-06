@@ -59,7 +59,7 @@ export const distinctSignedOrderRefusals = [
   ['different-nesting', bounded + aggregate('-payload.score', '-(-o.payload.score)')],
   ['object-versus-range', ', colliding AS (SELECT id, payload, other.score AS score FROM objects) '
     + 'FROM colliding AS payload |> ASSERT UNIQUE BY (id) '
-    + aggregate('-(payload).score', '-payload.score')],
+    + aggregate('-(payload.payload).score', '-payload.score')],
 ].map(([name, tail]) => ({name: 'distinct-signed-order-refuse-' + name,
   format: 'aql-text', text: data + tail, parameterDeclarations: base.parameterDeclarations,
   parameters, expectedCode: 'ClientProgramImplementationLimit'}));

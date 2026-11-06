@@ -3,7 +3,7 @@
   "successes": [
     {
       "name":"as-after-select", "format":"aql-text",
-      "text":"FROM records AS old |> AS current |> SELECT current.id AS id |> WHERE id > 1 |> EXTEND id + 1 AS next |> SELECT next, id |> ORDER BY id",
+      "text":"FROM records AS old |> AS `current` |> SELECT current.id AS id |> WHERE id > 1 |> EXTEND id + 1 AS next |> SELECT next, id |> ORDER BY id",
       "columns":[{"name":"next","contract":{"type":"number","nullable":false}},{"name":"id","contract":{"type":"number","nullable":false}}],
       "expected":[{"next":3,"id":2},{"next":4,"id":3},{"next":4,"id":3}]
     },
@@ -27,7 +27,7 @@
     },
     {
       "name":"as-current", "format":"aql-text",
-      "text":"FROM records AS old |> SET amount = id |> AS current |> SELECT current.amount AS changed, current.id AS id |> ORDER BY id",
+      "text":"FROM records AS old |> SET amount = id |> AS `current` |> SELECT current.amount AS changed, current.id AS id |> ORDER BY id",
       "columns":[{"name":"changed","contract":{"type":"number","nullable":false}},{"name":"id","contract":{"type":"number","nullable":false}}],
       "expected":[{"changed":1,"id":1},{"changed":2,"id":2},{"changed":3,"id":3},{"changed":3,"id":3}]
     },
@@ -45,7 +45,7 @@
     },
     {
       "name":"as-after-drop-rename", "format":"aql-text",
-      "text":"FROM records AS old |> DROP amount |> RENAME id AS key |> AS current |> SELECT current.key AS key |> ORDER BY key",
+      "text":"FROM records AS old |> DROP amount |> RENAME id AS key |> AS `current` |> SELECT current.key AS key |> ORDER BY key",
       "columns":[{"name":"key","contract":{"type":"number","nullable":false}}],
       "expected":[{"key":1},{"key":2},{"key":3},{"key":3}]
     },
@@ -57,13 +57,13 @@
     },
     {
       "name":"as-current-star", "format":"aql-text",
-      "text":"FROM records AS old |> DROP amount |> RENAME id AS key |> AS current |> SELECT * |> ORDER BY key",
+      "text":"FROM records AS old |> DROP amount |> RENAME id AS key |> AS `current` |> SELECT * |> ORDER BY key",
       "columns":[{"name":"key","contract":{"type":"number","nullable":false}}],
       "expected":[{"key":1},{"key":2},{"key":3},{"key":3}]
     },
     {
       "name":"as-empty", "format":"aql-text",
-      "text":"FROM records AS old |> SET amount = id |> AS current |> WHERE current.id > 100 |> SELECT current.amount AS changed, current.id AS id |> ORDER BY id",
+      "text":"FROM records AS old |> SET amount = id |> AS `current` |> WHERE current.id > 100 |> SELECT current.amount AS changed, current.id AS id |> ORDER BY id",
       "columns":[{"name":"changed","contract":{"type":"number","nullable":false}},{"name":"id","contract":{"type":"number","nullable":false}}],
       "expected":[]
     },
@@ -81,28 +81,28 @@
       "expected":[{"amount":1,"id":null},{"amount":2,"id":20},{"amount":3,"id":30},{"amount":3,"id":30}]
     },
     {
-      "name":"scoped-order-rebound-alias", "format":"aql-text",
+      "name":"scoped-order-rebound-alias", "format":"aql-text", "resultName":"answer",
       "sourceRows":[{"id":1,"amount":10},{"id":2,"amount":20}],
       "text":"FROM records |> AS original |> SELECT -id AS id |> ORDER BY -id |> RESULT answer",
       "columns":[{"name":"id","contract":{"type":"number","nullable":false}}],
       "expected":[{"id":-1},{"id":-2}]
     },
     {
-      "name":"scoped-order-distinct-rebound-alias", "format":"aql-text",
+      "name":"scoped-order-distinct-rebound-alias", "format":"aql-text", "resultName":"answer",
       "sourceRows":[{"id":1,"amount":10},{"id":2,"amount":20},{"id":1,"amount":10}],
       "text":"FROM records |> AS original |> SELECT DISTINCT -id AS id |> ORDER BY -id |> RESULT answer",
       "columns":[{"name":"id","contract":{"type":"number","nullable":false}}],
       "expected":[{"id":-1},{"id":-2}]
     },
     {
-      "name":"scoped-order-unchanged-expression", "format":"aql-text",
+      "name":"scoped-order-unchanged-expression", "format":"aql-text", "resultName":"answer",
       "sourceRows":[{"id":1,"amount":10},{"id":2,"amount":20}],
       "text":"FROM records |> AS original |> SELECT -id AS score |> ORDER BY -id |> RESULT answer",
       "columns":[{"name":"score","contract":{"type":"number","nullable":false}}],
       "expected":[{"score":-2},{"score":-1}]
     },
     {
-      "name":"scoped-order-qualified-input", "format":"aql-text",
+      "name":"scoped-order-qualified-input", "format":"aql-text", "resultName":"answer",
       "sourceRows":[{"id":1,"amount":10},{"id":2,"amount":20}],
       "text":"FROM records |> AS original |> SELECT -original.id AS id |> ORDER BY -original.id |> RESULT answer",
       "columns":[{"name":"id","contract":{"type":"number","nullable":false}}],

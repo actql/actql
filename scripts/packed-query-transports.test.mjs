@@ -7,9 +7,78 @@ import {test} from 'node:test';
 import {createTransportOwner, requireCompleteInventory, sourceFixturePaths}
   from './fixtures/packed-query-transport-owner.mjs';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
+import {publicQueryResultOracles} from './fixtures/public-query-input.mjs';
 
 const helper = new URL('./fixtures/packed-query-transport-owner.mjs', import.meta.url).href;
 const command = (name, source) => ({name, args: ['--input-type=module', '-e', source]});
+
+test('public query HTTPS observation selects only its original operator and authored Result names', async () => {
+  const {parse} = await import('acorn');
+  const source = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
+  const declarations = [];
+  const visit = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'FunctionDeclaration' && node.id.name === 'createPublicQueryHttpAuthorization') declarations.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  };
+  visit(syntax);
+  assert.equal(declarations.length, 1);
+  const declaration = declarations[0];
+  const create = Function('userInfo', 'canonical', 'publicQueryResultOracles',
+    `return (${source.slice(declaration.start, declaration.end)});`)(
+      () => ({username: 'query-operator'}), JSON.stringify, publicQueryResultOracles);
+  const account = JSON.parse(create({primaryResultName: 'selected', successes: [
+    {name: 'one'}, {name: 'two', results: {secondary: {}, selected: {}}},
+  ]}).accountConfiguration);
+  assert.deepEqual(account, {version: 'actql-execution-account-config/0.1',
+    account_id: 'packed-query-http', entries: [
+      {entry_id: 'read-original', outcome: 'allow', principal: {any_of: ['query-operator']},
+        connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/secondary', 'result/selected', 'run']},
+        operation: {any_of: ['read']}, exclusions: []},
+      {entry_id: 'request-original', outcome: 'allow', principal: {any_of: ['query-operator']},
+        connection: {any_of: ['actql-remote-host']}, resource: {any_of: ['duckdb-acquired']},
+        operation: {any_of: ['write']}, exclusions: []},
+    ]});
+  assert.match(source, /authorization: httpAuthorization/u);
+  assert.match(source, /recordCohort\('remote', directory, cohort, authorization \?\? httpAuthorization\)/u);
+  assert.match(source, /if \(authorization !== undefined\) saved\.authorization = authorization/u);
+});
+
+test('public query fixture names preserve explicit and structured exports independently of product output', () => {
+  const expected = [{value: 1}], columns = [{name: 'value'}];
+  const implicit = {format: 'sql', text: 'SELECT 1 AS value', expected, columns};
+  assert.deepEqual(publicQueryResultOracles(implicit), {main: {rows: expected, columns}});
+  assert.deepEqual(publicQueryResultOracles({...implicit, resultName: 'answer'}),
+    {answer: {rows: expected, columns}});
+  for (const format of ['json', 'aql-json']) {
+    const structured = {...implicit, format, text: JSON.stringify({results: {answer: {from: {stage: 'main', result: 'answer'}}}})};
+    assert.deepEqual(publicQueryResultOracles(structured), {answer: {rows: expected, columns}});
+    assert.throws(() => publicQueryResultOracles({...structured,
+      text: JSON.stringify({results: {answer: {}, other: {}}})}), /requires authored result oracles/u);
+  }
+  const results = {original: {rows: expected, columns}, answer: {rows: [], columns}};
+  assert.equal(publicQueryResultOracles({...implicit, results}), results);
+  assert.equal(publicQueryResultOracles(implicit).main.rows, expected);
+});
+
+test('scoped ORDER fixtures read the explicit authored export', async () => {
+  const scope = JSON.parse(await readFile(new URL(
+    '../spec/frontend/fixtures/pipe-scope/cases.json', import.meta.url), 'utf8'));
+  const cases = scope.successes.filter(item => item.name.startsWith('scoped-order-'));
+  assert.equal(cases.length, 4);
+  for (const item of cases) {
+    assert.match(item.text, /\|> RESULT answer$/u);
+    assert.equal(item.resultName, 'answer');
+    assert.deepEqual(publicQueryResultOracles(item), {
+      answer: {rows: item.expected, columns: item.columns},
+    });
+  }
+});
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-transport-owner-'));
   t.after(() => rm(directory, {recursive: true, force: true}));

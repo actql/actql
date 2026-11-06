@@ -63,16 +63,16 @@ test('verified case receipts survive the case block and finish at transport comp
   assert.deepEqual(files.get(path), {version: 'actql-cte-value-table-acceptance/0.1', mode: 'local',
     complete: true, cases: [{mode: 'local', name: source.name, ref,
       submissionRef: {nonce: 'receipt-' + source.name},
-      results: {answer: {rows: source.expected, columns: source.columns}},
+      results: {main: {rows: source.expected, columns: source.columns}},
       beforeSubmit: {acceptedRuns: 0, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0},
       beforeRead: {acceptedRuns: 1, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0},
       afterReplay: {acceptedRuns: 1, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0}}]});
   assert.deepEqual(saved.ref, ref);
   assert.deepEqual(saved.submissionRef, {nonce: 'receipt-' + source.name});
-  assert.deepEqual(saved.observedResults.answer, {rows: source.expected, columns: source.columns});
-  assert.notEqual(saved.observedResults.answer.rows, source.expected,
+  assert.deepEqual(saved.observedResults.main, {rows: source.expected, columns: source.columns});
+  assert.notEqual(saved.observedResults.main.rows, source.expected,
     'receipt rows come from the reader, not the authored oracle');
-  assert.notEqual(saved.observedResults.answer.columns, source.columns);
+  assert.notEqual(saved.observedResults.main.columns, source.columns);
   assert.equal(reads, 2, 'only the existing initial and attached reads');
   assert.equal(descriptions, 1, 'only the existing schema check');
 });

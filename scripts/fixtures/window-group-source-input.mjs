@@ -61,7 +61,7 @@ export const windowGroupSourceSuccesses = variants.flatMap(v => {
   return [{name: 'window-group-json-' + v.name, format: 'json',
     text: JSON.stringify(control(v)), ...shared},
   ...['sql', 'aql-text'].map(format => ({name: 'window-group-' + format + '-' + v.name,
-    format, text: source(v), ...shared}))];
+    format, text: source(v), ...shared, results: {main: shared.results.answer}}))];
 });
 const valid = source(variants[0]);
 export const windowGroupSourceRefusals = [

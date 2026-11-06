@@ -1012,3 +1012,11 @@ pub fn salesforce_recover_named_catalog_observation(
     Err(issue) => raise ObservationRecovery(issue)
   }
 }
+
+///|
+#export_name("salesforceObservationConstructionDimensions")
+pub fn salesforce_observation_construction_dimensions(
+  observation : @catalog.CatalogObservation,
+) -> Array[Int] {
+  @catalog.catalog_observation_construction_dimensions(observation)
+}

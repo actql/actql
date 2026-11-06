@@ -180,16 +180,17 @@ fn retry_release_recovery_open_cleanup(
 /// EOF and termination do not turn cleanup Unknown into success.
 fn finish_failed_release_recovery_open(
   original : ReleaseRecoveryOpenCustody,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Unit {
-  install_partial_holder_cleanup_signal()
+  install_partial_holder_cleanup_signal(report_progress~)
   ignore(
     retain_holder_cleanup_lifetime(
       original,
       retry_release_recovery_open_cleanup,
       () => CleanupInputEnded,
-      wait_holder_cleanup_lifetime_signal,
+      () => wait_holder_cleanup_lifetime_signal_with_report(report_progress~),
       (same, control_ended) => {
-        report("release-recovery-open-cleanup-pending", [
+        report_progress("release-recovery-open-cleanup-pending", [
           ("request_cid", same.request_identity),
           ("control_ended", control_ended.to_string()),
         ])

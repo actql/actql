@@ -74,10 +74,14 @@ test "runtime original namespace refuses renamed member directory with unchanged
     runtime_namespace_fixture("child-replaced") + "/data",
   ).unwrap()
   assert_true(runtime_namespace_replace(root))
-  let current = runtime.assets()
+  // Metadata getters retain immutable DATA; observe the actual original
+  // namespace before consuming it, then preserve the spent-snapshot refusal.
+  let current = runtime.check_current()
+  let assets = runtime.assets()
   root.close().unwrap()
   runtime.close().unwrap()
   assert_true(current is Err(Physical(@local_filesystem.GenerationMismatch)))
+  assert_true(assets is Err(Changed))
 }
 
 ///|
@@ -104,8 +108,10 @@ test "runtime original namespace refuses changed original directory mode" {
     runtime_namespace_fixture("mode-changed") + "/lib",
   ).unwrap()
   assert_true(runtime_namespace_mode(root, 0o750))
-  let current = runtime.manifest()
+  let current = runtime.check_current()
+  let manifest = runtime.manifest()
   root.close().unwrap()
   runtime.close().unwrap()
   assert_true(current is Err(Physical(@local_filesystem.GenerationMismatch)))
+  assert_true(manifest is Err(Changed))
 }

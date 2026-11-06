@@ -9672,7 +9672,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e2f76004aec731d7543cf18b68e4ef432e03ed52ea06c2869207185664328bef",
+      "sha256": "37bce8caf954671e7c12c8a2d40d046a86c6e933e69ac51dfbfb110220e82ba0",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -10169,7 +10169,15 @@
             "evidence",
             "observationCid",
             "catalogCid",
+            "construction",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/restoreDeclaration/finish/finish",
+          "parameters": [
+            "observation"
           ],
           "async": false
         },
@@ -10178,6 +10186,31 @@
           "parameters": [
             "name"
           ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/restoreDeclaration/observed/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/restoreDeclaration/observed/observed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/restoreDeclaration/recoverOriginal/recoverOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/restoreDeclaration/restored/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/restoreDeclaration/restored/restored",
+          "parameters": [],
           "async": false
         },
         {
@@ -10344,7 +10377,13 @@
             "validProfile/validProfile",
             "validProfile/validProfile#2",
             "validProfile/validProfile#3",
-            "validProfile/validProfile#4"
+            "validProfile/validProfile#4",
+            "loadInstalledSalesforceSite/restoreDeclaration/finish/finish",
+            "loadInstalledSalesforceSite/restoreDeclaration/observed/init:project/init:project",
+            "loadInstalledSalesforceSite/restoreDeclaration/observed/observed",
+            "loadInstalledSalesforceSite/restoreDeclaration/recoverOriginal/recoverOriginal",
+            "loadInstalledSalesforceSite/restoreDeclaration/restored/init:project/init:project",
+            "loadInstalledSalesforceSite/restoreDeclaration/restored/restored"
           ],
           "exports": [
             "DEFAULT_SALESFORCE_CATALOG_LIMITS",
@@ -10732,6 +10771,7 @@
         "../site/salesforce-effect-capability.mjs",
         "../site/salesforce-named-describe.mjs",
         "../site/salesforce-query-read.mjs",
+        "./salesforce-initialization-construction.mjs",
         "node:crypto",
         "node:path",
         "node:util"
@@ -10742,7 +10782,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e193e9ab0764b457d766e54debe2e3796abd1d4bf84e9b8a328014b92cec7b52",
+      "sha256": "fbb26208d578cfe13b1d5e92a170e7246338655e53dbcadabcc4daf110f9f55d",
       "role": "connector-semantics",
       "owner": "Atomic installed declaration generation and retained historical describe bytes, not current authorization",
       "exports": [
@@ -10875,7 +10915,8 @@
             "site",
             "generation",
             "connectorId",
-            "resources"
+            "resources",
+            "construction"
           ],
           "async": false
         },

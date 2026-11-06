@@ -6,6 +6,8 @@ import {existsSync, readdirSync, readlinkSync} from 'node:fs';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {checked} from '../../host-common/runtime-result.mjs';
+import {runtimeField} from '../../host-common/compiler-binding.generated.mjs';
 import {loadInstalledEffect, publishInstalledEffectProfile} from '../installed-effect.mjs';
 import {withFixtureConnector} from '../../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid, sourceReadAccountConfiguration} from '../local-account-config.mjs';
@@ -22,7 +24,7 @@ import {createInstalledConnectorTable, installedConnectorForTable, loadInstalled
 import {loadInstalledBigQuerySource} from '../../connectors/bigquery/host/installed-bigquery-source.mjs';
 
 const runtimeUrl = new URL('../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
-const moon = await import(runtimeUrl.href);
+const originalMoon = await import(runtimeUrl.href);
 const environment = (await readFile(new URL('../../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
 const limits = Object.freeze({maxBytes: 8192, maxNodes: 2000, maxDepth: 24,
   maxFields: 16, maxNameBytes: 512, maxSchemaBytes: 4096, maxRows: 2,
@@ -64,7 +66,23 @@ function tableEffectValue(root, approval = 'required') {
       permissions: ['scope:store'], footprint: {version: 'fixture-only'}}], limits: {}};
 }
 
-export async function boundConstructionActualFixture(t) {
+export async function boundConstructionActualFixture(t, {capacityEvents} = {}) {
+  // Observe only actual typed quotes on the unchanged original parent. The
+  // wrapper forwards every call/result/error; it grants no capacity or current.
+  const observe = name => function (...args) {
+    const quote = args[2];
+    const pair = originalMoon.clientProgramSerializationCapacityBytes(quote);
+    let returned = false, accepted = false;
+    try {
+      const value = Reflect.apply(originalMoon[name], originalMoon, args);
+      returned = true;
+      try {checked(value); accepted = true;} catch { /* Keep the original Result unchanged. */ }
+      return value;
+    } finally {capacityEvents.push({operation: name, retained: runtimeField(pair, 0), peak: runtimeField(pair, 1), returned, accepted});}
+  };
+  const moon = capacityEvents === undefined ? originalMoon : Object.freeze({...originalMoon,
+    clientProgramReserveInstalledSourceConstruction: observe('clientProgramReserveInstalledSourceConstruction'),
+    clientProgramReconcileInstalledSourceConstruction: observe('clientProgramReconcileInstalledSourceConstruction')});
   const root = await mkdtemp(join(tmpdir(), 'actql-bound-construction-actual-'));
   const state = {}, sources = [], failures = [];
   let active = true, childrenPending = false, services, closed = false, secretReads = 0;
@@ -102,7 +120,12 @@ export async function boundConstructionActualFixture(t) {
     closeHostInitializationPreparation(state);
     active = false; closed = true;
   }
-  t.after(async () => {await close(); await rm(root, {recursive: true, force: true});});
+  t.after(async () => {
+    await close();
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Installed construction component custody retained: ${root}`);
+    } else await rm(root, {recursive: true, force: true});
+  });
   const parentInput = Object.freeze({root, purpose: 'installed connector component verification'});
   const parent = openHostInitializationPreparation(state, moon, parentInput, current, () => childrenPending);
   services = createInstalledHostServices({root, principalId: 'operator', moon,
@@ -141,13 +164,23 @@ export async function boundConstructionActualFixture(t) {
     assert.equal((await loadInstalledConnectorModule(entry)).load, loadInstalledBigQuerySource);
     return {path, value, journalPath: join(site.journalRoot, 'credential-journal.sqlite3')};
   }
-  async function salesforceProfile(role = 'source') {
+  async function salesforceProfile(role = 'source', {largeMetadata = false, fieldCount = 2, describeDocument} = {}) {
+    assert.ok(Number.isSafeInteger(fieldCount) && fieldCount >= 2 && fieldCount <= 1000);
     assert.ok(['source', 'effect'].includes(role));
-    const resource = 'Test_Record__c', prefix = '/services/data/v62.0/sobjects/';
-    const description = {name: resource, queryable: true, createable: true, updateable: true,
+    const resource = describeDocument?.name ?? 'Test_Record__c', prefix = '/services/data/v62.0/sobjects/';
+    const description = describeDocument ?? {name: resource, queryable: true, createable: true, updateable: true,
       fields: [{name: 'Id', type: 'id', nillable: false, sortable: true},
         {name: 'Name', type: 'string', nillable: false, defaultedOnCreate: false,
           createable: true, updateable: true}]};
+    assert.ok(describeDocument === undefined || !largeMetadata && fieldCount === 2);
+    for (let index = 2; index < fieldCount; index++) description.fields.push({
+      name: `Field_${index}__c`, type: 'string', nillable: true,
+      createable: false, updateable: false});
+    if (largeMetadata) {
+      description.description = 'a'.repeat(150000);
+      description.providerDetails = Array.from({length: 1500}, () =>
+        ({label: '[x]', value: 0, active: true}));
+    }
     const api = await openHttpsExchangeFixture(t, {routes: [
       {method: 'GET', pathname: prefix, handle: () => ({body: {sobjects: [
         {name: resource, queryable: true, createable: true, updateable: true}]}})},

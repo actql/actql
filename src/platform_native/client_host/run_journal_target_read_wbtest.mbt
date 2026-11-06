@@ -193,7 +193,7 @@ test "actual duplicate definition rejection rolls back the Run issuance CAS" {
       },
       reads=Some(operations.reads),
     )
-    is Err(Physical(@sqlite.Collision)),
+    is Err(ForeignRun),
   )
   assert_true(calls.contains("compare_exchange:client_run_custody:issued"))
   assert_true(

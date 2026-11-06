@@ -74,7 +74,7 @@ test('RENAME targets only one current column and preserves independent JOIN valu
   assert.deepEqual(source.columns.map(column => column.name), ['current', 'original', 'matched']);
   assert.deepEqual(source.columns.map(column => column.contract.nullable), [true, false, false]);
   assert.equal(source.sourceReadSessionCount, 1);
-  assert.ok(cases.get('pipe-join-ranges-rename-new-ambiguity').text.includes('SELECT l.amount AS current'));
+  assert.ok(cases.get('pipe-join-ranges-rename-new-ambiguity').text.includes('SELECT l.amount AS `current`'));
   assert.equal(cases.get('pipe-join-ranges-rename-nullable').expected[0].current, null);
   assert.deepEqual(cases.get('pipe-join-ranges-rename-empty-typed').expected, []);
   const refusals = pipeJoinRangesRefusals.filter(item => item.name.includes('refuse-rename-'));
@@ -96,7 +96,7 @@ test('first EXTEND preserves original range membership and explicit fresh AS bin
   assert.deepEqual(source.columns.map(column => column.name), ['original', 'current', 'amount']);
   assert.deepEqual(source.columns.map(column => column.contract.nullable), [false, false, true]);
   const fresh = cases.get('pipe-join-ranges-extend-fresh-range');
-  assert.ok(fresh.text.includes('AS fresh') && fresh.text.includes('fresh.z AS current'));
+  assert.ok(fresh.text.includes('AS fresh') && fresh.text.includes('fresh.z AS `current`'));
   assert.equal(source.sourceReadSessionCount, 1);
   const empty = cases.get('pipe-join-ranges-extend-empty-typed');
   assert.deepEqual(empty.expected, []);

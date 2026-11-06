@@ -13,6 +13,7 @@ import {installedRuntimeBundleCid, installedConfigurationChunkBytes} from './sou
 import {installedSourceFixtureLifetime} from './fixtures/installed-source-initialization.mjs';
 import {retireInstalledSourceInitialization} from './installed-host-services.mjs';
 import {captureSourceAliasConstruction, sourceAliasProfileConstructionGeometry} from './source-alias-construction.mjs';
+import {sourceJsonWireGeometry} from './installed-source-construction-geometry.mjs';
 
 const byteLimit = 8 * 1024 * 1024;
 const canonical = value => Array.isArray(value)
@@ -95,6 +96,48 @@ async function fundedConfiguration(t) {
   return {path: join(root, 'configuration'), reader: opened.configurationReader,
     services: opened.installationServices, moon, quotes};
 }
+
+test('funded Source original text JSON keeps long scalar text separate from structural node demand', async t => {
+  const f = await fundedConfiguration(t);
+  const expected = {catalog: 'x'.repeat(340000), retained: {fields: ['Id', 'Name']}};
+  const wire = JSON.stringify(expected), measured = sourceJsonWireGeometry(wire);
+  await writeFile(f.path, wire);
+  const original = await f.reader.readText(f.path, {maxBytes: Buffer.byteLength(wire)});
+  assert.deepEqual(f.reader.parseJsonText(original), expected);
+  assert(measured.nodes < BigInt(wire.length) / 1000n);
+  assert(f.quotes.some(q => q[0] === 4n * measured.nodes && q[3] === 4n * measured.nodes &&
+    q[4] === 12n * BigInt(wire.length)), 'same four tree roles, complete unchanged decoded-text envelope');
+  assert.equal(f.quotes.at(-1)[0], 4n * measured.nodes, 'returned tree stays on the same material');
+});
+
+test('funded Source original text JSON retains full whitespace escape and Unicode demand', async t => {
+  const f = await fundedConfiguration(t);
+  const expected = {catalog: '{"items":[1,2]}', 'e\u0301': '日本語😀\\\"{}[]'};
+  const wire = ' '.repeat(4096) + JSON.stringify(expected) + '\n\t'.repeat(128);
+  const measured = sourceJsonWireGeometry(wire);
+  assert.equal(measured.units, BigInt(wire.length), 'not the Alias-only payload demand profile');
+  await writeFile(f.path, wire);
+  const original = await f.reader.readText(f.path, {maxBytes: Buffer.byteLength(wire)});
+  assert.deepEqual(f.reader.parseJsonText(original), expected);
+  assert(f.quotes.some(q => q[3] === 4n * measured.nodes && q[4] === 12n * measured.units));
+  const before = f.quotes.length;
+  assert.throws(() => f.reader.parseJsonText(original + ' '), {code: 'ForeignInstalledConfigurationText'});
+  assert.equal(f.quotes.length, before, 'foreign original refuses before any constructor quote');
+});
+
+test('funded Source original text JSON still refuses genuine node demand before the native parser', async t => {
+  const f = await fundedConfiguration(t);
+  // More real array entries need capacity even though their text is short.
+  // Native JSON.parse would throw SyntaxError on this unfinished array; the
+  // original finite Resource must refuse its constructor before that parser.
+  const wire = '[' + '0,'.repeat(400000), measured = sourceJsonWireGeometry(wire);
+  await writeFile(f.path, wire);
+  const original = await f.reader.readText(f.path, {maxBytes: Buffer.byteLength(wire)});
+  assert.throws(() => f.reader.parseJsonText(original), error =>
+    error.code === 'MoonBitHostFailure' &&
+    /PreparationCapacityIssue.*Resource$/u.test(error.cause?.constructor?.name ?? ''));
+  assert(f.quotes.some(q => q[3] === 4n * measured.nodes && q[4] === 12n * measured.units));
+});
 
 test('funded Source Alias profile preserves real string demand and refuses its constructor before allocation', async t => {
   const f = await fundedConfiguration(t);

@@ -3,6 +3,8 @@
 /// local handle callbacks do not admit an Effect cleanup, a saved Run release,
 /// a selected installed Resident or a whole-Host physical stop.
 test "stopped holder resources retain original failed Transfer Journal instead of another acquisition" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let (owner, _) = retained_recovery_test_open(
     "stopped-holder-transfer-failure",
   )
@@ -10,7 +12,13 @@ test "stopped holder resources retain original failed Transfer Journal instead o
   root.create_directory("journal-is-directory").unwrap() |> ignore
   let transfer_path = path + "/journal-is-directory"
   assert_true(
-    stopped_holder_cleanup_resources(owner, transfer_path, Some(path)) is None,
+    stopped_holder_cleanup_resources(
+      owner,
+      transfer_path,
+      Some(path),
+      report_progress=observe_progress,
+    )
+    is None,
   )
   let original = owner.input_cleanup_resources.failed_transfer_journal.unwrap()
   assert_true(
@@ -24,12 +32,19 @@ test "stopped holder resources retain original failed Transfer Journal instead o
       owner,
       path + "/foreign.sqlite3",
       Some(path),
+      report_progress=observe_progress,
     )
     is None,
   )
   assert_eq(root.inspect_generation("foreign.sqlite3").unwrap(), None)
   assert_true(
-    stopped_holder_cleanup_resources(owner, transfer_path, Some(path)) is None,
+    stopped_holder_cleanup_resources(
+      owner,
+      transfer_path,
+      Some(path),
+      report_progress=observe_progress,
+    )
+    is None,
   )
   assert_true(
     owner.input_cleanup_resources.failed_transfer_journal is Some(same) &&
@@ -52,10 +67,21 @@ test "stopped holder resources retain original failed Transfer Journal instead o
     original.issue() is @transfer_journal.Physical(@sqlite.DatabaseOpen(_)),
   )
   root.close().unwrap()
+  assert_eq(progress_events, [
+    (
+      "release-recovery-pending",
+      [
+        ("step", "transfer-journal-constructor"),
+        ("code", "original-constructor-failed"),
+      ],
+    ),
+  ])
 }
 
 ///|
 test "stopped holder resources retain failed Root and the same earlier Transfer Journal" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let (owner, _) = retained_recovery_test_open("stopped-holder-root-failure")
   let (root, path) = orphan_store_test_root("stopped-holder-root-failure")
   let transfer_path = path + "/transfer.sqlite3"
@@ -65,6 +91,7 @@ test "stopped holder resources retain failed Root and the same earlier Transfer 
       owner,
       transfer_path,
       Some(original_root_path),
+      report_progress=observe_progress,
     )
     is None,
   )
@@ -79,11 +106,18 @@ test "stopped holder resources retain failed Root and the same earlier Transfer 
       owner,
       transfer_path,
       Some(original_root_path),
+      report_progress=observe_progress,
     )
     is None,
   )
   assert_true(
-    stopped_holder_cleanup_resources(owner, transfer_path, Some(path)) is None,
+    stopped_holder_cleanup_resources(
+      owner,
+      transfer_path,
+      Some(path),
+      report_progress=observe_progress,
+    )
+    is None,
   )
   assert_true(owner.input_cleanup_resources.retained_root is None)
   assert_true(
@@ -108,10 +142,21 @@ test "stopped holder resources retain failed Root and the same earlier Transfer 
   assert_true(original.issue() is @filesystem.RootOpen(_))
   assert_false(owner.physical_cleanup_done)
   root.close().unwrap()
+  assert_eq(progress_events, [
+    (
+      "release-recovery-pending",
+      [
+        ("step", "retained-root-constructor"),
+        ("code", "original-constructor-failed"),
+      ],
+    ),
+  ])
 }
 
 ///|
 test "stopped holder callback ACK remains once across original input and terminal parent cleanup" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let (owner, path) = retained_recovery_test_open(
     "stopped-holder-callback-order",
   )
@@ -123,12 +168,14 @@ test "stopped holder callback ACK remains once across original input and termina
     owner,
     root_path + "/transfer.sqlite3",
     Some(root_path),
+    report_progress=observe_progress,
   ).unwrap()
   let root = root.unwrap()
   let (same_transfers, same_root) = stopped_holder_cleanup_resources(
     owner,
     root_path + "/transfer.sqlite3",
     Some(root_path),
+    report_progress=observe_progress,
   ).unwrap()
   assert_true(physical_equal(transfers, same_transfers))
   assert_true(physical_equal(root, same_root.unwrap()))
@@ -192,4 +239,5 @@ test "stopped holder callback ACK remains once across original input and termina
   let independent = @slot.open_native_executor_slot(path + "/original.slot").unwrap()
   assert_true(independent.try_acquire().unwrap())
   assert_true(independent.close())
+  assert_eq(progress_events, [])
 }

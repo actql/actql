@@ -12,8 +12,8 @@ fn sf_initialization_collection_units(
 }
 
 ///|
-// The preserving metadata parser and normalizing schema parser are distinct
-// original operations. This inventory neither parses nor admits their input.
+// The normalizing metadata and schema parsers are distinct original
+// operations. This inventory neither parses nor admits their input.
 fn sf_initialization_decoded_construction(
   bytes : Int,
   nodes : Int,
@@ -158,8 +158,37 @@ pub fn initialization_construction_capacity(
   max_observation_bytes : Int,
   limits : @catalog.DeclarationLimits,
 ) -> @execution.ExecutionCapacity? {
+  sf_initialization_construction_capacity(
+    body_lengths, body_lengths, encoded_units, observation_units, name_lengths, binding_units,
+    connector_units, revision_units, describe, max_observation_bytes, limits,
+  )
+}
+
+///|
+priv enum SfInitializationPhase {
+  Whole
+  Observation
+  Declaration(Array[Int])
+}
+
+///|
+fn sf_initialization_construction_capacity(
+  body_lengths : Array[Int],
+  body_nodes : Array[Int],
+  encoded_units : Int,
+  observation_units : Int,
+  name_lengths : Array[Int],
+  binding_units : Int,
+  connector_units : Int,
+  revision_units : Int,
+  describe : @catalog.DescribeLimits,
+  max_observation_bytes : Int,
+  limits : @catalog.DeclarationLimits,
+  phase? : SfInitializationPhase = Whole,
+) -> @execution.ExecutionCapacity? {
   if body_lengths.is_empty() ||
     body_lengths.length() != name_lengths.length() ||
+    body_lengths.length() != body_nodes.length() ||
     body_lengths.length() > 200 ||
     encoded_units < 0 ||
     observation_units < 0 ||
@@ -179,6 +208,15 @@ pub fn initialization_construction_capacity(
     limits.max_depth < 1 {
     return None
   }
+  let fields = match phase {
+    Declaration(value) => Some(value)
+    _ => None
+  }
+  if fields is Some(fields) && fields.length() != body_lengths.length() {
+    return None
+  }
+  let observation_only = phase is Observation
+  let retained_parts = []
   let parts = []
   let mut total_fields = 0L
   let mut total_bytes = 0L
@@ -195,64 +233,100 @@ pub fn initialization_construction_capacity(
       return None
     }
     let b = Int::max(1, original_bytes)
-    let n = Int::min(b, describe.max_nodes)
+    let n = Int::min(
+      Int::min(b, Int::max(1, body_nodes[index])),
+      describe.max_nodes,
+    )
     // A completed field requires at least {"name":"a","type":"x"}
     // (23 bytes); one current failed field can allocate before this proof.
-    let f = Int::min(describe.max_fields, original_bytes / 23 + 1).to_int64()
+    let f = match fields {
+      Some(fields) => {
+        if fields[index] < 0 || fields[index] > describe.max_fields {
+          return None
+        }
+        fields[index].to_int64()
+      }
+      None => Int::min(describe.max_fields, original_bytes / 23 + 1).to_int64()
+    }
     let name = name_lengths[index].to_int64()
     total_fields += f
     total_bytes += original_bytes.to_int64()
     total_names += name
-    let lookups = 24L * f + 16L + n.to_int64()
-    guard sf_initialization_decoded_construction(b, n, describe.max_depth, true)
-      is Some(parsed) &&
-      @shape.collection_construction_extent({
-        // project_field: required/optional lookup+scalar Results, precision,
-        // scale, referenceTo and compound presence. Original plus TWO genuine
-        // copy_resource passes each retain the 18-member metadata record.
-        records: 32L +
-        96L * f +
-        4L * n.to_int64() +
-        lookups * child.record_headers,
-        record_references: 64L +
-        160L * f +
-        6L * n.to_int64() +
-        lookups * child.reference_slots,
-        record_words: 32L +
-        96L * f +
-        4L * n.to_int64() +
-        lookups * child.scalar_words,
-        reference_arrays: 24L + 8L * f,
-        reference_items: 48L + 24L * f + 4L * n.to_int64(),
-        scalar_arrays: 2L,
-        scalar_items: 3L * b.to_int64(),
-        maps: 4L + 2L * f,
-        map_entries: 3L * n.to_int64() + 2L * f,
-      })
-      is Some(metadata) &&
-      @encode.hash_writer_live_key_inventory(0, 0) is Some(digest) else {
-      return None
-    }
-    parts.push(parsed)
-    parts.push(sf_initialization_collection_units(metadata))
-    // Recovery verifies an optional digest and project_describe hashes the
-    // same original. Both SHA workspaces and UTF-8/decimal prefixes coexist.
-    for _ in 0..<2 {
+    if fields is None {
+      let lookups = 24L * f + 16L + n.to_int64()
+      guard sf_initialization_decoded_construction(
+          b,
+          n,
+          describe.max_depth,
+          true,
+        )
+        is Some(parsed) &&
+        @shape.collection_construction_extent({
+          // project_field: required/optional lookup+scalar Results, precision,
+          // scale, referenceTo and compound presence. Original plus TWO genuine
+          // copy_resource passes each retain the 18-member metadata record.
+          records: 32L +
+          96L * f +
+          4L * n.to_int64() +
+          lookups * child.record_headers,
+          record_references: 64L +
+          160L * f +
+          6L * n.to_int64() +
+          lookups * child.reference_slots,
+          record_words: 32L +
+          96L * f +
+          4L * n.to_int64() +
+          lookups * child.scalar_words,
+          reference_arrays: 24L + 8L * f,
+          reference_items: 48L + 24L * f + 4L * n.to_int64(),
+          scalar_arrays: 2L,
+          scalar_items: 3L * b.to_int64(),
+          maps: 4L + 2L * f,
+          map_entries: 3L * n.to_int64() + 2L * f,
+        })
+        is Some(metadata) &&
+        @encode.hash_writer_live_key_inventory(0, 0) is Some(digest) else {
+        return None
+      }
+      parts.push(parsed)
+      parts.push(sf_initialization_collection_units(metadata))
+      // Recovery verifies an optional digest and project_describe hashes the
+      // same original. Both SHA workspaces and UTF-8/decimal prefixes coexist.
+      for _ in 0..<2 {
+        parts.push({
+          record_headers: digest.record_headers,
+          reference_slots: digest.reference_slots,
+          scalar_words: digest.scalar_words,
+          owned_utf16_units: digest.owned_utf16_units + 71L,
+          owned_wire_bytes: digest.owned_wire_bytes,
+        })
+      }
       parts.push({
-        record_headers: digest.record_headers,
-        reference_slots: digest.reference_slots,
-        scalar_words: digest.scalar_words,
-        owned_utf16_units: digest.owned_utf16_units + 71L,
-        owned_wire_bytes: digest.owned_wire_bytes,
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 4L * b.to_int64(),
+        owned_wire_bytes: original_bytes.to_int64(),
       })
+      if observation_only {
+        guard sf_initialization_metadata_retained(
+            f,
+            n.to_int64(),
+            // JsonString normalizes keys only. Metadata stores literal
+            // values, not keys: decoded value text plus a borrowed source
+            // substring's complete backing fits two original UTF16 bounds.
+            // The independently computed response SHA is another 71 units.
+            2L * b.to_int64() + 71L,
+          )
+          is Some(retained) else {
+          return None
+        }
+        retained_parts.push(retained)
+      }
     }
-    parts.push({
-      record_headers: 0L,
-      reference_slots: 0L,
-      scalar_words: 0L,
-      owned_utf16_units: 4L * b.to_int64(),
-      owned_wire_bytes: original_bytes.to_int64(),
-    })
+    if observation_only {
+      continue
+    }
     // Compound association is unique by original field name. Across all
     // parents at most F component fields are reused, even for ten-role Address.
     // Scalar/decimal/multipicklist <=6 nodes, compound parent <=5 plus those
@@ -288,6 +362,9 @@ pub fn initialization_construction_capacity(
     }
     parts.push(raw)
     parts.push(sf_initialization_collection_units(declared))
+    if fields is Some(_) {
+      retained_parts.push(sf_initialization_collection_units(declared))
+    }
     for
       (bytes, nodes) in [
         (envelope + 100L, 12L),
@@ -308,7 +385,23 @@ pub fn initialization_construction_capacity(
         return None
       }
       parts.push(evidence)
+      if fields is Some(_) {
+        retained_parts.push(evidence)
+      }
     }
+  }
+  if observation_only {
+    return sf_initialization_observation_capacity(
+      parts,
+      retained_parts,
+      encoded_units,
+      observation_units,
+      binding_units,
+      total_names,
+      total_fields,
+      body_lengths.length(),
+      max_observation_bytes,
+    )
   }
   let resources = body_lengths.length().to_int64()
   let manifest_bytes = 128L +
@@ -404,7 +497,7 @@ pub fn initialization_construction_capacity(
   parts.push(observation_parse)
   parts.push(export_parse)
   parts.push(sf_initialization_collection_units(projections))
-  parts.push({
+  let native_text : @execution.PreparationRepresentationUnits = {
     record_headers: 0L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -415,7 +508,24 @@ pub fn initialization_construction_capacity(
     2L * (catalog_bytes + member_bytes + manifest_bytes) +
     Int64::min(export_bytes, limits.max_bytes.to_int64()),
     owned_wire_bytes: observation_bytes,
-  })
+  }
+  parts.push(native_text)
+  if fields is Some(_) {
+    // StaticDeclaration/RowDeclaration retain strings, metadata and arrays;
+    // raw Json forests and writer/hash cursors do not escape the completed
+    // callback. The whole export parser remains a conservative upper bound
+    // for the returned native JSON graph, including borrowed text backing.
+    for
+      part in [
+        export_parse,
+        observation_parse,
+        sf_initialization_collection_units(projections),
+        native_text,
+      ] {
+      retained_parts.push(part)
+    }
+    return sf_initialization_closed_capacity(parts, retained_parts)
+  }
   sf_initialization_capacity(parts)
 }
 

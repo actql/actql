@@ -305,9 +305,11 @@ fn retain_partial_holder_output_setup(
 }
 
 ///|
-fn install_partial_holder_cleanup_signal() -> Unit {
+fn install_partial_holder_cleanup_signal(
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
+) -> Unit {
   while !@slot.install_native_termination_request() {
-    report("setup-cleanup-pending", [("step", "signal-install")])
+    report_progress("setup-cleanup-pending", [("step", "signal-install")])
     ignore(park_holder_cleanup_unconfirmed_ffi())
   }
 }
@@ -332,19 +334,20 @@ fn retain_partial_output_recovery_setup(
   recovery : StoppedReleaseRecovery,
   slot : @slot.NativeExecutorSlot,
   failure : String,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Unit {
   let original = partial_output_recovery_cleanup(
     resources, recovery, slot, failure,
   )
-  install_partial_holder_cleanup_signal()
+  install_partial_holder_cleanup_signal(report_progress~)
   ignore(
     retain_holder_cleanup_lifetime(
       original,
       retry_partial_output_recovery_cleanup,
       () => CleanupInputEnded,
-      wait_holder_cleanup_lifetime_signal,
+      () => wait_holder_cleanup_lifetime_signal_with_report(report_progress~),
       (owner, control_ended) => {
-        report("output-recovery-setup-cleanup-pending", [
+        report_progress("output-recovery-setup-cleanup-pending", [
           ("reason", owner.failure),
           ("step", owner.step.val.to_string()),
           ("control_ended", control_ended.to_string()),

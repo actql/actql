@@ -33,6 +33,7 @@ test('parameter ceiling and original input remain explicit in submitted source',
 
 test('value and range collisions distinguish filtering, NULL and multiplicity', () => {
   assert.deepEqual(find('same-named-value').expected, [{id: 1, score: 5}]);
+  assert.match(find('same-named-value').text, /AS payload \|> WHERE \(payload\.payload\)\.score > 15/u);
   assert.deepEqual(find('same-named-qualified-range').expected,
     [{id: 1, score: 5}, {id: 2, score: 30}, {id: 2, score: 40}, {id: 3, score: 15}]);
   assert.deepEqual(find('typed-empty').expected, []);
@@ -46,5 +47,5 @@ test('future range and scalar receiver require exact pre-admission input refusal
   assert.ok(refusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
   assert.match(refusals[0].text, /WHERE \(\(r\)\)\.other\.score > 0 \|> JOIN/u);
   const removed = joinPropertyRefusals.find(item => item.name === 'join-property-invalid-4');
-  assert.equal(removed.expectedCode, 'ClientProgramImplementationLimit');
+  assert.equal(removed.expectedCode, 'ClientProgramInvalidInput');
 });

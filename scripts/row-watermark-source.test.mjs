@@ -7,7 +7,7 @@ test('row watermark independent controls distinguish equality and prefix-only la
   assert.equal(refusals.length,6);
   for(let i=0;i<successes.length;i+=2){
     const json=successes[i],text=successes[i+1],program=JSON.parse(json.text);
-    assert.deepEqual(json.results,text.results);
+    assert.deepEqual(text.results,{main:json.results.answer});
     assert.equal(json.results.answer.columns.length,5);
     assert.ok(json.results.answer.columns.every(c=>c.contract.nullable===false));
     assert.deepEqual(program.stages[0].steps.at(-1).select,json.results.answer.columns.map(c=>c.name));

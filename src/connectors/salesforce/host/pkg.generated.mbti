@@ -40,6 +40,12 @@ pub fn finish_managed_query(ManagedQuery) -> Result[@execution_relation.ManagedO
 
 pub fn initialization_construction_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, @catalog.DescribeLimits, Int, @catalog.DeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
+pub fn initialization_declaration_construction_capacity(Array[Int], Int, Array[Int], Int, Int, Int, @catalog.DescribeLimits, Int, @catalog.DeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn initialization_observation_construction_capacity(Array[String?], Int, Array[Int], Int, Int, Int, @catalog.DescribeLimits, Int, @catalog.DeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn initialization_original_construction_capacity(Array[String?], Int, Array[Int], Int, Int, Int, @catalog.DescribeLimits, Int, @catalog.DeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_salesforce_row_declaration(InstalledSalesforceDeclaration) -> Result[@client_row_source_host.RowDeclaration, InstalledSalesforceIssue]
 
 pub fn installed_salesforce_site(String, String, String, String, String, String, Int, String) -> Result[InstalledSalesforceSite, InstalledSalesforceIssue]

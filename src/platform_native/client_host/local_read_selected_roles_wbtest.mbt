@@ -121,12 +121,25 @@ test "Native custom role groups restore each original read independently after r
     guard preparation.preparation is Computation(prepared) else {
       fail("original checked preparation missing")
     }
-    let (request, _, compiled, _) = journal_test_prepared_run(
+    let (request, _, unselected, _) = journal_test_prepared_run(
       prepared,
       reference.request_id,
       "custom-run-" + suffix,
       scope~,
     )
+    // Source-free preparation has no contributing Source policy. Admit the
+    // independently authored Result policy before accepting this original Run.
+    assert_eq(@host.prepared_client_publication_data_policy_cid(prepared), None)
+    assert_true(
+      @host.client_compiled_run_publication_policy_bodies(
+        unselected, 65536, 8192, 64,
+      )
+      is Err(@checked.MissingDependency),
+    )
+    let (compiled, original_policy_cid) = policy_test_result_original(
+      unselected,
+    )
+    assert_eq(original_policy_cid, policy_cid)
     let definition = @host.issue_client_compiled_run_definition(
       compiled,
       "local-test",

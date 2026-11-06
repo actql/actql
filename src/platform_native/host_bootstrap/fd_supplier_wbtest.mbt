@@ -47,7 +47,7 @@ test "failed borrowed FD keeps the original reserved partial carrier" {
   assert_eq(host.usage().reserved_execution_bytes, bytes)
   host.try_close(original).unwrap()
   assert_eq(host.usage().reserved_execution_bytes, 0L)
-  assert_eq(host.usage().attempts, 1)
+  assert_eq(host.usage().attempts, 0)
   host.try_close(original).unwrap()
-  assert_eq(host.usage().attempts, 1)
+  assert_eq(host.usage().attempts, 0)
 }

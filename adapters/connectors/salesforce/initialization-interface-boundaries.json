@@ -3,10 +3,12 @@
   "declarations": [
     {
       "module": "adapters/connectors/salesforce/host/salesforce-initialization-construction.mjs",
-      "sha256": "ffc5d5277235ea2be207dc9a5347968166acf05db0a1de6f69b27bfa269ab181",
+      "sha256": "79076120d008f344dcb2f27b6913632939b5a8c8b1b1b294f25db679887ca74a",
       "exports": [
+        "salesforceDeclarationConstructionCapacity",
         "salesforceExecutionMappingConstructionCapacity",
-        "salesforceInitializationConstructionCapacity"
+        "salesforceInitializationConstructionCapacity",
+        "salesforceObservationConstructionCapacity"
       ],
       "operations": [
         {
@@ -42,6 +44,18 @@
         {
           "name": "fail/fail",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "initializationCapacity",
+          "parameters": [
+            "common",
+            "generation",
+            "siteBinding",
+            "declarationLimits",
+            "exportName",
+            "dimensions"
+          ],
           "async": false
         },
         {
@@ -85,6 +99,14 @@
           "async": false
         },
         {
+          "name": "salesforceDeclarationConstructionCapacity",
+          "parameters": [
+            "common",
+            "options"
+          ],
+          "async": false
+        },
+        {
           "name": "salesforceExecutionMappingConstructionCapacity",
           "parameters": [
             "common",
@@ -98,9 +120,15 @@
           "name": "salesforceInitializationConstructionCapacity",
           "parameters": [
             "common",
-            "generation",
-            "siteBinding",
-            "declarationLimits"
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "salesforceObservationConstructionCapacity",
+          "parameters": [
+            "common",
+            "options"
           ],
           "async": false
         },
@@ -136,11 +164,16 @@
             "quote",
             "salesforceExecutionMappingConstructionCapacity",
             "salesforceInitializationConstructionCapacity",
-            "string/string"
+            "string/string",
+            "initializationCapacity",
+            "salesforceDeclarationConstructionCapacity",
+            "salesforceObservationConstructionCapacity"
           ],
           "exports": [
             "salesforceExecutionMappingConstructionCapacity",
-            "salesforceInitializationConstructionCapacity"
+            "salesforceInitializationConstructionCapacity",
+            "salesforceDeclarationConstructionCapacity",
+            "salesforceObservationConstructionCapacity"
           ],
           "attributes": {
             "responsibility": [

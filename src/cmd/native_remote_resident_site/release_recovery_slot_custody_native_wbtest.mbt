@@ -2,6 +2,8 @@
 /// Real descriptor/lock and saved-row controls only, not a prepared installed
 /// Resident, whole Run release, Provider operation or physical child stop.
 test "release recovery busy Slot closes only its original refused description before returning" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let (library, journal, request, journal_path, _) = cleanup_test_open(
     "release-busy-slot",
   )
@@ -26,7 +28,14 @@ test "release recovery busy Slot closes only its original refused description be
   }
   let retained : Ref[StoppedReleaseRecovery?] = Ref(None)
   assert_false(
-    recover_stopped_release(matches, environment, request, retained, Ref(0)),
+    recover_stopped_release(
+      matches,
+      environment,
+      request,
+      retained,
+      Ref(0),
+      report_progress=observe_progress,
+    ),
   )
   assert_true(retained.val is None)
   assert_eq(opens.val, 0)
@@ -40,6 +49,7 @@ test "release recovery busy Slot closes only its original refused description be
   assert_true(foreign.close())
   journal.close_checked().unwrap()
   root.close().unwrap()
+  assert_eq(progress_events, [])
 }
 
 ///|

@@ -25,7 +25,7 @@ const graphControl={version:'actql/0.1',id:'fixture.carrier_continuation_graph_e
 const result={answer:{rows:expected,columns}};
 function success(name,text,source=false) {
   return ['sql','aql-text'].map(format=>({name:`carrier-continuation-${name}-${format}`,format,text,
-    results:structuredClone(result),sourceReadSessionCount:source?1:0,
+    results:{main:structuredClone(result.answer)},sourceReadSessionCount:source?1:0,
     ...(source?{sourceRows}: {sourceReadCount:0})}));
 }
 export const carrierContinuationSuccesses=[

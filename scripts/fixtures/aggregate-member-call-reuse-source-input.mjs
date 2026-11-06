@@ -51,7 +51,7 @@ export const aggregateMemberCallSuccesses = [
     parameterDeclarations: undefined, expected: [{n: 3, payload: null}],
     columns: [...columns, {name: 'payload', contract: object}]}),
   success('range-object-contrast', ', colliding AS (SELECT id, payload, other.score AS score FROM objects) '
-    + 'SELECT COUNT((payload).score) AS n FROM colliding AS payload HAVING COUNT(payload.score) > 3'),
+    + 'SELECT COUNT((payload.payload).score) AS n FROM colliding AS payload HAVING COUNT(payload.score) > 3'),
   success('distinct-contrast', count + 'HAVING COUNT(DISTINCT (payload).score) = 2'),
   success('filter-contrast', 'SELECT COUNT(payload.score WHERE payload.score > 10) AS n FROM objects '
     + 'HAVING COUNT((payload).score WHERE payload.score > 20) > 0', {expected: []}),

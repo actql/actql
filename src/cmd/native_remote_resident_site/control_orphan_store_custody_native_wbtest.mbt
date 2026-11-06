@@ -12,6 +12,8 @@ fn orphan_store_test_root(name : String) -> (@filesystem.Root, String) {
 /// Actual constructor/handle custody, not a Run release, publication ACK,
 /// selected installed Resident, current dispatch or physical child stop.
 test "orphan Store failure retains original cleanup and does not replace its Journal or Slot" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let (library, journal, request, journal_path, _) = cleanup_test_open(
     "orphan-store-open-failure",
   )
@@ -55,7 +57,13 @@ test "orphan Store failure retains original cleanup and does not replace its Jou
   let retained = Ref(Some(ReplayJournalHandle(journal)))
   let slot_progress = Ref(ControlSlotPending)
   assert_true(
-    retry_control_orphan_store_cleanup(failed, retained, slot, slot_progress),
+    retry_control_orphan_store_cleanup(
+      failed,
+      retained,
+      slot,
+      slot_progress,
+      report_progress=observe_progress,
+    ),
   )
   assert_true(failed.val is None)
   assert_true(retained.val is None)
@@ -85,6 +93,7 @@ test "orphan Store failure retains original cleanup and does not replace its Jou
   assert_true(retained.val is None)
   occupied.close_checked().unwrap()
   root.close().unwrap()
+  assert_eq(progress_events, [])
 }
 
 ///|
@@ -126,6 +135,10 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
   let retained : Ref[ControlReplayJournalCustody?] = Ref(None)
   let slot_progress = Ref(ControlSlotPending)
   let failures = Ref(0)
+  // The real reporter writes the CLI protocol directly to stdout. Observe
+  // these real progress events here without corrupting the test-driver stream.
+  let reports : Array[(String, Array[(String, String)])] = []
+  let observe = (kind, fields) => reports.push((kind, fields))
   let observed = reclaim_orphaned_outputs(
     settings,
     environment,
@@ -135,7 +148,12 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
     failed,
     slot_progress,
     failures,
+    report_progress=observe,
   )
+  assert_eq(reports, [
+    ("orphans-reclaimed", [("intents", "0")]),
+    ("orphan-reclaim-pending", [("reason", "store-close")]),
+  ])
   assert_true(observed is OrphanStoreOpen(same) && physical_equal(same, store))
   assert_true(retained.val is None)
   assert_true(failed.val is None)
@@ -151,9 +169,15 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
       failed,
       slot_progress,
       failures,
+      report_progress=observe,
     )
     is OrphansDone,
   )
+  assert_eq(reports, [
+    ("orphans-reclaimed", [("intents", "0")]),
+    ("orphan-reclaim-pending", [("reason", "store-close")]),
+    ("orphans-reclaimed", [("intents", "0")]),
+  ])
   assert_true(retained.val is None)
   let independent = @slot.open_native_executor_slot(path + ".slot").unwrap()
   assert_true(independent.try_acquire().unwrap())
@@ -169,6 +193,8 @@ test "orphan reclaim keeps its actual Store and Slot until the original active W
 
 ///|
 test "orphan Store refusal before acquisition still retires its earlier original Journal and Slot" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let (library, journal, request, journal_path, _) = cleanup_test_open(
     "orphan-refused-store",
   )
@@ -190,7 +216,12 @@ test "orphan Store refusal before acquisition still retires its earlier original
   assert_eq(root.inspect_generation(".actql-publication.lock").unwrap(), None)
   let retained = Ref(Some(ReplayJournalHandle(journal)))
   let slot_progress = Ref(ControlSlotPending)
-  retain_control_orphan_reader_cleanup(retained, slot, slot_progress)
+  retain_control_orphan_reader_cleanup(
+    retained,
+    slot,
+    slot_progress,
+    report_progress=observe_progress,
+  )
   assert_true(retained.val is None)
   let independent = @slot.open_native_executor_slot(path + ".slot").unwrap()
   assert_true(independent.try_acquire().unwrap())
@@ -202,4 +233,5 @@ test "orphan Store refusal before acquisition still retires its earlier original
   )
   assert_true(retry_control_replay_journal_cleanup(retained))
   root.close().unwrap()
+  assert_eq(progress_events, [])
 }

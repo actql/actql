@@ -93,6 +93,8 @@ test "release command reuses actual terminal close observation without reclosing
 
 ///|
 test "release command retires failed input construction without marking original Run released" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let (owner, path) = retained_recovery_test_open(
     "release-command-input-failure",
   )
@@ -104,12 +106,17 @@ test "release command retires failed input construction without marking original
       owner,
       input_path + "/transfer.sqlite3",
       Some(input_path + "/missing-root"),
+      report_progress=observe_progress,
     )
     is None,
   )
   let original = owner.input_cleanup_resources.failed_root.unwrap()
   let retained = Ref(Some(owner))
-  retire_failed_stopped_holder_input_constructor(owner, retained)
+  retire_failed_stopped_holder_input_constructor(
+    owner,
+    retained,
+    report_progress=observe_progress,
+  )
   assert_true(retained.val is None)
   assert_true(original.issue() is @filesystem.RootOpen(_))
   assert_true(owner.input_cleanup_resources.failed_root is None)
@@ -121,17 +128,20 @@ test "release command retires failed input construction without marking original
   assert_true(next.close())
   let saved = fresh_journal(owner.environment).unwrap()
   assert_true(saved.recover_after("").unwrap() is None)
-  retain_control_replay_journal_close(saved)
+  retain_control_replay_journal_close(saved, report_progress=observe_progress)
   fixture.close().unwrap()
+  assert_eq(progress_events, [])
 }
 
 ///|
 test "release command observation closes original ready Journal and keeps saved row unchanged" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let (library, journal, request, path, _) = cleanup_test_open(
     "release-command-reader",
   )
   journal.accept(request).unwrap() |> ignore
-  retain_control_replay_journal_close(journal)
+  retain_control_replay_journal_close(journal, report_progress=observe_progress)
   let environment = replay_journal_test_environment(library, path)
   // This fresh fixture intentionally has metadata but no dispatch envelope.
   // The actual caller must retire that reader on its unavailable result too.
@@ -145,5 +155,6 @@ test "release command observation closes original ready Journal and keeps saved 
   )
   assert_false(saved.cancellation_requested(request).unwrap())
   assert_true(saved.output_report_after("").unwrap() is None)
-  retain_control_replay_journal_close(saved)
+  retain_control_replay_journal_close(saved, report_progress=observe_progress)
+  assert_eq(progress_events, [])
 }

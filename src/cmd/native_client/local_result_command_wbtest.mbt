@@ -138,10 +138,11 @@ test "legacy read retains its explicit original file and delivery selection" {
 
 ///|
 fn result_command_store(name : String) -> @local_store.Store raise {
-  let base = request_lookup_some(
-    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT"),
-    "result.Store.root",
-  )
+  let selected = match @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") {
+    Some(root) => Some(root)
+    None => @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT")
+  }
+  let base = request_lookup_some(selected, "result.Store.root")
   let parent = request_lookup_ok(
     @local_filesystem.open_private_root(base),
     "result.Store.parent",
