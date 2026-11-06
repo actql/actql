@@ -4,6 +4,9 @@
 // and complete allocation-request count before using this control family.
 // Count sequential constructors too: a failed physical retirement can retain
 // their pages after the managed alias is gone. No implicit credit is reused.
+// Intentionally private: only scoped diagnostics construct this prerequisite
+// until a complete product constructor certificate exists.
+#warnings("-struct_never_constructed")
 priv struct NativeControlConstruction {
   maximum_managed_request : Int64
   allocation_requests : Int64
@@ -68,6 +71,7 @@ extern "C" fn close_root_control_ffi(backing : Backing) -> Int = "actql_bootstra
 // entered. The same reservation pays context and constructor storage first.
 // Partial C creation stays registered on the existing backing, including an
 // unknown outcome. Initial Request inventory certification remains separate.
+#warnings("-unused_value")
 fn[T] NativeHostBootstrap::prepare_root_control(
   self : NativeHostBootstrap[T],
   original : T,
@@ -125,6 +129,7 @@ fn[T] NativeHostBootstrap::prepare_root_control(
 // No old credit is recycled from observed free pages or a lowered live count.
 // The caller can first acquire more actual root backing through grow_backing;
 // the initial control prefix is therefore not a permanent growth ceiling.
+#warnings("-unused_value")
 fn[T] NativeHostBootstrap::extend_root_control(
   self : NativeHostBootstrap[T],
   original : T,
@@ -183,6 +188,7 @@ fn[T] NativeHostBootstrap::extend_root_control(
 ///|
 // Scalar return is intentional: no managed Result constructor may run after
 // C entry and consume an unquoted allocation before the cohort starts.
+#warnings("-unused_value")
 fn[T] NativeHostBootstrap::enter_root_control(
   self : NativeHostBootstrap[T],
   original : T,
@@ -203,6 +209,7 @@ fn[T] NativeHostBootstrap::enter_root_control(
 }
 
 ///|
+#warnings("-unused_value")
 fn[T] NativeHostBootstrap::leave_root_control(
   self : NativeHostBootstrap[T],
   original : T,
