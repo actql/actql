@@ -3,16 +3,19 @@
 // Parser/JsonDocument, Cursor/ObjectView, lookup Results or normalization
 // cursors. Keep the original conservative three metadata-copy field roles;
 // retaining all parser-owned text also covers normalized/borrowed strings.
+// ReferenceTo may retain many strings per field: preserve their node-bound
+// String headers and the original plus two copied reference-array item roles.
 fn sf_initialization_metadata_retained(
   fields : Int64,
+  nodes : Int64,
   text : Int64,
 ) -> @execution.PreparationRepresentationUnits? {
   guard @shape.collection_construction_extent({
-      records: 32L + 96L * fields,
-      record_references: 64L + 160L * fields,
-      record_words: 32L + 96L * fields,
+      records: 32L + 96L * fields + 2L * nodes,
+      record_references: 64L + 160L * fields + 2L * nodes,
+      record_words: 32L + 96L * fields + 2L * nodes,
       reference_arrays: 24L + 8L * fields,
-      reference_items: 48L + 24L * fields,
+      reference_items: 48L + 24L * fields + 4L * nodes,
       scalar_arrays: 2L,
       scalar_items: 0L,
       maps: 4L + 2L * fields,

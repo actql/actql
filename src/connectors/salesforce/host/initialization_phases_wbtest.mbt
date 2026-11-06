@@ -72,6 +72,19 @@ test "Salesforce phased recovery keeps full failed peak and only closed metadata
 }
 
 ///|
+test "Salesforce phased retained metadata covers dense reference arrays and primitive strings" {
+  // Up to 1000 fields can retain a much larger total ReferenceTo inventory.
+  // Count each primitive String and all three reference-array copy roles;
+  // neither one slot per field nor retained UTF16 contents alone covers them.
+  let nodes = 300000L
+  let retained = sf_initialization_metadata_retained(1000L, nodes, 2000000L).unwrap()
+  assert_true(retained.record_headers >= nodes)
+  assert_true(retained.reference_slots >= 3L * nodes)
+  assert_true(retained.scalar_words >= nodes)
+  assert_eq(retained.owned_utf16_units, 2000000L)
+}
+
+///|
 test "Salesforce declaration dimensions keep full raw forest before tight writer refusal" {
   let describe : @catalog.DescribeLimits = {
     max_bytes: 4000000,

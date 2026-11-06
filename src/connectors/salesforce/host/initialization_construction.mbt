@@ -309,7 +309,11 @@ fn sf_initialization_construction_capacity(
         owned_wire_bytes: original_bytes.to_int64(),
       })
       if observation_only {
-        guard sf_initialization_metadata_retained(f, parsed.owned_utf16_units)
+        guard sf_initialization_metadata_retained(
+            f,
+            n.to_int64(),
+            parsed.owned_utf16_units,
+          )
           is Some(retained) else {
           return None
         }
