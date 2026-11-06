@@ -1,4 +1,31 @@
 ///|
+// Drive only the provider's original acquisition child. A later checked
+// Program projection remains outside this reader's capture boundary.
+fn snowflake_capture_result(
+  read : @snowflake_read.Read,
+) -> Result[@row_host.RowSourceCapture, @snowflake_read.ReadIssue] raise {
+  match @snowflake_read.begin_result_capture(read) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let mut previous = 0L
+  for _ in 0..<1000 {
+    let (done, work) = match @snowflake_read.advance_result_capture(read, 1) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    assert_true(work >= previous)
+    previous = work
+    if done {
+      return @snowflake_read.capture_result_read(read)
+    }
+  }
+  fail(
+    "Original snowflake capture did not finish within the fixture work bound",
+  )
+}
+
+///|
 fn snowflake_read_limits() -> @snowflake_response.ResponseLimits {
   {
     max_bytes: 4096,
@@ -461,7 +488,7 @@ test "Snowflake actual declared Source charges original envelope and captures ex
   )
   assert_true(@snowflake_read.capture_result_read(read) is Err(_))
   @snowflake_read.finish_result_read(read).unwrap()
-  let capture = @snowflake_read.capture_result_read(read).unwrap()
+  let capture = snowflake_capture_result(read).unwrap()
   let source = @row_host.row_capture_source(capture).unwrap()
   let input = @query.captured_source_storage(source, 10000, 10000).unwrap()
   assert_true(
@@ -500,7 +527,7 @@ test "Snowflake partition admission remains one charged original and complete be
     (first.length() + next.length()).to_int64(),
   )
   @snowflake_read.finish_result_read(read).unwrap()
-  assert_true(@snowflake_read.capture_result_read(read) is Ok(_))
+  assert_true(snowflake_capture_result(read) is Ok(_))
   snowflake_assert_retired(read, ledger)
 }
 
@@ -762,7 +789,7 @@ test "Snowflake AQL uses the same original Common compiler acquisition and clean
     2,
   )
   snowflake_expect(@snowflake_read.finish_result_read(read))
-  let capture = snowflake_expect(@snowflake_read.capture_result_read(read))
+  let capture = snowflake_expect(snowflake_capture_result(read))
   let source = @row_host.row_capture_source(capture).unwrap()
   let input = @query.captured_source_storage(source, 10000, 10000).unwrap()
   assert_true(
@@ -794,4 +821,58 @@ test "Snowflake invalid pre-start bounds do not reserve an attempt or create cle
   )
   assert_true(@snowflake_read.read_start_failure_cleanup(failure) is None)
   assert_eq(@resources.ledger_usage(ledger), before)
+}
+
+///|
+test "snowflake bounded capture retains the same child through stop and cleanup" {
+  let body = snowflake_result_body(snowflake_two_rows())
+  let stopped = Ref(false)
+  let (read, ledger) = snowflake_started_read(
+    "snowflake-bounded-capture-cleanup",
+    body.length().to_int64(),
+    stopped~,
+  )
+  assert_true(
+    @snowflake_read.begin_result_capture(read) is Err(@snowflake_read.Closed),
+  )
+  assert_true(
+    @snowflake_read.advance_result_capture(read, 1)
+    is Err(@snowflake_read.Closed),
+  )
+  @snowflake_read.accept_first_result(read, body).unwrap() |> ignore
+  @snowflake_read.finish_result_read(read).unwrap()
+  // The original physical observer has not confirmed settlement yet.
+  assert_true(@snowflake_read.begin_result_capture(read) is Err(_))
+  stopped.val = true
+  @snowflake_read.begin_result_capture(read).unwrap()
+  assert_true(@snowflake_read.begin_result_capture(read) is Err(_))
+  assert_true(@snowflake_read.advance_result_capture_cleanup(read, 1) is Err(_))
+  assert_true(@snowflake_read.advance_result_capture(read, 1) is Ok((false, _)))
+  let charged = @resources.ledger_usage(ledger).transferred_bytes
+  @snowflake_read.interrupt_result_read(read)
+  assert_true(
+    @snowflake_read.advance_result_capture(read, 1)
+    is Err(@snowflake_read.Closed),
+  )
+  assert_true(
+    @snowflake_read.capture_result_read(read) is Err(@snowflake_read.Closed),
+  )
+  let mut closed = false
+  for _ in 0..<1000 {
+    match @snowflake_read.close_result_read(read) {
+      Ok(_) => {
+        closed = true
+        break
+      }
+      Err(_) =>
+        @snowflake_read.advance_result_capture_cleanup(read, 1).unwrap()
+        |> ignore
+    }
+  }
+  assert_true(closed)
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, charged)
+  snowflake_assert_retired(read, ledger)
+  assert_true(
+    @snowflake_read.begin_result_capture(read) is Err(@snowflake_read.Closed),
+  )
 }

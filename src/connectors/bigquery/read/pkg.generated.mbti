@@ -16,7 +16,13 @@ pub fn accept_job_response(JobRead, JobRequest, Int, Bytes, Bytes) -> Result[Uni
 
 pub fn accept_query_page(Read, String?, Bytes) -> Result[Int, ReadIssue]
 
+pub fn advance_result_capture(Read, Int) -> Result[(Bool, Int64), ReadIssue]
+
+pub fn advance_result_capture_cleanup(Read, Int) -> Result[Bool, ReadIssue]
+
 pub fn attempt_job_request(JobRead, JobRequest) -> Result[Unit, JobIssue]
+
+pub fn begin_result_capture(Read) -> Result[Unit, ReadIssue]
 
 pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]
 
