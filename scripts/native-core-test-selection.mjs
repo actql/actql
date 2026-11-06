@@ -23,6 +23,7 @@ export const nativeScopedTestFiles = Object.freeze([
   'src/platform_native/installed_arena_control/store_result_return_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/store_wal_original_physical_scoped_wbtest.mbt',
 ]);
+const retainedComputeSource = 'src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt';
 const selectedGeometryFiles = new Set([
   'src/cmd/native_client/local_command_business_wbtest.mbt',
   'src/cmd/native_client/local_command_installed_profile_wbtest.mbt',
@@ -35,11 +36,12 @@ function partitionProfiles(args, records) {
   // the HTTP harness. Do not inject its optional environment into other Core
   // packages, or count a missing environment as transport execution.
   const http = records.filter(record => record.directory === 'src/platform_native/http_client');
+  const retained = records.filter(record => record.source === retainedComputeSource);
   const ordinary = records.filter(record => !scopedFiles.has(record.source) &&
-    record.directory !== 'src/platform_native/http_client');
+    record.source !== retainedComputeSource && record.directory !== 'src/platform_native/http_client');
   const geometry = ordinary.filter(record => selectedGeometryFiles.has(record.source));
-  assert.equal(ordinary.length + physical.length + http.length, records.length);
-  const affected = new Set(physical.map(record => record.directory));
+  assert.equal(ordinary.length + physical.length + http.length + retained.length, records.length);
+  const affected = new Set([...physical, ...retained].map(record => record.directory));
   const ordinaryPaths = [...new Set(ordinary.map(record =>
     affected.has(record.directory) ? record.source : record.directory))];
   const selectedRecords = records.filter(record =>
@@ -58,6 +60,7 @@ function partitionProfiles(args, records) {
       cases: ordinary.length},
     http: {args: http.length ? [...args, 'src/platform_native/http_client'] : null,
       cases: http.length},
+    retained: {args: retained.length ? [...args, retainedComputeSource] : null, cases: retained.length},
     scoped: {args: selectedPaths.length ? [...args, ...selectedPaths] : null,
       cases: physical.length + geometry.length, tests},
     physicalCases: physical.length,

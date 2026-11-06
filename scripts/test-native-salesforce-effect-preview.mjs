@@ -31,10 +31,23 @@ assert(coreExpectedTests === undefined || (coreArgs !== undefined &&
   Number.isSafeInteger(coreExpectedTests) && coreExpectedTests > 0), 'Invalid Native core test count');
 assert(!directLocalClaimCustody || (!originalLocalReview && !residentProposals && coreArgs === undefined),
   'Direct Local claim custody requires its own finite fixture selection');
+const coreRetained = coreArgs !== undefined && residentProposals;
 if (coreArgs !== undefined) {
-  assert(Array.isArray(coreArgs) && coreArgs.every(arg => typeof arg === 'string') && !residentProposals,
+  assert(Array.isArray(coreArgs) && coreArgs.every(arg => typeof arg === 'string'),
     'Invalid Native core fixture invocation');
+  if (coreRetained) {
+    assert(!residentPreview && !residentEffectRuntimeCapture && !originalLocalReview &&
+      process.argv.includes('--resident-proposals'), 'Invalid retained Core peer selection');
+    assert.deepEqual(coreArgs.filter(arg => arg.startsWith('src/')),
+      ['src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt']);
+    assert(!coreArgs.some(arg => ['--filter','--index','--doc-index','-f','-i'].some(
+      option => arg === option || arg.startsWith(option+'='))),
+      'Retained Core peers require the complete original file');
+  }
 }
+// The complete file has two authored successful Provider observations: the
+// proposal case and Checkpoint custody. Its revoked-permission case sends none.
+const completeRetainedProposals = residentProposals && !residentPreview && !residentEffectRuntimeCapture;
 
 const scratch = process.env.ACTQL_TEST_SCRATCH_ROOT ?? (coreArgs === undefined ? undefined :
   join(process.cwd(), '_build', 'native-core-physical'));
@@ -276,7 +289,7 @@ try {
     'CREDENTIAL_GRANT_BODY', 'CREDENTIAL_GRANT_CID', 'CREDENTIAL_SIGNATURE', 'CREDENTIAL_PUBLIC_KEY']) {
     const key = 'ACTQL_TEST_NATIVE_' + suffix;
     testEnv['ACTQL_TEST_NATIVE_SALESFORCE_' + suffix] = testEnv[key];
-    if (coreArgs !== undefined) {
+    if (coreArgs !== undefined && !coreRetained) {
       if (process.env[key] === undefined) delete testEnv[key];
       else testEnv[key] = process.env[key];
     }
@@ -406,7 +419,7 @@ try {
     assert.deepEqual(paths, []);
   } else if (residentProposals) {
     assert.deepEqual(paths, []);
-    assert.deepEqual(bearer.effectTargets(), {reads: residentMappedCreate || residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
+    assert.deepEqual(bearer.effectTargets(), {reads: completeRetainedProposals ? 2 : residentMappedCreate || residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
     assert.equal(bearer.effectTargetValue(), residentApprovedRow && !residentMappedCreate ? 3 : 7);
     if (residentMappedCreate) assert.deepEqual(bearer.effectCreatedValues(),
       [{Id: '001000000000001AAA', Count__c: 3}]);

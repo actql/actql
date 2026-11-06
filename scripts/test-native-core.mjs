@@ -53,6 +53,7 @@ if (selection) console.log('Native test selection: ' + JSON.stringify({cases: se
   packages: selection.packages, prunedDrivers: selection.prunedDrivers,
   profiles: {ordinary: selection.profiles.ordinary.cases,
     http: selection.profiles.http.cases,
+    retained: selection.profiles.retained.cases,
     scoped: selection.profiles.scoped.cases, physical: selection.profiles.physicalCases,
     repeatedGeometry: selection.profiles.repeatedGeometryCases}}));
 const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_client'))
@@ -152,6 +153,15 @@ if (full) {
     {cwd: root, stdio: 'inherit', env: environment}));
   };
   runProfile(selection.profiles.ordinary, {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler});
+  // Only these original cases consume the existing real bearer/Provider peers.
+  // Generic HTTP inputs must remain absent from the ordinary Core child.
+  if (selection.profiles.retained.args !== null) {
+    checkChild(spawnSync(process.execPath, ['scripts/test-native-salesforce-effect-preview.mjs',
+      '--core-test-json', JSON.stringify(selection.profiles.retained.args),
+      '--core-test-count', String(selection.profiles.retained.cases), '--resident-proposals'],
+    {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...testCompiler}}));
+  }
+
   if (selection.profiles.scoped.args !== null) {
     const scopedScratch = await createOwnedScratch({parent: join(root, '_build', 'native-core-scoped'),
       prefix: 'profile-', label: 'Native Core scoped compiler', preserve: true});
