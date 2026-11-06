@@ -317,9 +317,26 @@ test "Native original response witness rejects missing pairs and tampered raw cu
       journal.effect_row_response(dispatch, () => true, 4096)
       is Err(CustodyLost),
     )
+    let corrupt_meta = database.read("client_effect_response_meta", cid)
+    let corrupt_bytes = database.read("client_effect_response_bytes", cid)
     database.close_checked().unwrap()
     let reopened = epoch_test_database(name)
-    assert_true(open_native_client_run_journal(reopened, 8) is Err(CustodyLost))
+    assert_true(open_native_client_run_journal(reopened, 8) is Ok(_))
+    assert_true(run_journal_custody(reopened, 8) is Err(CustodyLost))
+    for
+      (table, before) in [
+        ("client_effect_response_meta", corrupt_meta),
+        ("client_effect_response_bytes", corrupt_bytes),
+      ] {
+      match (before, reopened.read(table, cid)) {
+        (Ok(before), Ok(after)) => {
+          assert_eq(after.body, before.body)
+          assert_eq(after.revision, before.revision)
+        }
+        (Err(@sqlite.NotFound), Err(@sqlite.NotFound)) => ()
+        _ => fail("integrity inspection changed the original response custody")
+      }
+    }
     reopened.close_checked().unwrap()
   }
 }
@@ -335,9 +352,25 @@ test "Native response custody rejects unattached rows and cannot bootstrap over 
   |> ignore
   database.insert("client_effect_response_bytes", cid, body.body).unwrap()
   |> ignore
-  assert_true(open_native_client_run_journal(database, 8) is Err(CustodyLost))
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  assert_true(run_journal_custody(database, 8) is Err(CustodyLost))
+  let saved_meta = database.read("client_effect_response_meta", cid).unwrap()
+  let saved_bytes = database.read("client_effect_response_bytes", cid).unwrap()
+  assert_eq(saved_meta.body, metadata)
+  assert_eq(saved_meta.revision, 0L)
+  assert_eq(saved_bytes.body, body.body)
+  assert_eq(saved_bytes.revision, 0L)
   assert_true(
-    initialize_native_client_run_journal(database) is Err(CustodyLost),
+    journal.transaction(() => {
+      initialize_native_client_run_journal_rows(database)
+    })
+    is Err(CustodyLost),
   )
+  let after_meta = database.read("client_effect_response_meta", cid).unwrap()
+  let after_bytes = database.read("client_effect_response_bytes", cid).unwrap()
+  assert_eq(after_meta.body, saved_meta.body)
+  assert_eq(after_meta.revision, saved_meta.revision)
+  assert_eq(after_bytes.body, saved_bytes.body)
+  assert_eq(after_bytes.revision, saved_bytes.revision)
   database.close_checked().unwrap()
 }
