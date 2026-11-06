@@ -22,7 +22,8 @@ test('independent Graph Relation controls retain operation arguments, types, JOI
     const delta = value.$json;
     const original = graphDifferenceSourceSuccesses.find(item => item.name ===
       'graph-difference-' + (format === 'json' ? 'json-parallel-unchanged' : 'terminal-self'));
-    assert.deepEqual(delta, original.results.changes.rows[0].delta);
+    assert.deepEqual(value, original.results.changes.rows[0].delta,
+      'JOIN preserves the existing public typed cell without re-encoding it');
     assert.equal(delta.version, 'actql-graph-delta/0.1');
     assert.equal(delta.base_graph_cid, delta.target_graph_cid);
     for (const key of ['graph_contract_cid', 'base_graph_cid', 'target_graph_cid'])
@@ -48,6 +49,11 @@ test('Graph Relation JOIN fixtures enter normal packed acceptance and the focuse
     assert.ok(fixture.includes('scopeInputs.' + kind + '.push(...' + group + ')'));
   assert.ok(fixture.match(/^const scopeOnly = (.+);$/mu)[1].split(/\s*\|\|\s*/u).includes('graphRelationJoinOnly'));
   assert.ok(fixture.includes('graphRelationJoinOnly ? {successes: graphRelationJoinSuccesses'));
+  const preflight = driver.slice(driver.indexOf('console.log(run(process.execPath'),
+    driver.indexOf("const packages = ['client-wire'"));
+  for (const file of ['graph-difference-source-input.test.mjs',
+    'graph-relation-join-source-input.test.mjs'])
+    assert.ok(preflight.includes("'scripts/" + file + "'"), file);
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_RELATION_JOIN_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/graph-relation-join-source-input.mjs', 'graph-relation-join-source-input.mjs']"));
   assert.ok(driver.includes("if (process.argv.includes('--graph-relation-join-only')) return;"));

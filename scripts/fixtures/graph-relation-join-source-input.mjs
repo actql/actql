@@ -74,7 +74,7 @@ for (const [name, format] of [['json-parallel-unchanged', 'json'], ['terminal-se
       ', r AS (SELECT 20 AS tag UNION ALL SELECT 10 AS tag) FROM g |> graph_diff(with: g)' + tail('delta'));
   }
   graphRelationJoinSuccesses.push(success('graph_diff-' + format, text,
-    rows({$json: existing.results.changes.rows[0].delta}), {type: 'json', nullable: false}, {format}));
+    rows(existing.results.changes.rows[0].delta), {type: 'json', nullable: false}, {format}));
 }
 export const graphRelationJoinRefusals = [
   ['removed-key', "degree(direction: 'out')" + tail('node_key')],
