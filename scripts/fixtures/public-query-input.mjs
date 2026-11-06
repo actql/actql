@@ -105,7 +105,7 @@ export const pipeResultSuccesses = [
     text: 'FROM records |> ORDER BY id |> RESULT original |> LIMIT 1',
     results: {
       original: {rows: [{id: 1, amount: null}, {id: 2, amount: 20}, {id: 3, amount: 30}, {id: 3, amount: 30}], columns: sourceColumns},
-      main: {rows: [{id: 1, amount: null}], columns: sourceColumns},
+      answer: {rows: [{id: 1, amount: null}], columns: sourceColumns},
     }, sourceReadSessionCount: 1},
   {name: 'terminal-result', format: 'sql',
     text: 'SELECT amount, id FROM records ORDER BY id |> RESULT complete',
