@@ -27,7 +27,7 @@ export const focusedFixtureObjects = Object.freeze({
   'src/query_integration/duckdb_native_query_wbtest.mbt': 'b32cbe013055b19be26c3db899181a95c0ea487e',
   'src/query_integration/engine_fixtures_wbtest.mbt': 'bd46554cf744ceefac430def17b0838852962721',
   'src/query_integration/managed_zero_input_request_wbtest.mbt': 'd34b2433e06929baa87f38d47c195b0432ab198b',
-  'src/query_integration/moon.pkg': '8256272d7a05441725b9d506d7fd6ec795a68222',
+  'src/query_integration/moon.pkg': 'e5156b15c5ea6af60d0d82fff438053d77a8677b',
   'src/query_integration/pinned_engine_contracts_wbtest.mbt': 'cb157fdf90ca9c0b5c54c529eab850858f91ef41',
   'src/query_integration/query_capture_wbtest.mbt': '4075ab85106806651f9f625575506310d1ce0586',
   'src/query_integration/query_catalog_fixture_wbtest.mbt': 'cbbc97ea6f6bbb4ae75b98a2ac16f153b9fb0655',
