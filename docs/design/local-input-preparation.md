@@ -6011,3 +6011,20 @@ its existing same-Request document/Query constructor reserves the selected
 representation before parsing or lowering. The structured Program continuation
 continues to use its observed native input inventory. No permission, additional
 check, fallback compiler or numerical resource grant follows from this choice.
+
+The Native command retains the actual immutable producer selection (input root,
+operation, original argument object and any Journal-retained intent) before file
+payload exists. The same Request is initialized with that input. The ordinary
+file reader reports its original generation's byte extent before constructing
+its Reader or payload buffers; the caller grows the same Request's construction
+reservation at that boundary. Generation is checked again by the original
+Reader constructor. Reentry cannot select a new input or retire that reservation.
+
+Native input wire construction borrows validated raw JSON file text instead of
+building another detached native JSON tree. File codec syntax/node/depth guards
+are retained. Escaped byte storage follows the observed input, while Source node
+and depth policy still belongs to the original syntax contract. Each grow uses
+the same cached reservation baseline; a declined grow does not add the baseline
+twice, refund consumed work or issue another Root. A constructor that fits an
+existing debit checks original currentness without a no-op resize. Failed file
+constructors retain their own Reader/Root before the same Request can retire.

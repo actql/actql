@@ -76,15 +76,12 @@ fn[T] LocalCommandPreparationOriginal::with_business_request(
 }
 
 ///|
-fn LocalCommandPreparationOriginal::prepare_business_request(
+fn LocalCommandPreparationOriginal::begin_business_request(
   self : LocalCommandPreparationOriginal,
   capture : @local_host.NativeLocalJournalCapture,
-  input : @run_host.ClientSubmittedIntent,
-  environment : @checked.CheckEnvironment,
-) -> @local_host.NativeClientSubmittedPreparation raise ClientStop {
+) -> Unit raise ClientStop {
   guard self.business is Some(business) &&
-    business.request_input is Some(original) &&
-    physical_equal(original, input) &&
+    business.request_input is Some(input) &&
     business.request_initial is Some(initial) &&
     business.request_parent is None else {
     stop("LocalBusinessOriginalUnavailable")
@@ -96,8 +93,24 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
       @local_values.client_local_resource_policy(),
     ).unwrap_or_else(() => stop("LocalRequestPreparationUnavailable"))
     business.request_parent = Some(parent)
-    // The original public environment has no alias substitution, exactly as
-    // the old CLI query Context. Resource entry precedes all Catalog/lowering.
+  })
+}
+
+///|
+fn LocalCommandPreparationOriginal::prepare_business_request(
+  self : LocalCommandPreparationOriginal,
+  capture : @local_host.NativeLocalJournalCapture,
+  intent : @run_host.ClientSubmittedIntent,
+  environment : @checked.CheckEnvironment,
+) -> @local_host.NativeClientSubmittedPreparation raise ClientStop {
+  guard self.business is Some(business) &&
+    business.request_input is Some(input) &&
+    business.request_parent is Some(parent) &&
+    business.request_intent is None else {
+    stop("LocalBusinessOriginalUnavailable")
+  }
+  business.request_intent = Some(intent)
+  self.with_business_request(capture, () => {
     let publication = @source_publication.prepare_published_query_environment(
       environment,
       "{\"environmentCid\":\"" +
@@ -105,8 +118,8 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
       "\",\"aliases\":[]}",
     ).unwrap_or_else(() => stop("InvalidLocalQueryContext"))
     match
-      @local_host.prepare_native_client_submitted_request(
-        parent, input, environment, publication,
+      @local_host.prepare_native_client_submitted_request_input(
+        parent, input, intent, environment, publication,
       ) {
       Err(issue) => local_stop_submitted_preparation(issue)
       Ok((preparation, holder)) => {
@@ -124,7 +137,8 @@ fn LocalCommandBusinessPreparation::request_compilation(
   guard self.original.business is Some(business) &&
     business.request_parent is Some(parent) &&
     business.request_input is Some(input) &&
-    physical_equal(input, self.intent) else {
+    business.request_intent is Some(original_intent) &&
+    physical_equal(original_intent, self.intent) else {
     stop("LocalBusinessOriginalUnavailable")
   }
   self.original.with_business_request(self.capture, () => {
@@ -152,7 +166,8 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
   guard self.original.business is Some(business) &&
     business.request_parent is Some(parent) &&
     business.request_input is Some(input) &&
-    physical_equal(input, self.intent) &&
+    business.request_intent is Some(original_intent) &&
+    physical_equal(original_intent, self.intent) &&
     business.request_run is None else {
     stop("LocalBusinessOriginalUnavailable")
   }
@@ -179,5 +194,6 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
     business.request_parent = None
     business.request_initial = None
     business.request_input = None
+    business.request_intent = None
   })
 }

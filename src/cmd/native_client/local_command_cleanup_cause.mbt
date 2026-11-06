@@ -18,6 +18,22 @@ fn command_preparation_cleanup_cause(
         NativeStorageSqliteDomainMissing => "NativeStorageSqliteDomainMissing"
       }
     CommandUnavailable => "CommandUnavailable"
+    CommandRequestPreparation(cause) =>
+      match cause {
+        ForeignOriginal => "ForeignOriginal"
+        WrongPhase => "WrongPhase"
+        Policy => "Policy"
+        Initial(_) => "Initial"
+        Capacity(_) => "Capacity"
+        ProgramJson(_) => "ProgramJson"
+        ProgramCheck(_) => "ProgramCheck"
+        Parameters(_) => "Parameters"
+        Intent(_) => "Intent"
+        SourceInput(_) => "SourceInput"
+        Work(_) => "Work"
+        ParameterDeclarations(_) => "ParameterDeclarations"
+        ParameterSource(_) => "ParameterSource"
+      }
     CommandHost(cause) =>
       match cause {
         Unavailable => "Unavailable"
@@ -262,6 +278,7 @@ fn command_preparation_cleanup_cause(
         Filesystem(_) => "Filesystem"
         Cleanup(_, _) => "Cleanup"
         InvalidUtf8 => "InvalidUtf8"
+        PreparationUnavailable => "PreparationUnavailable"
       }
     CommandFilesystemCleanup(cause) =>
       match cause {

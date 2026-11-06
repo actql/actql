@@ -1349,6 +1349,8 @@ pub fn[I] begin_request_program_managed_run(
       owner.submitted_intent = None
       owner.intent_base = None
       owner.intent_source_quote = None
+      owner.native_intake_base = None
+      owner.native_intake_wire_bytes = 0
       owner.intent_peak_live = false
       owner.input = None
       owner.query_syntax = None

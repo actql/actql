@@ -38,6 +38,7 @@ fn command_preparation_cleanup_kind(
   match issue {
     CommandInvalidProfile => "profile"
     CommandUnavailable => "original-unavailable"
+    CommandRequestPreparation(_) => "request-preparation"
     CommandNativeStorage(_) => "native-storage"
     CommandHost(_) => "host"
     CommandDomain(_) => "domain"

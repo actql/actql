@@ -225,6 +225,12 @@ fn LocalCommandPreparationOriginal::close_business_children(
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
+    if business.request_read_failure is Some(failure) {
+      match failure.retry_cleanup() {
+        Err(_) => return Err(CommandBusinessChildren)
+        Ok(_) => business.request_read_failure = None
+      }
+    }
     if business.request_body is Some(holder) {
       match @initial_resources.return_preparation_body_borrow(holder) {
         Err(_) => return Err(CommandBusinessChildren)

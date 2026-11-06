@@ -1011,6 +1011,8 @@ pub fn[I] reserve_request_model_recovery_materials(ClientRequestPreparation[I], 
 
 pub fn[I] reserve_request_models_plan_projection(ClientRequestPreparation[I], I, Int) -> Result[Unit, ClientInstalledManagedRunIssue]
 
+pub fn[I] reserve_request_native_intake_wire(ClientRequestPreparation[I], I, Int) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn[I] reserve_request_program_plan(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_query_time_invocation(ClientRequestPreparation[I], I, @run_publication_host.ClientRunCompilation) -> Result[Unit, ClientRequestProgramPlanIssue]

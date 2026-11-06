@@ -100,20 +100,20 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       "runtime.json",
     ),
   )
-  let intent = match original_input {
-    Some((_, intent)) => intent
-    None =>
-      @run_host.prepare_client_submitted_intent(
-        local_intent_wire(input_root, operation, child),
-        65536,
-        8192,
-        64,
-      ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
+  let producer : LocalCommandBusinessInput = {
+    root: input_root,
+    operation,
+    arguments: child,
+    retained_intent: original_input.map(value => value.1),
   }
   command_preparation_result(
-    self.prepare_business_request_capacity(capture, intent),
+    self.prepare_business_request_capacity(capture, producer),
     stage=Some("business-request-capacity"),
   )
+  self.begin_business_request(capture)
+  let intent = self.with_business_request(capture, () => {
+    self.construct_business_intent()
+  })
   let preparation = self.prepare_business_request(capture, intent, environment)
   guard @local_host.native_client_submitted_preparation(preparation)
     is Computation(prepared) else {

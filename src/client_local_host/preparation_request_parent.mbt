@@ -125,6 +125,8 @@ struct ClientRequestPreparation[I] {
   mut source_input : ClientRequestSourceInput?
   mut intent_base : (Int64, Int64)?
   mut intent_source_quote : (Int64, Int64)?
+  mut native_intake_base : (Int64, Int64)?
+  mut native_intake_wire_bytes : Int
   mut intent_attempted : Bool
   mut intent_peak_live : Bool
   mut intent_work : @resources.PreparationPhaseWork64?
@@ -236,14 +238,16 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 // (2H/2R/1W) share this fixed control group:10,736 bytes plus4,096 installed.
 // The Native retained-wire parser keeps one absolute quote tuple/Some and
 // its Request field (2H/2R/2W); declined growth never adds that demand twice.
+// Native wire intake retains one same-parent baseline tuple/Some and its
+// monotone byte observation (2H/2R/3W) before any payload constructor.
 // This is intentionally independent of JS closure, carrier and array spelling.
 // Input/AST/wire/row/operation storage, selected domain construction and live
 // child overlap remain separately charged before their actual constructors.
 // The fixed envelope is immutable DATA, not a reservation, phase or RSS bound.
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
-  record_headers: 231L,
-  reference_slots: 414L,
-  scalar_words: 474L,
+  record_headers: 233L,
+  reference_slots: 416L,
+  scalar_words: 477L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -353,6 +357,8 @@ fn[I] begin_request_preparation_original(
     source_input: None,
     intent_base: None,
     intent_source_quote: None,
+    native_intake_base: None,
+    native_intake_wire_bytes: 0,
     intent_attempted: false,
     intent_peak_live: false,
     intent_work: None,
@@ -686,6 +692,8 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.snapshot_key_units.val = -1
   owner.intent_base = None
   owner.intent_source_quote = None
+  owner.native_intake_base = None
+  owner.native_intake_wire_bytes = 0
   owner.intent_peak_live = false
   owner.held_program = None
   owner.native_parameters = None
