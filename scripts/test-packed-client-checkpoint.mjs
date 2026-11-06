@@ -198,10 +198,15 @@ const canonical = value => Array.isArray(value)
     : JSON.stringify(value);
 const configuration = outcome === 'missing' ? undefined : canonical({
   version: 'actql-execution-account-config/0.1', account_id: 'remote-account',
-  entries: [{entry_id: 'run-acceptance', exclusions: [],
-    connection: {any_of: ['actql-remote-host']},
-    operation: {any_of: ['write']}, outcome, principal: {all: true},
-    resource: {any_of: ['duckdb-acquired', 'source-free-values']}}]});
+  entries: [{entry_id: 'owner-run-result-read', exclusions: [],
+      connection: {any_of: ['actql-remote-host']},
+      operation: {any_of: ['read']}, outcome: 'allow',
+      principal: {any_of: [userInfo().username]},
+      resource: {any_of: ['result/answer', 'run']}},
+    {entry_id: 'run-acceptance', exclusions: [],
+      connection: {any_of: ['actql-remote-host']},
+      operation: {any_of: ['write']}, outcome, principal: {all: true},
+      resource: {any_of: ['duckdb-acquired', 'source-free-values']}}]});
 const tokens = new Map([['owner-token', userInfo().username],
   ['reviewer-token', 'reviewer-principal'],
   ['reader-token', 'reader-principal'],
