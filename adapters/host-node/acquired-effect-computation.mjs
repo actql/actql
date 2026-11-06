@@ -89,28 +89,60 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   let modelCloseAttempted = false, modelReleased = false;
   const inferCleanupPending = () => modelGroup !== undefined ? modelGroup.cleanupPending() : (inferCapture !== undefined || inferOperation !== undefined) && !inferReleased ||
     modelContinuation !== undefined && !modelReleased;
+  // Publication aliases/capacity can retire after Store persistence while
+  // the accepted Local output still retains the SAME Model child. This phase
+  // cannot acknowledge that child's cleanup or return its output backing.
+  const retireInferPublication = async () => {
+    if (modelGroup !== undefined) return modelGroup.retirePublication();
+    let phase = 'stop';
+    try {
+      if (originalPreparation !== undefined && inferOperation?.publicationCapacityPending?.()) {
+        // A completed result still owns its Model stop/settlement. Await
+        // that SAME operation before retiring publication aliases: the
+        // custody gate requires physicalStopped and cannot initiate stop.
+        // Keep this continuation/result while pending; never run it again.
+        phase = 'stop';
+        await inferOperation.stop();
+        phase = 'publication';
+        if (!await inferCapture.custody.retirePublication()) {
+          diagnostic('effect_computation_model_cleanup_pending', {modelCleanupPhase: 'publication'});
+          return false;
+        }
+        phase = 'publication_capacity';
+        if (!inferOperation.releaseOriginalPublicationCapacity()) {
+          diagnostic('effect_computation_model_cleanup_pending', {modelCleanupPhase: 'publication_capacity'});
+          return false;
+        }
+      }
+    } catch (error) {
+      diagnostic('effect_computation_model_cleanup_pending',
+        {modelCleanupPhase: phase, modelCleanupOutcome: 'throw'});
+      throw error;
+    }
+    return true;
+  };
   const cleanupInfer = async (includeContinuation = true) => {
     if (modelGroup !== undefined) return modelGroup.cleanup(includeContinuation);
     let failure, failed = false;
     if ((inferCapture !== undefined || inferOperation !== undefined) && !inferReleased) {
+      let phase = 'model_child';
       try {
         const child = inferCapture?.custody ?? inferOperation;
-        if (originalPreparation !== undefined && inferOperation?.publicationCapacityPending?.()) {
-          // A completed result still owns its Model stop/settlement. Await
-          // that SAME operation before retiring publication aliases: the
-          // custody gate requires physicalStopped and cannot initiate stop.
-          // Keep this continuation/result while pending; never run it again.
-          await inferOperation.stop();
-          if (!await inferCapture.custody.retirePublication() ||
-              !inferOperation.releaseOriginalPublicationCapacity()) return false;
-        }
+        phase = 'publication_prerequisites';
+        if (!await retireInferPublication()) return false;
         // Prerequisite refusal is not a child close attempt. Once invoked,
         // even a throwing close recovers only through this same child's cleanup.
+        phase = 'model_child';
         const recover = inferCloseAttempted;
         inferCloseAttempted = true;
         const result = await (recover ? child.cleanup() : child.close());
         inferReleased = result !== false && child.cleanupPending() === false;
-      } catch (error) { failure = error; failed = true; }
+        if (!inferReleased) diagnostic('effect_computation_model_cleanup_pending', {modelCleanupPhase: 'model_child'});
+      } catch (error) {
+        if (phase === 'model_child') diagnostic('effect_computation_model_cleanup_pending',
+          {modelCleanupPhase: phase, modelCleanupOutcome: 'throw'});
+        failure = error; failed = true;
+      }
     }
     if (includeContinuation && modelContinuation !== undefined && !modelReleased) {
       const recover = modelCloseAttempted;
@@ -129,17 +161,17 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       closed = true;
       // A physical owner's cleanup, not another Compute call, recovers a
       // failed close. Retain the captured source until consumers are gone.
-      let failure;
+      let failure, failed = false;
       try { await (execution ?? recovery)?.close(); }
-      catch (error) { failure = error; }
+      catch (error) { failure = error; failed = true; }
       try { if (settled && restoredModelOutput === undefined && !modelGroup?.hasOutputPins()) await cleanupInfer(); }
-      catch (error) { failure ??= error; }
+      catch (error) { if (!failed) failure = error; failed = true; }
       try { if (settled) await (contentFamilyCleanup ?? contentFamily)?.close(); }
-      catch (error) { failure ??= error; }
+      catch (error) { if (!failed) failure = error; failed = true; }
       try { if (settled) await contentRecovery?.close(); }
-      catch (error) { failure ??= error; }
-      if (failure !== undefined) observeUsage('effect_computation_cleanup_pending');
-      if (failure !== undefined) throw failure;
+      catch (error) { if (!failed) failure = error; failed = true; }
+      if (failed) observeUsage('effect_computation_cleanup_pending');
+      if (failed) throw failure;
     },
     async cleanup() {
       if (!pending) return true;
@@ -678,7 +710,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       current();
       const refreshScratch = execution.refreshCompletedScratch;
       if (typeof refreshScratch !== 'function') throw new TypeError('InstalledEffectCompletedScratchUnavailable');
-      if (!modelGroup.hasOutputPins() && !await cleanupInfer(false)) throw Object.assign(new Error('ClientDispatchCleanupPending'), {code: 'ClientDispatchCleanupPending'});
+      if (!modelGroup.hasOutputPins() && !await retireInferPublication()) throw Object.assign(new Error('ClientDispatchCleanupPending'), {code: 'ClientDispatchCleanupPending'});
       current();
       await Reflect.apply(refreshScratch, execution, []);
       current();
@@ -692,13 +724,13 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       current();
       if (originalPreparation !== undefined && restoredModelOutput === undefined) {
         // The complete immutable publication plan and Store capture now own
-        // their evidence. Retire only the original Model aliases/borrow first;
-        // Content and the same journal continuation retain their own lifetime.
+        // their evidence. Retire only publication aliases/capacity here;
+        // the same Model/output, Content and journal keep their own lifetime.
         const refreshScratch = execution.refreshCompletedScratch;
         if (typeof refreshScratch !== 'function') {
           throw new TypeError('InstalledEffectCompletedScratchUnavailable');
         }
-        if (!await cleanupInfer(false)) {
+        if (!await retireInferPublication()) {
           throw Object.assign(new Error('ClientDispatchCleanupPending'),
             {code: 'ClientDispatchCleanupPending'});
         }
@@ -820,7 +852,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
   };
   const pending = () => children.some(child => child.capture !== undefined && !child.captureReleased ||
     child.continuation !== undefined && !child.continuationReleased || child.output !== undefined);
-  async function cleanup(includeContinuation) {
+  async function retirePublication() {
     if (holding !== undefined) {await holding.commit(); holding = undefined;}
     if (publication !== undefined) {
       moon.clientProgramReleaseInferInvocationBinding(publication.binding);
@@ -838,6 +870,10 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
       if (pending || !publicationOwner.releaseOriginalPublicationCapacity()) return false;
       publicationOwner = undefined;
     }
+    return true;
+  }
+  async function cleanup(includeContinuation) {
+    if (!await retirePublication()) return false;
     let pending = false;
     for (const child of children) {
       const physical = child.capture?.custody ?? child.operation;
@@ -1025,6 +1061,6 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
       }
       return publication.plan;
     },
-    cleanup, cleanupPending: pending,
+    retirePublication, cleanup, cleanupPending: pending,
   });
 }

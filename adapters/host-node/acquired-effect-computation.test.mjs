@@ -573,18 +573,23 @@ for (const [name, options] of [
 // Core/Store/Task owner ports are explicit; this is not ordinary funding proof.
 function persistedModelScratchFixture({retire = true, release = true,
   releaseFailure, closeFailure, heldOutput = false, stopBeforeRetirement = false,
-  stop, current = () => {}} = {}) {
+  stop, current = () => {}, childPending = false} = {}) {
   const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const declaration = ast.body.map(node => node.declaration ?? node)
     .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'openAcquiredEffectComputation');
+  const publicationRetirement = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'retireInferPublication'));
   const cleanup = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
     node.declarations.some(value => value.id.name === 'cleanupInfer'));
   const main = declaration.body.body.find(node => node.type === 'TryStatement');
   const persisted = main.block.body.find(node => node.type === 'IfStatement' &&
     source.slice(node.start, node.end).includes('(await inferCapture.persist()).plan'));
-  assert.ok(cleanup && persisted);
-  const events = [], plan = {}, content = {live: true};
+  const custody = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'custody'));
+  const close = custody.declarations[0].init.arguments[0].properties.find(value => value.key.name === 'close');
+  assert.ok(cleanup && persisted && close);
+  const events = [], diagnostics = [], plan = {}, content = {live: true};
   let modelClosed = false, physicallyStopped = !stopBeforeRetirement;
   const inferCapture = {persist: async () => {events.push('persist'); return {plan};},
     custody: {retirePublication: async () => {
@@ -592,7 +597,7 @@ function persistedModelScratchFixture({retire = true, release = true,
       return physicallyStopped && (typeof retire === 'function' ? retire() : retire);
     },
       close: async () => {
-        events.push('close-model'); closeFailure?.(); modelClosed = true;
+        events.push('close-model'); closeFailure?.(); modelClosed = !childPending; return childPending ? false : undefined;
       },
       cleanup: async () => {events.push('cleanup-model'); modelClosed = true; return true;},
       cleanupPending: () => !modelClosed}};
@@ -608,28 +613,35 @@ function persistedModelScratchFixture({retire = true, release = true,
       if (releaseFailure !== undefined) releaseFailure();
       return typeof release === 'function' ? release() : release;
     }};
-  const execution = {async refreshCompletedScratch() {
-    assert.strictEqual(this, execution); assert.equal(modelClosed, true);
+  const execution = {async close() {events.push('close-original-output');},
+    async refreshCompletedScratch() {
+    assert.strictEqual(this, execution); assert.equal(modelClosed, false);
     events.push('refresh-original-scratch'); assert.equal(content.live, true);
   }};
-  const original = new Function('inferCapture', 'inferOperation', 'execution', 'events', 'current', `
+  const original = new Function('inferCapture', 'inferOperation', 'execution', 'events', 'current', 'diagnostic', `
     let inferReleased=false,inferCloseAttempted=false,modelReleased=false,modelCloseAttempted=false;
-    const modelContinuation={close(){throw Error('same journal continuation must remain');}};
+    const modelContinuation={close(){events.push('close-journal');},cleanupPending:()=>false};
     const originalPreparation={},component={},restoredModelOutput=${heldOutput ? '{}' : 'undefined'};
     let publicationPlan,modelGroup;
     const faultInjection=async()=>{events.push('capture-committed');};
+    const helper=Object.freeze({${source.slice(close.start, close.end)}});
+    let closed=false;
+    const settled=true,contentFamilyCleanup=undefined,contentFamily=undefined,contentRecovery=undefined;
+    const recovery=undefined,observeUsage=()=>{};
+    ${publicationRetirement === undefined ? '' : source.slice(publicationRetirement.start, publicationRetirement.end)}
     ${source.slice(cleanup.start, cleanup.end)}
     return {run:async()=>{${source.slice(persisted.start, persisted.end)} return publicationPlan;},
-      cleanup:()=>cleanupInfer(false)};
-  `)(inferCapture, inferOperation, execution, events, current);
-  return {...original, events, plan, content, inferCapture};
+      cleanup:()=>cleanupInfer(false),outerClose:()=>helper.close()};
+  `)(inferCapture, inferOperation, execution, events, current,
+    (name, detail) => diagnostics.push({name, ...detail}));
+  return {...original, events, diagnostics, plan, content, inferCapture};
 }
 
 test('persisted original Model retires its aliases before scratch refresh while Content and journal remain', async () => {
   const f = persistedModelScratchFixture();
   assert.strictEqual(await f.run(), f.plan);
   assert.deepEqual(f.events, ['persist', 'stop-model', 'retire-publication', 'release-capacity',
-    'close-model', 'refresh-original-scratch', 'capture-committed']);
+    'refresh-original-scratch', 'capture-committed']);
   assert.equal(f.content.live, true);
 });
 
@@ -1148,7 +1160,7 @@ test('completed original Model awaits the same pending stop then continues its r
   const result = await outcome;
   assert.strictEqual(result.value, f.plan);
   assert.deepEqual(f.events, ['persist', 'stop-model', 'retire-publication',
-    'release-capacity', 'close-model', 'refresh-original-scratch', 'capture-committed']);
+    'release-capacity', 'refresh-original-scratch', 'capture-committed']);
   assert.equal(f.content.live, true);
   assert.equal(f.events.filter(value => value === 'persist').length, 1);
 });
@@ -1180,4 +1192,83 @@ test('completed original Model rechecks currentness after the same pending stop 
   assert.equal(f.events.includes('refresh-original-scratch'), false);
   assert.equal(f.events.includes('capture-committed'), false);
   assert.equal(f.events.filter(value => value === 'persist').length, 1);
+});
+
+
+test('Model cleanup pending diagnostics name the refusing original boundary without changing refusal', async () => {
+  for (const [options, phase] of [[{retire: false}, 'publication'],
+    [{release: false}, 'publication_capacity'], [{childPending: true}, 'model_child']]) {
+    const f = persistedModelScratchFixture(options);
+    if (phase === 'model_child') assert.equal(await f.cleanup(), false);
+    else await assert.rejects(f.run(), {code: 'ClientDispatchCleanupPending'});
+    assert.deepEqual(f.diagnostics, [{name: 'effect_computation_model_cleanup_pending', modelCleanupPhase: phase}]);
+    assert.equal(f.events.includes('refresh-original-scratch'), false);
+    assert.equal(f.events.includes('capture-committed'), false);
+    assert.equal(f.content.live, true);
+  }
+});
+
+
+test('Model cleanup diagnostic preserves each original thrown primary at its exact boundary', async () => {
+  for (const phase of ['stop', 'publication', 'publication_capacity', 'model_child']) {
+    for (const primary of [undefined, null, new Error('OriginalModelCleanup')]) {
+      const fail = () => {throw primary;};
+      const options = phase === 'stop' ? {stop: fail}
+        : phase === 'publication' ? {retire: fail}
+        : phase === 'publication_capacity' ? {releaseFailure: fail} : {closeFailure: fail};
+      const f = persistedModelScratchFixture(options);
+      let rejected = false;
+      try {await (phase === 'model_child' ? f.cleanup() : f.run());}
+      catch (error) {rejected = true; assert.strictEqual(error, primary);}
+      assert.equal(rejected, true);
+      assert.deepEqual(f.diagnostics, [{name: 'effect_computation_model_cleanup_pending',
+        modelCleanupPhase: phase, modelCleanupOutcome: 'throw'}]);
+      assert.equal(f.events.includes('refresh-original-scratch'), false);
+      assert.equal(f.events.includes('capture-committed'), false);
+    }
+  }
+});
+
+
+test('persisted Model publication keeps the same whole child until original output retirement', async () => {
+  const primary = new Error('CannotCloseWhileOutputLive');
+  let outputRetired = false;
+  const f = persistedModelScratchFixture({closeFailure() {if (!outputRetired) throw primary;}});
+  assert.strictEqual(await f.run(), f.plan);
+  assert.equal(f.inferCapture.custody.cleanupPending(), true);
+  assert.equal(f.events.includes('close-model'), false);
+  assert.equal(f.events.includes('close-journal'), false);
+  outputRetired = true;
+  await f.outerClose();
+  assert.equal(f.inferCapture.custody.cleanupPending(), false);
+  assert.ok(f.events.indexOf('close-original-output') < f.events.indexOf('close-model'));
+  assert.equal(f.events.filter(value => value === 'persist').length, 1);
+  assert.equal(f.events.filter(value => value === 'capture-committed').length, 1);
+});
+
+test('persisted Model publication preserves an actual later child-close throw on the original outer owner', async () => {
+  for (const primary of [undefined, null, new Error('OriginalChildClose')]) {
+    const f = persistedModelScratchFixture({closeFailure() {throw primary;}});
+    assert.strictEqual(await f.run(), f.plan);
+    assert.equal(f.inferCapture.custody.cleanupPending(), true);
+    let rejected = false;
+    try {await f.outerClose();} catch (error) {rejected = true; assert.strictEqual(error, primary);}
+    assert.equal(rejected, true);
+    assert.equal(f.inferCapture.custody.cleanupPending(), true);
+    assert.ok(f.events.indexOf('close-original-output') < f.events.indexOf('close-model'));
+    assert.equal(f.events.filter(value => value === 'persist').length, 1);
+  }
+});
+
+
+test('plural persisted publication retirement preserves both original pending Model children', async () => {
+  const f = effectModelGroupFixture({pendingSecond: true});
+  await f.prime(); f.bind();
+  assert.equal(await f.group.retirePublication(), true);
+  assert.equal(f.group.cleanupPending(), true);
+  assert.equal(f.events.some(value => value[0] === 'close-capture' || value[0] === 'close-journal'), false);
+  assert.equal(await f.group.cleanup(true), false);
+  f.settle();
+  assert.equal(await f.group.cleanup(true), true);
+  assert.equal(f.group.cleanupPending(), false);
 });
