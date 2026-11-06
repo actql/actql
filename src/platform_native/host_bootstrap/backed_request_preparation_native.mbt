@@ -6,6 +6,7 @@ priv struct NativeBackedRequestPreparation[T, C, I] {
   mut admission : @resources.BackedPreparationAdmission[I]?
   mut frame : @resources.ImportedChildLedger?
   mut transitioning : Bool
+  mut closing : Bool
   mut physical_retired : Bool
   mut report_required : Bool?
   mut reported : Bool
@@ -81,6 +82,7 @@ pub fn[T, C, I] NativeHostBootstrap::prepare_backed_request_admission(
     admission: None,
     frame: None,
     transitioning: true,
+    closing: false,
     physical_retired: false,
     report_required: None,
     reported: false,
@@ -156,11 +158,110 @@ pub fn[T, C, I] NativeHostBootstrap::close_backed_request_preparation(
     return Err(Domain(Bootstrap(ReadersPending)))
   }
   state.transitioning = true
+  state.closing = true
   let outcome = self.close_backed_request_preparation_original(
     original, record, state,
   )
   state.transitioning = false
   outcome
+}
+
+///|
+/// Observe the SAME Request frame inside its actual current physical scope.
+/// The issuer retained it before Common start and keeps it across Run transfer.
+/// This does not take/start/admit the frame or expose its Ledger. Callers must
+/// still bind the frame to their original Common Source read before use.
+pub fn[T, C, I] NativeHostBootstrap::borrow_backed_request_read_frame(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, I],
+  input : I,
+) -> Result[@resources.ImportedChildLedger, NativeBackedRequestPreparationIssue] {
+  let state = match self.original_request_read_state(original, record, input) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  if state.closing {
+    return Err(Domain(Bootstrap(Closing)))
+  }
+  guard state.frame is Some(frame) else {
+    return Err(Child(@resources.Unavailable))
+  }
+  match self.backed_live_child_state(original, record, input) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(@resources.LiveClosing) => return Err(Domain(Bootstrap(Closing)))
+    Ok(@resources.LiveOpen) => ()
+  }
+  match
+    self.require_backed_read_context_entered(
+      original,
+      record.domain,
+      record.child,
+    ) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  // Keep the exact retained tuple after the physical current boundary. Never
+  // ask the transferred preparation admission to issue its frame again.
+  match self.original_request_read_state(original, record, input) {
+    Err(issue) => return Err(issue)
+    Ok(selected) =>
+      if !physical_equal(selected, state) || state.closing {
+        return Err(Domain(Bootstrap(Closing)))
+      }
+  }
+  guard state.frame is Some(selected) && physical_equal(selected, frame) else {
+    return Err(Domain(Bootstrap(ForeignOriginal)))
+  }
+  Ok(frame)
+}
+
+///|
+// Identity/custody only: ordinary currentness is deliberately separate, so
+// stopped originals can still observe their own pending cleanup scope.
+fn[T, C, I] NativeHostBootstrap::original_request_read_state(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, I],
+  input : I,
+) -> Result[
+  NativeBackedRequestPreparation[T, C, I],
+  NativeBackedRequestPreparationIssue,
+] {
+  match self.original_live_child(original, record, input) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  guard record.purpose == Request &&
+    record.request_preparation is Some(state) &&
+    physical_equal(state.original, record) else {
+    return Err(Domain(Bootstrap(ForeignOriginal)))
+  }
+  if state.closed || state.physical_retired {
+    return Err(Domain(Bootstrap(Unavailable)))
+  }
+  if state.transitioning {
+    return Err(Domain(Bootstrap(ReadersPending)))
+  }
+  Ok(state)
+}
+
+///|
+/// Observe cleanup entry on the same original Request after stop/refusal.
+/// No frame, normal read permission, retirement, report or ACK is returned.
+pub fn[T, C, I] NativeHostBootstrap::observe_backed_request_read_cleanup_scope(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, I],
+  input : I,
+) -> Result[NativeBackedReadScope, NativeBackedRequestPreparationIssue] {
+  match self.original_request_read_state(original, record, input) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self
+  .observe_backed_read_cleanup_scope(original, record.domain, record.child)
+  .map_err(issue => Domain(issue))
 }
 
 ///|

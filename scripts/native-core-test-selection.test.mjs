@@ -277,3 +277,36 @@ test('Core HTTP arguments retain only the existing credential peer callers and N
     ['--target', 'native', 'src/platform_native/http_client'], [null]])
     assert.throws(() => nativeCoreHttpArguments(invalid));
 });
+
+
+test('Source wrapper Native cases retain scoped file/index identities and exclude ordinary profile', t => {
+  const root = fixture(t), directory = 'src/platform_native/installed_arena_control';
+  const file = 'request_source_frame_physical_scoped_wbtest.mbt';
+  mkdirSync(join(root, directory), {recursive: true});
+  for (const name of [file, 'ordinary_wbtest.mbt']) writeFileSync(join(root, directory, name), 'test {}\n');
+  const command = ['moon', 'generate-test-driver', '--output-driver', '_build/driver.mbt',
+    '--output-metadata', '_build/info.json', directory+'/'+file, directory+'/ordinary_wbtest.mbt',
+    '--target', 'native', '--pkg-name', 'fixture/installed_arena_control', '--driver-kind', 'whitebox'].join(' ');
+  const execute = (tool, args) => {
+    assert.equal(tool, 'moon');
+    if (args[0] === 'test') return command;
+    assert.equal(args[0], 'generate-test-driver');
+    const output = resolve(root, args[args.indexOf('--output-metadata')+1]);
+    mkdirSync(dirname(output), {recursive: true});
+    writeFileSync(output, JSON.stringify({tests: {
+      [file]: [0, 1].map(index => ({index, name:'Source original '+index, attrs:[], line_number:index+1})),
+      'ordinary_wbtest.mbt': [{index:0, name:'ordinary sibling', attrs:[], line_number:1}],
+    }}));
+    return '';
+  };
+  const selected = nativeCoreTestSelection(root, ['--release'], {execute, partitionProfiles:true});
+  assert.deepEqual(selected.profiles.scoped, {
+    args:['--release', directory+'/'+file], cases:2,
+    tests:[0, 1].map(index => ({source:directory+'/'+file, index})),
+  });
+  assert.deepEqual(selected.profiles.ordinary, {
+    args:['--release', directory+'/ordinary_wbtest.mbt'], cases:1,
+  });
+  assert.equal(selected.profiles.physicalCases, 2);
+  assert.equal(selected.profiles.uniqueCases, 3);
+});

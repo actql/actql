@@ -20,6 +20,7 @@ export const nativeScopedTestFiles = Object.freeze([
   'src/platform_native/installed_arena_control/original_read_consumer_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/original_read_root_binding_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/request_preparation_physical_scoped_wbtest.mbt',
+  'src/platform_native/installed_arena_control/request_source_frame_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/retained_execution_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/store_operation_reentry_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/store_result_return_physical_scoped_wbtest.mbt',

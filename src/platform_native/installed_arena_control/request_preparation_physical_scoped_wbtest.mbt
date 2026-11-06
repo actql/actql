@@ -14,6 +14,7 @@ test "actual Request starts its own pristine census and retains escaped physical
     @bootstrap.LiveChildReady(value) => value
     @bootstrap.LiveChildPending(_, _) => fail("request live pending")
   }
+  assert_true(host.borrow_request_read_frame(live, input) is Err(_))
   assert_true(host.prepare_domain_initialization_child(domain, input) is Err(_))
   let foreign = { ..host, }
   assert_true(foreign.prepare_request_admission(live, input) is Err(_))
@@ -22,6 +23,7 @@ test "actual Request starts its own pristine census and retains escaped physical
   assert_true(host.prepare_request_admission(live, input) is Err(_))
   let frame = @resources.backed_preparation_original_frame(initial, input).unwrap()
   let ledger = @resources.start_backed_preparation_admission(initial, input).unwrap()
+  assert_true(host.borrow_request_read_frame(live, input) is Err(_))
   // This reservation succeeds only when Native has not installed the
   // incompatible Initialization bootstrap census before Common's Request.
   let capacity : @resources.PreparationCapacity[Ref[Int], Unit] = @resources.reserve_preparation_capacity_inventory(
@@ -33,9 +35,33 @@ test "actual Request starts its own pristine census and retains escaped physical
   ).unwrap()
   let held : Ref[Bytes?] = Ref(None)
   host.enter_domain_read(domain).unwrap()
+  assert_true(foreign.borrow_request_read_frame(live, input) is Err(_))
+  assert_true(host.borrow_request_read_frame(live, Ref(43)) is Err(_))
+  assert_true(
+    physical_equal(host.borrow_request_read_frame(live, input).unwrap(), frame),
+  )
+  assert_true(
+    physical_equal(host.borrow_request_read_frame(live, input).unwrap(), frame),
+  )
   held.val = Some(Bytes::make(32, input.val.to_byte()))
   host.leave_domain_read(domain).unwrap()
   assert_true(host.close_request_preparation(live) is Err(_))
+  // Pending logical cleanup monotonically fences ordinary observation. The
+  // identity-only cleanup observer does not require a current admission.
+  assert_true(host.borrow_request_read_frame(live, input) is Err(_))
+  assert_true(
+    host.observe_request_read_cleanup_scope(live, input)
+    is Ok(@bootstrap.BackedReadUnentered),
+  )
+  host.enter_domain_read_cleanup(domain).unwrap()
+  assert_true(
+    host.observe_request_read_cleanup_scope(live, input)
+    is Ok(@bootstrap.BackedReadEntered),
+  )
+  assert_true(host.borrow_request_read_frame(live, input) is Err(_))
+  assert_true(foreign.observe_request_read_cleanup_scope(live, input) is Err(_))
+  assert_true(host.observe_request_read_cleanup_scope(live, Ref(43)) is Err(_))
+  host.leave_domain_read(domain).unwrap()
   assert_true(
     @resources.abort_preparation_capacity_after_cleanup(capacity, input).unwrap(),
   )
@@ -46,6 +72,8 @@ test "actual Request starts its own pristine census and retains escaped physical
   assert_true(host.close_domain_after_owner_ack(domain) is Err(_))
   held.val = None
   host.close_request_preparation(live).unwrap()
+  assert_true(host.borrow_request_read_frame(live, input) is Err(_))
+  assert_true(host.observe_request_read_cleanup_scope(live, input) is Err(_))
   @resources.cleanup_backed_preparation_admission(initial).unwrap()
   host.close_request_preparation(live).unwrap()
   initialization_physical_finish(host, domain, descriptor)
@@ -62,6 +90,7 @@ test "actual Request issuer closes its retained original frame after Run transfe
     @bootstrap.LiveChildPending(_, _) => fail("request transfer live pending")
   }
   let initial = host.prepare_request_admission(live, input).unwrap()
+  let frame = @resources.backed_preparation_original_frame(initial, input).unwrap()
   let ledger = @resources.start_backed_preparation_admission(initial, input).unwrap()
   let capacity : @resources.PreparationCapacity[Ref[Int], Ref[Int]] = @resources.reserve_preparation_capacity_inventory(
     ledger,
@@ -75,6 +104,15 @@ test "actual Request issuer closes its retained original frame after Run transfe
   let (run, _, retirement, holder) = @resources.adopt_backed_preparation_admission(
     initial, input, capacity, body,
   ).unwrap()
+  assert_true(
+    @resources.backed_preparation_original_frame(initial, input)
+    is Err(AlreadyConsumed),
+  )
+  host.enter_domain_read(domain).unwrap()
+  assert_true(
+    physical_equal(host.borrow_request_read_frame(live, input).unwrap(), frame),
+  )
+  host.leave_domain_read(domain).unwrap()
   assert_true(
     @resources.cleanup_backed_preparation_admission(initial)
     is Err(AlreadyConsumed),

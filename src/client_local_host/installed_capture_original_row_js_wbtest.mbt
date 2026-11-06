@@ -174,3 +174,104 @@ test "original base Row read keeps its partial child when current replaces the P
   retire_installed_managed_run(owner).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "managed Source correspondence keeps the exact retained read and Ledger" {
+  let (parent, owner, plan, declaration) = original_row_capture_fixture()
+  let (read, _, _, _) = begin_installed_managed_capture_source_read(
+    owner,
+    plan.prepared,
+    plan.request,
+    declaration,
+    0,
+  ).unwrap()
+  check_installed_source_read_ledger(read, parent.ledger).unwrap()
+  check_installed_source_read_retained_ledger(read, parent.ledger).unwrap()
+  let copied = { ..read, }
+  assert_true(
+    check_installed_source_read_ledger(copied, parent.ledger)
+    is Err(ForeignOriginal),
+  )
+  let foreign = @resources.create_ledger(
+    @resources.ledger_limits(parent.ledger),
+  ).unwrap()
+  assert_true(
+    check_installed_source_read_ledger(read, foreign) is Err(ForeignOriginal),
+  )
+  retire_installed_source_read(read).unwrap()
+  assert_true(physical_equal(owner.reads[0].unwrap(), read))
+  assert_true(
+    check_installed_source_read_ledger(read, parent.ledger) is Err(Retired),
+  )
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "managed Source current callback cannot revive its synchronously retired read" {
+  let selected : Ref[ClientInstalledSourceRead?] = Ref(None)
+  let retired = Ref(false)
+  let (parent, owner, plan, declaration) = original_row_capture_fixture(current=() => {
+    if selected.val is Some(read) {
+      // Clear the callback selection before cleanup; retain the same parent's
+      // slot to exercise the post-current fence rather than slot replacement.
+      selected.val = None
+      retired.val = retire_installed_source_read(read) is Ok(_)
+    }
+    true
+  })
+  let (read, _, _, _) = begin_installed_managed_capture_source_read(
+    owner,
+    plan.prepared,
+    plan.request,
+    declaration,
+    0,
+  ).unwrap()
+  selected.val = Some(read)
+  assert_true(
+    check_installed_source_read_ledger(read, parent.ledger) is Err(Retired),
+  )
+  assert_true(retired.val)
+  assert_true(
+    check_installed_source_read_retained_ledger(read, parent.ledger)
+    is Err(Retired),
+  )
+  assert_true(physical_equal(owner.reads[0].unwrap(), read))
+  assert_true(read.ledger is None && read.managed_run is None)
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "managed Source retained fence rejects retirement after an earlier successful observation" {
+  let selected : Ref[ClientInstalledSourceRead?] = Ref(None)
+  let retired = Ref(false)
+  let (parent, owner, plan, declaration) = original_row_capture_fixture(current=() => {
+    if selected.val is Some(read) {
+      selected.val = None
+      retired.val = retire_installed_source_read(read) is Ok(_)
+    }
+    true
+  })
+  let (read, _, _, _) = begin_installed_managed_capture_source_read(
+    owner,
+    plan.prepared,
+    plan.request,
+    declaration,
+    0,
+  ).unwrap()
+  check_installed_source_read_ledger(read, parent.ledger).unwrap()
+  check_installed_source_read_retained_ledger(read, parent.ledger).unwrap()
+  selected.val = Some(read)
+  // A later original-current observer can still succeed for the same parent
+  // after its callback retires only this Source. It does not validate the read.
+  assert_true(
+    physical_equal(require_installed_managed_run(owner).unwrap(), parent.ledger),
+  )
+  assert_true(retired.val)
+  assert_true(physical_equal(owner.reads[0].unwrap(), read))
+  assert_true(
+    check_installed_source_read_retained_ledger(read, parent.ledger)
+    is Err(Retired),
+  )
+  retire_installed_managed_run(owner).unwrap()
+}

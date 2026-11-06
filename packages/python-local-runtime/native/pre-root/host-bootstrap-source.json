@@ -139,8 +139,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_request_preparation_native.mbt",
-      "bytes": 10171,
-      "sha256": "f97abe1bba4bf1953eb44db98ad40f2f536c23aa7bba55c8815abc9a990aaecb"
+      "bytes": 13649,
+      "sha256": "005a7b7e24372eb87257d3508a41b920933af31ff91868a38f074a17ec606abb"
     },
     {
       "path": "src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt",
