@@ -17,8 +17,15 @@ fn sf_read_collection_units(
 // simultaneous. Their shared Source/decoder owners retain every refusal path.
 fn sf_read_describe_parse_inventory(
   limits : @catalog.DescribeLimits,
+  source_nodes? : Int? = None,
 ) -> @execution.PreparationRepresentationUnits? {
-  let nodes = Int::min(limits.max_bytes, limits.max_nodes)
+  let nodes = Int::min(
+    Int::min(limits.max_bytes, limits.max_nodes),
+    source_nodes.unwrap_or(limits.max_nodes),
+  )
+  if nodes < 1 {
+    return None
+  }
   guard @source.json_construction_extent(
       limits.max_bytes,
       nodes,
@@ -96,6 +103,7 @@ fn sf_read_observation_construction_inventory(
   max_observation_bytes : Int,
   binding_units : Int,
   resource_units : Int,
+  source_nodes? : Int? = None,
 ) -> @execution.PreparationExecutionInventory? {
   if limits.max_bytes < 1 ||
     limits.max_nodes < 1 ||
@@ -160,7 +168,7 @@ fn sf_read_observation_construction_inventory(
   guard @encode.text_writer_construction_inventory(observation, 25, 4)
     is Some(writer) &&
     @encode.hash_writer_live_key_inventory(0, 0) is Some(digest) &&
-    sf_read_describe_parse_inventory(limits) is Some(parse) else {
+    sf_read_describe_parse_inventory(limits, source_nodes~) is Some(parse) else {
     return None
   }
   let child = @decode.indexed_child_construction_extent()
@@ -624,10 +632,18 @@ pub fn native_read_construction_capacity(
   api_units : Int,
   soql_units : Int,
   query_geometry? : @source.JsonSourceGeometry? = None,
+  describe_geometry? : @source.JsonSourceGeometry? = None,
   value_nodes? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
   guard sf_read_observation_construction_inventory(
-      describe, max_observation_bytes, binding_units, resource_units,
+      describe,
+      max_observation_bytes,
+      binding_units,
+      resource_units,
+      // Only this parser/index workspace follows the same original body.
+      // Retained prior/current metadata and failed prefixes keep the full
+      // existing Describe limits; the reader's monotonic quote covers both.
+      source_nodes=describe_geometry.map(geometry => geometry.node_upper),
     )
     is Some(metadata) &&
     sf_read_query_construction_inventory(

@@ -142,3 +142,114 @@ test "current Salesforce bridge quotes long original body without future raw tot
     is Err(WrongPage),
   )
 }
+
+///|
+test "current Describe quotes original JSON geometry instead of one node per text byte" {
+  let limits = [
+    4000000, 48000000, 400000, 32, 2000, 100, 12, 2000, 2048, 4000000, 24002944,
+    400000, 4000000, 4000000, 400000, 32,
+  ]
+  let body = @utf8.encode(
+    "{\"name\":\"Account\",\"queryable\":true,\"description\":\"" +
+    "a".repeat(250000) +
+    "\",\"fields\":[{\"name\":\"Id\",\"type\":\"id\",\"nillable\":false}]}",
+  )
+  let capacity = client_program_installed_salesforce_current_response_capacity(
+    limits,
+    100,
+    65536,
+    [4000000, 400000, 32, 1000, 200000],
+    8000000,
+    306,
+    14,
+    10,
+    5,
+    4096,
+    body.length(),
+    None,
+    "/services/data/v62.0/sobjects/Account/describe",
+    Some(body),
+    body.length().to_int64(),
+    1,
+  ).unwrap()
+  // The unchanged normal parent is512MiB. A long scalar is not250000 JSON
+  // nodes or1000 observed metadata fields. This is demand, never admission.
+  assert_true(
+    @execution.execution_capacity_execution_bytes(capacity) < 536870912L,
+  )
+}
+
+///|
+test "Describe syntax preflight preserves retained families and original refusal envelopes" {
+  let limits = [
+    4000000, 48000000, 400000, 32, 2000, 100, 12, 2000, 2048, 4000000, 24002944,
+    400000, 4000000, 4000000, 400000, 32,
+  ]
+  let describe = [4000000, 400000, 32, 1000, 200000]
+  let body = @utf8.encode("{\"description\":\"" + "a".repeat(250000) + "\"}")
+  let quote = (body : Bytes?) => {
+    client_program_installed_salesforce_current_response_capacity(
+      limits,
+      100,
+      65536,
+      describe,
+      8000000,
+      306,
+      14,
+      10,
+      5,
+      4096,
+      250018,
+      None,
+      "/services/data/v62.0/sobjects/Account/describe",
+      body,
+      250018L,
+      1,
+    ).unwrap()
+  }
+  let measured = quote(Some(body))
+  let complete = quote(None)
+  // Two previous/current metadata families and failed prefixes keep the old
+  // complete envelope. ONLY the sequential current parser/index shrinks.
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(measured),
+    @execution.execution_capacity_retained_bytes(complete),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(measured) <
+    @execution.execution_capacity_execution_bytes(complete),
+  )
+  assert_eq(
+    body,
+    @utf8.encode("{\"description\":\"" + "a".repeat(250000) + "\"}"),
+  )
+  for malformed in ["{", "[0,", "not-json"] {
+    let original = @utf8.encode(malformed)
+    // Syntax geometry is not grammar/Catalog admission. A lexical prefix
+    // can have a complete construction bound while the real parser refuses.
+    assert_true(
+      @source.parse_json_bytes(original, {
+        max_input_bytes: describe[0],
+        max_nodes: describe[1],
+        max_depth: describe[2],
+      })
+      is Err(_),
+    )
+    assert_eq(original, @utf8.encode(malformed))
+  }
+  assert_true(
+    @source.parse_json_bytes(body, {
+      max_input_bytes: describe[0],
+      max_nodes: 1,
+      max_depth: describe[2],
+    })
+    is Err(_),
+  )
+  // An input-byte refusal never creates a decoded/preflight allocation.
+  assert_true(
+    installed_salesforce_describe_source_geometry(body, [
+      1, 400000, 32, 1000, 200000,
+    ])
+    is None,
+  )
+}
