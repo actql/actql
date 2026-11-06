@@ -9,7 +9,7 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {nativeCompletedRestorationBundle} from './native-completed-restoration-fixture.mjs';
 import {classifyMoon} from './local-checks-policy.mjs';
 import {nativeClientCheckpointFixture} from './native-client-checkpoint-fixture.mjs';
-import {nativePrivateHostFixture} from './native-private-host-fixture.mjs';
+import {nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
@@ -62,6 +62,8 @@ const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_c
 const privateHost = full || args.some(arg =>
   arg.includes('platform_native/filesystem') || arg.includes('platform_native/client_host'))
   ? nativePrivateHostFixture(namespace) : {};
+const originalSigning = full || args.some(arg => arg.includes('platform_native/signature'))
+  ? nativeOriginalSigningFixture(namespace) : {};
 const processRegion = full || args.some(arg => arg.includes('platform_native/host_bootstrap'))
   ? nativeProcessRegionFixture(root, namespace) : {};
 const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/client_host'))
@@ -93,6 +95,7 @@ const fixtureEnvironment = {
   ...bundle,
   ...clientCheckpoint,
   ...privateHost,
+  ...originalSigning,
   ...processRegion,
   ...readerCustody,
   ...projectConfiguration,

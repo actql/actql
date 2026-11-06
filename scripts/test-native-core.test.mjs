@@ -918,6 +918,15 @@ if (process.argv.some(arg => arg.includes('platform_native/filesystem') || arg.i
 }
 assert.ok(process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY);
 assert.ok(process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY);
+if (process.env.ACTQL_TEST_ORIGINAL_SIGNING_ROOT) {
+  const signingRoot = process.env.ACTQL_TEST_ORIGINAL_SIGNING_ROOT;
+  assert.equal(signingRoot, join(root, 'original-signing'));
+  assert.equal(statSync(signingRoot).mode & 0o777, 0o700);
+  assert.equal(statSync(join(signingRoot, 'key.pem')).mode & 0o777, 0o600);
+  assert.match(require('node:fs').readFileSync(join(signingRoot, 'key.pem'), 'utf8'),
+    /^-----BEGIN PRIVATE KEY-----/u);
+  console.log('ORIGINAL_SIGNING_FIXTURE_PROVISIONED');
+}
 assert.equal(process.env.ACTQL_TEST_DUCKDB_LIBRARY, join(process.cwd(),
   'adapters', 'connectors', 'duckdb', 'node', 'node_modules', '@duckdb',
   'node-bindings-' + process.platform + '-' + process.arch,
@@ -1031,6 +1040,7 @@ test('two local native verification invocations own fresh roots', t => {
     assert.match(result.stdout, /Native core SQLite: removed/u);
     assert.match(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
     assert.match(result.stdout, /CLI_PARENT_FIXTURE_PROVISIONED/u);
+    assert.match(result.stdout, /ORIGINAL_SIGNING_FIXTURE_PROVISIONED/u);
   }
   assert.equal(new Set(paths).size, 4);
   assert.deepEqual(readdirSync(f.parent).sort(), f.originals.sort());
@@ -1043,7 +1053,21 @@ test('selected Native tests do not activate the unrelated target fixture', t => 
   assert.equal(result.status, 0, result.stderr);
   assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
   assert.doesNotMatch(result.stdout, /PRIVATE_HOST_FIXTURE_PROVISIONED/u);
+  assert.doesNotMatch(result.stdout, /ORIGINAL_SIGNING_FIXTURE_PROVISIONED/u);
   assert.match(result.stdout, /child stopped/u);
+  f.verifyExternal();
+});
+
+test('selected Native signing receives its fresh original key without adopting caller files', t => {
+  const f = fixture(t);
+  const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
+    '--deny-warn', 'src/platform_native/signature'], {
+    cwd: f.checkout, encoding: 'utf8',
+    env: {...f.env, ACTQL_TEST_ORIGINAL_SIGNING_ROOT: f.parent},
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /ORIGINAL_SIGNING_FIXTURE_PROVISIONED/u);
+  assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
   f.verifyExternal();
 });
 
