@@ -78,6 +78,9 @@ export async function runNativeCliMockScenario({root, template, run}) {
   const runId = original.run_id, checkpoint = checkpointId(original);
   // Resume must consume retained preparation, never recompile the input file.
   await unlink(join(project, `${template.slice(0, -5)}.aql`));
+  // The waiting checkpoint already retains its Model outcome. Approval and
+  // Result recovery must not need the original answer supplier again.
+  await unlink(join(project, 'mock', `${template.slice(0, -5)}.v1.answers.yaml`));
   assert.deepEqual(await targetSnapshot(file), before, 'Run must not write before approval');
 
   // All commands have exited. The next command must find the same durable
@@ -88,7 +91,6 @@ export async function runNativeCliMockScenario({root, template, run}) {
   assert.deepEqual(await targetSnapshot(file), before, 'Pending status must not write');
 
   await invoke(['approve', checkpoint, '--wait', '--json']);
-  runState(await invoke(['status', runId, '--json']), 'succeeded', runId);
   const after = await targetSnapshot(file);
   const actual = JSON.parse(after.bytes), expected = JSON.parse(before.bytes);
   const change = expectedChanges[template];
@@ -99,6 +101,8 @@ export async function runNativeCliMockScenario({root, template, run}) {
   }
   assert.deepEqual(actual, expected, 'Only the independently expected target fields may change');
   assert.notEqual(after.sha256, before.sha256, 'Approval must perform the mock write');
+  runState(await invoke(['status', runId, '--json']), 'succeeded', runId);
+  assert.deepEqual(await targetSnapshot(file), after, 'Completed status must not rewrite the target');
 
   const resultArguments = ['result', runId, '--result', 'updates', '--format', 'jsonl'];
   const first = await invoke(resultArguments);
