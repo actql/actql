@@ -12,10 +12,18 @@ async function fields(file,name){
   return [...body.matchAll(/^\s*(?:mut\s+)?([a-z_]+)\s*:/gm)].map(m=>m[1]);
 }
 test('installed Values plan fixed inventory follows current nominal owner fields',async()=>{
+  // The Plan retains the original typed contracts, optional bound QueryTime
+  // and completed compilation/configuration, rather than raw registry aliases.
   assert.deepEqual(await fields('client_local_host/installed_managed_run.mbt','ClientInstalledManagedSourceFreePreparation'),[
-    'contracts_original','owner','registry_body','values_body','fragment_body','ordered_body','sequences','capacity_plan','limits','provider_retained_bytes','provider_execution_bytes']);
+    'owner','_observed_query_time','installed_contracts','values_body','fragment_body','ordered_body',
+    'sequences','capacity_plan','configuration','compilation','limits','provider_retained_bytes','provider_execution_bytes']);
+  // Original schema/value demand and metadata refusal state belong to the
+  // same capacity Plan; this field census is not an allocation quote.
   assert.deepEqual(await fields('client_local_host/capacity_plan.mbt','ClientLocalCapacityPlan'),[
-    'sequences','admitted_rows','resource_policy','dispatch_entries','dispatch_name_bytes','graph','result_envelope','publication','schema_inventory','values','execution','measurement','imports','exports','metadata','metadata_retained_bytes']);
+    'sequences','admitted_rows','resource_policy','dispatch_entries','dispatch_name_bytes','graph',
+    'graph_offset','_retained_result_envelope','publication','schema_inventory','demand_inventory',
+    'value_node_demand','scalar_demand','values','execution','measurement','imports','exports',
+    'metadata','metadata_retained_bytes','metadata_quote']);
   assert.deepEqual(await fields('run_publication_host/client_program.mbt','ClientFullSequence'),['task','limits','sequence']);
 });
 test('generated Values sequence retains exactly its original lower owner and control arrays',async()=>{
