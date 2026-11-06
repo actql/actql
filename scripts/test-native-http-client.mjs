@@ -1,3 +1,4 @@
+import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
 import {nativeCoreHttpArguments} from './native-core-test-selection.mjs';
 import {installNativeApplicationBundle} from './native-application-bundle-fixture.mjs';
 import {runNativeQueryTests} from './native-query-coverage.mjs';
@@ -1088,6 +1089,7 @@ verification: try {
     // its fresh Slot directory under this invocation's original cleanup root.
     const executorSlotRoot = await mkdtemp(join(root, 'checkpoint-executor-slot-'));
     const selectedEnvironment = {...environment,
+      ...nativeHttpLifetimeFixture(executorSlotRoot),
       ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: executorSlotRoot};
     const selected = ['--target', 'native', '--jobs', '1',
       'src/cmd/native_remote_resident_site/effect_checkpoint_replay_wbtest.mbt'];
