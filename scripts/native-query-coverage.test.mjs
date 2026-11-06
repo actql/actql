@@ -151,6 +151,21 @@ test('new indirect helper consumer also rejects the subset', () => {
   assert.ok(selection.reasons.some(reason => reason.includes('new_wbtest')));
 });
 
+test('generic environment helpers cannot hide a new consumer behind an owned fixture', () => {
+  const path = query + 'physical_adaptive_dispatch_wbtest.mbt';
+  for (const generic of ['[T]', '[\nT\n]']) {
+    const input = {...sources,
+      [path]: sources[path] + '\nfn' + generic + ' fixture_environment(original : T) -> String { ' +
+        '@env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY").unwrap() }',
+      [query + 'new_generic_wbtest.mbt']:
+        'test "new inferred helper" { let callback = fixture_environment; callback([1]) }',
+    };
+    const selection = select('http-client', input);
+    assert.equal(selection.mode, 'full-fallback', generic);
+    assert(selection.reasons.some(reason => reason.includes('new_generic_wbtest.mbt')));
+  }
+});
+
 test('environment helper function values and aliases reject subset selection', () => {
   for (const source of [
     'test "new" { let reader = native_values_coordinator_authority; let value = reader() }',
