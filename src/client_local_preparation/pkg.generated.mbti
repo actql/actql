@@ -22,6 +22,8 @@ import {
 // Values
 pub fn[T] admit_captured_local_parameters(T, @source_value.JsonDataReader[T]) -> Result[@decode_core.Cursor, LocalProgramInputIssue]
 
+pub fn admit_local_parameter_document(String, @source_value.ParseLimits, @decode_core.Limits) -> Result[@decode_core.Cursor, LocalProgramInputIssue]
+
 pub fn admit_local_program_input(String, String?) -> Result[(@stage_syntax.Format, @decode_core.Cursor?), LocalProgramInputIssue]
 
 pub fn bind_local_input_context(@program_check.CheckEnvironment, Array[@source_frontend.PublishedAlias], String, parameter_declarations? : @parameter_binding.Declarations?, input_schemas? : Array[(String, @relation_schema.Schema)], source_catalog? : @check_environment.SourceRequestContracts?) -> Result[LocalInputContext, LocalPreparationIssue]

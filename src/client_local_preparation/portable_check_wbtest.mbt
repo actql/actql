@@ -75,3 +75,51 @@ test "portable input admission preserves explicit formats malformed parameters a
     is Ok((Yaml, Some(_))),
   )
 }
+
+///|
+test "original textual Parameters reader retains normalization and typed failures" {
+  let (source_limits, tree_limits) = local_parameter_input_limits()
+  let supplied = admit_local_parameter_document(
+    "{\"é\":7}", source_limits, tree_limits,
+  ).unwrap()
+  let object = @decode.open_object(supplied).unwrap()
+  let value = @decode.lookup(object, "é").unwrap()
+  assert_eq(@decode.safe_integer(value).unwrap(), 7L)
+  assert_true(
+    admit_local_parameter_document(
+      "{\"é\":1,\"é\":2}", source_limits, tree_limits,
+    )
+    is Err(SuppliedSyntax({ issue: DuplicateKey("é"), .. })),
+  )
+  assert_true(
+    admit_local_parameter_document("{", source_limits, tree_limits)
+    is Err(SuppliedSyntax(_)),
+  )
+  assert_true(
+    admit_local_parameter_document("{\"n\":1}", source_limits, {
+      ..tree_limits,
+      max_nodes: 1,
+    })
+    is Err(SuppliedAdmission({ kind: BudgetExceeded, .. })),
+  )
+}
+
+///|
+test "original textual Parameters reader uses the already selected syntax limits" {
+  let (source_limits, tree_limits) = local_parameter_input_limits()
+  // A caller may back the actual raw wire independently of the retained value.
+  // Whitespace does not fabricate more nodes or a larger scalar allowance.
+  let document = " ".repeat(70000) + "null"
+  assert_true(
+    admit_local_program_input("json", Some(document)) is Err(SuppliedSyntax(_)),
+  )
+  let original = admit_local_parameter_document(
+    document,
+    { ..source_limits, max_input_bytes: document.length(), },
+    tree_limits,
+  ).unwrap()
+  assert_true(@decode.is_null(original))
+  assert_eq(@decode.admission_usage(original).nodes, 1)
+  assert_eq(source_limits.max_input_bytes, 65536)
+  assert_eq(tree_limits.max_string_bytes, 65536)
+}
