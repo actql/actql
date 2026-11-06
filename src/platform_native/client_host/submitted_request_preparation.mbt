@@ -260,6 +260,9 @@ pub fn[I] check_native_client_submitted_request_input(
       program_limits,
       effect_limits,
       supplied~,
+      // Preserve this installed Native entry's configured primary. The new
+      // SDK public Source convention remains the Core default, separately.
+      public_primary=false,
     )
   } else {
     return Err(InvalidSubmittedInput)

@@ -6042,3 +6042,12 @@ After that boundary, the same original phase and identities must still hold.
 Audience metadata remains a trusted Host input and the publication visibility
 filter still applies to a successful semantic outcome; checking a private Source
 does not make its availability disclosable.
+
+The installed Native CLI keeps its existing configured query primary when
+continuing through the shared Request lowerer. Its selected publication Context
+already names that primary. The newer public Source entry still selects its
+public implicit primary by default; authored exports keep their own names in
+either entry. This is compiler configuration, not Result permission. The actual
+compiled inventory reaches the Result reader unchanged, and the adopted Account
+continues to decide access to that exact name. A migration must not compensate
+for a changed implicit name by broadening the Account or rewriting saved Results.
