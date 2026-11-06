@@ -55,3 +55,19 @@ test('CI downloads original hash-bounded archives and retains exact production a
     assert(retain.with.path.includes(path), path);
   }
 });
+
+
+test('mandatory Local installation retains ingress controls on its actual installed runtime',()=>{
+  const installed=readFileSync(new URL('./test-native-cli-source-free-install.mjs',import.meta.url),'utf8');
+  const transport=readFileSync(new URL('./test-native-client.mjs',import.meta.url),'utf8');
+  const fixture=readFileSync(new URL('./test-native-local-cli.test.mjs',import.meta.url),'utf8');
+  assert(installed.includes("new URL('./test-native-local-cli.test.mjs',import.meta.url)"));
+  assert(installed.includes('expectedTests:12'));
+  assert(installed.includes('admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime'));
+  for(const key of ['ACTQL_TEST_NATIVE_CLIENT_LAUNCHER','ACTQL_TEST_NATIVE_CLIENT_BINARY',
+    'ACTQL_TEST_NATIVE_SQLITE_LIBRARY','ACTQL_TEST_NATIVE_CRYPTO_LIBRARY']) {
+    assert(installed.includes(key),key);assert(fixture.includes(key),key);
+  }
+  assert(!transport.includes("import('./test-native-local-cli.test.mjs')"));
+  assert(!fixture.includes('prepareNativeRuntimeBundleLibraries'));
+});

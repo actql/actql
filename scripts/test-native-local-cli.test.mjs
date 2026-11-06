@@ -1,5 +1,5 @@
-// Native ingress only. This does not stand in for Source execution, durable
-// Run recovery, encrypted capture, approval or external package acceptance.
+// Installed Native ingress and bounded Pure row-demand controls. Source
+// execution, approval and full recovery remain separate acceptance subjects.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -11,8 +11,9 @@ import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {verifyNativeLocalCheckEnvironmentOriginal} from './test-native-local-source-result.mjs';
 
-const executable = process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY ?? fileURLToPath(new URL(
-  '../_build/native/release/build/cmd/native_client/native_client.exe', import.meta.url));
+const executable=process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY;
+assert(executable && process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER,
+  'Select the actual installed Native Local launcher and binary');
 const scratch = await createOwnedScratch({parent: process.platform==='darwin'?'/private/tmp':tmpdir(), prefix: 'actql-native-local-cli-',
   label: 'Native Local CLI ingress'});
 await cp(fileURLToPath(new URL('./fixtures/native-local-cli', import.meta.url)), scratch.path,
@@ -24,13 +25,8 @@ const originalEnvironment=await readFile(join(scratch.path,'environment.json'));
 verifyNativeLocalCheckEnvironmentOriginal(originalEnvironment);
 const sqlite=process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
   crypto=process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY;
-assert.equal(sqlite===undefined,crypto===undefined,'Select both original Host libraries together');
-// The configured direct CLI uses the same raw Library fixtures as Native Core.
-// Installed launchers instead supply their admitted packaged components below.
-const libraries={
-  sqliteLibrary:sqlite??(process.platform==='darwin'?'/usr/lib/libsqlite3.dylib':'libsqlite3.so.0'),
-  cryptoLibrary:crypto??(process.platform==='darwin'?'/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib':'libcrypto.so.3'),
-};
+assert(sqlite && crypto,'Select both admitted installed Local runtime libraries');
+const libraries={sqliteLibrary:sqlite,cryptoLibrary:crypto};
 await mkdir(join(scratch.path,'managed'),{mode:0o700});
 const permission=(entry_id,resource,operation)=>({entry_id,outcome:'allow',
   principal:{any_of:['operator']},connection:{any_of:['cli']},

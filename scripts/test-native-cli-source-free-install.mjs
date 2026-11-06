@@ -14,6 +14,7 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
+import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 // Registry close permits provisional observations only. The consumer must still
@@ -232,6 +233,21 @@ async function observeInstalledSourceFree(input, observationPath) {
     }
     await cli(['result', state.run_id, '--format', 'jsonl', '--output', 'saved.jsonl']);
     assert.deepEqual(rows(await readFile(join(project, 'saved.jsonl'), 'utf8')), [{id: 1}]);
+    // Reuse this same installed cohort and its actual launcher/runtime. The
+    // Remote-only CLI harness cannot supply the Local preparation constructor.
+    const localRuntime=admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime,
+      expected:{sourceSha:manifest.sourceSha,platform,localRuntimeSha256:artifact.localRuntime.sha256}});
+    env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER=launcher;
+    env.ACTQL_TEST_NATIVE_CLIENT_BINARY=join(platformRoot,'bin/actql-native-client');
+    for(const [role,key] of [['sqlite','ACTQL_TEST_NATIVE_SQLITE_LIBRARY'],
+      ['crypto','ACTQL_TEST_NATIVE_CRYPTO_LIBRARY']]) {
+      const library=localRuntime.libraries.find(value=>value.role===role);assert(library);
+      env[key]=join(platformRoot,library.path);
+    }
+    const focused=new URL('./test-execution.mjs',import.meta.url).href;
+    const fixture=fileURLToPath(new URL('./test-native-local-cli.test.mjs',import.meta.url));
+    await run(process.execPath,['--input-type=module','-e',
+      `import {runFocusedTests} from ${JSON.stringify(focused)};process.exitCode=runFocusedTests('node',[${JSON.stringify(fixture)}],{cwd:process.cwd(),expectedTests:12});`]);
     assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), originalBinary);
     assert.deepEqual(checkoutState(repository), source);
     receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
