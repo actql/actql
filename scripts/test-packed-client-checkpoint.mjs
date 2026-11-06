@@ -282,6 +282,7 @@ if (process.env.HISTORICAL_REQUESTS !== undefined) {
     const document = JSON.stringify(parsed);
     const options = {directory: process.env.STATE, document, requestId,
       authorization: installation.authorization,
+      hostCapacityPolicy: installation.hostCapacityPolicy,
       expressionContractUrl: new URL('actql-expressions.json', import.meta.url),
       runtimeRootUrl: new URL('.', import.meta.resolve('@actql/local-node')), mode: 'remote'};
     const original = acquired

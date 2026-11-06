@@ -2,6 +2,7 @@
 // acceptance commands, not a replacement acceptance oracle.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -1137,4 +1138,64 @@ test('packed Checkpoint Source publication shares its explicit installed Host po
   delete foreign.evidence_bundle_cid; foreign.evidence_bundle_cid = contentCid(foreign);
   assert.throws(() => composeInstalledCheckEnvironment(moon, actualHost, actualHost, canonicalText(foreign)),
     error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
+});
+
+test('historical Checkpoint identities retain the same explicit Host policy', () => {
+  const wrapper = readFileSync(new URL('./test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
+  assert.match(wrapper, /hostCapacityPolicy: installation\.hostCapacityPolicy,/);
+  const hash = bytes => 'sha256:' + createHash('sha256').update(bytes).digest('hex');
+  const originalRoot = '/original-selected-root', principalId = 'fixture-owner';
+  const raw = JSON.parse(readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8'))
+    .host_policy_profile.capacity;
+  const expression = (source, name) => {
+    const found = [];
+    (function visit(node) {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'VariableDeclarator' && node.id?.name === name) found.push(node.init);
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(visit);
+        else if (value && typeof value === 'object') visit(value);
+      }
+    })(parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+    assert.equal(found.length, 1, name);
+    return source.slice(found[0].start, found[0].end);
+  };
+  for (const name of ['values', 'query']) {
+    const source = readFileSync(new URL(`./fixtures/synthetic-historical-held-${name}.mjs`, import.meta.url), 'utf8');
+    const selected = new Function('hostCapacityPolicy',
+      `return (${expression(source, 'effectiveHostCapacityPolicy')});`);
+    const scope = new Function('root', 'principalId', 'effectiveHostCapacityPolicy', 'hash', 'cid',
+      `return (${expression(source, 'authorityScopeCid')});`);
+    const original = hash(JSON.stringify({version: 'actql-local-owner-scope/0.1', root: originalRoot, principalId}));
+    assert.equal(scope(originalRoot, principalId, selected(undefined), hash, contentCid), original);
+    const expected = {max_graph_construction_edges: 1000, max_graph_construction_input_rows: 1000,
+      max_graph_construction_nodes: 1000, ...raw};
+    assert.deepEqual(selected(raw), expected);
+    const scoped = scope(originalRoot, principalId, selected(raw), hash, contentCid);
+    assert.equal(scoped, hash(JSON.stringify({version: 'actql-local-owner-scope/0.1',
+      root: originalRoot, principalId, hostCapacityPolicyCid: contentCid(expected)})));
+    assert.notEqual(scoped, original);
+    assert.notEqual(scope(originalRoot, principalId,
+      selected({...raw, max_artifact_rows: raw.max_artifact_rows + 1}), hash, contentCid), scoped);
+  }
+  const values = readFileSync(new URL('./fixtures/synthetic-historical-held-values.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(values, {ecmaVersion: 'latest', sourceType: 'module'});
+  const assignments = [];
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'AssignmentExpression' && node.left.property?.name === 'capacity' &&
+        node.left.object.property?.name === 'host_policy_profile' &&
+        node.left.object.object?.name === 'environmentBody') assignments.push(node.right);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  })(tree);
+  assert.equal(assignments.length, 1);
+  const normalized = {max_graph_construction_edges: 1000, max_graph_construction_input_rows: 1000,
+    max_graph_construction_nodes: 1000, ...raw};
+  const bindingCapacity = new Function('environmentBody', 'effectEnvironmentWire', 'effectiveHostCapacityPolicy',
+    `return (${values.slice(assignments[0].start, assignments[0].end)});`)(
+    {host_policy_profile: {capacity: raw}}, undefined, normalized);
+  assert.deepEqual(bindingCapacity, normalized);
 });
