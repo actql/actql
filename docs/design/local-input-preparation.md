@@ -5733,6 +5733,14 @@ continues to use its original text/frontend rather than the material's lowered
 Program. Failed comparison, capacity, currentness or construction remains on the
 same Request's existing abort and retirement chain.
 
+Textual Source with non-null Parameters uses the same retained-material quote
+and full Parameter value comparison to restore original member order. Its
+authored text, format and parameter declarations remain the original frontend
+input; it never substitutes or parses the saved lowered Program as authored
+Source. The later Common material codec still binds that complete lowered
+Program and its original compilation, Request and Run. Source with null
+Parameters needs no member-order restoration and keeps its original path.
+
 ### Retained Model recovery Request
 
 A cold Model continuation borrows the Journal's original Request, Definition,
