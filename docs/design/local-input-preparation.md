@@ -2870,6 +2870,22 @@ raw/no-plan success or an unqualified fallback.
 
 ## Native submitted intent on the same Request
 
+The normal captured native Program caller explicitly selects the original
+Request's input envelope for its later Program Source/index admission. That
+default projection requires the same live Request/input association and ready
+intent phase; it performs no current callback or second input traversal. The
+existing intent owner remains the single definition of the 1 MiB, 65,536-node,
+depth-64 envelope. The independent general preparation profile is not widened,
+and explicit tighter preparation limits keep their original typed entry.
+
+The projection constructs four nested immutable limit records and its Result
+wrapper. Their 5H/7R/10W peak is included in the existing Request's initial
+control envelope before selection, not charged to unused policy headroom or a
+later parser grow. Actual native Source/index and Program construction still
+reserve their observed input-derived inventory before allocation. The selected
+limits admit no Run or execution resources and do not relax field/schema,
+currentness, physical-stop, failure-prefix or same-owner cleanup requirements.
+
 The SDK captures its native input once. The fixed manager projects only the
 existing intent fields from that exact detached body: kind, input, Parameters,
 and present stopBefore/readOnly restrictions. The shallow projection neither

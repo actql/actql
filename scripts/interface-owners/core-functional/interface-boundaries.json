@@ -42011,7 +42011,7 @@
     {
       "module": "src/client_local_host/preparation_request_intent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2bfa41fe238f870102c2ade02fd9b6ba2be2cffe746117539763ed9aa7ce9809",
+      "sha256": "715e1a394f2c8350bfc8b1768592a7b7ff39dea9231007b4ed37fb9d0c4aafbb",
       "role": "common-semantics",
       "owner": "Existing submitted-intent identity and original Request preparation Owners",
       "exports": [],
@@ -42023,6 +42023,10 @@
         {
           "name": "[I]finish_request_submitted_intent",
           "declaration": "[ I ] finish_request_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]request_default_program_preparation_limits",
+          "declaration": "[ I ] request_default_program_preparation_limits ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestTerminalIssue , ]"
         },
         {
           "name": "[I]request_intent_input_ready",
@@ -42053,7 +42057,8 @@
             "[I]finish_request_submitted_intent",
             "[I]request_intent_input_ready",
             "[I]request_submitted_intent_original",
-            "request_intent_construction_bytes"
+            "request_intent_construction_bytes",
+            "[I]request_default_program_preparation_limits"
           ],
           "exports": [],
           "attributes": {
@@ -42119,6 +42124,14 @@
               {
                 "path": "src/client_local_host/preparation_request_intent_js_wbtest.mbt",
                 "anchor": "test \"Request native intent preserves"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_input_js_wbtest.mbt",
+                "anchor": "test \"standard native Program input retains the original public 100 by 99 Values document\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_input_js_wbtest.mbt",
+                "anchor": "test \"explicit tight native Request fails before compilation and retains original cleanup\""
               }
             ]
           }
@@ -43633,7 +43646,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "10084838b8d73906546b549d084b32e51ebc7c45f8527dedc91e224cddf9a926",
+      "sha256": "a367201d7046967a056929ab8ed4e7a5b4b4730a8d381cdddf122eb8febc5831",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -56846,7 +56859,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "e695d8d59d8c54a7c4db845bad8e4e7e09a4fd8e41eb1c68af678649fedb4a6c"
+      "sha256": "45e148a55e256eeab5eca581133d9efc4be90165055a0cd4352ae01ca249ccdd"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",

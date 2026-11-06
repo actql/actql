@@ -39,6 +39,15 @@ every resolved limit with its source.
 
 ### Capacity and Result quantities
 
+The ordinary captured native Program entrance uses the input envelope already
+selected for its original Request: 1 MiB, 65,536 source/index nodes and depth
+64. This replaces its separate legacy 64 KiB/8,192-node default; it does not
+increase the Request envelope or the Host's retained/execution byte ceilings.
+Explicit preparation limits and tighter Host selections remain applicable.
+The same Request reserves the actual parser/index and Program construction
+before allocating them. Passing input admission still supplies no execution,
+Result or cleanup permission.
+
 The Local policy's 512 MiB figures are separate logical retained-byte and
 execution-byte ceilings. They are not a per-Run network-transfer allowance,
 a process RSS limit, a physical allocation, or a latency bound. Transfer and
