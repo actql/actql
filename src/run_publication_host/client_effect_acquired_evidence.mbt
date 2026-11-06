@@ -257,9 +257,14 @@ pub fn issue_acquired_client_effect_local_result_artifact(
         result,
         source.identity,
       ) &&
-      !client_effect_computed_result_matches_acquired_unit(
+      !(client_effect_computed_result_matches_acquired_unit(
         owner, source, result,
-      )
+      ) &&
+      @strategy.captured_effect_inputs_acquired_source_matches(
+        inputs,
+        source.invocation.unit,
+        source.identity,
+      ))
     ) {
     return Err(ForeignOwner)
   }

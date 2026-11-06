@@ -36,6 +36,42 @@ pub fn captured_effect_local_result_matches_source(
 }
 
 ///|
+// Inspect the SAME captured acquisition retained by this Run. Equal logical
+// rows, a reused Prepared owner, or an evidence object's CID cannot substitute
+// for that original capture. The callback may retire the Run synchronously.
+fn captured_effect_original_acquisition_matches(
+  run : CapturedDAG,
+  unit : Int,
+  identity : @query.CapturedSourceRelationIdentity,
+) -> Bool {
+  if run.stopped || unit < 0 || unit >= run.graph.captured_prefix_value() {
+    return false
+  }
+  guard run.original_sources.get(unit).bind(value => value) is Some(source) else {
+    return false
+  }
+  @query.captured_source_relation_identity_matches_source(identity, source) &&
+  !run.stopped
+}
+
+///|
+/// Match acquisition provenance, not a computed Result's physical output.
+/// Result export/currentness and publication admission remain separate duties.
+pub fn captured_effect_inputs_acquired_source_matches(
+  inputs : CapturedEffectInputs,
+  unit : Int,
+  identity : @query.CapturedSourceRelationIdentity,
+) -> Bool {
+  inputs.live &&
+  captured_effect_original_acquisition_matches(
+    inputs.run.captured,
+    unit,
+    identity,
+  ) &&
+  inputs.live
+}
+
+///|
 priv struct EffectDependencyPort {
   stage : Int
   task : Int
