@@ -148,9 +148,9 @@ allocations before reaping retired ones, so it cannot consume a child's pending
 receipt during a failed close probe. Root mappings remain charged and owned until
 the root's separate physical close, even after a partial acquisition is cleaned.
 
-The existing Request prefix already funds 14,488 logical retained bytes, including
-its 4,096-byte mutually exclusive control group. This supplier does not translate
-that logical tariff into Native object/slab/page coexistence, issue the opaque
+The existing Request prefix carries a logical retained/control quote. This
+supplier does not translate that quote into Native object/slab/page coexistence,
+issue the opaque
 managed binding, grow the original Common aggregate claim, or connect the
 canonical child reservation hook. Those remain prerequisites for normal CLI
 use; a positive initial-control declaration or a larger policy limit is not their
