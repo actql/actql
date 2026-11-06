@@ -1864,7 +1864,10 @@ const cancelledState = await cancelledRun.status();
 assert.equal(cancelledState.status, 'cancelled');
 assert.equal(cancelledState.control.cancellation_requested, true);
 assert.equal(cancelledState.control.physical_stop, 'confirmed');
-assert.equal((await cancelledRun.cancel()).kind, 'already_requested');
+const repeatedCancellation = await cancelledRun.cancel();
+assert.equal(repeatedCancellation.kind, 'already_satisfied');
+assert.equal(repeatedCancellation.cancellation.kind, 'already_requested');
+assert.deepEqual(repeatedCancellation.cancellation.ref, cancelledRun.ref);
 assert.equal((await cancelledRun.wait()).status, 'cancelled');
 const cancelledAcquired = await timingClient.startSource(acquiredDocument,
   {format: 'json', requestId: 'packed-acquired-cancel-before-dispatch',
@@ -2189,7 +2192,24 @@ const {openInstalledRemoteHttpHost} = await import(remoteModule);
 let releaseDispatch;
 const heldDispatch = new Promise(resolve => { releaseDispatch = resolve; });
 let failNextDispatch = false;
+// The Remote operator explicitly selects request admission and the exact
+// Run/Named Result reads used below; Source reads keep their own Account.
+const remoteAuthorization = {accountConfiguration: JSON.stringify({
+  version: 'actql-execution-account-config/0.1', account_id: 'packed-remote-account',
+  entries: [{entry_id: 'packed-observation', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/answer', 'result/b', 'result/c', 'result/last', 'run']},
+    operation: {any_of: ['read']}, exclusions: []},
+  {entry_id: 'packed-request', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['source-free-values']},
+    operation: {any_of: ['write']}, exclusions: []}],
+})};
+await writeFile(join(root, 'remote-authorization.json'), JSON.stringify(remoteAuthorization));
 const remoteHost = await openInstalledRemoteHttpHost({
+  authorization: remoteAuthorization,
   directory: join(root, 'remote-state'),
   sourceProfilePath, hostCapacityPolicy,
   authenticate: header => header === 'Bearer packed-test-token'
@@ -2266,6 +2286,7 @@ import {openInstalledRemoteHttpHost} from
 const hostCapacityPolicy = JSON.parse(JSON.parse(
   readFileSync('source-profile.json', 'utf8')).checkEnvironmentWire).host_policy_profile.capacity;
 const host = await openInstalledRemoteHttpHost({
+  authorization: JSON.parse(readFileSync('remote-authorization.json', 'utf8')),
   directory: join(process.cwd(), 'restart-remote-state'),
   hostCapacityPolicy,
   authenticate: header => header === 'Bearer packed-test-token'
