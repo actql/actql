@@ -805,34 +805,102 @@ fn request_body(
 ///|
 fn command() -> @argparse.Command {
   @argparse.Command(
-    "actql-native-client",
-    about="Bounded Native Client operations",
+    "actql",
+    about="Check, explain, and run ActQL Programs",
     version=native_package_version(),
     subcommand_required=true,
     options=[
-      @argparse.OptionArg("mode", default_values=["remote"], global=true),
-      @argparse.OptionArg("config-root", default_values=["."], global=true),
-      @argparse.OptionArg("config-file", global=true),
-      @argparse.OptionArg("config", global=true),
-      @argparse.OptionArg("profile", global=true),
-      @argparse.OptionArg("state-dir", global=true),
-      @argparse.OptionArg("input-root", global=true),
-      @argparse.OptionArg("endpoint", global=true),
-      @argparse.OptionArg("connection-root", global=true),
-      @argparse.OptionArg("connection-file", global=true),
-      @argparse.OptionArg("token-root", global=true),
-      @argparse.OptionArg("token-file", global=true),
-      @argparse.OptionArg("http-library", global=true),
-      @argparse.OptionArg("ca", global=true),
-      @argparse.OptionArg("cert", global=true),
-      @argparse.OptionArg("key", global=true),
+      @argparse.OptionArg(
+        "mode",
+        about="Host mode: local or remote",
+        default_values=["remote"],
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "config-root",
+        about="Directory used to resolve configuration files",
+        default_values=["."],
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "config-file",
+        about="Configuration file relative to --config-root",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "config",
+        about="Path to the project configuration file",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "profile",
+        about="Project configuration profile",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "state-dir",
+        about="Local installation state directory",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "input-root",
+        about="Directory used to resolve Program and parameter files",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "endpoint",
+        about="Remote Host HTTPS endpoint",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "connection-root",
+        about="Directory containing connection and reference files",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "connection-file",
+        about="Host connection JSON file",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "token-root",
+        about="Directory containing the authentication token file",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "token-file",
+        about="Authentication token file",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "http-library",
+        about="Path to the native HTTPS library",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "ca",
+        about="TLS certificate authority file",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "cert",
+        about="TLS client certificate file",
+        global=true,
+      ),
+      @argparse.OptionArg(
+        "key",
+        about="TLS client private key file",
+        global=true,
+      ),
       @argparse.OptionArg(
         "max-request-bytes",
+        about="Maximum encoded request size in bytes",
         default_values=["65536"],
         global=true,
       ),
       @argparse.OptionArg(
         "max-response-bytes",
+        about="Maximum response size in bytes",
         default_values=["1048576"],
         global=true,
       ),
@@ -843,247 +911,748 @@ fn command() -> @argparse.Command {
         about="Report project binding implementation availability",
       ),
       @argparse.Command("schema", about="Print the Program JSON Schema"),
-      @argparse.Command("verify", subcommand_required=true, subcommands=[
-        @argparse.Command("output", flags=[@argparse.FlagArg("json")], positionals=[
-          @argparse.PositionArg("receipt"),
-          @argparse.PositionArg("output"),
-        ]),
-      ]),
+      @argparse.Command(
+        "verify",
+        about="Verify saved output against its receipt",
+        subcommand_required=true,
+        subcommands=[
+          @argparse.Command(
+            "output",
+            about="Verify a saved output file against a delivery receipt",
+            flags=[
+              @argparse.FlagArg(
+                "json",
+                about="Print the command response and diagnostics as JSON",
+              ),
+            ],
+            positionals=[
+              @argparse.PositionArg(
+                "receipt",
+                about="Path to the output verification receipt",
+              ),
+              @argparse.PositionArg(
+                "output",
+                about="Path to the saved output file to verify",
+              ),
+            ],
+          ),
+        ],
+      ),
       @argparse.Command(
         "check",
-        flags=[@argparse.FlagArg("json")],
+        about="Validate a Program without reading business data",
+        flags=[
+          @argparse.FlagArg(
+            "json",
+            about="Print the command response and diagnostics as JSON",
+          ),
+        ],
         positionals=[
-          @argparse.PositionArg("program", conflicts_with=["program-file"]),
+          @argparse.PositionArg(
+            "program",
+            about="Path to the Program to check, explain, or run",
+            conflicts_with=["program-file"],
+          ),
         ],
         options=[
-          @argparse.OptionArg("program-file", conflicts_with=["program"]),
-          @argparse.OptionArg("format"),
-          @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
-          @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
-          @argparse.OptionArg("parameter-declarations-file"),
+          @argparse.OptionArg("program-file", about="Path to a Program file", conflicts_with=[
+            "program",
+          ]),
+          @argparse.OptionArg(
+            "format",
+            about="Program syntax: json, yaml, aql, or sql",
+          ),
+          @argparse.OptionArg(
+            "parameters-file",
+            about="JSON file of parameter values (alias: --params)",
+            conflicts_with=["params"],
+          ),
+          @argparse.OptionArg("params", about="JSON file of parameter values", conflicts_with=[
+            "parameters-file",
+          ]),
+          @argparse.OptionArg(
+            "parameter-declarations-file",
+            about="JSON file of named parameter value contracts",
+          ),
         ],
       ),
       @argparse.Command(
         "explain",
-        flags=[@argparse.FlagArg("json")],
+        about="Show a Program plan or a saved Run plan",
+        flags=[
+          @argparse.FlagArg(
+            "verbose",
+            about="Include full plan identities and port details",
+          ),
+          @argparse.FlagArg(
+            "json",
+            about="Print the command response and diagnostics as JSON",
+          ),
+        ],
         positionals=[
-          @argparse.PositionArg("program", conflicts_with=[
-            "program-file", "run",
-          ]),
+          @argparse.PositionArg(
+            "program",
+            about="Path to the Program to check, explain, or run",
+            conflicts_with=["program-file", "run"],
+          ),
         ],
         options=[
-          @argparse.OptionArg("program-file", conflicts_with=["program", "run"]),
-          @argparse.OptionArg("run", conflicts_with=[
+          @argparse.OptionArg("program-file", about="Path to a Program file", conflicts_with=[
+            "program", "run",
+          ]),
+          @argparse.OptionArg("run", about="Saved Run ID to explain", conflicts_with=[
             "program", "program-file", "format", "parameters-file", "params", "parameter-declarations-file",
           ]),
-          @argparse.OptionArg("format"),
-          @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
-          @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
-          @argparse.OptionArg("parameter-declarations-file"),
+          @argparse.OptionArg(
+            "format",
+            about="Program syntax: json, yaml, aql, or sql",
+          ),
+          @argparse.OptionArg(
+            "parameters-file",
+            about="JSON file of parameter values (alias: --params)",
+            conflicts_with=["params"],
+          ),
+          @argparse.OptionArg("params", about="JSON file of parameter values", conflicts_with=[
+            "parameters-file",
+          ]),
+          @argparse.OptionArg(
+            "parameter-declarations-file",
+            about="JSON file of named parameter value contracts",
+          ),
         ],
       ),
-      @argparse.Command("adopt", flags=[
-        @argparse.FlagArg("json"),
-        @argparse.FlagArg("initialize-signing"),
-        @argparse.FlagArg("migrate-journal"),
-      ]),
-      @argparse.Command("connect", flags=[@argparse.FlagArg("json")]),
-      @argparse.Command("upgrade-policy", flags=[@argparse.FlagArg("json")], options=[
-        @argparse.OptionArg("operation-id", required=true),
-        @argparse.OptionArg("retention-file", default_values=["retention.json"]),
-        @argparse.OptionArg("store-file", default_values=["store.json"]),
-      ]),
+      @argparse.Command(
+        "adopt",
+        about="Adopt a Local installation and its signing or journal state",
+        flags=[
+          @argparse.FlagArg(
+            "json",
+            about="Print the command response and diagnostics as JSON",
+          ),
+          @argparse.FlagArg(
+            "initialize-signing",
+            about="Initialize Local signing state during adoption",
+          ),
+          @argparse.FlagArg(
+            "migrate-journal",
+            about="Migrate the Local journal during adoption",
+          ),
+        ],
+      ),
+      @argparse.Command(
+        "connect",
+        about="Inspect the configured Host connection",
+        flags=[
+          @argparse.FlagArg(
+            "json",
+            about="Print the command response and diagnostics as JSON",
+          ),
+        ],
+      ),
+      @argparse.Command(
+        "upgrade-policy",
+        about="Apply a retention and store policy upgrade",
+        flags=[
+          @argparse.FlagArg(
+            "json",
+            about="Print the command response and diagnostics as JSON",
+          ),
+        ],
+        options=[
+          @argparse.OptionArg(
+            "operation-id",
+            about="Policy upgrade operation ID",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "retention-file",
+            about="Retention policy JSON file",
+            default_values=["retention.json"],
+          ),
+          @argparse.OptionArg("store-file", about="Store policy JSON file", default_values=[
+            "store.json",
+          ]),
+        ],
+      ),
       @argparse.Command(
         "lookup-policy-upgrade",
-        flags=[@argparse.FlagArg("json")],
-        options=[@argparse.OptionArg("operation-id", required=true)],
+        about="Look up a policy upgrade by operation ID",
+        flags=[
+          @argparse.FlagArg(
+            "json",
+            about="Print the command response and diagnostics as JSON",
+          ),
+        ],
+        options=[
+          @argparse.OptionArg(
+            "operation-id",
+            about="Policy upgrade operation ID",
+            required=true,
+          ),
+        ],
       ),
-      @argparse.Command("new-submission", options=[
-        @argparse.OptionArg("request-id", required=true),
-      ]),
+      @argparse.Command(
+        "new-submission",
+        about="Create a submission reference for a request",
+        options=[
+          @argparse.OptionArg(
+            "request-id",
+            about="Request ID used to identify a submission",
+            required=true,
+          ),
+        ],
+      ),
       @argparse.Command(
         "sql",
-        flags=[@argparse.FlagArg("json")],
+        about="Run a read-only SQL query and print Result rows",
+        flags=[
+          @argparse.FlagArg(
+            "json",
+            about="Print command diagnostics as JSON; --format controls Result rows",
+          ),
+        ],
         positionals=[
           @argparse.PositionArg(
             "query",
+            about="Query text",
             num_args=@argparse.ValueRange::single(),
           ),
         ],
         options=[
-          @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
-          @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
-          @argparse.OptionArg("parameter-declarations-file"),
-          @argparse.OptionArg("format"),
-          @argparse.OptionArg("output"),
+          @argparse.OptionArg("params", about="JSON file of parameter values", conflicts_with=[
+            "parameters-file",
+          ]),
+          @argparse.OptionArg(
+            "parameters-file",
+            about="JSON file of parameter values (alias: --params)",
+            conflicts_with=["params"],
+          ),
+          @argparse.OptionArg(
+            "parameter-declarations-file",
+            about="JSON file of named parameter value contracts",
+          ),
+          @argparse.OptionArg(
+            "format",
+            about="Result row format: table, json, jsonl, or csv",
+          ),
+          @argparse.OptionArg(
+            "output",
+            about="Write Result rows to a new file instead of stdout",
+          ),
         ],
       ),
       @argparse.Command(
         "aql",
-        flags=[@argparse.FlagArg("json")],
+        about="Run a Pipe query or submit a Program file",
+        flags=[
+          @argparse.FlagArg(
+            "json",
+            about="Print command diagnostics as JSON; --format controls Result rows",
+          ),
+        ],
         positionals=[
-          @argparse.PositionArg("query", conflicts_with=["program-file"]),
+          @argparse.PositionArg("query", about="Query text", conflicts_with=[
+            "program-file",
+          ]),
         ],
         options=[
-          @argparse.OptionArg("program-file", conflicts_with=["query"]),
-          @argparse.OptionArg("stop-before"),
-          @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
-          @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
-          @argparse.OptionArg("parameter-declarations-file"),
-          @argparse.OptionArg("format"),
-          @argparse.OptionArg("output"),
-          @argparse.OptionArg("request-id"),
-          @argparse.OptionArg("submission-ref-file"),
-          @argparse.OptionArg("operation-attempt-id"),
+          @argparse.OptionArg("program-file", about="Path to a Program file", conflicts_with=[
+            "query",
+          ]),
+          @argparse.OptionArg(
+            "stop-before",
+            about="Stop at a Checkpoint before the commit boundary",
+          ),
+          @argparse.OptionArg("params", about="JSON file of parameter values", conflicts_with=[
+            "parameters-file",
+          ]),
+          @argparse.OptionArg(
+            "parameters-file",
+            about="JSON file of parameter values (alias: --params)",
+            conflicts_with=["params"],
+          ),
+          @argparse.OptionArg(
+            "parameter-declarations-file",
+            about="JSON file of named parameter value contracts",
+          ),
+          @argparse.OptionArg(
+            "format",
+            about="Result row format: table, json, jsonl, or csv",
+          ),
+          @argparse.OptionArg(
+            "output",
+            about="Write Result rows to a new file instead of stdout",
+          ),
+          @argparse.OptionArg(
+            "request-id",
+            about="Request ID used to identify a submission",
+          ),
+          @argparse.OptionArg(
+            "submission-ref-file",
+            about="Submission reference JSON file",
+          ),
+          @argparse.OptionArg(
+            "operation-attempt-id",
+            about="Operation attempt ID",
+          ),
         ],
       ),
       @argparse.Command(
         "run",
-        flags=[@argparse.FlagArg("json")],
+        about="Run a Program and report its state",
+        flags=[
+          @argparse.FlagArg(
+            "json",
+            about="Print the command response and diagnostics as JSON",
+          ),
+        ],
         positionals=[
-          @argparse.PositionArg("program", conflicts_with=["program-file"]),
+          @argparse.PositionArg(
+            "program",
+            about="Path to the Program to check, explain, or run",
+            conflicts_with=["program-file"],
+          ),
         ],
         options=[
-          @argparse.OptionArg("program-file", conflicts_with=["program"]),
-          @argparse.OptionArg("stop-before"),
-          @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
-          @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
-          @argparse.OptionArg("parameter-declarations-file"),
-          @argparse.OptionArg("format"),
-          @argparse.OptionArg("output"),
-          @argparse.OptionArg("deliver", action=Append),
-          @argparse.OptionArg("receipt"),
-          @argparse.OptionArg("request-id", requires=["submission-ref-file"]),
-          @argparse.OptionArg("submission-ref-file", requires=[
-            "operation-attempt-id",
+          @argparse.OptionArg("program-file", about="Path to a Program file", conflicts_with=[
+            "program",
           ]),
-          @argparse.OptionArg("operation-attempt-id", requires=[
+          @argparse.OptionArg(
+            "stop-before",
+            about="Stop at a Checkpoint before the commit boundary",
+          ),
+          @argparse.OptionArg(
+            "parameters-file",
+            about="JSON file of parameter values (alias: --params)",
+            conflicts_with=["params"],
+          ),
+          @argparse.OptionArg("params", about="JSON file of parameter values", conflicts_with=[
+            "parameters-file",
+          ]),
+          @argparse.OptionArg(
+            "parameter-declarations-file",
+            about="JSON file of named parameter value contracts",
+          ),
+          @argparse.OptionArg("format", about="Output format"),
+          @argparse.OptionArg(
+            "output",
+            about="Write Result rows to a new file instead of stdout",
+          ),
+          @argparse.OptionArg(
+            "deliver",
+            about="Deliver a Result as result=format:file; repeat for multiple Results",
+            action=Append,
+          ),
+          @argparse.OptionArg(
+            "receipt",
+            about="Write output verification receipts to a new file",
+          ),
+          @argparse.OptionArg(
+            "request-id",
+            about="Request ID used to identify a submission",
+            requires=["submission-ref-file"],
+          ),
+          @argparse.OptionArg(
             "submission-ref-file",
-          ]),
+            about="Submission reference JSON file",
+            requires=["operation-attempt-id"],
+          ),
+          @argparse.OptionArg(
+            "operation-attempt-id",
+            about="Operation attempt ID",
+            requires=["submission-ref-file"],
+          ),
         ],
       ),
-      @argparse.Command("start", options=[
-        @argparse.OptionArg("program-file", required=true),
-        @argparse.OptionArg("stop-before"),
-        @argparse.OptionArg("parameters-file"),
-        @argparse.OptionArg("request-id"),
-        @argparse.OptionArg("submission-ref-file", required=true),
-        @argparse.OptionArg("operation-attempt-id", required=true),
-      ]),
-      @argparse.Command("lookup-submission", options=[
-        @argparse.OptionArg("submission-ref-file", required=true),
-      ]),
+      @argparse.Command(
+        "start",
+        about="Start a submission with explicit operation references",
+        options=[
+          @argparse.OptionArg(
+            "program-file",
+            about="Path to a Program file",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "stop-before",
+            about="Stop at a Checkpoint before the commit boundary",
+          ),
+          @argparse.OptionArg(
+            "parameters-file",
+            about="JSON file of parameter values (alias: --params)",
+          ),
+          @argparse.OptionArg(
+            "request-id",
+            about="Request ID used to identify a submission",
+          ),
+          @argparse.OptionArg(
+            "submission-ref-file",
+            about="Submission reference JSON file",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "operation-attempt-id",
+            about="Operation attempt ID",
+            required=true,
+          ),
+        ],
+      ),
+      @argparse.Command(
+        "lookup-submission",
+        about="Look up a submission by reference",
+        options=[
+          @argparse.OptionArg(
+            "submission-ref-file",
+            about="Submission reference JSON file",
+            required=true,
+          ),
+        ],
+      ),
       @argparse.Command(
         "approve",
-        flags=[@argparse.FlagArg("wait"), @argparse.FlagArg("json")],
+        about="Approve a waiting Checkpoint",
+        flags=[
+          @argparse.FlagArg("wait", about="Wait for the Run after approving"),
+          @argparse.FlagArg(
+            "json",
+            about="Print the command response and diagnostics as JSON",
+          ),
+        ],
         positionals=[
           @argparse.PositionArg(
             "checkpoint-id",
+            about="Checkpoint ID to decide",
             num_args=@argparse.ValueRange::single(),
           ),
         ],
-        options=[@argparse.OptionArg("signer")],
+        options=[
+          @argparse.OptionArg(
+            "signer",
+            about="Signer ID for the Checkpoint decision",
+          ),
+        ],
       ),
       @argparse.Command(
         "reject",
-        flags=[@argparse.FlagArg("json")],
+        about="Reject a waiting Checkpoint",
+        flags=[
+          @argparse.FlagArg(
+            "json",
+            about="Print the command response and diagnostics as JSON",
+          ),
+        ],
         positionals=[
           @argparse.PositionArg(
             "checkpoint-id",
+            about="Checkpoint ID to decide",
             num_args=@argparse.ValueRange::single(),
           ),
         ],
-        options=[@argparse.OptionArg("signer")],
+        options=[
+          @argparse.OptionArg(
+            "signer",
+            about="Signer ID for the Checkpoint decision",
+          ),
+        ],
       ),
-      @argparse.Command("checkpoint-state", options=[
-        @argparse.OptionArg("submission-ref-file", required=true),
-        @argparse.OptionArg("ref-file", required=true),
-      ]),
-      @argparse.Command("lookup-preparation-grant", options=[
-        @argparse.OptionArg("grant-ref-file", required=true),
-        @argparse.OptionArg("operation-cid", required=true),
-        @argparse.OptionArg("issuer-file", required=true),
-      ]),
-      @argparse.Command("lookup-preparation-raw", options=[
-        @argparse.OptionArg("submission-ref-file", required=true),
-        @argparse.OptionArg("ref-file", required=true),
-        @argparse.OptionArg("grant-ref-file", required=true),
-        @argparse.OptionArg("operation-cid", required=true),
-        @argparse.OptionArg("use-id", required=true),
-      ]),
-      @argparse.Command("lookup-request", options=[
-        @argparse.OptionArg("request-id", required=true),
-      ]),
-      @argparse.Command("attach", options=[
-        @argparse.OptionArg("ref-file", required=true),
+      @argparse.Command(
+        "checkpoint-state",
+        about="Read a Checkpoint state for a submission",
+        options=[
+          @argparse.OptionArg(
+            "submission-ref-file",
+            about="Submission reference JSON file",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "ref-file",
+            about="Run or Checkpoint reference JSON file",
+            required=true,
+          ),
+        ],
+      ),
+      @argparse.Command(
+        "lookup-preparation-grant",
+        about="Look up a preparation grant",
+        options=[
+          @argparse.OptionArg(
+            "grant-ref-file",
+            about="Preparation grant reference JSON file",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "operation-cid",
+            about="Preparation operation content ID",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "issuer-file",
+            about="Preparation grant issuer JSON file",
+            required=true,
+          ),
+        ],
+      ),
+      @argparse.Command(
+        "lookup-preparation-raw",
+        about="Read preparation evidence using a grant",
+        options=[
+          @argparse.OptionArg(
+            "submission-ref-file",
+            about="Submission reference JSON file",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "ref-file",
+            about="Run or Checkpoint reference JSON file",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "grant-ref-file",
+            about="Preparation grant reference JSON file",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "operation-cid",
+            about="Preparation operation content ID",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "use-id",
+            about="Preparation grant use ID",
+            required=true,
+          ),
+        ],
+      ),
+      @argparse.Command(
+        "lookup-request",
+        about="Look up a submission by request ID",
+        options=[
+          @argparse.OptionArg(
+            "request-id",
+            about="Request ID used to identify a submission",
+            required=true,
+          ),
+        ],
+      ),
+      @argparse.Command("attach", about="Attach to a Run by reference", options=[
+        @argparse.OptionArg(
+          "ref-file",
+          about="Run or Checkpoint reference JSON file",
+          required=true,
+        ),
       ]),
       @argparse.Command(
         "status",
-        flags=[@argparse.FlagArg("json"), @argparse.FlagArg("watch")],
+        about="Show a Run state or watch for changes",
+        flags=[
+          @argparse.FlagArg(
+            "json",
+            about="Print the command response and diagnostics as JSON",
+          ),
+          @argparse.FlagArg("watch", about="Watch the Run for state changes"),
+        ],
         positionals=[
-          @argparse.PositionArg("run", conflicts_with=[
+          @argparse.PositionArg("run", about="Saved Run ID", conflicts_with=[
             "run-id", "ref-file", "submission-ref-file",
           ]),
         ],
         options=[
-          @argparse.OptionArg("ref-file"),
-          @argparse.OptionArg("submission-ref-file"),
-          @argparse.OptionArg("run-id", conflicts_with=["run"]),
-          @argparse.OptionArg("until"),
-          @argparse.OptionArg("timeout"),
+          @argparse.OptionArg(
+            "ref-file",
+            about="Run or Checkpoint reference JSON file",
+          ),
+          @argparse.OptionArg(
+            "submission-ref-file",
+            about="Submission reference JSON file",
+          ),
+          @argparse.OptionArg(
+            "run-id",
+            about="Run ID (alternative to the positional Run)",
+            conflicts_with=["run"],
+          ),
+          @argparse.OptionArg("until", about="State to wait for"),
+          @argparse.OptionArg(
+            "timeout",
+            about="Watch timeout, for example 30s or 2m",
+          ),
         ],
       ),
-      @argparse.Command("wait", options=[
-        @argparse.OptionArg("ref-file", required=true),
-        @argparse.OptionArg("until"),
-        @argparse.OptionArg("since"),
-      ]),
-      @argparse.Command("cancel", options=[
-        @argparse.OptionArg("ref-file", required=true),
-        @argparse.OptionArg("submission-ref-file"),
-        @argparse.OptionArg("cancel-id", required=true),
-        @argparse.OptionArg("expected-revision", required=true),
-        @argparse.OptionArg("operation-attempt-id", required=true),
-      ]),
-      @argparse.Command("lookup-cancellation", options=[
-        @argparse.OptionArg("ref-file", required=true),
-        @argparse.OptionArg("submission-ref-file"),
-        @argparse.OptionArg("cancel-id", required=true),
-        @argparse.OptionArg("expected-revision", required=true),
-      ]),
-      @argparse.Command("reconcile", options=[
-        @argparse.OptionArg("ref-file", required=true),
-      ]),
+      @argparse.Command(
+        "wait",
+        about="Wait for a Run to reach the selected state",
+        options=[
+          @argparse.OptionArg(
+            "ref-file",
+            about="Run or Checkpoint reference JSON file",
+            required=true,
+          ),
+          @argparse.OptionArg("until", about="State to wait for"),
+          @argparse.OptionArg("since", about="Run revision to wait from"),
+        ],
+      ),
+      @argparse.Command(
+        "cancel",
+        about="Request cancellation at an expected Run revision",
+        options=[
+          @argparse.OptionArg(
+            "ref-file",
+            about="Run or Checkpoint reference JSON file",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "submission-ref-file",
+            about="Submission reference JSON file",
+          ),
+          @argparse.OptionArg(
+            "cancel-id",
+            about="Cancellation request ID",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "expected-revision",
+            about="Expected current Run revision",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "operation-attempt-id",
+            about="Operation attempt ID",
+            required=true,
+          ),
+        ],
+      ),
+      @argparse.Command(
+        "lookup-cancellation",
+        about="Look up a cancellation request",
+        options=[
+          @argparse.OptionArg(
+            "ref-file",
+            about="Run or Checkpoint reference JSON file",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "submission-ref-file",
+            about="Submission reference JSON file",
+          ),
+          @argparse.OptionArg(
+            "cancel-id",
+            about="Cancellation request ID",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "expected-revision",
+            about="Expected current Run revision",
+            required=true,
+          ),
+        ],
+      ),
+      @argparse.Command(
+        "reconcile",
+        about="Reconcile a Run with pending work",
+        options=[
+          @argparse.OptionArg(
+            "ref-file",
+            about="Run or Checkpoint reference JSON file",
+            required=true,
+          ),
+        ],
+      ),
       @argparse.Command(
         "result",
-        flags=[@argparse.FlagArg("json")],
+        about="Read saved Result rows from a Run",
+        flags=[
+          @argparse.FlagArg(
+            "json",
+            about="Print the command response and diagnostics as JSON",
+          ),
+        ],
         positionals=[
-          @argparse.PositionArg("run", num_args=@argparse.ValueRange::single()),
+          @argparse.PositionArg(
+            "run",
+            about="Saved Run ID",
+            num_args=@argparse.ValueRange::single(),
+          ),
         ],
         options=[
-          @argparse.OptionArg("result"),
-          @argparse.OptionArg("format"),
-          @argparse.OptionArg("output"),
-          @argparse.OptionArg("deliver", action=Append),
-          @argparse.OptionArg("receipt"),
+          @argparse.OptionArg(
+            "result",
+            about="Name of the saved Result to read",
+          ),
+          @argparse.OptionArg(
+            "format",
+            about="Result row format: table, json, jsonl, or csv",
+          ),
+          @argparse.OptionArg(
+            "output",
+            about="Write Result rows to a new file instead of stdout",
+          ),
+          @argparse.OptionArg(
+            "deliver",
+            about="Deliver a Result as result=format:file; repeat for multiple Results",
+            action=Append,
+          ),
+          @argparse.OptionArg(
+            "receipt",
+            about="Write output verification receipts to a new file",
+          ),
         ],
       ),
-      @argparse.Command("read", options=[
-        @argparse.OptionArg("ref-file", required=true),
-        @argparse.OptionArg("submission-ref-file"),
-        @argparse.OptionArg("purpose"),
-        @argparse.OptionArg("format"),
-        @argparse.OptionArg("max-output-bytes"),
-        @argparse.OptionArg("result-name", required=true),
-        @argparse.OptionArg("attempt-id", required=true),
-      ]),
-      @argparse.Command("delivery-attempt", options=[
-        @argparse.OptionArg("ref-file", required=true),
-        @argparse.OptionArg("submission-ref-file"),
-        @argparse.OptionArg("purpose"),
-        @argparse.OptionArg("result-name", required=true),
-        @argparse.OptionArg("attempt-id", required=true),
-      ]),
+      @argparse.Command(
+        "read",
+        about="Read a named Result with a delivery attempt",
+        options=[
+          @argparse.OptionArg(
+            "ref-file",
+            about="Run or Checkpoint reference JSON file",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "submission-ref-file",
+            about="Submission reference JSON file",
+          ),
+          @argparse.OptionArg("purpose", about="Result delivery purpose"),
+          @argparse.OptionArg("format", about="Output format"),
+          @argparse.OptionArg(
+            "max-output-bytes",
+            about="Maximum delivered output size in bytes",
+          ),
+          @argparse.OptionArg(
+            "result-name",
+            about="Name of the saved Result",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "attempt-id",
+            about="Result delivery attempt ID",
+            required=true,
+          ),
+        ],
+      ),
+      @argparse.Command(
+        "delivery-attempt",
+        about="Look up a Result delivery attempt",
+        options=[
+          @argparse.OptionArg(
+            "ref-file",
+            about="Run or Checkpoint reference JSON file",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "submission-ref-file",
+            about="Submission reference JSON file",
+          ),
+          @argparse.OptionArg("purpose", about="Result delivery purpose"),
+          @argparse.OptionArg(
+            "result-name",
+            about="Name of the saved Result",
+            required=true,
+          ),
+          @argparse.OptionArg(
+            "attempt-id",
+            about="Result delivery attempt ID",
+            required=true,
+          ),
+        ],
+      ),
     ],
   )
 }

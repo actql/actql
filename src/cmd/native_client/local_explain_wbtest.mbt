@@ -273,7 +273,7 @@ test "Native human explain displays original logical occurrences without choosin
   let wire = local_static_plan_view(
     explain_fixture(explain_fixture_chain, Json),
   )
-  let display = local_explain_reply(wire, false)
+  let display = local_explain_reply(wire, false, verbose=true)
   assert_true(display.has_prefix("ActQL EXPLAIN · static\n"))
   assert_true(
     display.contains("Run: not started by EXPLAIN\nProvider I/O: 0\n"),
@@ -300,7 +300,7 @@ test "Native human explain preserves every original port locator without adjacen
   let wire = local_static_plan_view(
     explain_fixture(explain_fixture_chain, Json),
   )
-  let display = local_explain_reply(wire, false)
+  let display = local_explain_reply(wire, false, verbose=true)
   let value = @json.parse(wire) catch { _ => fail("invalid original Plan") }
   let map = local_explain_field(value, "logical_map")
   for step in local_explain_items(local_explain_field(map, "steps")) {
@@ -326,7 +326,7 @@ test "Native human explain preserves every original port locator without adjacen
 ///|
 test "Native human Effect explain preserves declared targets and unknown decisions" {
   let wire = local_static_plan_view(explain_update_fixture())
-  let display = local_explain_reply(wire, false)
+  let display = local_explain_reply(wire, false, verbose=true)
   assert_true(
     display.contains(
       "computation CID above covers only its computation component",
@@ -371,7 +371,7 @@ test "Native human Effect explain does not turn required approval into a human-o
       local_effect_prefix_fixture_preparation(),
     ),
   )
-  let display = local_explain_reply(wire, false)
+  let display = local_explain_reply(wire, false, verbose=true)
   assert_true(
     display.contains("\"kind\":\"contract_minimum\",\"value\":\"required\""),
   )
@@ -392,7 +392,7 @@ test "Native explain JSON preserves the exact original response in both alternat
     ] {
     let wire = local_static_plan_view(prepared)
     assert_eq(local_explain_reply(wire, true), wire)
-    ignore(local_explain_reply(wire, false))
+    ignore(local_explain_reply(wire, false, verbose=true))
     assert_eq(local_static_plan_view(prepared), wire)
   }
 }
@@ -412,7 +412,7 @@ test "Native human explain quotes authored terminal controls without executing t
     new="\"names\":[\"name\\n\\u001b[31m\"]",
   )
   assert_true(changed != wire)
-  let display = local_explain_reply(changed, false)
+  let display = local_explain_reply(changed, false, verbose=true)
   assert_true(display.contains("Names: [\"name\\n\\u001b[31m\"]\n"))
   assert_false(display.contains("\u001b"))
 }
@@ -450,12 +450,15 @@ test "Native human explain admits the exact UTF8 display bound and refuses one b
   let wire = local_static_plan_view(
     explain_fixture(explain_fixture_chain, Json),
   )
-  let display = local_explain_reply(wire, false)
+  let display = local_explain_reply(wire, false, verbose=true)
   let bytes = @utf8.encode(display).length()
-  assert_eq(local_explain_reply(wire, false, max_bytes=bytes), display)
+  assert_eq(
+    local_explain_reply(wire, false, max_bytes=bytes, verbose=true),
+    display,
+  )
   for bound in [bytes - 1, 0, -1] {
     let issue = try {
-      ignore(local_explain_reply(wire, false, max_bytes=bound))
+      ignore(local_explain_reply(wire, false, max_bytes=bound, verbose=true))
       "unexpected success"
     } catch {
       ClientStop(message) => message
@@ -463,6 +466,128 @@ test "Native human explain admits the exact UTF8 display bound and refuses one b
     assert_eq(issue, "LocalExplainDisplayLimit")
   }
   assert_eq(local_explain_reply(wire, true), wire)
+}
+
+///|
+test "Human explain defaults to numbered operations and resolves actual input locators" {
+  let wire = local_static_plan_view(
+    explain_fixture(explain_fixture_chain, Json),
+  )
+  let display = local_explain_reply(wire, false)
+  assert_true(display.contains("Plan: 3 logical steps"), msg=display)
+  assert_true(display.contains("1. values · \"original\""), msg=display)
+  assert_true(display.contains("2. filter · \"filtered\""), msg=display)
+  assert_true(display.contains("3. select · \"selected\""), msg=display)
+  assert_true(
+    display.contains("Input 1: relation from step 1 output 1"),
+    msg=display,
+  )
+  assert_true(
+    display.contains("Input 1: relation from step 2 output 1"),
+    msg=display,
+  )
+  assert_false(display.contains("sha256:"))
+  assert_true(display.contains("unknown"))
+  assert_true(display.contains("not execution order"))
+  assert_eq(local_explain_reply(wire, true, verbose=true), wire)
+}
+
+///|
+test "Human explain summary keeps declared Effects separate from current decisions" {
+  let wire = local_static_plan_view(explain_update_fixture())
+  let display = local_explain_reply(wire, false)
+  assert_true(display.contains("Declared Effects: 1"))
+  assert_true(display.contains("Declared target: \"connector://crm/account\""))
+  assert_true(display.contains("Minimum approval: \"none\" (contract minimum)"))
+  assert_true(display.contains("Permission: \"unknown\" (\"not_observed\")"))
+  assert_true(display.contains("Preview: \"unavailable\" (\"not_sealed\")"))
+  assert_false(display.contains("sha256:"))
+  assert_false(display.contains("Permission: allowed"))
+}
+
+///|
+test "Human explain summary resolves explicit locators independently of display order" {
+  let wire = local_static_plan_view(
+    explain_fixture(explain_fixture_chain, Json),
+  )
+  let value = @json.parse(wire) catch { _ => fail("invalid plan") }
+  let map = local_explain_field(value, "logical_map")
+  let steps = local_explain_items(local_explain_field(map, "steps"))
+  guard map is Object(fields) else { fail("missing map") }
+  fields["steps"] = Json::array([steps[2], steps[0], steps[1]])
+  let output = { text: StringBuilder(), remaining: 65536, }
+  local_explain_computation(output, value)
+  let text = output.text.to_string()
+  assert_true(text.contains("1. select"))
+  assert_true(text.contains("Input 1: relation from step 3 output 1"))
+  assert_true(text.contains("3. filter"))
+  assert_true(text.contains("Input 1: relation from step 2 output 1"))
+}
+
+///|
+test "Human explain summary remains bounded and quotes terminal controls" {
+  let wire = local_static_plan_view(
+    explain_fixture(explain_fixture_chain, Json),
+  )
+  let changed = wire.replace(
+    old="\"names\":[\"original\"]",
+    new="\"names\":[\"name\\n\\u001b[31m\"]",
+  )
+  let text = local_explain_reply(changed, false)
+  assert_true(text.contains("name\\n\\u001b[31m"))
+  assert_false(text.contains("\u001b"))
+  let bytes = @utf8.encode(text).length()
+  assert_eq(local_explain_reply(changed, false, max_bytes=bytes), text)
+  let issue = try {
+    ignore(local_explain_reply(changed, false, max_bytes=bytes - 1))
+    "accepted"
+  } catch {
+    ClientStop(message) => message
+  }
+  assert_eq(issue, "LocalExplainDisplayLimit")
+}
+
+///|
+test "Human explain summary distinguishes output ports and preserves forwarded outputs" {
+  // Presentation-only shape vector, never compiler or execution evidence.
+  let plan = @json.parse(
+    local_static_plan_view(explain_fixture(explain_fixture_chain, Json)),
+  ) catch {
+    _ => fail("invalid fixture")
+  }
+  let steps = local_explain_items(
+    local_explain_field(local_explain_field(plan, "logical_map"), "steps"),
+  )
+  let ports = local_explain_items(local_explain_field(steps[0], "ports"))
+  let output = @json.parse(local_explain_literal(ports[0])) catch {
+    _ => fail("invalid port")
+  }
+  guard output is Object(fields) else { fail("missing port") }
+  let port_id = Json::string("sha256:" + "b".repeat(64))
+  fields["port_id"] = port_id
+  fields["port_ordinal"] = Json::number(1)
+  fields["source"] = Json::object(
+    Map([
+      ("kind", Json::string("logical_output")),
+      ("step_id", local_explain_field(steps[0], "step_id")),
+      ("output_port_id", port_id),
+    ]),
+  )
+  ports.push(output)
+  let next_ports = local_explain_items(local_explain_field(steps[1], "ports"))
+  for port in next_ports {
+    guard port is Object(fields) else { fail("missing next port") }
+    fields["source"] = local_explain_field(output, "source")
+  }
+  let display = { text: StringBuilder(), remaining: 65536, }
+  local_explain_computation(display, plan)
+  let text = display.text.to_string()
+  assert_true(text.contains("Output 2: relation"), msg=text)
+  assert_true(text.contains("Input 1: relation from step 1 output 2"), msg=text)
+  assert_true(
+    text.contains("Output 1: relation from step 1 output 2"),
+    msg=text,
+  )
 }
 
 ///|
