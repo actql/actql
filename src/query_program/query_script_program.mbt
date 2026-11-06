@@ -295,6 +295,31 @@ fn lower_script_relation_term(
   } else {
     None
   }
+  // The parser's existing unshared-input classification, before binding this
+  // original, is also the only Script case that may project its capture.
+  // Earlier Script steps and shared/previously bound Sources keep their full
+  // original cross-stage result and each consumer's downstream operations.
+  let source_projection_capture : SourceProjectionCapture? = if context.captured_stage
+    is Some(_) &&
+    selected.source is Captured(_) &&
+    retained is Some(_) &&
+    sources.unshared.contains(selected.name) &&
+    !sources.bound.contains(selected.name) &&
+    steps.is_empty() &&
+    source_projection_capture_query(query, allow_vector=false) {
+    Some({
+      projection_name: pipe_physical_name(
+        fields + [selected.name],
+        "aql_capture_projection_",
+      ),
+      steps: [],
+      fields: [],
+      count: 0,
+    })
+  } else {
+    None
+  }
+  let capture_originals : Array[(Int, String, @builder.Node, @builder.Node)] = []
   let input = bind_script_input(
     construction,
     selected,
@@ -303,6 +328,7 @@ fn lower_script_relation_term(
     steps,
     reserved,
     predicate~,
+    capture_originals=source_projection_capture.map(_ => capture_originals),
   )
   let nearest_inputs = bind_script_nearest_inputs(
     construction, query, known, selected, input, context, sources, steps, reserved,
@@ -338,6 +364,7 @@ fn lower_script_relation_term(
     reserved_bindings=reserved,
     prefix_context=Some(context),
     positional_set_output~,
+    source_projection_capture~,
     checked_nearest_prefix=Some(nodes => {
       script_nearest_prefix_pipeline(
         construction, query, context, sources, nodes, limits,
@@ -350,6 +377,20 @@ fn lower_script_relation_term(
       )
     }),
   )
+  if source_projection_capture is Some(projection) && projection.count > 0 {
+    guard capture_originals.length() == 1 else { raise Abort(InvalidContext) }
+    let (index, stage_id, imported, predicate) = capture_originals[0]
+    let (capture, _) = capture_source_boundary(
+      construction,
+      stage_id,
+      selected.name,
+      imported,
+      fields,
+      predicate,
+      projection=Some(projection),
+    )
+    sources.stages[index] = capture
+  }
   steps.append(body)
   let name = if body.is_empty() && carry_ranges {
     // Scope belongs to this continuation, never to the shared Source binding.

@@ -2184,7 +2184,10 @@ priv struct SourceProjectionCapture {
 }
 
 ///|
-fn source_projection_capture_query(query : @query.Query) -> Bool {
+fn source_projection_capture_query(
+  query : @query.Query,
+  allow_vector? : Bool = true,
+) -> Bool {
   let mut index = 0
   if @query.operation_at(query, index) is Some(Where(_)) {
     index += 1
@@ -2231,16 +2234,20 @@ fn source_projection_capture_query(query : @query.Query) -> Bool {
     }
   }
   if direct_projection {
-    // Only the selected first projection may move. A later SELECT must not
-    // overwrite the retained prefix and carry intervening operations with it.
+    // The internal Result also establishes canonical order. Moving SELECT
+    // across LIMIT/OFFSET or another order-consuming operation can therefore
+    // change which rows it observes. Only these nonpositional suffixes enter
+    // the direct case; the adopted Vector route keeps its separate contract.
     for tail in (index + 1)..<@query.operation_count(query) {
-      if @query.operation_at(query, tail) is Some(Select(_, _)) {
-        return false
+      match @query.operation_at(query, tail) {
+        Some(AssertUnique(_)) | Some(RetainResult(_)) => ()
+        _ => return false
       }
     }
     return true
   }
-  if !has_vector_scalar ||
+  if !allow_vector ||
+    !has_vector_scalar ||
     !(@query.operation_at(query, index + 1) is Some(Order(_))) {
     return false
   }

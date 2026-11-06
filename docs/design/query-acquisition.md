@@ -75,11 +75,17 @@ Selecting a nonorderable value therefore retains its original refusal.
 
 Function calls retain their original placement except for the already adopted
 Vector scalar continuation. Aggregates, analytic projections, stars, DISTINCT,
-multiple SELECTs and a projection deferred for an original-input ORDER do not
+multiple SELECTs, ORDER, LIMIT/OFFSET and other positional continuations do not
 enter the new direct-projection case. A projection-only query retains its normal
 consumer Stage and public Result through an identity projection, rather than
 evaluating the original expression twice. No provider pushdown, grant, currentness
 proof, capture evidence or cleanup acknowledgement is issued by this placement.
+The Script entry uses its existing unshared-input classification and only a new
+raw capture in the root Result collector, before other Script steps. WITH bodies
+keep their original full capture. It retains that exact capture's emission
+originals while constructing the projection continuation; shared or previously
+bound inputs retain their complete original boundary. Terminal Effect assembly
+continues to consume the same downstream Result and does not gain apply authority.
 
 For an independent two-Source JOIN, the existing Script binder retains each
 Direct request in its own capture Stage before the local JOIN. This preserves
