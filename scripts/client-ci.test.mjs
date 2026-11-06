@@ -1509,3 +1509,29 @@ test('packed expired recovery supplies its original unresolved lookup before SDK
   assert.equal(calls.filter(value => value === 'submit-named-intent').length, 1,
     'ordinary requestId-only first binding keeps its separate legitimate Host operation');
 });
+
+test('computation cleanup keeps shared reservations and cumulative use', async () => {
+  const source = await readFile(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  const declaration = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'assertCompletedComputationCleanup');
+  assert.ok(declaration);
+  const check = new Function('assert', source.slice(declaration.start, declaration.end) +
+    '; return assertCompletedComputationCleanup;')(assert);
+  const snapshot = (heldBytes, transferredBytes, planningWork) => ({resourceUsage: {
+    reservedExecutionBytes: '100', reservedRetentionBytes: '50', reservedTransferBytes: '10',
+    heldBytes, transferredBytes, planningWork,
+  }});
+  const completed = snapshot('40', '3', '7'), pending = snapshot('20', '4', '8');
+  const released = snapshot('0', '6', '9');
+  check(completed, pending, released);
+  for (const key of ['transferredBytes', 'planningWork']) {
+    const regressedPending = structuredClone(pending);
+    regressedPending.resourceUsage[key] = '0';
+    assert.throws(() => check(completed, regressedPending, released));
+    const regressedRelease = structuredClone(released);
+    regressedRelease.resourceUsage[key] = '0';
+    assert.throws(() => check(completed, pending, regressedRelease));
+  }
+  assert.throws(() => check(completed, pending, snapshot('1', '6', '9')));
+  assert.throws(() => check(completed, pending, undefined));
+});
