@@ -27,6 +27,35 @@ export function requireNativeCliCiInputs(environment, source, platform = process
     'Use the same-run normal Client package producer; do not repack inside this consumer');
 }
 
+export function requireNativeHostAuthorizationReceipt(value) {
+  assert.equal(value?.version, 'actql-native-release-host-authorization/0.1');
+  assert(Array.isArray(value.receipts));
+  assert.deepEqual(value.receipts.map(receipt => receipt?.omitted), ['run-read', 'result-main-read']);
+  for (const receipt of value.receipts) {
+    assert.equal(receipt.computes, 1);
+    for (const field of ['clientCloseReturned', 'serverCloseReturned', 'hostCloseReturned'])
+      assert.equal(receipt[field], true);
+    assert(receipt.ref && typeof receipt.ref === 'object' && !Array.isArray(receipt.ref) &&
+      Object.keys(receipt.ref).length > 0);
+    if (receipt.omitted === 'run-read') {
+      assert.deepEqual(receipt.denials, ['wait', 'status', 'attach', 'lookup-submission']
+        .map(operation => ({operation, code: 'ClientConnectionDenied'})));
+      assert.deepEqual(receipt.rows, [{id: 1}, {id: 2}]);
+      assert(Number.isSafeInteger(receipt.resultReadAttempts) &&
+        receipt.resultReadAttempts >= 1 && receipt.resultReadAttempts <= 300);
+      assert.deepEqual(receipt.pendingResultReads, Array.from(
+        {length: receipt.resultReadAttempts - 1}, (_, index) =>
+          ({attempt: index + 1, code: 'ResultAccessDenied', rowsYielded: 0})));
+    } else {
+      assert.deepEqual(receipt.denials, [
+        {operation: 'read', code: 'ResultAccessDenied', rowsYielded: 0},
+        {operation: 'result-describe', code: 'ResultAccessDenied'},
+      ]);
+    }
+  }
+  return value;
+}
+
 export async function acceptInstalledNativeCli(directory) {
   const source = checkoutState(repository);
   requireNativeCliCiInputs(process.env, source);
@@ -56,11 +85,11 @@ export async function acceptInstalledNativeCli(directory) {
       records.push(record); await save({source: source.revision, status: 'running', consumer, records});
       return record;
     } catch (failure) {
-      if (failure.commandRecord) records.push(failure.commandRecord);
+      if (failure?.commandRecord) records.push(failure.commandRecord);
       throw failure;
     }
   };
-  let receipt, failure;
+  let receipt, failure, rejected = false;
   try {
     Object.assign(env, {npm_config_registry: registry.url, NO_PROXY: '127.0.0.1,localhost'});
     await writeFile(env.npm_config_userconfig, `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
@@ -133,23 +162,27 @@ export async function acceptInstalledNativeCli(directory) {
     assert.equal(hash(await readFile(binary)), artifact.binarySha256);
     assert.deepEqual(checkoutState(repository), source);
     await verifyNativeCliRelease(directory);
+    const authorization = requireNativeHostAuthorizationReceipt(
+      JSON.parse(await readFile(join(host, 'native-host-authorization.json'), 'utf8')));
     receipt = {source: source.revision, status: 'passed', platform, consumer,
       publicPublication: false, cliVersion: manifest.cohort.packageVersion,
       binarySha256: artifact.binarySha256, registryRequests: registry.requested, records,
       hostAcceptance: {
         nodeFreeBinary: JSON.parse(await readFile(join(host, 'native-host-acceptance.json'), 'utf8')),
         npmLauncher: JSON.parse(await readFile(join(launcherHost, 'native-host-acceptance.json'), 'utf8')),
-        authorization: JSON.parse(await readFile(join(host, 'native-host-authorization.json'), 'utf8')),
+        authorization,
       },
       scope: ['fresh npm installation', 'npm launcher Remote real Host', 'finite Account refusals',
         'Node-free installed executable', 'closed state descriptors', 'unavailable Local init leaves no files'],
       unverified: ['Linux Local execution', 'mock workflow execution', 'other platforms']};
-  } catch (error) {failure = error;}
+  } catch (error) {failure = error; rejected = true;}
   try {await registry.close();}
-  catch (error) {failure = failure === undefined ? error
-    : new AggregateError([failure, error], 'Installed acceptance and registry cleanup failed');}
-  if (failure !== undefined) {
-    await save({source: source.revision, status: 'failed', consumer, error: failure.message, records});
+  catch (error) {
+    failure = rejected ? new AggregateError([failure, error], 'Installed acceptance and registry cleanup failed') : error;
+    rejected = true;
+  }
+  if (rejected) {
+    await save({source: source.revision, status: 'failed', consumer, error: failure?.message, records});
     throw failure;
   }
   // A receipt is successful only after every owned resource has closed.

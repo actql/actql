@@ -12,6 +12,7 @@ fn stopped_holder_cleanup_resources(
   owner : StoppedReleaseRecovery,
   transfer_path : String,
   root_path : String?,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> (@transfer_journal.Journal, @filesystem.Root?)? {
   match owner.input_cleanup_paths {
     Some((original_transfer, original_root)) =>
@@ -23,7 +24,7 @@ fn stopped_holder_cleanup_resources(
   let resources = owner.input_cleanup_resources
   if resources.failed_transfer_journal is Some(original) {
     let closed = original.retry_cleanup() is Ok(_)
-    report("release-recovery-pending", [
+    report_progress("release-recovery-pending", [
       ("step", "transfer-journal-constructor"),
       (
         "code",
@@ -38,7 +39,7 @@ fn stopped_holder_cleanup_resources(
   }
   if resources.failed_root is Some(original) {
     let closed = original.retry_cleanup() is Ok(_)
-    report("release-recovery-pending", [
+    report_progress("release-recovery-pending", [
       ("step", "retained-root-constructor"),
       (
         "code",
@@ -147,6 +148,7 @@ fn retry_stopped_holder_cleanup_handles(owner : StoppedReleaseRecovery) -> Bool 
 fn retire_failed_stopped_holder_input_constructor(
   owner : StoppedReleaseRecovery,
   retained : Ref[StoppedReleaseRecovery?],
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Unit {
   guard retained.val is Some(same) && physical_equal(same, owner) else {
     return
@@ -160,6 +162,7 @@ fn retire_failed_stopped_holder_input_constructor(
     owner,
     owner.slot,
     "stopped input constructor failed",
+    report_progress~,
   )
   // This reference is physical caller custody only. The enclosing recovery
   // still returns false and commits no release or execution transition.
@@ -174,6 +177,7 @@ fn settle_stopped_holder_custody(
   matches : @argparse.Matches,
   owner : StoppedReleaseRecovery,
   request : @remote.DispatchRequest,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Bool raise CommandStop {
   if owner.physical_cleanup_done {
     return true
@@ -195,6 +199,7 @@ fn settle_stopped_holder_custody(
         owner,
         required(matches, "transfer-journal"),
         root_path,
+        report_progress~,
       )
       is Some((transfers, root)) else {
       return false
@@ -328,7 +333,7 @@ fn settle_stopped_holder_custody(
         ) {
         Ok(_) => true
         Err(_) => {
-          report("release-recovery-pending", [
+          report_progress("release-recovery-pending", [
             ("request_cid", @remote.dispatch_request_identity(request)),
             ("step", "completed-input-cleanup"),
             ("code", "cleanup-unconfirmed"),
@@ -361,7 +366,7 @@ fn settle_stopped_holder_custody(
             Refused(reason) => refusal_code(reason)
             _ => "input-custody-unconfirmed"
           }
-          report("release-recovery-pending", [
+          report_progress("release-recovery-pending", [
             ("request_cid", @remote.dispatch_request_identity(request)),
             ("step", "input-admission"),
             ("code", code),
@@ -406,7 +411,7 @@ fn settle_stopped_holder_custody(
     owner.physical_cleanup = Some(cleanup)
   }
   if !retry_stopped_holder_cleanup_handles(owner) {
-    report("release-recovery-pending", [
+    report_progress("release-recovery-pending", [
       ("request_cid", @remote.dispatch_request_identity(request)),
       ("step", "physical-cleanup"),
       ("code", "cleanup-unconfirmed"),

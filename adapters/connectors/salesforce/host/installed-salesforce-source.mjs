@@ -13,7 +13,8 @@ import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {installedJsonSourceReaderLimitNames} from '../../../host-node/installed-credential-source-reader.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
-import {salesforceInitializationConstructionCapacity} from './salesforce-initialization-construction.mjs';
+import {salesforceObservationConstructionCapacity, salesforceDeclarationConstructionCapacity}
+  from './salesforce-initialization-construction.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite, releaseSalesforceSite,
   retainSalesforceSiteCleanup, DEFAULT_SALESFORCE_CATALOG_LIMITS} from
@@ -179,27 +180,36 @@ export async function loadInstalledSalesforceSource(profile, {moon,
   const {body, generationCid} = await readPublicationFile(checkedProfile.publicationPath, readers.readText);
   const generation = readers.parseJsonText(body);
   if (JSON.stringify(generation) !== body) fail('InvalidSalesforcePublication');
-  const capacity = () => salesforceInitializationConstructionCapacity(moon,
-    {generation, siteBinding: site, declarationLimits});
-  const loaded = construction.prepareNativeInput(Object.freeze({capacity,
-    project: () => restoreSalesforceGeneration({site, generation,
-      connectorId: checkedProfile.connectorId, resources: checkedProfile.resources})}));
-  let declaration, recover;
-  construction.prepareNativeDeclaration(Object.freeze({capacity, project() {
-    // Preserve the two existing, distinct runtime restores; neither opaque
-    // declaration is passed across its runtime's nominal boundary.
-    const siteHandle = checked(moon.clientProgramSalesforceSite(
-      site.namespaceId, site.principal, site.environment, site.connectionRevision,
-      site.orgId, site.siteKey, site.siteGeneration, site.instanceOrigin));
-    recover = (evidence, expectedRun) => checked(
-      moon.clientProgramSalesforceRecoverObservation(siteHandle,
-        ...recoveryArguments(evidence), expectedRun));
-    declaration = checked(moon.clientProgramSalesforceRestoreDeclaration(
-      siteHandle, recover(loaded.declared.evidence, undefined),
-      checkedProfile.connectorId, loaded.declared.catalog_cid,
-      declarationLimits.maxBytes, declarationLimits.maxNodes, declarationLimits.maxDepth));
-    return Object.freeze({declaration: checked(moon.clientProgramSalesforceRowDeclaration(declaration))});
-  }}));
+  const loaded = restoreSalesforceGeneration({site, generation,
+    connectorId: checkedProfile.connectorId, resources: checkedProfile.resources, construction});
+  let declaration, recover, siteHandle;
+  const observed = construction.prepareNativeInput(Object.freeze({
+    capacity: () => salesforceObservationConstructionCapacity(moon,
+      {generation, siteBinding: site, declarationLimits}),
+    project() {
+      siteHandle = checked(moon.clientProgramSalesforceSite(
+        site.namespaceId, site.principal, site.environment, site.connectionRevision,
+        site.orgId, site.siteKey, site.siteGeneration, site.instanceOrigin));
+      recover = (evidence, expectedRun) => checked(
+        moon.clientProgramSalesforceRecoverObservation(siteHandle,
+          ...recoveryArguments(evidence), expectedRun));
+      const observation = recover(loaded.declared.evidence, undefined);
+      const dimensions = Object.freeze([...moon.clientProgramSalesforceObservationConstructionDimensions(observation)]);
+      return Object.freeze({observation, dimensions});
+    },
+  }));
+  construction.prepareNativeDeclaration(Object.freeze({
+    capacity: () => salesforceDeclarationConstructionCapacity(moon,
+      {generation, siteBinding: site, declarationLimits, dimensions: observed.dimensions}),
+    project() {
+      // This is the SAME Common observation; provider originals never cross
+      // their distinct runtime's nominal declaration boundary.
+      declaration = checked(moon.clientProgramSalesforceRestoreDeclaration(
+        siteHandle, observed.observation, checkedProfile.connectorId, loaded.declared.catalog_cid,
+        declarationLimits.maxBytes, declarationLimits.maxNodes, declarationLimits.maxDepth));
+      return Object.freeze({declaration: checked(moon.clientProgramSalesforceRowDeclaration(declaration))});
+    },
+  }));
   const discovery = installSalesforceResourceService({salesforceMoon, sites: [site]});
   discovery.installPublished(site.connection, loaded.declared);
   return installedSalesforceAdapter({moon, queryMoon, site, authorization,

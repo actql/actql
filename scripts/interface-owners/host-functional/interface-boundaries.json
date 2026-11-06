@@ -127560,10 +127560,10 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "59510b2ea3d15500054fe3cb2d12523b7b730fab9a1a0c135b076aff8c241d9c",
+      "sha256": "62348850587cbe5e1f7eac9512889889d29c390571d12ab38635d9065611c105",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",

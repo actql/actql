@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {salesforceInitializationConstructionCapacity} from '../host/salesforce-initialization-construction.mjs';
+import {salesforceInitializationConstructionCapacity, salesforceObservationConstructionCapacity,
+  salesforceDeclarationConstructionCapacity} from '../host/salesforce-initialization-construction.mjs';
 
 const generation = bodies => ({connector_id: 'salesforce', evidence: {
   names: bodies.map((_, index) => `Object${index}`),
@@ -45,4 +46,28 @@ test('Salesforce initialization preserves descriptor and canonical Base64 refusa
   assert.throws(() => salesforceInitializationConstructionCapacity(common,
     {generation: original, siteBinding: {}}), {code: 'InvalidSalesforceConstructionOriginal'});
   assert.equal(calls, 0);
+});
+
+test('Salesforce phases forward the original body then a detached typed-observation dimension snapshot', () => {
+  const original = generation(['e30=']);
+  const dimensions = [2, 14], calls = [];
+  const capacity = Object.freeze({opaque: true});
+  const common = {
+    clientProgramSalesforceObservationConstructionCapacity(...args) {
+      calls.push('observation'); assert.deepEqual(args[0], ['e30=']); return capacity;
+    },
+    clientProgramSalesforceDeclarationConstructionCapacity(...args) {
+      calls.push('declaration'); assert.notEqual(args[0], dimensions);
+      assert.deepEqual(args[0], [2, 14]); return capacity;
+    },
+  };
+  assert.equal(salesforceObservationConstructionCapacity(common,
+    {generation: original, siteBinding: {}}), capacity);
+  assert.equal(salesforceDeclarationConstructionCapacity(common,
+    {generation: original, siteBinding: {}, dimensions}), capacity);
+  assert.deepEqual(calls, ['observation', 'declaration']);
+  assert.deepEqual(dimensions, [2, 14]);
+  Object.defineProperty(dimensions, '0', {get() {assert.fail('dimension getter executed');}});
+  assert.throws(() => salesforceDeclarationConstructionCapacity(common,
+    {generation: original, siteBinding: {}, dimensions}), {code: 'InvalidSalesforceConstructionOriginal'});
 });

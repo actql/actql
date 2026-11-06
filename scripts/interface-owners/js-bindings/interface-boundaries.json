@@ -6328,7 +6328,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f34866322a76f0192c54c0c75da987c4d78a6586f77819cb304ad69973123bf4",
+      "sha256": "dfaa700be221ae7119a849d2d3abb8be671dee2fe89759299ea7e6c7a7a5c47a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -9075,7 +9075,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5e4523d0a443f5a0eb1bc066b29f4778af942458e1a7065dc7d103802c3c41c7",
+      "sha256": "da3d62be59a2d7aabd9ff68d15a68a128de4b769e7293de49cab23c3736b7299",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -9278,25 +9278,7 @@
           "async": true
         },
         {
-          "name": "loadInstalledSalesforceSource/capacity/capacity",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSource/init:project/init:project",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSource/init:project/init:project/init:project",
-          "parameters": [
-            "evidence",
-            "expectedRun"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSource/loaded/loaded",
           "parameters": [],
           "async": false
         },
@@ -9305,6 +9287,29 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/loadInstalledSalesforceSource#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/observed/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/observed/init:project/init:project/init:project",
+          "parameters": [
+            "evidence",
+            "expectedRun"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/observed/observed",
+          "parameters": [],
           "async": false
         },
         {
@@ -10158,11 +10163,12 @@
         {
           "operations": [
             "loadInstalledSalesforceSource",
-            "loadInstalledSalesforceSource/capacity/capacity",
             "loadInstalledSalesforceSource/init:project/init:project",
-            "loadInstalledSalesforceSource/init:project/init:project/init:project",
-            "loadInstalledSalesforceSource/loaded/loaded",
-            "loadInstalledSalesforceSource/loadInstalledSalesforceSource"
+            "loadInstalledSalesforceSource/loadInstalledSalesforceSource",
+            "loadInstalledSalesforceSource/loadInstalledSalesforceSource#2",
+            "loadInstalledSalesforceSource/observed/init:project/init:project",
+            "loadInstalledSalesforceSource/observed/init:project/init:project/init:project",
+            "loadInstalledSalesforceSource/observed/observed"
           ],
           "exports": [
             "loadInstalledSalesforceSource"

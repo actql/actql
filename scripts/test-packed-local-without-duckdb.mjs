@@ -42,6 +42,9 @@ assert.equal(manifest.peerDependencies['@duckdb/node-api'], '1.5.5-r.4');
 assert.equal(manifest.peerDependenciesMeta['@duckdb/node-api'].optional, true);
 auditPackedPackages(root, names);
 await copyFile(join(repository, 'packages/sdk/fixtures/values.json'), join(root, 'values.json'));
+await copyFile(join(repository, 'adapters/host-node/fixtures/query-amount-environment.json'),
+  join(root, 'source-environment.json'));
+await copyFile(join(repository, 'spec/local-check-environment.json'), join(root, 'base-environment.json'));
 await copyFile(join(repository, 'scripts/fixtures/packed-local-without-duckdb.mjs'),
   join(root, 'acceptance.mjs'));
 console.log(run(process.execPath, ['acceptance.mjs', 'initial']).trimEnd());

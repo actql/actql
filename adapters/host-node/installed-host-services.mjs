@@ -932,10 +932,13 @@ function createInstalledSourceContext(original, material, installation, connecto
         contracts: declared.contracts, view_bodies: declared.source_views,
         evidence_schemas: schemas, evidence_capabilities: capabilities});
       const mappingWires = mappingOriginals.map(value => value.body);
-      const geometry = sourceEnvironmentConstructionGeometry(scope.baseEnvironmentWire, exported, mappingWires);
+      // Complete the SAME pure Environment through the existing owner before
+      // constructing the independent returned Mapping carriers. Its full peak
+      // stays charged on failure; only its actual closed output survives here.
+      const environment = prepareSourceEnvironment(exported, mappingWires);
       // Four String fields plus the record and array element for each retained Mapping.
-      geometry.nodes += 1n + 6n * BigInt(mappingOriginals.length);
-      reserveSource(original, material, geometry.nodes, geometry.text, geometry.wire);
+      const mappingNodes = 1n + 6n * BigInt(mappingOriginals.length);
+      reserveSource(original, material, mappingNodes);
       if (!scope.active || scope.prepared !== undefined || material.phase !== 'working') {
         fail('ForeignInstalledSourceInitialization');
       }
@@ -945,14 +948,12 @@ function createInstalledSourceContext(original, material, installation, connecto
         const mappings = Object.freeze(mappingOriginals.map(value => Object.freeze({
           resource: value.write.resource, mappingRef: value.mappingRef,
           mappingCid: value.mappingCid, body: value.body})));
-        const environment = rowSourceCheckEnvironment(scope.baseEnvironmentWire, exported,
-          mappingWires);
         // This opaque declaration belongs to the provider Site, not Common's
         // RowDeclaration type. Only its genuine exported DATA reaches Environment.
         prepared = Object.freeze({kind: 'providerEffect', declared: exported, environment, mappings});
         scope.prepared = prepared;
         material.inputs.push(site, provider, mappingOriginals, prepared);
-        material.nodes += geometry.nodes; material.text += geometry.text; material.wire += geometry.wire;
+        material.nodes += mappingNodes;
       } finally {material.busy = false;}
       reconcileSource(original, material);
       return prepared;
@@ -1023,15 +1024,13 @@ function createInstalledSourceContext(original, material, installation, connecto
         freezeSourceProjection(declared);
         material.nodes += parseNodes; material.text += parseText;
       } finally {material.busy = false;}
-      const geometry = scope.role === 'effect' ? {nodes: 0n, text: 0n, wire: 0n}
-        : sourceEnvironmentConstructionGeometry(scope.baseEnvironmentWire, declared);
-      reserveSource(original, material, geometry.nodes, geometry.text, geometry.wire);
+      let environment;
+      if (scope.role === 'effect') reserveSource(original, material);
+      else environment = prepareSourceEnvironment(declared);
       if (!scope.active || scope.prepared !== undefined || scope.source !== undefined || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
       let prepared;
       material.busy = true;
       try {
-        const environment = scope.role === 'effect' ? undefined
-          : rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared);
         // Borrow the exact already-owned export. Consumers must not serialize
         // or export the declaration again just to recover its original wire.
         prepared = Object.freeze({declaration, declared, wire: declaredWire, environment});
@@ -1039,7 +1038,6 @@ function createInstalledSourceContext(original, material, installation, connecto
         // Preserve the existing raw Mapping continuation's declaration basis.
         scope.declarationBasis = 16n * (BigInt(declaredWire.length) + BigInt(scope.baseEnvironmentWire.length));
         material.inputs.push(environment);
-        material.nodes += geometry.nodes; material.text += geometry.text; material.wire += geometry.wire;
       } finally {material.busy = false;}
       reconcileSource(original, material);
       return Object.freeze({...projected, ...prepared});

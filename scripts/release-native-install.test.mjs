@@ -103,6 +103,45 @@ test('Native public consumer: installed denial controls remove only the selected
   }
 });
 
+test('Native public consumer: authorization exercise preserves rejection presence and original cleanup aggregate', async () => {
+  const source = await readFile(new URL('./fixtures/release-native-host-authorization.mjs', import.meta.url), 'utf8');
+  const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
+  const original = syntax.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'exercise');
+  assert(original);
+  for (const primary of [undefined, null, false, 0, 'original primitive', new Error('original failure')]) {
+    for (const cleanupFailure of [false, true, 2]) {
+      const cleanup = cleanupFailure === 2 ? undefined : new Error('original client cleanup'), receipts = [], closed = [];
+      const host = {handler() {}, async close() {closed.push('host');}};
+      const server = {listen(_port, _host, ready) {ready();}, address() {return {port: 1234};},
+        closeAllConnections() {}, close(done) {closed.push('server'); done();}};
+      const client = {newSubmission() {return {original: true};},
+        async startSource() {throw primary;}, async close() {
+          closed.push('client'); if (cleanupFailure) throw cleanup;
+        }};
+      const exercise = Function('assert', 'receipts', 'root', 'tls', 'join', 'fixtureAuthorization',
+        'openInstalledRemoteHttpHost', 'createServer', 'connect', 'userInfo', 'readReadyResult',
+        `return (${source.slice(original.start, original.end)});`)(
+        assert, receipts, '/owned-fixture', {}, join, () => ({}), async () => host,
+        () => server, async () => client, () => ({username: 'fixture-operator'}),
+        () => assert.fail('rejected start cannot read a Result'));
+      const outcome = await exercise('run-read').then(
+        value => ({rejected: false, value}), reason => ({rejected: true, reason}));
+      assert.equal(outcome.rejected, true, 'undefined rejection must not resolve');
+      if (cleanupFailure) {
+        assert(outcome.reason instanceof AggregateError);
+        assert.equal(outcome.reason.errors.length, 2);
+        assert.equal(outcome.reason.errors[0], primary);
+        assert.equal(outcome.reason.errors[1], cleanup);
+      } else assert.equal(outcome.reason, primary);
+      assert.deepEqual(closed, ['client', 'server', 'host']);
+      assert.equal(receipts[0].computes, 0);
+      assert.equal(receipts[0].clientCloseReturned, !cleanupFailure);
+      assert.equal(receipts[0].serverCloseReturned, true);
+      assert.equal(receipts[0].hostCloseReturned, true);
+    }
+  }
+});
+
 test('Native public consumer: Result readiness polls only the original Result under one finite deadline', async () => {
   const source = await readFile(new URL('./fixtures/release-native-host-authorization.mjs', import.meta.url), 'utf8');
   const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});

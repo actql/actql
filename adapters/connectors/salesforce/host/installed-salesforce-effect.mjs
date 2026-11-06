@@ -30,7 +30,7 @@ import {retainInstalledRowEffectAdapter,
   '../../../host-node/installed-row-effect.mjs';
 import {assertUpdateTargetSelectionMembersCurrent} from
   '../../../host-node/update-target-original-shape.mjs';
-import {salesforceInitializationConstructionCapacity, salesforceExecutionMappingConstructionCapacity}
+import {salesforceExecutionMappingConstructionCapacity, salesforceDeclarationConstructionCapacity}
   from './salesforce-initialization-construction.mjs';
 import {salesforceRowEffectSite, salesforceWriteDriver} from
   './salesforce-write-driver.mjs';
@@ -235,12 +235,18 @@ async function restoreGeneration({site, salesforceMoon, moon, profile, construct
       record.version !== SALESFORCE_EFFECT_PUBLICATION_VERSION || !Array.isArray(record.mappings)) {
     fail('InvalidSalesforceEffectPublication');
   }
+  const {declared} = restoreSalesforceGeneration({site, generation: record.source,
+    connectorId: profile.connectorId, resources: resourcesOf(profile), construction});
+  const dimensions = Object.freeze([...salesforceMoon.salesforceObservationConstructionDimensions(
+    declared.observed.observation)]);
+  // This original provider wrapper is a distinct fixed constructor output.
+  // Retain it through the existing native-input owner, not a copied wrapper
+  // assembled outside that owner's correspondence. The complete declaration
+  // envelope conservatively covers its row/evidence projection as before.
   const provider = construction.prepareNativeInput(Object.freeze({
-    capacity: () => salesforceInitializationConstructionCapacity(moon,
-      {generation: record.source, siteBinding: site, declarationLimits: limits.declaration}),
+    capacity: () => salesforceDeclarationConstructionCapacity(moon,
+      {generation: record.source, siteBinding: site, dimensions, declarationLimits: limits.declaration}),
     project() {
-      const {declared} = restoreSalesforceGeneration({site, generation: record.source,
-        connectorId: profile.connectorId, resources: resourcesOf(profile)});
       const [schemas, capabilities] = checked(
         salesforceMoon.salesforceSourceEvidenceMembers(declared.declaration));
       return Object.freeze({declared, schemas, capabilities});
