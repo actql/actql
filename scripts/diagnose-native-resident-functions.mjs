@@ -31,6 +31,8 @@ export function functionDiagnosticSummary(result, report) {
     .filter(name => typeof name === 'string' && /^[A-Za-z_][A-Za-z_0-9:.$~]{0,179}$/u.test(name))
     .slice(0, 64) : [];
   return {version: 1, diagnosticOnly: true,
+    sampleTarget: selected.sampleTarget === 'holder-descendant'
+      ? 'holder-descendant' : 'unrecorded',
     caseExit: Number.isInteger(result.status) ? result.status : null,
     caseSignal: ['SIGTERM', 'SIGKILL', 'SIGABRT', 'SIGSEGV', 'SIGINT'].includes(result.signal)
       ? result.signal : null,

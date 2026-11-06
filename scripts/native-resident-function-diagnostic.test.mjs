@@ -88,7 +88,7 @@ test('outer diagnostic suppresses private original output and preserves its nonz
   const summary = functionDiagnosticSummary(result, {consumerExecutorEntered: true,
     sampleRequested: true, functions: ['actual_function', 'private object(value)', '/private/source'],
     conditions: ['permission-denied', 'private-error'], argv: 'private-arguments', values: 'private-values'});
-  assert.deepEqual(summary, {version: 1, diagnosticOnly: true, caseExit: 17, caseSignal: null,
+  assert.deepEqual(summary, {version: 1, diagnosticOnly: true, sampleTarget: 'unrecorded', caseExit: 17, caseSignal: null,
     timedOut: false, consumerExecutorEntered: true, sampleRequested: true,
     functions: ['actual_function'], conditions: ['permission-denied']});
   assert.equal(JSON.stringify(summary).includes('private-'), false);
@@ -106,6 +106,8 @@ def interrupted(sig,frame):
                            'disableRandomizationOff':'set disable-randomization off' in args,
                            'returnChildResult':'--return-child-result' in args,
                            'followExecSame':'set follow-exec-mode same' in args,
+                           'followHolder':'set follow-fork-mode child' in args,
+                           'detachOriginalControl':'set detach-on-fork on' in args,
                            'environment':payload['environment']}))
  print('#0 0x1234 in busy_function (private="value") at /private/source:19',flush=True)
  print('private body and arguments',flush=True)
@@ -128,9 +130,11 @@ while True:time.sleep(.02)
   assert.equal(spy.disableRandomizationOff, true);
   assert.equal(spy.returnChildResult, true);
   assert.equal(spy.followExecSame, true);
+  assert.equal(spy.followHolder, true, 'sample the original holder rather than its polling parent');
+  assert.equal(spy.detachOriginalControl, true, 'the original control must continue without debugger scheduling');
   assert.deepEqual(spy.environment, {PATH: join(f.directory, 'bin'), LANG: 'C'});
   const report = JSON.parse(await readFile(f.report, 'utf8'));
-  assert.deepEqual(report, {consumerExecutorEntered: true, sampleRequested: true,
+  assert.deepEqual(report, {sampleTarget: 'holder-descendant', consumerExecutorEntered: true, sampleRequested: true,
     functions: ['busy_function'], conditions: []});
   assert.equal(JSON.stringify(report).includes('private'), false);
   assert.equal((await stat(f.report)).mode & 0o777, 0o600);
@@ -181,7 +185,7 @@ process.stderr.write('native-stderr-only\\n');process.exitCode=19;});
   assert.equal(result.stdout.includes('private debugger'), false);
   assert.equal(result.stderr.includes('private debugger'), false);
   const report = JSON.parse(await readFile(f.report, 'utf8'));
-  assert.deepEqual(report, {consumerExecutorEntered: false, sampleRequested: false,
+  assert.deepEqual(report, {sampleTarget: 'holder-descendant', consumerExecutorEntered: false, sampleRequested: false,
     functions: [], conditions: ['stage-not-observed']});
 });
 
@@ -195,7 +199,7 @@ sys.exit(7)
   assert.equal(result.stdout, '');
   assert.equal(result.stderr, '');
   assert.deepEqual(JSON.parse(await readFile(f.report, 'utf8')), {
-    consumerExecutorEntered: false, sampleRequested: false, functions: [],
+    sampleTarget: 'holder-descendant', consumerExecutorEntered: false, sampleRequested: false, functions: [],
     conditions: ['permission-denied', 'stage-not-observed', 'trace-unavailable']});
 });
 
@@ -245,6 +249,7 @@ while True:time.sleep(.02)
   assert.equal(summary.timedOut, true);
   assert.equal(summary.caseExit, null, 'killed case has no invented exit receipt');
   assert.equal(summary.consumerExecutorEntered, true);
+  assert.equal(summary.sampleTarget, 'holder-descendant');
   assert.equal(summary.sampleRequested, true);
   assert.deepEqual(summary.functions, ['busy_then_hangs']);
   const wire = await readFile(output, 'utf8');
@@ -260,7 +265,7 @@ test('missing debugger reports availability without a target attempt or fallback
   assert.equal(result.stdout, '');
   assert.equal(result.stderr, '');
   assert.deepEqual(JSON.parse(await readFile(f.report, 'utf8')), {
-    consumerExecutorEntered: false, sampleRequested: false, functions: [],
+    sampleTarget: 'holder-descendant', consumerExecutorEntered: false, sampleRequested: false, functions: [],
     conditions: ['debugger-unavailable', 'stage-not-observed']});
 });
 
