@@ -58,6 +58,7 @@ await mkdir(fixtureDirectory, {recursive: true});
 const support = [
   'adapters/host-node/client-read-opening.test.mjs',
   'adapters/host-node/client-read-opening.fixture.mjs',
+  'adapters/host-node/funded-client-preparation.fixture.mjs',
   'adapters/host-node/client-read-opening-restart.fixture.mjs',
   'adapters/host-node/client-read-run-capacity.test.mjs',
   'adapters/host-node/client-read-run-capacity.fixture.mjs',
@@ -123,6 +124,9 @@ for (const path of support) {
       if (target === 'packages/client-wire/index.mjs') return `from ${quote}@actql/client-wire${quote}`;
       if (target === 'packages/sdk/index.mjs') return `from ${quote}@actql/sdk${quote}`;
       if (target === 'packages/sdk/host-port.mjs') return `from ${quote}@actql/sdk/host-port${quote}`;
+      if (target === 'packages/sdk/internal/private-source-preparation.mjs') {
+        return `from ${quote}@actql/sdk/_internal/source-preparation${quote}`;
+      }
       if (target === '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js') {
         return `from ${quote}@actql/local-node/runtime${quote}`;
       }

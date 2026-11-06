@@ -48,8 +48,37 @@ async function readOpeningImportRewriter(repository, path, installedHost) {
   const replacement = Function('relative', 'resolve', 'pathToFileURL', 'repository', 'path', 'support', 'installedHost',
     `return (${source.slice(callback.start, callback.end)});`)(
       relative, resolve, pathToFileURL, repository, path, support, installedHost);
-  return text => text.replace(pattern, replacement);
+  const rewrite = text => text.replace(pattern, replacement);
+  rewrite.support = support;
+  return rewrite;
 }
+
+test('packed read-opening stages its complete authored static helper closure', async () => {
+  const {parse} = await import('acorn');
+  const repository = fileURLToPath(new URL('../', import.meta.url));
+  const first = await readOpeningImportRewriter(repository,
+    'adapters/host-node/client-read-opening.fixture.mjs', '/installed-local-node');
+  for (const path of first.support.filter(path => path.endsWith('.mjs'))) {
+    const syntax = parse(await readFile(join(repository, path), 'utf8'),
+      {sourceType: 'module', ecmaVersion: 'latest'});
+    for (const declaration of syntax.body) {
+      const specifier = declaration.source?.value;
+      if (!specifier?.startsWith('.')) continue;
+      const target = relative(repository, resolve(repository, path, '..', specifier));
+      if (/(?:\.fixture|\.test|\.child)\.mjs$/u.test(target)) {
+        assert(first.support.includes(target), `Missing authored helper: ${path} -> ${target}`);
+      }
+    }
+  }
+  const path = 'adapters/host-node/funded-client-preparation.fixture.mjs';
+  const source = await readFile(join(repository, path), 'utf8');
+  const imported = source.split('\n').find(line => line.includes('sdk/internal/private-source-preparation.mjs'));
+  assert(imported);
+  const rewrite = await readOpeningImportRewriter(repository, path, '/installed-local-node');
+  assert.equal(rewrite(imported), "import {freezeInput} from '@actql/sdk/_internal/source-preparation';");
+  const manifest = JSON.parse(await readFile(join(repository, 'packages/sdk/package.json'), 'utf8'));
+  assert.equal(manifest.exports['./_internal/source-preparation'], './internal/private-source-preparation.mjs');
+});
 
 test('packed read-opening imports the public installed wire entry without checkout fallback', async t => {
   const repository = fileURLToPath(new URL('../', import.meta.url));
