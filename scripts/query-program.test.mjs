@@ -225,7 +225,10 @@ test('SQL signed hex zero normalizes without admitting canonical JSON negative z
   })(JSON.parse(emitted));
   assert.deepEqual(literals, [0]);
   assert.equal(Object.is(literals[0], -0), false);
+  const jsonValues = '{"values":{"schema":{"value":{"type":"number","nullable":false}},"rows":[{"value":0}]},"as":"seed"}';
+  assert.notEqual(compileValuesQueryJson('SELECT value FROM seed', 'seed', 'seed',
+    jsonValues, '["value"]', 'fixture.json_positive_zero'), '');
   assert.equal(compileValuesQueryJson('SELECT value FROM seed', 'seed', 'seed',
-    '{"values":{"schema":{"value":{"type":"number","nullable":false}},"rows":[{"value":-0}]},"as":"seed"}',
+    jsonValues.replace('"value":0', '"value":-0'),
     '["value"]', 'fixture.json_negative_zero'), '');
 });
