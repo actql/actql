@@ -94,29 +94,16 @@ pub fn preserving_json_parser_construction_inventory(
   depth : Int,
 ) -> @source.JsonLiteralConstructionExtent? {
   guard @source.json_literal_construction_extent(bytes, nodes, depth)
-    is Some(literal) &&
-    @shape.key_admission_construction_extent(nodes, nodes) is Some(all_keys) &&
-    @shape.key_admission_construction_extent(Int::min(nodes, depth), nodes)
-    is Some(active_keys) &&
-    literal.record_headers >= all_keys.record_headers &&
-    literal.reference_slots >= all_keys.reference_slots &&
-    literal.scalar_words >= all_keys.scalar_words else {
+    is Some(literal) else {
     return None
   }
-  // An object frame relinquishes its map on completion, before another
-  // sibling begins. Depth is checked before creating the next map; retain
-  // the pending-key refusal and every original Source/text/growth control.
+  // Source already owns the active key-map peak, including pending-key
+  // refusal and growth. Add only this byte parser's decoded input String and
+  // its wrapper; replacing that same map component again would undercount it.
   Some({
-    record_headers: literal.record_headers -
-    all_keys.record_headers +
-    active_keys.record_headers +
-    1L,
-    reference_slots: literal.reference_slots -
-    all_keys.reference_slots +
-    active_keys.reference_slots,
-    scalar_words: literal.scalar_words -
-    all_keys.scalar_words +
-    active_keys.scalar_words,
+    record_headers: literal.record_headers + 1L,
+    reference_slots: literal.reference_slots,
+    scalar_words: literal.scalar_words,
     owned_utf16_units: literal.owned_utf16_units + bytes.to_int64(),
   })
 }
