@@ -70241,7 +70241,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "015cd46939e272c7a370bab3cbc13a9f61ac84c9c88cdcc4ab9c2dd13311e019",
+      "sha256": "10d2869a27c45df0d58951dcfd3dfb3679b68bf6445beb48e65d64a5bb5f1570",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -70287,14 +70287,6 @@
             "originalPreparation"
           ],
           "async": true
-        },
-        {
-          "name": "runInstalledComposedInfers/calls/calls",
-          "parameters": [
-            "sum",
-            "child"
-          ],
-          "async": false
         },
         {
           "name": "runInstalledComposedInfers/candidates/candidates",
@@ -70486,13 +70478,6 @@
           "async": false
         },
         {
-          "name": "runInstalledComposedInfers/runInstalledComposedInfers#13",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#2",
           "parameters": [
             "record"
@@ -70584,7 +70569,6 @@
         {
           "operations": [
             "runInstalledComposedInfers",
-            "runInstalledComposedInfers/calls/calls",
             "runInstalledComposedInfers/candidates/candidates",
             "runInstalledComposedInfers/children/children",
             "runInstalledComposedInfers/cleanup",
@@ -70606,7 +70590,6 @@
             "runInstalledComposedInfers/runInstalledComposedInfers#10",
             "runInstalledComposedInfers/runInstalledComposedInfers#11",
             "runInstalledComposedInfers/runInstalledComposedInfers#12",
-            "runInstalledComposedInfers/runInstalledComposedInfers#13",
             "runInstalledComposedInfers/runInstalledComposedInfers#2",
             "runInstalledComposedInfers/runInstalledComposedInfers#3",
             "runInstalledComposedInfers/runInstalledComposedInfers#4",
@@ -71128,7 +71111,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "} else if (issuance === undefined || !issuanceComplete) {"
+                "anchor": "if (originalPreparation === undefined || issuance === undefined || !issuanceComplete) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -71437,8 +71420,7 @@
         "./infer-capture-custody.mjs",
         "./infer-evaluation-evidence.mjs",
         "./infer-operation.mjs",
-        "./local-values-plan.mjs",
-        "node:timers/promises"
+        "./local-values-plan.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -71446,7 +71428,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2d410747d952ea65002ea33ca83975e8459c7215ca5dbc85470b5343965e8bc0",
+      "sha256": "65d9022cbf04d7104f667b92dad41cb34a917636c786a8d2f002d33fdc25d950",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

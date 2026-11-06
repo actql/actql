@@ -90,3 +90,49 @@ test "construction shape keeps original ordered width and decoded Unicode text a
   assert_eq(shape.strings, 3)
   assert_eq(shape.text_units, 2 + 1 + 2 + 2 * 2 + 4)
 }
+
+///|
+test "construction DATA rejects negative String census and preserves composition byte overflow" {
+  let exact : EncodingConstructionGeometry = {
+    bytes: 1,
+    nodes: 1,
+    depth: 0,
+    arrays: 0,
+    objects: 0,
+    fields: 0,
+    largest_object: 0,
+    strings: 0,
+    text_units: 0,
+  }
+  for
+    invalid in [
+      { ..exact, strings: -1, },
+      { ..exact, strings: 2, },
+      { ..exact, text_units: -1, },
+      { ..exact, text_units: 2, },
+    ] {
+    let writer = construction_measuring_writer(100, 100, 1)
+    try emit_construction_measurement(writer, invalid) catch {
+      InvalidStructure => ()
+      _ => assert_true(false)
+    } noraise {
+      _ => assert_true(false)
+    }
+    try finish_construction_measurement(writer) catch {
+      ClosedWriter => ()
+      _ => assert_true(false)
+    } noraise {
+      _ => assert_true(false)
+    }
+  }
+  let large = { ..exact, bytes: 2147483645, text_units: 2147483645, }
+  let writer = construction_measuring_writer(2147483647, 4, 1)
+  begin_array(writer)
+  emit_construction_measurement(writer, large)
+  try emit_construction_measurement(writer, large) catch {
+    OutputLimit => ()
+    _ => assert_true(false)
+  } noraise {
+    _ => assert_true(false)
+  }
+}

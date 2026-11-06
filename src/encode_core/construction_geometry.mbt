@@ -101,7 +101,11 @@ pub fn emit_construction_measurement(
     value.fields < 0 ||
     value.fields >= value.nodes ||
     value.largest_object < 0 ||
-    value.largest_object > value.fields {
+    value.largest_object > value.fields ||
+    value.strings < 0 ||
+    value.strings > value.nodes ||
+    value.text_units < 0 ||
+    value.text_units > value.bytes {
     fail(writer, InvalidStructure)
   }
   reserve_document_extent(

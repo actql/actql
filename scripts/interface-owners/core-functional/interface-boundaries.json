@@ -17983,7 +17983,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "015cd46939e272c7a370bab3cbc13a9f61ac84c9c88cdcc4ab9c2dd13311e019",
+      "sha256": "10d2869a27c45df0d58951dcfd3dfb3679b68bf6445beb48e65d64a5bb5f1570",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -18028,14 +18028,6 @@
             "originalPreparation"
           ],
           "async": true
-        },
-        {
-          "name": "runInstalledComposedInfers/calls/calls",
-          "parameters": [
-            "sum",
-            "child"
-          ],
-          "async": false
         },
         {
           "name": "runInstalledComposedInfers/candidates/candidates",
@@ -18227,13 +18219,6 @@
           "async": false
         },
         {
-          "name": "runInstalledComposedInfers/runInstalledComposedInfers#13",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#2",
           "parameters": [
             "record"
@@ -18327,7 +18312,6 @@
         {
           "operations": [
             "runInstalledComposedInfers",
-            "runInstalledComposedInfers/calls/calls",
             "runInstalledComposedInfers/candidates/candidates",
             "runInstalledComposedInfers/children/children",
             "runInstalledComposedInfers/cleanup",
@@ -18349,7 +18333,6 @@
             "runInstalledComposedInfers/runInstalledComposedInfers#10",
             "runInstalledComposedInfers/runInstalledComposedInfers#11",
             "runInstalledComposedInfers/runInstalledComposedInfers#12",
-            "runInstalledComposedInfers/runInstalledComposedInfers#13",
             "runInstalledComposedInfers/runInstalledComposedInfers#2",
             "runInstalledComposedInfers/runInstalledComposedInfers#3",
             "runInstalledComposedInfers/runInstalledComposedInfers#4",
@@ -18450,7 +18433,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "import {setImmediate as yieldEventLoop} from 'node:timers/promises';"
+                "anchor": "if (originalPreparation === undefined || issuance === undefined || !issuanceComplete) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -18871,7 +18854,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "} else if (issuance === undefined || !issuanceComplete) {"
+                "anchor": "if (originalPreparation === undefined || issuance === undefined || !issuanceComplete) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -19111,7 +19094,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "import {setImmediate as yieldEventLoop} from 'node:timers/promises';"
+                "anchor": "if (originalPreparation === undefined || issuance === undefined || !issuanceComplete) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -19188,15 +19171,14 @@
         "./infer-capture-custody.mjs",
         "./infer-evaluation-evidence.mjs",
         "./infer-operation.mjs",
-        "./local-values-plan.mjs",
-        "node:timers/promises"
+        "./local-values-plan.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "2d410747d952ea65002ea33ca83975e8459c7215ca5dbc85470b5343965e8bc0",
+      "sha256": "65d9022cbf04d7104f667b92dad41cb34a917636c786a8d2f002d33fdc25d950",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -82418,7 +82400,7 @@
     {
       "module": "src/encode_core/construction_geometry.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "212ac22778a9b7376072ad77a88d7601abf2f15e20ab96e611370777a584f95c",
+      "sha256": "9e9953fb72293066286ccb8f38eb5a4adae2b062e8908e115a9f0361e0d70d6d",
       "role": "common-semantics",
       "owner": "Existing bounded JSON writer and compiler construction owners",
       "exports": [],

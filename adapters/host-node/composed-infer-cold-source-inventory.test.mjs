@@ -40,6 +40,11 @@ function fixture({count = 2, coordinates, closures, preparedFailure, restoreFail
   const plan = {runDefinition: {wire: JSON.stringify({run_id: 'original-run'}), identity: 'original-definition'}};
   const originalPreparation = {components: originals, sourceCoordinates: occurrences,
     retain() {events.push('retain-parent');},
+    prepareSource(occurrence, construct) {
+      const index = occurrences.findIndex(value => value[2] === occurrence.task);
+      assert(index >= 0);
+      return construct(sources[index]);
+    },
     sourceLedger() {counters.ledger++; events.push('original-ledger'); return ledger;},
     async retire() {
       assert.equal(live.size, 0, 'all actual restored captures close before Scope retirement');
@@ -149,11 +154,13 @@ function fixture({count = 2, coordinates, closures, preparedFailure, restoreFail
       release(token) {assert(tokens.includes(token)); events.push(`release-model-${tokens.indexOf(token)}`);},
     }, existingModel: records[0], assertCurrent,
     retainExecution(actual) {assert.equal(owner, undefined); owner = actual;},
-    async prepareAcquisition(actual, access, occurrence) {
-      assert.strictEqual(actual, prepared); assert.equal(access, undefined);
+    prepareAcquisition() {assert.fail('retained input uses its original recovery parent');},
+    prepareRetainedCaptureAcquisition(actual, occurrence, selectedSource) {
+      assert.strictEqual(actual, prepared);
       const index = occurrences.findIndex(value => value[2] === occurrence.task);
       assert(index >= 0); assert(Object.isFrozen(occurrence));
       assert.deepEqual(occurrence, {stage: occurrences[index][0], input: occurrences[index][1], task: occurrences[index][2]});
+      assert.strictEqual(selectedSource, sources[index]);
       counters.prepare++; events.push(`prepare-original-${index}`); return sources[index];
     },
     sourceAccessFor: original => accesses[sources.indexOf(original)],

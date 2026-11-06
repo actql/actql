@@ -102,10 +102,10 @@ test('original Model observation rejects missing or malformed call inventory wit
   }
 });
 
-test('legacy composed completion retains its existing later observation issuance',()=>{
+test('composed completion refuses missing Request ownership before retaining output',()=>{
   const f=fixture({legacy:true});
-  assert.equal(f.owner.callback(),true);
-  assert.deepEqual(f.events,['capture']);assert.equal(f.owner.issuer(),undefined);
+  assert.throws(()=>f.owner.callback(),/InstalledComposedInferOriginalObservationUnavailable/);
+  assert.deepEqual(f.events,[]);assert.equal(f.owner.issuer(),undefined);
 });
 
 // Actual callback/helper, two distinct original children. Explicit issuer ports
