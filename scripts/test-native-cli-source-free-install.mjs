@@ -35,6 +35,86 @@ export async function finishSourceFreeObservations(receipt, primaryFailure,
   await saveObserved({...receipt, status: 'observed', registryClosed: true});
 }
 
+const unsupportedBindings = 'actql: The installed Native runtime does not implement the selected project bindings; no project files were created.\n';
+
+async function unchangedDirectory(path) {
+  const state = await lstat(path, {bigint: true});
+  assert(state.isDirectory() && !state.isSymbolicLink());
+  return {entries: (await readdir(path)).sort(), ...Object.fromEntries(
+    ['dev', 'ino', 'mode', 'mtimeNs', 'ctimeNs'].map(key => [key, String(state[key])]))};
+}
+
+async function requireAbsent(path) {
+  try { await lstat(path); assert.fail(`Unexpected initialized target: ${path}`); }
+  catch (error) {if (error.code !== 'ENOENT') throw error;}
+}
+
+// These are actual installed refusals, not execution evidence for Mock bindings.
+export async function observeUnsupportedMockInitialization({root, cli}) {
+  const queryParent = join(root, 'query-no-write');
+  await mkdir(queryParent, {mode: 0o700});
+  const queryBefore = await unchangedDirectory(queryParent);
+  const configuration = join(queryParent, 'actql.config.json'), state = join(queryParent, 'state');
+  await requireAbsent(configuration); await requireAbsent(state);
+  const query = await cli(['--config', configuration, '--state-dir', state, 'project-init-support'], queryParent);
+  assert.equal(query.code, 0); assert.equal(query.signal, null); assert.equal(query.stderr, '');
+  await requireAbsent(configuration); await requireAbsent(state);
+  const queryAfter = await unchangedDirectory(queryParent);
+  assert.deepEqual(queryAfter, queryBefore);
+  const support = JSON.parse(query.stdout);
+  assert.deepEqual(support, {version: 'actql-project-init-support/0.1', sourceFree: true, mock: false});
+  const cases = [];
+  for (const template of ['deal-review-mock', 'churn-risk-mock']) {
+    const parent = join(root, `refused-${template}`), empty = join(parent, 'empty');
+    await mkdir(parent, {mode: 0o700}); await mkdir(empty, {mode: 0o700});
+    const originalParent = await unchangedDirectory(parent), originalEmpty = await unchangedDirectory(empty);
+    assert.deepEqual(originalParent.entries, ['empty']); assert.deepEqual(originalEmpty.entries, []);
+    for (const targetState of ['new', 'empty']) for (let iteration = 1; iteration <= 2; iteration++) {
+      const target = join(parent, targetState);
+      if (targetState === 'new') await requireAbsent(target);
+      const result = await cli(['init', '--template', template, targetState], parent, 69);
+      assert.equal(result.code, 69); assert.equal(result.signal, null);
+      assert.equal(result.stdout, ''); assert.equal(result.stderr, unsupportedBindings);
+      if (targetState === 'new') await requireAbsent(target);
+      const retainedParent = await unchangedDirectory(parent), retainedEmpty = await unchangedDirectory(empty);
+      assert.deepEqual(retainedParent, originalParent); assert.deepEqual(retainedEmpty, originalEmpty);
+      cases.push({template, targetState, iteration, target,
+        parentBefore: originalParent, parentAfter: retainedParent,
+        emptyBefore: originalEmpty, emptyAfter: retainedEmpty, newTargetAbsent: true});
+    }
+  }
+  return {scope: 'unsupported-mock-initialization-refusal-only', support,
+    query: {configuration, state, before: queryBefore, after: queryAfter}, cases};
+}
+
+export async function observeTimingEnabledPlainInitialization({root, cli, environment}) {
+  const original = environment.ACTQL_NATIVE_TIMINGS;
+  let result;
+  try {
+    environment.ACTQL_NATIVE_TIMINGS = '1';
+    result = await cli(['init', 'project'], root);
+  } finally {
+    if (original === undefined) delete environment.ACTQL_NATIVE_TIMINGS;
+    else environment.ACTQL_NATIVE_TIMINGS = original;
+  }
+  assert.equal(result.code, 0); assert.equal(result.signal, null);
+  assert.match(result.stdout, /^Local Host adopted; no Run has been admitted\.\nAccount: local-cli\nAdoption: sha256:[a-f0-9]{64}\n$/u);
+  const diagnostics = result.stderr.trimEnd().split('\n').map(line => {
+    const match = /^(ACTQL_NATIVE_(?:TIMINGS|PHASE|COUNTER|LAUNCHER_TIMINGS)) (\{.*\})$/u.exec(line);
+    assert(match, `Unexpected timing-enabled initialization diagnostic: ${line}`);
+    return {marker: match[1], value: JSON.parse(match[2])};
+  });
+  const native = diagnostics.filter(value => value.marker === 'ACTQL_NATIVE_TIMINGS');
+  const launcher = diagnostics.filter(value => value.marker === 'ACTQL_NATIVE_LAUNCHER_TIMINGS');
+  assert.equal(native.length, 1); assert.equal(launcher.length, 1);
+  assert.equal(native[0].value.origin, 'first_hook');
+  assert.equal(native[0].value.child_process_counters, false);
+  assert(Number.isSafeInteger(native[0].value.pid) && native[0].value.pid > 0);
+  assert.equal(launcher[0].value.units, 'nanoseconds');
+  for (const key of ['preparation', 'child', 'total']) assert(Number.isSafeInteger(launcher[0].value[key]) && launcher[0].value[key] >= 0);
+  return {scope: 'plain-initialization-with-diagnostics', diagnostics};
+}
+
 async function observeInstalledSourceFree(input, observationPath) {
   const directory = resolve(input), manifest = await verifyNativeCliRelease(directory);
   const source = checkoutState(repository);
@@ -94,7 +174,9 @@ async function observeInstalledSourceFree(input, observationPath) {
     env.PATH = join(root, 'empty-path');
     const cli = (args, cwd = project, code = 0) => run(process.execPath, [launcher, ...args], cwd, code);
     assert.equal((await cli(['--version'], root)).stdout, `${manifest.cohort.packageVersion}\n`);
-    await cli(['init', 'project'], root);
+    const mockInitialization = await observeUnsupportedMockInitialization({root, cli});
+    const plainInitialization = await observeTimingEnabledPlainInitialization({root, cli, environment: env});
+    assert.equal(env.ACTQL_NATIVE_TIMINGS, undefined);
     assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
     await writeFile(join(project, 'query.sql'), 'SELECT 1 AS id\n');
     const checked = JSON.parse((await cli(['check', 'query.sql', '--format', 'sql', '--json'])).stdout);
@@ -126,6 +208,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
+      mockInitialization, plainInitialization,
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
   } catch (error) { failure = error; }
