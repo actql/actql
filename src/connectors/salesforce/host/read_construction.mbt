@@ -664,7 +664,18 @@ pub fn native_read_construction_capacity(
     @execution.preparation_representation_cost(retained) is Some(r) &&
     @execution.preparation_representation_cost(metadata.workspace) is Some(m) &&
     @execution.preparation_representation_cost(query.workspace) is Some(q) &&
-    @execution.checked_preparation_add_product(r, Int64::max(m, q), 1L)
+    // An original current QueryRead/body can exist only after both named
+    // Describe consumers completed. Keep their retained families, not their
+    // already-retired parser/index workspace beside every later query page.
+    @execution.checked_preparation_add_product(
+      r,
+      if query_geometry is Some(_) {
+        q
+      } else {
+        Int64::max(m, q)
+      },
+      1L,
+    )
     is Some(e) else {
     return None
   }
