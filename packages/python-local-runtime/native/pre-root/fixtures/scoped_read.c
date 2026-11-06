@@ -74,6 +74,23 @@ actql_read_context *actql_bootstrap_current_read_context(void) {
 #include FILESYSTEM_SOURCE
 #endif
 
+#ifdef ACTQL_READ_SEARCH_WORK
+/* Compiler instrumentation observes actual successor traversals without a
+ * clock, provider callback or allocation inside the observation. */
+static bool observe_read_search;
+static size_t read_search_successors;
+void __attribute__((no_instrument_function))
+__cyg_profile_func_enter(void *function,void *caller) {
+    (void)caller;
+    if(observe_read_search && function==(void *)read_heap_next)
+        read_search_successors++;
+}
+void __attribute__((no_instrument_function))
+__cyg_profile_func_exit(void *function,void *caller) {
+    (void)function; (void)caller;
+}
+#endif
+
 static const unsigned char recipe[32]={17};
 static actql_owned_capacity *lease_new(void) {
     actql_owned_capacity *lease=NULL;
@@ -613,6 +630,77 @@ static bool managed_search_workload(void) {
     return true;
 }
 
+#ifdef ACTQL_READ_SEARCH_WORK
+static bool managed_successor_search(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    void *values[128];
+    size_t stock=stock_mi_allocations;
+    read_search_successors=0; observe_read_search=true;
+    for(size_t i=0;i<128;i++) {
+        values[i]=actql_native_moon_scoped_allocate(32);assert(values[i]);
+        memset(values[i],(int)(i+1),32);
+    }
+    observe_read_search=false;
+    printf("{\"allocationCalls\":128,\"successorTraversals\":%zu}\n",read_search_successors);
+    /* A retained live prefix must not be walked again for every allocation.
+     * At a page boundary the full fallback remains admissible. */
+    assert(read_search_successors<=2*128);
+    for(size_t i=0;i<128;i++) {
+        assert(((unsigned char *)values[i])[31]==(unsigned char)(i+1));
+        actql_native_moon_scoped_free(values[i]);
+    }
+    assert(stock_mi_allocations==stock);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    finish(&lease,&context);
+    return true;
+}
+#endif
+
+/* A too-small hinted free block must not hide a coalesced fitting original
+ * block elsewhere on the same page. Fill the actual remaining tail first. */
+static bool managed_block_fallback(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    void *values[8];
+    for(size_t i=0;i<8;i++) {
+        values[i]=actql_native_moon_scoped_allocate(32);assert(values[i]);
+        memset(values[i],(int)(i+1),32);
+    }
+    size_t index=context->managed_page_hint;
+    void *page=owned_page_address(lease,index);
+    size_t page_bytes=owned_extent(lease,index)->pages*lease->page_size;
+    struct read_heap_block *tail=read_heap_first(page),*next;
+    while((next=read_heap_next(page,page_bytes,tail))) tail=next;
+    assert(tail->requested==0);
+    size_t tail_bytes=tail->capacity;
+    void *fill=actql_native_private_scoped_allocate(tail_bytes);assert(fill);
+    memset(fill,0x7a,tail_bytes);
+    actql_native_moon_scoped_free(values[1]);
+    actql_native_moon_scoped_free(values[2]);
+    actql_native_moon_scoped_free(values[5]);
+    void *merged=actql_native_moon_scoped_allocate(64);assert(merged==values[1]);
+    memset(merged,0x6b,64);
+    for(size_t i=0;i<8;i++) {
+        if(i==1 || i==2 || i==5) continue;
+        assert(((unsigned char *)values[i])[31]==(unsigned char)(i+1));
+        actql_native_moon_scoped_free(values[i]);
+    }
+    assert(((unsigned char *)merged)[63]==0x6b);
+    assert(((unsigned char *)fill)[tail_bytes-1]==0x7a);
+    actql_native_moon_scoped_free(merged);
+    assert(actql_native_private_scoped_free(fill)==0);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    finish(&lease,&context);
+    return true;
+}
+
 static bool managed_search_fallback(void) {
     actql_owned_capacity *lease=lease_new();
     actql_read_context *a=context_new(lease),*b=context_new(lease);
@@ -969,6 +1057,13 @@ static void read_activation_failure(unsigned mode) {
 int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
+#ifdef ACTQL_READ_SEARCH_WORK
+    if(argc==2 && strcmp(argv[1],"--managed-successor-search-only")==0) {
+        assert(managed_successor_search());
+        puts("{\"case\":\"same-original-successor-search\",\"passed\":1,\"failed\":0}");
+        return 0;
+    }
+#endif
     if(argc==2 && strcmp(argv[1],"--read-activation-only")==0) {
         read_activation_failure(1); read_activation_failure(2); read_activation_failure(3);
         puts("{\"case\":\"ordinary-read-activation-custody\",\"passed\":3,\"failed\":0}");
@@ -1024,6 +1119,11 @@ int main(int argc,char **argv) {
         bool ok=allocation_failure_observation();
         puts("{\"case\":\"same-original-allocation-failure-observation\",\"passed\":1,\"failed\":0}");
         return ok?0:1;
+    }
+    if(argc==2 && strcmp(argv[1],"--managed-block-fallback-only")==0) {
+        assert(managed_block_fallback());
+        puts("{\"case\":\"same-original-block-fallback\",\"passed\":1,\"failed\":0}");
+        return 0;
     }
     if(argc==2 && strcmp(argv[1],"--managed-search-fallback-only")==0) {
         assert(managed_search_fallback());

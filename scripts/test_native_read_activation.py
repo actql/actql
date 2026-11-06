@@ -19,13 +19,19 @@ PROVIDER = ROOT / 'packages/python-local-runtime/native/pre-root'
 class ReadActivationCustody(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        if platform.system() != 'Linux' or platform.machine() not in {'x86_64', 'amd64'}:
-            raise RuntimeError('This diagnostic requires the actual Linux x64 target')
+        host = (platform.system(), platform.machine())
+        targets = {('Linux', 'x86_64'): ('linux-x64', 'x86_64-unknown-linux-gnu'),
+                   ('Linux', 'amd64'): ('linux-x64', 'x86_64-unknown-linux-gnu'),
+                   ('Darwin', 'arm64'): ('darwin-arm64', 'aarch64-apple-darwin')}
+        if host not in targets:
+            raise RuntimeError('This diagnostic requires an existing pinned Native target')
+        selected_platform, selected_target = targets[host]
+        linux = selected_platform == 'linux-x64'
         home = Path(os.environ['MOON_HOME']).resolve()
         pin = json.loads((ROOT / 'toolchain.json').read_bytes())
         installed = json.loads((home / 'installed.json').read_bytes())
-        if installed != {'pin': pin, 'platform': 'linux-x64'}:
-            raise RuntimeError('The original pinned Linux x64 MoonBit installation is required')
+        if installed != {'pin': pin, 'platform': selected_platform}:
+            raise RuntimeError('The original pinned Native MoonBit installation is required')
         compiler = shutil.which(os.environ.get('CC', 'cc'))
         if compiler is None:
             raise RuntimeError('The selected original compiler is required')
@@ -33,12 +39,14 @@ class ReadActivationCustody(unittest.TestCase):
         parent.mkdir(parents=True, exist_ok=True)
         cls.directory = Path(tempfile.mkdtemp(prefix='attempt-', dir=parent))
         target = cls.invoke('compiler-target', [compiler, '-dumpmachine']).stdout.strip()
-        if not re.fullmatch(r'x86_64(?:-[^-]+)?-linux-gnu[^\s]*', target):
-            raise RuntimeError('The selected C compiler must target Linux x64 GNU')
+        expected_target = (r'x86_64(?:-[^-]+)?-linux-gnu[^\s]*' if linux
+                           else r'arm64-apple-darwin[^\s]*')
+        if not re.fullmatch(expected_target, target):
+            raise RuntimeError('The selected C compiler must match the actual pinned target')
         stage = cls.directory / 'derived'
         prepared = cls.invoke('prepare', ['python3', str(PROVIDER / 'prepare_scoped_read.py'),
             '--moonbit', str(home), '--destination', str(stage),
-            '--target', 'x86_64-unknown-linux-gnu'])
+            '--target', selected_target])
         record = json.loads(prepared.stdout)
         if record['status'] != 'review-source-only' or record['installed_supplier']:
             raise RuntimeError('Preparation is not an installed supplier')
@@ -46,21 +54,24 @@ class ReadActivationCustody(unittest.TestCase):
         fixture = PROVIDER / 'fixtures/scoped_read.c'
         # Exact finite stock-File metadata belongs only to this diagnostic.
         # It does not admit any Request/control/managed constructor capacity.
-        definitions = ['_GNU_SOURCE', 'MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC',
+        definitions = ['MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC',
             'ACTQL_SCOPED_READ_ALLOCATOR', 'ACTQL_SCOPED_READ_PROVIDER',
-            'ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN',
-            'ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY', 'ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS=64',
-            'ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES=1544',
+            'ACTQL_READ_SEARCH_WORK',
             'OWNED_SOURCE=' + json.dumps(str(stage / 'owned_capacity.c'))]
-        command = [compiler, '-std=c11', '-O0', '-fwrapv', '-fno-strict-aliasing',
+        if linux:
+            definitions += ['_GNU_SOURCE', 'ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN',
+                'ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY', 'ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS=64',
+                'ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES=1544']
+        link = ['-Wl,--gc-sections', '-lm', '-ldl'] if linux else ['-Wl,-dead_strip']
+        command = [compiler, '-finstrument-functions', '-std=c11', '-O0', '-fwrapv', '-fno-strict-aliasing',
             '-ffunction-sections', '-fdata-sections', '-pthread', '-I' + str(stage),
             *['-D' + value for value in definitions], str(fixture),
             *[str(stage / (name + '.c')) for name in ('backtrace', 'env', 'runtime', 'sync_io', 'utf')],
             str(stage / 'libmoonbitrun.o'), str(stage / 'libbacktrace.a'),
-            '-Wl,--gc-sections', '-lm', '-ldl', '-o', str(cls.executable)]
+            *link, '-o', str(cls.executable)]
         cls.invoke('compile', command)
         (cls.directory / 'inputs.json').write_text(json.dumps({
-            'profile': 'scoped-review-values', 'target': 'x86_64-unknown-linux-gnu',
+            'profile': 'scoped-review-values', 'target': selected_target,
             'source': cls.invoke('head', ['git', 'rev-parse', 'HEAD']).stdout.strip(),
             'dirty': bool(cls.invoke('status', ['git', 'status', '--porcelain']).stdout),
             'compiler': {'path': str(Path(compiler).resolve()), 'target': target,
@@ -93,6 +104,15 @@ class ReadActivationCustody(unittest.TestCase):
 
     def test_existing_subpage_provenance_and_failed_retirement(self):
         self.execute('managed-subpage', 4)
+
+    def test_managed_successor_search_does_not_rescan_live_prefix(self):
+        self.execute('managed-successor-search', 1)
+
+    def test_coalesced_block_fallback_preserves_original_live_slots(self):
+        self.execute('managed-block-fallback', 1)
+
+    def test_existing_managed_search_fallback(self):
+        self.execute('managed-search-fallback', 1)
 
     def test_existing_managed_search_and_cleanup(self):
         self.execute('managed-search', 1)

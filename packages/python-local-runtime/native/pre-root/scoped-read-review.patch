@@ -210,7 +210,7 @@
 +#endif
 --- /dev/null
 +++ b/scoped_read.inc
-@@ -0,0 +1,867 @@
+@@ -0,0 +1,884 @@
 +/* Derived selected-runtime read allocator, included once by the ORIGINAL
 + * owned_capacity.c. Selection still requires its source-bound recipe and
 + * original physical supplier. This is physical provenance
@@ -515,7 +515,7 @@
 + * keep distinct free provenance. File buffers retain generic extents; private
 + * pages cannot be protected or lent, including multi-page C allocations. */
 +enum read_allocation_family { READ_FILE, READ_MANAGED, READ_PRIVATE_C };
-+struct read_heap_page { size_t live; };
++struct read_heap_page { size_t live, free_offset; };
 +struct read_heap_block { size_t capacity, requested; uint64_t serial;
 +    enum read_allocation_family family; };
 +static size_t read_heap_round(size_t bytes) {
@@ -552,9 +552,31 @@
 +    }
 +    return ACTQL_OWNED_INVALID;
 +}
++/* Only original block headers enter this helper. The page-local offset names
++ * a free block retained under the same locks; it changes search order only. */
++static bool allocate_read_heap_block_locked(actql_read_context *context,
++    size_t index, void *page, struct read_heap_block *block, size_t bytes,
++    size_t rounded, enum read_allocation_family family, void **output) {
++    if (block->requested || block->capacity < rounded) return false;
++    struct read_heap_page *header = page;
++    header->free_offset = 0;
++    if (block->capacity - rounded >= read_heap_header() + _Alignof(max_align_t)) {
++        struct read_heap_block *tail = (void *)((unsigned char *)read_heap_payload(block) + rounded);
++        *tail = (struct read_heap_block){.capacity = block->capacity - rounded - read_heap_header()};
++        block->capacity = rounded;
++        header->free_offset = (unsigned char *)tail - (unsigned char *)page;
++    }
++    block->requested = bytes; block->family = family;
++    block->serial = ++context->managed_serial;
++    header->live++;
++    *output = read_heap_payload(block);
++    memset(*output, 0, block->capacity);
++    context->managed_page_hint = index;
++    return true;
++}
 +/* Candidate lookup never grants a page: exact context/process, live extent
 + * and a genuinely free fitting block are checked under the original locks.
-+ * The hint changes only search order and cannot hide an exhausted capacity. */
++ * A failed offset hint still scans every original block. */
 +static bool allocate_read_heap_page_locked(actql_read_context *context,
 +    size_t index, size_t bytes, size_t rounded, enum read_allocation_family family,
 +    void **output) {
@@ -564,21 +586,19 @@
 +    if (!extent->read_heap || extent->read_context != context || extent->retired ||
 +        extent->read_released || extent->read_process != getpid()) return false;
 +    void *page = owned_page_address(lease, index);
++    struct read_heap_page *header = page;
++    size_t page_bytes = extent->pages * lease->page_size;
++    size_t offset = header->free_offset;
++    if (offset >= read_heap_round(sizeof(*header)) &&
++        offset <= page_bytes - read_heap_header()) {
++        struct read_heap_block *hint = (void *)((unsigned char *)page + offset);
++        if (allocate_read_heap_block_locked(context, index, page, hint,
++                                           bytes, rounded, family, output)) return true;
++    }
 +    for (struct read_heap_block *block = read_heap_first(page); block;
-+         block = read_heap_next(page, owned_extent(lease, index)->pages * lease->page_size, block)) {
-+        if (block->requested || block->capacity < rounded) continue;
-+        if (block->capacity - rounded >= read_heap_header() + _Alignof(max_align_t)) {
-+            struct read_heap_block *tail = (void *)((unsigned char *)read_heap_payload(block) + rounded);
-+            *tail = (struct read_heap_block){.capacity = block->capacity - rounded - read_heap_header()};
-+            block->capacity = rounded;
-+        }
-+        block->requested = bytes; block->family = family;
-+        block->serial = ++context->managed_serial;
-+        ((struct read_heap_page *)page)->live++;
-+        *output = read_heap_payload(block);
-+        memset(*output, 0, block->capacity);
-+        context->managed_page_hint = index;
-+        return true;
++         block = read_heap_next(page, page_bytes, block)) {
++        if (allocate_read_heap_block_locked(context, index, page, block,
++                                           bytes, rounded, family, output)) return true;
 +    }
 +    return false;
 +}
@@ -623,16 +643,9 @@
 +        struct read_heap_block *block = read_heap_first(page);
 +        *block = (struct read_heap_block){.capacity = extent->pages * lease->page_size - overhead};
 +        /* The full replacement and its metadata are admitted before use. */
-+        if (block->capacity - rounded >= read_heap_header() + _Alignof(max_align_t)) {
-+            struct read_heap_block *tail = (void *)((unsigned char *)read_heap_payload(block) + rounded);
-+            *tail = (struct read_heap_block){.capacity = block->capacity - rounded - read_heap_header()};
-+            block->capacity = rounded;
-+        }
-+        block->requested = bytes; block->family = family;
-+        block->serial = ++context->managed_serial;
-+        ((struct read_heap_page *)page)->live = 1;
-+        context->managed_page_hint = index;
-+        *output = read_heap_payload(block); /* Original placement zeroed the page. */
++        bool allocated = allocate_read_heap_block_locked(context, index, page,
++            block, bytes, rounded, family, output);
++        if (!allocated) abort(); /* Original placement proved this exact fit. */
 +    }
 +done:
 +    unlock_capacity(lease);
@@ -661,9 +674,13 @@
 +        /* Reuse the just-freed original page before a whole-extent search.
 +         * This remains a hint: allocation independently rechecks the extent. */
 +        extent->read_context->managed_page_hint = index;
-+        /* Coalesce only free neighbors; no live allocation moves or changes. */
++        /* Coalescing can absorb the hinted header. Refresh only from surviving
++         * original free headers; no live allocation moves or changes. */
++        header->free_offset = 0;
 +        for (struct read_heap_block *item = read_heap_first(page); item;) {
 +            struct read_heap_block *next = read_heap_next(page, owned_extent(lease, index)->pages * lease->page_size, item);
++            if (!item->requested)
++                header->free_offset = (unsigned char *)item - (unsigned char *)page;
 +            if (!item->requested && next && !next->requested)
 +                item->capacity += read_heap_header() + next->capacity;
 +            else item = next;
