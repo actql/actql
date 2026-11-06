@@ -4,6 +4,7 @@ import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {groupedQueryCases} from './fixtures/grouped-query-programs.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+import {hexIntegerSuccesses, hexIntegerRefusals} from './fixtures/hex-integer-source-input.mjs';
 import {compileCapturedQueryJson as compileCapturedQueryWithCatalogJson, compileQueryJson,
   compileValuesQueryJson} from
   '../_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js';
@@ -205,4 +206,29 @@ test('captured CTE and subquery compilation retains the original fixture Catalog
       ...args.slice(0, 2), JSON.stringify({connector: 'foreign', resource: 'r'}), ...args.slice(3),
     ]), '');
   }
+});
+
+
+test('SQL signed hex zero normalizes without admitting canonical JSON negative zero', () => {
+  const fixture = hexIntegerSuccesses.find(item => item.text === 'SELECT -0X0 AS value');
+  assert(fixture);
+  assert.equal(hexIntegerRefusals.some(item => item.text === fixture.text), false);
+  const values = {values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}, as: 'seed'};
+  const emitted = compileValuesQueryJson(fixture.text, 'seed', 'seed',
+    JSON.stringify(values), '["unit"]', 'fixture.hex_signed_zero');
+  assert.notEqual(emitted, '');
+  const literals = [];
+  (function visit(value) {
+    if (!value || typeof value !== 'object') return;
+    if (Object.hasOwn(value, 'literal') && typeof value.literal === 'number') literals.push(value.literal);
+    Object.values(value).forEach(visit);
+  })(JSON.parse(emitted));
+  assert.deepEqual(literals, [0]);
+  assert.equal(Object.is(literals[0], -0), false);
+  const jsonValues = '{"values":{"schema":{"value":{"type":"number","nullable":false}},"rows":[{"value":0}]},"as":"seed"}';
+  assert.notEqual(compileValuesQueryJson('SELECT value FROM seed', 'seed', 'seed',
+    jsonValues, '["value"]', 'fixture.json_positive_zero'), '');
+  assert.equal(compileValuesQueryJson('SELECT value FROM seed', 'seed', 'seed',
+    jsonValues.replace('"value":0', '"value":-0'),
+    '["value"]', 'fixture.json_negative_zero'), '');
 });
