@@ -18,6 +18,19 @@ test('HAVING object fixtures keep NULL, multiplicity and resolved alias meanings
   assert.deepEqual(control, havingObjectPropertyProgram);
   assert.deepEqual(control.stages[1].steps[0].group, {by: ['id'], aggregates: {n: {fn: 'count'}}});
   assert.deepEqual(control.stages[1].steps[2].filter, {gt: [{property: {value: {field: 'assessment'}, name: 'score'}}, {literal: 10}]});
+  const score = cases.get('having-object-property-computed-alias').columns[1].contract;
+  assert.equal(score.nullable, false);
+  assert.equal(score.fields.score.nullable, false);
+  assert.equal(score.fields.nested.nullable, true);
+  assert.equal(cases.get('having-object-property-computed-alias').parameterDeclarations.high.nullable, true);
+  const risk = cases.get('having-object-property-nested-and-quoted').columns[1].contract;
+  assert.equal(risk.nullable, false);
+  assert.equal(risk.fields.score.nullable, true);
+  assert.equal(risk.fields.nested.nullable, false);
+  assert.equal(risk.fields.nested.fields.reason.nullable, true);
+  const nullOnly = cases.get('having-object-property-qualified-input-control').columns[1].contract;
+  assert.equal(nullOnly.nullable, true);
+  assert.equal(nullOnly.fields.score.nullable, true);
 });
 
 test('HAVING object regressions run in the ordinary packed corpus and focused selection', async () => {
