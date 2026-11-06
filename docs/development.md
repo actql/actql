@@ -1158,8 +1158,11 @@ compatible Darwin Crypto producer for HTTP TLS acquisition. TLS rechecks the
 original digest and builds its own patched source/libraries; Homebrew and Linux
 profiles do not assume that Darwin archive exists. An explicit original archive
 continues to take precedence. `--http-jobs 1|2` bounds only the build-time TLS
-compiler parallelism and records it in the TLS receipt; the default remains one.
-It changes neither runtime resource limits nor the component lifetime profile.
+compiler parallelism and records it in the TLS receipt; the local default remains
+one. Linux and macOS full Native CI explicitly select two after a bounded actual
+Mac TLS/HTTP component build. Existing time windows, compiler flags, cleanup and
+deployment settings stay intact. Local measurements do not establish CI speedup;
+runtime resource limits and the component lifetime profile are unchanged.
 
 ### Full integration and release evidence
 

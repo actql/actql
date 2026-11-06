@@ -1535,7 +1535,7 @@ jobs:
       - name: Prepare exact-source scoped Native commands and components once
         id: native-preparation
         timeout-minutes: 65
-        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900 --http-jobs 2
       - name: Retain scoped Native preparation source and compiler receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -1846,7 +1846,7 @@ jobs:
       - name: Prepare exact-source scoped Native commands and components once
         id: native-preparation
         timeout-minutes: 70
-        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900 --resident-seconds 1200
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900 --http-jobs 2 --resident-seconds 1200
       - name: Retain scoped Native preparation source and compiler receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

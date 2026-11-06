@@ -306,6 +306,7 @@ for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of 
       step.name === 'Prepare exact-source scoped Native commands and components once');
     assert.equal(preparation.run, 'node scripts/prepare-native-runtime-bundle-fixture.mjs ' +
       '--destination "${{ runner.temp }}/native-scoped-preparation" --entries ' + entries + ' --seconds 900' +
+      (entries === 'all' ? ' --http-jobs 2' : '') +
       (residentSeconds === 900 ? '' : ' --resident-seconds ' + residentSeconds));
     assert.equal(preparation.if, undefined);
     assert.equal(preparation['continue-on-error'], undefined);
