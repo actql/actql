@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {parse} from 'yaml';
 import {focusedPattern, focusedFixtureObjects, stableFocusedFiles, focusedPlan,
   eligibleFocusedChanges, checkFocusedSource, readFocusedTests, validateFocusedTests,
@@ -26,6 +27,24 @@ test "native candidates preserve fixed ports" {
 const change = (path = current, addition = false) => ({path,
   before: {mode: addition ? '000000' : '100644', object: addition ? zero : old},
   after: {mode: '100644', object: fresh}});
+
+test('the current Git package admits a body-only edit to each stable focused file', () => {
+  const git = args => execFileSync('git', args, {encoding: 'utf8'});
+  for (const path of stableFocusedFiles) {
+    const object = git(['rev-parse', `HEAD:${path}`]).trim();
+    const source = git(['show', object]);
+    // Model an ordinary test-only edit; every after body and shared fixture is
+    // read from the actual Git tree rather than reconstructed from the pins.
+    const changes = [{path, before: {mode: '100644', object: old},
+      after: {mode: '100644', object}}];
+    const read = args => args[0] === 'show' && args[1] === old
+      ? source + '\n// Previous test-only revision.\n' : git(args);
+    const plan = readFocusedTests([path], changes, read);
+    assert.deepEqual(plan, focusedPlan([path]));
+    assert.equal(selectTargets([path], {focusedChanges: changes, focusedTests: plan}).profile,
+      'focused-tests');
+  }
+});
 function gitFixture({changes = [change()], sources = {}, badPin = false, extra = []} = {}) {
   const files = new Map(Object.entries(focusedFixtureObjects).map(([path, object]) => [path, {mode: '100644', object}]));
   for (const path of stableFocusedFiles) files.set(path, {mode: '100644', object: fresh});
