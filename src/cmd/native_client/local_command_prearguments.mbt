@@ -18,6 +18,18 @@ extern "C" fn command_preargument_storage_ffi() -> Int = "actql_native_client_pr
 extern "C" fn command_preargument_context_size_ffi() -> Int = "actql_native_client_preargument_context_bytes"
 
 ///|
+extern "C" fn command_compiled_platform_ffi() -> Int = "actql_native_client_compiled_platform"
+
+///|
+fn command_compiled_platform_matches(platform : String) -> Bool {
+  match command_compiled_platform_ffi() {
+    1 => platform == "darwin-arm64"
+    2 => platform == "linux-x64-gnu"
+    _ => false
+  }
+}
+
+///|
 #borrow(bytes)
 extern "C" fn command_preargument_source_ffi(
   bytes : Bytes,

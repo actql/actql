@@ -77,6 +77,46 @@ Qualify an artifact using its actual compiler commands; support objects may
 have independently selected flags. `scripts/native-cli-artifact.mjs` accepts
 an explicit finite `--compile-seconds` budget without changing that profile.
 
+For the selected Linux x64/glibc Local package profile, the normal producer is
+`scripts/produce-native-cli-linux-local.mjs`. It requires an exact clean source,
+an explicit package version, the real compiler and the original SQLite and
+Ubuntu Crypto archives pinned by the existing component recipes. It runs those
+component producers and the ordinary Native artifact producer sequentially.
+It never substitutes a Remote-only artifact when Local production fails.
+Run it under the existing bounded guard with sufficient compiler time; the
+ordinary release build retains `-O2` and `-j 1`.
+
+```sh
+node scripts/produce-native-cli-linux-local.mjs \
+  --source "$(git rev-parse HEAD)" --package-version "$VERSION" \
+  --output "$PRODUCTION" --clang "$REAL_CLANG" \
+  --sqlite-archive "$SQLITE_ARCHIVE" \
+  --openssl-package-archive "$LIBSSL_DEV_ARCHIVE" \
+  --openssl-package-archive "$LIBSSL_RUNTIME_ARCHIVE" \
+  --component-seconds 300 --compile-seconds 1800
+node scripts/native-cli-release.mjs prepare-local "$COHORT" "$COHORT_JSON" "$PRODUCTION/artifact"
+node scripts/test-native-cli-source-free-install.mjs "$COHORT"
+```
+
+Use new absolute output directories and original absolute input paths. The
+explicit cohort JSON must select the same package version. The optional
+`--system-header-root /usr/lib/linux/uapi` selects that separate kernel-header
+layout when actually needed; `/usr/include` remains the default and there is
+no automatic widening. The selected `prepare-local` path requires a real
+Linux Local payload before writing packages. General `prepare` and historical
+Remote-only verification keep their separate scope.
+
+The mandatory full-integration `native-cli-linux-local` job uses this profile
+and verifies a fresh private npm installation, plain initialization, check,
+explain, source-free Run execution and separate-process saved Results after
+the source file is removed. The consumer writes provisional observations only.
+Success evidence is written by its parent after registry close, zero child exit
+and verified removal of the original consumer scratch directory.
+This profile does not qualify Mock Source/Model/Effect bindings, live connectors,
+other platforms or public-registry publication. A Remote/no-runtime acceptance
+job cannot replace this positive Local job, and this selection does not change
+historical release policy or authorize publication.
+
 For an opt-in command measurement, set `ACTQL_NATIVE_TIMINGS=1`. The launcher
 and Native foundation emit bounded, best-effort timing diagnostics on stderr;
 successful payloads and receipts on stdout retain their existing format.

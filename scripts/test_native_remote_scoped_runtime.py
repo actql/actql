@@ -665,7 +665,7 @@ class LinuxBundleComposition(unittest.TestCase):
             with self.subTest(size=size), self.assertRaisesRegex(ValueError, 'control page'):
                 self.fixture.plan(target='linux-x64', stock_file_control_bytes=size)
         for entry in (MODULE.LOCAL_ENTRY,):
-            with self.subTest(entry=entry), self.assertRaisesRegex(ValueError, 'target/entry'):
+            with self.subTest(entry=entry), self.assertRaisesRegex(ValueError, 'source pin'):
                 MODULE.commands_for('', Path('/moon'), Path('/owned/emission'), Path('/owned/allocator'),
                                     Path('/cc'), None, target='linux-x64', entry=entry,
                                     stock_file_control_bytes=4096)

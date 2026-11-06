@@ -10,11 +10,13 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const scratch = mkdtempSync(join(realpathSync(tmpdir()), 'actql-command-prearguments-'));
 const binaries = {};
 before(() => {
-  assert.equal(process.platform, 'darwin', 'actual selected Native Local wrapper requires Darwin');
+  assert((process.platform === 'darwin' && process.arch === 'arm64') ||
+    (process.platform === 'linux' && process.arch === 'x64' && process.report.getReport().header.glibcVersionRuntime),
+    'actual selected Native Local wrapper requires Darwin arm64 or Linux x64 glibc');
   assert.ok(process.env.MOON_HOME, 'use the pinned Moon toolchain include');
   for (const pin of ['selected', 'missing']) {
     const executable = join(scratch, pin);
-    const args = ['-std=c11', '-O0', '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', '-I'+resolve(process.env.MOON_HOME, 'include'),
+    const args = ['-std=c11', '-O0', ...(process.platform === 'linux' ? ['-D_GNU_SOURCE'] : []), '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', '-I'+resolve(process.env.MOON_HOME, 'include'),
       join(root, 'src/cmd/native_client/stdout_stub.c'),
       join(root, 'scripts/fixtures/native-command-prearguments.c'),
       join(root, 'scripts/fixtures/native-command-member-unavailable.c'),

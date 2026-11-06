@@ -634,6 +634,28 @@ test "saved default selection never replaces explicit Remote or reference-file r
 }
 
 ///|
+test "project init support is implementation data and acquires no command original" {
+  assert_true(local_project_binding_implementation(None, false))
+  assert_false(local_project_binding_implementation(Some("mock"), true))
+  assert_false(local_project_binding_implementation(None, true))
+  assert_false(local_project_binding_implementation(Some("other"), false))
+  let matches = command().parse(argv=[
+    "--config", "/never-created/config.json", "--state-dir", "/never-created/state",
+    "project-init-support",
+  ])
+  let reply : Ref[String?] = Ref(None)
+  assert_true(command_preparation_invocation.val is None)
+  execute_and_write_native_reply(matches, reply)
+  assert_eq(
+    reply.val,
+    Some(
+      "{\"version\":\"actql-project-init-support/0.1\",\"sourceFree\":true,\"mock\":false}",
+    ),
+  )
+  assert_true(command_preparation_invocation.val is None)
+}
+
+///|
 test "catalog-only mock metadata cannot silently select the source-free installation" {
   let matches = command().parse(argv=["check", "never-read.aql"])
   let project = local_project_select_loaded(

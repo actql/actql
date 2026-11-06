@@ -214,7 +214,7 @@ jobs:
         run: node --test scripts/ordinary-operation-packages.test.mjs
       - name: Test Client CI partition and aggregate requirements
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/client-ci.test.mjs scripts/native-cli-project-init.test.mjs scripts/native-cli-project-scaffold.test.mjs scripts/ci-native-cli-installed.test.mjs scripts/native-cli-mock-scenario.test.mjs
+        run: node --test scripts/client-ci.test.mjs scripts/native-cli-project-init.test.mjs scripts/native-cli-project-scaffold.test.mjs scripts/native-cli-linux-local-ci.test.mjs scripts/produce-native-cli-linux-local.test.mjs scripts/native-cli-source-free-install.test.mjs scripts/release-test-registry.test.mjs scripts/native-cli-linux-local-recipe.test.mjs scripts/ci-native-cli-installed.test.mjs scripts/native-cli-mock-scenario.test.mjs
       - name: Test explicit release policy and publication refusal
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-review.test.mjs scripts/release-promotion-review.test.mjs scripts/release-registry.test.mjs scripts/release-stage.test.mjs scripts/release-native-registry.test.mjs scripts/release-native-publish.test.mjs scripts/release-native-latest.test.mjs scripts/release-public-install.test.mjs scripts/release-python-install.test.mjs scripts/release-python-publish.test.mjs scripts/release-python-cold-verifier.test.mjs scripts/release-native-install.test.mjs scripts/release-lanes.test.mjs scripts/release-fixed-source.test.mjs scripts/native-standalone-release.test.mjs scripts/native-cli-version.test.mjs
@@ -1157,6 +1157,77 @@ jobs:
             ${{ runner.temp }}/native-cli-installed/release/installed-ci.json
           if-no-files-found: warn
           retention-days: 14
+  # Separate positive Local cohort; the Remote/no-runtime regression is independent.
+  native-cli-linux-local:
+    needs: [select-targets, preflight]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - name: Install selected Linux compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang-19
+      - name: Install existing component producer Python dependencies
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
+      - name: Retain exact official component archives
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, urllib.request
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'native-cli-linux-local'
+          inputs = root / 'inputs'
+          inputs.mkdir(parents=True, exist_ok=False)
+          sqlite = json.loads(pathlib.Path('packages/python-local-runtime/native/sqlite-component/source.json').read_text())['upstream']
+          crypto = json.loads(pathlib.Path('packages/python-local-runtime/native/crypto-component/source.json').read_text())['source_targets']['x86_64-unknown-linux-gnu']
+          for name, original in [('sqlite.zip', sqlite), ('libssl-dev.deb', crypto['package']), ('libssl3t64.deb', crypto['license']['package'])]:
+              assert 0 < original['bytes'] <= 5 * 1024 * 1024
+              with urllib.request.urlopen(original['url'], timeout=60) as response:
+                  data = response.read(original['bytes'] + 1)
+              assert len(data) == original['bytes'] and hashlib.sha256(data).hexdigest() == original['sha256']
+              with (inputs / name).open('xb') as output:
+                  output.write(data)
+          PY
+      - name: Produce normal selected Linux Local artifact
+        run: |
+          node scripts/produce-native-cli-linux-local.mjs \
+            --source "$(git rev-parse HEAD)" --package-version 0.0.2-rc.0 \
+            --output "$RUNNER_TEMP/native-cli-linux-local/production" \
+            --clang "$(realpath /usr/bin/clang-19)" \
+            --sqlite-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/sqlite.zip" \
+            --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl-dev.deb" \
+            --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl3t64.deb" \
+            --component-seconds 300 --compile-seconds 1800
+      - name: Require Local payload in the selected npm cohort
+        run: |
+          printf '%s\n' '{"packageVersion":"0.0.2-rc.0","registry":"https://registry.npmjs.org/","access":"public","tag":"rc"}' > "$RUNNER_TEMP/native-cli-linux-local/cohort.json"
+          node scripts/native-cli-release.mjs prepare-local \
+            "$RUNNER_TEMP/native-cli-linux-local/release" \
+            "$RUNNER_TEMP/native-cli-linux-local/cohort.json" \
+            "$RUNNER_TEMP/native-cli-linux-local/production/artifact"
+      - name: Require actual fresh installed source-free Local execution
+        run: node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
+      - name: Retain exact component, artifact and installed Local receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-cli-linux-local-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/native-cli-linux-local/production/sqlite/process-producer.json
+            ${{ runner.temp }}/native-cli-linux-local/production/crypto/producer.json
+            ${{ runner.temp }}/native-cli-linux-local/production/recipe/
+            ${{ runner.temp }}/native-cli-linux-local/production/artifact/artifact.json
+            ${{ runner.temp }}/native-cli-linux-local/production/artifact/native-producer/build.json
+            ${{ runner.temp }}/native-cli-linux-local/release/release.json
+            ${{ runner.temp }}/native-cli-linux-local/release/source-free-install-*.json
+            ${{ runner.temp }}/native-cli-linux-local/release/source-free-observed-*.json
+          if-no-files-found: warn
+          retention-days: 14
   # Native storage, publication and control, and the Native retained path.
   native:
     needs: [select-targets, preflight]
@@ -1173,7 +1244,7 @@ jobs:
       - name: Install existing scoped component producer dependencies
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Test scoped bundle producer source and image metadata refusals
-        run: python3 -B -m unittest scripts/test_native_crypto_component.py scripts/test_native_remote_scoped_runtime.py scripts/test_native_resident_http_preparation.py scripts/test_python_scoped_read_source.py scripts/test_python_sqlite_component_source.py scripts/test_linux_process_sqlite_component.py
+        run: python3 -B -m unittest scripts/test_linux_component_headers.py scripts/test_native_crypto_component.py scripts/test_native_remote_scoped_runtime.py scripts/test_native_resident_http_preparation.py scripts/test_python_scoped_read_source.py scripts/test_python_sqlite_component_source.py scripts/test_linux_process_sqlite_component.py
       - name: Test immutable Native package-version C mechanism
         run: node --test scripts/native-cli-version-native.test.mjs
       - name: Test selected Linux x64 process-provider ABI and original physical custody
@@ -1292,7 +1363,7 @@ jobs:
   # scheduled (see its condition).
   check:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native, spec, session-evidence, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
+    needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native, spec, session-evidence, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
       native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick]
     runs-on: ubuntu-24.04
     timeout-minutes: 5

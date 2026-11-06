@@ -188,6 +188,27 @@ def local_initial_entry_arguments(parts: list[str], moon_home: Path,
     return list(parts)
 
 
+def local_stock_file_control_header(source: str, destination: Path) -> dict[str, object]:
+    """Select the existing Linux File record census, not a bundle arena."""
+    if re.fullmatch(r'[0-9a-f]{40}', source) is None:
+        raise ValueError('Exact Local CLI source pin is required')
+    path = ROOT / LOCAL_ENTRY / 'stock_file_control.linux-x64.json'
+    raw = path.read_bytes()
+    recipe = json.loads(raw)
+    if recipe != {'kind': 'private-native-client-stock-file-control',
+                  'target': 'linux-x64', 'stockFileControlBytes': 4096}:
+        raise ValueError('Exact Local Linux stock-File control recipe required')
+    # The shared Linux provider profile already serves Resident and Bundle.
+    # Its macro names select the same layout only; the ordinary Local entry
+    # does not acquire either command's initial arena, capture or budget.
+    with destination.open('x') as stream:
+        stream.write('/* Local command fixed File records; not arena capacity. */\n'
+                     '#define ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES 4096\n')
+    return {'recipe': original(path), 'header': original(destination),
+            'source': source, 'recipeSha256': hashlib.sha256(raw).hexdigest(),
+            'selected': recipe, 'permission': False, 'physicalAcquired': False}
+
+
 def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                  clang: Path, sdk: Path, *, cc_driver: Path | None = None,
                  ar_driver: Path | None = None, entry: str = ENTRY,
@@ -195,11 +216,12 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                  package_version: str | None = None,
                  resident_control_header: Path | None = None,
                  bundle_control_header: Path | None = None,
+                 local_control_header: Path | None = None,
                  target: str = 'darwin-arm64',
                  stock_file_control_bytes: int | None = None) -> list[list[str]]:
     """Keep the actual pinned dry-run closure; reject other targets/entries."""
     entry_package = selected_entry(entry)
-    if target not in ('darwin-arm64', 'linux-x64') or (target == 'linux-x64' and entry not in (ENTRY, BUNDLE_ENTRY)):
+    if target not in ('darwin-arm64', 'linux-x64'):
         raise ValueError('No selected scoped command for this target/entry')
     if target == 'linux-x64' and stock_file_control_bytes != 4096:
         raise ValueError('Exact bundle stock-File control page required')
@@ -210,13 +232,16 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
         package_version = select_release_version(package_version)['version']
     if entry == LOCAL_ENTRY and (source_sha is None or re.fullmatch(r'[0-9a-f]{40}', source_sha) is None):
         raise ValueError('Exact Local CLI source pin is required')
-    control_header = resident_control_header if entry == ENTRY else bundle_control_header
+    control_header = (resident_control_header if entry == ENTRY else
+                      bundle_control_header if entry == BUNDLE_ENTRY else local_control_header)
     control_label = 'Resident' if entry == ENTRY else 'Bundle installer'
     control_macro = 'ACTQL_RESIDENT_' if entry == ENTRY else 'ACTQL_BUNDLE_'
     valid_resident_pin = (source_sha is not None and re.fullmatch(r'[0-9a-f]{40}', source_sha) is not None
                           and control_header is not None
                           and under(control_header, emission.parent)
                           and not any(c in str(control_header) for c in '\n\r"\\'))
+    if target == 'linux-x64' and entry == LOCAL_ENTRY and not valid_resident_pin:
+        raise ValueError('Exact Local CLI source and owned stock-File control header required')
     core = emission / 'native/release/build' / entry_package / (Path(entry_package).name + '.c')
     executable = core.with_suffix('.exe')
     commands: list[list[str]] = []
@@ -407,7 +432,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
           entry: str = ENTRY, package_version: str | None = None,
           target: str = 'darwin-arm64') -> dict[str, object]:
     entry_package = selected_entry(entry)
-    if target not in ('darwin-arm64', 'linux-x64') or (target == 'linux-x64' and entry not in (ENTRY, BUNDLE_ENTRY)):
+    if target not in ('darwin-arm64', 'linux-x64'):
         raise ValueError('No selected scoped command for this target/entry')
     if package_version is not None:
         from python_release_cohort import select_release_version
@@ -462,7 +487,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                                target='x86_64-unknown-linux-gnu' if target == 'linux-x64' else None)
     resident_control = (command_initial_control_header(source, destination /
                         ('resident-initial-control.h' if entry == ENTRY else 'bundle-initial-control.h'), entry, target)
-                        if entry in (ENTRY, BUNDLE_ENTRY) else None)
+                        if entry in (ENTRY, BUNDLE_ENTRY) else
+                        local_stock_file_control_header(source, destination / 'local-stock-file-control.h')
+                        if target == 'linux-x64' else None)
     emission = destination / 'emission'
     cc_driver = destination / 'bin/cc'
     cc_driver.parent.mkdir()
@@ -497,7 +524,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                             resident_control_header=(Path(resident_control['header']['path'])
                                                      if resident_control and entry == ENTRY else None),
                             bundle_control_header=(Path(resident_control['header']['path'])
-                                                   if resident_control and entry == BUNDLE_ENTRY else None), target=target,
+                                                   if resident_control and entry == BUNDLE_ENTRY else None),
+                            local_control_header=(Path(resident_control['header']['path'])
+                                                  if resident_control and entry == LOCAL_ENTRY else None), target=target,
                             stock_file_control_bytes=(resident_control['selected']['stockFileControlBytes']
                                 if target == 'linux-x64' else None))
     (destination / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
@@ -513,7 +542,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                               ('initial_control_stub.c', 'initial_control_capture.h')]
                              if entry == BUNDLE_ENTRY else
                              [ROOT / ENTRY / 'initial_control_capture.h'] if entry == ENTRY else [])
-    if target == 'linux-x64':
+    if target == 'linux-x64' and entry in (ENTRY, BUNDLE_ENTRY):
         command_include_paths.append(ROOT / BUNDLE_ENTRY / 'initial_control_capture_linux_x64.h')
     command_include_inputs = [original(path) for path in command_include_paths]
     cc_plan.write_text(json.dumps({'steps': c_steps, 'emission': str(emission),
@@ -563,7 +592,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         'installed_supplier': False, 'normal_profile': None, 'runtime_cases': 0, 'public_e2e': 0,
     }
     if resident_control:
-        receipt['resident_initial_control' if entry == ENTRY else 'bundle_initial_control'] = resident_control
+        receipt['resident_initial_control' if entry == ENTRY else
+                'bundle_initial_control' if entry == BUNDLE_ENTRY else 'local_stock_file_control'] = resident_control
     if package_version is not None:
         receipt['package_version'] = package_version
     (destination / 'progress.json').write_text(json.dumps(receipt, indent=2) + '\n')

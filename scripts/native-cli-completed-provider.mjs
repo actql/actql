@@ -55,8 +55,11 @@ async function jsonMember(path, maximum) {
   } finally {await fd.close();}
 }
 
-export async function admitCompletedNativeLocalProvider(destination, source, repository, moonHome, {packageVersion} = {}) {
+export async function admitCompletedNativeLocalProvider(destination, source, repository, moonHome,
+  {packageVersion, platform = 'darwin-arm64'} = {}) {
   const selectedVersion = packageVersion === undefined ? undefined : releaseVersion(packageVersion).version;
+  assert(['darwin-arm64', 'linux-x64-gnu'].includes(platform), 'No selected Local provider platform');
+  const target = platform === 'darwin-arm64' ? platform : 'linux-x64';
   assert.match(source, /^[a-f0-9]{40}$/u);
   destination = resolve(destination);
   const directory = await lstat(destination);
@@ -70,7 +73,7 @@ export async function admitCompletedNativeLocalProvider(destination, source, rep
   const receipt = await jsonMember(join(provider, 'build.json'), 65536);
   assert.equal(receipt.source, source, 'Completed provider must have the exact current source');
   assert.equal(receipt.entry, 'src/cmd/native_client');
-  assert.equal(receipt.target, 'darwin-arm64');
+  assert.equal(receipt.target, target, 'Completed provider target differs from the actual producer');
   assert.equal(receipt.plan_only, false);
   assert.equal(receipt.moon_build_exit, 0);
   assert.equal(receipt.providers, 1);
@@ -127,8 +130,39 @@ export async function admitCompletedNativeLocalProvider(destination, source, rep
   assert.equal(receipt.allocator.recipe_sha256, digest(recipe));
   const parsed = JSON.parse(recipe.toString('utf8'));
   assert.equal(receipt.allocator.patch_sha256, parsed.patch.sha256);
-  assert.deepEqual(receipt.allocator.required_defines, parsed.required_defines);
-  assert.deepEqual(receipt.allocator.outputs, parsed.outputs);
+  if (target === 'darwin-arm64') {
+    assert.equal(receipt.allocator.target, parsed.target);
+    assert.deepEqual(receipt.allocator.required_defines, parsed.required_defines);
+    assert.deepEqual(receipt.allocator.outputs, parsed.outputs);
+  } else {
+    const triple = 'x86_64-unknown-linux-gnu', selected = parsed.source_targets[triple];
+    assert.equal(receipt.allocator.target, triple);
+    assert.deepEqual(receipt.allocator.required_defines, selected.required_defines);
+    assert.deepEqual(receipt.allocator.required_source_parameters, selected.required_source_parameters);
+    const outputs = {...parsed.outputs}, replaced = new Set();
+    for (const input of parsed.inputs) if (input.root === 'moonbit' && Object.hasOwn(selected.binary_inputs, input.path)) {
+      outputs[input.output] = selected.binary_inputs[input.path]; replaced.add(input.path);
+    }
+    assert.deepEqual([...replaced].sort(), Object.keys(selected.binary_inputs).sort());
+    assert.deepEqual(receipt.allocator.outputs, outputs);
+    const control = receipt.local_stock_file_control;
+    assert.equal(control.source, source);
+    assert.equal(control.recipe.path, join(repository, 'src/cmd/native_client/stock_file_control.linux-x64.json'));
+    assert.equal(control.header.path, join(provider, 'local-stock-file-control.h'));
+    assert(paths.has(control.recipe.path) && paths.has(control.header.path),
+      'Completed Linux Local provider lacks its original stock-File control inputs');
+    await observedFile(control.recipe.path, control.recipe);
+    await observedFile(control.header.path, control.header);
+    assert.deepEqual(control.selected, {kind: 'private-native-client-stock-file-control',
+      target, stockFileControlBytes: 4096});
+    assert.deepEqual(JSON.parse(await readFile(control.recipe.path, 'utf8')), control.selected);
+    assert.equal(await readFile(control.header.path, 'utf8'),
+      '/* Local command fixed File records; not arena capacity. */\n' +
+      '#define ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES 4096\n');
+    assert.equal(control.recipeSha256, control.recipe.sha256);
+    assert.equal(control.permission, false);
+    assert.equal(control.physicalAcquired, false);
+  }
   const build = join(provider, 'emission/native/release/build/cmd/native_client');
   const binary = join(build, 'native_client.exe'), generatedC = join(build, 'native_client.c');
   await observedFile(binary, receipt.executable, 64 * 1024 * 1024);

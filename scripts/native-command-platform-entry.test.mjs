@@ -12,9 +12,10 @@ const scratch = mkdtempSync(join(realpathSync(tmpdir()), 'actql-command-entry-')
 const executable = join(scratch, 'entry');
 const unavailable = join(scratch, 'unavailable');
 before(() => {
-  assert.equal(process.platform, 'darwin');
+  assert((process.platform === 'darwin' && process.arch === 'arm64') ||
+    (process.platform === 'linux' && process.arch === 'x64' && process.report.getReport().header.glibcVersionRuntime));
   assert.ok(process.env.MOON_HOME, 'use the pinned Native toolchain');
-  const build = spawnSync('cc', ['-std=c11', '-O0',
+  const build = spawnSync('cc', ['-std=c11', '-O0', ...(process.platform === 'linux' ? ['-D_GNU_SOURCE'] : []),
     '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC',
     '-DACTQL_NATIVE_CLIENT_SOURCE_SHA="1234567890abcdef1234567890abcdef12345678"',
     '-I'+resolve(process.env.MOON_HOME, 'include'),
@@ -26,7 +27,7 @@ before(() => {
     resolve(process.env.MOON_HOME, 'lib/libmoonbitrun.o'), '-o', executable],
   {cwd:root, encoding:'utf8', timeout:60_000});
   assert.equal(build.status, 0, `${build.error ?? ''}\n${build.stderr}`);
-  const absent = spawnSync('cc', ['-std=c11', '-O0',
+  const absent = spawnSync('cc', ['-std=c11', '-O0', ...(process.platform === 'linux' ? ['-D_GNU_SOURCE'] : []),
     join(root, 'scripts/fixtures/native-command-platform-unavailable.c'),
     join(root, 'scripts/fixtures/native-command-platform-default.c'),
     '-o', unavailable], {cwd:root, encoding:'utf8', timeout:60_000});
@@ -40,7 +41,7 @@ test('unselected bootstrap has no CLI or filesystem dependency', () => {
   assert.equal(run.status, 0, `${run.error ?? ''}\n${run.stdout}\n${run.stderr}`);
   assert.equal(run.stdout.trim(), 'unselected bootstrap entry passed');
 });
-for (const name of ['capture', 'used-streams', 'one-shot', 'partial-current', 'thread-fork', 'runtime']) {
+for (const name of ['capture', 'used-streams', 'one-shot', 'partial-current', 'thread-fork', 'runtime', 'argument-currentness']) {
   test(`original command entry record ${name}`, () => {
     const run = spawnSync(executable, [name], {cwd:root,
       env:{...process.env, TMPDIR:name === 'used-streams' ? scratch : '/original/command-scratch',

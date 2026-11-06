@@ -225,7 +225,7 @@ fn prepare_native_command_invocation(
   }
   let (root, source, platform, manifest) = local_product_context(context)
   let actual_source = command_preparation_result(command_preargument_source())
-  if source != actual_source || platform != "darwin-arm64" {
+  if source != actual_source || !command_compiled_platform_matches(platform) {
     stop("PackagedLocalRuntimeChanged")
   }
   let static_profile = local_command_installed_profile(actual_source, manifest)

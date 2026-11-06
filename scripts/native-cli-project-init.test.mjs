@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {projectInitArguments, projectInitialAdoptionArguments} from '../packages/native-cli/lib/project-scaffold.mjs';
+import {projectInitArguments, projectInitialAdoptionArguments, requireProjectInitSupport, scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -40,7 +40,12 @@ async function installedFixture(t, {runtime = false} = {}) {
   // An explicitly synthetic dispatch observer, never a Native implementation
   // or package acceptance result. Its exact bytes pass normal launcher checks.
   const binary = Buffer.from(`#!${process.execPath}\n` +
-    'process.stdout.write(JSON.stringify({args:process.argv.slice(2),runtime:process.env.ACTQL_NATIVE_LOCAL_RUNTIME ?? null}) + "\\n");\n' +
+    'if (process.argv[2] === "project-init-support") {\n' +
+    '  if (process.env.ACTQL_NATIVE_TIMINGS !== "0") process.stderr.write("query timing diagnostics must be suppressed");\n' +
+    '  process.stdout.write(process.env.ACTQL_INIT_FIXTURE_SUPPORT ?? JSON.stringify({version:"actql-project-init-support/0.1",sourceFree:true,mock:false}));\n' +
+    '  process.exit(0);\n' +
+    '}\n' +
+    'process.stdout.write(JSON.stringify({args:process.argv.slice(2),runtime:process.env.ACTQL_NATIVE_LOCAL_RUNTIME ?? null,...(process.env.ACTQL_INIT_FIXTURE_OBSERVE_TIMINGS === "1" ? {timings:process.env.ACTQL_NATIVE_TIMINGS} : {})}) + "\\n");\n' +
     'process.exitCode=Number(process.env.ACTQL_INIT_FIXTURE_EXIT ?? 0);\n');
   await writeFile(executable, binary, {mode: 0o755});
   const sourceSha = 'a'.repeat(40);
@@ -266,4 +271,136 @@ test('root README deal-review init selects its exact documented template and dir
   assert.equal(line, 'actql init --template deal-review-mock deal-review && cd deal-review');
   const args = line.split(' && ')[0].split(' ').slice(1);
   assert.deepEqual(projectInitArguments(args), {directory: 'deal-review', template: 'deal-review-mock'});
+});
+
+const supportReply = value => ({status: 0, signal: null, stderr: '',
+  stdout: JSON.stringify({version: 'actql-project-init-support/0.1', sourceFree: true, mock: false, ...value})});
+
+test('init implementation query uses only the admitted executable and fixed bounded arguments', () => {
+  const environment = Object.freeze({ACTQL_NATIVE_LOCAL_RUNTIME: 'admitted', ACTQL_NATIVE_TIMINGS: '1'});
+  requireProjectInitSupport('/admitted/native', environment, undefined, (executable, args, options) => {
+    assert.equal(executable, '/admitted/native');
+    assert.deepEqual(args, ['project-init-support']);
+    assert.notEqual(options.env, environment);
+    assert.deepEqual(options.env, {...environment, ACTQL_NATIVE_TIMINGS: '0'});
+    assert.equal(environment.ACTQL_NATIVE_TIMINGS, '1');
+    assert.deepEqual(options.stdio, ['ignore', 'pipe', 'pipe']);
+    assert.equal(options.timeout, 5000);
+    assert.equal(options.killSignal, 'SIGKILL');
+    assert.equal(options.maxBuffer, 4096);
+    return supportReply();
+  });
+  // A parser fixture is not runtime acceptance: future Native support is not
+  // prohibited by a JavaScript template ban.
+  requireProjectInitSupport('/admitted/native', environment, 'churn-risk-mock', () => supportReply({mock: true}));
+});
+
+test('private support wire accepts the Native final LF but refuses duplicate keys and alternative encodings', async t => {
+  const root = await scratch(t);
+  const wire = supportReply().stdout;
+  requireProjectInitSupport('/admitted/native', {}, undefined, () => ({...supportReply(), stdout: wire + '\n'}));
+  const invalid = [
+    wire.replace('"mock":false', '"mock":false,"mock":true'),
+    wire.replace('"sourceFree":true', '"sourceFree":false,"sourceFree":true'),
+    wire.replace('"version":', '"version":"unknown","version":'),
+    wire + wire, wire + '\n{}', wire + ' trailing',
+    wire.replace('"mock"', '"mo\\u0063k"'),
+    JSON.stringify({mock: false, sourceFree: true, version: 'actql-project-init-support/0.1'}),
+    JSON.stringify(JSON.parse(wire), null, 2), wire + '\n\n',
+  ];
+  for (const stdout of invalid) {
+    assert.throws(() => {
+      requireProjectInitSupport('/admitted/native', {}, undefined, () => ({...supportReply(), stdout}));
+      scaffoldProject(join(root, 'absent'));
+    }, e => e.exitCode === 69 && /initialization support is unavailable/.test(e.message));
+    assert.deepEqual(await readdir(root), []);
+  }
+});
+
+test('unavailable mock bindings preserve absent, empty and occupied project targets', async t => {
+  const root = await scratch(t);
+  await mkdir(join(root, 'empty'));
+  await mkdir(join(root, 'occupied'));
+  await writeFile(join(root, 'occupied/sentinel'), 'unchanged');
+  for (const template of ['churn-risk-mock', 'deal-review-mock']) {
+    for (const target of ['absent', 'empty', 'occupied']) {
+      assert.throws(() => {
+        requireProjectInitSupport('/admitted/native', {}, template, () => supportReply());
+        scaffoldProject(join(root, target), template);
+      }, e => e.exitCode === 69 && /does not implement/.test(e.message));
+    }
+  }
+  assert.deepEqual((await readdir(root)).sort(), ['empty', 'occupied']);
+  assert.deepEqual(await readdir(join(root, 'empty')), []);
+  assert.deepEqual(await readdir(join(root, 'occupied')), ['sentinel']);
+  assert.equal(await readFile(join(root, 'occupied/sentinel'), 'utf8'), 'unchanged');
+});
+
+test('old, malformed, failed, timed out and oversized Native queries refuse before preparation', async t => {
+  const root = await scratch(t);
+  const invalid = [
+    {...supportReply(), status: 2}, {...supportReply(), status: null, signal: 'SIGTERM'},
+    {...supportReply(), error: Object.assign(Error('timeout'), {code: 'ETIMEDOUT'})},
+    {...supportReply(), stdout: 'x'.repeat(4097)}, {...supportReply(), stdout: ''},
+    {...supportReply(), stdout: '{} trailing'}, {...supportReply(), stdout: 'null'},
+    {...supportReply(), stdout: '[]'}, {...supportReply(), stdout: '{}'},
+    {...supportReply(), stderr: 'unexpected warning'},
+    supportReply({version: 'unknown'}), supportReply({mock: 'true'}),
+    supportReply({extra: true}), supportReply({sourceFree: false}),
+  ];
+  for (const reply of invalid) {
+    assert.throws(() => {
+      requireProjectInitSupport('/admitted/native', {}, undefined, () => reply);
+      scaffoldProject(join(root, 'absent'));
+    }, e => e.exitCode === 69);
+    assert.deepEqual(await readdir(root), []);
+  }
+});
+
+
+test('installed launcher refuses unavailable mock support before scaffolding or adoption', installedTest, async t => {
+  const f = await installedFixture(t, {runtime: true});
+  await mkdir(join(f.cwd, 'empty'));
+  await mkdir(join(f.cwd, 'occupied'));
+  await writeFile(join(f.cwd, 'occupied/sentinel'), 'unchanged');
+  for (const template of ['churn-risk-mock', 'deal-review-mock']) {
+    for (const target of ['absent', 'empty', 'occupied']) {
+      const result = f.invoke(['init', '--template', template, target]);
+      assert.ifError(result.error); assert.equal(result.status, 69);
+      assert.equal(result.stdout, '');
+      assert.match(result.stderr, /does not implement the selected project bindings/u);
+      assert.deepEqual((await readdir(f.cwd)).sort(), ['empty', 'occupied']);
+      assert.deepEqual(await readdir(join(f.cwd, 'empty')), []);
+      assert.deepEqual(await readdir(join(f.cwd, 'occupied')), ['sentinel']);
+      assert.equal(await readFile(join(f.cwd, 'occupied/sentinel'), 'utf8'), 'unchanged');
+    }
+  }
+});
+
+test('installed launcher rejects malformed and oversized support replies before scaffold', installedTest, async t => {
+  const f = await installedFixture(t, {runtime: true});
+  for (const reply of ['not JSON', '{}', 'x'.repeat(5000), JSON.stringify({version:'old',sourceFree:true,mock:true})]) {
+    const result = f.invoke(['init', 'absent'], {ACTQL_INIT_FIXTURE_SUPPORT: reply});
+    assert.ifError(result.error); assert.equal(result.status, 69);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, /initialization support is unavailable/u);
+    assert.deepEqual(await readdir(f.cwd), []);
+  }
+});
+
+
+test('installed init silences only private query timings and preserves adoption diagnostics', installedTest, async t => {
+  const f = await installedFixture(t, {runtime: true});
+  const result = f.invoke(['init', 'project'], {
+    ACTQL_NATIVE_TIMINGS: '1', ACTQL_INIT_FIXTURE_OBSERVE_TIMINGS: '1',
+  });
+  assert.ifError(result.error); assert.equal(result.status, 0);
+  const observed = JSON.parse(result.stdout);
+  assert.equal(observed.timings, '1');
+  const canonicalProject = await realpath(join(f.cwd, 'project'));
+  assert.deepEqual(observed.args, ['--mode', 'local', '--config', join(canonicalProject, 'actql.config.json'),
+    '--state-dir', join(canonicalProject, '.actql'), 'adopt', '--initialize-signing']);
+  assert.match(result.stderr, /^ACTQL_NATIVE_LAUNCHER_TIMINGS /u);
+  assert.doesNotMatch(result.stderr, /query timing diagnostics/u);
+  assert.deepEqual(await readdir(join(f.cwd, 'project')), ['actql.config.json', 'connectors.json', 'model-tasks.json']);
 });

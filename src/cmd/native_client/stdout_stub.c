@@ -10,6 +10,9 @@
 #include <limits.h>
 #if defined(__APPLE__)
 #include <crt_externs.h>
+#endif
+#if defined(__APPLE__) || (defined(__linux__) && defined(__x86_64__) && defined(__GLIBC__))
+#define ACTQL_NATIVE_COMMAND_RAW_ARGUMENTS 1
 // The selected pinned libmoonbitrun.o supplies this mimalloc size query.
 // It is the same allocator used before the derived Read context is entered.
 extern size_t mi_good_size(size_t size);
@@ -141,6 +144,18 @@ const char *actql_native_client_selected_source(void) {
 #endif
 }
 
+/* Actual compiler target observation only. Launcher metadata cannot select a
+ * foreign physical profile; this does not issue a Host or component original. */
+int32_t actql_native_client_compiled_platform(void) {
+#if defined(__APPLE__) && defined(__aarch64__)
+  return 1;
+#elif defined(__linux__) && defined(__x86_64__) && defined(__GLIBC__)
+  return 2;
+#else
+  return 0;
+#endif
+}
+
 // The OS argv and launcher marker stay in their original process lifetime.
 // This private observation performs no managed copy or physical acquisition.
 // Once selected or refused it cannot restart against changed process inputs.
@@ -159,7 +174,35 @@ static actql_bootstrap_command_preparation_observation actql_command_input;
 // worst-case UTF16 decode/trim overlap, and every growing argv ref buffer.
 static int64_t actql_command_argument_classes[4];
 
+#if defined(__linux__) && defined(__x86_64__) && defined(__GLIBC__)
+/* glibc supplies the original executable arguments to init-array functions.
+ * Retain only their process-lived pointers, as the existing Linux command
+ * entry does. No input read, allocation, environment or Host is acquired here. */
+static struct { bool seen; int argc; char **argv; } actql_command_linux_arguments;
+__attribute__((constructor(101)))
+static void actql_command_capture_linux_arguments(int argc, char **argv, char **environment) {
+  (void)environment;
+  if (actql_command_linux_arguments.seen) return;
+  actql_command_linux_arguments.seen = true;
+  actql_command_linux_arguments.argc = argc;
+  actql_command_linux_arguments.argv = argv;
+}
+#endif
+
+#if defined(ACTQL_NATIVE_COMMAND_RAW_ARGUMENTS)
+static bool actql_command_raw_arguments(int *argc, const char *const **argv) {
 #if defined(__APPLE__)
+  if (!_NSGetArgc() || !_NSGetArgv()) return false;
+  *argc = *_NSGetArgc();
+  *argv = (const char *const *)*_NSGetArgv();
+#else
+  if (!actql_command_linux_arguments.seen) return false;
+  *argc = actql_command_linux_arguments.argc;
+  *argv = (const char *const *)actql_command_linux_arguments.argv;
+#endif
+  return *argc > 0 && *argv != NULL;
+}
+
 static bool actql_command_add_class(int64_t *sum, size_t request) {
   size_t quoted = mi_good_size(request);
   if (quoted < request || quoted > INT64_MAX ||
@@ -207,10 +250,11 @@ static void actql_native_client_capture_initial_input(void) {
     actql_command_early_input_status = ACTQL_COMMAND_INPUT_NOT_SELECTED;
     return;
   }
-#if defined(__APPLE__)
+#if defined(ACTQL_NATIVE_COMMAND_RAW_ARGUMENTS)
   const char *source = actql_native_client_selected_source();
-  int argc = *_NSGetArgc();
-  const char *const *argv = (const char *const *)*_NSGetArgv();
+  int argc = 0;
+  const char *const *argv = NULL;
+  if (!actql_command_raw_arguments(&argc, &argv)) return;
   actql_command_early_input_status = actql_bootstrap_measure_command_preparation(
       source, context, argc, argv,
       ACTQL_COMMAND_ORIGINAL_ARGUMENT_BYTES, ACTQL_COMMAND_ORIGINAL_ARGUMENT_BYTES,
@@ -246,10 +290,11 @@ static void actql_native_client_capture_initial_input(void) {
 }
 
 static bool actql_command_original_arguments_current(void) {
-#if defined(__APPLE__)
-  int argc = *_NSGetArgc();
-  const char *const *argv = (const char *const *)*_NSGetArgv();
-  if (argc <= 0 || (size_t)argc != actql_command_input.input.arguments || !argv)
+#if defined(ACTQL_NATIVE_COMMAND_RAW_ARGUMENTS)
+  int argc = 0;
+  const char *const *argv = NULL;
+  if (!actql_command_raw_arguments(&argc, &argv) ||
+      (size_t)argc != actql_command_input.input.arguments)
     return false;
   size_t offset = 0;
   for (int index = 0; index < argc; ++index) {

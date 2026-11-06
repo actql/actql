@@ -143,7 +143,7 @@
     {
       "module": "packages/native-cli/bin/actql.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "75245533470653baeb57c7a79417ab1f9cebdefb6145624617629954c89845c4",
+      "sha256": "d411ca345816d88daad4a895a7a8bd6dd26dbd25e16844872002ceea851a5abb",
       "exports": [
         "admitInstalledBinary",
         "launch",

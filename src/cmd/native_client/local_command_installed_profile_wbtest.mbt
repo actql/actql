@@ -1,4 +1,26 @@
 ///|
+test "installed platform matches only the actual compiled target" {
+  for platform in ["", "linux-x64", "linux-arm64-gnu", "darwin-x64"] {
+    assert_false(command_compiled_platform_matches(platform))
+  }
+  match command_compiled_platform_ffi() {
+    1 => {
+      assert_true(command_compiled_platform_matches("darwin-arm64"))
+      assert_false(command_compiled_platform_matches("linux-x64-gnu"))
+    }
+    2 => {
+      assert_true(command_compiled_platform_matches("linux-x64-gnu"))
+      assert_false(command_compiled_platform_matches("darwin-arm64"))
+    }
+    _ => {
+      assert_false(command_compiled_platform_matches("darwin-arm64"))
+      assert_false(command_compiled_platform_matches("linux-x64-gnu"))
+    }
+  }
+  assert_true(command_preparation_invocation.val is None)
+}
+
+///|
 // These tests distinguish the actual compiled provider from ordinary Core's
 // unselected profile. A failed arbitrary layout is never accepted as fallback;
 // selected Native artifact acceptance remains independently mandatory.

@@ -838,6 +838,10 @@ fn command() -> @argparse.Command {
       ),
     ],
     subcommands=[
+      @argparse.Command(
+        "project-init-support",
+        about="Report project binding implementation availability",
+      ),
       @argparse.Command("schema", about="Print the Program JSON Schema"),
       @argparse.Command("verify", subcommand_required=true, subcommands=[
         @argparse.Command("output", flags=[@argparse.FlagArg("json")], positionals=[
@@ -1441,6 +1445,12 @@ fn execute_and_write_native_reply(
   command_diagnostic_json.val = local_command_json_selected(matches)
   command_check_invalid_exit.val = false
   command_result_delivery_failed.val = false
+  // This fixed query reports implementation only, before any project/runtime
+  // selection, file acquisition, Account, Store or signing preparation.
+  if matches.subcommand is Some(("project-init-support", _)) {
+    pending_reply.val = Some(local_project_init_support())
+    return
+  }
   // Language discovery returns the registered Program schema, without project
   // selection, installation IO, a Host or a Run. Main owns stdout/flush errors.
   if matches.subcommand is Some(("schema", _)) {

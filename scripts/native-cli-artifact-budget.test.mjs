@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {nativeCliCompileBudget} from './native-cli-artifact.mjs';
+import {nativeCliCompileBudget, nativeLocalCompilerArguments} from './native-cli-artifact.mjs';
+
+test('Local artifact compiler selection preserves the actual platform and SDK boundary', () => {
+  assert.deepEqual(nativeLocalCompilerArguments('linux-x64-gnu', {clang: '/selected/clang'}),
+    ['--clang', '/selected/clang', '--target', 'linux-x64']);
+  assert.deepEqual(nativeLocalCompilerArguments('darwin-arm64', {clang: '/selected/clang', sdk: '/selected/sdk'}),
+    ['--clang', '/selected/clang', '--sdk', '/selected/sdk', '--target', 'darwin-arm64']);
+  for (const [platform, options] of [
+    ['linux-x64', {clang: '/clang'}], ['linux-arm64-gnu', {clang: '/clang'}],
+    ['linux-x64-gnu', {clang: '/clang', sdk: '/sdk'}],
+    ['darwin-arm64', {clang: '/clang'}], ['linux-x64-gnu', {clang: 'clang'}],
+  ]) assert.throws(() => nativeLocalCompilerArguments(platform, options));
+});
 
 test('default Native compilation budgets keep the existing selected deadlines', () => {
   assert.deepEqual(nativeCliCompileBudget(undefined), {seconds: 300, timeoutMs: 300000});

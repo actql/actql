@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {constants} from 'node:os';
 import {installedLocalRuntimeEnvironment} from '../lib/local-runtime.mjs';
-import {projectInitArguments, projectInitialAdoptionArguments, scaffoldProject} from '../lib/project-scaffold.mjs';
+import {projectInitArguments, projectInitialAdoptionArguments, scaffoldProject, requireProjectInitSupport} from '../lib/project-scaffold.mjs';
 
 export function platformKey({platform, arch, glibc}) {
   if (platform === 'darwin' && arch === 'arm64') return 'darwin-arm64';
@@ -108,6 +108,7 @@ export function launch(args) {
     // Preparation creates no state or key. Only the same admitted Native image
     // may adopt the explicit project Store through its existing installation
     // Owner. Failure leaves partial files and original cleanup responsibilities.
+    requireProjectInitSupport(executable, selectedEnvironment, initialization.template);
     const project = scaffoldProject(initialization.directory, initialization.template);
     selectedArguments = projectInitialAdoptionArguments(project);
   }
