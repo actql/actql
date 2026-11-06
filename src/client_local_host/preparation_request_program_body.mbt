@@ -780,7 +780,8 @@ fn[I] prepare_request_program_module_body_owned(
         // The actual Plan now owns its compilation. Measurement/retry DATA
         // has no subsequent consumer; do not retain another per-task graph
         // inventory through the SDK body borrower or the eventual Run.
-        // Keep the peak reservation until this constructor has unwound.
+        // The artifact call has already retired only its returned scratch.
+        // Keep all remaining constructor/measurement inventory charged.
         owner.program_measurement_quote = None
         owner.program_artifact_geometry = None
         owner.program_artifact_quote = None
@@ -969,10 +970,13 @@ fn[I] prepare_request_compilation_owned(
     }
   }
   let capacity = owner.program_capacity.unwrap()
-  let (r, e) = match owner.program_artifact_quote {
+  let (r, e, artifact_scratch) = match owner.program_artifact_quote {
     Some(original) => original
     None => {
-      guard program_artifact_construction_cost(geometry) is Some(bytes) else {
+      guard program_artifact_construction_extents(geometry)
+        is Some((retained, scratch)) &&
+        @execution.checked_preparation_add_product(retained, scratch, 1L)
+        is Some(bytes) else {
         return Err(Preparation(Policy))
       }
       let (r, e) = match
@@ -984,8 +988,8 @@ fn[I] prepare_request_compilation_owned(
         @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
         return Err(Preparation(Policy))
       }
-      owner.program_artifact_quote = Some((r, e))
-      (r, e)
+      owner.program_artifact_quote = Some((r, e, scratch))
+      (r, e, scratch)
     }
   }
   match @resources.reserve_working_preparation_phase(capacity, input, r, e) {
@@ -1103,6 +1107,28 @@ fn[I] prepare_request_compilation_owned(
   }
   if attempted is Ok(artifact) {
     owner.program_compilation = Some(artifact)
+    // The actual encoder/parser call and its work receipt have returned.
+    // Its output graph, wires, measurement and all earlier Request domains
+    // remain live. Only the SAME measured constructor's nonescaping scratch
+    // can now leave this reservation before runtime borrows the original body.
+    let (r, e) = match
+      @resources.preparation_capacity_working_extents(capacity, input) {
+      Err(issue) => return Err(Preparation(Capacity(issue)))
+      Ok(value) => value
+    }
+    if artifact_scratch >= r || artifact_scratch > e {
+      return Err(Preparation(Policy))
+    }
+    match
+      @resources.reconcile_working_preparation_phase(
+        capacity,
+        input,
+        r - artifact_scratch,
+        e - artifact_scratch,
+      ) {
+      Err(issue) => return Err(Preparation(Capacity(issue)))
+      Ok(_) => ()
+    }
     if domain is Some(RequestModelCompilation(_, _, _, _)) ||
       domain is Some(RequestModelsCompilation(_, _, _, _)) ||
       domain is Some(RequestSerializationCompilation(_, _, _, _)) ||
