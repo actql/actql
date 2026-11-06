@@ -43,7 +43,7 @@ test('catalog generates current facts wire, SDK metadata and reference outputs w
     registry.artifact_schemas.check_reason);
   assert.deepEqual(registry.artifact_schemas.check_reason, fixed.checkSchemas.reason.body);
   assert.deepEqual(registry.artifact_schemas.check_outcome, fixed.checkSchemas.outcome.body);
-  assert.equal(buildCheckReasonCatalog(catalog, registry).size, 3);
+  assert.equal(buildCheckReasonCatalog(catalog, registry).size, 4);
   generateCheckReasonCatalog();
 });
 test('catalog rejects malformed authoring and schema drift before generation', () => {
@@ -58,4 +58,17 @@ test('catalog rejects malformed authoring and schema drift before generation', (
   assert.throws(() => validateCheckReasonCatalog(missingMatch));
   const changed = structuredClone(catalog); changed.reason_schema.required.push('severity');
   assert.throws(() => buildCheckReasonCatalog(changed, registry));
+});
+
+test('Native CLI advice is generated from the same catalog including conditional variants', () => {
+  const native = buildCheckReasonCatalog(catalog, registry).get('src/cmd/native_client/check_reason_catalog.generated.mbt');
+  assert.match(native, /fn local_check_reason_presentation/u);
+  for (const entry of catalog.entries) {
+    assert(native.includes(JSON.stringify(entry.code)));
+    for (const item of [entry.presentation.default, ...entry.presentation.variants].filter(Boolean)) {
+      for (const text of item.english) assert(native.includes(JSON.stringify(text)));
+    }
+  }
+  assert(native.includes('facts.get("issue") == Some(Json::string("expected_boolean"))'));
+  assert(native.includes('_ => None'));
 });

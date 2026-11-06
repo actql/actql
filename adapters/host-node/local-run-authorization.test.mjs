@@ -9,7 +9,7 @@ import {pathToFileURL} from 'node:url';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {heldValuesProgram, writeSyntheticHistoricalHeldValues} from '../../scripts/fixtures/synthetic-historical-held-values.mjs';
 import {createLocalReadAuthorizations} from './local-result-authorization.mjs';
-import {canonicalJson, sourceReadAccountConfiguration} from './local-account-config.mjs';
+import {canonicalJson, observeInstalledAccount, sourceReadAccountConfiguration} from './local-account-config.mjs';
 import {loadExecutionAuthorizationRuntime} from './authorization.mjs';
 
 test('packed Salesforce fixtures grant only the owner original Run and named Result reads', async () => {
@@ -253,6 +253,50 @@ test('Sheets public fixture admits only owner Run and answer reads while keeping
       assert.equal(await authority.run(facts), principalId === 'fixture-owner');
       assert.equal(await authority.result({...facts, resultName: 'answer'}), principalId === 'fixture-owner');
       assert.equal(await authority.result({...facts, resultName: 'unrelated'}), false);
+    }
+  }
+});
+
+test('packed Checkpoint fixture separates owner observation from business authorization', async () => {
+  const wrapper = readFileSync(new URL('../../scripts/test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
+  const wrapperAst = parse(wrapper, {ecmaVersion: 'latest', sourceType: 'module'});
+  const write = wrapperAst.body.find(node => node.type === 'ExpressionStatement' &&
+    node.expression.type === 'AwaitExpression' &&
+    node.expression.argument.callee?.name === 'writeFile' &&
+    node.expression.argument.arguments[0]?.arguments?.some(arg => arg.value === 'remote-host.mjs'));
+  assert.ok(write, 'Select the actual installed Host actor');
+  const template = write.expression.argument.arguments[1];
+  assert.equal(template.type, 'TemplateLiteral');
+  assert.equal(template.expressions.length, 0);
+  const hostSource = template.quasis[0].value.cooked;
+  const hostAst = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declaration = hostAst.body.flatMap(node => node.type === 'VariableDeclaration'
+    ? node.declarations : []).find(node => node.id.name === 'configuration');
+  assert.ok(declaration);
+  const configuration = new Function('outcome', 'canonical', 'userInfo',
+    `return (${hostSource.slice(declaration.init.start, declaration.init.end)});`);
+  const moon = await loadExecutionAuthorizationRuntime();
+  const scope = {namespaceId: 'fixture-namespace', authorityScopeCid: 'fixture-scope'};
+  for (const outcome of ['allow', 'deny', 'delegate', 'missing']) {
+    const wire = configuration(outcome, canonicalJson, () => ({username: 'fixture-owner'}));
+    const authorization = wire === undefined ? {} : {accountConfiguration: wire};
+    const account = observeInstalledAccount(moon, authorization);
+    if (wire !== undefined) {
+      assert.equal(JSON.parse(moon.executionAuthorizationAccountJson(account)).state, 'admitted');
+    }
+    const authority = createLocalReadAuthorizations({moon, principalId: 'fixture-owner', ...scope,
+      authorization});
+    const facts = {principalId: 'fixture-owner', indexKey: scope};
+    assert.equal(await authority.run(facts), outcome !== 'missing', outcome);
+    assert.equal(await authority.result({...facts, resultName: 'answer'}), outcome !== 'missing', outcome);
+    assert.equal(await authority.result({...facts, resultName: 'unrelated'}), false);
+    assert.equal(await authority.run({...facts, principalId: 'reviewer-principal'}), false);
+    if (wire !== undefined) {
+      for (const resource of ['duckdb-acquired', 'source-free-values']) {
+        const decision = moon.executionAuthorizationEvaluate(account, 'fixture-owner',
+          'actql-remote-host', resource, 'write');
+        assert.equal(JSON.parse(moon.executionAuthorizationEvaluationJson(decision)).outcome, outcome);
+      }
     }
   }
 });

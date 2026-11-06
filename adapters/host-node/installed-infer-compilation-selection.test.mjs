@@ -101,11 +101,11 @@ function inputSelectionFixture({acquisitions = 1, managed = true, physical = tru
     node.end <= deferred.start).sort((a, b) => b.start - a.start)[0];
   assert(acquisitionDeclaration);
   const body = source.slice(acquisitionDeclaration.start, acquisitionDeclaration.end) +
-    (deferred ? source.slice(deferred.start, deferred.end) : '') +
+    source.slice(deferred.start, segment.start) +
     source.slice(segment.start, suffix.end) + ';return {segments, computeSuffix};';
   const prepared = {}, occurrence = {}, prefix = {}, suffixValue = {}, serializationGraph = serialized ? {} : undefined;
   const calls = [], error = new Error('OriginalUnbackedInputSegmentConstructor');
-  const moon = {clientProgramAcquisitionCount(p) {assert.equal(p, prepared); return acquisitions;},
+  const moon = {clientProgramTaskCount: () => 1, clientProgramAcquisitionCount(p) {assert.equal(p, prepared); return acquisitions;},
     clientProgramPrepareComposedInferSegments(...args) {
       assert.equal(args[0], prepared); assert.equal(args[1], occurrence); calls.push('segments');
       if (restored) assert.fail('Saved input must not prepare another prefix');
@@ -144,11 +144,11 @@ test('existing sourcefree legacy and serialized Model segment selection keep the
   assert.deepEqual(content.calls, ['checked suffix']);
 });
 
-test('restored Model selects its original checked Result suffix without preparing saved input again', () => {
+test('restored Model defers checked segments until its funded original Read without preparing saved input again', () => {
   const f = inputSelectionFixture({acquisitions: 0, physical: false, restored: true});
   assert.equal(f.select.segments, undefined);
-  assert.equal(f.select.computeSuffix, f.suffix);
-  assert.deepEqual(f.calls, ['checked suffix']);
+  assert.equal(f.select.computeSuffix, undefined);
+  assert.deepEqual(f.calls, [], 'Saved input cannot issue segments before retaining its funded original Read');
 });
 
 

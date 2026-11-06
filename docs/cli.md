@@ -37,6 +37,10 @@ Two flags look alike and mean different things: `--json` prints the
 chooses the encoding of **Result rows** (`table`, `json`, `jsonl`, `csv`) on
 `sql`, `aql` and `result`.
 
+Use `actql --help` for command descriptions and `actql <command> --help`
+for argument descriptions. On `check`, `explain`, and `run`, `--format` selects
+Program syntax rather than Result row encoding.
+
 ## Starting a project
 
 ```text
@@ -170,14 +174,32 @@ not, why — a parameter not yet bound, a Capability this Host lacks, a model
 task not registered. Read that field, not the exit code, to decide whether to
 `run`.
 
+The default `check` display separates validation (`Valid`, `Invalid`, or
+`Undetermined`) from `Runnable: yes/no`. Problems and unmet requirements include
+the original reason code, catalog advice, and disclosed location. Text locations
+show one-based line and UTF-8 byte columns, plus the original zero-based byte
+range and its exact/approximate precision; structured inputs use JSON pointers.
+Analysis limits and incomplete observations remain visible. `--json` preserves
+the complete original CheckOutcome, including identities and structured facts.
+
 **`explain`** prints the plan: each operation with the Site and Engine it
 will use, what is pushed down to a source, where a model is called and where
 the Run may stop for approval. Choices that depend on data, such as the engine
 for a join, are shown as decided at run time. It creates no Run, reads no
 business data and calls no model. It takes the same inputs as `run`.
-`--verbose` adds the decision for each condition and the options for each
-deferred choice. `explain --run <run>` shows what a finished or waiting Run
-actually used, from its record. See [Plans and pushdown](guides/plans-and-pushdown.md).
+`explain --run <run>` reads the recorded compiler plan for a finished or waiting
+Run. See [Plans and pushdown](guides/plans-and-pushdown.md).
+
+Human `explain` output starts with numbered logical operations, authored names,
+and inputs linked to the exact original step and output port. These numbers
+are display labels, not execution order or stable IDs. The current Local static
+projection explicitly marks Site, Engine, pushdown, and unobserved quantities
+as unavailable or unknown rather than guessing. Declared Effect targets and
+contract approval minima remain separate from current permission and decisions.
+`--verbose` includes full identities and port locators; `--json` retains the
+original machine response unchanged, even together with `--verbose`. The same
+summary/detail choice applies to the recorded compiler map in `explain --run`;
+it does not invent runtime choices absent from that record.
 
 **`run`** checks the Program, then executes it as a durable Run. Options:
 

@@ -30,6 +30,8 @@ function cleanupFixture({managed = {}, selectedKeyed, retained, physical,
   const ports = {control, store, key: {}, chargeWork(delta) {work += BigInt(delta); return false;},
     stopGeneratedContentPrefix};
   const actual = Function('initial', 'ports', `
+    let ledger;
+    const acquiredLedgers=new Map();
     let {prefix,input,writer,physical,byteHolding,retained,publication,failureCleanup,
       managed,selectedKeyed}=initial;
     let cleaned=false,cleanupFlight,retired=false,generatedRetained=false;
