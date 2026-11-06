@@ -1491,6 +1491,11 @@ function checkpointControlReplayFixture(t) {
   const run = runInNewContext(source.slice(start, end).replaceAll('import.meta.url', 'sourceUrl') +
     '\nrunCheckpointControlReplay', {
     root, mkdtemp, join, URL, sourceUrl, moon: '/selected/moon', process: {execPath: process.execPath},
+    nativeHttpLifetimeFixture(parent) {
+      const library = join(parent, 'owned-no-network-transport');
+      writeFileSync(library, 'Explicit source wiring fixture; not an actual Runtime');
+      return {ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY: library};
+    },
     performance: {now: () => 0}, console: {error: () => {}},
     execFileSync: (command, args, options) => {calls.push({command, args: Array.from(args), options});},
     spawn: (command, args, options) => {calls.push({command, args: Array.from(args), options}); return child;},
@@ -1518,6 +1523,9 @@ test('Native Checkpoint control replay supplies one owned Slot root to compilati
   assert(stat.isDirectory() && !stat.isSymbolicLink());
   assert.equal(stat.mode & 0o777, 0o700);
   assert.equal(executed.options.env.ORIGINAL_PEER, 'retained');
+  const image = executed.options.env.ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY;
+  assert.equal(dirname(image), slotRoot);
+  assert.equal(readFileSync(image, 'utf8'), 'Explicit source wiring fixture; not an actual Runtime');
   assert.equal(environment.ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT, '/unowned/ambient');
   assert.deepEqual(readdirSync(f.root), [slotRoot.slice(f.root.length + 1)]);
 });

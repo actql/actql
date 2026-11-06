@@ -2,6 +2,7 @@
 test "empty Effect report replay avoids unrelated dispatch reconstruction and keeps present corruption pending" {
   let (http, client, slot, _) = control_terminal_fixture(
     "empty-checkpoint-replay",
+    cleanup_only=true,
   )
   let (library, journal, request, path, _) = cleanup_test_open(
     "empty-checkpoint-replay",

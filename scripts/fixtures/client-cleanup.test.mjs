@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {generateKeyPairSync} from 'node:crypto';
+import {userInfo} from 'node:os';
+import {parse} from 'acorn';
 import {readFile} from 'node:fs/promises';
 import {closeFixtureClient, withFixtureClientCleanup} from './client-cleanup.mjs';
 
@@ -101,5 +104,26 @@ test('both normal external staging paths include every relative short-query help
       assert(source.includes(`copyFile(join(repository, 'scripts/fixtures/${name}'),`),
         `${path} must stage ${name}`);
     }
+  }
+});
+
+
+test('short-query fixture keeps Host reads separate from its selected write and delegation outcome', async () => {
+  const source = await readFile(new URL('./packed-short-queries.mjs', import.meta.url), 'utf8');
+  const declaration = parse(source, {sourceType: 'module', ecmaVersion: 'latest'}).body
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'authorization');
+  assert.ok(declaration);
+  const factory = new Function('generateKeyPairSync', 'userInfo', 'createComputedBarrier',
+    'return (' + source.slice(declaration.start, declaration.end) + ');')(
+    generateKeyPairSync, userInfo, () => {throw Error('No Compute is needed to select permissions');});
+  for (const selected of ['allow', 'delegate']) {
+    const value = factory(selected), account = JSON.parse(value.value.accountConfiguration);
+    assert.equal(value.count(), 0);
+    assert.deepEqual(account.entries.map(entry => entry.entry_id), ['owner-read', 'write']);
+    const [read, write] = account.entries;
+    assert.deepEqual(read, {entry_id: 'owner-read', outcome: 'allow',
+      principal: {any_of: [userInfo().username]}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['result/answer', 'result/main', 'result/named', 'run']}, operation: {any_of: ['read']}, exclusions: []});
+    assert.equal(write.outcome, selected); assert.deepEqual(write.operation, {any_of: ['write']});
   }
 });

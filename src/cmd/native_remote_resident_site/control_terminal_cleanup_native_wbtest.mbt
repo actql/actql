@@ -1,11 +1,18 @@
 ///|
 fn control_terminal_fixture(
   name : String,
+  cleanup_only? : Bool = false,
 ) -> (@http.Library, @http.Client, @slot.NativeExecutorSlot, String) raise {
   // Cleanup-only cases need an actual loaded image, not a live peer URL.
-  let selected = match @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") {
-    Some(path) => Some(path)
-    None => @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY")
+  let selected = if cleanup_only {
+    // This non-network case owns an ABI-only image with confirmed lifetime
+    // cleanup. A system TLS image may correctly retain unknown TLS debt.
+    @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY")
+  } else {
+    match @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") {
+      Some(path) => Some(path)
+      None => @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY")
+    }
   }
   guard selected is Some(path) else {
     fail("selected controller cleanup requires the retained HTTP component")

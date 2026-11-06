@@ -26,7 +26,15 @@ function authorization(outcome = 'allow') {
     accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
       account_id: `short-${outcome}`, entries: [{entry_id: 'write', outcome,
         principal: {all: true}, connection: {all: true}, resource: {all: true},
-        operation: {any_of: ['write']}, exclusions: []}]}),
+        operation: {any_of: ['write']}, exclusions: []},
+      // Current Host observation and each named Result use distinct read
+      // tuples. Neither grants a write or answers a delegated preparation.
+      {entry_id: 'owner-read', outcome: 'allow',
+        principal: {any_of: [userInfo().username]},
+        connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/answer', 'result/main', 'result/named', 'run']},
+        operation: {any_of: ['read']}, exclusions: []}]
+        .sort((left, right) => left.entry_id.localeCompare(right.entry_id))}),
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
     hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
@@ -166,7 +174,7 @@ async function exercise(db, counter, label) {
   const earlierRevision = observedRevision(firstTerminal, label);
   const immediate = await low.status();
   assertObservedTransition(firstTerminal, immediate, `${label}: immediate status`);
-  const completed = await observeSettledResult(low, immediate, 'answer', label,
+  const completed = await observeSettledResult(low, immediate, 'main', label,
     AbortSignal.timeout(5000));
   const completedRevision = observedRevision(completed, label);
   const reread = await low.status();
@@ -193,7 +201,7 @@ async function exercise(db, counter, label) {
   console.log(JSON.stringify({kind: 'current-wire-wait', transport: label,
     earlierRevision, stateRevision: completedRevision, newerRevision: newer.revision,
     equalSince: 'WaitTimeout', futureSince: 'InvalidWaitRevision', aborted: 'WaitAborted'}));
-  assert.deepEqual(await low.result('answer').all(), [{id: 4}]);
+  assert.deepEqual(await low.result('main').all(), [{id: 4}]);
   await setImmediate();
   assert.equal(counter.count(), 3);
   const state = await first.execution.status();
@@ -268,7 +276,7 @@ try {
     assert.equal(found.kind, 'ready');
     const execution = await recovery.attach(found);
     assert.equal((await execution.wait()).status, 'succeeded');
-    assert.deepEqual(await execution.result('answer').all(), [{id: 5}]);
+    assert.deepEqual(await execution.result('main').all(), [{id: 5}]);
     await setImmediate();
     assert.equal(remoteAuthorization.count(), 4, 'lost reply must not cause resubmission');
   } finally {globalThis.fetch = originalFetch;}
