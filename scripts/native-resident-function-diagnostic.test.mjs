@@ -274,7 +274,7 @@ test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized 
   assert(dependencies.run.includes('sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv'));
   assert(!/\bgdb\b/u.test(dependencies.run));
   const diagnostic = jobs.native.steps.find(step => step.name === 'Diagnose only failed Linux Effect consumer functions');
-  assert.equal(diagnostic.if, "${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}");
+  assert.equal(diagnostic.if, "${{ !cancelled() && steps.native-effect.outcome == 'failure' }}");
   assert.equal(diagnostic['continue-on-error'], true);
   assert.equal(diagnostic['timeout-minutes'], 6);
   const debuggerSetup = jobs.native.steps.find(step => step.id === 'failure-debugger');
@@ -285,6 +285,7 @@ test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized 
   assert(diagnostic.run.includes('ulimit -S -s 65536'));
   const helper = readFileSync(new URL('./diagnose-native-resident-functions.mjs', import.meta.url), 'utf8');
   assert(helper.includes('timeoutSeconds: 295, graceSeconds: 5'));
+  assert(helper.includes("fileURLToPath(sourceUrl), '--effect-computation-only'"));
   const artifact = jobs.native.steps.find(step => step.name === 'Retain only sanitized Linux Effect function availability');
   assert.equal(artifact.if, diagnostic.if);
   assert.equal(artifact.with.path, '${{ runner.temp }}/native-effect-functions/sanitized.json');
