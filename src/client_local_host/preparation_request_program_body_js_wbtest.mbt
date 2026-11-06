@@ -286,7 +286,7 @@ test "funded artifact grow retains original module and measurement across both o
     let body = borrow_request_program_preparation(parent).unwrap()
     assert_eq(
       @resources.preparation_body_borrow_reserved_extents(body),
-      Ok(quote),
+      Ok((quote.0 - quote.2, quote.1 - quote.2)),
     )
     // False reports that the ORIGINAL owner remains live; the borrow has
     // still returned. Retirement below proves its separate release boundary.
@@ -370,9 +370,9 @@ test "artifact reservation derives from original constructor bodies rather than 
     prepared, manifests, sequence, 2000, 20000, 2000000, 200000, 200,
   ).unwrap()
   assert_true(tight == { ..roomy, limits: tight.limits, })
-  let actual = program_artifact_construction_cost(tight).unwrap()
-  assert_true(actual > 0L)
-  assert_eq(program_artifact_construction_cost(roomy), Some(actual))
+  let actual = program_artifact_construction_extents(tight).unwrap()
+  assert_true(actual.0 > 0L && actual.1 > 0L)
+  assert_eq(program_artifact_construction_extents(roomy), Some(actual))
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
@@ -1900,4 +1900,57 @@ test "public array actual task metadata exhaustion retains the same parent attem
   assert_eq(after.live_reservations, 0)
   assert_eq(after.held_bytes, 0L)
   assert_eq(@resources.ledger_limits(ledger), limits)
+}
+
+///|
+test "successful Request artifact retires returned compiler scratch before runtime adoption" {
+  let (parent, input, prepared) = request_program_body_fixture()
+  let original_capacity = parent.program_capacity.unwrap()
+  let factory : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider] = _ => {
+    []
+  }
+  let contracts = request_program_module_contracts()
+  let artifact = prepare_request_program_compilation(
+    parent,
+    input,
+    contracts,
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=factory,
+  ).unwrap()
+  let constructor_peak = parent.program_artifact_quote.unwrap()
+  let after = @resources.preparation_capacity_working_extents(
+    original_capacity, input,
+  ).unwrap()
+  assert_true(constructor_peak.2 > 0L)
+  assert_eq(
+    after,
+    (
+      constructor_peak.0 - constructor_peak.2,
+      constructor_peak.1 - constructor_peak.2,
+    ),
+  )
+  assert_true(physical_equal(parent.program_compilation.unwrap(), artifact))
+  assert_true(physical_equal(parent.compiled_program.unwrap(), prepared))
+  prepare_request_program_module_body(
+    parent,
+    input,
+    contracts,
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=factory,
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      parent.program_source_free.unwrap().compilation.unwrap(),
+      artifact,
+    ),
+  )
+  assert_true(
+    physical_equal(parent.program_capacity.unwrap(), original_capacity),
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }

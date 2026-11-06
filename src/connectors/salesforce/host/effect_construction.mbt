@@ -281,9 +281,12 @@ pub fn effect_target_construction_capacity(
       // Current field/Id/external target lookups, emit_write_cell conversion
       // and typed refusal carriers. Ordered fields borrow Catalog metadata;
       // current decoded array traversal cannot exceed original JSON nodes.
-      records: 16L + 8L * child.record_headers,
-      record_references: 24L + 8L * child.reference_slots,
-      record_words: 32L + 8L * child.scalar_words,
+      // Two borrowed metadata lookups (cursor/Some), two byte-span tuples,
+      // returned digest Result and loop/error carriers. Hash scratch is
+      // sequential with the raw digest; its original block is already below.
+      records: 23L + 10L * child.record_headers,
+      record_references: 27L + 10L * child.reference_slots,
+      record_words: 36L + 10L * child.scalar_words,
       reference_arrays: 5L,
       reference_items: nodes.to_int64() + fields.to_int64() + 16L,
       scalar_arrays: 0L,
@@ -326,14 +329,16 @@ pub fn effect_target_construction_capacity(
       controls.scalar_words,
       // Include decoded input, both writers' scratch and scalar conversion.
       // Each writer's SAME returned wire is already retained above. Digest
-      // writers run serially; one complete hash scratch bounds all ten calls.
+      // writers run serially; one complete hash scratch bounds every call.
+      // The record-state digest String coexists with the raw digest until the
+      // version preimage writer returns; it is not retained in the observation.
       owned_utf16_units: parsed.owned_utf16_units +
       b +
       (before.owned_utf16_units - b) +
       (target.owned_utf16_units - identity) +
       digest.owned_utf16_units +
       physical_digest.owned_utf16_units +
-      128L,
+      192L,
       owned_wire_bytes: digest.owned_wire_bytes +
       physical_digest.owned_wire_bytes,
     },

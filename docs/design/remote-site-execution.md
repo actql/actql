@@ -1087,7 +1087,9 @@ receiver requires the same candidate request, Catalog, runtime and Credential
 control/Journal, and verifies the original grant and use occurrence through the
 existing Credential receiver. Copied records, restored Catalogs and scalar
 ETag or CID values cannot register an acquisition. The existing target version
-continues to identify its original response and provider target; an HTTP ETag
+identifies the provider target and the named record-state digest policy in
+[Salesforce write capability evidence](salesforce-write-capability.md#target-record-state-identity-and-physical-evidence).
+The exact physical response digest remains separately retained. An HTTP ETag
 is a separate fact and never replaces that version.
 
 The conditional representation requires one strong ETag of at most 1024 HTTP

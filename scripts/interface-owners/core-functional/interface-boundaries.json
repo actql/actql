@@ -39954,12 +39954,12 @@
     },
     {
       "module": "src/client_local_host/preparation_program_artifact_layout.mbt",
-      "sha256": "8d4a96769965e8c4a506cbec106af145f421c371394422fa08ef39d1b914d80c",
+      "sha256": "5dfac82f7c86fda8394d7c8fd3a49e67b779b0b96f8b7ee75bbde69a3e5c15d5",
       "exports": [],
       "operations": [
         {
-          "name": "program_artifact_construction_cost",
-          "declaration": "program_artifact_construction_cost ( value : @ publication_host . ClientPureCompilationConstruction , ) - > Int64 ?"
+          "name": "program_artifact_construction_extents",
+          "declaration": "program_artifact_construction_extents ( value : @ publication_host . ClientPureCompilationConstruction , ) - > ( Int64 , Int64 ) ?"
         },
         {
           "name": "program_artifact_parse_layout",
@@ -39973,7 +39973,7 @@
         {
           "operations": [
             "<module>",
-            "program_artifact_construction_cost",
+            "program_artifact_construction_extents",
             "program_artifact_parse_layout"
           ],
           "exports": [],
@@ -40076,6 +40076,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"artifact reservation derives from original constructor bodies"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"successful Request artifact retires returned compiler scratch before runtime adoption\""
               }
             ]
           }
@@ -43646,7 +43650,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "a367201d7046967a056929ab8ed4e7a5b4b4730a8d381cdddf122eb8febc5831",
+      "sha256": "2cdec1b73c07a669854c53adbd3ae61f7e7f52a022cbf09a76821ae03902b5ad",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -44912,6 +44916,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"successful Request artifact retires returned compiler scratch before runtime adoption\""
               }
             ]
           }
@@ -45375,7 +45383,7 @@
           }
         }
       ],
-      "sha256": "9e95471e410f79992dc6347b1e56227c950b3d888ad8b318668e0e23840cefb4",
+      "sha256": "7f4ec5821a48c745744a85a29f0c213c14ae3f0843f015c8b2d38820da619e24",
       "exports": [],
       "operations": [
         {
@@ -79648,7 +79656,7 @@
     },
     {
       "module": "src/connectors/salesforce/host/effect_construction.mbt",
-      "sha256": "c638e9a7bd1976bf435ba4b819367e171cbb466539a45ad123858a2a83fdd1f7",
+      "sha256": "44c3d7d74f9451154ff9566024663accd7d907f53904b5530b7d27b9e22eb75f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -79747,6 +79755,14 @@
               {
                 "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
                 "anchor": "test \"Salesforce capture"
+              },
+              {
+                "path": "src/connectors/salesforce/catalog/target_observation_wbtest.mbt",
+                "anchor": "test \"target guard excludes only top-level read-history scalar values and keeps raw evidence\""
+              },
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "## Target record-state identity and physical evidence"
               }
             ]
           }
