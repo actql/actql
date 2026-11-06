@@ -571,7 +571,8 @@ for (const [name, options] of [
 
 // Actual cleanup and successful publication block, extracted unchanged. The
 // Core/Store/Task owner ports are explicit; this is not ordinary funding proof.
-function persistedModelScratchFixture({retire = true, releaseFailure, heldOutput = false} = {}) {
+function persistedModelScratchFixture({retire = true, release = true,
+  releaseFailure, closeFailure, heldOutput = false} = {}) {
   const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const declaration = ast.body.map(node => node.declaration ?? node)
@@ -585,20 +586,25 @@ function persistedModelScratchFixture({retire = true, releaseFailure, heldOutput
   const events = [], plan = {}, content = {live: true};
   let modelClosed = false;
   const inferCapture = {persist: async () => {events.push('persist'); return {plan};},
-    custody: {retirePublication: async () => {events.push('retire-publication'); return retire;},
-      close: async () => {events.push('close-model'); modelClosed = true;},
+    custody: {retirePublication: async () => {
+      events.push('retire-publication'); return typeof retire === 'function' ? retire() : retire;
+    },
+      close: async () => {
+        events.push('close-model'); closeFailure?.(); modelClosed = true;
+      },
+      cleanup: async () => {events.push('cleanup-model'); modelClosed = true; return true;},
       cleanupPending: () => !modelClosed}};
   const inferOperation = {publicationCapacityPending: () => true,
     releaseOriginalPublicationCapacity() {
       events.push('release-capacity');
       if (releaseFailure !== undefined) releaseFailure();
-      return true;
+      return typeof release === 'function' ? release() : release;
     }};
   const execution = {async refreshCompletedScratch() {
     assert.strictEqual(this, execution); assert.equal(modelClosed, true);
     events.push('refresh-original-scratch'); assert.equal(content.live, true);
   }};
-  const run = new Function('inferCapture', 'inferOperation', 'execution', 'events', `
+  const original = new Function('inferCapture', 'inferOperation', 'execution', 'events', `
     let inferReleased=false,inferCloseAttempted=false,modelReleased=false,modelCloseAttempted=false;
     const modelContinuation={close(){throw Error('same journal continuation must remain');}};
     const originalPreparation={},component={},restoredModelOutput=${heldOutput ? '{}' : 'undefined'};
@@ -606,9 +612,10 @@ function persistedModelScratchFixture({retire = true, releaseFailure, heldOutput
     const current=()=>{};
     const faultInjection=async()=>{events.push('capture-committed');};
     ${source.slice(cleanup.start, cleanup.end)}
-    return async()=>{${source.slice(persisted.start, persisted.end)} return publicationPlan;};
+    return {run:async()=>{${source.slice(persisted.start, persisted.end)} return publicationPlan;},
+      cleanup:()=>cleanupInfer(false)};
   `)(inferCapture, inferOperation, execution, events);
-  return {run, events, plan, content, inferCapture};
+  return {...original, events, plan, content, inferCapture};
 }
 
 test('persisted original Model retires its aliases before scratch refresh while Content and journal remain', async () => {
@@ -625,6 +632,63 @@ test('pending original Model publication keeps aliases and forbids scratch refre
   assert.deepEqual(f.events, ['persist', 'retire-publication']);
   assert.equal(f.inferCapture.custody.cleanupPending(), true);
   assert.equal(f.content.live, true);
+});
+
+test('pending original Model prerequisites retain the first child close for the same owner retry', async () => {
+  for (const phase of ['retire', 'release']) {
+    let ready = false;
+    const f = persistedModelScratchFixture({[phase]: () => ready});
+    assert.equal(await f.cleanup(), false);
+    assert.equal(f.events.includes('close-model'), false);
+    assert.equal(f.events.includes('cleanup-model'), false);
+    assert.equal(f.inferCapture.custody.cleanupPending(), true);
+    ready = true;
+    assert.equal(await f.cleanup(), true);
+    assert.equal(f.events.filter(value => value === 'close-model').length, 1);
+    assert.equal(f.events.includes('cleanup-model'), false);
+    const stopped = [...f.events];
+    assert.equal(await f.cleanup(), true);
+    assert.deepEqual(f.events, stopped);
+  }
+});
+
+test('throwing original Model prerequisites preserve primary and first close on the same owner retry', async () => {
+  for (const phase of ['retire', 'release']) {
+    for (const primary of [undefined, null, new Error('original prerequisite')]) {
+      let ready = false;
+      const f = persistedModelScratchFixture({[phase]() {
+        if (!ready) throw primary;
+        return true;
+      }});
+      let rejected = false;
+      try {await f.cleanup();} catch (error) {
+        rejected = true; assert.strictEqual(error, primary);
+      }
+      assert.equal(rejected, true);
+      assert.equal(f.events.includes('close-model'), false);
+      assert.equal(f.events.includes('cleanup-model'), false);
+      ready = true;
+      assert.equal(await f.cleanup(), true);
+      assert.equal(f.events.filter(value => value === 'close-model').length, 1);
+      assert.equal(f.events.includes('cleanup-model'), false);
+    }
+  }
+});
+
+test('an attempted original Model close failure retries only that child cleanup', async () => {
+  for (const primary of [undefined, null, new Error('original close')]) {
+    const f = persistedModelScratchFixture({closeFailure() {throw primary;}});
+    let rejected = false;
+    try {await f.cleanup();} catch (error) {
+      rejected = true; assert.strictEqual(error, primary);
+    }
+    assert.equal(rejected, true);
+    assert.equal(f.events.filter(value => value === 'close-model').length, 1);
+    assert.equal(f.events.includes('cleanup-model'), false);
+    assert.equal(await f.cleanup(), true);
+    assert.equal(f.events.filter(value => value === 'close-model').length, 1);
+    assert.equal(f.events.filter(value => value === 'cleanup-model').length, 1);
+  }
 });
 
 test('original Model alias retirement preserves thrown undefined null and Error before refresh', async () => {
