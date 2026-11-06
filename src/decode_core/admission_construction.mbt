@@ -33,7 +33,13 @@ pub fn admission_construction_inventory(
   if nodes < 0 || fields < 0 || objects < 0 || arrays < 0 || max_depth < 0 {
     return None
   }
-  guard @shape.key_admission_construction_extent(objects, fields) is Some(keys) else {
+  // ObjectNext alone retains its seen Map. Completing that original frame
+  // drops the Map; OwnedNode/ObjectValue retain only fields and borrowed keys.
+  // Sibling objects therefore reuse the active-ancestry map envelope. Entry
+  // storage remains bounded by ALL fields, including the duplicate refusal.
+  let live_objects = Int::min(objects, max_depth)
+  guard @shape.key_admission_construction_extent(live_objects, fields)
+    is Some(keys) else {
     return None
   }
   let n = nodes.to_int64()

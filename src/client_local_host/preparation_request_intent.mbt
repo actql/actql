@@ -1,10 +1,49 @@
 ///|
-// Existing normal submitted-intent admission limits, selected once for both
-// construction and its input-derived quote; these are not a resource grant.
-let request_intent_limits : @source.ParseLimits = {
-  max_input_bytes: 1048576,
-  max_nodes: 65536,
-  max_depth: 64,
+// Default native intake derives byte/node bounds from this original Request's
+// observed SDK snapshot. The existing recursion bound and all explicitly
+// selected limits remain separate; these counts never grant Resource capacity.
+let request_intent_max_depth : Int = 64
+
+///|
+fn request_captured_intent_limits(
+  units : Int64,
+  values : Int64,
+) -> @source.ParseLimits? {
+  if units < 1L || values < 1L || values > units {
+    return None
+  }
+  // SAME constructor geometry as native Program intake: six bytes per
+  // observed key/Text code unit; at most32 per value for Number spelling,
+  // keys' delimiters and container punctuation. This is not a new traversal.
+  guard @execution.checked_preparation_add_product(0L, units - values, 6L)
+    is Some(text) &&
+    @execution.checked_preparation_add_product(text, values, 32L) is Some(bytes) &&
+    bytes <= 2147483519L &&
+    values <= 2147483643L else {
+    return None
+  }
+  Some({
+    max_input_bytes: bytes.to_int(),
+    max_nodes: values.to_int(),
+    max_depth: request_intent_max_depth,
+  })
+}
+
+///|
+// A retained intent already belongs to the original Journal/Host admission.
+// Its SAME immutable wire bounds preflight; that original cursor returns actual
+// node/Text geometry before native decoding. No legacy node/byte ceiling or
+// second scan is inserted between this owner and its new process Request.
+fn request_retained_intent_limits(wire : String) -> @source.ParseLimits? {
+  let units = wire.length().to_int64()
+  if units < 1L || units > 2147483519L / 3L {
+    return None
+  }
+  Some({
+    max_input_bytes: (3L * units).to_int(),
+    max_nodes: units.to_int(),
+    max_depth: request_intent_max_depth,
+  })
 }
 
 ///|
@@ -25,18 +64,25 @@ pub fn[I] request_default_program_preparation_limits(
   guard owner.phase == Open && request_intent_input_ready(owner) else {
     return Err(Preparation(WrongPhase))
   }
+  guard request_captured_intent_limits(
+      owner.snapshot_units,
+      owner.snapshot_values,
+    )
+    is Some(selected) else {
+    return Err(Preparation(Policy))
+  }
   let standard = @publication_host.client_standard_program_preparation_limits()
   Ok({
     ..standard,
     checking: {
       ..standard.checking,
       input: {
-        source: request_intent_limits,
+        source: selected,
         tree: {
-          max_nodes: request_intent_limits.max_nodes,
-          max_depth: request_intent_limits.max_depth,
-          max_string_bytes: request_intent_limits.max_input_bytes,
-          max_total_string_bytes: request_intent_limits.max_input_bytes,
+          max_nodes: selected.max_nodes,
+          max_depth: selected.max_depth,
+          max_string_bytes: selected.max_input_bytes,
+          max_total_string_bytes: selected.max_input_bytes,
         },
         max_stages: standard.checking.input.max_stages,
       },
@@ -49,27 +95,37 @@ pub fn[I] request_default_program_preparation_limits(
 // emission. SDK-owned native DATA stays on its already retained snapshot.
 // Source's generic Unicode/key inventory applies; no ClosedValues eligibility,
 // Program geometry, policy-sized padding or second whole-input scan is used.
-fn request_intent_construction_bytes(units : Int64, values : Int64) -> Int64? {
+fn request_intent_construction_bytes(
+  units : Int64,
+  values : Int64,
+  limits : @source.ParseLimits,
+  captured? : Bool = true,
+) -> Int64? {
   guard request_native_input_geometry(
       units,
       values,
-      request_intent_limits.max_input_bytes,
-      request_intent_limits.max_depth,
+      limits.max_input_bytes,
+      limits.max_depth,
     )
     is Some((bytes, observed_nodes, depth)) &&
-    @source.json_construction_extent(
-      bytes,
-      observed_nodes,
-      depth,
-      normalize_keys=false,
-    )
+    (if captured {
+      @source.captured_json_construction_extent(observed_nodes, depth)
+    } else {
+      @source.json_construction_extent(
+        bytes,
+        observed_nodes,
+        depth,
+        normalize_keys=false,
+      )
+    })
     is Some(source) else {
     return None
   }
   // Key enumeration may precede the node-limit refusal, so the Source quote
   // above retains ALL observed slots. Canonical conversion starts only after
-  // that bounded Source succeeds; no more than its admitted 65536 nodes live.
-  let nodes = Int::min(observed_nodes, request_intent_limits.max_nodes)
+  // that bounded Source succeeds; its SAME selected node envelope bounds the
+  // canonical constructor without borrowing policy capacity.
+  let nodes = Int::min(observed_nodes, limits.max_nodes)
   let n = nodes.to_int64()
   let d = depth.to_int64() + 1L
   guard @shape.map_construction_extent(n, n) is Some(maps) &&
@@ -169,9 +225,15 @@ pub fn[I, T] prepare_request_submitted_intent(
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
-  guard request_intent_construction_bytes(
+  guard request_captured_intent_limits(
       owner.snapshot_units,
       owner.snapshot_values,
+    )
+    is Some(limits) &&
+    request_intent_construction_bytes(
+      owner.snapshot_units,
+      owner.snapshot_values,
+      limits,
     )
     is Some(bytes) else {
     return Err(Policy)
@@ -226,9 +288,10 @@ pub fn[I, T] prepare_request_submitted_intent(
       let result = @publication_host.prepare_captured_client_submitted_intent(
         captured,
         reader,
-        request_intent_limits.max_input_bytes,
-        request_intent_limits.max_nodes,
-        request_intent_limits.max_depth,
+        limits.max_input_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+        max_key_units_out=Some(owner.snapshot_key_units),
       )
       match @resources.finish_preparation_phase_work64(work) {
         Err(issue) => return Err(Work(issue))
@@ -406,6 +469,9 @@ pub fn[I] retain_request_submitted_intent(
   owner.intent_attempted = true
   owner.submitted_intent = Some(intent)
   let wire = @publication_host.client_submitted_intent_wire(intent)
+  guard request_retained_intent_limits(wire) is Some(limits) else {
+    return Err(Policy)
+  }
   let mut cursor : @source.JsonSourcePreflight? = None
   let geometry : Result[
     @source.JsonSourceGeometry,
@@ -424,11 +490,7 @@ pub fn[I] retain_request_submitted_intent(
       }
       owner.intent_work = Some(work)
       let source = match
-        @source.start_json_source_preflight(
-          wire,
-          request_intent_limits,
-          data_keys=true,
-        ) {
+        @source.start_json_source_preflight(wire, limits, data_keys=true) {
         Err(_) => return Err(Intent(InvalidEnvelope))
         Ok(value) => value
       }
@@ -487,6 +549,9 @@ pub fn[I] retain_request_submitted_intent(
   // the existing grow-only snapshot API must not be used as a shrink request.
   let values = geometry.node_upper.to_int64()
   let units = values + geometry.quoted_raw_utf16_units.to_int64()
+  // The existing retained-wire preflight already observed quoted extents.
+  // Its longest token bounds any decoded key without another scan or issuer.
+  owner.snapshot_key_units.val = geometry.longest_quoted_raw_utf16
   let bytes = match request_snapshot_data_bytes(units, values) {
     None => return Err(Policy)
     Some(value) => value

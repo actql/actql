@@ -72,6 +72,33 @@ when a tighter node policy will reject, because enumerating an original object
 retains all its keys. No policy-wide buffer, per-node current callback or second
 Ledger is introduced. Fixed reader/call frames remain trusted Host overhead.
 
+Native Source construction borrows captured Text and raw key Strings. Its
+fixed Host number reader produces one finite binary64 spelling at a time;
+only that scalar parser's workspace overlaps, rather than a whole-document
+text parser/builder. The Source-owned native projection reuses the existing
+Node/Value/Field/ancestry and KeyAdmission recipes. It leaves the textual
+Parser, Unicode normalization and all rejection laws unchanged.
+
+The same original intent key visits retain one maximum-key extent on the
+Request. Later Program key normalization uses that observation with the
+canonical Owner's existing scratch/output quantities. The independently rounded
+snapshot totals remain upper bounds; their difference is not used as a key-text
+bound. A failed observation is DATA, never an admission witness. Fixed Ref,
+ParseLimits and carrier controls are included before entry in the existing
+10,736-byte Request control group, alongside the separate 4,096-byte group.
+
+Both Source and indexed admission retain duplicate-key Maps only in active
+object frames. Completed sibling objects retain fields and borrowed keys, not
+those Maps; all key entries and growth/refusal storage remain bounded. After
+the native constructor frame returns, its existing admission DATA supplies the
+retained-index projection without another scan. The same Resource reconciler
+retires transient Source/Map/ancestry storage. The independent immutable index,
+spans/Strings, prior inputs, Program, work history and cleanup remain held.
+The existing fixed quote-controller scratch is funded before this boundary,
+including small inputs. Supplied Parameters conservatively retain their prior
+combined envelope until their existing retirement path; no borrowed cursor or
+failed child is released by this projection.
+
 The existing Program controller retains that index and continues through its
 ordinary structural decoder and checker. The original reservation, spent work,
 input identity and cleanup remain with the same Request. A failed expansion or
@@ -2874,9 +2901,15 @@ The normal captured native Program caller explicitly selects the original
 Request's input envelope for its later Program Source/index admission. That
 default projection requires the same live Request/input association and ready
 intent phase; it performs no current callback or second input traversal. The
-existing intent owner remains the single definition of the 1 MiB, 65,536-node,
-depth-64 envelope. The independent general preparation profile is not widened,
-and explicit tighter preparation limits keep their original typed entry.
+existing intent owner derives its byte/node envelope from that same observed
+snapshot, with depth 64 and checked representation-range arithmetic. Its byte
+bound covers six bytes per observed key/Text unit and 32 per observed value;
+its node bound is the original value high-water count. The former fixed
+1 MiB/65,536-node default is not another support ceiling. The independent
+general preparation profile is not widened, and explicit tighter preparation
+limits keep their original typed entry. A fresh Request retaining the Journal's
+original intent uses its existing preflight's actual node/quoted-text geometry,
+not the removed fixed defaults or a second whole-input scan.
 
 The projection constructs four nested immutable limit records and its Result
 wrapper. Their 5H/7R/10W peak is included in the existing Request's initial

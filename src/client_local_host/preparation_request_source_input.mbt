@@ -32,9 +32,16 @@ fn[I] request_source_input_construction_bytes(
   owner : ClientRequestPreparation[I],
 ) -> Int64? {
   let limits = @publication_host.client_standard_program_preparation_limits().checking.input
-  guard request_intent_construction_bytes(
+  guard request_captured_intent_limits(
       owner.snapshot_units,
       owner.snapshot_values,
+    )
+    is Some(intent_limits) &&
+    request_intent_construction_bytes(
+      owner.snapshot_units,
+      owner.snapshot_values,
+      intent_limits,
+      captured=false,
     )
     is Some(canonical) &&
     request_native_tree_units(

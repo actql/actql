@@ -1863,7 +1863,7 @@ pub fn prepare_acquired_task_publication_export(@physical_strategy_host.Captured
 
 pub fn prepare_all_captured_result_publication_exports(@physical_strategy_host.CapturedDAG, PublicationOutputExportLimits, converted_outputs? : Array[@execution_relation.CompletedOutput?], max_pins? : Int) -> Result[Array[PublicationOutputExport], PublicationOutputExportIssue]
 
-pub fn[T] prepare_captured_client_submitted_intent(T, @source_value.JsonDataReader[T], Int, Int, Int) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue]
+pub fn[T] prepare_captured_client_submitted_intent(T, @source_value.JsonDataReader[T], Int, Int, Int, max_key_units_out? : @ref.Ref[Int]?) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue]
 
 pub fn prepare_captured_result_publication_export(@physical_strategy_host.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
 
