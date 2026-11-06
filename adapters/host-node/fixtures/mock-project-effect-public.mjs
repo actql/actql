@@ -5,11 +5,13 @@ import assert from 'node:assert/strict';
 import {readFile, writeFile, stat} from 'node:fs/promises';
 import {connect} from '@actql/node';
 
-const [phase, handoffPath, template = 'churn-risk-mock'] = process.argv.slice(2);
+const [phase, handoffPath, template = 'churn-risk-mock', variant = 'readme'] = process.argv.slice(2);
 assert.ok(['capture', 'approve', 'recover'].includes(phase));
 assert.equal(typeof handoffPath, 'string');
 assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
 const dealReview = template === 'deal-review-mock';
+assert.ok(variant === 'readme' || variant === 'two-models' && dealReview);
+const twoModels = variant === 'two-models';
 const C = /^sha256:[0-9a-f]{64}$/u;
 const expected = Object.freeze(dealReview ? {
   '006Acme': {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'},
@@ -52,6 +54,11 @@ function checkRows(rows) {
       assert.deepEqual(row.review.value, expected[row.id]);
       assert.equal(row.StageName, originalDeal[row.id].StageName);
       assert.equal(row.NextStep, originalDeal[row.id].NextStep);
+      if (twoModels) {
+        assert.equal(row.confirmation.outcome, 'ok');
+        assert.deepEqual(row.confirmation.value, {confirmed: true,
+          stage: expected[row.id].stage, next_step: expected[row.id].next_step});
+      }
     } else {
       assert.equal(row.risk.outcome, 'ok');
       assert.deepEqual(row.risk.value, expected[row.id]);
@@ -167,11 +174,12 @@ try {
       {ref: execution.ref, runId: state.run_id,
       checkpointId: state.checkpoint.id, summary,
       reviewBase64: Buffer.from(review.bytes).toString('base64'), before,
-      expectedBytes: expectedBytes(before.bytes), ...(dealReview ? {template} : {})}));
+      expectedBytes: expectedBytes(before.bytes), ...(dealReview ? {template} : {}), ...(twoModels ? {variant} : {})}));
   } else {
     const captured = await step('read original public recovery reference', async () => {
       const captured = JSON.parse(await readFile(handoffPath, 'utf8'));
       assert.equal(captured.template ?? 'churn-risk-mock', template);
+      assert.equal(captured.variant ?? 'readme', variant);
       return captured;
     });
     const execution = await step('attach same original Run', async () => {
@@ -220,11 +228,12 @@ try {
         assert.equal(after.bytes, captured.expectedBytes); return after;
       });
       await step('retain approved recovery reference', () => save(handoffPath + '.approved.json',
-        {ref: execution.ref, runId: terminal.run_id, rows, after, ...(dealReview ? {template} : {})}));
+        {ref: execution.ref, runId: terminal.run_id, rows, after, ...(dealReview ? {template} : {}), ...(twoModels ? {variant} : {})}));
     } else {
       const approved = await step('read approved public recovery reference', async () => {
         const approved = JSON.parse(await readFile(handoffPath + '.approved.json', 'utf8'));
         assert.equal(approved.template ?? 'churn-risk-mock', template);
+        assert.equal(approved.variant ?? 'readme', variant);
         assert.deepEqual(execution.ref, approved.ref);
         return approved;
       });

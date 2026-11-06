@@ -15,6 +15,7 @@ import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {formalCollectorVerdict, pythonRuntimeIdentity, assertPythonCollectorRuntime, pythonInstalledInventory} from './health-monitor-release.mjs';
 import {quickNodeMetrics,execute,distributionMetrics,mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
+import {twoModelDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {createHash} from 'node:crypto';
 import {inventory} from './package-release.mjs';
@@ -1253,4 +1254,75 @@ test('Quick cold Unknown retains failed sample and unobserved first Result witho
   assert.equal(first.samples.length,0);assert.equal(first.status,'incomplete');
   const failed=JSON.parse(await readFile(metric.samples[0].observation));
   assert.equal(failed.cleanup.closed,true);assert.match(failed.failure.message,/Synthetic Unknown/);
+});
+
+
+test('two-Model deal-review fixture preserves keyed Content and consumes the first original review before Effect', () => {
+  const original = projectTemplateFiles('deal-review-mock'), files = twoModelDealReviewFiles();
+  const changed = Object.keys(files).filter(name => files[name] !== original[name]).sort();
+  assert.deepEqual(changed, ['actql.config.json', 'deal-review.aql', 'mock/deal-review-confirm.v1.answers.yaml',
+    'model-tasks.json', 'model-tasks/deal-review-confirm.v1.yaml']);
+  for (const name of Object.keys(original).filter(name => !changed.includes(name))) {
+    assert.equal(files[name], original[name], name);
+  }
+  const program = files['deal-review.aql'];
+  assert.equal((program.match(/\|> INFER /gu) ?? []).length, 2);
+  assert.ok(program.includes('JOIN drive.contents AS c USING (resource, version)'));
+  const extra = "|> INFER `model-task:deal-review-confirm.v1`\n" +
+    '     INPUT (changed = review.value.changed, stage = review.value.stage,\n' +
+    '            next_step = review.value.next_step) AS confirmation\n' +
+    "|> WHERE confirmation.outcome = 'ok' AND confirmation.value.confirmed\n";
+  assert.equal(program.replace(extra, ''), original['deal-review.aql']);
+  const task = parse(files['model-tasks/deal-review-confirm.v1.yaml']);
+  assert.deepEqual(task.input, {changed: {type: 'boolean', nullable: true},
+    stage: {type: 'string', nullable: true}, next_step: {type: 'string', nullable: true}});
+  assert.deepEqual(task.output, {confirmed: 'boolean', stage: 'string', next_step: 'string'});
+  assert.equal(JSON.parse(files['actql.config.json']).mock.answers['model-task:deal-review-confirm.v1'],
+    './mock/deal-review-confirm.v1.answers.yaml');
+  assert.equal(JSON.parse(files['model-tasks.json']).tasks['model-task:deal-review-confirm.v1'],
+    './model-tasks/deal-review-confirm.v1.yaml');
+  const checks = compileFunction(workflowPrefix + workflowChecks + '\nreturn {checkRows};',
+    ['process', 'assert'])({argv: ['node', 'fixture', 'capture', 'handoff', 'deal-review-mock', 'two-models']}, assert);
+  const rows = [
+    {id: '006Acme', StageName: 'Proposal', NextStep: null,
+      review: {outcome: 'ok', value: {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'}},
+      confirmation: {outcome: 'ok', value: {confirmed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'}}},
+    {id: '006Globex', StageName: 'Negotiation', NextStep: 'Legal review',
+      review: {outcome: 'ok', value: {changed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'}},
+      confirmation: {outcome: 'ok', value: {confirmed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'}}},
+  ];
+  checks.checkRows(rows);
+  for (const confirmation of [undefined, {outcome: 'error', value: null},
+    {outcome: 'ok', value: {confirmed: false, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'}},
+    {outcome: 'ok', value: {confirmed: true, stage: 'foreign', next_step: 'Send revised pricing by Friday'}}]) {
+    const wrong = structuredClone(rows); wrong[0].confirmation = confirmation;
+    assert.throws(() => checks.checkRows(wrong));
+  }
+});
+
+test('two-Model deal-review uses the same existing public workflow and retains its original failed phase', async () => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-two-model-workflow-',
+    label: 'Two-Model authored caller selection only, no Host workflow execution'});
+  const root = join(scratch.path, 'run'), consumer = join(scratch.path, 'consumer');
+  await mkdir(root); await mkdir(join(consumer, 'node_modules'), {recursive: true});
+  const primary = new Error('Original two-Model public workflow not executed');
+  const observations = []; let calls = 0;
+  await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root,
+    repository: new URL('../', import.meta.url).pathname, counts: {coldSamples: 1},
+    template: 'deal-review-mock', variant: 'two-models', onMetric: metric => observations.push(metric),
+    async command(executable, args, options) {
+      calls++; assert.equal(executable, process.execPath);
+      assert.deepEqual(args.slice(1), ['capture', join(options.cwd, 'handoff.json'), 'deal-review-mock', 'two-models']);
+      for (const [name, bytes] of Object.entries(twoModelDealReviewFiles())) {
+        assert.equal(await readFile(join(options.cwd, name), 'utf8'), bytes);
+      }
+      assert.equal(await readFile(args[0], 'utf8'), workflowSource);
+      throw primary;
+    }}), error => error === primary);
+  assert.equal(calls, 1);
+  assert.equal(observations.length, 1);
+  assert.equal(observations[0].samples[0].completed, false);
+  assert.deepEqual(observations[0].samples[0].phases, []);
+  assert.equal((await readdir(join(root, 'mock-project-0'))).includes('node_modules'), false);
+  scratch.passed();
 });
