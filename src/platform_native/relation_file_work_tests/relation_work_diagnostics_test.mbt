@@ -1,4 +1,37 @@
 ///|
+// Preserve the original final-pair refusal without formatting in a possibly
+// unresolved lower scope. The test harness renders this terminal error only
+// after catching it. Neither raising nor rendering acknowledges cleanup.
+suberror RelationPairRetirementFailure {
+  RelationPairRetirementFailure(@arena.InstalledArenaLocalHostResourcesIssue)
+}
+
+///|
+impl Show for RelationPairRetirementFailure with fn output(self, logger) {
+  let RelationPairRetirementFailure(issue) = self
+  logger.write_string("physical Read SQLite pair retirement: ")
+  logger.write_string(relation_pair_retirement_issue(issue))
+}
+
+///|
+// Every public pair/Read/SQLite variant keeps its concrete lower payload.
+// These are failure-only diagnostics, not another original-state observation.
+fn relation_pair_retirement_issue(
+  issue : @arena.InstalledArenaLocalHostResourcesIssue,
+) -> String {
+  match issue {
+    Read(Domain(reason)) => "Read.Domain: " + @debug.to_string(reason)
+    Read(Child(reason)) => "Read.Child: " + @debug.to_string(reason)
+    Read(Read(reason)) => "Read.Read: " + @debug.to_string(reason)
+    Read(Buffer(reason)) => "Read.Buffer: " + @debug.to_string(reason)
+    Sqlite(Domain(reason)) => "Sqlite.Domain: " + @debug.to_string(reason)
+    Sqlite(Library(reason)) =>
+      "Sqlite.Library: " + relation_original_sqlite_issue(reason)
+    Domain(reason) => "Domain: " + @debug.to_string(reason)
+  }
+}
+
+///|
 // Failure-only observations after the original callback and routing return
 // ACKs. These labels are not physical cleanup outcomes or replacement issues.
 fn relation_work_row_issue(issue : @rows.RowHostIssue) -> String {

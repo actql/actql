@@ -67,6 +67,28 @@ test('relation fixture checks retained plus execution and real provider layout w
   assert.match(fixture, /fail\("business domain pending: " \+ @debug\.to_string\(issue\)\)/u);
 });
 
+test('relation final pair refusal retains its exact issue before terminal harness rendering', () => {
+  const fixture = readFileSync(new URL('../src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt', import.meta.url), 'utf8');
+  const diagnostics = readFileSync(new URL('../src/platform_native/relation_file_work_tests/relation_work_diagnostics_test.mbt', import.meta.url), 'utf8');
+  const start = fixture.indexOf('  match physical.close_local_host_resources(pair) {');
+  const end = fixture.indexOf('\n  physical\n  .close_domain_after_owner_ack', start);
+  assert(start >= 0 && end > start);
+  const reply = fixture.slice(start, end);
+  assert.equal((fixture.match(/close_local_host_resources\(pair\)/gu) ?? []).length, 1);
+  assert.match(reply, /Ok\(_\) => \(\)/u);
+  assert.match(reply, /Err\(issue\) => raise RelationPairRetirementFailure\(issue\)/u);
+  assert(!/fail\(|to_string\(|relation_original_value|observe_|retry_|close_domain|try_close/u.test(reply));
+  assert(fixture.indexOf('"physical business retirement"') < start);
+  assert(end < fixture.indexOf('"physical arena close"'));
+  assert.match(diagnostics, /suberror RelationPairRetirementFailure \{\s*RelationPairRetirementFailure\(@arena\.InstalledArenaLocalHostResourcesIssue\)\s*\}/u);
+  assert.match(diagnostics, /impl Show for RelationPairRetirementFailure with fn output\(self, logger\)/u);
+  const renderer = diagnostics.slice(diagnostics.indexOf('fn relation_pair_retirement_issue('), diagnostics.indexOf('// Failure-only observations'));
+  for (const variant of ['Read(Domain(reason))', 'Read(Child(reason))', 'Read(Read(reason))', 'Read(Buffer(reason))', 'Sqlite(Domain(reason))', 'Sqlite(Library(reason))', 'Domain(reason)']) assert(renderer.includes(variant), variant);
+  assert(!/_\s*=>|close\(|observe_|retry_/u.test(renderer));
+  assert.equal((renderer.match(/@debug\.to_string\(reason\)/gu) ?? []).length, 6);
+  assert(renderer.includes('relation_original_sqlite_issue(reason)'));
+});
+
 test('relation diagnostic preserves first Work refusal and waits for original returns before formatting', () => {
   const fixture = readFileSync(new URL('../src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt', import.meta.url), 'utf8');
   // The earlier entry-preparation refusal also saves this out-slot. Select

@@ -1319,9 +1319,12 @@ test "actual original Account Journal StoreOperation captures relation and execu
   physical
   .close_crypto_component(component)
   .relation_original_value("physical Crypto control retirement")
-  physical
-  .close_local_host_resources(pair)
-  .relation_original_value("physical Read SQLite pair retirement")
+  // Preserve this one original reply. A refusal stops before ancestor cleanup;
+  // its retained lower issue is rendered by the harness, not in this scope.
+  match physical.close_local_host_resources(pair) {
+    Ok(_) => ()
+    Err(issue) => raise RelationPairRetirementFailure(issue)
+  }
   physical
   .close_domain_after_owner_ack(business_domain.val.unwrap())
   .relation_original_value("business domain close")
