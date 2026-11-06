@@ -65,7 +65,8 @@ def validate_receipt_profile(receipt, target, minimum_macos):
 
 
 def build(source, archive, destination, clang, sdk, make, perl, seconds, target='darwin-arm64',
-          minimum_macos=None):
+          minimum_macos=None, *, jobs=1):
+    require(type(jobs) is int and jobs in (1, 2), 'TLS build jobs must be one or two')
     actual = ('darwin-arm64' if sys.platform == 'darwin' and platform.machine() == 'arm64'
               else 'linux-x64' if sys.platform == 'linux' and platform.machine() == 'x86_64' else None)
     require(actual == target, 'Selected Native TLS target differs')
@@ -137,7 +138,7 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds, target=
 
     run('configure', [str(perl), str(source_root / 'Configure'), profile['configure'],
                       '--prefix=' + str(stage), *recipe['configure']])
-    run('build-libraries', [str(make), '-j1', 'build_libs'])
+    run('build-libraries', [str(make), '-j' + str(jobs), 'build_libs'])
     (stage / 'lib').mkdir(parents=True)
     (stage / 'include/openssl').mkdir(parents=True)
     for name in ('libssl.a', 'libcrypto.a'):
@@ -158,7 +159,7 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds, target=
         require(NATIVE.original(Path(item['path'])) == item, 'TLS original changed during production')
     clean()
     files = [NATIVE.original(p) for p in sorted(stage.rglob('*')) if p.is_file()]
-    receipt = {'source': source, 'target': target, 'minimumMacOS': profile['minimumMacOS'],
+    receipt = {'source': source, 'target': target, 'minimumMacOS': profile['minimumMacOS'], 'buildJobs': jobs,
                'upstream': recipe, 'inputs': inputs, 'stage': str(stage), 'files': files,
                'compiledLibraries': 2, 'loaded': 0, 'installedSupplier': False, 'normalProfile': None,
                'scope': 'Static TLS dependency only; no Runtime/Host/transport/physical-stop acceptance.'}
@@ -175,6 +176,7 @@ if __name__ == '__main__':
     parser.add_argument('--target', choices=('darwin-arm64', 'linux-x64'), default='darwin-arm64')
     parser.add_argument('--minimum-macos', choices=('11.0', '26.0'))
     parser.add_argument('--seconds', type=int, required=True)
+    parser.add_argument('--jobs', type=int, choices=(1, 2), default=1)
     args = parser.parse_args()
     print(json.dumps(build(args.source, args.archive, args.destination, args.clang,
-                           args.sdk, args.make, args.perl, args.seconds, args.target, args.minimum_macos)))
+                           args.sdk, args.make, args.perl, args.seconds, args.target, args.minimum_macos, jobs=args.jobs)))

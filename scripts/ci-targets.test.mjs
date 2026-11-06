@@ -306,6 +306,7 @@ for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of 
       step.name === 'Prepare exact-source scoped Native commands and components once');
     assert.equal(preparation.run, 'node scripts/prepare-native-runtime-bundle-fixture.mjs ' +
       '--destination "${{ runner.temp }}/native-scoped-preparation" --entries ' + entries + ' --seconds 900' +
+      (entries === 'all' ? ' --http-jobs 2' : '') +
       (residentSeconds === 900 ? '' : ' --resident-seconds ' + residentSeconds));
     assert.equal(preparation.if, undefined);
     assert.equal(preparation['continue-on-error'], undefined);
@@ -572,7 +573,7 @@ test('pipeline evidence aggregates dependency failures but stops on workflow can
   }
 });
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
-  for (const [name, groups] of [['client', ['client-packages', 'client-distribution', 'client-packed', 'client-salesforce']],
+  for (const [name, groups] of [['client', ['client-packages', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce']],
     ['pipeline-evidence', ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']]]) {
     assert.deepEqual(jobs[name].needs, groups);
     assert.match(jobs[name].if, /always\(\)/u);
@@ -592,7 +593,8 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 });
 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
+  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-distribution-callers',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce',
     'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of heavy) {
@@ -755,7 +757,8 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
 });
 
 test('Unrelated Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
+  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-distribution-callers',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce',
     'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
     'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
     'workers', 'connector-addition', 'duckdb-node'];
@@ -783,7 +786,9 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
   const preflight = commands('preflight');
   assert.deepEqual(preflight.filter(command => !command.includes('setup-moonbit')), [
     'node --test scripts/pure-operation-inventory.test.mjs',
-    'python3 scripts/test_native_timings.py CommandCounterMap', 'npm ci', 'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
+    'python3 scripts/test_native_timings.py CommandCounterMap', 'npm ci',
+    `node --input-type=module -e 'import {runFocusedTests} from "./scripts/test-execution.mjs"; process.exitCode=runFocusedTests("node",["--test-name-pattern","^check:.* retains its exact registered commands", "scripts/build-runtime-packages.test.mjs"],{cwd:process.cwd()});'`,
+    'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
     'npm run check:metadata', 'moon fmt --check', 'git diff --exit-code', 'node scripts/ci-preflight.mjs']);
   assert.deepEqual(commands('lint'), ['npm ci', 'npm run check:client-types',
     'node --test scripts/ci-preflight.test.mjs', 'node --test scripts/ci-focused-tests.test.mjs',

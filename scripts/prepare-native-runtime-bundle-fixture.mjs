@@ -11,7 +11,7 @@ import {originalDescriptor} from './native-preparation-originals.mjs';
 
 const args=process.argv.slice(2),options={};
 for(let i=0;i<args.length;i+=2) {
-  assert(['--destination','--entries','--seconds','--resident-seconds'].includes(args[i]) && args[i+1]!==undefined);
+  assert(['--destination','--entries','--seconds','--resident-seconds','--http-jobs'].includes(args[i]) && args[i+1]!==undefined);
   assert.equal(options[args[i]],undefined);options[args[i]]=args[i+1];
 }
 assert(options['--destination']);
@@ -20,6 +20,8 @@ const seconds=Number(options['--seconds']??900);
 assert(Number.isSafeInteger(seconds) && seconds>0 && seconds<=1800);
 const residentSeconds=Number(options['--resident-seconds']??seconds);
 assert(Number.isSafeInteger(residentSeconds) && residentSeconds>0 && residentSeconds<=1800);
+const httpJobs=Number(options['--http-jobs']??1);
+assert(Number.isSafeInteger(httpJobs) && [1,2].includes(httpJobs));
 const target=process.platform==='darwin' && process.arch==='arm64'?'darwin-arm64'
   :process.platform==='linux' && process.arch==='x64'?'linux-x64':undefined;
 assert(target,'No selected native preparation target');
@@ -33,14 +35,25 @@ const moonHome=realpathSync(process.env.MOON_HOME);
 const clang=realpathSync(process.platform==='darwin'?run('xcrun',['--find','clang']).trim()
   :run('sh',['-c','command -v clang']).trim());
 const sdk=process.platform==='darwin'?realpathSync(run('xcrun',['--show-sdk-path']).trim()):null;
+let preparationPhase=0;
 function timedPreparation(phase, prepare) {
   const started=performance.now();let succeeded=false;
   try { const value=prepare();succeeded=true;return value; }
   finally {
     const milliseconds=Math.round(performance.now()-started);
     console.error('ACTQL_NATIVE_CI_PHASE '+JSON.stringify({phase,milliseconds,succeeded}));
-    if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-      `- Native ${phase}: ${milliseconds} ms (${succeeded?'success':'failed'}).\n`);
+    // The existing receipt upload runs before the test cases. Keep a bounded
+    // diagnostic per completed producer there, without changing artifact identity
+    // or replacing the producer's original return/throw if diagnostics fail.
+    try {
+      writeFileSync(join(destination,`phase-${++preparationPhase}.timing.json`),
+        JSON.stringify({source,target,phase,milliseconds,succeeded})+'\n',{flag:'wx',mode:0o600});
+    } catch { console.error('Native timing diagnostic unavailable'); }
+    if(process.env.GITHUB_STEP_SUMMARY) {
+      try { appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+        `- Native ${phase}: ${milliseconds} ms (${succeeded?'success':'failed'}).\n`); }
+      catch { console.error('Native timing summary unavailable'); }
+    }
   }
 }
 mkdirSync(destination,{mode:0o700});
@@ -58,9 +71,15 @@ for(const [name,prepare,selected] of [
 const components=join(destination,'components');
 timedPreparation('runtime_libraries',()=>
   prepareNativeRuntimeBundleLibraries(repository,components,{moonHome,seconds,preparation:null}));
+// Reuse only the immutable original archive already checked by Crypto. TLS
+// performs its own digest check and independent build with its own lifetime
+// flags; no compiled library or provider is borrowed across these recipes.
+const sharedOpenSSL=process.env.ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE??
+  (target==='darwin-arm64' && (process.env.ACTQL_TEST_NATIVE_CRYPTO_PROFILE??'source-macos11')==='source-macos11'
+    ?join(components,'crypto-source','openssl-original.tar.gz'):undefined);
 const httpReceipt=selection==='bundle'?undefined:
   timedPreparation('http_component',()=>
-    prepareNativeResidentHttpComponent(repository,join(destination,'http'),{seconds}));
+    prepareNativeResidentHttpComponent(repository,join(destination,'http'),{seconds,tlsArchive:sharedOpenSSL,tlsJobs:httpJobs}));
 assert.equal(run('git',['rev-parse','HEAD']).trim(),source);
 assert.equal(run('git',['status','--porcelain']),'');
 writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target,moon_home:moonHome,

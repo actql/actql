@@ -113,6 +113,19 @@ test('missing known file or renamed required case fails, never silently skips', 
   }
 });
 
+test('new environment inputs inside an already owned file cannot inherit its registration', () => {
+  const path = query + 'duckdb_native_runtime_wbtest.mbt';
+  for (const extra of [
+    '\nfn new_input() { "ACTQL_TEST_NEW_2" }',
+    '\nextern "C" fn new_reader() -> Int = "getenv"',
+    '\nextern "C" fn new_reader() -> Int = "secure_getenv"',
+    '\nextern "C" fn new_reader() -> Int = "actql_native_sqlite_test_unclosed_coordinator"',
+  ]) {
+    const selection = select('http-client', {...sources, [path]: sources[path] + extra});
+    assert.equal(selection.mode, 'full-fallback', extra);
+  }
+});
+
 test('new direct environment consumer falls back to full current suite', () => {
   const selection = select('http-client', {...sources,
     [query + 'new_wbtest.mbt']: 'test "new" { @env.get_env_var("NEW") }'});

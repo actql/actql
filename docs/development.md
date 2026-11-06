@@ -1183,11 +1183,26 @@ independent failures without treating them as success or introducing parallel
 Store/port ownership. The final required checks are unchanged.
 
 Native preparation logs each command/component interval as
-`ACTQL_NATIVE_CI_PHASE`. The HTTP package loop separately logs build-only and
+`ACTQL_NATIVE_CI_PHASE` and writes a small `phase-*.timing.json` diagnostic into
+its existing receipt artifact before later tests run. Each record identifies
+only the source, target, phase, elapsed milliseconds and producer outcome;
+it is not an artifact reuse or runtime acceptance receipt. Missing timing I/O
+never replaces the producer's original result. The HTTP package loop separately logs build-only and
 execution intervals using the same compiler inputs and fixture environment.
 Execution includes Moon's incremental freshness check; it is not a pure test-CPU
 measurement. Compare these intervals with Actions job start/queue observations;
 case counts alone do not predict wall-time savings.
+
+The preparation helper reuses the verified OpenSSL source archive from the
+compatible Darwin Crypto producer for HTTP TLS acquisition. TLS rechecks the
+original digest and builds its own patched source/libraries; Homebrew and Linux
+profiles do not assume that Darwin archive exists. An explicit original archive
+continues to take precedence. `--http-jobs 1|2` bounds only the build-time TLS
+compiler parallelism and records it in the TLS receipt; the local default remains
+one. Linux and macOS full Native CI explicitly select two after a bounded actual
+Mac TLS/HTTP component build. Existing time windows, compiler flags, cleanup and
+deployment settings stay intact. Local measurements do not establish CI speedup;
+runtime resource limits and the component lifetime profile are unchanged.
 
 ### Full integration and release evidence
 

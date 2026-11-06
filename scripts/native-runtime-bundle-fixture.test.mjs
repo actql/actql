@@ -227,7 +227,7 @@ test('the explicit Resident cold-build budget leaves the other preparation windo
     timingEnd=source.indexOf('mkdirSync(destination',timingStart);
   assert(optionsStart>=0 && optionsEnd>optionsStart && prepareStart>=0 && prepareEnd>prepareStart);
   const options=args=>runInNewContext(source.slice(optionsStart,optionsEnd)+
-    '\n({selection,seconds,residentSeconds});',{
+    '\n({selection,seconds,residentSeconds,httpJobs});',{
       assert,process:{argv:['node','prepare','--destination','/owned/preparation',...args]},
     });
   const original=options(['--entries','all']);
@@ -236,16 +236,25 @@ test('the explicit Resident cold-build budget leaves the other preparation windo
   assert.equal(selected.seconds,900);assert.equal(selected.residentSeconds,1200);
   for(const value of ['0','-1','1801','1.5','NaN'])
     assert.throws(()=>options(['--resident-seconds',value]));
-  for(const selectedOptions of [original,selected]){
+  const parallel=options(['--entries','all','--http-jobs','2']);
+  assert.equal(original.httpJobs,1);assert.equal(parallel.httpJobs,2);
+  for(const value of ['0','3','-1','1.5','NaN'])assert.throws(()=>options(['--http-jobs',value]));
+  for(const selectedOptions of [original,selected,parallel]){
     const calls=[],repository='/owned/source',destination='/owned/preparation',moonHome='/selected/moon';
     const prepare=name=>(root,path,configuration)=>{
       assert.equal(root,repository);assert.equal(configuration.preparation,name==='http'?undefined:null);
       if(name!=='http')assert.equal(configuration.moonHome,moonHome);
+      else {
+        assert.equal(configuration.tlsJobs,selectedOptions.httpJobs);
+        assert.equal(configuration.tlsArchive,join(destination,'components/crypto-source/openssl-original.tar.gz'));
+      }
       calls.push({name,path,seconds:configuration.seconds});
     };
-    const phases=[];let clock=0;
+    const phases=[],timings=[];let clock=0;
     runInNewContext(source.slice(timingStart,timingEnd)+source.slice(prepareStart,prepareEnd),{
       ...selectedOptions,repository,destination,moonHome,join,originalDescriptor:path=>path,
+      preparationPhase:0,source:'a'.repeat(40),target:'darwin-arm64',
+      writeFileSync:(path,bytes,options)=>timings.push({path,body:JSON.parse(bytes),options}),
       performance:{now:()=>clock++},process:{env:{}},
       console:{error:line=>phases.push(JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length)))},
       prepareNativeRuntimeBundle:prepare('bundle'),prepareNativeResidentSite:prepare('resident'),
@@ -260,14 +269,55 @@ test('the explicit Resident cold-build budget leaves the other preparation windo
     ]);
     assert.equal(phases.length,4);
     assert(phases.every(phase=>phase.succeeded && phase.milliseconds===1));
+    assert.deepEqual(timings.map(item=>item.path),[1,2,3,4]
+      .map(index=>join(destination,`phase-${index}.timing.json`)));
+    for(const [index,item] of timings.entries()){
+      assert.deepEqual(item.body,{source:'a'.repeat(40),target:'darwin-arm64',...phases[index]});
+      assert.equal(item.options.flag,'wx');assert.equal(item.options.mode,0o600);
+    }
   }
-  const primary=new Error('original producer failure'),phases=[];let clock=0;
+  const primary=new Error('original producer failure'),phases=[],timings=[];let clock=0;
   const timed=runInNewContext(source.slice(timingStart,timingEnd)+'timedPreparation;',{
+    preparationPhase:0,source:'b'.repeat(40),target:'linux-x64',destination:'/owned/preparation',join,
+    writeFileSync:(path,bytes)=>timings.push({path,body:JSON.parse(bytes)}),
     performance:{now:()=>clock++},process:{env:{}},
     console:{error:line=>phases.push(JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length)))},
   });
   assert.throws(()=>timed('failed-producer',()=>{throw primary;}),error=>error===primary);
   assert.equal(phases.length,1);assert.equal(phases[0].succeeded,false);
+  assert.equal(timings.length,1);assert.equal(timings[0].body.succeeded,false);
+  assert.equal(timings[0].body.source,'b'.repeat(40));
+});
+
+test('timing diagnostic I/O never replaces the original producer outcome',()=>{
+  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
+  const start=source.indexOf('function timedPreparation('),end=source.indexOf('mkdirSync(destination',start);
+  const primary=new Error('original producer failure'),messages=[];
+  const timed=runInNewContext(source.slice(start,end)+'timedPreparation;',{
+    preparationPhase:0,source:'c'.repeat(40),target:'linux-x64',destination:'/owned/preparation',join,
+    writeFileSync:()=>{throw Object.assign(new Error('diagnostic unavailable'),{code:'EACCES'});},
+    appendFileSync:()=>{throw new Error('summary unavailable');},
+    performance:{now:()=>1},process:{env:{GITHUB_STEP_SUMMARY:'/owned/summary'}},
+    console:{error:line=>messages.push(line)},
+  });
+  assert.throws(()=>timed('producer',()=>{throw primary;}),error=>error===primary);
+  const value={original:true};assert.equal(timed('producer',()=>value),value);
+  assert.equal(messages.filter(line=>line.includes('timing diagnostic unavailable')).length,2);
+  assert.equal(messages.filter(line=>line.includes('timing summary unavailable')).length,2);
+});
+
+test('shared OpenSSL acquisition keeps target/profile boundaries and explicit original input',()=>{
+  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
+  const start=source.indexOf('const sharedOpenSSL='),end=source.indexOf('const httpReceipt=',start);
+  assert(start>=0 && end>start);
+  const select=(target,env)=>runInNewContext(source.slice(start,end)+'sharedOpenSSL;',{
+    target,process:{env},components:'/owned/components',join,
+  });
+  assert.equal(select('darwin-arm64',{}),'/owned/components/crypto-source/openssl-original.tar.gz');
+  assert.equal(select('linux-x64',{}),undefined);
+  assert.equal(select('darwin-arm64',{ACTQL_TEST_NATIVE_CRYPTO_PROFILE:'homebrew26'}),undefined);
+  for(const target of ['linux-x64','darwin-arm64'])
+    assert.equal(select(target,{ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE:'/original/archive'}),'/original/archive');
 });
 
 test('the Resident build allowance retains its caller deadline and original timeout refusal',t=>{
