@@ -771,7 +771,9 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
   const preflight = commands('preflight');
   assert.deepEqual(preflight.filter(command => !command.includes('setup-moonbit')), [
     'node --test scripts/pure-operation-inventory.test.mjs',
-    'python3 scripts/test_native_timings.py CommandCounterMap', 'npm ci', 'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
+    'python3 scripts/test_native_timings.py CommandCounterMap', 'npm ci',
+    `node --input-type=module -e 'import {runFocusedTests} from "./scripts/test-execution.mjs"; process.exitCode=runFocusedTests("node",["--test-name-pattern","^check:.* retains its exact registered commands", "scripts/build-runtime-packages.test.mjs"],{cwd:process.cwd()});'`,
+    'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
     'npm run check:metadata', 'moon fmt --check', 'git diff --exit-code', 'node scripts/ci-preflight.mjs']);
   assert.deepEqual(commands('lint'), ['npm ci', 'npm run check:client-types',
     'node --test scripts/ci-preflight.test.mjs', 'node --test scripts/ci-focused-tests.test.mjs',

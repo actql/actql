@@ -137,6 +137,12 @@ jobs:
       - name: Check Native diagnostic counter assignments before fan-out
         run: python3 scripts/test_native_timings.py CommandCounterMap
       - run: npm ci
+      - name: Check runtime command inventory before fan-out
+        run: >-
+          node --input-type=module -e
+          'import {runFocusedTests} from "./scripts/test-execution.mjs";
+          process.exitCode=runFocusedTests("node",["--test-name-pattern","^check:.* retains its exact registered commands",
+          "scripts/build-runtime-packages.test.mjs"],{cwd:process.cwd()});'
       - name: Test pipeline artifact and aggregate contracts
         run: node --test proofs/relation-pipeline/ci-artifacts.test.mjs
       - name: Check owned contract versions
