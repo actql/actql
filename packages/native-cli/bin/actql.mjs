@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {constants} from 'node:os';
 import {installedLocalRuntimeEnvironment} from '../lib/local-runtime.mjs';
-import {projectInitArguments, projectInitialAdoptionArguments, scaffoldProject} from '../lib/project-scaffold.mjs';
+import {projectInitArguments, projectInitialAdoptionArguments, scaffoldProject, requireProjectInitSupport} from '../lib/project-scaffold.mjs';
 
 export function platformKey({platform, arch, glibc}) {
   if (platform === 'darwin' && arch === 'arm64') return 'darwin-arm64';
@@ -99,9 +99,16 @@ export function launch(args) {
   // Native supplies the answer; no project, Host or second parser is created.
   let selectedArguments = args.length === 1 && args[0] === 'version' ? ['--version'] : args;
   if (initialization) {
+    // This known package capability failure must precede all project writes.
+    // The inherited selector was removed above; only admitted installation
+    // metadata can supply it. Native still owns physical/runtime admission.
+    if (selectedEnvironment.ACTQL_NATIVE_LOCAL_RUNTIME === undefined) {
+      throw Object.assign(Error(`Packaged Local runtime is unavailable for ${key}; actql init requires it. No project files were created. Remote commands remain available.`), {exitCode: 69});
+    }
     // Preparation creates no state or key. Only the same admitted Native image
     // may adopt the explicit project Store through its existing installation
     // Owner. Failure leaves partial files and original cleanup responsibilities.
+    requireProjectInitSupport(executable, selectedEnvironment, initialization.template);
     const project = scaffoldProject(initialization.directory, initialization.template);
     selectedArguments = projectInitialAdoptionArguments(project);
   }

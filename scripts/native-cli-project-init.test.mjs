@@ -1,13 +1,21 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {mkdtemp, readdir, rm, readFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, readdir, rm, readFile, writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
-import {projectInitArguments, projectInitialAdoptionArguments} from '../packages/native-cli/lib/project-scaffold.mjs';
+import {projectInitArguments, projectInitialAdoptionArguments, requireProjectInitSupport, scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
+import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
 
+const repository = fileURLToPath(new URL('../', import.meta.url));
 const launcher = fileURLToPath(new URL('../packages/native-cli/bin/actql.mjs', import.meta.url));
+const installedPlatform = process.platform === 'darwin' && process.arch === 'arm64' ? 'darwin-arm64'
+  : process.platform === 'linux' && process.arch === 'x64' && process.report.getReport().header.glibcVersionRuntime
+    ? 'linux-x64-gnu' : undefined;
+const installedTest = {skip: installedPlatform === undefined};
+const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const scratch = async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-project-init-'));
   t.after(() => rm(root, {recursive: true, force: true}));
@@ -15,6 +23,65 @@ const scratch = async t => {
 };
 const command = (cwd, args) => spawnSync(process.execPath, [launcher, ...args],
   {cwd, encoding: 'utf8', timeout: 10_000, maxBuffer: 8192});
+
+async function installedFixture(t, {runtime = false} = {}) {
+  const root = await scratch(t), cwd = join(root, 'workspace');
+  const cli = join(root, 'node_modules/actql');
+  const packageName = `@actql/cli-${installedPlatform}`;
+  const native = join(root, 'node_modules', packageName), executable = join(native, 'bin/actql-native-client');
+  await mkdir(cwd); await mkdir(dirname(executable), {recursive: true});
+  const inputs = nativeCliPackageInputs(repository);
+  for (const {source, member} of inputs.copies) {
+    await mkdir(dirname(join(cli, member)), {recursive: true});
+    await copyFile(join(repository, source), join(cli, member));
+  }
+  await copyFile(join(repository, inputs.manifest), join(cli, 'package.json'));
+  await writeFile(join(native, 'package.json'), JSON.stringify({name: packageName, version: '0.0.2'}));
+  // An explicitly synthetic dispatch observer, never a Native implementation
+  // or package acceptance result. Its exact bytes pass normal launcher checks.
+  const binary = Buffer.from(`#!${process.execPath}\n` +
+    'if (process.argv[2] === "project-init-support") {\n' +
+    '  process.stdout.write(process.env.ACTQL_INIT_FIXTURE_SUPPORT ?? JSON.stringify({version:"actql-project-init-support/0.1",sourceFree:true,mock:false}));\n' +
+    '  process.exit(0);\n' +
+    '}\n' +
+    'process.stdout.write(JSON.stringify({args:process.argv.slice(2),runtime:process.env.ACTQL_NATIVE_LOCAL_RUNTIME ?? null}) + "\\n");\n' +
+    'process.exitCode=Number(process.env.ACTQL_INIT_FIXTURE_EXIT ?? 0);\n');
+  await writeFile(executable, binary, {mode: 0o755});
+  const sourceSha = 'a'.repeat(40);
+  const abi = installedPlatform === 'darwin-arm64' ? {minimumMacOS: '11.0'} : {minimumGlibc: '2.17'};
+  const metadata = {version: 'actql-native-cli-artifact/0.1', platform: installedPlatform,
+    sourceSha, binarySha256: digest(binary), binaryBytes: binary.length, abi};
+  const expected = {package: packageName, sourceSha,
+    binarySha256: metadata.binarySha256, binaryBytes: binary.length};
+  if (runtime) {
+    // Metadata selection alone cannot establish physical/runtime admission.
+    // These bounded synthetic members only let the dispatch observer run.
+    const member = async (path, bytes) => {
+      await mkdir(dirname(join(native, path)), {recursive: true});
+      await writeFile(join(native, path), bytes);
+      return {path, bytes: bytes.length, sha256: digest(bytes)};
+    };
+    const license = await member('licenses/fixture.txt', Buffer.from('Synthetic fixture only.\n'));
+    const libraries = await Promise.all(['sqlite', 'crypto'].map(async role => ({role,
+      ...await member(`lib/${role}.fixture`, Buffer.alloc(64)), license: license.path, dependencies: [], abi})));
+    const assets = await Promise.all(['environment', 'registry', 'values', 'fragment', 'result-policy'].map(async role => ({role,
+      ...await member(`data/${role}.json`, Buffer.from('{}\n'))})));
+    metadata.localRuntime = await member('local-runtime.json', Buffer.from(JSON.stringify({
+      sourceSha, platform: installedPlatform, libraries, assets, licenses: [license],
+    })));
+    expected.localRuntimeSha256 = metadata.localRuntime.sha256;
+  }
+  const save = async () => {
+    await writeFile(join(native, 'artifact.json'), JSON.stringify(metadata));
+    await writeFile(join(cli, 'platforms.json'), JSON.stringify({[installedPlatform]: expected}));
+  };
+  await save();
+  const invoke = (args, environment = {}) => spawnSync(process.execPath, [join(cli, 'bin/actql.mjs'), ...args], {
+    cwd, env: {...process.env, ACTQL_NATIVE_TIMINGS: '0', ACTQL_INIT_FIXTURE_EXIT: '0', ...environment},
+    encoding: 'utf8', timeout: 10_000, maxBuffer: 8192,
+  });
+  return {cwd, native, executable, binary, metadata, expected, save, invoke};
+}
 
 test('only init is intercepted while all protocol operations retain their original argv', () => {
   for (const args of [[], ['adopt'], ['run', 'program.aql'], ['--mode', 'local', 'connect'], ['initialize']]) {
@@ -84,7 +151,7 @@ test('actual launcher rejects invalid preparation before writes or Native packag
   }
 });
 
-test('a real unavailable Native cohort refuses init before even template preparation', async t => {
+test('a source checkout without a staged Native cohort refuses init before template preparation', async t => {
   const root = await scratch(t);
   // The checkout has no staged platform mapping. This negative uses the actual
   // launcher and package resolver, not a fabricated Native success binary.
@@ -101,6 +168,99 @@ test('a real unavailable Native cohort refuses init before even template prepara
   assert.deepEqual(await readdir(root), []);
 });
 
+test('an installed package without Local runtime refuses every init template before any project writes', installedTest, async t => {
+  const f = await installedFixture(t);
+  for (const template of [undefined, 'churn-risk-mock', 'deal-review-mock']) {
+    for (const directory of [undefined, 'project']) {
+      const args = ['init', ...(template ? ['--template', template] : []), ...(directory ? [directory] : [])];
+      const result = f.invoke(args, {ACTQL_NATIVE_LOCAL_RUNTIME: 'untrusted ambient selector'});
+      assert.ifError(result.error); assert.equal(result.signal, null); assert.equal(result.status, 69);
+      assert.equal(result.stdout, '');
+      assert.equal(result.stderr, `actql: Packaged Local runtime is unavailable for ${installedPlatform}; actql init requires it. No project files were created. Remote commands remain available.\n`);
+      assert.deepEqual(await readdir(f.cwd), []);
+    }
+  }
+});
+
+test('init capability refusal preserves an existing destination and never overwrites its files', installedTest, async t => {
+  const f = await installedFixture(t), project = join(f.cwd, 'project');
+  await mkdir(project); await writeFile(join(project, 'keep.txt'), 'Original user content.\n');
+  const result = f.invoke(['init', '--template', 'deal-review-mock', 'project']);
+  assert.ifError(result.error); assert.equal(result.status, 69); assert.equal(result.stdout, '');
+  assert.match(result.stderr, /Packaged Local runtime is unavailable/u);
+  assert.deepEqual(await readdir(f.cwd), ['project']);
+  assert.deepEqual(await readdir(project), ['keep.txt']);
+  assert.equal(await readFile(join(project, 'keep.txt'), 'utf8'), 'Original user content.\n');
+});
+
+test('installed binary identity failures are not hidden by the missing Local runtime preflight', installedTest, async t => {
+  const f = await installedFixture(t), original = structuredClone(f.metadata);
+  for (const changed of [{sourceSha: 'b'.repeat(40)}, {platform: 'foreign-platform'},
+    {binarySha256: 'c'.repeat(64)}, {binaryBytes: f.binary.length + 1}]) {
+    Object.assign(f.metadata, original, changed); await f.save();
+    const result = f.invoke(['init', 'project']);
+    assert.ifError(result.error); assert.equal(result.status, 65); assert.equal(result.stdout, '');
+    assert.match(result.stderr, /Native artifact identity mismatch/u);
+    assert.deepEqual(await readdir(f.cwd), []);
+  }
+  Object.assign(f.metadata, original); await f.save();
+  const changed = Buffer.from(f.binary); changed[changed.length - 1] ^= 1;
+  await writeFile(f.executable, changed);
+  const result = f.invoke(['init', 'project']);
+  assert.ifError(result.error); assert.equal(result.status, 65); assert.equal(result.stdout, '');
+  assert.match(result.stderr, /Native artifact identity mismatch/u);
+  assert.deepEqual(await readdir(f.cwd), []);
+});
+
+test('incomplete or damaged installed runtime descriptors keep their identity refusal before init writes', installedTest, async t => {
+  const f = await installedFixture(t, {runtime: true});
+  const original = f.metadata.localRuntime, pinned = f.expected.localRuntimeSha256;
+  for (const missing of ['metadata', 'pin', 'manifest']) {
+    f.metadata.localRuntime = original; f.expected.localRuntimeSha256 = pinned;
+    if (missing === 'metadata') delete f.metadata.localRuntime;
+    if (missing === 'pin') delete f.expected.localRuntimeSha256;
+    if (missing === 'manifest') await writeFile(join(f.native, 'local-runtime.json'), '{}\n');
+    await f.save();
+    const result = f.invoke(['init', 'project']);
+    assert.ifError(result.error); assert.equal(result.status, 65); assert.equal(result.stdout, '');
+    assert.match(result.stderr, /Native Local runtime identity or dependency mismatch/u);
+    assert.deepEqual(await readdir(f.cwd), []);
+  }
+});
+
+test('missing Local runtime does not block help, version or unchanged Remote argument dispatch', installedTest, async t => {
+  const f = await installedFixture(t);
+  for (const args of [['--help'], ['--version'], ['version'], ['--mode', 'remote', 'connect'],
+    ['--mode', 'remote', 'run', 'program.aql']]) {
+    const result = f.invoke(args, {ACTQL_NATIVE_LOCAL_RUNTIME: 'untrusted ambient selector'});
+    assert.ifError(result.error); assert.equal(result.signal, null); assert.equal(result.status, 0);
+    assert.equal(result.stderr, '');
+    assert.deepEqual(JSON.parse(result.stdout), {args: args[0] === 'version' ? ['--version'] : args, runtime: null});
+  }
+  const help = f.invoke(['init', '--help']);
+  assert.ifError(help.error); assert.equal(help.status, 0); assert.equal(help.stderr, '');
+  assert.match(help.stdout, /^Usage: actql init /u);
+  assert.deepEqual(await readdir(f.cwd), []);
+});
+
+test('available runtime metadata preserves Native adoption dispatch and retains files on child failure', installedTest, async t => {
+  const f = await installedFixture(t, {runtime: true}), project = join(f.cwd, 'project');
+  const result = f.invoke(['init', 'project'], {ACTQL_INIT_FIXTURE_EXIT: '71'});
+  assert.ifError(result.error); assert.equal(result.signal, null); assert.equal(result.status, 71);
+  assert.equal(result.stderr, '');
+  const observed = JSON.parse(result.stdout);
+  assert.deepEqual(observed.args, ['--mode', 'local', '--config', join(project, 'actql.config.json'),
+    '--state-dir', join(project, '.actql'), 'adopt', '--initialize-signing']);
+  assert.deepEqual(JSON.parse(observed.runtime), {root: f.native, sourceSha: f.expected.sourceSha,
+    platform: installedPlatform, manifestSha256: f.expected.localRuntimeSha256});
+  assert.deepEqual(await readdir(project), ['actql.config.json', 'connectors.json', 'model-tasks.json']);
+  // Retained files are not adopted state or permission to overwrite on retry.
+  const retry = f.invoke(['init', 'project']);
+  assert.ifError(retry.error); assert.equal(retry.status, 69); assert.equal(retry.stdout, '');
+  assert.match(retry.stderr, /project directory must be an empty owned directory/u);
+  assert.deepEqual(await readdir(project), ['actql.config.json', 'connectors.json', 'model-tasks.json']);
+});
+
 // The root README and the churn Quickstart are distinct public examples.
 // This checks the documented argv only: no Native runtime, Host or file write.
 test('root README deal-review init selects its exact documented template and directory', async () => {
@@ -109,4 +269,95 @@ test('root README deal-review init selects its exact documented template and dir
   assert.equal(line, 'actql init --template deal-review-mock deal-review && cd deal-review');
   const args = line.split(' && ')[0].split(' ').slice(1);
   assert.deepEqual(projectInitArguments(args), {directory: 'deal-review', template: 'deal-review-mock'});
+});
+
+const supportReply = value => ({status: 0, signal: null, stderr: '',
+  stdout: JSON.stringify({version: 'actql-project-init-support/0.1', sourceFree: true, mock: false, ...value})});
+
+test('init implementation query uses only the admitted executable and fixed bounded arguments', () => {
+  const environment = {ACTQL_NATIVE_LOCAL_RUNTIME: 'admitted'};
+  requireProjectInitSupport('/admitted/native', environment, undefined, (executable, args, options) => {
+    assert.equal(executable, '/admitted/native');
+    assert.deepEqual(args, ['project-init-support']);
+    assert.equal(options.env, environment);
+    assert.deepEqual(options.stdio, ['ignore', 'pipe', 'pipe']);
+    assert.equal(options.timeout, 5000);
+    assert.equal(options.killSignal, 'SIGKILL');
+    assert.equal(options.maxBuffer, 4096);
+    return supportReply();
+  });
+  // A parser fixture is not runtime acceptance: future Native support is not
+  // prohibited by a JavaScript template ban.
+  requireProjectInitSupport('/admitted/native', environment, 'churn-risk-mock', () => supportReply({mock: true}));
+});
+
+test('unavailable mock bindings preserve absent, empty and occupied project targets', async t => {
+  const root = await scratch(t);
+  await mkdir(join(root, 'empty'));
+  await mkdir(join(root, 'occupied'));
+  await writeFile(join(root, 'occupied/sentinel'), 'unchanged');
+  for (const template of ['churn-risk-mock', 'deal-review-mock']) {
+    for (const target of ['absent', 'empty', 'occupied']) {
+      assert.throws(() => {
+        requireProjectInitSupport('/admitted/native', {}, template, () => supportReply());
+        scaffoldProject(join(root, target), template);
+      }, e => e.exitCode === 69 && /does not implement/.test(e.message));
+    }
+  }
+  assert.deepEqual((await readdir(root)).sort(), ['empty', 'occupied']);
+  assert.deepEqual(await readdir(join(root, 'empty')), []);
+  assert.deepEqual(await readdir(join(root, 'occupied')), ['sentinel']);
+  assert.equal(await readFile(join(root, 'occupied/sentinel'), 'utf8'), 'unchanged');
+});
+
+test('old, malformed, failed, timed out and oversized Native queries refuse before preparation', async t => {
+  const root = await scratch(t);
+  const invalid = [
+    {...supportReply(), status: 2}, {...supportReply(), status: null, signal: 'SIGTERM'},
+    {...supportReply(), error: Object.assign(Error('timeout'), {code: 'ETIMEDOUT'})},
+    {...supportReply(), stdout: 'x'.repeat(4097)}, {...supportReply(), stdout: ''},
+    {...supportReply(), stdout: '{} trailing'}, {...supportReply(), stdout: 'null'},
+    {...supportReply(), stdout: '[]'}, {...supportReply(), stdout: '{}'},
+    {...supportReply(), stderr: 'unexpected warning'},
+    supportReply({version: 'unknown'}), supportReply({mock: 'true'}),
+    supportReply({extra: true}), supportReply({sourceFree: false}),
+  ];
+  for (const reply of invalid) {
+    assert.throws(() => {
+      requireProjectInitSupport('/admitted/native', {}, undefined, () => reply);
+      scaffoldProject(join(root, 'absent'));
+    }, e => e.exitCode === 69);
+    assert.deepEqual(await readdir(root), []);
+  }
+});
+
+
+test('installed launcher refuses unavailable mock support before scaffolding or adoption', installedTest, async t => {
+  const f = await installedFixture(t, {runtime: true});
+  await mkdir(join(f.cwd, 'empty'));
+  await mkdir(join(f.cwd, 'occupied'));
+  await writeFile(join(f.cwd, 'occupied/sentinel'), 'unchanged');
+  for (const template of ['churn-risk-mock', 'deal-review-mock']) {
+    for (const target of ['absent', 'empty', 'occupied']) {
+      const result = f.invoke(['init', '--template', template, target]);
+      assert.ifError(result.error); assert.equal(result.status, 69);
+      assert.equal(result.stdout, '');
+      assert.match(result.stderr, /does not implement the selected project bindings/u);
+      assert.deepEqual((await readdir(f.cwd)).sort(), ['empty', 'occupied']);
+      assert.deepEqual(await readdir(join(f.cwd, 'empty')), []);
+      assert.deepEqual(await readdir(join(f.cwd, 'occupied')), ['sentinel']);
+      assert.equal(await readFile(join(f.cwd, 'occupied/sentinel'), 'utf8'), 'unchanged');
+    }
+  }
+});
+
+test('installed launcher rejects malformed and oversized support replies before scaffold', installedTest, async t => {
+  const f = await installedFixture(t, {runtime: true});
+  for (const reply of ['not JSON', '{}', 'x'.repeat(5000), JSON.stringify({version:'old',sourceFree:true,mock:true})]) {
+    const result = f.invoke(['init', 'absent'], {ACTQL_INIT_FIXTURE_SUPPORT: reply});
+    assert.ifError(result.error); assert.equal(result.status, 69);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, /initialization support is unavailable/u);
+    assert.deepEqual(await readdir(f.cwd), []);
+  }
 });

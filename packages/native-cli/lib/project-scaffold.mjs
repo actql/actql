@@ -3,6 +3,7 @@
 import {constants, closeSync, fstatSync, lstatSync, mkdirSync, openSync,
   opendirSync, realpathSync, writeSync, fsyncSync} from 'node:fs';
 import {basename, dirname, join, resolve} from 'node:path';
+import {spawnSync} from 'node:child_process';
 import {projectTemplateFiles} from './project-template.mjs';
 
 const fail = (code, message) => { throw Object.assign(new Error(message), {code}); };
@@ -137,4 +138,30 @@ export function projectInitArguments(args) {
   // Validate before package admission or any filesystem write.
   projectTemplateFiles(template);
   return Object.freeze({directory: directory ?? '.', template});
+}
+
+// Implementation availability only, observed from the same admitted executable.
+// A positive answer cannot adopt a Store or supply runtime/Account authority.
+export function requireProjectInitSupport(executable, environment, template, query = spawnSync) {
+  const child = query(executable, ['project-init-support'], {
+    env: environment, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 5000, killSignal: 'SIGKILL', maxBuffer: 4096,
+  });
+  const unavailable = () => { throw Object.assign(new Error(
+    'Native project initialization support is unavailable; no project files were created. Reinstall the fixed package cohort.'), {exitCode: 69}); };
+  if (child.error || child.signal || child.status !== 0 || child.stderr !== '' ||
+      typeof child.stdout !== 'string' || Buffer.byteLength(child.stdout) > 4096) unavailable();
+  let support;
+  try { support = JSON.parse(child.stdout); } catch { unavailable(); }
+  if (!support || Array.isArray(support) || typeof support !== 'object' ||
+      Object.keys(support).sort().join(',') !== 'mock,sourceFree,version' ||
+      support.version !== 'actql-project-init-support/0.1' ||
+      typeof support.sourceFree !== 'boolean' || typeof support.mock !== 'boolean') unavailable();
+  // Names and file contents still belong to the existing template preparation.
+  // No runtime supplier, grant, signer or fallback is selected by this answer.
+  projectTemplateFiles(template);
+  if (!(template === undefined ? support.sourceFree : support.mock)) {
+    throw Object.assign(new Error(
+      'The installed Native runtime does not implement the selected project bindings; no project files were created.'), {exitCode: 69});
+  }
 }
