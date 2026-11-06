@@ -33321,7 +33321,7 @@
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
-      "sha256": "76404d7bb4bc19e58b3a89d24b457b4a4b662bbae1af9e3c90c8cdfd847425d9",
+      "sha256": "5ffdab121ffdd3866dad47f895aeaedcc3078ea329f5a1ede806be4ef1ce065e",
       "exports": [],
       "operations": [
         {
@@ -33907,7 +33907,7 @@
     },
     {
       "module": "src/client_local_host/installed_compute_preparation.mbt",
-      "sha256": "3ec8022668799013fc57705766ce5fbd986f2ad7101c3739db9f756b577ef6a8",
+      "sha256": "d37fa5012497eb6e4b28f29f8ea365137211acf32a060ff401febf0e8e92d1e3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Compute preparation and original capacity Plan; no new runtime or Resource owner",
@@ -33916,7 +33916,7 @@
       "operations": [
         {
           "name": "prepare_installed_compute_preparation",
-          "declaration": "prepare_installed_compute_preparation ( owner : ClientLocalSequenceOwner , source_free : ClientInstalledManagedSourceFreePreparation ? , sequences : Array [ @ execution . GeneratedSequence ] , captures : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledComputePreparation , ClientInstalledManagedRunIssue ]"
+          "declaration": "prepare_installed_compute_preparation ( owner : ClientLocalSequenceOwner , source_free : ClientInstalledManagedSourceFreePreparation ? , sequences : Array [ @ execution . GeneratedSequence ] , captures : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , runtime_admission ? : Bool"
         }
       ],
       "contracts": [
@@ -56807,7 +56807,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "d868cb933daf8bb56c2b2a858aba089352cd52fdafe8bbe84f0c3d803c9fc946"
+      "sha256": "e695d8d59d8c54a7c4db845bad8e4e7e09a4fd8e41eb1c68af678649fedb4a6c"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",

@@ -1,4 +1,73 @@
 ///|
+test "empty Effect report replay avoids unrelated dispatch reconstruction and keeps present corruption pending" {
+  let (http, client, slot, _) = control_terminal_fixture(
+    "empty-checkpoint-replay",
+  )
+  let (library, journal, request, path, _) = cleanup_test_open(
+    "empty-checkpoint-replay",
+  )
+  journal.accept(request).unwrap() |> ignore
+  let raw = library.open_database(path, 262144L).unwrap()
+  let key = @remote.dispatch_request_attempt_identity(request).unwrap()
+  let saved = raw.read("site_dispatch", key).unwrap()
+  raw.compare_exchange("site_dispatch", key, saved.revision, b"{").unwrap()
+  |> ignore
+  assert_true(journal.require(request) is Err(Protocol(_)))
+  assert_true(journal.has_effect_checkpoint_reports() is Ok(false))
+  let cursor = Ref("previous-scheduling-hint")
+  let next = Ref(0UL)
+  let callbacks = Ref(0)
+  let advance = (current, selected) => {
+    advance_effect_checkpoint_replay(
+      current,
+      client,
+      "https://127.0.0.1/unavailable",
+      completed_output_test_delegation(selected),
+      4,
+      cursor,
+      next,
+      0UL,
+      100,
+      _ => callbacks.val += 1,
+    )
+  }
+  assert_true(advance(journal, request) is Idle)
+  assert_eq(cursor.val, "")
+  assert_eq(next.val, 0UL)
+  // No dispatch admission or mutation is inferred from absence of work. The
+  // independent selected-record read still rejects its authored corruption.
+  assert_true(journal.require(request) is Err(Protocol(_)))
+  raw.close()
+  assert_true(journal.close())
+  assert_true(advance(journal, request) is Pending(_, "journal-recovery"))
+  // A distinct valid original dispatch plus malformed report DATA must still
+  // enter its complete report admission, never the empty-work shortcut.
+  let (same_library, pending, pending_request, pending_path, _) = cleanup_test_open(
+    "present-checkpoint-replay",
+  )
+  pending.accept(pending_request).unwrap() |> ignore
+  let raw_pending = same_library.open_database(pending_path, 262144L).unwrap()
+  raw_pending
+  .insert(
+    "site_effect_checkpoint_report",
+    @remote.dispatch_request_identity(pending_request),
+    b"{",
+  )
+  .unwrap()
+  |> ignore
+  assert_true(pending.has_effect_checkpoint_reports() is Ok(true))
+  assert_true(pending.require(pending_request) is Ok(_))
+  assert_true(advance(pending, pending_request) is Pending(_, "journal-report"))
+  raw_pending.close()
+  assert_true(pending.close())
+  assert_eq(callbacks.val, 0)
+  assert_true(client.response_limit() is Ok(64L))
+  client.close_checked().unwrap()
+  assert_true(slot.close())
+  http.close_checked().unwrap()
+}
+
+///|
 /// Authored protocol evidence with real SQLite and authenticated HTTPS. This
 /// isolates the production control replay call, not Provider Preview, encrypted
 /// continuation persistence, Cloud waiting, approval or Effect execution.

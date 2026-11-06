@@ -15,12 +15,20 @@ const object = {type: 'object', nullable: true, fields: {score: nullableNumber, 
 const checkedObject = {...object, additional_properties: false, fields: {
   score: nullableNumber, nested: {...nested, additional_properties: false},
 }};
+// A true strict comparison proves its exact property path and receivers
+// non-NULL. Siblings and the original Parameter contract remain unchanged.
+const checkedScoreObject = {...checkedObject, nullable: false, fields: {
+  ...checkedObject.fields, score: number,
+}};
+const checkedRiskObject = {...checkedObject, nullable: false, fields: {
+  ...checkedObject.fields, nested: {...checkedObject.fields.nested, nullable: false},
+}};
 const rows = [{id: 3, amount: 30}, {id: 1, amount: null},
   {id: 2, amount: 20}, {id: 3, amount: 30}, {id: 0, amount: 99}];
 const high = {score: 20, nested: {risk: 'high', reason: null}};
 const low = {score: 5, nested: null};
 const columns = [{name: 'id', contract: number},
-  {name: 'assessment', contract: checkedObject}, {name: 'n', contract: number}];
+  {name: 'assessment', contract: checkedScoreObject}, {name: 'n', contract: number}];
 const selected = [{id: 1, assessment: high, n: 1}, {id: 3, assessment: high, n: 2}];
 const declarations = {high: object, low: object};
 const parameters = {high, low};
@@ -59,12 +67,17 @@ export const havingObjectPropertySuccesses = [
   }),
   success('computed-alias', source),
   success('nested-and-quoted', projection
-    + "HAVING `ASSESSMENT`.`nested`.`risk` = 'high' AND assessment.nested.reason IS NULL ORDER BY id"),
+    + "HAVING `ASSESSMENT`.`nested`.`risk` = 'high' AND assessment.nested.reason IS NULL ORDER BY id", {
+    columns: [{name: 'id', contract: number}, {name: 'assessment', contract: checkedRiskObject},
+      {name: 'n', contract: number}],
+  }),
   success('null-receiver', source, {parameters: {...parameters, high: null}, expected: []}),
   success('null-field', source, {parameters: {...parameters, high: {...high, score: null}}, expected: []}),
   success('empty-input', source, {sourceRows: [], expected: []}),
   success('alias-input-collision', collisionProjection + 'HAVING id.score > records.id ORDER BY original_id', {
     ...collisionOptions, expected: [{original_id: 1, id: collisionValue, n: 1}],
+    columns: [{name: 'original_id', contract: number}, {name: 'id', contract: checkedScoreObject},
+      {name: 'n', contract: number}],
   }),
   success('qualified-input-control', collisionProjection + 'HAVING records.id > 1 AND id.score IS NOT NULL ORDER BY original_id', {
     ...collisionOptions, expected: [{original_id: 2, id: collisionValue, n: 1},

@@ -3530,9 +3530,15 @@ pub fn client_program_run_wait_decision(String, Bool, Int64) -> String
 
 pub fn client_program_salesforce_begin_query_read(@actql/actql/connectors/salesforce/catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> Result[@actql/actql/connectors/salesforce/catalog.QueryRead, @actql/actql/connectors/salesforce/catalog.QueryReadIssue]
 
+pub fn client_program_salesforce_declaration_construction_capacity(Array[Int], Int, Array[Int], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_salesforce_execution_mapping_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_salesforce_initialization_construction_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_salesforce_observation_construction_capacity(Array[String?], Int, Array[Int], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_salesforce_observation_construction_dimensions(@actql/actql/connectors/salesforce/catalog.CatalogObservation) -> Array[Int]
 
 pub fn client_program_salesforce_original_initialization_construction_capacity(Array[String?], Int, Array[Int], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 

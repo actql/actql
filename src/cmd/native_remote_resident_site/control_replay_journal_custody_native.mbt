@@ -74,9 +74,10 @@ fn open_control_replay_journal(
 /// The same reference remains available to control/terminal progress on error.
 fn close_control_replay_journal(
   retained : Ref[ControlReplayJournalCustody?],
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Unit {
   if !retry_control_replay_journal_cleanup(retained) {
-    report("control-journal-cleanup-pending", [])
+    report_progress("control-journal-cleanup-pending", [])
   }
 }
 

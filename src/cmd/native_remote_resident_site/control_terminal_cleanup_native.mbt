@@ -53,15 +53,16 @@ fn retry_control_slot_close(
 fn retain_control_reclaim_slot_close(
   original : @slot.NativeExecutorSlot,
   progress : Ref[ControlTerminalClose],
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Unit {
-  install_partial_holder_cleanup_signal()
+  install_partial_holder_cleanup_signal(report_progress~)
   ignore(
     retain_holder_cleanup_lifetime(
       original,
       same => retry_control_slot_close(same, progress),
       () => CleanupInputEnded,
-      wait_holder_cleanup_lifetime_signal,
-      (_, _) => report("orphan-slot-cleanup-pending", []),
+      () => wait_holder_cleanup_lifetime_signal_with_report(report_progress~),
+      (_, _) => report_progress("orphan-slot-cleanup-pending", []),
     ),
   )
 }

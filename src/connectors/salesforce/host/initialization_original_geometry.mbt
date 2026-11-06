@@ -102,6 +102,59 @@ pub fn initialization_original_construction_capacity(
   max_observation_bytes : Int,
   limits : @catalog.DeclarationLimits,
 ) -> @execution.ExecutionCapacity? {
+  sf_initialization_original_capacity(
+    encoded_bodies,
+    observation_units,
+    name_lengths,
+    binding_units,
+    connector_units,
+    revision_units,
+    describe,
+    max_observation_bytes,
+    limits,
+    Whole,
+  )
+}
+
+///|
+pub fn initialization_observation_construction_capacity(
+  encoded_bodies : Array[String?],
+  observation_units : Int,
+  name_lengths : Array[Int],
+  binding_units : Int,
+  connector_units : Int,
+  revision_units : Int,
+  describe : @catalog.DescribeLimits,
+  max_observation_bytes : Int,
+  limits : @catalog.DeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  sf_initialization_original_capacity(
+    encoded_bodies,
+    observation_units,
+    name_lengths,
+    binding_units,
+    connector_units,
+    revision_units,
+    describe,
+    max_observation_bytes,
+    limits,
+    Observation,
+  )
+}
+
+///|
+fn sf_initialization_original_capacity(
+  encoded_bodies : Array[String?],
+  observation_units : Int,
+  name_lengths : Array[Int],
+  binding_units : Int,
+  connector_units : Int,
+  revision_units : Int,
+  describe : @catalog.DescribeLimits,
+  max_observation_bytes : Int,
+  limits : @catalog.DeclarationLimits,
+  phase : SfInitializationPhase,
+) -> @execution.ExecutionCapacity? {
   if encoded_bodies.is_empty() || encoded_bodies.length() > 200 {
     return None
   }
@@ -144,5 +197,6 @@ pub fn initialization_original_construction_capacity(
     describe,
     max_observation_bytes,
     limits,
+    phase~,
   )
 }

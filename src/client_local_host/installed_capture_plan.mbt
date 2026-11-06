@@ -47,6 +47,7 @@ pub fn prepare_installed_managed_capture_plan(
     @local.ManagedProvider,
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   prepare_installed_managed_capture_plan_owned(
     prepared,
@@ -62,6 +63,7 @@ pub fn prepare_installed_managed_capture_plan(
     retained_output~,
     provider_factory~,
     query_time~,
+    runtime_admission~,
   )
 }
 
@@ -85,6 +87,7 @@ fn prepare_installed_managed_capture_plan_owned(
   direct_occurrences? : @publication_host.ClientDirectAcquisitionOccurrences? = None,
   model? : @publication_host.ClientInferPlanGraph? = None,
   model_graphs? : Array[@publication_host.ClientInferPlanGraph]? = None,
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   let identity = @publication_host.prepared_client_identity(prepared)
   if identity.program_definition_cid !=
@@ -176,6 +179,7 @@ fn prepare_installed_managed_capture_plan_owned(
       transport_execution_bytes,
       retained_output,
       provider_factory,
+      runtime_admission~,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value

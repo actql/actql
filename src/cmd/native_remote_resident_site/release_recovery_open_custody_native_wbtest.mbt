@@ -69,6 +69,8 @@ fn recovery_open_test_matches(
 
 ///|
 test "failed release preparation holds original Bundle Journal and Slot through pending close" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let (_, seeded, request, journal_path, _) = cleanup_test_open(
     "release-open-partial",
   )
@@ -161,12 +163,19 @@ test "failed release preparation holds original Bundle Journal and Slot through 
       request,
       retained,
       Ref(0),
+      report_progress=observe_progress,
     ),
   )
   assert_true(retained.val is None)
   let next = @slot.open_native_executor_slot(path + "/original.slot").unwrap()
   assert_true(next.try_acquire().unwrap())
   assert_true(next.close())
+  assert_eq(progress_events, [
+    (
+      "release-recovery-preparation-failed",
+      [("request_cid", @remote.dispatch_request_identity(request))],
+    ),
+  ])
 }
 
 ///|

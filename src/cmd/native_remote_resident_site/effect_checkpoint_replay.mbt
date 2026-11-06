@@ -36,6 +36,17 @@ fn advance_effect_checkpoint_replay(
   if now < next.val {
     return Idle
   }
+  // Inspect the same Journal's report namespace before rebuilding any saved
+  // dispatch or its materials. A report-less poll is not an execution/current
+  // check. Present, malformed and unacknowledged reports retain the full path.
+  match journal.has_effect_checkpoint_reports() {
+    Ok(false) => {
+      cursor.val = ""
+      return Idle
+    }
+    Ok(true) => ()
+    Err(_) => return Pending("", "journal-recovery")
+  }
   let (key, record) = match journal.recover_after(cursor.val) {
     Ok(Some(value)) => value
     Ok(None) => {

@@ -36,6 +36,7 @@ fn prepare_installed_compute_preparation(
   provider_factory : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledComputePreparation, ClientInstalledManagedRunIssue] {
   let graph = installed_managed_owner_graph(owner)
   let (compute_sequences, capacity_plan, local_capacity) = match source_free {
@@ -85,6 +86,10 @@ fn prepare_installed_compute_preparation(
           capacity_plan=Some(configuration),
           retained_inputs=Some(inputs),
           max_rows~,
+          // Preparation-owned Runs reserve each actual provider/import/output
+          // on their original finite Ledger. A whole-Run maximum is only an
+          // estimate; legacy quote callers keep their strict inventory.
+          runtime_admission~,
         )
         is Some(capacity) else {
         return Err(Unsupported)
