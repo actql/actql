@@ -4,6 +4,8 @@ import {readFileSync} from 'node:fs';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
 import {checked} from '../host-common/runtime-result.mjs';
+import {ledgerUsageSnapshot, ledgerUsageSnapshotHasPendingResources} from '../host-common/runtime-core.mjs';
+import {ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 
 function declarations(path, names, ports, values) {
   const source = readFileSync(new URL(path, import.meta.url), 'utf8');
@@ -38,18 +40,25 @@ for (const mode of ['foreign', 'missing-custody', 'read-throws']) test(`Host acq
   assert.throws(()=>retain(entry,moon,{},prepared,{},mode!=='missing-custody'));
   assert.equal(returned,1);assert.equal(entry.preparationHostBorrow,undefined);
 });
-test('Legacy absent holder does not create a substitute grant',()=>{
- const entry={}; retain(entry,{}, {}, {}, {}, false); release(entry);
- assert.equal(entry.preparationHostBorrow,undefined);
+test('Absent holder refuses without creating substitute custody',()=>{
+ for(const moon of [{},{clientProgramInstalledManagedPreparationBorrow:()=>ok(undefined),
+   clientProgramPreparationBorrowRead(){assert.fail('Absent holder must not be read');},
+   clientProgramPreparationBorrowReturn(){assert.fail('Absent holder must not be returned');}}]){
+   const entry={};
+   assert.throws(()=>retain(entry,moon,{}, {}, {}, false),/PreparationHostCustodyUnavailable/u);
+   release(entry);assert.deepEqual(entry,{});
+ }
 });
 
 const active = new Set(), released = new WeakSet();
 const {preflightSetupCleanup} = declarations('../host-common/strategy.mjs', ['preflightSetupCleanup'],
-  ['StrategyHostError','active','releasedPreflightSetups'], [Error,active,released]);
+  ['StrategyHostError','active','releasedPreflightSetups','ledgerUsageSnapshotHasPendingResources'],
+  [Error,active,released,ledgerUsageSnapshotHasPendingResources]);
 for (const isolated of [true,false]) test(`Preflight retained debit requires nominal isolation=${isolated}`,()=>{
  const setup={},holder={}; let stopped=false,closed=false;
+ const usage=ledgerUsageSnapshot(ledgerUsageFields.map(({name})=>name==='reserved_retention_bytes'?30n:0n));
  const core={stop(s){assert.equal(s,setup);stopped=true;},closeOutputs(){assert(stopped);closed=true;},
- usage:()=>({reservedTransferBytes:0n,heldBytes:0n,reservedRetentionBytes:30n,reservedExecutionBytes:0n}),
+ usage:()=>usage,
  preparationUsageIsolated(s,h){assert(closed);assert.equal(s,setup);assert.equal(h,holder);return isolated;}};
  active.add(setup); const cleanup=preflightSetupCleanup({core,setup,preparationHolder:holder});
  if(isolated){cleanup.close();assert.equal(cleanup.cleanupPending(),false);assert(released.has(setup));}
