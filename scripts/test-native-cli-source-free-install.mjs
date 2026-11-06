@@ -228,6 +228,13 @@ async function observeInstalledSourceFree(input, observationPath) {
     assert.equal(env.ACTQL_NATIVE_TIMINGS, undefined);
     assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
     await writeFile(join(project, 'query.sql'), 'SELECT 1 AS id\n');
+    const help = (await cli(['--help'])).stdout;
+    assert.match(help, /Usage: actql/u);
+    assert.doesNotMatch(help, /actql-native-client/u);
+    assert.match(help, /Validate a Program without reading business data/u);
+    const checkText = (await cli(['check', 'query.sql', '--format', 'sql'])).stdout;
+    assert.match(checkText, /Validation: Valid\nRunnable: yes/u);
+    assert.doesNotMatch(checkText, /sha256:|"outcome"/u);
     const checked = JSON.parse((await cli(['check', 'query.sql', '--format', 'sql', '--json'])).stdout);
     assert.equal(checked.version, 'actql-check-outcome/0.1');
     assert.equal(checked.outcome, 'completed');
@@ -235,6 +242,15 @@ async function observeInstalledSourceFree(input, observationPath) {
     assert.equal(checked.report.runnable.verdict, 'yes');
     const explained = JSON.parse((await cli(['explain', 'query.sql', '--format', 'sql', '--json'])).stdout);
     assert.equal(explained.version, 'actql-plan-view/0.1');
+    const explainText = (await cli(['explain', 'query.sql', '--format', 'sql'])).stdout;
+    assert.match(explainText, /Plan: [1-9][0-9]* logical steps/u);
+    assert.match(explainText, /1\. values/u);
+    assert.doesNotMatch(explainText, /sha256:/u);
+    const explainDetail = (await cli(['explain', 'query.sql', '--format', 'sql', '--verbose'])).stdout;
+    assert.match(explainDetail, /Compiled computation: "sha256:/u);
+    const explainJsonVerbose = JSON.parse((await cli(['explain', 'query.sql', '--format', 'sql', '--json', '--verbose'])).stdout);
+    assert.deepEqual(explainJsonVerbose, explained);
+
     assert.deepEqual(rows((await cli(['sql', 'SELECT 2 AS id', '--format', 'jsonl'])).stdout), [{id: 2}]);
     const state = JSON.parse((await cli(['run', 'query.sql', '--format', 'sql', '--json'])).stdout);
     assert.equal(state.version, 'actql-run-state/0.1');
@@ -243,6 +259,22 @@ async function observeInstalledSourceFree(input, observationPath) {
     // Subsequent processes must use retained Run/Result originals, not reexecute
     // the now-absent source file or manufacture a fresh successful Run.
     await unlink(join(project, 'query.sql'));
+    const savedExplain = (await cli(['explain', '--run', state.run_id])).stdout;
+    assert.match(savedExplain, /ActQL EXPLAIN · saved Run/u);
+    assert.match(savedExplain, /Plan: [1-9][0-9]* logical steps/u);
+    assert.doesNotMatch(savedExplain, /Compiled computation:|Logical map:/u);
+    const savedDetail = (await cli(['explain', '--run', state.run_id, '--verbose'])).stdout;
+    assert.match(savedDetail, /Compiled computation: "sha256:/u);
+    const savedJson = JSON.parse((await cli(['explain', '--run', state.run_id, '--json'])).stdout);
+    const savedJsonVerbose = JSON.parse((await cli(['explain', '--run', state.run_id, '--json', '--verbose'])).stdout);
+    assert.equal(savedJson.version, 'actql-run-plan-view/0.1');
+    assert.deepEqual(savedJsonVerbose, savedJson);
+    await writeFile(join(project, 'invalid.sql'), 'SELECT\r)');
+    const invalidCheck = await cli(['check', 'invalid.sql', '--format', 'sql'], project, 1);
+    assert.match(invalidCheck.stdout, /Validation: Invalid\nRunnable: no/u);
+    assert.match(invalidCheck.stdout, /query_syntax_invalid: The query syntax is invalid\./u);
+    assert.match(invalidCheck.stdout, /At source: line 2, byte 1/u);
+
     for (let count = 0; count < 2; count++) {
       const saved = JSON.parse((await cli(['status', state.run_id, '--json'])).stdout);
       assert.equal(saved.run_id, state.run_id); assert.equal(saved.status, 'succeeded');
