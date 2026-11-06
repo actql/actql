@@ -24,8 +24,10 @@ test('temporal release preserves all original JSON SQL AQL controls, NULLs and o
     [6, [{id: 1, value: 7}, {id: 2, value: null}, {id: 3, value: null}]],
     [9, [{id: 1, value: 7}]]]) {
     for (const item of cases.successes.slice(index, index + 3)) {
-      assert.deepEqual(item.results.answer.rows, rows);
-      assert.deepEqual(item.results.answer.columns, [
+      const resultName = item.format === 'json' ? 'answer' : 'main';
+      assert.deepEqual(Object.keys(item.results), [resultName]);
+      assert.deepEqual(item.results[resultName].rows, rows);
+      assert.deepEqual(item.results[resultName].columns, [
         {name: 'id', contract: {type: 'number', nullable: false}},
         {name: 'value', contract: {type: 'number', nullable: index === 0 || index === 6}}]);
     }

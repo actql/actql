@@ -56,5 +56,5 @@ export const ceilingRefusals = [
 ].map(value => ({...value, name: 'ceiling-' + value.name, format: 'sql'}));
 export const ceilingExecutionFailures = [{
   name: 'ceiling-demanded-operand', format: 'sql',
-  text: 'SELECT CEIL(1 / 0) AS value', resultNames: ['answer'], sourceReadSessionCount: 0,
+  text: 'SELECT CEIL(1 / 0) AS value', resultNames: ['main'], sourceReadSessionCount: 0,
 }];

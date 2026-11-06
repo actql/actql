@@ -7,7 +7,7 @@ test('Lag independent controls distinguish navigation order, offset, partitions 
   assert.equal(refusals.length,6);
   for(let i=0;i<successes.length;i+=2){
     const json=successes[i],text=successes[i+1],program=JSON.parse(json.text);
-    assert.deepEqual(json.results,text.results);
+    assert.deepEqual(text.results,{main:json.results.answer});
     assert.deepEqual(program.stages[0].steps[1].assert_rows,{unique_by:['id']});
     assert.deepEqual(program.stages[0].steps.at(-1).select,['id','amount','previous']);
     assert.deepEqual(json.results.answer.columns,[{name:'id',contract:{type:'number',nullable:false}},
@@ -34,12 +34,12 @@ test('Lag fixtures reach both ordinary and focused installed public consumers',(
   assert.ok(installer.includes("['lag-receipts.local.json', 'lag-receipts.remote.json']"));
 });
 
-test('Lag registration adds exactly the independent eight successes and six refusals',async()=>{
-  const before=JSON.parse(readFileSync('scripts/fixtures/pre-lag-public-query-inventory.json','utf8'));
+test('Lag registration retains its fourteen controls in the complete current public inventory',async()=>{
+  // Later families share this registration. Keep their complete current pin,
+  // while the first test independently checks Lag's eight/six authored cases.
+  const {version,sourceBaseline,...expected}=JSON.parse(readFileSync('scripts/fixtures/public-query-inventory.json','utf8'));
+  assert.equal(version,'actql-public-query-fixture-inventory/0.1');
   const {registeredPublicQueryInventory}=await import('./public-query-inventory.mjs');
   const actual=await registeredPublicQueryInventory();
-  assert.equal(actual.totalCases,before.totalCases+14);
-  assert.deepEqual(actual.counts,{...before.counts,successes:before.counts.successes+8,refusals:before.counts.refusals+6});
-  assert.deepEqual(actual.profiles.slice(1),before.profiles.slice(1));
-  assert.deepEqual(actual.repeatedFailures,before.repeatedFailures);
+  assert.deepEqual(actual,expected);
 });

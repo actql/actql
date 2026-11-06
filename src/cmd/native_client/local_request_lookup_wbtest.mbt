@@ -482,7 +482,7 @@ fn request_lookup_corrupt_row(
 }
 
 ///|
-test "malformed nonselected custody prevents returning an otherwise valid selected reference" {
+test "selected lookup preserves its original while explicit inspection rejects malformed nonselected custody" {
   let (host, settings, crypto) = request_lookup_fixture("request-full-custody")
   let (reference, token, intent, scope) = request_lookup_original(
     host, settings, crypto, "selected",
@@ -512,7 +512,30 @@ test "malformed nonselected custody prevents returning an otherwise valid select
     1003.0,
   )
   request_lookup_ok(host.close(), "host.close")
-  assert_true(selected is Err(@local_host.CustodyLost))
+  let same = request_lookup_some(
+    request_lookup_ok(selected, "selected"),
+    "selected.reference",
+  )
+  assert_eq(
+    @local_host.native_client_submission_reference_wire(same),
+    @local_host.native_client_submission_reference_wire(reference),
+  )
+  // Whole-Journal integrity is the existing explicit inspection boundary;
+  // the ordinary selected entrance does not scan unrelated request history.
+  let library = request_lookup_ok(
+    @local_sqlite.load_library(settings.sqlite_library),
+    "audit.library",
+  )
+  assert_true(
+    @local_host.inspect_native_client_state(
+      library,
+      settings.state_parent + "/host/client.sqlite3",
+      131072L,
+      16777216L,
+      8,
+    )
+    is Err(Custody(Submission(@local_host.CustodyLost))),
+  )
 }
 
 ///|

@@ -304,8 +304,16 @@ test "Native target authentication refuses altered body and foreign grant Run or
     })
     is Err(CustodyLost),
   )
+  // Independently live Hosts need separate exclusive Adoption parents while
+  // retaining the same Account source root and original fixture bodies.
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let parent = @filesystem.open_private_root(path).unwrap()
+  let state_name = "target-authenticated-other-parent"
+  parent.create_directory(state_name).unwrap() |> ignore
+  parent.close().unwrap()
   let (foreign, _, foreign_mutation) = local_grant_storage_fixture(
     "target-authenticated-other-run",
+    state_parent=Some(path + "/" + state_name),
   )
   let foreign_original = local_preparation_storage_original(
     foreign, foreign_mutation, "observe-authenticated",
@@ -370,11 +378,27 @@ test "Native target payload capacity refuses before grant append without increas
 
 ///|
 test "Native orphan target cannot become a grant original or repair its reservation" {
-  let (host, binding, mutation) = local_grant_storage_fixture("target-orphan")
+  let (host, mutation_binding, mutation) = local_grant_storage_fixture(
+    "target-orphan",
+  )
   let original = local_preparation_storage_original(
     host, mutation, "observe-orphan",
   )
   let target = preparation_target_storage_fixture(host, original)
+  // The fixture's Mutation binding cannot reconcile a Preparation operation.
+  // Bind that exact operation before exercising the orphan custody refusal.
+  assert_true(
+    mutation_binding.lookup_grant_original(original) is Err(ChangedIntent),
+  )
+  let binding = host
+    .acquire_credential_issuer(
+      epoch_test_crypto(),
+      target.provider_file_name,
+      "operator",
+      "cli",
+      original.operation_cid,
+    )
+    .unwrap()
   let key = local_grant_original_key(
     epoch_test_crypto(),
     original.request,

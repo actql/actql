@@ -50,7 +50,7 @@ export const analyticPropertySuccesses = [
       {id: 2, payload: {score: 30}, previous: 20}, {id: 3, payload: {score: 15}, previous: 10}],
     {columns: [id, {name: 'payload', contract: {...other, additional_properties: false}}, previous]}),
   textCase('pipe-set-snapshot',
-    'FROM objects AS original |> SET payload = other |> SELECT id, LAG(original.payload.score) OVER (ORDER BY id) AS previous, LEAD(payload.score, 0) OVER (ORDER BY id) AS current |> ORDER BY id',
+    'FROM objects AS original |> SET payload = other |> SELECT id, LAG(original.payload.score) OVER (ORDER BY id) AS previous, LEAD(payload.score, 0) OVER (ORDER BY id) AS `current` |> ORDER BY id',
     [{id: 1, previous: null, current: 5}, {id: 2, previous: 20, current: 30}, {id: 3, previous: 10, current: 15}],
     {columns: [id, previous, {name: 'current', contract: nullableNumber}]}),
   textCase('computed-argument',

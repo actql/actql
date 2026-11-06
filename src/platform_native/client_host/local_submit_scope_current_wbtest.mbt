@@ -57,19 +57,45 @@ test "Native submit scope identity stays exact without becoming Account permissi
     "cli",
   ).unwrap()
   let scope = local_adoption_digest(capture.crypto, body).unwrap()
+  // This legacy component fixture cannot supply an installed physical Read.
   assert_true(
     capture.original_submit_allowed(host, material, "operator", "cli", scope)
-    is Ok(true),
+    is Err(OriginalResourceScopePending),
+  )
+  let (request, _, _, _) = journal_test_run(
+    "scope-current",
+    "scope-run",
+    scope~,
+  )
+  let authority = native_local_policy_authority_for(
+    host,
+    capture.crypto,
+    "operator",
+    "cli",
+    request,
+    SubmitOriginals,
+  ).unwrap()
+  assert_true(
+    authority.current_with_material_for(host.journal, request, material),
+  )
+  let (changed_scope, _, _, _) = journal_test_run(
+    "scope-changed",
+    "scope-changed-run",
+    scope="sha256:" + "0".repeat(64),
+  )
+  assert_false(
+    authority.current_with_material_for(host.journal, changed_scope, material),
   )
   assert_true(
-    capture.original_submit_allowed(
+    native_local_policy_authority_for(
       host,
-      material,
+      capture.crypto,
       "operator",
       "cli",
-      "sha256:" + "0".repeat(64),
+      changed_scope,
+      SubmitOriginals,
     )
-    is Err(Epoch(ScopeMismatch)),
+    is Err(AuthorizationDenied),
   )
   let other_scope = local_adoption_digest(
     capture.crypto,
@@ -80,11 +106,30 @@ test "Native submit scope identity stays exact without becoming Account permissi
       "other",
     ).unwrap(),
   ).unwrap()
+  let (other_request, _, _, _) = journal_test_run(
+    "scope-other",
+    "scope-other-run",
+    scope=other_scope,
+  )
   assert_true(
-    capture.original_submit_allowed(
-      host, material, "operator", "other", other_scope,
+    native_local_policy_authority_for(
+      host,
+      capture.crypto,
+      "operator",
+      "other",
+      other_request,
+      SubmitOriginals,
     )
-    is Ok(false),
+    is Err(AuthorizationDenied),
+  )
+  assert_false(
+    native_local_policy_account_allowed(
+      material,
+      host.database,
+      "operator",
+      "other",
+      SubmitOriginals,
+    ),
   )
   let foreign = submit_scope_current_capture(
     "submit-scope-foreign", policy_reuse_account_original,
@@ -92,16 +137,30 @@ test "Native submit scope identity stays exact without becoming Account permissi
   assert_eq(foreign.open().issue_family(), 0)
   let foreign_host = foreign.original_host().unwrap()
   let foreign_material = foreign_host.adopted_current_material().unwrap()
+  assert_false(
+    authority.current_with_material_for(host.journal, request, foreign_material),
+  )
   assert_true(
-    capture.original_submit_allowed(
-      host, foreign_material, "operator", "cli", scope,
-    )
+    @host.client_local_adopted_authority_scope_body(
+      foreign_material,
+      host.database,
+      "operator",
+      "cli",
+    ).map_err(local_current_material_issue)
     is Err(CustodyLost),
   )
   assert_eq(foreign.close().issue_family(), 0)
   assert_eq(capture.close().issue_family(), 0)
+  assert_false(
+    authority.current_with_material_for(host.journal, request, material),
+  )
   assert_true(
-    capture.original_submit_allowed(host, material, "operator", "cli", scope)
+    @host.client_local_adopted_authority_scope_body(
+      material,
+      host.database,
+      "operator",
+      "cli",
+    ).map_err(local_current_material_issue)
     is Err(Closed),
   )
 }
@@ -127,7 +186,32 @@ test "Native submit scope DATA never overrides Deny or changed original custody"
   let scope = local_adoption_digest(capture.crypto, body).unwrap()
   assert_true(
     capture.original_submit_allowed(host, material, "operator", "cli", scope)
-    is Ok(false),
+    is Err(OriginalResourceScopePending),
+  )
+  let (request, _, _, _) = journal_test_run(
+    "scope-denied",
+    "scope-denied-run",
+    scope~,
+  )
+  assert_true(
+    native_local_policy_authority_for(
+      host,
+      capture.crypto,
+      "operator",
+      "cli",
+      request,
+      SubmitOriginals,
+    )
+    is Err(AuthorizationDenied),
+  )
+  assert_false(
+    native_local_policy_account_allowed(
+      material,
+      host.database,
+      "operator",
+      "cli",
+      SubmitOriginals,
+    ),
   )
   let source = host.session.source_root
   source
@@ -137,7 +221,16 @@ test "Native submit scope DATA never overrides Deny or changed original custody"
   replacement.append(denied).unwrap()
   replacement.seal(host.session.source_name).unwrap() |> ignore
   assert_true(
-    capture.original_submit_allowed(host, material, "operator", "cli", scope)
+    @host.client_local_adopted_authority_scope_body(
+      material,
+      host.database,
+      "operator",
+      "cli",
+    ).map_err(local_current_material_issue)
+    is Err(SourceChanged),
+  )
+  assert_true(
+    host.authority_scope_cid("operator", "cli", capture.crypto)
     is Err(SourceChanged),
   )
   assert_eq(capture.close().issue_family(), 0)

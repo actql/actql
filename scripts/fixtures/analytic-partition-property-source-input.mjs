@@ -70,7 +70,7 @@ export const analyticPartitionPropertySuccesses = [
       {id: 4, payload: {bucket: 'B'}, pos: 2}, {id: 5, payload: {bucket: 'B'}, pos: 2}]}),
   success('pipe-current-and-snapshot', 'FROM objects AS original |> SET payload = other '
     + '|> SELECT id, ROW_NUMBER() OVER (PARTITION BY original.payload.bucket ORDER BY id) AS before, '
-    + 'ROW_NUMBER() OVER (PARTITION BY payload.bucket ORDER BY id) AS current |> ORDER BY id',
+    + 'ROW_NUMBER() OVER (PARTITION BY payload.bucket ORDER BY id) AS `current` |> ORDER BY id',
   {columns: [column('id'), column('before'), column('current')], expected: expected.map((row, index) =>
     ({id: row.id, before: row.pos, current: currentPositions[index]}))}),
   success('typed-empty', 'SELECT id, ROW_NUMBER() OVER '

@@ -122,6 +122,43 @@ test('Resident original process launch does not inherit the Python producer load
   assert.equal(parent.LD_LIBRARY_PATH,'/hosted/python/lib');
 });
 
+test('Resident maintenance commands retain the same explicit Site environment before slot validation',async t=>{
+  const f=fixture(t,'linux'),source=residentLaunchSource(),running=new Set(),calls=[];
+  const text=readFileSync(new URL('./test-native-resident-site.mjs',import.meta.url),'utf8');
+  const before=text.indexOf('        const operate = async (operation, requestCid = ');
+  const after=text.indexOf("        const mismatch = await operate('execute');",before);
+  assert(before>=0 && after>before);
+  const parent={PATH:'/producer-tools',LANG:'producer-language',
+    LD_LIBRARY_PATH:'/hosted/python/lib',ACTQL_PRODUCER_ONLY:'producer'};
+  const operate=runInNewContext(source.declaration+'\n'+text.slice(before,after)+'\noperate;',{
+    root:f.root,siteControl:{identity:value=>{assert.equal(value,'original-dispatch');return 'original-request';}},
+    dispatch:'original-dispatch',savedAttempt:'original-attempt',
+    maintenanceExecutable:'original-maintenance',maintenanceCommon:['--journal','original-journal'],
+    maintenanceSequence:0,running,once,join,assert,
+    within:async value=>value,writeFile:async()=>{},
+    spawn:(command,args,options)=>{
+      calls.push({command,args:Array.from(args)});
+      return spawnChild(process.execPath,['-e',
+        'console.log(JSON.stringify(process.env));process.exit(19)'],
+      {...options,env:options.env??parent});
+    },
+  });
+  for(const operation of ['execute','recover-release']) {
+    const result=await operate(operation);
+    assert.equal(result.code,19,'original child failure must remain failure');
+    assert.equal(result.signal,null);
+    assertSelectedChildEnvironment(JSON.parse(result.stdout));
+    assert.equal(running.size,0);
+  }
+  assert.deepEqual(calls,[
+    {command:'original-maintenance',args:['execute','--attempt','original-attempt',
+      '--claimant','maintenance-must-not-execute','--journal','original-journal']},
+    {command:'original-maintenance',args:['recover-release','--attempt','original-attempt',
+      '--expect-dispatch','original-request','--journal','original-journal']},
+  ]);
+  assert.equal(parent.LD_LIBRARY_PATH,'/hosted/python/lib');
+});
+
 test('Resident bundle install and activation use the same explicit original child environment',t=>{
   const source=residentLaunchSource(),observed=[];
   const parent={PATH:'/producer-tools',LANG:'producer-language',LD_LIBRARY_PATH:'/hosted/python/lib'};

@@ -5,12 +5,13 @@
 fn local_grant_storage_fixture(
   name : String,
   account_body? : Bytes = local_issuer_fixture_account,
+  state_parent? : String? = None,
 ) -> (
   NativeLocalHostConnection,
   NativeLocalCredentialIssuerBinding,
   NativeLocalGrantOriginal,
 ) {
-  let (host, file) = local_issuer_fixture(name, account_body~)
+  let (host, file) = local_issuer_fixture(name, account_body~, state_parent~)
   let original = local_grant_test_original(host, file)
   let binding = host
     .acquire_credential_issuer(

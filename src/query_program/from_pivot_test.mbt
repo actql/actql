@@ -141,3 +141,33 @@ test "FROM PIVOT does not restore input ranges or consumed columns" {
     )
   }
 }
+
+///|
+test "FROM PIVOT qualifies a column shadowed by its CTE range" {
+  let head = "WITH sales AS (SELECT 'kale' AS product,51 AS sales,'Q1' AS quarter UNION ALL SELECT 'kale',51,'Q1' UNION ALL SELECT 'kale',CAST(NULL AS FLOAT64),'Q2') SELECT product,second,first FROM sales PIVOT(COUNT("
+  let tail = ") FOR quarter IN('Q2' AS second,'Q1' AS first)) ORDER BY product"
+  for (argument, valid) in [("sales.sales", true), ("sales", false)] {
+    let query = @query.parse_query(head + argument + tail, syntax_limits()).unwrap()
+    match compile(query, values_context(), construction_limits()) {
+      Err(_) => assert_false(valid)
+      Ok(program) => {
+        let checked = @check.check_parsed(
+          program,
+          check_environment(numeric=true),
+          None,
+          check_limits(),
+        )
+        if valid {
+          match checked {
+            Checked(_) => ()
+            Rejected(issue) => raise @check.diagnostic_cause(issue)
+            NeedsInputs(_) => fail("closed qualified CTE pivot")
+          }
+        } else {
+          // A bare surviving range is the row object, not its same-named column.
+          assert_true(checked is Rejected(_))
+        }
+      }
+    }
+  }
+}
