@@ -5885,3 +5885,44 @@ The Request construction quote retains those actual writer/wire lifetimes and
 the separately parsed child families. A later reader's independent parser remains
 its own funded boundary. This excludes an absent constructor, without reducing
 any original parser's rejection bound or acknowledging physical cleanup.
+
+### Codec geometry stays with its original construction role
+
+The existing JSON writer can retain construction geometry during the same
+emission that applies its byte, node, depth, Unicode, number and key-order rules.
+The additional counters report container occurrences, fields, maximum object
+width, String values and decoded UTF16 units. They create neither text nor a
+hash, admitted tree, Resource capacity or semantic identity. An opaque embedded
+measurement without these observations keeps the full-node/full-byte category
+bounds. Other writer sinks keep their original checks and output bytes.
+
+Compiler measurement carries each observation alongside its own pipeline,
+Fragment, graph, semantic Program or material occurrence. Matching byte/node/
+depth triples never identify an original or allow another role's shape to be
+borrowed. External Task/serialization measurements without an observed companion
+remain unknown. Named graph/material/Program companions flow to the existing
+Request construction quote; they are not public request knobs or admission
+witnesses. The original inventory funds their report records and collections
+before measurement. The existing fixed control group covers their small local
+counters, without another Root, Ledger, compiler or per-node current callback.
+
+The preserving parser uses those same emitted field/container/String bounds.
+Only simultaneously open objects retain key-admission maps, with entries bounded
+by total fields and open depth times original maximum object width. Decoder
+borrows retain the original decoded Strings and the same independently selected
+Span policy. Missing geometry preserves the general parser's pending-key failure
+bound. Syntax, duplicate handling, normalization and all explicit codec limits
+remain with their original owners.
+
+The direct Values compiler carries one original AoA body into its Fragment;
+there is no second projected pipeline on that branch. Its parsed Fragment node
+is local to graph emission and is gone before the later graph parse. The final
+reserved graph representation therefore covers that nonoverlapping child tree.
+Explicit pipeline output slots similarly include the same canonical output tree
+already present in a parser peak. Only that duplicated tree component is removed
+from incremental scratch; Source nodes, Strings, parsing, sort, maps and ancestry
+remain covered. Task/Model node overlap keeps its previous conservative envelope.
+The material emitter also cuts its local parsed Program after synchronous
+emission and before parsing its independently retained material. Original wires,
+Prepared owners, work history, current fences and physical cleanup duties remain
+separate and unchanged.

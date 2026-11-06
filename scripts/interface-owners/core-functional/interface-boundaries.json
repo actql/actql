@@ -39595,7 +39595,7 @@
     },
     {
       "module": "src/client_local_host/preparation_compilation_parse_layout.mbt",
-      "sha256": "ea3468569db4fad90abba01baa915841f31f483b5758a33c9975275844117b34",
+      "sha256": "bef81e12c12d393cfbcf4e7f3f879236ab4b6ae80d52d11671a946593be7d6ec",
       "exports": [],
       "operations": [],
       "responsibilityFacet": "primary",
@@ -39613,36 +39613,60 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -39655,12 +39679,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -39954,7 +39986,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_artifact_layout.mbt",
-      "sha256": "565bc8ca977a791bcf1070e49c8ae51f03fe4391971a05215fac629ba1283ccd",
+      "sha256": "74e3336974244b2b695188003a36058ab3e1e646ae025e082ab5ff7aa98a2280",
       "exports": [],
       "operations": [
         {
@@ -39963,7 +39995,11 @@
         },
         {
           "name": "program_artifact_parse_layout",
-          "declaration": "program_artifact_parse_layout ( geometry : ( Int , Int , Int ) , ) - > CompilationParseLayout ?"
+          "declaration": "program_artifact_parse_layout ( geometry : ( Int , Int , Int ) , structure ? : @ encode . EncodingConstructionGeometry ?"
+        },
+        {
+          "name": "program_artifact_scratch_without_output",
+          "declaration": "program_artifact_scratch_without_output ( parse : CompilationParseLayout , ) - > @ execution . PreparationRepresentationUnits ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -39974,7 +40010,8 @@
           "operations": [
             "<module>",
             "program_artifact_construction_extents",
-            "program_artifact_parse_layout"
+            "program_artifact_parse_layout",
+            "program_artifact_scratch_without_output"
           ],
           "exports": [],
           "attributes": {
@@ -39982,12 +40019,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
@@ -39998,6 +40043,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"generic Request module retains its funded compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
@@ -40008,6 +40057,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"generic Request module retains its funded compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
@@ -40018,6 +40071,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact current reentry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
@@ -40028,6 +40085,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -40048,12 +40109,20 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"artifact reservation derives from original constructor bodies"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -69024,7 +69093,8 @@
             "prepared_client_values_max_rows",
             "prepared_client_values_sequence_limits",
             "retain_client_task_pipeline_input",
-            "with_prepared_client_values_row_limit"
+            "with_prepared_client_values_row_limit",
+            "measure_prepared_client_values_pipeline_construction"
           ],
           "exports": [],
           "attributes": {
@@ -69032,6 +69102,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
@@ -69042,6 +69116,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
@@ -69052,6 +69130,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
@@ -69062,6 +69144,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
@@ -69072,6 +69158,10 @@
               {
                 "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
                 "anchor": "test \"original Effect compilation retains Content and Model"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
@@ -69082,6 +69172,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -69102,12 +69196,20 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -69416,7 +69518,7 @@
           }
         }
       ],
-      "sha256": "a05b24076212ed97007f84d1c17ff67418e92860673ba5c192cf3869673feb1d",
+      "sha256": "592f970540c2cab3ac34ba747a2520a3e8d933d1dad8e89a9d1952ecde36f8b6",
       "exports": [],
       "operations": [
         {
@@ -69600,6 +69702,10 @@
           "declaration": "measure_prepared_client_values_pipeline ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Int , Int , Int ) , ClientValuesPipelineIssue ]"
         },
         {
+          "name": "measure_prepared_client_values_pipeline_construction",
+          "declaration": "measure_prepared_client_values_pipeline_construction ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ encode . EncodingConstructionGeometry , ClientValuesPipelineIssue ]"
+        },
+        {
           "name": "observe_prepare_checked_effect_free_client_program",
           "declaration": "observe_prepare_checked_effect_free_client_program ( checked : @ checked . CheckedProgram , lowering : @ lower . Limits , max_parameters ~ : Int , max_parameter_name_bytes ~ : Int , max_tasks ~ : Int , max_graph_work ~ : Int , values_max_rows ? : Int ?"
         },
@@ -69707,7 +69813,7 @@
     },
     {
       "module": "src/run_publication_host/client_pure_compilation_construction.mbt",
-      "sha256": "47afd86e20b91053826fc94296827f40b7c05c224a79de2f819739a8f04d2092",
+      "sha256": "cffc845e397b05572b1160bf477d663011c90581e37519b2c8e5945b9da55d24",
       "exports": [],
       "operations": [
         {
@@ -69719,12 +69825,20 @@
           "declaration": "client_standard_pure_compilation_limits ( ) - > ClientPureCompilationLimits"
         },
         {
+          "name": "emit_client_compilation_measurement",
+          "declaration": "emit_client_compilation_measurement ( writer : @ encode . Writer , value : ClientMeasuredCompilationGeometry , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "finish_client_compilation_measurement",
+          "declaration": "finish_client_compilation_measurement ( writer : @ encode . Writer , ) - > ClientMeasuredCompilationGeometry raise @ encode . EncodeFailure"
+        },
+        {
           "name": "measure_client_compilation_array",
-          "declaration": "measure_client_compilation_array ( values : Array [ ( Int , Int , Int ) ] , ) - > ( Int , Int , Int ) raise @ encode . EncodeFailure"
+          "declaration": "measure_client_compilation_array ( values : Array [ ClientMeasuredCompilationGeometry ] , ) - > ClientMeasuredCompilationGeometry raise @ encode . EncodeFailure"
         },
         {
           "name": "measure_client_compilation_final_construction",
-          "declaration": "measure_client_compilation_final_construction ( value : PreparedClientProgram , manifests : ClientCompilationManifests , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , tasks : Bool , fragments : Array [ ClientTaskFragmentConstruction ] , borrowed_inputs : Array [ ( Int , Int , Int ) ] , results : Array [ ( Int , Int , Int ) ] , projections : Array [ ClientResultGraphConstruction ] , names : Array [ String ] , result_cids : Array [ Unit ] , graph_nodes : Array [ ( Int , Int , Int ) ] , graph_edges : Array [ ( Int , Int , Int ) ] , graph_roots : Array [ ( Int , Int , Int ) ] , required_profiles : Array [ ( String , Unit ) ] , ) - > Result [ ClientPureCompilationConstruction , ClientValuesExecutablePlanIssue ]"
+          "declaration": "measure_client_compilation_final_construction ( value : PreparedClientProgram , manifests : ClientCompilationManifests , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , tasks : Bool , fragments : Array [ ClientTaskFragmentConstruction ] , borrowed_inputs : Array [ ( Int , Int , Int ) ] , results : Array [ ( Int , Int , Int ) ] , projections : Array [ ClientResultGraphConstruction ] , names : Array [ String ] , result_cids : Array [ Unit ] , graph_nodes : Array [ ClientMeasuredCompilationGeometry ] , graph_edges : Array [ ClientMeasuredCompilationGeometry ] , graph_roots : Array [ ClientMeasuredCompilationGeometry ] , required_profiles : Array [ ( String , Unit ) ] , borrowed_input_geometry ? : Array [ @ encode . EncodingConstructionGeometry ? ]"
         },
         {
           "name": "measure_client_values_fragment_construction",
@@ -69741,6 +69855,14 @@
         {
           "name": "measure_prepared_client_pure_compilation_construction",
           "declaration": "measure_prepared_client_pure_compilation_construction ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientPureCompilationConstruction , ClientValuesExecutablePlanIssue ]"
+        },
+        {
+          "name": "measured_client_compilation_geometry",
+          "declaration": "measured_client_compilation_geometry ( shape : @ encode . EncodingConstructionGeometry , ) - > ClientMeasuredCompilationGeometry"
+        },
+        {
+          "name": "unknown_client_compilation_geometry",
+          "declaration": "unknown_client_compilation_geometry ( usage : ( Int , Int , Int ) , ) - > ClientMeasuredCompilationGeometry"
         }
       ],
       "responsibilityFacet": "primary",
@@ -69757,7 +69879,11 @@
             "measure_client_values_fragment_construction",
             "measure_prepared_client_compilation_construction_owned",
             "measure_prepared_client_model_compilation_construction",
-            "measure_prepared_client_pure_compilation_construction"
+            "measure_prepared_client_pure_compilation_construction",
+            "emit_client_compilation_measurement",
+            "finish_client_compilation_measurement",
+            "measured_client_compilation_geometry",
+            "unknown_client_compilation_geometry"
           ],
           "exports": [],
           "attributes": {
@@ -69765,12 +69891,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
@@ -69781,6 +69915,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"generic Request module retains its funded compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
@@ -69791,6 +69929,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"generic Request module retains its funded compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
@@ -69801,6 +69943,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact current reentry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
@@ -69811,6 +69957,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -69831,12 +69981,20 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"artifact reservation derives from original constructor bodies"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -69886,6 +70044,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
@@ -69896,6 +70058,10 @@
               {
                 "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
                 "anchor": "test \"measurement collections come from original inventory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
@@ -69906,6 +70072,10 @@
               {
                 "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
                 "anchor": "test \"compiler measurement label lengths use the original decimal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
@@ -69916,6 +70086,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
@@ -69926,6 +70100,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact current reentry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
@@ -69940,6 +70118,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"measurement storage preserves each original invalid compiler"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -69960,12 +70142,20 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -70158,7 +70348,7 @@
           }
         }
       ],
-      "sha256": "2b7ce988b5a73db51673c7f258593f857006e57504ae48f1eb4a8c19bae8354f",
+      "sha256": "21d8329d49b160815079b7e9651e75000ecc66c09876d2164ca23c4e18efb4ac",
       "exports": [],
       "operations": [
         {
@@ -71640,6 +71830,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
@@ -71650,6 +71844,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
@@ -71660,6 +71858,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
@@ -71670,6 +71872,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
@@ -71680,6 +71886,10 @@
               {
                 "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
                 "anchor": "test \"original Effect compilation retains Content and Model"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
@@ -71690,6 +71900,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -71710,12 +71924,20 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -71999,7 +72221,7 @@
           }
         }
       ],
-      "sha256": "87ce78647a25dd84173c9933bff5aea03497ebd1d35b83ca380b4129e9eec982",
+      "sha256": "6d77437cb6038fc2f9cbf7c41f5dbfd72ba45bcc15657499abd1e4187d0336f8",
       "exports": [],
       "operations": [
         {
@@ -82059,7 +82281,7 @@
     {
       "module": "src/source_value/json_construction_extent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "e6a7f6ae8dbfe285badd7c0f0862cffae93c326b722956f92aca187a8b20d6e0",
+      "sha256": "503872d2c42455544ddf29581ed0a3bd2bfe2f54155ff8e36eb92e05cd469800",
       "role": "common-semantics",
       "owner": "Existing Source Parser and logical constructor inventory",
       "exports": [],
@@ -82067,6 +82289,14 @@
         {
           "name": "json_construction_extent",
           "declaration": "json_construction_extent ( max_input_bytes : Int , max_nodes : Int , max_depth : Int , normalize_keys ~ : Bool , ) - > JsonConstructionExtent ?"
+        },
+        {
+          "name": "json_construction_extent_owned",
+          "declaration": "json_construction_extent_owned ( max_input_bytes : Int , max_nodes : Int , max_depth : Int , fields : Int , containers : Int , objects : Int , largest_object : Int , strings : Int , normalize_keys ~ : Bool , ) - > JsonConstructionExtent ?"
+        },
+        {
+          "name": "json_shaped_construction_extent",
+          "declaration": "json_shaped_construction_extent ( max_input_bytes : Int , max_nodes : Int , max_depth : Int , fields : Int , containers : Int , objects : Int , largest_object : Int , strings : Int , normalize_keys ~ : Bool , ) - > JsonConstructionExtent ?"
         },
         {
           "name": "json_source_grammar_construction_extent",
@@ -82078,7 +82308,9 @@
           "operations": [
             "<module>",
             "json_construction_extent",
-            "json_source_grammar_construction_extent"
+            "json_source_grammar_construction_extent",
+            "json_construction_extent_owned",
+            "json_shaped_construction_extent"
           ],
           "exports": [],
           "attributes": {
@@ -82086,36 +82318,60 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -82128,12 +82384,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -82150,6 +82414,136 @@
         }
       ],
       "referenceQualification": "Original parser/component/source-only. No native allocator, ordinary Host, capacity grant or physical cleanup evidence."
+    },
+    {
+      "module": "src/encode_core/construction_geometry.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "212ac22778a9b7376072ad77a88d7601abf2f15e20ab96e611370777a584f95c",
+      "role": "common-semantics",
+      "owner": "Existing bounded JSON writer and compiler construction owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "construction_geometry_usage",
+          "declaration": "construction_geometry_usage ( value : EncodingConstructionGeometry , ) - > ( Int , Int , Int )"
+        },
+        {
+          "name": "construction_measuring_writer",
+          "declaration": "construction_measuring_writer ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Writer raise EncodeFailure"
+        },
+        {
+          "name": "emit_construction_measurement",
+          "declaration": "emit_construction_measurement ( writer : Writer , value : EncodingConstructionGeometry , ) - > Unit raise EncodeFailure"
+        },
+        {
+          "name": "finish_construction_measurement",
+          "declaration": "finish_construction_measurement ( writer : Writer , ) - > EncodingConstructionGeometry raise EncodeFailure"
+        },
+        {
+          "name": "observe_construction_container",
+          "declaration": "observe_construction_container ( writer : Writer , object ~ : Bool ) - > Unit"
+        },
+        {
+          "name": "observe_construction_field",
+          "declaration": "observe_construction_field ( writer : Writer ) - > Unit"
+        },
+        {
+          "name": "observe_construction_object_end",
+          "declaration": "observe_construction_object_end ( writer : Writer , fields : Int ) - > Unit"
+        },
+        {
+          "name": "observe_construction_text",
+          "declaration": "observe_construction_text ( writer : Writer , units : Int , value ~ : Bool , ) - > Unit"
+        },
+        {
+          "name": "observe_embedded_construction",
+          "declaration": "observe_embedded_construction ( writer : Writer , nodes : Int , bytes : Int , shape : EncodingConstructionGeometry ? , ) - > Unit"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "construction_geometry_usage",
+            "construction_measuring_writer",
+            "emit_construction_measurement",
+            "finish_construction_measurement",
+            "observe_construction_container",
+            "observe_construction_field",
+            "observe_construction_object_end",
+            "observe_construction_text",
+            "observe_embedded_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/encode_core/construction_geometry_wbtest.mbt",
+                "anchor": "test \"same bounded emission retains structural geometry without text or another visit\""
+              },
+              {
+                "path": "src/run_publication_host/client_pure_compilation_construction_wbtest.mbt",
+                "anchor": "test \"unobserved codec role cannot borrow another same-sized subtree shape\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-emitter construction DATA only; not text, admitted tree, semantic identity, Resource permission or backend physical supply."
     }
   ]
 }

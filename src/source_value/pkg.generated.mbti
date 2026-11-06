@@ -25,9 +25,11 @@ pub fn indexed_source_dependency_extent(Int, Int, Int, Int64) -> IndexedSourceDe
 
 pub fn json_construction_extent(Int, Int, Int, normalize_keys~ : Bool) -> JsonLiteralConstructionExtent?
 
-pub fn json_index_borrowed_construction_extent(Int, Int, Int64, keep_spans~ : Bool) -> JsonLiteralConstructionExtent?
+pub fn json_index_borrowed_construction_extent(Int, Int, Int64, keep_spans~ : Bool, string_nodes? : Int?) -> JsonLiteralConstructionExtent?
 
 pub fn json_literal_construction_extent(Int, Int, Int) -> JsonLiteralConstructionExtent?
+
+pub fn json_shaped_construction_extent(Int, Int, Int, Int, Int, Int, Int, Int, normalize_keys~ : Bool) -> JsonLiteralConstructionExtent?
 
 pub fn json_source_grammar_construction_extent(Int, Int, Int) -> JsonLiteralConstructionExtent?
 

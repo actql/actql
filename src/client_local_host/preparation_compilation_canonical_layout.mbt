@@ -30,12 +30,15 @@ fn compilation_canonical_layout(
     s.depth < 0 ||
     s.largest_object < 0 ||
     s.largest_object > s.fields ||
-    s.arrays.to_int64() + s.objects.to_int64() > s.nodes.to_int64() ||
+    s.arrays > s.nodes ||
+    s.objects > s.nodes ||
     s.fields >= s.nodes {
     return None
   }
   let n = s.nodes.to_int64()
-  let c = s.arrays.to_int64() + s.objects.to_int64()
+  // Independent subtree upper bounds may overlap; every real container is
+  // still one of these SAME value nodes. Object-Map ownership stays separate.
+  let c = Int64::min(n, s.arrays.to_int64() + s.objects.to_int64())
   let o = s.objects.to_int64()
   let k = s.fields.to_int64()
   let edges = n - 1L

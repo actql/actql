@@ -4,6 +4,7 @@
 /// DATA, not an issued Plan, admission, work receipt or capacity reservation.
 pub(all) struct ClientPureCompilationConstruction {
   limits : ClientPureCompilationLimits
+  parser_geometry : ClientPureCompilationParserGeometry
   tasks : Bool
   fragments : Array[ClientTaskFragmentConstruction]
   borrowed_inputs : Array[(Int, Int, Int)]
@@ -60,13 +61,15 @@ fn client_compilation_successful_geometry(
 
 ///|
 fn measure_client_compilation_array(
-  values : Array[(Int, Int, Int)],
-) -> (Int, Int, Int) raise @encode.EncodeFailure {
-  let writer = @encode.measuring_writer(2147483647, 2147483647, 2147483647)
+  values : Array[ClientMeasuredCompilationGeometry],
+) -> ClientMeasuredCompilationGeometry raise @encode.EncodeFailure {
+  let writer = @encode.construction_measuring_writer(
+    2147483647, 2147483647, 2147483647,
+  )
   client_plan_emit_array(writer, values, (value, writer) => {
-    @encode.emit_measurement(writer, value)
+    emit_client_compilation_measurement(writer, value)
   })
-  @encode.finish_measurement_usage(writer)
+  finish_client_compilation_measurement(writer)
 }
 
 ///|
@@ -78,7 +81,7 @@ fn measure_client_values_fragment_construction(
   depth : Int,
 ) -> Result[ClientTaskFragmentConstruction, ClientValuesFragmentIssue] {
   let pipeline = match
-    measure_prepared_client_values_pipeline(
+    measure_prepared_client_values_pipeline_construction(
       value, 0, limits, bytes, nodes, depth,
     ) {
     Ok(value) => value
@@ -95,25 +98,29 @@ fn measure_client_values_fragment_construction(
   }
   let node_id = @lower.node_id(node)
   try {
-    let contract = @encode.measuring_writer(bytes, nodes, depth)
+    let contract = @encode.construction_measuring_writer(bytes, nodes, depth)
     @contract.emit_checked(row, contract)
-    let output_contract = @encode.finish_measurement_usage(contract)
-    let fragment = @encode.measuring_writer(bytes, nodes, depth)
+    let output_contract = finish_client_compilation_measurement(contract)
+    let fragment = @encode.construction_measuring_writer(bytes, nodes, depth)
     emit_client_values_fragment_body(
       fragment,
       node_id,
-      pipeline,
+      measured_client_compilation_geometry(pipeline),
       (),
       (),
-      (value, writer) => @encode.emit_measurement(writer, value),
+      (value, writer) => emit_client_compilation_measurement(writer, value),
       measure_client_fragment_cid,
     )
+    let fragment = finish_client_compilation_measurement(fragment)
     Ok({
-      initial_pipeline: pipeline,
-      pipeline,
-      fragment: @encode.finish_measurement_usage(fragment),
+      initial_pipeline: @encode.construction_geometry_usage(pipeline),
+      pipeline: @encode.construction_geometry_usage(pipeline),
+      fragment: fragment.usage,
+      pipeline_geometry: Some(pipeline),
+      fragment_geometry: fragment.shape,
+      output_contract_geometry: output_contract.shape,
       input_contracts: [],
-      output_contract,
+      output_contract: output_contract.usage,
       output_carrier: "relation",
       node_id,
       output_port: node_id,
@@ -217,10 +224,11 @@ fn measure_prepared_client_compilation_construction_owned(
   }
   let fragments : Array[ClientTaskFragmentConstruction] = []
   let borrowed_inputs : Array[(Int, Int, Int)] = []
+  let borrowed_input_geometry : Array[@encode.EncodingConstructionGeometry?] = []
   let outputs : Array[(String, String, String)] = []
   let inputs : Array[String] = []
-  let graph_nodes : Array[(Int, Int, Int)] = []
-  let graph_edges : Array[(Int, Int, Int)] = []
+  let graph_nodes : Array[ClientMeasuredCompilationGeometry] = []
+  let graph_edges : Array[ClientMeasuredCompilationGeometry] = []
   for task in 0..<count {
     if by_task.get(task) is Some(component) {
       guard client_infer_graph_original_parts(
@@ -238,11 +246,11 @@ fn measure_prepared_client_compilation_construction_owned(
       let mut input_geometry = None
       try {
         for node in nodes {
-          let writer = @encode.measuring_writer(
+          let writer = @encode.construction_measuring_writer(
             max_wire_bytes, max_nodes, max_depth,
           )
           @canonical.emit_value(node, writer)
-          let geometry = @encode.finish_measurement_usage(writer)
+          let geometry = finish_client_compilation_measurement(writer)
           graph_nodes.push(geometry)
           if @canonical.object_field(node, "node_id")
             is Some(@canonical.String(id)) &&
@@ -251,11 +259,11 @@ fn measure_prepared_client_compilation_construction_owned(
           }
         }
         for edge in edges {
-          let writer = @encode.measuring_writer(
+          let writer = @encode.construction_measuring_writer(
             max_wire_bytes, max_nodes, max_depth,
           )
           @canonical.emit_value(edge, writer)
-          graph_edges.push(@encode.finish_measurement_usage(writer))
+          graph_edges.push(finish_client_compilation_measurement(writer))
         }
       } catch {
         _ => return Err(Encoding)
@@ -263,7 +271,8 @@ fn measure_prepared_client_compilation_construction_owned(
       guard input_geometry is Some(geometry) else {
         return Err(TaskGraph(UnsupportedGraph))
       }
-      borrowed_inputs.push(geometry)
+      borrowed_inputs.push(geometry.usage)
+      borrowed_input_geometry.push(geometry.shape)
       inputs.push(input.node_id)
       outputs.push(
         (
@@ -295,7 +304,10 @@ fn measure_prepared_client_compilation_construction_owned(
       }
     }
     fragments.push(fragment)
-    graph_nodes.push(fragment.fragment)
+    graph_nodes.push({
+      usage: fragment.fragment,
+      shape: fragment.fragment_geometry,
+    })
     outputs.push(
       (fragment.node_id, fragment.output_port, fragment.output_carrier),
     )
@@ -305,7 +317,7 @@ fn measure_prepared_client_compilation_construction_owned(
   let projections : Array[ClientResultGraphConstruction] = []
   let names : Array[String] = []
   let result_cids : Array[Unit] = []
-  let graph_roots : Array[(Int, Int, Int)] = []
+  let graph_roots : Array[ClientMeasuredCompilationGeometry] = []
   for result in 0..<@strategy.graph_result_count(graph) {
     guard @strategy.graph_result_task(graph, result) is Some(task) &&
       outputs.get(task) is Some((output_node, output_port, _)) else {
@@ -351,13 +363,15 @@ fn measure_prepared_client_compilation_construction_owned(
     result_cids.push(())
     results.push(plan)
     projections.push(projection)
-    graph_nodes.push(projection.node)
-    graph_edges.push(projection.edge)
+    graph_nodes.push(unknown_client_compilation_geometry(projection.node))
+    graph_edges.push(unknown_client_compilation_geometry(projection.edge))
     graph_roots.push(
-      (
-        Int::max(projection.root.0, projection.direct_root.0),
-        Int::max(projection.root.1, projection.direct_root.1),
-        Int::max(projection.root.2, projection.direct_root.2),
+      unknown_client_compilation_geometry(
+        (
+          Int::max(projection.root.0, projection.direct_root.0),
+          Int::max(projection.root.1, projection.direct_root.1),
+          Int::max(projection.root.2, projection.direct_root.2),
+        ),
       ),
     )
   }
@@ -382,8 +396,12 @@ fn measure_prepared_client_compilation_construction_owned(
           None => (source_node, source_port)
           Some(projection) => {
             projections.push(projection)
-            graph_nodes.push(projection.node)
-            graph_edges.push(projection.edge)
+            graph_nodes.push(
+              unknown_client_compilation_geometry(projection.node),
+            )
+            graph_edges.push(
+              unknown_client_compilation_geometry(projection.edge),
+            )
             (
               client_compilation_result_input_node_id(index),
               match client_task_result_input_port(graph, edge) {
@@ -393,7 +411,7 @@ fn measure_prepared_client_compilation_construction_owned(
             )
           }
         }
-        let writer = @encode.measuring_writer(
+        let writer = @encode.construction_measuring_writer(
           2147483647, 2147483647, 2147483647,
         )
         emit_client_compilation_data_edge(
@@ -406,7 +424,7 @@ fn measure_prepared_client_compilation_construction_owned(
           input_name,
           measure_client_fragment_cid,
         )
-        graph_edges.push(@encode.finish_measurement_usage(writer))
+        graph_edges.push(finish_client_compilation_measurement(writer))
       }
     }
     measure_client_compilation_final_construction(
@@ -441,6 +459,7 @@ fn measure_prepared_client_compilation_construction_owned(
           },
         )
       },
+      borrowed_input_geometry~,
     )
   } catch {
     _ => Err(Encoding)
@@ -466,51 +485,53 @@ fn measure_client_compilation_final_construction(
   projections : Array[ClientResultGraphConstruction],
   names : Array[String],
   result_cids : Array[Unit],
-  graph_nodes : Array[(Int, Int, Int)],
-  graph_edges : Array[(Int, Int, Int)],
-  graph_roots : Array[(Int, Int, Int)],
+  graph_nodes : Array[ClientMeasuredCompilationGeometry],
+  graph_edges : Array[ClientMeasuredCompilationGeometry],
+  graph_roots : Array[ClientMeasuredCompilationGeometry],
   required_profiles : Array[(String, Unit)],
+  borrowed_input_geometry? : Array[@encode.EncodingConstructionGeometry?] = [],
 ) -> Result[ClientPureCompilationConstruction, ClientValuesExecutablePlanIssue] {
   try {
     let nodes = measure_client_compilation_array(graph_nodes)
     let edges = measure_client_compilation_array(graph_edges)
     let roots = measure_client_compilation_array(graph_roots)
-    let graph_writer = @encode.measuring_writer(
+    let graph_writer = @encode.construction_measuring_writer(
       2147483647, 2147483647, 2147483647,
     )
     let emitted : Result[Unit, Unit] = emit_client_compilation_graph(
       graph_writer,
       writer => {
         for edge in graph_edges {
-          @encode.emit_measurement(writer, edge)
+          emit_client_compilation_measurement(writer, edge)
         }
         Ok(())
       },
       writer => {
         for node in graph_nodes {
-          @encode.emit_measurement(writer, node)
+          emit_client_compilation_measurement(writer, node)
         }
       },
       writer => {
         for root in graph_roots {
-          @encode.emit_measurement(writer, root)
+          emit_client_compilation_measurement(writer, root)
         }
         Ok(())
       },
     )
     ignore(emitted)
+    let measured_graph = finish_client_compilation_measurement(graph_writer)
     let graph_geometry = client_compilation_successful_geometry(
-      @encode.finish_measurement_usage(graph_writer),
+      measured_graph.usage,
       max_wire_bytes,
       max_nodes,
       max_depth,
     )
-    let program_writer = @encode.measuring_writer(
+    let program_writer = @encode.construction_measuring_writer(
       max_wire_bytes, max_nodes, max_depth,
     )
     @syntax.emit_metadata_stripped_program(value.source, program_writer)
-    let program = @encode.finish_measurement_usage(program_writer)
-    let material_writer = @encode.measuring_writer(
+    let program = finish_client_compilation_measurement(program_writer)
+    let material_writer = @encode.construction_measuring_writer(
       max_wire_bytes, max_nodes, max_depth,
     )
     emit_client_execution_material_body(
@@ -524,10 +545,10 @@ fn measure_client_compilation_final_construction(
       result_cids,
       [],
       None,
-      (value, writer) => @encode.emit_measurement(writer, value),
+      (value, writer) => emit_client_compilation_measurement(writer, value),
       measure_client_fragment_cid,
     )
-    let material = @encode.finish_measurement_usage(material_writer)
+    let material = finish_client_compilation_measurement(material_writer)
     let facts = match
       measure_prepared_client_publication_plan_facts(
         value, max_facts, max_wire_bytes, max_nodes, max_depth,
@@ -542,27 +563,35 @@ fn measure_client_compilation_final_construction(
       Ok(value) => value
       Err(issue) => return Err(Witnesses(issue))
     }
-    let manifest_writer = @encode.measuring_writer(
+    // The same occurrence-coupled wrappers serve manifest and Plan emission.
+    // Do not map/reallocate the original fact inventory for the second writer.
+    let fact_values = facts.entries.map(unknown_client_compilation_geometry)
+    let limit_values = facts.limits.map(unknown_client_compilation_geometry)
+    let binding_values = facts.bindings.map(unknown_client_compilation_geometry)
+    let witness_values = witnesses.bodies.map(
+      unknown_client_compilation_geometry,
+    )
+    let manifest_writer = @encode.construction_measuring_writer(
       max_wire_bytes, max_nodes, max_depth,
     )
     emit_client_plan_fact_manifest_body(
       manifest_writer,
-      facts.entries,
+      fact_values,
       (),
-      (value, writer) => @encode.emit_measurement(writer, value),
+      (value, writer) => emit_client_compilation_measurement(writer, value),
       measure_client_fragment_cid,
     )
-    let fact_manifest = @encode.finish_measurement_usage(manifest_writer)
-    let plan_writer = @encode.measuring_writer(
+    let fact_manifest = finish_client_compilation_measurement(manifest_writer)
+    let plan_writer = @encode.construction_measuring_writer(
       2147483647, 2147483647, 2147483647,
     )
     emit_client_executable_plan_body(
       plan_writer,
       {
-        fact_values: facts.entries,
-        limit_values: facts.limits,
-        binding_values: facts.bindings,
-        witness_values: witnesses.bodies,
+        fact_values,
+        limit_values,
+        binding_values,
+        witness_values,
         nodes,
         edges,
         roots,
@@ -571,10 +600,21 @@ fn measure_client_compilation_final_construction(
         required_profiles,
       },
       Some(()),
-      (value, writer) => @encode.emit_measurement(writer, value),
+      (value, writer) => emit_client_compilation_measurement(writer, value),
       measure_client_fragment_cid,
     )
+    let executable_plan = finish_client_compilation_measurement(plan_writer)
     Ok({
+      parser_geometry: {
+        nodes: nodes.shape,
+        edges: edges.shape,
+        roots: roots.shape,
+        graph: measured_graph.shape,
+        program: program.shape,
+        material: material.shape,
+        executable_plan: executable_plan.shape,
+        borrowed_inputs: borrowed_input_geometry,
+      },
       limits: {
         max_facts,
         max_witnesses,
@@ -587,17 +627,17 @@ fn measure_client_compilation_final_construction(
       borrowed_inputs,
       results,
       projections,
-      nodes,
-      edges,
-      roots,
+      nodes: nodes.usage,
+      edges: edges.usage,
+      roots: roots.usage,
       graph: graph_geometry,
-      program,
-      material,
+      program: program.usage,
+      material: material.usage,
       facts,
       witnesses,
-      fact_manifest,
+      fact_manifest: fact_manifest.usage,
       executable_plan: client_compilation_successful_geometry(
-        @encode.finish_measurement_usage(plan_writer),
+        executable_plan.usage,
         max_wire_bytes,
         max_nodes,
         max_depth,
@@ -605,5 +645,64 @@ fn measure_client_compilation_final_construction(
     })
   } catch {
     _ => Err(Encoding)
+  }
+}
+
+///|
+/// Named construction companions from the SAME emitting invocation. Missing
+/// shape is deliberately conservative; equal dimensions never identify a role.
+pub(all) struct ClientPureCompilationParserGeometry {
+  nodes : @encode.EncodingConstructionGeometry?
+  edges : @encode.EncodingConstructionGeometry?
+  roots : @encode.EncodingConstructionGeometry?
+  graph : @encode.EncodingConstructionGeometry?
+  program : @encode.EncodingConstructionGeometry?
+  material : @encode.EncodingConstructionGeometry?
+  executable_plan : @encode.EncodingConstructionGeometry?
+  borrowed_inputs : Array[@encode.EncodingConstructionGeometry?]
+} derive(Eq, Debug)
+
+///|
+priv struct ClientMeasuredCompilationGeometry {
+  usage : (Int, Int, Int)
+  shape : @encode.EncodingConstructionGeometry?
+}
+
+///|
+fn measured_client_compilation_geometry(
+  shape : @encode.EncodingConstructionGeometry,
+) -> ClientMeasuredCompilationGeometry {
+  { usage: @encode.construction_geometry_usage(shape), shape: Some(shape), }
+}
+
+///|
+fn unknown_client_compilation_geometry(
+  usage : (Int, Int, Int),
+) -> ClientMeasuredCompilationGeometry {
+  { usage, shape: None, }
+}
+
+///|
+fn finish_client_compilation_measurement(
+  writer : @encode.Writer,
+) -> ClientMeasuredCompilationGeometry raise @encode.EncodeFailure {
+  measured_client_compilation_geometry(
+    @encode.finish_construction_measurement(writer),
+  )
+}
+
+///|
+fn emit_client_compilation_measurement(
+  writer : @encode.Writer,
+  value : ClientMeasuredCompilationGeometry,
+) -> Unit raise @encode.EncodeFailure {
+  match value.shape {
+    Some(shape) => {
+      if @encode.construction_geometry_usage(shape) != value.usage {
+        raise @encode.InvalidStructure
+      }
+      @encode.emit_construction_measurement(writer, shape)
+    }
+    None => @encode.emit_measurement(writer, value.usage)
   }
 }
