@@ -1143,7 +1143,11 @@ independent failures without treating them as success or introducing parallel
 Store/port ownership. The final required checks are unchanged.
 
 Native preparation logs each command/component interval as
-`ACTQL_NATIVE_CI_PHASE`. The HTTP package loop separately logs build-only and
+`ACTQL_NATIVE_CI_PHASE` and writes a small `phase-*.timing.json` diagnostic into
+its existing receipt artifact before later tests run. Each record identifies
+only the source, target, phase, elapsed milliseconds and producer outcome;
+it is not an artifact reuse or runtime acceptance receipt. Missing timing I/O
+never replaces the producer's original result. The HTTP package loop separately logs build-only and
 execution intervals using the same compiler inputs and fixture environment.
 Execution includes Moon's incremental freshness check; it is not a pure test-CPU
 measurement. Compare these intervals with Actions job start/queue observations;

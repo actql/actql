@@ -33,12 +33,20 @@ const moonHome=realpathSync(process.env.MOON_HOME);
 const clang=realpathSync(process.platform==='darwin'?run('xcrun',['--find','clang']).trim()
   :run('sh',['-c','command -v clang']).trim());
 const sdk=process.platform==='darwin'?realpathSync(run('xcrun',['--show-sdk-path']).trim()):null;
+let preparationPhase=0;
 function timedPreparation(phase, prepare) {
   const started=performance.now();let succeeded=false;
   try { const value=prepare();succeeded=true;return value; }
   finally {
     const milliseconds=Math.round(performance.now()-started);
     console.error('ACTQL_NATIVE_CI_PHASE '+JSON.stringify({phase,milliseconds,succeeded}));
+    // The existing receipt upload runs before the test cases. Keep a bounded
+    // diagnostic per completed producer there, without changing artifact identity
+    // or replacing the producer's original return/throw if diagnostics fail.
+    try {
+      writeFileSync(join(destination,`phase-${++preparationPhase}.timing.json`),
+        JSON.stringify({source,target,phase,milliseconds,succeeded})+'\n',{flag:'wx',mode:0o600});
+    } catch { console.error('Native timing diagnostic unavailable'); }
     if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,
       `- Native ${phase}: ${milliseconds} ms (${succeeded?'success':'failed'}).\n`);
   }
