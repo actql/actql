@@ -16,6 +16,8 @@ import {nativeProjectConfigurationFixture} from './native-project-configuration-
 import {nativeCoreTestSelection} from './native-core-test-selection.mjs';
 import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
 import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
+import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
+import {nativeClientFileFixture} from './native-client-file-fixture.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -31,7 +33,7 @@ console.log(`Native core SQLite namespace: ${namespace}`);
 // These unconditional fixtures share the existing restoration owner, not the
 // optional publication Store root. Enabling that global root would let unrelated
 // packages contend on one Store lock and contaminate its format admission.
-for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file', 'retained-task', 'cli-parent']) {
+for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file', 'retained-task', 'cli-parent', 'bounded-files', 'filesystem-custody']) {
   mkdirSync(join(namespace, name), {mode: 0o700});
 }
 const bundle = nativeCompletedRestorationBundle();
@@ -51,6 +53,7 @@ const selection = full ? nativeCoreTestSelection(root, args,
   {env: compilerEnvironment, partitionProfiles: true}) : undefined;
 if (selection) console.log('Native test selection: ' + JSON.stringify({cases: selection.cases,
   packages: selection.packages, prunedDrivers: selection.prunedDrivers,
+  ...(selection.benchmarkDeclarations ? {benchmarkDeclarations: selection.benchmarkDeclarations} : {}),
   profiles: {ordinary: selection.profiles.ordinary.cases,
     http: selection.profiles.http.cases,
     source: selection.profiles.source.cases,
@@ -90,8 +93,14 @@ if (full || args.some(arg => arg.includes('platform_native/remote_journal'))) {
     throw new Error(`Native WAL fixture compilation failed: ${compiled.error?.message ?? compiled.signal ?? compiled.status}`);
   }
 }
+const clientFiles = full || args.some(arg => arg.includes('cmd/native_client'))
+  ? nativeClientFileFixture(namespace) : {};
+const httpLifetime = full || args.some(arg => arg.includes('cmd/native_remote_resident_site'))
+  ? nativeHttpLifetimeFixture(namespace) : {};
 const fixtureEnvironment = {
   ...process.env,
+  ...httpLifetime,
+  ...clientFiles,
   ...bundle,
   ...clientCheckpoint,
   ...privateHost,
@@ -120,6 +129,8 @@ const fixtureEnvironment = {
     `node-bindings-${process.platform}-${process.arch}`,
     process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so'),
   ACTQL_TEST_NATIVE_SQLITE_ROOT: namespace,
+  ...(full || args.some(arg => arg.includes('platform_native/bounded_files'))
+    ? {ACTQL_TEST_NATIVE_BOUNDED_FILES_ROOT: join(namespace, 'bounded-files')} : {}),
 };
 // Keep physical file inputs separate from the selected-provider environment.
 // Only the ordinary child/focused Arena caller receives these fresh originals.

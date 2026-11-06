@@ -22,6 +22,12 @@ const ordinaryBackingFiles = Object.freeze([
   'installed-process-small-envelope.backing', 'installed-process-capture-refusal.backing',
   'installed-process-known-spawn-refusal.backing', 'installed-process-captured-descriptor.backing',
   'installed-process-stopped-child.backing',
+  'installed-child-byte-transport.backing',
+  'installed-child-stop-request.backing',
+  'installed-child-stop-preflight.backing',
+  'installed-child-fd4.backing',
+  'installed-child-known-failure.backing',
+  'installed-child-preflight.backing',
 ]);
 
 // Ordinary process/domain cases use file-backed input without selecting an

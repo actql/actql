@@ -72,14 +72,14 @@ test('case fixture refuses to adopt or reset initialized backing and refuses an 
 });
 
 
-test('ordinary installed process inputs retain exact nine backings without selecting a provider or slot', t => {
+test('ordinary installed process inputs retain exact authored backings without selecting a provider or slot', t => {
   const root=fixture(t), env=nativeCoreOrdinaryProcessFixture(root);
   assert.deepEqual(env,{ACTQL_TEST_INSTALLED_PROCESS_ROOT:join(root,'installed-process')});
   const path=env.ACTQL_TEST_INSTALLED_PROCESS_ROOT;
   const names=['initial-domain','installed-process-prepared','installed-process-closing',
     'installed-process-foreign','installed-process-small-envelope','installed-process-capture-refusal',
     'installed-process-known-spawn-refusal','installed-process-captured-descriptor',
-    'installed-process-stopped-child'];
+    'installed-process-stopped-child','installed-child-byte-transport','installed-child-stop-request','installed-child-stop-preflight','installed-child-fd4','installed-child-known-failure','installed-child-preflight'];
   assert.equal(statSync(path).mode & 0o777,0o700);
   assert.deepEqual(readdirSync(path).sort(),names.map(name=>name+'.backing').sort());
   const page=Number(execFileSync('/usr/bin/getconf',['PAGESIZE'],{encoding:'utf8'}).trim());

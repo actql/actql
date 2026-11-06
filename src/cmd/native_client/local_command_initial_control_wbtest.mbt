@@ -23,7 +23,8 @@ test "Initial command control keeps contextual parse failure without physical ac
     ignore(parse_native_initial_arguments(arguments, false))
     "unexpected parse success"
   } catch {
-    error => error.to_string()
+    NativeCommandArgumentStop(message) => message
+    _ => fail("original argument failure must retain its typed parse boundary")
   }
   assert_true(message.contains("--definitely-unknown"))
   assert_true(message.contains("Usage:"))

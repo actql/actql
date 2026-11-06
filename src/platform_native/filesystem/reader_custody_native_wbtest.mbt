@@ -1,6 +1,6 @@
 ///|
 test "rejected native Reader custody preserves generation refusal" {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
+  guard filesystem_custody_fixture_path() is Some(path) else {
     fail("selected physical Reader custody case requires owned Store root")
   }
   let root = open_root(path).unwrap()
@@ -24,7 +24,7 @@ test "rejected native Reader custody preserves generation refusal" {
 
 ///|
 test "directory acknowledgement is not child Reader stop" {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
+  guard filesystem_custody_fixture_path() is Some(path) else {
     fail("selected physical Reader custody case requires owned Store root")
   }
   let root = open_root(path).unwrap()

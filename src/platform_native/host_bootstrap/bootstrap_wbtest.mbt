@@ -59,7 +59,8 @@ test "installed supplier refuses foreign original before consuming acquisition" 
   assert_eq(host.usage().reserved_execution_bytes, 64L * test_page_bytes_ffi())
   host.try_close(original).unwrap()
   assert_eq(host.usage().reserved_execution_bytes, 0L)
-  assert_eq(host.usage().attempts, 1)
+  // Shared bootstrap capacity is not a dispatched task attempt.
+  assert_eq(host.usage().attempts, 0)
 }
 
 ///|
@@ -106,9 +107,9 @@ test "failed physical acquisition returns the original reserved partial carrier"
   assert_true(supplier.acquire(original) is Err(AlreadyConsumed))
   host.try_close(original).unwrap()
   assert_eq(host.usage().reserved_execution_bytes, 0L)
-  assert_eq(host.usage().attempts, 1)
+  assert_eq(host.usage().attempts, 0)
   host.try_close(original).unwrap()
-  assert_eq(host.usage().attempts, 1)
+  assert_eq(host.usage().attempts, 0)
 }
 
 ///|
