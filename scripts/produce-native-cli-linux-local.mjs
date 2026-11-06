@@ -162,10 +162,10 @@ export function requireNativeLinuxLocalArtifact(record, plan) {
   return requireNativePackageVersion(record, plan.packageVersion);
 }
 
-export async function produceNativeCliLinuxLocal(options, {execute = execFileSync, sourceRoot = resolve(repository)} = {}) {
+export async function produceNativeCliLinuxLocal(options, {execute = execFileSync, sourceRoot = resolve(repository), host = process} = {}) {
   const plan = planNativeLinuxLocalProduction(options, {sourceRoot});
-  assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
-  assert(process.report.getReport().header.glibcVersionRuntime, 'Linux GNU producer required');
+  assert.equal(host.platform, 'linux'); assert.equal(host.arch, 'x64');
+  assert(host.report.getReport().header.glibcVersionRuntime, 'Linux GNU producer required');
   const clean = () => {
     const git = args => execute('git', args, {cwd: sourceRoot, encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024}).trim();
     assert.equal(git(['rev-parse', 'HEAD']), plan.sourceSha, 'Exact current source required');

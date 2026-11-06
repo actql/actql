@@ -82,6 +82,10 @@ test('missing, duplicate, implicit, unbounded and foreign selections fail rather
 
 // Synthetic DATA below exercises selection and orchestration failures only.
 // No component/compiler is executed and no runtime acceptance is claimed.
+const syntheticLinuxReport = Object.freeze({header: Object.freeze({glibcVersionRuntime: '2.39'})});
+const syntheticLinuxHost = Object.freeze({platform: 'linux', arch: 'x64',
+  report: Object.freeze({getReport: () => syntheticLinuxReport})});
+
 function receipts(plan) {
   const inputs = Object.fromEntries([plan.clang, plan.sqliteArchive, ...plan.opensslPackageArchives]
     .map(path => [path, identity(Buffer.from(path))]));
@@ -176,10 +180,34 @@ function fixture(t) {
   return {root, sourceRoot, selected, plan, f, header, put, calls, execute, stopAt: phase => {stop = phase;}};
 }
 
+test('unsupported producer hosts refuse before commands or output, including the actual default host', async t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-linux-host-refusal-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const selected = {...options, outputDirectory: join(root, 'output')};
+  const withoutGlibc = Object.freeze({header: Object.freeze({})});
+  const vectors = [
+    [Object.freeze({...syntheticLinuxHost, platform: 'darwin'}), /linux/u],
+    [Object.freeze({...syntheticLinuxHost, arch: 'arm64'}), /x64/u],
+    [Object.freeze({...syntheticLinuxHost, report: Object.freeze({getReport: () => withoutGlibc})}), /Linux GNU producer required/u],
+  ];
+  if (process.platform !== 'linux' || process.arch !== 'x64' || !process.report.getReport().header.glibcVersionRuntime) {
+    vectors.push([undefined, process.platform !== 'linux' ? /linux/u
+      : process.arch !== 'x64' ? /x64/u : /Linux GNU producer required/u]);
+  }
+  for (const [host, reason] of vectors) {
+    let commands = 0;
+    await assert.rejects(produceNativeCliLinuxLocal(selected, {sourceRoot: context.sourceRoot,
+      execute: () => {commands++; assert.fail('Unsupported host cannot execute a command');},
+      ...(host === undefined ? {} : {host})}), reason);
+    assert.equal(commands, 0);
+    assert(!existsSync(selected.outputDirectory));
+  }
+});
+
 test('failed existing stages stop in order with no retries or Remote fallback', async t => {
   for (const phase of ['sqlite', 'crypto', 'recipe', 'artifact']) {
     const f = fixture(t); f.stopAt(phase);
-    await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute: f.execute}),
+    await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute: f.execute, host: syntheticLinuxHost}),
       new RegExp('selected ' + phase + ' failed', 'u'));
     assert.deepEqual(f.calls.map(call => call.phase), ['sqlite', 'crypto', 'recipe', 'artifact'].slice(0,
       ['sqlite', 'crypto', 'recipe', 'artifact'].indexOf(phase) + 1));
@@ -195,7 +223,7 @@ test('Native sees only the captured header and the exact original compiler; a mi
   t.after(() => {for (const [key, value] of Object.entries(previous)) {
     if (value === undefined) delete process.env[key]; else process.env[key] = value;
   }});
-  await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute: f.execute}), /ENOENT/u);
+  await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute: f.execute, host: syntheticLinuxHost}), /ENOENT/u);
   assert.deepEqual(f.calls.map(call => call.phase), ['sqlite', 'crypto', 'recipe', 'artifact']);
   for (const {phase, settings: {env}} of f.calls) {
     assert.equal(env.C_INCLUDE_PATH, phase === 'artifact' ? f.plan.directories.include : undefined);
@@ -222,7 +250,7 @@ test('dirty or wrong source, existing output, aliases and receipt contradictions
       if (command === 'git' && kind === 'source' && values[0] === 'rev-parse') return 'b'.repeat(40) + '\n';
       return f.execute(command, values, settings);
     };
-    await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute}));
+    await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute, host: syntheticLinuxHost}));
     assert(!f.calls.some(call => call.phase === 'recipe' || call.phase === 'artifact'));
   }
 });
@@ -235,6 +263,6 @@ test('changed original input between components stops before the next stage', as
       f.put(f.selected.opensslPackageArchives[0], 'changed original archive');
     return result;
   };
-  await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute}), /Original input changed/u);
+  await assert.rejects(produceNativeCliLinuxLocal(f.selected, {sourceRoot: f.sourceRoot, execute, host: syntheticLinuxHost}), /Original input changed/u);
   assert.deepEqual(f.calls.map(call => call.phase), ['sqlite']);
 });
