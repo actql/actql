@@ -106,6 +106,15 @@ test('exclusive native directory publication never replaces an existing empty or
   await fs.writeFile(join(directory, 'owner', 'owner.json'), 'foreign original');
   assert.throws(() => native.publishStoreOwnerDirectory(root, stage, original.dev, original.ino), {code: 'PublicationStoreBusy'});
   assert.equal(await fs.readFile(join(directory, 'owner', 'owner.json'), 'utf8'), 'foreign original');
+  const selected = native.openFileDirectory(root, 'owner', 2), name = '.lease-11111111-1111-4111-8111-111111111111.json';
+  await fs.writeFile(join(directory, 'owner', name), 'complete staged bytes', {mode: 0o600});
+  const before = await fs.stat(join(directory, 'owner', 'owner.json'), {bigint: true});
+  const replacement = await fs.stat(join(directory, 'owner', name), {bigint: true});
+  assert.throws(() => native.replaceStoreOwnerMetadata(selected, name,
+    before.dev, before.ino, before.size, before.mtimeNs, before.ctimeNs, replacement.dev, replacement.ino,
+    original.dev, original.ino), {code: 'PublicationStoreOwnershipLost'}, 'equal file inputs do not replace the original directory');
+  assert.equal(await fs.readFile(join(directory, 'owner', 'owner.json'), 'utf8'), 'foreign original');
+  assert.equal(native.fileRootClose(selected).outcome, 'closed');
   assert.equal(native.fileRootClose(root).outcome, 'closed'); scratch.passed();
 });
 

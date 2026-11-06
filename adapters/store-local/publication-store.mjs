@@ -711,7 +711,8 @@ async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
           if (await Reflect.apply(ownerWriterClose, ownerWriter, []) === false) fail('PublicationStoreCleanupPending');
           ownerWriter = undefined;
           await ownership.assertCurrent(); currentLease.current();
-          currentLease.replaceMetadata(`.lease-${token}.json`, ownerFileIdentity, replacement, () => {
+          currentLease.replaceMetadata(`.lease-${token}.json`, ownerFileIdentity, replacement,
+            {dev: ownershipDevice, ino: ownershipInode}, () => {
             // Commit precedes any child-close or durability failure. Cleanup
             // owns this exact replacement without another rename/reissue.
             ownerFileIdentity = replacement;

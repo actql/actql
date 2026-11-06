@@ -333,13 +333,13 @@ static napi_value local_fs_publish_store_owner(napi_env env, napi_callback_info 
  * directory descriptor. Compare the old physical original immediately before
  * rename; a copied token or callback substitution is never the original. */
 static napi_value local_fs_replace_store_owner(napi_env env, napi_callback_info info) {
-  napi_value args[9]; size_t count = 9; void *data = NULL;
-  char name[LOCAL_NAME_BYTES + 1]; int64_t expected[7]; bool lossless;
-  if (napi_get_cb_info(env, info, &count, args, NULL, &data) != napi_ok || count != 9 || !data ||
+  napi_value args[11]; size_t count = 11; void *data = NULL;
+  char name[LOCAL_NAME_BYTES + 1]; int64_t expected[9]; bool lossless;
+  if (napi_get_cb_info(env, info, &count, args, NULL, &data) != napi_ok || count != 11 || !data ||
       !local_fs_text(env, args[1], name, LOCAL_NAME_BYTES, false, false) ||
       strncmp(name, ".lease-", 7) || strlen(name) != 48 || strcmp(name + 43, ".json"))
     return unavailable(env, "InvalidPublicationStoreOwner");
-  for (size_t index = 0; index < 7; index++) {
+  for (size_t index = 0; index < 9; index++) {
     if (napi_get_value_bigint_int64(env, args[index + 2], &expected[index], &lossless) != napi_ok || !lossless)
       return unavailable(env, "InvalidPublicationStoreOwner");
   }
@@ -347,6 +347,8 @@ static napi_value local_fs_replace_store_owner(napi_env env, napi_callback_info 
   struct stat before, staged; int64_t ms, mn, cs, cn;
   if (!local_fs_current(directory) || !directory->directory || directory->depth != 1 ||
       strcmp(directory->name, "owner") ||
+      (int64_t)directory->identity.st_dev != expected[7] ||
+      (int64_t)directory->identity.st_ino != expected[8] ||
       fstatat(directory->descriptor, "owner.json", &before, AT_SYMLINK_NOFOLLOW) != 0 ||
       fstatat(directory->descriptor, name, &staged, AT_SYMLINK_NOFOLLOW) != 0 ||
       !S_ISREG(before.st_mode) || !S_ISREG(staged.st_mode) ||

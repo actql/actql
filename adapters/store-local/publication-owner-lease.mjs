@@ -89,13 +89,14 @@ export function openPublicationOwnerLease(path, inspector, deferred = false) {
       publishDirectory(name, original) {
         current(); call('publishStoreOwnerDirectory', root, name, original.dev, original.ino);
       },
-      replaceMetadata(name, before, staged, committed) {
+      replaceMetadata(name, before, staged, originalDirectory, committed) {
         current();
         metadataDirectory = call('openFileDirectory', root, 'owner', 2);
         try {
           call('fileRootCurrent', metadataDirectory); current();
           call('replaceStoreOwnerMetadata', metadataDirectory, name,
-            before.dev, before.ino, before.size, before.mtimeNs, before.ctimeNs, staged.dev, staged.ino);
+            before.dev, before.ino, before.size, before.mtimeNs, before.ctimeNs, staged.dev, staged.ino,
+            originalDirectory.dev, originalDirectory.ino);
           committed();
         } catch (cause) {
           try {closeMetadata();} catch (cleanupError) {
