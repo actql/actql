@@ -917,6 +917,7 @@ for (const [variable, child] of [
 const body = process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY;
 const cid = 'sha256:' + createHash('sha256').update(body).digest('hex');
 assert.equal(process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID, cid);
+assert.equal(process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET,JSON.parse(body).target_triple);
 assert.deepEqual(JSON.parse(body), {
   bundle_name: 'native-runtime',
   components: [{bytes: '14',
