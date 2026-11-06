@@ -36,7 +36,7 @@ test('normal release keeps all original thirteen cases and fifteen refusals with
   const rows = [{node_key: 1, occurred_ms: 0}];
   const columns = ['node_key', 'occurred_ms'].map(name => ({name, contract: {type: 'number', nullable: false}}));
   for (const item of successes) {
-    assert.deepEqual(item.results.answer, {rows, columns});
+    assert.deepEqual(item.results, {[item.format === 'json' ? 'answer' : 'main']: {rows, columns}});
     if (item.sourceReadSessionCount === 1) {
       assert.ok(item.text.includes('FROM records WHERE id = 1'));
       assert.deepEqual(item.sourceRows, [{id: 2, amount: 20}, {id: 1, amount: null}, {id: 3, amount: 30}]);
@@ -179,7 +179,7 @@ test('independent carrier audit rejects altered predicate results, schema, scope
     return {report, receipt};
   };
   const original = make(); assert.equal(auditCarrierContinuationTransport('local', original.report, original.receipt).actualRows, 13);
-  for (const change of [r => {r.receipt.cases[9].results.answer.rows[0].node_key = 2;},
+  for (const change of [r => {r.receipt.cases[9].results.main.rows[0].node_key = 2;},
     r => {r.receipt.cases[0].results.answer.columns.reverse();},
     r => {r.receipt.cases[0].beforeRead.sourceIo++;},
     r => {r.receipt.cases[9].afterReplay.sourceReadSessions++;},

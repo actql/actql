@@ -9,11 +9,15 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {nativeCompletedRestorationBundle} from './native-completed-restoration-fixture.mjs';
 import {classifyMoon} from './local-checks-policy.mjs';
 import {nativeClientCheckpointFixture} from './native-client-checkpoint-fixture.mjs';
-import {nativePrivateHostFixture} from './native-private-host-fixture.mjs';
+import {nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreTestSelection} from './native-core-test-selection.mjs';
+import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
+import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
+import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
+import {nativeClientFileFixture} from './native-client-file-fixture.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -29,7 +33,7 @@ console.log(`Native core SQLite namespace: ${namespace}`);
 // These unconditional fixtures share the existing restoration owner, not the
 // optional publication Store root. Enabling that global root would let unrelated
 // packages contend on one Store lock and contaminate its format admission.
-for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file', 'retained-task', 'cli-parent']) {
+for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file', 'retained-task', 'cli-parent', 'bounded-files', 'filesystem-custody']) {
   mkdirSync(join(namespace, name), {mode: 0o700});
 }
 const bundle = nativeCompletedRestorationBundle();
@@ -49,14 +53,22 @@ const selection = full ? nativeCoreTestSelection(root, args,
   {env: compilerEnvironment, partitionProfiles: true}) : undefined;
 if (selection) console.log('Native test selection: ' + JSON.stringify({cases: selection.cases,
   packages: selection.packages, prunedDrivers: selection.prunedDrivers,
+  ...(selection.benchmarkDeclarations ? {benchmarkDeclarations: selection.benchmarkDeclarations} : {}),
   profiles: {ordinary: selection.profiles.ordinary.cases,
+    http: selection.profiles.http.cases,
+    source: selection.profiles.source.cases,
     scoped: selection.profiles.scoped.cases, physical: selection.profiles.physicalCases,
     repeatedGeometry: selection.profiles.repeatedGeometryCases}}));
 const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_client'))
   ? nativeProjectConfigurationFixture(namespace)
   : {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: undefined};
-const privateHost = full || args.some(arg => arg.includes('platform_native/filesystem'))
+const privateHost = full || args.some(arg =>
+  arg.includes('platform_native/filesystem') || arg.includes('platform_native/client_host'))
   ? nativePrivateHostFixture(namespace) : {};
+const originalSigning = full || args.some(arg => arg.includes('platform_native/signature'))
+  ? nativeOriginalSigningFixture(namespace) : {};
+const processRegion = full || args.some(arg => arg.includes('platform_native/host_bootstrap'))
+  ? nativeProcessRegionFixture(root, namespace) : {};
 const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/client_host'))
   // Match optimization, debug and warning modes before the original producers
   // populate the cache. Changing the mode afterwards invalidates their Core
@@ -81,11 +93,19 @@ if (full || args.some(arg => arg.includes('platform_native/remote_journal'))) {
     throw new Error(`Native WAL fixture compilation failed: ${compiled.error?.message ?? compiled.signal ?? compiled.status}`);
   }
 }
+const clientFiles = full || args.some(arg => arg.includes('cmd/native_client'))
+  ? nativeClientFileFixture(namespace) : {};
+const httpLifetime = full || args.some(arg => arg.includes('cmd/native_remote_resident_site'))
+  ? nativeHttpLifetimeFixture(namespace) : {};
 const fixtureEnvironment = {
   ...process.env,
+  ...httpLifetime,
+  ...clientFiles,
   ...bundle,
   ...clientCheckpoint,
   ...privateHost,
+  ...originalSigning,
+  ...processRegion,
   ...readerCustody,
   ...projectConfiguration,
   ...(walFixture ? {ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE: walFixture} : {}),
@@ -109,7 +129,14 @@ const fixtureEnvironment = {
     `node-bindings-${process.platform}-${process.arch}`,
     process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so'),
   ACTQL_TEST_NATIVE_SQLITE_ROOT: namespace,
+  ...(full || args.some(arg => arg.includes('platform_native/bounded_files'))
+    ? {ACTQL_TEST_NATIVE_BOUNDED_FILES_ROOT: join(namespace, 'bounded-files')} : {}),
 };
+// Keep physical file inputs separate from the selected-provider environment.
+// Only the ordinary child/focused Arena caller receives these fresh originals.
+const ordinaryProcess = (full ? selection.profiles.ordinary.args !== null :
+  args.some(arg => arg.includes('platform_native/installed_arena_control')))
+  ? nativeCoreOrdinaryProcessFixture(namespace) : {};
 const checkChild = result => {
   if (result.error) throw result.error;
   if (result.status !== 0) {
@@ -118,6 +145,17 @@ const checkChild = result => {
   }
 };
 if (full) {
+  if (selection.profiles.http.args !== null) {
+    console.log(`Native Core HTTP profile: ${selection.profiles.http.cases} required cases`);
+    checkChild(spawnSync(process.execPath, ['scripts/test-native-http-client.mjs'], {
+      cwd: root, stdio: 'inherit', env: {...compilerEnvironment,
+        ACTQL_TEST_SCRATCH_ROOT: namespace,
+        ACTQL_TEST_PRESERVE_SCRATCH: '1',
+        ACTQL_TEST_NATIVE_HTTP_FOCUS: 'core-http',
+        ACTQL_TEST_NATIVE_CORE_HTTP_ARGS: JSON.stringify(selection.profiles.http.args),
+        ACTQL_TEST_NATIVE_CORE_HTTP_COUNT: String(selection.profiles.http.cases)},
+    }));
+  }
   // Each configuration executes its original compiler-owned cases. The
   // ordinary configuration also checks that no physical provider was selected;
   // physical custody cases must instead run with the real scoped provider.
@@ -128,7 +166,18 @@ if (full) {
       '--core-test-json', JSON.stringify(profile.args), '--core-test-count', String(profile.cases)],
     {cwd: root, stdio: 'inherit', env: environment}));
   };
-  runProfile(selection.profiles.ordinary, {...fixtureEnvironment, ...testCompiler});
+  runProfile(selection.profiles.ordinary, {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler});
+  // The Source package uses the existing complete Source/HTTP fixture owner.
+  // Its peer environment must never activate other ordinary Core packages.
+  if (selection.profiles.source.args !== null) {
+    checkChild(spawnSync(process.execPath, ['scripts/test-native-http-client.mjs'], {
+      cwd: root, stdio: 'inherit', env: {...compilerEnvironment,
+        ACTQL_TEST_SCRATCH_ROOT: namespace, ACTQL_TEST_PRESERVE_SCRATCH: '1',
+        ACTQL_TEST_NATIVE_HTTP_FOCUS: 'core-source',
+        ACTQL_TEST_NATIVE_CORE_SOURCE_ARGS: JSON.stringify(selection.profiles.source.args),
+        ACTQL_TEST_NATIVE_CORE_SOURCE_COUNT: String(selection.profiles.source.cases)},
+    }));
+  }
   if (selection.profiles.scoped.args !== null) {
     const scopedScratch = await createOwnedScratch({parent: join(root, '_build', 'native-core-scoped'),
       prefix: 'profile-', label: 'Native Core scoped compiler', preserve: true});
@@ -192,7 +241,7 @@ if (full) {
   }
 } else {
   checkChild(spawnSync('moon', ['test', '--target', 'native', ...args],
-    {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...testCompiler}}));
+    {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler}}));
 }
 // spawnSync has reaped every child; within-run database reopen is unchanged.
 scratch.passed();

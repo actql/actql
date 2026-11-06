@@ -1070,6 +1070,55 @@ test('retained textual Source keeps its original frontend and never decodes the 
   assert.deepEqual(f.calls, ['open-parent', 'retain-original', 'decode']);
 });
 
+test('retained textual Source restores exact Parameter order without replacing its authored frontend', () => {
+  const input = {format: 'aql-text', text: 'SELECT @z AS n |> RESULT updates',
+    parameterDeclarations: {z: {type: 'string'}, a: {type: 'number'}}};
+  const parameters = {z: 'e\u0301\r\n😀', a: 1};
+  const document = canonicalValueJson({kind: 'aql', input, parameters}, {dataKeys: true});
+  // The native Source frontend must still receive the actual authored text.
+  // Complete lowered Program validation belongs to the later Common binder.
+  const materialWire = JSON.stringify({program_format: 'json',
+    program: 'not parsed as frontend input', parameters: JSON.stringify(parameters)});
+  const f = retainedRequestManagerFixture({document, materialWire});
+  const retained = f.view.retainRequestInput(f.request, f.intent, undefined, materialWire);
+  assert.equal(retained.body.kind, 'aql');
+  assert.deepEqual(retained.body.input, input);
+  assert.deepEqual(Object.keys(retained.body.parameters), ['z', 'a']);
+  assert.deepEqual(retained.body.parameters, parameters);
+  assert.deepEqual(f.calls, ['open-parent', 'retain-original', 'decode', 'reserve-material', 'decode', 'decode']);
+  assert.equal(f.receipts.get(retained.receipt).preparation.snapshotDocument, document);
+});
+
+test('retained textual Source cannot replace Parameter Strings array order or names', () => {
+  const parameters = {z: 'e\u0301\r\n', values: [1, 2], 'e\u0301': 'original'};
+  const document = canonicalValueJson({kind: 'aql',
+    input: {format: 'sql', text: 'SELECT @z AS note'}, parameters}, {dataKeys: true});
+  for (const changed of [null, {...parameters, z: 'é\n'}, {...parameters, values: [2, 1]},
+    {z: parameters.z, values: parameters.values, 'é': 'original'}]) {
+    const materialWire = JSON.stringify({program_format: 'json', program: '{}',
+      parameters: changed === null ? null : JSON.stringify(changed)});
+    const f = retainedRequestManagerFixture({document, materialWire});
+    assert.throws(() => f.view.retainRequestInput(f.request, f.intent, undefined, materialWire),
+      {code: 'ForeignInstalledSourceProducer'});
+    assert.equal(f.producers.size, 0); assert.equal(f.requestProducers.has(f.request), false);
+    assert.deepEqual(f.calls.slice(-2), ['original-cleanup', 'producer-return']);
+  }
+});
+
+test('retained textual Source Parameter handoff retains reservation failure and current reentry fences', () => {
+  const document = canonicalValueJson({kind: 'aql', input: {format: 'sql', text: 'SELECT @n'},
+    parameters: {n: 1}}, {dataKeys: true});
+  const materialWire = JSON.stringify({program_format: 'json', program: '{}', parameters: '{"n":1}'});
+  const missing = retainedRequestManagerFixture({document, materialWire, missingMaterial: true});
+  assert.throws(() => missing.view.retainRequestInput(missing.request, missing.intent, undefined, materialWire),
+    {code: 'NodeManagedRunRuntimeUnavailable'});
+  const reentry = retainedRequestManagerFixture({document, materialWire, materialReentry: true});
+  assert.throws(() => reentry.view.retainRequestInput(reentry.request, reentry.intent, undefined, materialWire),
+    {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(reentry.calls.filter(value => value === 'decode').length, 1);
+  assert.equal(reentry.producers.size, 0); assert.equal(reentry.requestProducers.has(reentry.request), false);
+});
+
 test('retained manager preserves thrown undefined and returns the original failed constructor', () => {
   const f = retainedRequestManagerFixture({throwOnRetain: true, failure: undefined});
   let threw = false;

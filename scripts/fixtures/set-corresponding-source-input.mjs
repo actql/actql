@@ -1208,7 +1208,7 @@ export const setCorrespondingExecutionFailures = [
     text: JSON.stringify(duplicateAssertProgram), resultNames: ['answer'], sourceReadSessionCount: 0},
   {name: 'set-corresponding-positional-assert-duplicate-source', format: 'sql',
     text: positionalAssertHead + '|> ASSERT UNIQUE BY(kept) ' + positionalAssertTail,
-    sourceRows: [{id: 1, amount: 10}, {id: 1, amount: 20}], resultNames: ['answer'], sourceReadSessionCount: 1},
+    sourceRows: [{id: 1, amount: 10}, {id: 1, amount: 20}], resultNames: ['main'], sourceReadSessionCount: 1},
 ];
 
 // Unconsumed anonymous values are implicit PIVOT keys, never dropped grouping data.

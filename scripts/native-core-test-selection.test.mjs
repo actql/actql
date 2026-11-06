@@ -5,7 +5,7 @@ import {existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathS
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, resolve} from 'node:path';
 import test from 'node:test';
-import {nativeCoreTestSelection} from './native-core-test-selection.mjs';
+import {nativeCoreTestSelection, nativeCoreHttpArguments, nativeCoreHttpTestFiles} from './native-core-test-selection.mjs';
 import {assertTestExecution} from './test-execution.mjs';
 
 function fixture(t) {
@@ -91,21 +91,49 @@ test('actual Native profile partition executes every original and both geometry 
     ['local_command_business_wbtest.mbt', 'both geometry configurations'],
   ]) writeFileSync(join(root, directory, file),
     `test "${name}" { assert_eq(answer(), 7) }\n`);
+  const http = 'src/platform_native/http_client';
+  mkdirSync(join(root, http), {recursive: true});
+  writeFileSync(join(root, http, 'moon.pkg'), '');
+  writeFileSync(join(root, http, 'main_wbtest.mbt'),
+    'test "HTTP original with its own peer profile" { assert_eq(7, 7) }\n');
+  const credential = 'src/platform_native/credential_resource';
+  mkdirSync(join(root, credential), {recursive: true});
+  writeFileSync(join(root, credential, 'moon.pkg'), '');
+  for (const [file, name] of [
+    ['ordinary_wbtest.mbt', 'credential ordinary sibling'],
+    ['remote_use_retention_native_wbtest.mbt', 'credential retention peer original'],
+    ['remote_initial_use_native_wbtest.mbt', 'credential initial peer original'],
+  ]) writeFileSync(join(root, credential, file), `test "${name}" { assert_eq(7, 7) }\n`);
+  const retained = 'src/platform_native/remote_resident_source_compute_tests';
+  mkdirSync(join(root,retained),{recursive:true});
+  writeFileSync(join(root,retained,'moon.pkg'),'');
+  writeFileSync(join(root,retained,'retained_compute_wbtest.mbt'),
+    'test "retained Provider original with its own peers" { assert_eq(7, 7) }\n');
   const env = {...process.env, MOONBIT_NEW_NATIVE: '0'};
   const moon = join(env.MOON_HOME, 'bin/moon');
   const args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose'];
   const selected = nativeCoreTestSelection(root, args, {env, partitionProfiles: true});
-  assert.equal(selected.cases, 3);
-  assert.deepEqual(selected.profiles, {
-    ordinary: {args: [...args, directory+'/ordinary_wbtest.mbt',
-      directory+'/local_command_business_wbtest.mbt'], cases: 2},
-    scoped: {args: [...args, directory+'/local_command_business_wbtest.mbt',
+  assert.equal(selected.cases, 8);
+  assert.deepEqual(selected.profiles.ordinary.args.slice(0, args.length), args);
+  assert.deepEqual(new Set(selected.profiles.ordinary.args.slice(args.length)), new Set([
+    directory+'/ordinary_wbtest.mbt', directory+'/local_command_business_wbtest.mbt',
+    credential+'/ordinary_wbtest.mbt']));
+  assert.equal(selected.profiles.ordinary.cases, 3);
+  assert.deepEqual(selected.profiles.http.args.slice(0, args.length), args);
+  assert.deepEqual(new Set(selected.profiles.http.args.slice(args.length)),
+    new Set([http, ...nativeCoreHttpTestFiles]));
+  assert.equal(selected.profiles.http.cases, 3);
+  assert.deepEqual(selected.profiles.source, {args: [...args, retained], cases: 1});
+  assert.deepEqual(selected.profiles.scoped, {
+    args: [...args, directory+'/local_command_business_wbtest.mbt',
       directory+'/local_command_business_cleanup_wbtest.mbt'], cases: 2, tests: [
       {source: directory+'/local_command_business_wbtest.mbt', index: 0},
       {source: directory+'/local_command_business_cleanup_wbtest.mbt', index: 0},
-    ]},
-    physicalCases: 1, repeatedGeometryCases: 1, uniqueCases: 3,
+    ],
   });
+  assert.equal(selected.profiles.physicalCases, 1);
+  assert.equal(selected.profiles.repeatedGeometryCases, 1);
+  assert.equal(selected.profiles.uniqueCases, 8);
   // These tiny programs test real compiler file selection, not a provider or
   // physical acceptance. A case count alone cannot detect equal-sized swaps.
   const execute = profile => {
@@ -122,6 +150,18 @@ test('actual Native profile partition executes every original and both geometry 
   assert.match(ordinary, /ordinary profile original/u);
   assert.match(ordinary, /both geometry configurations/u);
   assert.doesNotMatch(ordinary, /physical profile original/u);
+  assert.doesNotMatch(ordinary, /HTTP original|credential (?:initial|retention) peer original/u);
+  assert.match(ordinary, /credential ordinary sibling/u);
+  const transport = execute(selected.profiles.http);
+  assert.match(transport, /HTTP original with its own peer profile/u);
+  assert.match(transport, /credential initial peer original/u);
+  assert.match(transport, /credential retention peer original/u);
+  assert.doesNotMatch(transport, /credential ordinary sibling/u);
+  assert.doesNotMatch(transport, /ordinary profile original|both geometry configurations|physical profile original/u);
+  const retainedOutput=execute(selected.profiles.source);
+  assert.match(retainedOutput,/retained Provider original with its own peers/u);
+  assert.doesNotMatch(retainedOutput,/ordinary profile original|both geometry configurations|physical profile original|HTTP original/u);
+  assert.doesNotMatch(ordinary,/retained Provider original/u);
   const scoped = selected.profiles.scoped.tests.map(test => execute({
     args: [...args, test.source, '--index', String(test.index)], cases: 1,
   })).join('\n');
@@ -157,6 +197,8 @@ test('actual Native package selection preserves full WB/BB/inline/doc outline an
   const profiled = nativeCoreTestSelection(root, args, {env, partitionProfiles: true});
   assert.deepEqual(profiled.profiles, {
     ordinary: {args: selected.args, cases: 4},
+    http: {args: null, cases: 0},
+    source: {args: null, cases: 0},
     scoped: {args: null, cases: 0, tests: []},
     physicalCases: 0, repeatedGeometryCases: 0, uniqueCases: 4,
   });
@@ -190,4 +232,48 @@ test('actual Native package selection preserves full WB/BB/inline/doc outline an
   const warm = identities(software);
   assert.equal(run([...selected.args,'--outline']).stdout,full.stdout);
   assert.deepEqual(identities(software),warm,'The warm outline must not regenerate or recompile Native software');
+});
+
+
+test('actual Native compiler retains benchmark declarations without counting them as executed tests', t => {
+  const root = fixture(t);
+  writeFileSync(join(root, 'moon.mod'), 'name = "fixture/native_benchmark_class"\nversion = "0.0.0"\n');
+  writeFileSync(join(root, 'active/moon.pkg'), 'import { "moonbitlang/core/bench" } for "wbtest"\n');
+  writeFileSync(join(root, 'active/main.mbt'), 'pub fn answer() -> Int { 7 }\n');
+  writeFileSync(join(root, 'active/original_wbtest.mbt'),
+    'test "ordinary original" { assert_eq(answer(), 7) }\n' +
+    'test "compiler benchmark declaration" (it : @bench.T) { it.bench(fn() { it.keep(answer()) }) }\n');
+  writeFileSync(join(root, 'empty/moon.pkg'), 'pkgtype(kind: "executable")\n');
+  writeFileSync(join(root, 'empty/main.mbt'), 'fn main { println("no tests") }\n');
+  const env = {...process.env, MOONBIT_NEW_NATIVE: '0'};
+  const moon = join(env.MOON_HOME, 'bin/moon');
+  const args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose'];
+  const selected = nativeCoreTestSelection(root, args, {env, partitionProfiles: true});
+  assert.equal(selected.cases, 2);
+  assert.equal(selected.benchmarkDeclarations, 1);
+  assert.deepEqual(selected.args, [...args, 'active']);
+  assert.equal(selected.profiles.uniqueCases, 2);
+  assert.equal(selected.profiles.benchmarkDeclarations, 1);
+  assert.deepEqual(selected.profiles.ordinary, {args: selected.args, cases: 1});
+  const actual = spawnSync(moon, ['test', '--target', 'native', ...selected.profiles.ordinary.args],
+    {cwd: root, env, encoding: 'utf8', timeout: 30_000});
+  const observed = assertTestExecution('moon', moon, ['test', '--target', 'native',
+    ...selected.profiles.ordinary.args], actual, {expectedTests: 1});
+  assert.equal(observed.counts.tests, 1);
+  assert.equal(observed.counts.passed, 1);
+  assert.match(actual.stdout, /ordinary original/u);
+  assert.doesNotMatch(actual.stdout, /compiler benchmark declaration/u);
+});
+
+
+test('Core HTTP arguments retain only the existing credential peer callers and Native target', () => {
+  const args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose',
+    'src/platform_native/http_client', ...nativeCoreHttpTestFiles];
+  assert.equal(nativeCoreHttpArguments(args), args);
+  assert.deepEqual(nativeCoreHttpArguments(nativeCoreHttpTestFiles), nativeCoreHttpTestFiles);
+  for (const invalid of [[], ['src/platform_native/credential_resource'],
+    ['src/platform_native/http_client', 'src/platform_native/client_host'],
+    ['src/platform_native/http_client', 'src/platform_native/http_client'],
+    ['--target', 'native', 'src/platform_native/http_client'], [null]])
+    assert.throws(() => nativeCoreHttpArguments(invalid));
 });

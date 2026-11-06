@@ -87,7 +87,10 @@ test('JSON window controls retain the adopted exclusive scan/filter/select captu
   assert.deepEqual(refusals, originalRefusals);
   for (const [index, current] of successes.entries()) {
     const original = originalSuccesses[index];
-    if (current.format !== 'json') { assert.deepEqual(current, original); continue; }
+    if (current.format !== 'json') {
+      assert.deepEqual(current, {...original, results: {main: original.results.answer}});
+      continue;
+    }
     const {text, ...expectation} = current;
     const {text: previousText, ...originalExpectation} = original;
     assert.deepEqual(expectation, originalExpectation);

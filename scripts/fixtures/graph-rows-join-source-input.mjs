@@ -60,7 +60,7 @@ export const graphRowsJoinRefusals = [
 }));
 export const graphRowsJoinExecutionFailures = [{name: 'graph-rows-join-explicit-bound-exceeded', format: 'aql-text',
   text: nodePrefix + 'FROM g |> node_rows()' + tail.replace('MAX_OUTPUT_ROWS 10', 'MAX_OUTPUT_ROWS 2'),
-  resultNames: ['answer'], sourceReadSessionCount: 0}];
+  resultNames: ['main'], sourceReadSessionCount: 0}];
 
 const sourceRows = [{id: 2, amount: 20}, {id: 1, amount: 10}, {id: 3, amount: null}];
 const sourcePrefix = 'WITH n AS (FROM records |> SELECT id AS node_key, amount AS p), r AS (FROM records |> WHERE id = 1 |> SELECT id AS key, amount AS tag)' + mapping;

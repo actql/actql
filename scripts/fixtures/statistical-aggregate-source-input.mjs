@@ -117,5 +117,5 @@ export const statisticalAggregateRefusals = [
 export const statisticalAggregateExecutionFailures = [{
   name: 'statistical-aggregate-demanded-error', format: 'sql',
   text: 'SELECT VAR_POP(1 / 0) AS v FROM records',
-  resultNames: ['answer'], sourceReadSessionCount: 1,
+  resultNames: ['main'], sourceReadSessionCount: 1,
 }];

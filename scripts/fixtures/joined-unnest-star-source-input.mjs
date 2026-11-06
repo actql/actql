@@ -94,13 +94,13 @@ export const joinedUnnestStarSuccesses = [
     format: 'json', parameterDeclarations: undefined, sourceReadCount: 1, sourceReadSessionCount: 1,
     sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
   }),
-  success('acquired-data', acquired, {sourceReadCount: 1, sourceReadSessionCount: 1,
+  success('acquired-data', acquired, {resultName: 'answer', sourceReadCount: 1, sourceReadSessionCount: 1,
     sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}]}),
   success('value-receiver-json-control', JSON.stringify(joinedStarValueReceiverProgram), {
     ...objectColumn, format: 'json', parameterDeclarations: undefined,
   }),
   success('value-receiver-contrast', 'FROM UNNEST(@objects) o |> SELECT score, payload '
-    + '|> AS payload |> SELECT (payload).score AS value', objectColumn),
+    + '|> AS payload |> SELECT (payload.payload).score AS value', objectColumn),
 ];
 export const joinedUnnestStarRefusals = [
   sql.replace('UNNEST(p.items)', 'UNNEST(p.id)'),

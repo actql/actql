@@ -45,12 +45,13 @@ test('SQL AQL and JSON controls share full ordered schemas and one acquisition i
     assert.equal(cases.length, 3);
     assert.deepEqual(cases.map(c => c.format), ['json', 'sql', 'aql-text']);
     for (const c of cases) {
+      const resultName = c.format === 'json' ? 'answer' : 'main';
       assert.equal(c.sourceReadSessionCount, 1);
-      assert.deepEqual(c.results.answer.columns, expectedColumns);
-      assert.deepEqual(c.results, cases[0].results);
+      assert.deepEqual(c.results[resultName].columns, expectedColumns);
+      assert.deepEqual(c.results, {[resultName]: cases[0].results.answer});
       if (variant === 'empty') {
         assert.deepEqual(c.sourceRows, []);
-        assert.deepEqual(c.results.answer.rows, []);
+        assert.deepEqual(c.results[resultName].rows, []);
       }
     }
   }

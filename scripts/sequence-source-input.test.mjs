@@ -5,7 +5,11 @@ import {sequenceSourceSuccesses as normal,sequenceSourceRefusals as refused} fro
 test('independent sequence values, empty/fullschema, clock, pattern and symbolic guards are preserved',()=>{
  assert.equal(normal.length,22);assert.equal(refused.length,9);
  const fields=['first_id','first_time_ms','match_end_ms','match_start_ms','second_id','second_time_ms'];
- for(const c of normal) {assert.equal(c.sourceReadCount,0);assert.deepEqual(c.results.answer.columns,fields.map(name=>({name,contract:{type:'number',nullable:false}})));}
+ for(const c of normal) {
+  const resultName=c.format==='json'?'answer':'main';
+  assert.deepEqual(Object.keys(c.results),[resultName]);
+  assert.equal(c.sourceReadCount,0);assert.deepEqual(c.results[resultName].columns,fields.map(name=>({name,contract:{type:'number',nullable:false}})));
+ }
  assert.deepEqual(normal.find(c=>c.name==='sequence-json-gap-adjacent').results.answer.rows,[]);
  assert.deepEqual(normal.find(c=>c.name==='sequence-json-gap-subsequence').results.answer.rows,[{first_id:1,first_time_ms:0,match_end_ms:10,match_start_ms:0,second_id:3,second_time_ms:10}]);
  const parameter=JSON.parse(normal.find(c=>c.name==='sequence-json-parameters').text);
@@ -23,7 +27,7 @@ test('adopted Sequence omissions keep independent results and refuse explicit in
  for(const name of ['sequence-implicit-overlap','sequence-json-omitted-defaults',
   'sequence-sql-omitted-defaults','sequence-aql-text-omitted-defaults']) {
   const item=normal.find(value=>value.name===name);assert.ok(item,name);
-  assert.deepEqual(item.results.answer,expected);assert.equal(item.sourceReadSessionCount,0);
+  assert.deepEqual(item.results,{[item.format==='json'?'answer':'main']:expected});assert.equal(item.sourceReadSessionCount,0);
  }
  const body=JSON.parse(normal.find(value=>value.name==='sequence-json-omitted-defaults').text)
   .stages[0].steps.find(step=>step.sequence).sequence;

@@ -16,14 +16,29 @@ const namedBackingFiles = Object.freeze([
   'root-binding-second.backing',
 ]);
 
-export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary, backingPages}) {
-  for (const library of [cryptoLibrary, sqliteLibrary]) {
-    assert(typeof library === 'string' && isAbsolute(library) && !library.includes('\0'),
-      'An actual absolute component library selection is required');
-  }
-  // These are the authored physical fixture declarations, not selected product
-  // limits. Crypto's original parent uses 8192 pages; retained/Store uses 256.
-  assert(backingPages === 256 || backingPages === 8192, 'An exact authored backing size is required');
+const ordinaryBackingFiles = Object.freeze([
+  'initial-domain.backing', 'installed-process-prepared.backing',
+  'installed-process-closing.backing', 'installed-process-foreign.backing',
+  'installed-process-small-envelope.backing', 'installed-process-capture-refusal.backing',
+  'installed-process-known-spawn-refusal.backing', 'installed-process-captured-descriptor.backing',
+  'installed-process-stopped-child.backing',
+  'installed-child-byte-transport.backing',
+  'installed-child-stop-request.backing',
+  'installed-child-stop-preflight.backing',
+  'installed-child-fd4.backing',
+  'installed-child-known-failure.backing',
+  'installed-child-preflight.backing',
+]);
+
+// Ordinary process/domain cases use file-backed input without selecting an
+// allocation provider or component library. Slot files are created by the case.
+export function nativeCoreOrdinaryProcessFixture(namespace) {
+  const {root, backing} = backingFixture(namespace);
+  for (const name of ordinaryBackingFiles) backing(name, 64);
+  return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root};
+}
+
+function backingFixture(namespace) {
   const page = Number(execFileSync('/usr/bin/getconf', ['PAGESIZE'],
     {encoding: 'utf8', timeout: 5000, maxBuffer: 65536}).trim());
   assert(Number.isSafeInteger(page) && page > 0, 'Actual Native page size required');
@@ -39,6 +54,18 @@ export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary
       assert.equal(stat.size, pages * page, 'Exact original backing capacity required');
     } finally { closeSync(fd); }
   };
+  return {root, backing};
+}
+
+export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary, backingPages}) {
+  for (const library of [cryptoLibrary, sqliteLibrary]) {
+    assert(typeof library === 'string' && isAbsolute(library) && !library.includes('\0'),
+      'An actual absolute component library selection is required');
+  }
+  // These are the authored physical fixture declarations, not selected product
+  // limits. Crypto's original parent uses 8192 pages; retained/Store uses 256.
+  assert(backingPages === 256 || backingPages === 8192, 'An exact authored backing size is required');
+  const {root, backing} = backingFixture(namespace);
   backing('backing', backingPages);
   for (const probe of [0, 3, 4]) backing('backing-' + probe, 256);
   for (const name of namedBackingFiles) backing(name, 64);

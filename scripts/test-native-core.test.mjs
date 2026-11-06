@@ -1,9 +1,10 @@
+import './native-http-library-lifetime.test.mjs';
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
 import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync,
   readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
@@ -23,6 +24,7 @@ import './native-core-c-compiler.test.mjs';
 import './native-core-test-selection.test.mjs';
 import './native-core-scoped-profile.test.mjs';
 import './native-core-scoped-fixture.test.mjs';
+import './native-process-region-fixture.test.mjs';
 
 test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-capture-progress-'));
@@ -659,7 +661,7 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
   }
 });
 
-function fixture(t, {scoped = false} = {}) {
+function fixture(t, {scoped = false, http = false, sourcePeers = false} = {}) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-namespace-test-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const checkout = join(root, 'checkout');
@@ -668,7 +670,7 @@ function fixture(t, {scoped = false} = {}) {
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
-    'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'verification-actions.mjs',
+    'native-client-file-fixture.mjs', 'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'native-http-lifetime-fixture.mjs', 'native-core-scoped-fixture.mjs', 'verification-actions.mjs',
     'native-client-checkpoint-fixture.mjs', 'native-private-host-fixture.mjs',
     'native-filesystem-observation-fixture.mjs',
     'native-runtime-reader-custody-fixture.mjs', 'native-project-configuration-fixture.mjs',
@@ -676,13 +678,34 @@ function fixture(t, {scoped = false} = {}) {
     'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
   }
+  // This fixture observes wrapper routing. The original ten process/channel
+  // cases exercise the physical C/Rust leaf with the real preparation helper.
+  writeFileSync(join(checkout, 'scripts/native-process-region-fixture.mjs'), `
+import {mkdirSync} from 'node:fs';
+import {dirname, join} from 'node:path';
+export function nativeProcessRegionFixture(repository, namespace) {
+  const root = join(namespace, 'process-region'); mkdirSync(root, {mode: 0o700});
+  return {ACTQL_TEST_NATIVE_PROCESS_REGION_ROOT: root,
+    ACTQL_TEST_NATIVE_HANDLER_PROCESS_CHILD: join(root, 'handler-process-child'),
+    ACTQL_TEST_NATIVE_HANDLER_LIBRARY: join(root, 'handler-thread.dylib')};
+}
+`);
   mkdirSync(join(checkout, 'scripts/fixtures'));
   copyFileSync(new URL('fixtures/native-unclosed-sqlite.c', import.meta.url),
     join(checkout, 'scripts/fixtures/native-unclosed-sqlite.c'));
   copyFileSync(new URL('fixtures/native-runtime-reader-custody.c', import.meta.url),
     join(checkout, 'scripts/fixtures/native-runtime-reader-custody.c'));
+  copyFileSync(new URL('fixtures/native-http-lifetime-library.c', import.meta.url),
+    join(checkout,'scripts/fixtures/native-http-lifetime-library.c'));
   copyFileSync(new URL('fixtures/native-effect-resolution-fixture.mjs', import.meta.url),
     join(checkout, 'scripts/fixtures/native-effect-resolution-fixture.mjs'));
+  const repository = fileURLToPath(new URL('../', import.meta.url));
+  const aoa = JSON.parse(readFileSync(join(repository, 'spec/contracts/actql-aoa.json'), 'utf8'));
+  for (const path of ['spec/contracts/actql-aoa.json', aoa.pipeline_registry_file]) {
+    const target = join(checkout, path);
+    mkdirSync(dirname(target), {recursive: true});
+    copyFileSync(join(repository, path), target);
+  }
   symlinkSync(new URL('../node_modules', import.meta.url), join(checkout, 'node_modules'), 'dir');
   writeFileSync(join(checkout, '.github/workflows/ci.yml'),
     JSON.stringify({jobs: {core: {'timeout-minutes': 30, steps: [coreStep]}}}));
@@ -693,6 +716,46 @@ function fixture(t, {scoped = false} = {}) {
   for (const name of ['fixture-native', 'fixture-empty']) {
     mkdirSync(join(checkout, 'src', name), {recursive: true});
     writeFileSync(join(checkout, 'src', name, 'main.mbt'), 'Original compiler-input fixture\n');
+  }
+  if (http) {
+    const source = join(checkout, 'src/platform_native/http_client');
+    mkdirSync(source, {recursive: true});
+    writeFileSync(join(source, 'main.mbt'), 'Original compiler-input fixture\n');
+    // Explicit wrapper-routing port, not physical HTTPS acceptance.
+    writeFileSync(join(checkout, 'scripts/test-native-http-client.mjs'), `
+import assert from 'node:assert/strict';
+assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS, 'core-http');
+assert.equal(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_COUNT, '1');
+assert.deepEqual(JSON.parse(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_ARGS),
+  ['--deny-warn', 'src/platform_native/http_client']);
+assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_URL, undefined);
+assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1');
+console.log('ORIGINAL_HTTP_PROFILE_REQUIRED');
+process.exitCode = process.env.ACTQL_FIXTURE_HTTP_FAILED === '1' ? 9 : 0;
+`);
+  }
+  if(sourcePeers) {
+    const directory=join(checkout,'src/platform_native/remote_resident_source_compute_tests');
+    mkdirSync(directory,{recursive:true});
+    for(const file of ['retained_compute_wbtest.mbt','ordinary_wbtest.mbt'])
+      writeFileSync(join(directory,file),'Original compiler-input fixture\n');
+    // Explicit routing port; real Source/HTTP fixture execution is separate.
+    writeFileSync(join(checkout,'scripts/test-native-http-client.mjs'), `
+import assert from 'node:assert/strict';
+import {appendFileSync} from 'node:fs';
+assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS,'core-source');
+assert.equal(process.env.ACTQL_TEST_NATIVE_CORE_SOURCE_COUNT,'2');
+const args=JSON.parse(process.env.ACTQL_TEST_NATIVE_CORE_SOURCE_ARGS);
+assert.deepEqual(args,['--deny-warn','--release','--strip','-j','2','--no-parallelize',
+  'src/platform_native/remote_resident_source_compute_tests']);
+assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_URL,undefined);
+assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_BEARER_URL,undefined);
+assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH,'1');
+appendFileSync(process.env.ACTQL_FIXTURE_NATIVE_COMMANDS,JSON.stringify({
+  args:['test','--target','native',...args],path:process.env.PATH,profile:'source-peers'})+'\\n');
+console.log('ORIGINAL_SOURCE_PROFILE_REQUIRED');
+process.exitCode=process.env.ACTQL_FIXTURE_SOURCE_FAILED==='1'?9:0;
+`);
   }
   if (scoped) {
     mkdirSync(join(checkout, 'src/cmd/native_client'), {recursive: true});
@@ -712,7 +775,7 @@ function fixture(t, {scoped = false} = {}) {
     writeFileSync(join(checkout, 'scripts/native-core-scoped-profile.mjs'), `
 import assert from 'node:assert/strict';
 import {mkdirSync} from 'node:fs';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 export function prepareNativeCoreScopedProfile(root, scratch, args, {env, profile}) {
   assert.deepEqual(args.slice(0, 2), ['--target', 'native']);
   assert.equal(env.PATH.includes('/test-c-compiler:'), false);
@@ -723,23 +786,11 @@ export function prepareNativeCoreScopedProfile(root, scratch, args, {env, profil
   return {targetDirectory, environment: {...env, ACTQL_FIXTURE_PROFILE: profile}};
 }
 `);
-    writeFileSync(join(checkout, 'scripts/native-core-scoped-fixture.mjs'), `
-import {mkdirSync} from 'node:fs';
-import {join} from 'node:path';
-export function nativeRelationFileCaptureFixture(namespace) {
-  const root = join(namespace, 'installed-process'); mkdirSync(root, {mode: 0o700});
-  return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root};
-}
-export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary}) {
-  const root = join(namespace, 'installed-process'); mkdirSync(root, {mode: 0o700});
-  return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root,
-    ACTQL_TEST_CRYPTO_COMPONENT: cryptoLibrary, ACTQL_TEST_SQLITE_COMPONENT: sqliteLibrary};
-}
-`);
+
     writeFileSync(join(checkout, 'scripts/native-runtime-bundle-fixture.mjs'), `
 import assert from 'node:assert/strict';
 import {mkdirSync} from 'node:fs';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 export function prepareNativeRuntimeBundleLibraries(root, destination, options) {
   assert(destination.startsWith(join(root, '_build/native-core-scoped/')));
   assert.equal(options.seconds, 900);
@@ -765,6 +816,15 @@ if (process.argv[2] === 'generate-test-driver') {
 }
 assert.deepEqual(process.argv.slice(2, 5), ['test', '--target', 'native']);
 if (process.argv.includes('--dry-run')) {
+  if(process.env.ACTQL_FIXTURE_CORE_SOURCE==='1') {
+    const source='src/platform_native/remote_resident_source_compute_tests';
+    for(const [directory,files] of [['src/fixture-native',['main.mbt']],
+      [source,['ordinary_wbtest.mbt','retained_compute_wbtest.mbt']]])
+      console.log('moon generate-test-driver --output-driver _build/'+directory+'/driver.mbt '+
+        '--output-metadata _build/'+directory+'/info.json '+files.map(file=>directory+'/'+file).join(' ')+
+        ' --target native --pkg-name fixture/'+directory+' --driver-kind whitebox');
+    process.exit(0);
+  }
   if (process.env.ACTQL_FIXTURE_CORE_SCOPED === '1') {
     console.log('moon generate-test-driver ' +
       '--output-driver _build/native/release/test/cmd/native_client/driver.mbt ' +
@@ -784,8 +844,10 @@ if (process.argv.includes('--dry-run')) {
       '--target native --pkg-name fixture/row_source --driver-kind whitebox');
     process.exit(0);
   }
-  for (const name of process.argv.includes('src/fixture-native') ? ['fixture-native']
-    : ['fixture-native','fixture-empty']) console.log('moon generate-test-driver ' +
+  for (const name of process.argv.includes('src/fixture-native') ? ['fixture-native',
+    ...(process.argv.includes('src/platform_native/http_client') ? ['platform_native/http_client'] : [])]
+    : ['fixture-native','fixture-empty',
+      ...(process.env.ACTQL_FIXTURE_CORE_HTTP === '1' ? ['platform_native/http_client'] : [])]) console.log('moon generate-test-driver ' +
       '--output-driver _build/native/release/test/'+name+'/driver.mbt '+
       '--output-metadata _build/native/release/test/'+name+'/info.json '+
       'src/'+name+'/main.mbt --target native --pkg-name fixture/'+name+' --driver-kind internal');
@@ -796,7 +858,8 @@ if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
     JSON.stringify({args:process.argv.slice(2),path:process.env.PATH,
       allocator:process.env.MOONBIT_ALLOCATOR,compiler:process.env.MOON_CC,
       backend:process.env.MOONBIT_NEW_NATIVE,profile:process.env.ACTQL_FIXTURE_PROFILE ?? 'ordinary',
-      installedProcess:process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT}) + '\\n');
+      installedProcess:process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT,
+      sqliteComponent:process.env.ACTQL_TEST_SQLITE_COMPONENT,cryptoComponent:process.env.ACTQL_TEST_CRYPTO_COMPONENT}) + '\\n');
 }
 if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE_PROFILE)) {
   assert(process.argv.includes('--target-dir'));
@@ -853,6 +916,36 @@ if (process.env.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT) {
   assert.equal(existsSync(join(project, 'never-created')), false);
   console.log('PROJECT_CONFIGURATION_FIXTURE_PROVISIONED');
 }
+if (process.env.ACTQL_TEST_NATIVE_BOUNDED_FILES_ROOT) {
+  assert.equal(process.env.ACTQL_TEST_NATIVE_BOUNDED_FILES_ROOT, join(root, 'bounded-files'));
+  assert.equal(statSync(process.env.ACTQL_TEST_NATIVE_BOUNDED_FILES_ROOT).mode & 0o777, 0o700);
+  console.log('BOUNDED_FILES_INPUT_PROVISIONED');
+}
+if (process.env.ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY) {
+  assert.equal(existsSync(process.env.ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY), true);
+  assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_LIBRARY, undefined);
+  assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_URL, undefined);
+  console.log('HTTP_LIFETIME_INPUT_PROVISIONED');
+}
+if (process.env.ACTQL_TEST_NATIVE_OUTPUT_VERIFY_ROOT) {
+  const output = process.env.ACTQL_TEST_NATIVE_OUTPUT_VERIFY_ROOT;
+  const runtime = process.env.ACTQL_TEST_NATIVE_RUNTIME_NAMESPACE_ROOT;
+  assert.equal(output, join(root, 'output-verification'));
+  assert.equal(runtime, join(root, 'runtime-namespace'));
+  assert.equal(statSync(output).mode & 0o777, 0o700);
+  assert.equal(require('node:fs').readFileSync(join(output, 'data.bin'), 'utf8'), 'data');
+  const receipt = JSON.parse(require('node:fs').readFileSync(join(output, 'single.json'), 'utf8'));
+  assert.equal(receipt.result_delivery_receipt_cid,
+    'sha256:653b739f7a85f39a048ed77fe1d38f8fc5e1edcf1ab50a867a83216e76a1d146');
+  const manifest = require('node:fs').readFileSync(join(runtime, 'unchanged/local-runtime.json'));
+  assert.equal(createHash('sha256').update(manifest).digest('hex'),
+    process.env.ACTQL_TEST_NATIVE_RUNTIME_NAMESPACE_MANIFEST_SHA256);
+  assert.equal(JSON.parse(manifest).sourceSha, 'a'.repeat(40));
+  assert.equal(require('node:fs').readFileSync(join(runtime, 'unchanged/lib/sqlite.bin'), 'utf8'), 'abc');
+  assert.equal(readlinkSync(join(runtime, 'alias')), 'unchanged');
+  assert.equal(existsSync(join(runtime, 'never-acquired')), false);
+  console.log('CLI_FILE_INPUTS_PROVISIONED');
+}
 if (process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT) {
   assert.equal(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT, root);
   for (const name of ['runtime-constructor-pending', 'runtime-constructor-acked']) {
@@ -865,7 +958,7 @@ if (process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT) {
     ? process.env.DYLD_INSERT_LIBRARIES : process.env.LD_PRELOAD;
   assert.equal(existsSync(injected), true);
 }
-if (process.argv.some(arg => arg.includes('platform_native/filesystem'))) {
+if (process.argv.some(arg => arg.includes('platform_native/filesystem') || arg.includes('platform_native/client_host'))) {
   assert.equal(process.env.ACTQL_TEST_NATIVE_PRIVATE_ROOT, join(root, 'private-host-root'));
   assert.equal(process.env.ACTQL_TEST_NATIVE_BROAD_ROOT, join(root, 'broad-host-root'));
   assert.equal(statSync(process.env.ACTQL_TEST_NATIVE_PRIVATE_ROOT).mode & 0o777, 0o700);
@@ -879,6 +972,15 @@ if (process.argv.some(arg => arg.includes('platform_native/filesystem'))) {
 }
 assert.ok(process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY);
 assert.ok(process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY);
+if (process.env.ACTQL_TEST_ORIGINAL_SIGNING_ROOT) {
+  const signingRoot = process.env.ACTQL_TEST_ORIGINAL_SIGNING_ROOT;
+  assert.equal(signingRoot, join(root, 'original-signing'));
+  assert.equal(statSync(signingRoot).mode & 0o777, 0o700);
+  assert.equal(statSync(join(signingRoot, 'key.pem')).mode & 0o777, 0o600);
+  assert.match(require('node:fs').readFileSync(join(signingRoot, 'key.pem'), 'utf8'),
+    /^-----BEGIN PRIVATE KEY-----/u);
+  console.log('ORIGINAL_SIGNING_FIXTURE_PROVISIONED');
+}
 assert.equal(process.env.ACTQL_TEST_DUCKDB_LIBRARY, join(process.cwd(),
   'adapters', 'connectors', 'duckdb', 'node', 'node_modules', '@duckdb',
   'node-bindings-' + process.platform + '-' + process.arch,
@@ -889,6 +991,12 @@ assert.equal(existsSync(process.env.ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY), f
 assert.equal(process.env.ACTQL_TEST_NATIVE_STORE_ROOT, undefined,
   'Core must not activate unrelated shared Store fixtures');
 assert.equal(process.env.ACTQL_REQUIRE_NATIVE_RETAINED_TEST, '1');
+if (process.env.ACTQL_TEST_NATIVE_PROCESS_REGION_ROOT) {
+  assert.equal(process.env.ACTQL_TEST_NATIVE_PROCESS_REGION_ROOT, join(root, 'process-region'));
+  assert.equal(process.env.ACTQL_TEST_NATIVE_HANDLER_PROCESS_CHILD, join(root, 'process-region/handler-process-child'));
+  assert.equal(process.env.ACTQL_TEST_NATIVE_HANDLER_LIBRARY, join(root, 'process-region/handler-thread.dylib'));
+  console.log('PROCESS_REGION_INPUTS_PROVISIONED');
+}
 for (const [variable, child] of [
   ['ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT', 'standard'],
   ['ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT', 'bundles'],
@@ -904,6 +1012,7 @@ for (const [variable, child] of [
 const body = process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY;
 const cid = 'sha256:' + createHash('sha256').update(body).digest('hex');
 assert.equal(process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID, cid);
+assert.equal(process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET,JSON.parse(body).target_triple);
 assert.deepEqual(JSON.parse(body), {
   bundle_name: 'native-runtime',
   components: [{bytes: '14',
@@ -943,6 +1052,8 @@ process.exit(result.status ?? 1);
 `);
   const env = {...process.env, PATH: `${bin}:${process.env.PATH}`,
     ...(scoped ? {ACTQL_FIXTURE_CORE_SCOPED: '1'} : {}),
+    ...(http ? {ACTQL_FIXTURE_CORE_HTTP: '1'} : {}),
+    ...(sourcePeers ? {ACTQL_FIXTURE_CORE_SOURCE:'1'} : {}),
     HOME: root, RUNNER_TEMP: join(root, 'runner'), ACTQL_TEST_NATIVE_SQLITE_ROOT: parent,
     ACTQL_TEST_PRESERVE_SCRATCH: '',
     ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: parent,
@@ -983,6 +1094,7 @@ test('two local native verification invocations own fresh roots', t => {
     assert.match(result.stdout, /Native core SQLite: removed/u);
     assert.match(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
     assert.match(result.stdout, /CLI_PARENT_FIXTURE_PROVISIONED/u);
+    assert.match(result.stdout, /ORIGINAL_SIGNING_FIXTURE_PROVISIONED/u);
   }
   assert.equal(new Set(paths).size, 4);
   assert.deepEqual(readdirSync(f.parent).sort(), f.originals.sort());
@@ -994,22 +1106,75 @@ test('selected Native tests do not activate the unrelated target fixture', t => 
   const result = run(f);
   assert.equal(result.status, 0, result.stderr);
   assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+  assert.doesNotMatch(result.stdout, /PRIVATE_HOST_FIXTURE_PROVISIONED/u);
+  assert.doesNotMatch(result.stdout, /ORIGINAL_SIGNING_FIXTURE_PROVISIONED/u);
   assert.match(result.stdout, /child stopped/u);
   f.verifyExternal();
 });
 
-test('selected Native filesystem provisions owned private-root counterexamples', t => {
+test('selected Native signing receives its fresh original key without adopting caller files', t => {
   const f = fixture(t);
   const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
-    '--deny-warn', 'src/platform_native/filesystem/private_root_wbtest.mbt'],
-  {cwd: f.checkout, encoding: 'utf8', env: {...f.env,
-    ACTQL_TEST_NATIVE_PRIVATE_ROOT: f.parent}});
-  const path = /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1];
+    '--deny-warn', 'src/platform_native/signature'], {
+    cwd: f.checkout, encoding: 'utf8',
+    env: {...f.env, ACTQL_TEST_ORIGINAL_SIGNING_ROOT: f.parent},
+  });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /PRIVATE_HOST_FIXTURE_PROVISIONED/u);
+  assert.match(result.stdout, /ORIGINAL_SIGNING_FIXTURE_PROVISIONED/u);
   assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
-  assert.ok(path && !existsSync(path));
   f.verifyExternal();
+});
+
+test('focused ordinary Arena inputs do not select components or reach unrelated Native callers', t => {
+  const f=fixture(t),commands=join(f.root,'native-commands.jsonl');
+  for(const file of ['src/platform_native/installed_arena_control/process_transport_wbtest.mbt',
+    'src/platform_native/trusted_clock/clock_wbtest.mbt']) {
+    const result=spawnSync(process.execPath,['scripts/test-native-core.mjs','--deny-warn',file],
+      {cwd:f.checkout,encoding:'utf8',timeout:10000,
+        env:{...f.env,ACTQL_FIXTURE_NATIVE_COMMANDS:commands}});
+    assert.equal(result.status,0,result.stdout+result.stderr);
+  }
+  const [arena,unrelated]=readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse);
+  assert(arena.installedProcess.endsWith('/installed-process'));
+  assert.equal(unrelated.installedProcess,undefined);
+  for(const call of [arena,unrelated]) {
+    assert.equal(call.profile,'ordinary');
+    assert.equal(call.sqliteComponent,undefined);assert.equal(call.cryptoComponent,undefined);
+    assert.equal(call.allocator,f.env.MOONBIT_ALLOCATOR);
+  }
+  f.verifyExternal();
+});
+
+test('selected Native bounded files and loader cleanup receive only their owned inputs', t => {
+  for (const [source, expected] of [
+    ['src/platform_native/bounded_files/owned_close_custody_wbtest.mbt', 'BOUNDED_FILES_INPUT_PROVISIONED'],
+    ['src/cmd/native_remote_resident_site/control_terminal_cleanup_native_wbtest.mbt', 'HTTP_LIFETIME_INPUT_PROVISIONED'],
+  ]) {
+    const f = fixture(t);
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs', '--deny-warn', source],
+      {cwd: f.checkout, encoding: 'utf8', timeout: 10_000, env: f.env});
+    assert.equal(result.status, 0, result.stderr);
+    assert(result.stdout.includes(expected));
+    assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+    f.verifyExternal();
+  }
+});
+
+test('selected Native filesystem and client Host provision owned private-root counterexamples', t => {
+  for (const source of ['src/platform_native/filesystem/private_root_wbtest.mbt',
+    'src/platform_native/client_host/local_adoption_open_custody_wbtest.mbt']) {
+    const f = fixture(t);
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
+      '--deny-warn', source],
+    {cwd: f.checkout, encoding: 'utf8', env: {...f.env,
+      ACTQL_TEST_NATIVE_PRIVATE_ROOT: f.parent}});
+    const path = /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1];
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /PRIVATE_HOST_FIXTURE_PROVISIONED/u);
+    assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+    assert.ok(path && !existsSync(path));
+    f.verifyExternal();
+  }
 });
 
 test('Core retained-file fixture never adopts a caller-owned root', t => {
@@ -1284,6 +1449,89 @@ test('strict Native checkpoint producers share the full release child compilatio
   f.verifyExternal();
 });
 
+test('full Native Core requires every HTTP case in its own peer profile and propagates transport failure', t => {
+  for (const fail of [false, true]) {
+    const f = fixture(t, {http: true});
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs', '--deny-warn'], {
+      cwd: f.checkout, encoding: 'utf8', timeout: 10000,
+      env: {...f.env, ACTQL_FIXTURE_HTTP_FAILED: fail ? '1' : '0'},
+    });
+    assert.ifError(result.error);
+    assert.equal(result.signal, null);
+    assert.equal(result.status, fail ? 9 : 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /"ordinary":1,"http":1,"source":0,"scoped":0/u);
+    assert.match(result.stdout, /Native Core HTTP profile: 1 required cases/u);
+    assert.match(result.stdout, /ORIGINAL_HTTP_PROFILE_REQUIRED/u);
+    if (fail) assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+    else assert.match(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+    f.verifyExternal();
+  }
+});
+
+test('full Native Core routes the complete Source package to its existing peer owner and preserves failure',t=>{
+  for(const fail of [false,true]) {
+    const f=fixture(t,{sourcePeers:true}),commands=join(f.root,'native-commands.jsonl');
+    const flags=['--deny-warn','--release','--strip','-j','2','--no-parallelize'];
+    const result=spawnSync(process.execPath,['scripts/test-native-core.mjs',...flags],
+      {cwd:f.checkout,encoding:'utf8',timeout:10000,
+        env:{...f.env,ACTQL_FIXTURE_NATIVE_COMMANDS:commands,ACTQL_FIXTURE_SOURCE_FAILED:fail?'1':'0'}});
+    assert.equal(result.status,fail?9:0,result.stdout+result.stderr);
+    const calls=readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse);
+    assert.equal(calls.length,4,'two original checkpoint producers plus ordinary and Source children');
+    const [ordinary,source]=calls.slice(2);
+    assert.deepEqual(ordinary.args.filter(arg=>arg.startsWith('src/')),['src/fixture-native']);
+    assert.deepEqual(source.args,['test','--target','native',...flags,
+      'src/platform_native/remote_resident_source_compute_tests']);
+    assert.equal(source.profile,'source-peers');
+    assert.equal(source.path,ordinary.path,'same selected compiler profile');
+    assert.match(result.stdout,/"ordinary":1,"http":0,"source":2,"scoped":0/u);
+    assert.equal((result.stdout.match(/CORE_TARGET_FIXTURE_PROVISIONED/gu)??[]).length,1);
+    assert.equal((result.stdout.match(/ORIGINAL_SOURCE_PROFILE_REQUIRED/gu)??[]).length,1);
+    f.verifyExternal();
+  }
+});
+
+test('Core Source peer entrance retains complete package, Native target and nonzero count',()=>{
+  const source=readFileSync(new URL('test-native-http-client.mjs',import.meta.url),'utf8');
+  const start=source.indexOf("  if (focus === 'core-source') {"),end=source.indexOf('    const child = spawn(',start);
+  assert(start>=0 && end>start);
+  const body=source.slice(source.indexOf('    const args = ',start),end);
+  const core=['--deny-warn','--release','--strip','-j','2','--no-parallelize',
+    'src/platform_native/remote_resident_source_compute_tests'];
+  const check=(args,count)=>runInNewContext(body,{assert,process:{env:{
+    ACTQL_TEST_NATIVE_CORE_SOURCE_ARGS:JSON.stringify(args),ACTQL_TEST_NATIVE_CORE_SOURCE_COUNT:String(count)}}});
+  check(core,78);
+  for(const args of [[...core,'src/foreign'],[...core,'--index','0'],[...core,'--filter=one'],
+    [...core,'--target','js'],[...core.slice(0,-1),core.at(-1)+'/retained_compute_wbtest.mbt']])
+    assert.throws(()=>check(args,78));
+  for(const count of [0,-1,1.5,'unknown'])assert.throws(()=>check(core,count));
+  const completed=source.indexOf('    assert.equal(code, 0, `Native Core Source fixture failed:',end);
+  const closed=source.indexOf('    break verification;',completed);
+  assert(completed>=0 && closed>completed);
+  const peer=(targets,created,code=0)=>runInNewContext(source.slice(completed,closed),{
+    assert:{equal:assert.equal,deepEqual:(actual,expected)=>
+      assert.deepEqual(actual,JSON.parse(JSON.stringify(expected)))},code,signal:null,
+    bearerServers:{effectTargets:()=>targets,effectCreatedValues:()=>created}});
+  const created=[{Id:'001000000000001AAA',Count__c:3}];
+  peer({reads:3,writes:1},created);
+  for(const targets of [{reads:2,writes:1},{reads:3,writes:0},{reads:3,writes:2}])
+    assert.throws(()=>peer(targets,created));
+  for(const rows of [[],[{Id:'001000000000001AAA',Count__c:4}],[...created,...created]])
+    assert.throws(()=>peer({reads:3,writes:1},rows));
+  assert.throws(()=>peer({reads:3,writes:1},created,1));
+
+});
+
+test('focused retained proposal modes preserve independently authored reads and no writes',()=>{
+  const source=readFileSync(new URL('test-native-salesforce-effect-preview.mjs',import.meta.url),'utf8');
+  const observation=/^    assert.deepEqual\(bearer.effectTargets\(\),.*$/mu.exec(source)?.[0];assert(observation);
+  for(const [complete,runtime,reads] of [[true,false,2],[false,false,1],[false,true,0]])
+    runInNewContext(observation,{assert:{deepEqual:(actual,expected)=>
+      assert.deepEqual(actual,JSON.parse(JSON.stringify(expected)))},bearer:{effectTargets:()=>({reads,writes:0})},
+      completeRetainedProposals:complete,residentMappedCreate:false,residentEffectRuntimeCapture:runtime,
+      residentApprovedRow:false});
+});
+
 test('full Native Core requires both ordinary and selected profiles and propagates selected failure', t => {
   for (const fail of [false, true]) {
     const f = fixture(t, {scoped: true}), commands = join(f.root, 'native-commands.jsonl');
@@ -1302,6 +1550,11 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     const [ordinary, ...selectedCases] = calls.slice(2);
     const selected = selectedCases[0];
     assert.equal(ordinary.profile, 'ordinary');
+    assert.equal(ordinary.installedProcess.endsWith('/installed-process'), true);
+    assert.equal(ordinary.sqliteComponent, undefined);
+    assert.equal(ordinary.cryptoComponent, undefined);
+    for (const producer of calls.slice(0, 2)) assert.equal(producer.installedProcess, undefined);
+    for (const selected of selectedCases) assert.notEqual(selected.installedProcess, ordinary.installedProcess);
     assert.equal(selected.profile, 'runtime-values');
     assert.deepEqual(ordinary.args.filter(value => value.startsWith('src/')), [
       'src/cmd/native_client/ordinary_wbtest.mbt',
@@ -1330,7 +1583,7 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     assert.deepEqual(selected.args.slice(0, 3), ['test', '--target', 'native']);
     const target = selected.args[selected.args.indexOf('--target-dir') + 1];
     assert(target.startsWith(join(f.checkout, '_build/native-core-scoped/profile-')));
-    assert.match(result.stdout, /"ordinary":2,"scoped":4,"physical":3,"repeatedGeometry":1/u);
+    assert.match(result.stdout, /"ordinary":2,"http":0,"source":0,"scoped":4,"physical":3,"repeatedGeometry":1/u);
     assert.equal((result.stdout.match(/CORE_TARGET_FIXTURE_PROVISIONED/gu) ?? []).length, 1,
       'only ordinary Core executes the Salesforce target oracle');
     const namespace = /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1];

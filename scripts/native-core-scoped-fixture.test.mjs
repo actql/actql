@@ -5,7 +5,7 @@ import {closeSync, fstatSync, mkdirSync, mkdtempSync, openSync, readSync,
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {nativeCoreScopedFixture, nativeRelationFileCaptureFixture} from './native-core-scoped-fixture.mjs';
+import {nativeCoreOrdinaryProcessFixture, nativeCoreScopedFixture, nativeRelationFileCaptureFixture} from './native-core-scoped-fixture.mjs';
 
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-scoped-case-fixture-')));
@@ -99,4 +99,34 @@ test('relation capture has independent exact real-file inputs and never resets a
   assert.throws(()=>nativeRelationFileCaptureFixture(namespace),{code:'EEXIST'});
   assert.equal(statSync(backing).ino,before.ino);
   assert.equal(readFileSync(backing,'utf8'),'initialized owner');
+});
+
+test('ordinary installed process inputs retain exact authored backings without selecting a provider or slot', t => {
+  const root=fixture(t), env=nativeCoreOrdinaryProcessFixture(root);
+  assert.deepEqual(env,{ACTQL_TEST_INSTALLED_PROCESS_ROOT:join(root,'installed-process')});
+  const path=env.ACTQL_TEST_INSTALLED_PROCESS_ROOT;
+  const names=['initial-domain','installed-process-prepared','installed-process-closing',
+    'installed-process-foreign','installed-process-small-envelope','installed-process-capture-refusal',
+    'installed-process-known-spawn-refusal','installed-process-captured-descriptor',
+    'installed-process-stopped-child','installed-child-byte-transport','installed-child-stop-request','installed-child-stop-preflight','installed-child-fd4','installed-child-known-failure','installed-child-preflight'];
+  assert.equal(statSync(path).mode & 0o777,0o700);
+  assert.deepEqual(readdirSync(path).sort(),names.map(name=>name+'.backing').sort());
+  const page=Number(execFileSync('/usr/bin/getconf',['PAGESIZE'],{encoding:'utf8'}).trim());
+  for(const name of names) {
+    const fd=openSync(join(path,name+'.backing'),2);
+    try {
+      assert.equal(fstatSync(fd).mode & 0o777,0o600);
+      assert.equal(fstatSync(fd).size,64*page);
+      const header=Buffer.alloc(128,1);
+      assert.equal(readSync(fd,header,0,header.length,0),header.length);
+      assert.deepEqual(header,Buffer.alloc(128));
+    } finally {closeSync(fd);}
+    assert.equal(readdirSync(path).includes(name+'.slot'),false);
+  }
+  const file=join(path,names[0]+'.backing');
+  writeFileSync(file,'same initialized original');
+  const before=statSync(file);
+  assert.throws(()=>nativeCoreOrdinaryProcessFixture(root),{code:'EEXIST'});
+  assert.equal(statSync(file).ino,before.ino);
+  assert.equal(statSync(file).size,before.size);
 });

@@ -23,10 +23,12 @@ test "original Run reference preserves the admitted scope and independent identi
   )
   let reference = local_original_run_reference(definition, cid("5"))
   assert_eq(
-    encode_request_json(reference, 4096),
-    "{\"authorityScopeCid\":\"sha256:" +
-    "5".repeat(64) +
-    "\",\"namespaceId\":\"scope\",\"runDefinitionCid\":\"sha256:4a288ff6406340fbcf51438ee9f493b1cb32c8d804be16cab0774cdbdfe3484f\"}",
+    @json.parse(encode_request_json(reference, 4096)),
+    @json.parse(
+      "{\"authorityScopeCid\":\"sha256:" +
+      "5".repeat(64) +
+      "\",\"namespaceId\":\"scope\",\"runDefinitionCid\":\"sha256:4a288ff6406340fbcf51438ee9f493b1cb32c8d804be16cab0774cdbdfe3484f\"}",
+    ),
   )
   let invalid_scope = try {
     ignore(local_original_run_reference(definition, "not-a-scope-cid"))

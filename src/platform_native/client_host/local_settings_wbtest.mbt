@@ -105,14 +105,17 @@ test "Native Local reconnect cannot create state or finish partial adoption" {
 }
 
 ///|
-fn local_settings_fixture(name : String) -> NativeLocalAdoptionSession {
+fn local_settings_fixture(
+  name : String,
+  state_parent? : String? = None,
+) -> NativeLocalAdoptionSession {
   let (path, account_name, parent, _) = local_selected_source(name)
   let writer = parent.create_writer(name + ".settings.stage", 65536L).unwrap()
   writer.append(local_settings_original).unwrap()
   writer.seal(name + ".settings.json").unwrap() |> ignore
   parent.create_directory(name + ".managed").unwrap() |> ignore
   begin_native_local_host_adoption(
-    path,
+    state_parent.unwrap_or(path),
     name + ".host",
     path,
     account_name,
@@ -289,10 +292,10 @@ test "Native Local selected managed-root custody cannot be replaced or detached"
 }
 
 ///|
-test "Material installation selects the ninth actual original and refuses a tenth" {
-  let (_, account, parent, _) = local_selected_source("local-settings-ninth")
+test "Material installation selects the tenth actual original and refuses an eleventh" {
+  let (_, account, parent, _) = local_selected_source("local-settings-tenth")
   let names : Array[String] = []
-  for index in 0..<9 {
+  for index in 0..<10 {
     let name = "selected-" + index.to_string() + ".json"
     let writer = parent.create_writer("selected.stage", 65536L).unwrap()
     writer.append(b"{}").unwrap()
@@ -306,13 +309,13 @@ test "Material installation selects the ninth actual original and refuses a tent
     None,
     epoch_test_crypto(),
   ).unwrap()
-  assert_eq(selected.files.length(), 9)
+  assert_eq(selected.files.length(), 10)
   selected.check_source(parent).unwrap()
   for file in selected.files {
     assert_eq(file.body, b"{}")
     assert_true(names.contains(file.name))
   }
-  // The tenth name has no file: count refusal must precede physical intake.
+  // The eleventh name has no file: count refusal must precede physical intake.
   names.push("not-created.json")
   assert_true(
     select_native_local_configuration(

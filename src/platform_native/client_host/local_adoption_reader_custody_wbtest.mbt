@@ -99,7 +99,17 @@ test "current refusal retains the same acquisition carrier until session cleanup
 
 ///|
 test "unknown Reader retirement keeps the original session lock and never retries the descriptor" {
-  let session = local_settings_fixture("adoption-reader-unknown")
+  // This original deliberately stays pending through process exit. Its lock
+  // belongs to this Session, not the namespace used by later independent tests.
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let parent = @filesystem.open_private_root(path).unwrap()
+  let state_name = "adoption-reader-unknown-parent"
+  parent.create_directory(state_name).unwrap() |> ignore
+  parent.close().unwrap()
+  let session = local_settings_fixture(
+    "adoption-reader-unknown",
+    state_parent=Some(path + "/" + state_name),
+  )
   let root = session.source_root
   let generation = root
     .inspect_generation(session.source_name)

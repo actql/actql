@@ -243,7 +243,7 @@ pipePivotSuccesses.push(
     [{aql_pivot_row_4: 9, A: 1}], [number('aql_pivot_row_4', false), number('A', false)]),
   success('count-star-private-shaped-bucket', "SELECT 'A' AS axis |> PIVOT(COUNT(*) FOR axis IN('A' AS aql_pivot_row_4))",
     [{aql_pivot_row_4: 1}], [number('aql_pivot_row_4', false)]),
-  success('count-star-prefix-range-axis', countStarInput + " |> AS r |> PIVOT(COUNT(*) AS total FOR r.axis IN('B' AS later,'A' AS first)) AS current "
+  success('count-star-prefix-range-axis', countStarInput + " |> AS r |> PIVOT(COUNT(*) AS total FOR r.axis IN('B' AS later,'A' AS first)) AS `current` "
     + '|> SELECT current.* |> ORDER BY n NULLS LAST', [{n: 1, total_later: 0, total_first: 1}, {n: null, total_later: 0, total_first: 2}],
     [number('n', true), number('total_later', false), number('total_first', false)]),
   success('count-star-data', 'WITH counts AS (' + countStarSource + ') FROM counts |> SELECT n, A |> ORDER BY n NULLS LAST',
@@ -263,7 +263,7 @@ const fromColumns = [string('product',4),number('second',false),number('first',f
 pipePivotSuccesses.push(
   success('from-matched-json-control',JSON.stringify(control),[{product:'kale',second:0,first:2}],
     [string('product'),number('second',false),number('first',false)],{format:'json'}),
-  success('from-cte-scope', 'WITH sales AS ('+fromRows+") SELECT product,second,first FROM sales PIVOT(COUNT(sales) FOR quarter IN('Q2' AS second,'Q1' AS first)) ORDER BY product",
+  success('from-cte-scope', 'WITH sales AS ('+fromRows+") SELECT product,second,first FROM sales PIVOT(COUNT(sales.sales) FOR quarter IN('Q2' AS second,'Q1' AS first)) ORDER BY product",
     [{product:'kale',second:0,first:2}],fromColumns),
   success('from-derived-without-input-alias', 'SELECT product,second,first FROM ('+fromRows+") PIVOT(COUNT(sales) FOR quarter IN('Q2' AS second,'Q1' AS first)) ORDER BY product",
     [{product:'kale',second:0,first:2}],fromColumns),
@@ -273,7 +273,7 @@ pipePivotSuccesses.push(
     [{product:'kale',second:0,first:2}],fromColumns),
   success('from-pipe-head', 'FROM ('+fromRows+") original PIVOT(COUNT(sales) FOR quarter IN('Q2' AS second,'Q1' AS first)) shaped |> SELECT shaped.product,shaped.second,shaped.first |> ORDER BY product",
     [{product:'kale',second:0,first:2}],fromColumns),
-  success('from-filter-on-output', 'WITH sales AS ('+fromRows+") SELECT product,first FROM sales PIVOT(COUNT(sales) FOR quarter IN('Q1' AS first)) WHERE first=99",
+  success('from-filter-on-output', 'WITH sales AS ('+fromRows+") SELECT product,first FROM sales PIVOT(COUNT(sales.sales) FOR quarter IN('Q1' AS first)) WHERE first=99",
     [],[string('product',4),number('first',false)]),
   success('from-empty-global', "SELECT * FROM (SELECT 1 AS sales,'A' AS axis WHERE FALSE) PIVOT(COUNT(sales) FOR axis IN('A'))",
     [{A:0}],[number('A',false)]),
@@ -289,7 +289,7 @@ pipePivotSuccesses.push(
     [{product:1,marker:100,A:5}],joinedFromColumns),
   success('from-left-join-padding',joinedFromHead+"SELECT p.product,p.marker,s.A FROM products p LEFT JOIN sales PIVOT(SUM(amount) FOR axis IN('A')) s ON p.product=s.product MAX_OUTPUT_ROWS 10 ORDER BY p.product",
     [{product:1,marker:100,A:5},{product:2,marker:200,A:null}],joinedFromColumns),
-  success('from-shared-source', "WITH sales AS (SELECT 'kale' AS product,amount AS sales,CASE WHEN id<3 THEN 'Q1' ELSE 'Q2' END AS quarter FROM records WHERE id>0) SELECT product,first,second FROM sales PIVOT(COUNT(sales) FOR quarter IN('Q1' AS first,'Q2' AS second)) WHERE first>0 ORDER BY product",
+  success('from-shared-source', "WITH sales AS (SELECT 'kale' AS product,amount AS sales,CASE WHEN id<3 THEN 'Q1' ELSE 'Q2' END AS quarter FROM records WHERE id>0) SELECT product,first,second FROM sales PIVOT(COUNT(sales.sales) FOR quarter IN('Q1' AS first,'Q2' AS second)) WHERE first>0 ORDER BY product",
     [{product:'kale',first:3,second:1}], [string('product',4),number('first',false),number('second',false)],{sourceReadCount:2,sourceReadSessionCount:1,
       sourceRows:[{id:2,amount:10},{id:1,amount:20},{id:3,amount:null},
         {id:4,amount:40},{id:2,amount:10},{id:0,amount:99}]}),

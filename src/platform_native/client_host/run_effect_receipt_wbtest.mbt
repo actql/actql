@@ -469,10 +469,23 @@ test "Native original terminal refuses lost or tampered receipt custody without 
     )
     .unwrap()
     |> ignore
-    assert_true(open_native_client_run_journal(orphan, 8) is Err(CustodyLost))
-    assert_true(
-      initialize_native_client_run_journal(orphan) is Err(CustodyLost),
+    let orphan_journal = open_native_client_run_journal(orphan, 8).unwrap()
+    assert_true(run_journal_custody(orphan, 8) is Err(CustodyLost))
+    let saved_orphan = orphan.read("client_effect_row_receipt", cid).unwrap()
+    assert_eq(
+      saved_orphan.body,
+      @utf8.encode(@publication.publication_contract_json(receipt)),
     )
+    assert_eq(saved_orphan.revision, 0L)
+    assert_true(
+      orphan_journal.transaction(() => {
+        initialize_native_client_run_journal_rows(orphan)
+      })
+      is Err(CustodyLost),
+    )
+    let after_orphan = orphan.read("client_effect_row_receipt", cid).unwrap()
+    assert_eq(after_orphan.body, saved_orphan.body)
+    assert_eq(after_orphan.revision, saved_orphan.revision)
     orphan.close_checked().unwrap()
     if loss {
       let ns = @utf8.encode("client_effect_row_receipt")
@@ -496,9 +509,19 @@ test "Native original terminal refuses lost or tampered receipt custody without 
       receipt_test_settle(journal, dispatch, preview, locator, key, basis)
       is Err(CustodyLost),
     )
+    let corrupt_receipt = database.read("client_effect_row_receipt", cid)
     database.close_checked().unwrap()
     let reopened = epoch_test_database(name)
-    assert_true(open_native_client_run_journal(reopened, 8) is Err(CustodyLost))
+    assert_true(open_native_client_run_journal(reopened, 8) is Ok(_))
+    assert_true(run_journal_custody(reopened, 8) is Err(CustodyLost))
+    match (corrupt_receipt, reopened.read("client_effect_row_receipt", cid)) {
+      (Ok(before), Ok(after)) => {
+        assert_eq(after.body, before.body)
+        assert_eq(after.revision, before.revision)
+      }
+      (Err(@sqlite.NotFound), Err(@sqlite.NotFound)) => ()
+      _ => fail("integrity inspection changed the original receipt custody")
+    }
     reopened.close_checked().unwrap()
   }
 }

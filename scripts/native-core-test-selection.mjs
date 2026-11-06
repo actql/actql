@@ -24,6 +24,24 @@ export const nativeScopedTestFiles = Object.freeze([
   'src/platform_native/installed_arena_control/store_wal_original_physical_scoped_wbtest.mbt',
   'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt',
 ]);
+// These existing credential cases acquire the same real HTTP Client/peer
+// fixture; the rest of credential_resource retains the ordinary write oracle.
+export const nativeCoreHttpTestFiles = Object.freeze([
+  'src/platform_native/credential_resource/remote_use_retention_native_wbtest.mbt',
+  'src/platform_native/credential_resource/remote_initial_use_native_wbtest.mbt',
+]);
+
+export function nativeCoreHttpArguments(args) {
+  assert(Array.isArray(args) && args.every(value => typeof value === 'string'));
+  const selected = args.filter(value => value.startsWith('src/'));
+  assert(selected.length > 0 && new Set(selected).size === selected.length &&
+    selected.every(value => value === 'src/platform_native/http_client' || nativeCoreHttpTestFiles.includes(value)),
+  'Core HTTP selection must retain only its existing peer-owned cases');
+  assert(!args.includes('--target'), 'Core retains its original Native target');
+  return args;
+}
+
+const residentSourceDirectory = 'src/platform_native/remote_resident_source_compute_tests';
 const selectedGeometryFiles = new Set([
   'src/cmd/native_client/local_command_business_wbtest.mbt',
   'src/cmd/native_client/local_command_installed_profile_wbtest.mbt',
@@ -32,16 +50,26 @@ const selectedGeometryFiles = new Set([
 function partitionProfiles(args, records) {
   const scopedFiles = new Set(nativeScopedTestFiles);
   const physical = records.filter(record => scopedFiles.has(record.source));
-  const ordinary = records.filter(record => !scopedFiles.has(record.source));
-  const geometry = ordinary.filter(record => selectedGeometryFiles.has(record.source));
-  assert.equal(ordinary.length + physical.length, records.length);
-  const affected = new Set(physical.map(record => record.directory));
+  // These existing transport cases require the real mTLS/bearer peers from
+  // the HTTP harness. Do not inject its optional environment into other Core
+  // packages, or count a missing environment as transport execution.
+  const httpFiles = new Set(nativeCoreHttpTestFiles);
+  const http = records.filter(record => record.directory === 'src/platform_native/http_client' ||
+    httpFiles.has(record.source));
+  const source = records.filter(record => record.directory === residentSourceDirectory);
+  const ordinary = records.filter(record => !scopedFiles.has(record.source) &&
+    record.directory !== residentSourceDirectory && record.directory !== 'src/platform_native/http_client' &&
+    !httpFiles.has(record.source));
+  const runnable = records => records.filter(record => !record.benchmark).length;
+  const geometry = ordinary.filter(record => !record.benchmark && selectedGeometryFiles.has(record.source));
+  assert.equal(ordinary.length + physical.length + http.length + source.length, records.length);
+  const affected = new Set([...physical, ...source, ...http].map(record => record.directory));
   const ordinaryPaths = [...new Set(ordinary.map(record =>
     affected.has(record.directory) ? record.source : record.directory))];
   const selectedRecords = records.filter(record =>
     scopedFiles.has(record.source) || selectedGeometryFiles.has(record.source));
   const selectedPaths = [...new Set(selectedRecords.map(record => record.source))];
-  const tests = selectedRecords.map(record => {
+  const tests = selectedRecords.filter(record => !record.benchmark).map(record => {
     const index = record.entry[2].index;
     assert(Number.isSafeInteger(index) && index >= 0, 'Original compiler case index required');
     return {source: record.source, index};
@@ -51,12 +79,18 @@ function partitionProfiles(args, records) {
   // Empty PATH would run the whole project, never an empty profile.
   return {
     ordinary: {args: ordinaryPaths.length ? [...args, ...ordinaryPaths] : null,
-      cases: ordinary.length},
+      cases: runnable(ordinary)},
+    http: {args: http.length ? [...args, ...new Set(http.map(record =>
+      record.directory === 'src/platform_native/http_client' ? record.directory : record.source))] : null,
+      cases: runnable(http)},
+    source: {args: source.length ? [...args, residentSourceDirectory] : null, cases: runnable(source)},
     scoped: {args: selectedPaths.length ? [...args, ...selectedPaths] : null,
-      cases: physical.length + geometry.length, tests},
-    physicalCases: physical.length,
+      cases: runnable(physical) + geometry.length, tests},
+    physicalCases: runnable(physical),
     repeatedGeometryCases: geometry.length,
     uniqueCases: records.length,
+    ...(records.length !== runnable(records)
+      ? {benchmarkDeclarations: records.length - runnable(records)} : {}),
   };
 }
 
@@ -126,10 +160,20 @@ export function nativeCoreTestSelection(repository, args, {
         assert(directory !== '..' && !directory.startsWith('..' + sep));
         packages.add(directory || '.');
         const source = relative(repository, realpathSync(resolve(repository, originals[0]))).split(sep).join('/');
+        // The compiler lists benchmark declarations in tests as well, but
+        // moon test does not run them. Preserve every opaque identity and path;
+        // only required execution counts use the compiler's separate class.
+        const benchmarks = metadata.with_bench_args_tests?.[file] ?? [];
+        assert(Array.isArray(benchmarks));
+        const benchmarkIdentities = new Set(benchmarks.map(value => JSON.stringify(value)));
+        assert.equal(benchmarkIdentities.size, benchmarks.length);
+        assert(benchmarks.every(value => tests.some(test => JSON.stringify(test) === JSON.stringify(value))),
+          'Benchmark declaration must be the same original compiler test entry');
         for (const test of tests) {
           const entry = [key, file, test];
           driver.cases.push(entry);
-          records.push({entry, source, directory: directory || '.'});
+          records.push({entry, source, directory: directory || '.',
+            benchmark: benchmarkIdentities.has(JSON.stringify(test))});
         }
       }
       cases.push(...driver.cases);
@@ -146,6 +190,8 @@ export function nativeCoreTestSelection(repository, args, {
     assert.deepEqual(selectedCases, cases, 'Native selection changed case identity or order');
     const result = {args: [...args, ...paths], cases: cases.length, packages: paths.length,
       prunedDrivers: full.size - selected.size};
+    const benchmarks = records.filter(record => record.benchmark).length;
+    if (benchmarks) result.benchmarkDeclarations = benchmarks;
     if (splitProfiles) result.profiles = partitionProfiles(args, records);
     complete = true;
     return result;

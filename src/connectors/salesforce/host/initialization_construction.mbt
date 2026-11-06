@@ -12,8 +12,8 @@ fn sf_initialization_collection_units(
 }
 
 ///|
-// The preserving metadata parser and normalizing schema parser are distinct
-// original operations. This inventory neither parses nor admits their input.
+// The normalizing metadata and schema parsers are distinct original
+// operations. This inventory neither parses nor admits their input.
 fn sf_initialization_decoded_construction(
   bytes : Int,
   nodes : Int,
@@ -158,8 +158,29 @@ pub fn initialization_construction_capacity(
   max_observation_bytes : Int,
   limits : @catalog.DeclarationLimits,
 ) -> @execution.ExecutionCapacity? {
+  sf_initialization_construction_capacity(
+    body_lengths, body_lengths, encoded_units, observation_units, name_lengths, binding_units,
+    connector_units, revision_units, describe, max_observation_bytes, limits,
+  )
+}
+
+///|
+fn sf_initialization_construction_capacity(
+  body_lengths : Array[Int],
+  body_nodes : Array[Int],
+  encoded_units : Int,
+  observation_units : Int,
+  name_lengths : Array[Int],
+  binding_units : Int,
+  connector_units : Int,
+  revision_units : Int,
+  describe : @catalog.DescribeLimits,
+  max_observation_bytes : Int,
+  limits : @catalog.DeclarationLimits,
+) -> @execution.ExecutionCapacity? {
   if body_lengths.is_empty() ||
     body_lengths.length() != name_lengths.length() ||
+    body_lengths.length() != body_nodes.length() ||
     body_lengths.length() > 200 ||
     encoded_units < 0 ||
     observation_units < 0 ||
@@ -195,7 +216,10 @@ pub fn initialization_construction_capacity(
       return None
     }
     let b = Int::max(1, original_bytes)
-    let n = Int::min(b, describe.max_nodes)
+    let n = Int::min(
+      Int::min(b, Int::max(1, body_nodes[index])),
+      describe.max_nodes,
+    )
     // A completed field requires at least {"name":"a","type":"x"}
     // (23 bytes); one current failed field can allocate before this proof.
     let f = Int::min(describe.max_fields, original_bytes / 23 + 1).to_int64()

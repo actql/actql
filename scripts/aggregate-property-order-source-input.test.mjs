@@ -21,7 +21,7 @@ test('collection orders discriminate input properties, current slots and indepen
   assert.deepEqual(expected('parenthesized-receiver-empty'), [{names: null}]);
   const collision = successes.find(item => item.name.endsWith('parenthesized-range-collision'));
   assert.ok(collision.text.includes('other.score AS score FROM objects'));
-  assert.ok(collision.text.includes('ORDER BY (payload).score NULLS LAST, id'));
+  assert.ok(collision.text.includes('ORDER BY (payload.payload).score NULLS LAST, id'));
   assert.ok(collision.text.endsWith('FROM colliding AS payload'));
   // Flattening the explicit object receiver into a range-qualified column
   // would instead order by other.score and concatenate a|c|b|b.

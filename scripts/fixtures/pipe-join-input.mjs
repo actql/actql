@@ -43,7 +43,7 @@ export const pipeJoinInputSuccesses = [
   success('projected-prefix', source),
   success('sql-head', source.replace('FROM records AS old |> SELECT id + 10 AS key, amount',
     'SELECT id + 10 AS key, amount FROM records AS old')),
-  success('data-body', 'WITH joined AS (' + source + ') FROM joined |> RESULT answer'),
+  success('data-body', 'WITH joined AS (' + source + ') FROM joined |> RESULT answer', {resultName: 'answer'}),
   success('empty-typed', source, {sourceRows: [], expected: []}),
   success('nullable-left', prefix + join.replace('JOIN (SELECT 13', 'LEFT JOIN (SELECT 12')
     + projection, {parameters: {minimum: 11, take: 2},

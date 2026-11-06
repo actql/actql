@@ -150,7 +150,7 @@ export const windowScalarRefusals = [
 ].map(item => ({format: 'sql', ...item, name: 'window-scalar-refuse-' + item.name}));
 export const windowScalarExecutionFailures = [{name: 'window-scalar-demanded-error', format: 'sql',
   text: 'SELECT ROW_NUMBER() OVER (ORDER BY id) + 1 / (id - 1) AS n FROM records WHERE id > 0 ORDER BY n',
-  resultNames: ['answer'], sourceReadSessionCount: 1}];
+  resultNames: ['main'], sourceReadSessionCount: 1}];
 
 // Star names supplied by the checked parameter schema need not be source
 // tokens. The public column value is deliberately unrelated to the rank.

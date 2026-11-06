@@ -8,10 +8,12 @@ test('independent UTC grid retains half-open bounds, timestamp schema and whole 
   assert.equal(new Set([...successes,...refusals].map(item=>item.name)).size,16);
   const expected=[{time:'2026-10-12T00:00:00.000Z'},{time:'2026-10-12T00:01:00.000Z'},{time:'2026-10-12T00:02:00.000Z'}];
   for(const item of successes) {
-    assert.deepEqual(item.results.answer.columns,[{name:'time',contract:{type:'timestamp',nullable:false}}]);
-    assert.deepEqual(item.results.answer.rows,item.name.includes('empty')?[]:expected);
+    const resultName=item.format==='json'?'answer':'main';
+    assert.deepEqual(Object.keys(item.results),[resultName]);
+    assert.deepEqual(item.results[resultName].columns,[{name:'time',contract:{type:'timestamp',nullable:false}}]);
+    assert.deepEqual(item.results[resultName].rows,item.name.includes('empty')?[]:expected);
     assert.equal(item.sourceReadCount,0);assert.equal(item.sourceReadSessionCount,0);
-    assert.ok(!item.results.answer.rows.some(row=>row.time==='2026-10-12T00:03:00.000Z'));
+    assert.ok(!item.results[resultName].rows.some(row=>row.time==='2026-10-12T00:03:00.000Z'));
   }
   const control=JSON.parse(successes[0].text);
   assert.deepEqual(control.stages[0].inputs,{});

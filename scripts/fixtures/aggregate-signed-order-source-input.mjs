@@ -36,7 +36,7 @@ export const aggregateSignedOrderSuccesses = [
   success('positive-qualified-pipe', "FROM objects AS before |> AGGREGATE STRING_AGG(name, '|' ORDER BY +((before.payload).score) NULLS LAST, id) AS names",
     {expected: [{names: 'b|b|a|c'}]}),
   success('current-and-snapshot', 'FROM objects AS before |> SET payload = other '
-    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY -payload.score NULLS LAST, id) AS current, "
+    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY -payload.score NULLS LAST, id) AS `current`, "
     + "STRING_AGG(name, '|' ORDER BY -before.payload.score NULLS LAST, id) AS previous", {
     expected: [{current: 'b|b|c|a', previous: 'a|b|b|c'}],
     columns: ['current', 'previous'].map(name => ({name, contract: {type: 'string', nullable: true}})),

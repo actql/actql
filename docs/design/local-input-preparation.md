@@ -2734,6 +2734,17 @@ foreign/repeated selection and cleanup; the actual Node caller tests separately
 cover retention before construction and the pre-loader connection. Those tests
 do not establish normal installed Source or physical acceptance.
 
+Parsing an already retained Source metadata String uses the existing full-wire
+construction geometry before native JSON decoding. Four simultaneous parsed,
+checked and identity tree roles remain funded, as does the existing decoded-text
+envelope of twelve bytes per original UTF16 unit. A long scalar String changes
+text demand rather than creating one value node per character. Escaped detached
+syntax still contributes to the conservative node bound; outside whitespace
+remains in the full text demand. This does not select the Alias-only payload
+profile, admit JSON grammar or change Resource/current/cleanup limits. The
+returned tree remains on the same Source material, and genuine excess node
+demand still refuses before the native parser.
+
 ## Same-original Request checker and compiler terminal
 
 The Request terminal selects Pure or Effect checking from the original
@@ -5732,6 +5743,14 @@ material bytes, compilation, Request and Run correspondence. Textual Source
 continues to use its original text/frontend rather than the material's lowered
 Program. Failed comparison, capacity, currentness or construction remains on the
 same Request's existing abort and retirement chain.
+
+Textual Source with non-null Parameters uses the same retained-material quote
+and full Parameter value comparison to restore original member order. Its
+authored text, format and parameter declarations remain the original frontend
+input; it never substitutes or parses the saved lowered Program as authored
+Source. The later Common material codec still binds that complete lowered
+Program and its original compilation, Request and Run. Source with null
+Parameters needs no member-order restoration and keeps its original path.
 
 ### Retained Model recovery Request
 
