@@ -32,6 +32,7 @@ test('same-named range and object fixtures have different values and nullability
   assert.deepEqual(range.expected.map(row => row.score), [90, 90, 90, 90]);
   assert.equal(object.columns[1].contract.nullable, true);
   assert.equal(range.columns[1].contract.nullable, false);
+  assert.match(object.text, /SELECT payload\.id AS id, \(payload\.payload\)\.score AS score/u);
 });
 
 test('range fixtures retain duplicate, empty and left-extension obligations', () => {

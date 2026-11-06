@@ -78,7 +78,7 @@ export const aggregatePropertyOrderSuccesses = [
   success('parenthesized-receiver', "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM objects"),
   success('parenthesized-qualified-receiver', "FROM objects AS before |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((before.payload)).`score` NULLS LAST, id) AS names"),
   success('parenthesized-range-collision', ', colliding AS (SELECT id, name, payload, other, other.score AS score FROM objects) '
-    + "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM colliding AS payload"),
+    + "SELECT STRING_AGG(name, '|' ORDER BY (payload.payload).score NULLS LAST, id) AS names FROM colliding AS payload"),
   success('parenthesized-receiver-empty', "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM objects", {
     sourceRows: [], expected: [{names: null}],
   }),

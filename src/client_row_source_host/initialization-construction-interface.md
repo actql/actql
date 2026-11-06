@@ -24,6 +24,13 @@ The common `execution_relation` representation model issues the typed quantity.
   optional same-runtime `ExecutionCapacity`, or representation units for Common
   composition. The Salesforce JavaScript helper only measures already-owned
   publication/evidence/Site/write data; it validates base64 without decoding.
+  Salesforce's original-body entry passes those exact Base64 strings to the
+  shared MoonBit issuer. Its constant-space canonical Base64 scan counts JSON
+  punctuation even inside strings and escapes, without allocating decoded
+  bytes/text or admitting grammar. Only parser/index node demand uses this
+  structural bound; complete input text, normalization, field bounds, hashes,
+  independent provider/Common restores and writer limits remain charged. The
+  length-only entry remains available as the conservative fallback.
 - Identity: quantities are issued in the same compiled Common runtime that
   accepts them. Provider observations/declarations stay in their original
   runtime. Matching CIDs, numeric dimensions, JSON or copied object properties

@@ -194,7 +194,7 @@ export const joinPropertySuccesses = [
       + 'ON l.id = r.id MAX_OUTPUT_ROWS 12 |> SELECT l.id, r.other AS payload |> ORDER BY id',
     {expected: [{id: 1, payload: {score: 5}}], columns: [idColumn, receiverColumns[2]]}),
   prefilterCase('same-named-value', '',
-    {text: collisionCtes + 'FROM chosen AS payload |> WHERE (payload).score > 15'
+    {text: collisionCtes + 'FROM chosen AS payload |> WHERE (payload.payload).score > 15'
       + ' |> JOIN others AS r ON payload.id = r.id MAX_OUTPUT_ROWS 12'
       + ' |> SELECT payload.id, r.other.score |> ORDER BY id, score'}),
   prefilterCase('same-named-qualified-range', '',
@@ -225,7 +225,7 @@ export const joinPropertySuccesses = [
       + ' ORDER BY (payload).score NULLS LAST',
     {expected: aliasRows, columns: receiverColumns}),
   rangeCase('value-range-collision',
-    'SELECT payload.id AS id, (payload).score AS score '
+    'SELECT payload.id AS id, (payload.payload).score AS score '
       + 'FROM (SELECT id, payload, 90 AS score FROM objects) AS payload '
       + 'JOIN others AS r ON payload.id = r.id MAX_OUTPUT_ROWS 12 ORDER BY id'),
   rangeCase('dotted-range-collision-control',
