@@ -123,29 +123,19 @@ fn check_program_findings(
   }
   let program = match @syntax.parse(document, limits.input, format~) {
     Ok(program) => program
-    Err(_) => {
-      // Classification remains the common checker's decision. Reuse its
-      // document entry only when admission did not produce an owned Program.
-      guard @checked.check_document(
-          document,
-          environment,
-          supplied,
-          limits,
-          format~,
-        )
-        is Rejected(diagnostic) else {
-        return Failed("check_internal")
-      }
+    Err(issue) =>
+      // Classification stays with the checker, but the actual first parser
+      // refusal already exists. Project that SAME typed issue instead of
+      // invoking the document checker and parsing the original again.
       return check_program_diagnostic(
         findings,
-        diagnostic,
+        @checked.program_input_diagnostic(issue),
         document,
         supplied,
         parameters,
         locate,
         format~,
       )
-    }
   }
   let source = match
     @stage_parameters.prepare(program, {
