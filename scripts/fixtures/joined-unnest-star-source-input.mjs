@@ -100,7 +100,7 @@ export const joinedUnnestStarSuccesses = [
     ...objectColumn, format: 'json', parameterDeclarations: undefined,
   }),
   success('value-receiver-contrast', 'FROM UNNEST(@objects) o |> SELECT score, payload '
-    + '|> AS payload |> SELECT (payload).score AS value', objectColumn),
+    + '|> AS payload |> SELECT (payload.payload).score AS value', objectColumn),
 ];
 export const joinedUnnestStarRefusals = [
   sql.replace('UNNEST(p.items)', 'UNNEST(p.id)'),

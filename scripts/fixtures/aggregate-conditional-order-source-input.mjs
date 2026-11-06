@@ -274,6 +274,6 @@ aggregateConditionalOrderRefusals.push(...[
     + "|> AGGREGATE STRING_AGG(DISTINCT IFNULL(name, 'missing'), '|' ORDER BY IFNULL(before.name, 'missing')) AS names"},
   {name: 'distinct-member-mismatch', text: 'SELECT ARRAY_AGG(DISTINCT IFNULL(payload.score, 0) IGNORE NULLS ORDER BY IFNULL(other.score, 0)) AS ids FROM objects'},
   {name: 'distinct-explicit-receiver', text: ', colliding AS (SELECT id, name, payload, other, other.score AS score FROM objects) '
-    + 'SELECT ARRAY_AGG(DISTINCT IFNULL((payload).score, 0) IGNORE NULLS ORDER BY IFNULL(payload.score, 0)) AS ids FROM colliding AS payload'},
+    + 'SELECT ARRAY_AGG(DISTINCT IFNULL((payload.payload).score, 0) IGNORE NULLS ORDER BY IFNULL(payload.score, 0)) AS ids FROM colliding AS payload'},
 ].map(item => ({...base, ...item, name: 'aggregate-conditional-order-refuse-' + item.name,
   text: data + item.text, expectedCode: 'ClientProgramImplementationLimit'})));

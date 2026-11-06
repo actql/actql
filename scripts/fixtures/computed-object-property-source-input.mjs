@@ -153,7 +153,7 @@ export const parenthesizedSourceRangeSuccesses = [
   rangeSuccess('empty', sourceRangeSql, {sourceRows: [], expected: []}),
   success('parenthesized-range-nested', 'SELECT id, ((o)).payload.score AS score FROM objects o ORDER BY id',
     {expected: [{id: 1, score: 20}, {id: 2, score: 10}, {id: 2, score: 10}, {id: 3, score: null}, {id: 4, score: null}]}),
-  success('parenthesized-value-range-collision', 'SELECT id, (payload).score AS score FROM objects payload ORDER BY id',
+  success('parenthesized-value-range-collision', 'SELECT id, (payload.payload).score AS score FROM objects payload ORDER BY id',
     {expected: [{id: 1, score: 20}, {id: 2, score: 10}, {id: 2, score: 10}, {id: 3, score: null}, {id: 4, score: null}]}),
 ];
 export const parenthesizedSourceRangeRefusals = [
