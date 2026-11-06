@@ -669,7 +669,7 @@ function fixture(t, {scoped = false, http = false} = {}) {
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
-    'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'verification-actions.mjs',
+    'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'native-core-scoped-fixture.mjs', 'verification-actions.mjs',
     'native-client-checkpoint-fixture.mjs', 'native-private-host-fixture.mjs',
     'native-filesystem-observation-fixture.mjs',
     'native-runtime-reader-custody-fixture.mjs', 'native-project-configuration-fixture.mjs',
@@ -750,15 +750,6 @@ export function prepareNativeCoreScopedProfile(root, scratch, args, {env, profil
   return {targetDirectory, environment: {...env, ACTQL_FIXTURE_PROFILE: profile}};
 }
 `);
-    writeFileSync(join(checkout, 'scripts/native-core-scoped-fixture.mjs'), `
-import {mkdirSync} from 'node:fs';
-import {join} from 'node:path';
-export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary}) {
-  const root = join(namespace, 'installed-process'); mkdirSync(root, {mode: 0o700});
-  return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root,
-    ACTQL_TEST_CRYPTO_COMPONENT: cryptoLibrary, ACTQL_TEST_SQLITE_COMPONENT: sqliteLibrary};
-}
-`);
     writeFileSync(join(checkout, 'scripts/native-runtime-bundle-fixture.mjs'), `
 import assert from 'node:assert/strict';
 import {mkdirSync} from 'node:fs';
@@ -816,7 +807,8 @@ if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
     JSON.stringify({args:process.argv.slice(2),path:process.env.PATH,
       allocator:process.env.MOONBIT_ALLOCATOR,compiler:process.env.MOON_CC,
       backend:process.env.MOONBIT_NEW_NATIVE,profile:process.env.ACTQL_FIXTURE_PROFILE ?? 'ordinary',
-      installedProcess:process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT}) + '\\n');
+      installedProcess:process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT,
+      sqliteComponent:process.env.ACTQL_TEST_SQLITE_COMPONENT,cryptoComponent:process.env.ACTQL_TEST_CRYPTO_COMPONENT}) + '\\n');
 }
 if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE_PROFILE)) {
   assert(process.argv.includes('--target-dir'));
@@ -1017,6 +1009,26 @@ test('selected Native tests do not activate the unrelated target fixture', t => 
   assert.equal(result.status, 0, result.stderr);
   assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
   assert.match(result.stdout, /child stopped/u);
+  f.verifyExternal();
+});
+
+test('focused ordinary Arena inputs do not select components or reach unrelated Native callers', t => {
+  const f=fixture(t),commands=join(f.root,'native-commands.jsonl');
+  for(const file of ['src/platform_native/installed_arena_control/process_transport_wbtest.mbt',
+    'src/platform_native/trusted_clock/clock_wbtest.mbt']) {
+    const result=spawnSync(process.execPath,['scripts/test-native-core.mjs','--deny-warn',file],
+      {cwd:f.checkout,encoding:'utf8',timeout:10000,
+        env:{...f.env,ACTQL_FIXTURE_NATIVE_COMMANDS:commands}});
+    assert.equal(result.status,0,result.stdout+result.stderr);
+  }
+  const [arena,unrelated]=readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse);
+  assert(arena.installedProcess.endsWith('/installed-process'));
+  assert.equal(unrelated.installedProcess,undefined);
+  for(const call of [arena,unrelated]) {
+    assert.equal(call.profile,'ordinary');
+    assert.equal(call.sqliteComponent,undefined);assert.equal(call.cryptoComponent,undefined);
+    assert.equal(call.allocator,f.env.MOONBIT_ALLOCATOR);
+  }
   f.verifyExternal();
 });
 
@@ -1343,6 +1355,11 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     const [ordinary, ...selectedCases] = calls.slice(2);
     const selected = selectedCases[0];
     assert.equal(ordinary.profile, 'ordinary');
+    assert.equal(ordinary.installedProcess.endsWith('/installed-process'), true);
+    assert.equal(ordinary.sqliteComponent, undefined);
+    assert.equal(ordinary.cryptoComponent, undefined);
+    for (const producer of calls.slice(0, 2)) assert.equal(producer.installedProcess, undefined);
+    for (const selected of selectedCases) assert.notEqual(selected.installedProcess, ordinary.installedProcess);
     assert.equal(selected.profile, 'runtime-values');
     assert.deepEqual(ordinary.args.filter(value => value.startsWith('src/')), [
       'src/cmd/native_client/ordinary_wbtest.mbt',

@@ -15,6 +15,7 @@ import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreTestSelection} from './native-core-test-selection.mjs';
 import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
+import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -115,6 +116,11 @@ const fixtureEnvironment = {
     process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so'),
   ACTQL_TEST_NATIVE_SQLITE_ROOT: namespace,
 };
+// Keep physical file inputs separate from the selected-provider environment.
+// Only the ordinary child/focused Arena caller receives these fresh originals.
+const ordinaryProcess = (full ? selection.profiles.ordinary.args !== null :
+  args.some(arg => arg.includes('platform_native/installed_arena_control')))
+  ? nativeCoreOrdinaryProcessFixture(namespace) : {};
 const checkChild = result => {
   if (result.error) throw result.error;
   if (result.status !== 0) {
@@ -144,7 +150,7 @@ if (full) {
       '--core-test-json', JSON.stringify(profile.args), '--core-test-count', String(profile.cases)],
     {cwd: root, stdio: 'inherit', env: environment}));
   };
-  runProfile(selection.profiles.ordinary, {...fixtureEnvironment, ...testCompiler});
+  runProfile(selection.profiles.ordinary, {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler});
   if (selection.profiles.scoped.args !== null) {
     const scopedScratch = await createOwnedScratch({parent: join(root, '_build', 'native-core-scoped'),
       prefix: 'profile-', label: 'Native Core scoped compiler', preserve: true});
@@ -204,7 +210,7 @@ if (full) {
   }
 } else {
   checkChild(spawnSync('moon', ['test', '--target', 'native', ...args],
-    {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...testCompiler}}));
+    {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler}}));
 }
 // spawnSync has reaped every child; within-run database reopen is unchanged.
 scratch.passed();
