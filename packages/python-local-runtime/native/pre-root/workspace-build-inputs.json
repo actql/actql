@@ -145,7 +145,7 @@
   "provider_source_inputs": [
     {
       "source": "owned_capacity.c",
-      "sha256": "7676fee4052a7d8f1ea50a908de1828d529bdc449fdde3972f42399d2d1c7c88"
+      "sha256": "5b721be99bb8902767c4c80605459508045ddf08c4841a73ea4c11bb014bbd1f"
     },
     {
       "source": "owned_capacity.h",
