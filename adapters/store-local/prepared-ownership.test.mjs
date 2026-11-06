@@ -11,7 +11,7 @@ import {openClientRequestJournal, observeOriginalClientRequestJournalCustody}
   from '../host-node/client-request-journal.mjs';
 import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership,
   assertOriginalPreparedLocalPublicationStoreOwnership,
-  closePreparedLocalPublicationStoreOwnership} from './publication-store.mjs';
+  closePreparedLocalPublicationStoreOwnership, captureOriginalLocalExecutionOwner} from './publication-store.mjs';
 
 const bounds = Object.freeze({maxWireBytes: 16384, maxDirectoryEntries: 64});
 async function fixture() {
@@ -164,10 +164,13 @@ test('same original fresh owner is adopted once and only Store close releases it
   const original = await prepareLocalPublicationStoreOwnership(f.directory, bounds);
   const owner = await readFile(join(f.directory, 'owner', 'owner.json'));
   const store = await adopt(f, original);
-  assert.deepEqual(await readFile(join(f.directory, 'owner', 'owner.json')), owner);
+  const adoptedOwner = JSON.parse(await readFile(join(f.directory, 'owner', 'owner.json')));
+  assert.deepEqual({...adoptedOwner, leaseAnchor: undefined}, {...JSON.parse(owner), leaseAnchor: undefined});
+  const receipt = captureOriginalLocalExecutionOwner(original);
+  assert.deepEqual(adoptedOwner.leaseAnchor, receipt?.anchor, 'unsupported delivery never invents an execution receipt');
   await assert.rejects(adopt(f, original), {code: 'PublicationStoreOwnershipLost'});
   assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, true);
-  assert.deepEqual(await readFile(join(f.directory, 'owner', 'owner.json')), owner);
+  assert.deepEqual(JSON.parse(await readFile(join(f.directory, 'owner', 'owner.json'))), adoptedOwner);
   assert.equal(await store.close(), true);
   assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, false);
   await assert.rejects(adopt(f, original), {code: 'PublicationStoreOwnershipLost'});
