@@ -157,6 +157,10 @@ export function requireProjectInitSupport(executable, environment, template, que
       Object.keys(support).sort().join(',') !== 'mock,sourceFree,version' ||
       support.version !== 'actql-project-init-support/0.1' ||
       typeof support.sourceFree !== 'boolean' || typeof support.mock !== 'boolean') unavailable();
+  // The private Native reply has one fixed spelling and optional final LF.
+  // Parsing alone would silently discard duplicate keys or accept other wires.
+  const wire = JSON.stringify({version: support.version, sourceFree: support.sourceFree, mock: support.mock});
+  if (child.stdout !== wire && child.stdout !== wire + '\n') unavailable();
   // Names and file contents still belong to the existing template preparation.
   // No runtime supplier, grant, signer or fallback is selected by this answer.
   projectTemplateFiles(template);

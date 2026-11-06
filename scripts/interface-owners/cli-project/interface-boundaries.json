@@ -124,7 +124,7 @@
     },
     {
       "module": "packages/native-cli/lib/project-scaffold.mjs",
-      "sha256": "4110dd93500c272e5b8977c9751c7508c1ef97e19eb8700d32eab07b0543e2fd",
+      "sha256": "2f739f1e328d06ad690085c09653f26f58cbff0f7f2b978b57ee0d0720edc083",
       "exports": [
         "projectInitArguments",
         "projectInitialAdoptionArguments",
@@ -373,6 +373,10 @@
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
                 "anchor": "if (child.error || child.signal || child.status !== 0 || child.stderr !== '' ||"
+              },
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "if (child.stdout !== wire && child.stdout !== wire + '\\n') unavailable();"
               }
             ],
             "cancellation": [

@@ -291,6 +291,28 @@ test('init implementation query uses only the admitted executable and fixed boun
   requireProjectInitSupport('/admitted/native', environment, 'churn-risk-mock', () => supportReply({mock: true}));
 });
 
+test('private support wire accepts the Native final LF but refuses duplicate keys and alternative encodings', async t => {
+  const root = await scratch(t);
+  const wire = supportReply().stdout;
+  requireProjectInitSupport('/admitted/native', {}, undefined, () => ({...supportReply(), stdout: wire + '\n'}));
+  const invalid = [
+    wire.replace('"mock":false', '"mock":false,"mock":true'),
+    wire.replace('"sourceFree":true', '"sourceFree":false,"sourceFree":true'),
+    wire.replace('"version":', '"version":"unknown","version":'),
+    wire + wire, wire + '\n{}', wire + ' trailing',
+    wire.replace('"mock"', '"mo\\u0063k"'),
+    JSON.stringify({mock: false, sourceFree: true, version: 'actql-project-init-support/0.1'}),
+    JSON.stringify(JSON.parse(wire), null, 2), wire + '\n\n',
+  ];
+  for (const stdout of invalid) {
+    assert.throws(() => {
+      requireProjectInitSupport('/admitted/native', {}, undefined, () => ({...supportReply(), stdout}));
+      scaffoldProject(join(root, 'absent'));
+    }, e => e.exitCode === 69 && /initialization support is unavailable/.test(e.message));
+    assert.deepEqual(await readdir(root), []);
+  }
+});
+
 test('unavailable mock bindings preserve absent, empty and occupied project targets', async t => {
   const root = await scratch(t);
   await mkdir(join(root, 'empty'));
