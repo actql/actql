@@ -65,6 +65,20 @@ test('public query fixture names preserve explicit and structured exports indepe
   assert.equal(publicQueryResultOracles({...implicit, results}), results);
   assert.equal(publicQueryResultOracles(implicit).main.rows, expected);
 });
+
+test('scoped ORDER fixtures read the explicit authored export', async () => {
+  const scope = JSON.parse(await readFile(new URL(
+    '../spec/frontend/fixtures/pipe-scope/cases.json', import.meta.url), 'utf8'));
+  const cases = scope.successes.filter(item => item.name.startsWith('scoped-order-'));
+  assert.equal(cases.length, 4);
+  for (const item of cases) {
+    assert.match(item.text, /\|> RESULT answer$/u);
+    assert.equal(item.resultName, 'answer');
+    assert.deepEqual(publicQueryResultOracles(item), {
+      answer: {rows: item.expected, columns: item.columns},
+    });
+  }
+});
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-transport-owner-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
