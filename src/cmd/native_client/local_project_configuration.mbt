@@ -258,6 +258,7 @@ fn local_project_require_supported_profile(
   let metadata = selected.metadata
   if metadata.lock_file() is Some(_) ||
     selected.profile is Some(_) ||
+    metadata.mock_catalog_file() is Some(_) ||
     metadata.mock_data_file() is Some(_) ||
     metadata.mock_answer_count() != 0 {
     stop("LocalProjectBindingsUnavailable")
