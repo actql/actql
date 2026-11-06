@@ -585,6 +585,7 @@ fn prepare_client_local_configuration(
   provider_factory : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  managed_output? : Bool = false,
 ) -> ClientPreparedLocalConfiguration? {
   let compute_sequences = capacity_plan.sequences
   if !(capacity_plan.graph is Some(original) && physical_equal(original, graph)) ||
@@ -659,7 +660,10 @@ fn prepare_client_local_configuration(
       managed_providers=local_configuration.managed_providers,
       inputs=Some((capacity_plan.imports, Some(0L))),
       metadata=Some(capacity_plan.metadata),
-      output=if retained_output {
+      // The preparation-owned managed consumer retains a completed output;
+      // it never enters Local's separate row-file exporter. Other existing
+      // callers keep that exporter and its full simultaneous backing.
+      output=if retained_output && !managed_output {
         Some((capacity_plan.exports, Some(0L)))
       } else {
         None

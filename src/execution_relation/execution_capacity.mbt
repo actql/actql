@@ -135,7 +135,7 @@ pub fn generated_bounded_sequence_capacity(
         _ => primitive = false
       }
     }
-    if primitive {
+    if primitive && @schema.field_count(schema) > 0 {
       guard execution_capacity_inventory_bytes([
           {
             unit: CursorRootSlots,
@@ -157,10 +157,35 @@ pub fn generated_bounded_sequence_capacity(
         is Some(execution) else {
         return None
       }
-      return Some({
-        retained_bytes: ordinary.retained_bytes,
-        execution_bytes: execution,
-      })
+      guard @lower.node_values_row_count(node) is Some(count) &&
+        count >= 0 &&
+        checked_preparation_add_product(
+          count.to_int64(),
+          count.to_int64(),
+          @schema.field_count(schema).to_int64(),
+        )
+        is Some(items) &&
+        preparation_array_representation(count.to_int64() + 1L, items, true)
+        is Some(rows) &&
+        preparation_representation_cost(rows) is Some(row_bytes) else {
+        return None
+      }
+      // Commit retains the SAME checked primitive cells in one array per
+      // original row and the outer row array; it creates no copied value/text
+      // forest. Include their shared growth inventory, original completion
+      // roots and the retained execution owner's fixed/cursor envelope. That
+      // owner remains reachable until its existing cleanup acknowledges it.
+      // Active workspace coexists with this retained output; the canonical
+      // constructor preserves execution >= retention for every later caller.
+      return execution_capacity_inventory(
+        [
+          { unit: QuotedBytes, count: row_bytes, copies: 1, },
+          { unit: CursorRootSlots, count: roots, copies: 1, },
+          { unit: QuotedBytes, count: execution, copies: 1, },
+        ],
+        [{ unit: QuotedBytes, count: execution, copies: 1, }],
+        RetainedAlongsideExecution,
+      )
     }
   }
   Some(ordinary)

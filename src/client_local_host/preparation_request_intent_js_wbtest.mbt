@@ -1010,8 +1010,14 @@ fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise 
       selected,
     ).unwrap()
     let child = @local.managed_provider_capacity(provider, selected).unwrap()
-    let required = @execution.execution_capacity_execution_bytes(child) +
-      @execution.execution_capacity_retained_bytes(child)
+    let original_configuration = original_plan.configuration.unwrap()
+    let selected_capacity = @local_driver.local_dispatch_preparation_task_capacity(
+      original_configuration.dispatch,
+      0,
+    ).unwrap()
+    // Assert the SAME configured envelope later used by Host selection,
+    // including metadata and independent output, not just a provider subset.
+    let required = selected_capacity.execution_bytes
     let reserved = @resources.ledger_usage(parent.ledger).reserved_execution_bytes
     let available = original_limits.execution_bytes - reserved
     assert_true(
@@ -1039,17 +1045,45 @@ fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise 
     ).unwrap()
     let run = begin_request_program_managed_run(parent, request).unwrap()
     let setup = open_installed_managed_source_free_host(
-        run,
-        prepared,
-        request,
-        original_plan.installed_contracts,
-        original_plan.values_body,
-        original_plan.fragment_body,
-        original_plan.ordered_body,
-        true,
-      )
-      .unwrap()
-      .unwrap()
+      run,
+      prepared,
+      request,
+      original_plan.installed_contracts,
+      original_plan.values_body,
+      original_plan.fragment_body,
+      original_plan.ordered_body,
+      true,
+    ).unwrap()
+    let setup = match setup {
+      Some(value) => value
+      None => {
+        let diagnostics = []
+        if run.source_free_captured is Some(dag) {
+          for index in 0..<@strategy.strategy_report_count(dag) {
+            let report = @strategy.strategy_report_at(dag, index).unwrap()
+            diagnostics.push(
+              "rejection=" +
+              @debug.to_string(report.rejection) +
+              "; R=" +
+              report.retained_bytes.to_string() +
+              "; E=" +
+              report.execution_bytes.to_string(),
+            )
+          }
+        }
+        fail(
+          "Same original100000 Host selection: required=" +
+          required.to_string() +
+          "; beforeOpen=" +
+          available.to_string() +
+          "; afterOpen=" +
+          (original_limits.execution_bytes -
+          @resources.ledger_usage(parent.ledger).reserved_execution_bytes).to_string() +
+          "; " +
+          diagnostics.join(" | "),
+        )
+      }
+    }
     let dag = @host_driver.dispatch_driver_run(
       @builtin.configured_host_driver(setup),
     )

@@ -197,7 +197,45 @@ test "one original primitive Values constructor keeps logical budgets without ph
     },
     measure,
   ).unwrap()
-  assert_true(output.retained_bytes > whole.retained_bytes)
+  // Unused output ceilings do not allocate another forest of borrowed cells.
+  assert_eq(output.retained_bytes, whole.retained_bytes)
+  assert_eq(output.execution_bytes, whole.execution_bytes)
+  let more_rows = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(
+      bound_pipeline(
+        "[{\"values\":{\"schema\":{\"n\":{\"type\":\"number\",\"nullable\":true},\"b\":{\"type\":\"boolean\",\"nullable\":false}},\"rows\":[" +
+        Array::make(4, "{\"n\":1,\"b\":true}").join(",") +
+        "]},\"as\":\"out\"}]",
+      ),
+    ),
+    [],
+    ["values_0"],
+    100000,
+    10000,
+  ).unwrap()
+  let rows_limits = { ..limits, rows: { ..limits.rows, max_rows: 4, }, }
+  let before_rows = generated_bounded_sequence_capacity(
+    generated, rows_limits, measure,
+  ).unwrap()
+  let after_rows = generated_bounded_sequence_capacity(
+    more_rows, rows_limits, measure,
+  ).unwrap()
+  assert_true(after_rows.retained_bytes > before_rows.retained_bytes)
+  assert_eq(
+    after_rows.execution_bytes - before_rows.execution_bytes,
+    after_rows.retained_bytes - before_rows.retained_bytes,
+  )
+  // The constructed output remains live during its cursor workspace. A
+  // provider quote must round-trip through the existing canonical capacity
+  // constructor even when output retention exceeds the small cursor frame.
+  assert_true(
+    execution_capacity(output.retained_bytes, output.execution_bytes) is Some(_),
+  )
+  assert_eq(
+    output.execution_bytes - whole.execution_bytes,
+    output.retained_bytes - whole.retained_bytes,
+  )
   let tight = { ..values, max_nodes: 1, }
   assert_true(
     start_bounded_values(
