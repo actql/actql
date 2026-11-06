@@ -1064,3 +1064,77 @@ test('synthetic held Salesforce fixture retains distinct Host observation and Ru
     assert.throws(() => check({entries: invalid}), {code: 'ERR_ASSERTION'});
   }
 });
+
+test('packed Checkpoint Source publication shares its explicit installed Host policy', async () => {
+  const source = readFileSync(new URL('./test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declarations = new Map();
+  let publication, hostTemplate;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
+        ['base', 'sourceBaseEnvironment', 'hostCapacityPolicy'].includes(node.declarations[0].id?.name)) {
+      const name = node.declarations[0].id.name;
+      assert.equal(declarations.has(name), false);
+      declarations.set(name, node);
+    }
+    if (node.type === 'AssignmentExpression' && node.left.type === 'MemberExpression' &&
+        node.left.object.name === 'environment' && node.left.property.name === 'host_policy_profile') {
+      assert.equal(publication, undefined); publication = node;
+    }
+    if (node.type === 'TemplateLiteral' && node.quasis[0].value.cooked.includes('const installation = {')) {
+      assert.equal(hostTemplate, undefined); hostTemplate = node;
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  })(tree);
+  assert(publication && hostTemplate);
+  const wire = readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8');
+  const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
+  const baseName = declarations.has('sourceBaseEnvironment') ? 'sourceBaseEnvironment' : 'base';
+  const bindings = [baseName, ...(declarations.has('hostCapacityPolicy') ? ['hostCapacityPolicy'] : [])].map(name => {
+    const declaration = declarations.get(name);
+    assert(declaration, `Missing shared installed policy binding: ${name}`);
+    return source.slice(declaration.start, declaration.end);
+  }).join('\n');
+  const prepare = new AsyncFunction('root', 'readFile', 'join', bindings +
+    `\nreturn {sourceBaseEnvironment: ${baseName}, hostCapacityPolicy: typeof hostCapacityPolicy === 'undefined' ? undefined : hostCapacityPolicy};`);
+  const selected = await prepare('/app', async (path, encoding) => {
+    assert.equal(path, '/app/node_modules/@actql/local-node/spec/local-check-environment.json');
+    assert.equal(encoding, 'utf8'); return wire;
+  }, join);
+  const published = JSON.parse(readFileSync(new URL('../adapters/host-node/fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
+  new Function('environment', baseName,
+    source.slice(publication.start, publication.end))(published, selected.sourceBaseEnvironment);
+  delete published.evidence_bundle_cid;
+  published.evidence_bundle_cid = contentCid(published);
+  const generated = new Function('hostCapacityPolicy', 'return (' +
+    source.slice(hostTemplate.start, hostTemplate.end) + ');')(selected.hostCapacityPolicy);
+  const generatedTree = parseJavaScript(generated, {ecmaVersion: 'latest', sourceType: 'module'});
+  const installation = generatedTree.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations[0].id.name === 'installation').declarations[0].init;
+  const options = new Function('process', 'configuration', 'tokens', 'decide', 'mark', 'readFileSync',
+    'return (' + generated.slice(installation.start, installation.end) + ');')(
+    {env: {STATE: '/state', ACQUIRED: '1'}, cwd: () => '/app'}, undefined, new Map(), undefined, () => {}, () => 'fixture-key');
+  const originalPolicy = Object.freeze({});
+  const moon = {
+    clientLocalResourcePolicyOriginal: () => originalPolicy,
+    clientLocalResourcePolicyRowCeiling(value) {assert.equal(value, originalPolicy); return 2097152;},
+    clientLocalResourcePolicyModelRequestByteCeiling(value) {assert.equal(value, originalPolicy); return 65536n;},
+    clientProgramCheckEnvironment: () => ({}),
+  };
+  const actualHost = selectInstalledLocalMaterializationEnvironment(moon, wire.trimEnd(), options.hostCapacityPolicy);
+  const composed = composeInstalledCheckEnvironment(moon, actualHost, actualHost, canonicalText(published));
+  assert.deepEqual(JSON.parse(composed).host_policy_profile, published.host_policy_profile);
+  assert.deepEqual(options.hostCapacityPolicy, selected.sourceBaseEnvironment.host_policy_profile.capacity);
+  const defaultHost = selectInstalledLocalMaterializationEnvironment(moon, wire.trimEnd());
+  assert.throws(() => composeInstalledCheckEnvironment(moon, defaultHost, defaultHost, canonicalText(published)),
+    error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
+  const foreign = structuredClone(published);
+  foreign.host_policy_profile.capacity.max_artifact_rows += 1;
+  delete foreign.evidence_bundle_cid; foreign.evidence_bundle_cid = contentCid(foreign);
+  assert.throws(() => composeInstalledCheckEnvironment(moon, actualHost, actualHost, canonicalText(foreign)),
+    error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
+});
