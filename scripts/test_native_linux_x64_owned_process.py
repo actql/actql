@@ -36,7 +36,8 @@ CASES = (
     ('cleanup', 'native_cleanup_cases', 16),
     ('growth', 'native_growth_cases', 29),
     ('domain_growth', 'native_domain_growth_cases', 37),
-    ('domain_supplier', 'native_domain_supplier_cases', 73),
+    ('domain_supplier', 'native_domain_supplier_cases', 115),
+    ('domain_reconciliation', 'native_domain_reconciliation_cases', 155),
     ('thread', 'executed', 12),
     ('process_inventory', 'process_inventory_cases', 19),
 )

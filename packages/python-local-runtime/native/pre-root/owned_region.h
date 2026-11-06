@@ -136,11 +136,19 @@ int actql_native_owned_attach_in_process_domain_segment(
  * before acquire. Partial/unknown outcome stays charged until actual cleanup.
  * Scalars: 0 state (idle/quoted/acquiring/attached/refused/partial/closed),
  * 1 expected root bytes, 2 expected child bytes, 3 added root bytes,
- * 4 added root controls, 5 added child bytes, 6 added child controls.
+ * 4 added root controls, 5 added child bytes, 6 added child controls,
+ * 7 exact serial outcome (pending/no acquisition/attached/root retained).
  * Quote payload is a complete contiguous constructor coexistence requirement,
  * not merely aggregate free-byte shortage. Existing policy ceilings still apply.
  * Parent receipts are stored in acquired root control pages. Domain close
  * retires them in view/loan/allocation order; root maps close separately. */
+enum actql_owned_growth_outcome {
+    ACTQL_OWNED_GROWTH_PENDING = 0,
+    ACTQL_OWNED_GROWTH_NO_ACQUISITION = 1,
+    ACTQL_OWNED_GROWTH_ATTACHED_COMMITTED = 2,
+    ACTQL_OWNED_GROWTH_CHILD_RETIRED_ROOT_RETAINED = 3
+};
+
 int actql_native_owned_prepare_domain_growth(actql_owned_capacity *domain,
     actql_owned_extent_view *original_view);
 int actql_native_owned_quote_domain_growth(actql_owned_capacity *domain,
@@ -153,6 +161,11 @@ int actql_native_owned_finish_domain_growth(actql_owned_capacity *domain,
     uint64_t serial);
 int actql_native_owned_cancel_domain_growth_quote(actql_owned_capacity *domain,
     uint64_t serial);
+/* Observe or settle only this serial's existing receipt while outside owned
+ * scopes. Retains mapped root bytes; does not grant backing or refund claims. */
+int actql_native_owned_reconcile_domain_growth(actql_owned_capacity *domain,
+    actql_owned_extent_view *original_view, uint64_t serial, unsigned *outcome);
+
 int actql_native_owned_close_extent_domain(actql_owned_extent_view *view,
                                           actql_owned_capacity **slot);
 /* Trusted original worker bootstrap only, AFTER nominal Core child/loan/current

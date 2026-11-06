@@ -34,7 +34,7 @@ pub fn[T, C, I] NativeHostBootstrap::prepare_backed_request_live_child(
 ] {
   // This record outlives the child allocator. Refuse before its one-shot
   // acquisition latch or any control can be allocated inside that child.
-  if initialization_control_scope_clear_ffi() != 1 {
+  if request_control_scope_ffi(self.backing, domain.physical) != 1 {
     return Err(Bootstrap(ReadersPending))
   }
   match self.require_backed_read_context_current(original, domain, child) {
@@ -73,7 +73,7 @@ pub fn[T, C, I] NativeHostBootstrap::prepare_backed_request_admission(
   if record.request_preparation is Some(_) {
     return Err(Domain(Bootstrap(AlreadyConsumed)))
   }
-  if initialization_control_scope_clear_ffi() != 1 {
+  if request_control_scope_ffi(self.backing, record.domain.physical) != 1 {
     return Err(Domain(Bootstrap(ReadersPending)))
   }
   let state : NativeBackedRequestPreparation[T, C, I] = {
@@ -195,7 +195,7 @@ fn[T, C, I] NativeHostBootstrap::close_backed_request_preparation_original(
     }
   }
   if !state.physical_retired {
-    if initialization_control_scope_clear_ffi() != 1 {
+    if request_control_scope_ffi(self.backing, record.domain.physical) != 1 {
       return Err(Domain(Bootstrap(ReadersPending)))
     }
     if state.report_required == Some(true) && state.frame is Some(frame) {

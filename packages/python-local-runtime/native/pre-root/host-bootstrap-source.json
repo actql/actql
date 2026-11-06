@@ -9,8 +9,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_native.mbt",
-      "bytes": 22067,
-      "sha256": "a4f135f31831acdef19ccafbfaa4d53ed2872f0b3ac6c5e17da5991c6e82404c"
+      "bytes": 22507,
+      "sha256": "4c8dd19d3eebda642f50d11856d1db13bdbe6aeead74e17be60f9f01389b3d54"
     },
     {
       "path": "src/platform_native/host_bootstrap/execution_domain_minimum_native.mbt",
@@ -44,8 +44,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 40439,
-      "sha256": "09c725d17f8622e4169cb4218991654b65d9bce2dd32ea8dd7a30d4ef004cbcd"
+      "bytes": 41041,
+      "sha256": "d721990daea4f12659a094d86f822f308f55f42ebf7d58c239a3c58b6147fa24"
     },
     {
       "path": "src/platform_native/host_bootstrap/process_region.h",
@@ -69,8 +69,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.c",
-      "bytes": 39540,
-      "sha256": "7676fee4052a7d8f1ea50a908de1828d529bdc449fdde3972f42399d2d1c7c88"
+      "bytes": 40271,
+      "sha256": "cf86b4f8461d69555db9af96b4d2950d155607db66a9cbef46f96797752487a3"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -84,8 +84,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_region.h",
-      "bytes": 10904,
-      "sha256": "2d6cc4cbd7a356d7b864deae2bb10493dc90aec91372197c98a6e6fa7258b294"
+      "bytes": 11516,
+      "sha256": "e4881135e85e3fac07634a1916da40261121f0e59ffc941e4eeff8edc171d97b"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_region.inc",
@@ -133,21 +133,6 @@
       "sha256": "a9b8ef9ff1cc4457a7e40ab4eed988d064ef25d6d8b1ad82d0191de32a24f483"
     },
     {
-      "path": "src/platform_native/host_bootstrap/backed_live_child_native.mbt",
-      "bytes": 14904,
-      "sha256": "ababbdf41be623d581c48558ca418f216446f38c8bdfe49954de282dbd3587f5"
-    },
-    {
-      "path": "src/platform_native/host_bootstrap/backed_request_preparation_native.mbt",
-      "bytes": 10171,
-      "sha256": "f97abe1bba4bf1953eb44db98ad40f2f536c23aa7bba55c8815abc9a990aaecb"
-    },
-    {
-      "path": "src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt",
-      "bytes": 3132,
-      "sha256": "e463d8846f9de4afd77c65726517fb61c9c0dfc06baf75fc0842dc579cbcf3f5"
-    },
-    {
       "path": "src/platform_native/host_bootstrap/backing_growth_native.mbt",
       "bytes": 2805,
       "sha256": "602ae75dedac4b3e0c6669ad601d6291fe74998b3cf5c5feb1d446b796eccc39"
@@ -159,8 +144,68 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_domain_growth.inc",
-      "bytes": 13360,
-      "sha256": "64da9823085f699fd982382749b5b433b514e8829480deee8f277f7af2f08af7"
+      "bytes": 21793,
+      "sha256": "7281cba63a3083e1baeb9b8c7238c111e84f7d0df98cf381ed5b8303fceea620"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backed_live_child_native.mbt",
+      "bytes": 14904,
+      "sha256": "ababbdf41be623d581c48558ca418f216446f38c8bdfe49954de282dbd3587f5"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backed_request_preparation_native.mbt",
+      "bytes": 10233,
+      "sha256": "41a8cc864e39101d0b99010a1dde8b76ff1cc6051d0c7ee11ceddaeac3733993"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt",
+      "bytes": 8357,
+      "sha256": "e3733a5ba9fbbf141e99cfc0dfe1531d1c55827fccb6723384b62a442e9a04c0"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/root_control.inc",
+      "bytes": 8322,
+      "sha256": "3ffe0ec91f286c11fda1918b9480e3e79214e7fc42348f9d400a7ec6aaa0195e"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/root_control_native.mbt",
+      "bytes": 7497,
+      "sha256": "df72eecb2d2ecef1442ce282ca6d1533d6d53a51fac614c7245c099a195cabb3"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt",
+      "bytes": 8530,
+      "sha256": "d7ab3295bb331c493b25ddbb446f0622324ec52d14691025a1fc685f585f9c78"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/root_control_unavailable_wbtest.mbt",
+      "bytes": 1125,
+      "sha256": "ee654ae3e4a4c14c1eaa0504e6d363e2e6e8d4abc49afee391a8cec098b30eb1"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/scoped_read.c",
+      "bytes": 74022,
+      "sha256": "48ef708950d07e78b2ef1b309ea2ceabe42a046015b9ad423e77532e5c706829"
+    },
+    {
+      "path": "scripts/test_native_prepared_controls.py",
+      "bytes": 5546,
+      "sha256": "5f8c16f1b9452469f69db8ca0949c5a5d6a2e34a7cfef624c2e9b451fefb5bf5"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/working_origin.inc",
+      "bytes": 8439,
+      "sha256": "31c6a783783bf5652d86dcada06c408f9aefc54c19d7889eaa22a372c2320a1e"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/working_origin_fixture.c",
+      "bytes": 8643,
+      "sha256": "f73494540230d02b08e5fd0b52c8f4425f11ecea99b82c3df2c13bbc0eab6990"
+    },
+    {
+      "path": "scripts/test_native_working_origin.py",
+      "bytes": 5362,
+      "sha256": "e08612721fc2def3496740c5f26401d940ede8a5fc99875e0ce17f1f57aef650"
     }
   ]
 }

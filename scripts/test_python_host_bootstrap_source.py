@@ -68,9 +68,33 @@ class SourceClosureTests(unittest.TestCase):
 
     def test_source_closure_does_not_claim_physical_or_installed_success(self):
         result = self.check()
-        self.assertEqual(result['verified_inputs'], 32)
+        self.assertEqual(result['verified_inputs'], 41)
         self.assertEqual(result['native_execution'], 0)
         self.assertIs(result['installed_capability'], False)
+
+    def test_root_control_sources_cannot_be_omitted(self):
+        for required in (
+            'src/platform_native/host_bootstrap/root_control.inc',
+            'src/platform_native/host_bootstrap/root_control_native.mbt',
+            'src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt',
+            'src/platform_native/host_bootstrap/root_control_unavailable_wbtest.mbt',
+            'packages/python-local-runtime/native/pre-root/fixtures/scoped_read.c',
+            'scripts/test_native_prepared_controls.py',
+            'src/platform_native/host_bootstrap/working_origin.inc',
+            'src/platform_native/host_bootstrap/working_origin_fixture.c',
+            'scripts/test_native_working_origin.py',
+
+        ):
+            with self.subTest(path=required):
+                self.assertIn(required, INPUTS)
+                original = self.manifest['inputs']
+                self.manifest['inputs'] = [entry for entry in original
+                                           if entry['path'] != required]
+                self.write_manifest()
+                with self.assertRaisesRegex(ValueError, 'source manifest'):
+                    self.check()
+                self.manifest['inputs'] = original
+                self.write_manifest()
 
     def test_request_original_carriers_cannot_be_omitted(self):
         for required in (
