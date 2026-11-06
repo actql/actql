@@ -55,6 +55,27 @@ let native_json_reader : @source.JsonDataReader[NativeJsonValue] = {
 }
 
 ///|
+// Exact authored public 100-column/99-row fixture, without a caller policy
+// override or a serialization fallback in the production native entry.
+extern "js" fn request_native_wide_public_program() -> String =
+  #|() => {
+  #| const fields = Array.from({length:100},(_,i)=>`v${i}`);
+  #| const rows = Array.from({length:99},(_,r)=>Object.fromEntries(fields.map((name,c)=>[name,r+c])));
+  #| return JSON.stringify({version:'actql/0.1',id:'static-limit-acceptance',stages:[{id:'main',inputs:{},steps:[{as:'v',values:{schema:Object.fromEntries(fields.map(name=>[name,{type:'number',nullable:false}])),rows}}],results:{rows:{from:'v',fields}}}],results:{answer0:{from:{stage:'main',result:'rows'}}}});
+  #|}
+
+///|
+test "standard native Program input retains the original public 100 by 99 Values document" {
+  let document = request_native_wide_public_program()
+  assert_eq(document.length(), 98034)
+  let limits = @publication_host.client_standard_program_preparation_limits().checking.input
+  let admitted = @syntax.admit_captured_program_input(
+    request_native_test_value(document), native_json_reader, limits,
+  )
+  assert_true(admitted is Ok(_))
+}
+
+///|
 #cfg(target="js")
 extern "js" fn request_native_test_value(document : String) -> NativeJsonValue =
   #|(document) => JSON.parse(document)
