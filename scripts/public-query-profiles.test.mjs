@@ -312,9 +312,11 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // Retain the accepted 4,221-case corpus, including its five cases missing
   // from the previous pin, then register eleven whole-ARRAY successes, seven
   // refusals and one demanded failure through the active membership selection.
+  // Query signed zero moves one existing occurrence from refusal to success;
+  // the remaining authored payloads and their relative order are unchanged.
   assert.equal(pin.totalCases, 4240);
-  assert.deepEqual(pin.counts, {"successes":2650,"executionFailures":54,"refusals":1536});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2596,"executionFailures":52,"refusals":1497}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  assert.deepEqual(pin.counts, {"successes":2651,"executionFailures":54,"refusals":1535});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2597,"executionFailures":52,"refusals":1496}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
     {name: 'graph-subtraction-null-is-not-zero', positions: [29, 50]},
     {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 51]},
