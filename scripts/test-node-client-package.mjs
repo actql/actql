@@ -1636,7 +1636,10 @@ const {client: installedLocal, execution, rows} = await runApplication(
 assert.equal(execution.profile.durability, 'durable');
 assert.equal((await execution.status()).status, 'succeeded');
 assert.deepEqual(rows, [{id: 1}, {id: 2}]);
-assert.equal((await execution.cancel()).kind, 'already_terminal');
+const terminalCancellation = await execution.cancel();
+assert.equal(terminalCancellation.kind, 'already_satisfied');
+assert.equal(terminalCancellation.cancellation.kind, 'already_terminal');
+assert.deepEqual(terminalCancellation.cancellation.ref, execution.ref);
 assert.equal((await execution.status()).control.physical_stop, 'confirmed');
 await assert.rejects(execution.result('answer').all({maxRows: 1}),
   {code: 'ResultRetainedLimit'});
@@ -1753,7 +1756,10 @@ const acquiredStarted = await acquiredLocal.client.start(
     parameters: {minimum: 1}});
 assert.equal((await acquiredStarted.wait()).status, 'succeeded');
 assert.deepEqual(await acquiredStarted.result('b').all(), acquiredLocal.b);
-assert.equal((await acquiredStarted.cancel()).kind, 'already_terminal');
+const acquiredTerminalCancellation = await acquiredStarted.cancel();
+assert.equal(acquiredTerminalCancellation.kind, 'already_satisfied');
+assert.equal(acquiredTerminalCancellation.cancellation.kind, 'already_terminal');
+assert.deepEqual(acquiredTerminalCancellation.cancellation.ref, acquiredStarted.ref);
 writeFileSync('acquired-local-ref.json',
   JSON.stringify(acquiredLocal.execution.ref));
 acquiredLocal.client.close();
