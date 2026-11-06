@@ -55,7 +55,16 @@ test "Native Local capture binding refuses foreign journal request Run and missi
   )
   let materials = effect_original_restore_fixture_call(host, reference, request).unwrap()
   let before = run_record_body(host.journal.retained(request).unwrap().unwrap()).unwrap()
-  let other = policy_host_fixture("local-capture-binding-other-host")
+  // Both live Hosts retain distinct exclusive Adoption parents.
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let parent = @filesystem.open_private_root(path).unwrap()
+  let state_name = "local-capture-binding-other-parent"
+  parent.create_directory(state_name).unwrap() |> ignore
+  parent.close().unwrap()
+  let other = policy_host_fixture(
+    "local-capture-binding-other-host",
+    state_parent=Some(path + "/" + state_name),
+  )
   assert_true(
     local_capture_binding_fixture_call(
       host,
