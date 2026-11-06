@@ -555,7 +555,7 @@ fn prepare_client_query_acquisition_prefix(
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
   )? = None,
-) -> @execution.GeneratedSequence? {
+) -> (@execution.GeneratedSequence, @sourceviews.QueryAcquisition)? {
   let query = match (prepared, query_time) {
     (Pure(value), Some((original, request))) =>
       @publication_host.prepare_client_query_acquisition_at_query_time(
@@ -592,6 +592,7 @@ fn prepare_client_query_acquisition_prefix(
   )
   .to_option()
   .bind(sequences => sequences.get(0))
+  .map(sequence => (sequence, query))
 }
 
 ///|
