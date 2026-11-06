@@ -185,7 +185,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     return record;
   }
   const rows = text => text.trim().split('\n').map(line => JSON.parse(line));
-  let receipt, failure, runIngress;
+  let receipt, failure, runIngress, verifyInstalledOriginals;
   try {
     for (const path of [prefix, env.HOME, env.TMPDIR, join(root, 'empty-path')]) await mkdir(path);
     await writeFile(join(root, 'npmrc'), `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
@@ -200,6 +200,10 @@ async function observeInstalledSourceFree(input, observationPath) {
     const originalBinary = await readFile(join(platformRoot, 'bin/actql-native-client'));
     assert.equal(originalBinary.length, expected.binaryBytes);
     assert.equal(createHash('sha256').update(originalBinary).digest('hex'), expected.binarySha256);
+    verifyInstalledOriginals=async()=>{
+      assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), originalBinary);
+      assert.deepEqual(checkoutState(repository), source);
+    };
     // Reuse this same installed cohort and its actual launcher/runtime. The
     // Remote-only CLI harness cannot supply the Local preparation constructor.
     const localRuntime=admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime,
@@ -282,8 +286,6 @@ async function observeInstalledSourceFree(input, observationPath) {
     }
     await cli(['result', state.run_id, '--format', 'jsonl', '--output', 'saved.jsonl']);
     assert.deepEqual(rows(await readFile(join(project, 'saved.jsonl'), 'utf8')), [{id: 1}]);
-    assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), originalBinary);
-    assert.deepEqual(checkoutState(repository), source);
     receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
       cliSourceSha: manifest.sourceSha, platform, node: process.version, glibc: glibc ?? null,
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
@@ -300,6 +302,13 @@ async function observeInstalledSourceFree(input, observationPath) {
     try {await runIngress();}
     catch(error) {failure=failure===undefined?error:
       new AggregateError([failure,error],'Installed Local execution and ingress failed');}
+  }
+  // The original before/after fences cover both independent case groups,
+  // including their failure continuations, before any observation is accepted.
+  if(verifyInstalledOriginals) {
+    try {await verifyInstalledOriginals();}
+    catch(error) {failure=failure===undefined?error:
+      new AggregateError([failure,error],'Installed Local cases and original correspondence failed');}
   }
   await finishSourceFreeObservations(receipt, failure, {
     close: () => registry.close(),
