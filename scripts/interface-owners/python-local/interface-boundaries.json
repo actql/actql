@@ -143,7 +143,7 @@
     {
       "module": "packages/native-cli/bin/actql.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8d6ea4d347994cabbf47e7670c424ff63487aa975c111cf1d746241cf7510c96",
+      "sha256": "75245533470653baeb57c7a79417ab1f9cebdefb6145624617629954c89845c4",
       "exports": [
         "admitInstalledBinary",
         "launch",
@@ -473,6 +473,10 @@
               {
                 "path": "packages/native-cli/bin/actql.mjs",
                 "anchor": "return child.status ??"
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "if (selectedEnvironment.ACTQL_NATIVE_LOCAL_RUNTIME === undefined)"
               }
             ],
             "cancellation": {
@@ -526,6 +530,10 @@
               {
                 "path": "scripts/native-cli-project-init.test.mjs",
                 "anchor": "test('root README deal-review init selects its exact documented template"
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('an installed package without Local runtime refuses every init template before any project writes'"
               }
             ]
           }

@@ -16,8 +16,28 @@ const standaloneHome = process.env.ACTQL_TEST_NATIVE_STANDALONE_HOME;
 const childEnvironment = standaloneHome === undefined ? undefined : {
   PATH: '', HOME: standaloneHome, TMPDIR: join(standaloneHome, 'tmp'), LANG: 'C',
 };
+// Authentication identifies the caller; the operator still supplies the exact
+// Account permissions for the pure request and its two independent read scopes.
+const authorization = {accountConfiguration: JSON.stringify({
+  version: 'actql-execution-account-config/0.1', account_id: 'native-release-http',
+  entries: [{entry_id: 'compute-write', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['source-free-values']},
+    operation: {any_of: ['write']}, exclusions: []},
+  {entry_id: 'result-main-read', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/main']},
+    operation: {any_of: ['read']}, exclusions: []},
+  {entry_id: 'run-read', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['run']},
+    operation: {any_of: ['read']}, exclusions: []}],
+})};
 let computes = 0;
-const host = await openInstalledRemoteHttpHost({directory: join(root, 'host-state'),
+const host = await openInstalledRemoteHttpHost({directory: join(root, 'host-state'), authorization,
   beforeDispatch: () => {computes++;}, authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
 const certificate = await readFile('remote.crt');
 const server = createServer({key: await readFile('remote.key'), cert: certificate,
@@ -68,11 +88,11 @@ try {
   const attached = JSON.parse(await run('attach', '--ref-file', 'run.json')); assert.deepEqual(attached.ref, accepted.ref);
   const lookup = JSON.parse(await run('lookup-submission', '--submission-ref-file', 'submission.json'));
   assert.equal(lookup.kind, 'ready'); assert.deepEqual(lookup.admission.ref, accepted.ref);
-  const rows = (await run('read', '--ref-file', 'run.json', '--result-name', 'answer', '--attempt-id', 'native-release-read'))
+  const rows = (await run('read', '--ref-file', 'run.json', '--result-name', 'main', '--attempt-id', 'native-release-read'))
     .trimEnd().split('\n').map(JSON.parse);
   assert.deepEqual(rows, [{id: 1}, {id: 2}]);
   const delivery = JSON.parse(await run('delivery-attempt', '--ref-file', 'run.json',
-    '--result-name', 'answer', '--attempt-id', 'native-release-read'));
+    '--result-name', 'main', '--attempt-id', 'native-release-read'));
   assert.equal(delivery.kind, 'found');
   assert.equal(delivery.attempt.attempt_id, 'native-release-read');
   assert.equal(delivery.record.state, 'succeeded');
@@ -80,7 +100,7 @@ try {
   client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${schemaServer.address().port}/`,
     token: 'fixture-token', durability: 'durable'});
   const execution = await client.attach(accepted.ref);
-  assert.deepEqual((await execution.result('answer').describe()).columns,
+  assert.deepEqual((await execution.result('main').describe()).columns,
     [{name: 'id', contract: {type: 'number', nullable: false}}]);
   const cancellation = JSON.parse(await run('cancel', '--ref-file', 'run.json', '--cancel-id', 'native-release-terminal-cancel',
     '--expected-revision', String(attached.revision),

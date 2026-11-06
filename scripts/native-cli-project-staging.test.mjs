@@ -33,7 +33,8 @@ test('staged private project preparation runs from exact selected bytes without 
   const {scaffoldProject} = await import(pathToFileURL(join(stage, 'lib/project-scaffold.mjs')));
   const project = join(scratch, 'project');
   const result = scaffoldProject(project, 'churn-risk-mock');
-  assert.equal(result.files.length, 7);
+  assert.deepEqual([...result.files].sort(), ['actql.config.json', 'churn-risk.aql', 'connectors.json',
+    'mock/catalog.json', 'mock/churn-risk.v1.answers.yaml', 'mock/data.json', 'model-tasks.json', 'model-tasks/churn-risk.v1.yaml']);
   assert.equal(await readFile(join(project, 'churn-risk.aql'), 'utf8'),
     (await readFile(join(root, 'docs/getting-started/quickstart.md'), 'utf8')).match(/```sql\n([\s\S]*?)```/u)[1]);
   assert.deepEqual(await readdir(join(stage, 'lib')), [

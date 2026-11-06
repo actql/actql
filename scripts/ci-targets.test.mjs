@@ -557,7 +557,7 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
     'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
-    'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
+    'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'native-cli-installed'];
   for (const name of heavy) {
     assert(jobs[name].needs.includes('select-targets'));
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'maintenance', macos: 'false'}}}), false);
