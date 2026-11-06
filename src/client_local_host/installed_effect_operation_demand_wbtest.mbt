@@ -242,6 +242,7 @@ test "original implementation control material shares the checked row inventory 
 // generated, and expected identities/rows are not taken from execution output.
 fn effect_operation_source_plan_fixture(
   bounded_output? : Bool = false,
+  source_width? : Int = 1,
   additional_source? : Bool = false,
   second_result? : Bool = false,
   same_unit_results? : Bool = false,
@@ -251,23 +252,27 @@ fn effect_operation_source_plan_fixture(
     @publication_host.ClientRequestIdentity,
   ) -> @publication_host.ClientQueryTimePreparation)? = None,
 ) -> ClientInstalledEffectManagedPlan raise {
+  let fields : Array[@row_source_host.RowField] = [
+    { name: "id", value_type: "number", nullable: false, },
+  ]
+  for index in 1..<source_width {
+    fields.push({
+      name: "field_" + index.to_string(),
+      value_type: "number",
+      nullable: false,
+    })
+  }
   let declaration = @row_source_host.generate_row_declaration(
     "operation-source",
     "fixture",
     "fixture/0.1",
-    [
-      {
-        resource: "r",
-        resource_kind: "record",
-        fields: [{ name: "id", value_type: "number", nullable: false, }],
-      },
-    ],
+    [{ resource: "r", resource_kind: "record", fields, }],
     {
       max_bytes: 1000000,
       max_nodes: 100000,
       max_depth: 100,
       max_views: 1,
-      max_fields: 1,
+      max_fields: source_width,
     },
   ).unwrap()
   let parsed = @json.parse(source_query_original_environment)
@@ -325,6 +330,18 @@ fn effect_operation_source_plan_fixture(
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"source-effect-operation-plan","stages":[{"id":"acquire","inputs":{"remote":{"connector":"operation-source","resource":"r"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id"]}}},{"id":"apply","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"id > 2","as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"apply","result":"rows"}}}}
+  let document = if source_width == 1 {
+    document
+  } else {
+    let names = fields
+      .map(field => Json::string(field.name))
+      .to_json()
+      .stringify()
+    document.replace(
+      old="{\"select\":[\"id\"],\"as\":\"captured\"}",
+      new="{\"select\":" + names + ",\"as\":\"captured\"}",
+    )
+  }
   // The acquired Unit publishes a Result computed after its captured prefix.
   // Both the root Result and the downstream Effect retain that exact producer.
   let document = if same_unit_results {

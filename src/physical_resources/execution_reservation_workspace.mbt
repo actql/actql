@@ -63,6 +63,21 @@ pub fn reduce_execution_reservation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  reduce_execution_reservation_current(ledger, reservation, remaining_execution)
+}
+
+///|
+// Same closed original/current boundary used by managed response projection.
+// Do not call another original current observer between this fence and disposal.
+fn reduce_execution_reservation_current(
+  ledger : Ledger,
+  reservation : Reservation,
+  remaining_execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  match reservation_check_current(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   // Inspect restrictions after the same original current callback: it may
   // close the reservation or change its imported owner's current policy.
   if imported_child_fixed_capacity(ledger, reservation) {

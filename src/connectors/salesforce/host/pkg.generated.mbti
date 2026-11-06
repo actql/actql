@@ -22,7 +22,7 @@ pub fn effect_construction_profile(@catalog.WriteBodyLimits, @catalog.WriteReque
 
 pub fn effect_driver_construction_capacity() -> @execution_relation.ExecutionCapacity?
 
-pub fn effect_metadata_input_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, @catalog.DescribeLimits, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
+pub fn effect_metadata_input_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, @catalog.DescribeLimits, Int, Int, Int, Int, source_geometry? : @source_value.JsonSourceGeometry?) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
 
 pub fn effect_recovery_preview_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
@@ -58,9 +58,11 @@ pub fn managed_query_next_path(ManagedQuery) -> Result[String?, ManagedQueryIssu
 
 pub fn managed_query_row_count(ManagedQuery) -> Int64
 
-pub fn named_describe_construction_capacity(@catalog.DescribeLimits, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+pub fn named_describe_construction_capacity(@catalog.DescribeLimits, Int, Int, Int, source_geometry? : @source_value.JsonSourceGeometry?) -> @execution_relation.ExecutionCapacity?
 
-pub fn native_read_construction_capacity(@catalog.DescribeLimits, @catalog.QueryPageLimits, Int, Int, Int, Int, Int, Int, Int, query_geometry? : @source_value.JsonSourceGeometry?, value_nodes? : Int?) -> @execution_relation.ExecutionCapacity?
+pub fn named_describe_response_geometry(Bytes, @catalog.DescribeLimits) -> @source_value.JsonSourceGeometry?
+
+pub fn native_read_construction_capacity(@catalog.DescribeLimits, @catalog.QueryPageLimits, Int, Int, Int, Int, Int, Int, Int, query_geometry? : @source_value.JsonSourceGeometry?, describe_geometry? : @source_value.JsonSourceGeometry?, value_nodes? : Int?) -> @execution_relation.ExecutionCapacity?
 
 pub fn prepare_installed_salesforce_declared_row_acquisition(InstalledSalesforceDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, InstalledSalesforceIssue]
 

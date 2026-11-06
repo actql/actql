@@ -314,6 +314,11 @@ pub fn client_program_installed_salesforce_current_response_capacity(
     (Some(_), None) => return Err(InvalidLimits)
     (None, _) => (None, None, columns)
   }
+  let describe_geometry = match (read, body) {
+    (None, Some(body)) =>
+      installed_salesforce_describe_source_geometry(body, describe)
+    _ => None
+  }
   let metadata = Int::max(1, metadata_bytes)
   let query_bytes = geometry.map(g => Int::max(1, g.input_bytes)).unwrap_or(1)
   let native = @salesforce_host.native_read_construction_capacity(
@@ -343,6 +348,7 @@ pub fn client_program_installed_salesforce_current_response_capacity(
     api_units,
     soql_units,
     query_geometry=geometry,
+    describe_geometry~,
     value_nodes=if geometry is Some(_) { value_nodes } else { Some(1) },
   )
   guard @client_local_host.installed_native_source_reader_capacity(
@@ -386,4 +392,24 @@ pub fn client_program_installed_salesforce_current_response_capacity(
     return Err(InvalidLimits)
   }
   Ok(capacity)
+}
+
+///|
+// The shared Reader already retains the SAME received body and funds the
+// next decoded Source String/preflight controls BEFORE calling this quote
+// (installed_native_source_reader_capacity). Scan syntax only, with the exact
+// existing parser limits; no Catalog, field/type admission or provider I/O.
+// Only the current parser/index workspace uses this geometry. On refusal,
+// keep the former complete envelope and original metadata consumer/error path.
+fn installed_salesforce_describe_source_geometry(
+  body : Bytes,
+  limits : Array[Int],
+) -> @source.JsonSourceGeometry? {
+  @salesforce_host.named_describe_response_geometry(body, {
+    max_bytes: limits[0],
+    max_nodes: limits[1],
+    max_depth: limits[2],
+    max_fields: limits[3],
+    max_name_units: limits[4],
+  })
 }

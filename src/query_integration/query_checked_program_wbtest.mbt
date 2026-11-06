@@ -1782,9 +1782,19 @@ fn query_checked_sequence(
     max_name_bytes=10000,
     expression_profiles=checked_expression_profile_admission(checked),
   ).unwrap()
+  // This fixture prepares the original acquisition, not any later checked
+  // Program projection. Retain its owned capture prefix on the same pipeline.
+  let capture_end = match prefix_end {
+    Some(_) => prefix_end
+    None =>
+      match @acquisition.query_acquisition_capture(query) {
+        @pipeline.Step(index) => Some(index)
+        _ => fail("Expected the original query capture step")
+      }
+  }
   @query.prepare_query_sequence(
     query,
-    query_generated(bound, prefix_end~),
+    query_generated(bound, prefix_end=capture_end),
     10000,
   ).unwrap()
 }
@@ -1865,4 +1875,24 @@ test "public CheckedProgram feeds both query strategies capture and checked cons
     )
     is Err(ForeignProgram),
   )
+}
+
+///|
+// The same Host-owned RowRun completes its bounded acquisition prefix before
+// an installed borrowed reader can expose any captured evidence.
+fn query_capture_original_row_run(
+  run : @row_host.RowRun,
+) -> Result[@row_host.RowSourceCapture, @row_host.RowHostIssue] raise {
+  match @row_host.begin_row_capture(run) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  for _ in 0..<1000 {
+    match @row_host.advance_row_capture(run, 1) {
+      Ok((true, _)) => return @row_host.capture_row_run(run)
+      Ok((false, _)) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  fail("Original Host capture exceeded its fixture work bound")
 }

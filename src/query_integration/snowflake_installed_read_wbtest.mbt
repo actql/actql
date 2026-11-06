@@ -67,6 +67,18 @@ test "Snowflake installed response borrows the same run but cannot finish captur
     @snowflake_read.finish_result_read(read) is Err(@snowflake_read.BorrowedRun),
   )
   assert_true(
+    @snowflake_read.begin_result_capture(read)
+    is Err(@snowflake_read.BorrowedRun),
+  )
+  assert_true(
+    @snowflake_read.advance_result_capture(read, 1)
+    is Err(@snowflake_read.BorrowedRun),
+  )
+  assert_true(
+    @snowflake_read.advance_result_capture_cleanup(read, 1)
+    is Err(@snowflake_read.BorrowedRun),
+  )
+  assert_true(
     @snowflake_read.capture_result_read(read)
     is Err(@snowflake_read.BorrowedRun),
   )
@@ -83,7 +95,7 @@ test "Snowflake installed response borrows the same run but cannot finish captur
   assert_true(@resources.ledger_usage(ledger).reserved_execution_bytes > 0L)
   // Exactly one Common finish and capture remains with the original Host.
   @row_host.finish_row_run(run).unwrap()
-  let captured = @row_host.capture_row_run(run).unwrap()
+  let captured = query_capture_original_row_run(run).unwrap()
   let source = @row_host.row_capture_source(captured).unwrap()
   let input = @query.captured_source_storage(source, 10000, 10000).unwrap()
   assert_true(

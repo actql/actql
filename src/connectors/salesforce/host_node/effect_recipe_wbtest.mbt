@@ -317,3 +317,130 @@ test "Salesforce cold capture bounds nested observation and saved wire by the or
   assert_true(capture(0, 4000000, 8192) is None)
   assert_true(capture(8000000, 0, 8192) is None)
 }
+
+///|
+fn current_metadata_profile_fixture() -> Array[
+  (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+]? {
+  salesforce_effect_construction_profile(
+    100000, 10000, 16, 2048, 1024, 100000, 100000, 10000, 16, 4096, 100000, 1000,
+    16, 4000000, 400000, 32, 1000, 200000, 8000000, 306, 3, 22, 5, 14,
+  )
+}
+
+///|
+test "current Effect metadata uses original Source geometry within the unchanged normal parent" {
+  let original = current_metadata_profile_fixture()
+  let body = @utf8.encode(
+    "{\"name\":\"Account\",\"queryable\":true,\"description\":\"" +
+    "a".repeat(250000) +
+    "\",\"fields\":[{\"name\":\"Id\",\"type\":\"id\",\"nillable\":false}]}",
+  )
+  let legacy = salesforce_effect_metadata_input_construction_profile(
+      original,
+      4000000,
+      400000,
+      32,
+      1000,
+      200000,
+      8000000,
+      306,
+      14,
+      body.length(),
+    ).unwrap()[3].0
+  let current = salesforce_effect_current_metadata_construction_profile(
+      original, 4000000, 400000, 32, 1000, 200000, 8000000, 306, 14, body,
+    ).unwrap()[3].0
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(current),
+    @execution.execution_capacity_retained_bytes(legacy),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(legacy) > 536870912L,
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(current) < 536870912L,
+  )
+  let initial = salesforce_effect_metadata_input_construction_profile(
+      original, 4000000, 400000, 32, 1000, 200000, 8000000, 306, 14, 0,
+    ).unwrap()[3].0
+  // This SAME initial occurrence funds a full bounded decoded Source String
+  // before the current-body quantity callback, not after its construction.
+  let controls = @source.json_source_preflight_control_extent()
+  let preflight = @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: controls.record_headers + 4L,
+      reference_slots: controls.reference_slots + 10L,
+      scalar_words: controls.scalar_words + 4L,
+      owned_utf16_units: 4000000L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  }).unwrap()
+  assert_true(
+    @execution.execution_capacity_execution_bytes(initial) >=
+    @execution.execution_capacity_retained_bytes(initial) +
+    @execution.execution_capacity_execution_bytes(preflight),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(initial) <=
+    @execution.execution_capacity_execution_bytes(current),
+  )
+}
+
+///|
+test "current Effect metadata preserves original parser refusal and lexical fallback" {
+  let original = current_metadata_profile_fixture()
+  let body = @utf8.encode("{\"description\":\"" + "a".repeat(250000) + "\"}")
+  let before = @utf8.encode("{\"description\":\"" + "a".repeat(250000) + "\"}")
+  for nodes in [1, 400000] {
+    let current = salesforce_effect_current_metadata_construction_profile(
+        original, 4000000, nodes, 32, 1000, 200000, 8000000, 306, 14, body,
+      ).unwrap()[3].0
+    let legacy = salesforce_effect_metadata_input_construction_profile(
+        original,
+        4000000,
+        nodes,
+        32,
+        1000,
+        200000,
+        8000000,
+        306,
+        14,
+        body.length(),
+      ).unwrap()[3].0
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(current),
+      @execution.execution_capacity_retained_bytes(legacy),
+    )
+    if nodes == 1 {
+      assert_eq(
+        @execution.execution_capacity_execution_bytes(current),
+        @execution.execution_capacity_execution_bytes(legacy),
+      )
+    }
+  }
+  assert_eq(body, before)
+  // No Describe name/queryable/fields were supplied. Quantity does not admit
+  // that grammar: the original metadata consumer still rejects it.
+  assert_true(
+    @catalog.project_describe(body, "Account", {
+      max_bytes: 4000000,
+      max_nodes: 400000,
+      max_depth: 32,
+      max_fields: 1000,
+      max_name_units: 200000,
+    })
+    is Err(_),
+  )
+}

@@ -7,6 +7,7 @@ import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mj
 import {contentGenerationControl} from '../host-common/runtime-core.mjs';
 import {localOutputLimits, localContractLimits} from './local-values-plan.mjs';
 import {cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
+import {canonical} from './fixtures/file-listing-source.fixture.mjs';
 
 // Actual methods with explicit Core/current ports. These are not a compiled
 // Common ABI, a physical capacity admission or an ordinary Content receipt.
@@ -661,7 +662,10 @@ test('Content fixture selects the same one-page wire extents before its installe
     'maxTotalRows', 'maxPages', 'pageSize', 'maxCursorBytes', 'maxIdentityBytes', 'maxTargetBytes',
     'maxValueNodes', 'maxValueTextBytes', 'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth'];
   const declared = {catalog_cid: 'original declaration', views: [{fields: ['destination', 'content', 'name']}]};
-  const fixture = {declarationViewsWire: 'original declaration wire', declared};
+  const command={destination:'original destination',content:'original content'};
+  declared.command_bodies=[canonical(command)];
+  const fixture={declarationViewsWire:'original declaration wire',declared,command,
+    commandCatalogCid:declared.catalog_cid,commandContracts:{}};
   // Exact existing profile fields with a smaller control for the same min law.
   // These are DATA limits, not a Resource admission or an installed runtime.
   for (const nodeCeiling of [100000, 1024]) {
@@ -670,13 +674,18 @@ test('Content fixture selects the same one-page wire extents before its installe
         4000000, 1000000, 9180448, 10000, 1000000, 10000000, 100000, 100, 65536][index]])));
     const installation = {}, services = {}, moon = {}, origin = 'https://127.0.0.1:12345';
     let declarations = 0, profiles = 0, constructors = 0;
-    const sourceInitialization = {prepareDeclaration(wire) {
-      assert.equal(wire, fixture.declarationViewsWire); declarations++;
+    const sourceInitialization = {prepareAuthoredCommands(wire, authored) {
+      assert.equal(wire,fixture.declarationViewsWire);
+      assert.equal(authored.operation,'files.write');
+      assert.strictEqual(authored.contracts,fixture.commandContracts);
+      assert.deepEqual(authored.commands,[{resource:'transfers',body:canonical(command)}]);
+      assert.ok(Object.isFrozen(authored));assert.ok(Object.isFrozen(authored.commands));
+      declarations++;
       return {declaration: {}, declared, environment: {wire: 'original environment'}};
     }};
     const reached = new Error('original installed reader constructor boundary');
     const load = method('./fixtures/managed-content-source.fixture.mjs', 'load', {
-      assert, fixture, origin, installedJsonSourceReaderLimitNames: names,
+      assert, canonical, fixture, origin, installedJsonSourceReaderLimitNames: names,
       captureInstalledSourceServices(value) {
         assert.equal(value, services);
         return (name, args) => {

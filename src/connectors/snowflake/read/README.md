@@ -119,3 +119,13 @@ Those remain the next consuming physical boundary, sharing this original Run.
   exhaustion, partial begin, interruption and retained same-attempt cleanup;
   nominal one-shot SQL API candidates, non-row statuses, original handles,
   response-ticket replay/foreign rejection and bounded decoder refusal.
+
+Owned reads expose Common's existing bounded acquisition capture through
+`begin_result_capture` and `advance_result_capture(read, quantum)`. Callers
+finish page admission first, drive that same child to completion, then obtain
+its checked evidence with `capture_result_read`. The legacy synchronous path
+still refuses unsupported shapes; it does not execute later Program stages.
+Borrowed readers cannot use these owned capture entries. A close that retains a
+pending child can retry `advance_result_capture_cleanup` on the same original;
+this cannot resume pages or computation, confirm physical stop, or create a
+replacement attempt.

@@ -188,12 +188,15 @@
     },
     {
       "module": "src/connectors/bigquery/read/pkg.generated.mbti",
-      "sha256": "a8dc7748c2cedf48c8328446f3de9c5b14e6713170083f1d10fdd927726b0bf7",
+      "sha256": "f51b833f50be4fd70f35689228cf02e97988a456de789651c7168406334bd75f",
       "exports": [
         "pub fn accept_charged_job_response(JobRead, JobResponse, Bytes) -> Result[Unit, JobIssue]",
         "pub fn accept_job_response(JobRead, JobRequest, Int, Bytes, Bytes) -> Result[Unit, JobIssue]",
         "pub fn accept_query_page(Read, String?, Bytes) -> Result[Int, ReadIssue]",
+        "pub fn advance_result_capture(Read, Int) -> Result[(Bool, Int64), ReadIssue]",
+        "pub fn advance_result_capture_cleanup(Read, Int) -> Result[Bool, ReadIssue]",
         "pub fn attempt_job_request(JobRead, JobRequest) -> Result[Unit, JobIssue]",
+        "pub fn begin_result_capture(Read) -> Result[Unit, ReadIssue]",
         "pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]",
         "pub fn borrow_accounted_read(PreparedRead, @client_row_source_host.RowRun, @catalog.QueryJob, @catalog.QueryLimits, Int) -> Result[Read, ReadIssue]",
         "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]",
@@ -250,8 +253,20 @@
           "declaration": "pub fn accept_query_page(Read, String?, Bytes) -> Result[Int, ReadIssue]"
         },
         {
+          "name": "advance_result_capture",
+          "declaration": "pub fn advance_result_capture(Read, Int) -> Result[(Bool, Int64), ReadIssue]"
+        },
+        {
+          "name": "advance_result_capture_cleanup",
+          "declaration": "pub fn advance_result_capture_cleanup(Read, Int) -> Result[Bool, ReadIssue]"
+        },
+        {
           "name": "attempt_job_request",
           "declaration": "pub fn attempt_job_request(JobRead, JobRequest) -> Result[Unit, JobIssue]"
+        },
+        {
+          "name": "begin_result_capture",
+          "declaration": "pub fn begin_result_capture(Read) -> Result[Unit, ReadIssue]"
         },
         {
           "name": "bind_borrowed_read_transport",
@@ -400,7 +415,10 @@
             "accept_charged_job_response",
             "accept_job_response",
             "accept_query_page",
+            "advance_result_capture",
+            "advance_result_capture_cleanup",
             "attempt_job_request",
+            "begin_result_capture",
             "bind_borrowed_read_transport",
             "borrow_accounted_read",
             "capture_result_read",
@@ -440,7 +458,10 @@
             "pub fn accept_charged_job_response(JobRead, JobResponse, Bytes) -> Result[Unit, JobIssue]",
             "pub fn accept_job_response(JobRead, JobRequest, Int, Bytes, Bytes) -> Result[Unit, JobIssue]",
             "pub fn accept_query_page(Read, String?, Bytes) -> Result[Int, ReadIssue]",
+            "pub fn advance_result_capture(Read, Int) -> Result[(Bool, Int64), ReadIssue]",
+            "pub fn advance_result_capture_cleanup(Read, Int) -> Result[Bool, ReadIssue]",
             "pub fn attempt_job_request(JobRead, JobRequest) -> Result[Unit, JobIssue]",
+            "pub fn begin_result_capture(Read) -> Result[Unit, ReadIssue]",
             "pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]",
             "pub fn borrow_accounted_read(PreparedRead, @client_row_source_host.RowRun, @catalog.QueryJob, @catalog.QueryLimits, Int) -> Result[Read, ReadIssue]",
             "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]",
@@ -550,7 +571,7 @@
     },
     {
       "module": "src/connectors/bigquery/read/read.mbt",
-      "sha256": "928f12dacd9f7514ac4bfbe933bc29bd548ac2bc6eab9bb3eca8d638af226df8",
+      "sha256": "718c1dbaea3fd1ae6d79fa7d377e4391b74e4b10bee88e2c2031715e33839ebb",
       "exports": [],
       "operations": [
         {
@@ -564,6 +585,18 @@
         {
           "name": "accept_query_page",
           "declaration": "accept_query_page ( read : Read , requested_token : String ? , body : Bytes , ) - > Result [ Int , ReadIssue ]"
+        },
+        {
+          "name": "advance_result_capture",
+          "declaration": "advance_result_capture ( read : Read , quantum : Int , ) - > Result [ ( Bool , Int64 ) , ReadIssue ]"
+        },
+        {
+          "name": "advance_result_capture_cleanup",
+          "declaration": "advance_result_capture_cleanup ( read : Read , quantum : Int , ) - > Result [ Bool , ReadIssue ]"
+        },
+        {
+          "name": "begin_result_capture",
+          "declaration": "begin_result_capture ( read : Read ) - > Result [ Unit , ReadIssue ]"
         },
         {
           "name": "bind_borrowed_read_transport",
@@ -652,6 +685,9 @@
             "[T]fail_read",
             "accept_projected_query_page",
             "accept_query_page",
+            "advance_result_capture",
+            "advance_result_capture_cleanup",
+            "begin_result_capture",
             "bind_borrowed_read_transport",
             "borrow_accounted_read",
             "capture_result_read",

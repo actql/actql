@@ -17,8 +17,15 @@ fn sf_read_collection_units(
 // simultaneous. Their shared Source/decoder owners retain every refusal path.
 fn sf_read_describe_parse_inventory(
   limits : @catalog.DescribeLimits,
+  source_nodes? : Int? = None,
 ) -> @execution.PreparationRepresentationUnits? {
-  let nodes = Int::min(limits.max_bytes, limits.max_nodes)
+  let nodes = Int::min(
+    Int::min(limits.max_bytes, limits.max_nodes),
+    source_nodes.unwrap_or(limits.max_nodes),
+  )
+  if nodes < 1 {
+    return None
+  }
   guard @source.json_construction_extent(
       limits.max_bytes,
       nodes,
@@ -96,6 +103,7 @@ fn sf_read_observation_construction_inventory(
   max_observation_bytes : Int,
   binding_units : Int,
   resource_units : Int,
+  source_nodes? : Int? = None,
 ) -> @execution.PreparationExecutionInventory? {
   if limits.max_bytes < 1 ||
     limits.max_nodes < 1 ||
@@ -160,7 +168,7 @@ fn sf_read_observation_construction_inventory(
   guard @encode.text_writer_construction_inventory(observation, 25, 4)
     is Some(writer) &&
     @encode.hash_writer_live_key_inventory(0, 0) is Some(digest) &&
-    sf_read_describe_parse_inventory(limits) is Some(parse) else {
+    sf_read_describe_parse_inventory(limits, source_nodes~) is Some(parse) else {
     return None
   }
   let child = @decode.indexed_child_construction_extent()
@@ -624,10 +632,18 @@ pub fn native_read_construction_capacity(
   api_units : Int,
   soql_units : Int,
   query_geometry? : @source.JsonSourceGeometry? = None,
+  describe_geometry? : @source.JsonSourceGeometry? = None,
   value_nodes? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
   guard sf_read_observation_construction_inventory(
-      describe, max_observation_bytes, binding_units, resource_units,
+      describe,
+      max_observation_bytes,
+      binding_units,
+      resource_units,
+      // Only this parser/index workspace follows the same original body.
+      // Retained prior/current metadata and failed prefixes keep the full
+      // existing Describe limits; the reader's monotonic quote covers both.
+      source_nodes=describe_geometry.map(geometry => geometry.node_upper),
     )
     is Some(metadata) &&
     sf_read_query_construction_inventory(
@@ -648,7 +664,18 @@ pub fn native_read_construction_capacity(
     @execution.preparation_representation_cost(retained) is Some(r) &&
     @execution.preparation_representation_cost(metadata.workspace) is Some(m) &&
     @execution.preparation_representation_cost(query.workspace) is Some(q) &&
-    @execution.checked_preparation_add_product(r, Int64::max(m, q), 1L)
+    // An original current QueryRead/body can exist only after both named
+    // Describe consumers completed. Keep their retained families, not their
+    // already-retired parser/index workspace beside every later query page.
+    @execution.checked_preparation_add_product(
+      r,
+      if query_geometry is Some(_) {
+        q
+      } else {
+        Int64::max(m, q)
+      },
+      1L,
+    )
     is Some(e) else {
     return None
   }
@@ -667,12 +694,82 @@ pub fn named_describe_construction_capacity(
   max_observation_bytes : Int,
   binding_units : Int,
   resource_units : Int,
+  source_geometry? : @source.JsonSourceGeometry? = None,
 ) -> @execution.ExecutionCapacity? {
   guard sf_read_observation_construction_inventory(
-      describe, max_observation_bytes, binding_units, resource_units,
+      describe,
+      max_observation_bytes,
+      binding_units,
+      resource_units,
+      source_nodes=source_geometry.map(geometry => geometry.node_upper),
     )
     is Some(inventory) else {
     return None
   }
   @execution.preparation_execution_capacity(inventory)
+}
+
+///|
+/// Lexical geometry of this original received body only. Its caller funds the
+/// decoded Source String and fixed preflight controls before entering here.
+/// This neither validates Describe grammar nor supplies metadata/authority;
+/// a refused preflight leaves the original consumer's full envelope intact.
+pub fn named_describe_response_geometry(
+  body : Bytes,
+  limits : @catalog.DescribeLimits,
+) -> @source.JsonSourceGeometry? {
+  if body.length() > limits.max_bytes {
+    return None
+  }
+  let text = @utf8.decode(body[:], ignore_bom=false) catch { _ => return None }
+  let preflight = match
+    @source.start_json_source_preflight(text, {
+      max_input_bytes: limits.max_bytes,
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+    }) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  defer @source.cancel_json_source_preflight(preflight)
+  for tick = 0 {
+    match @source.advance_json_source_preflight(preflight, 4096) {
+      Ok(JsonSourceContinue(..)) => continue tick + 1
+      Ok(JsonSourceReady(geometry, ..)) => break Some(geometry)
+      _ => break None
+    }
+  }
+}
+
+///|
+// Pre-entry backing for that exact Source decode and lexical scan. The later
+// Describe parser reuses this workspace sequentially; no grammar tree or
+// metadata family is allocated by this fixed-control prelude.
+fn sf_read_describe_preflight_capacity(
+  max_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  if max_bytes < 1 {
+    return None
+  }
+  let controls = @source.json_source_preflight_control_extent()
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: controls.record_headers + 4L,
+      reference_slots: controls.reference_slots + 10L,
+      scalar_words: controls.scalar_words + 4L,
+      owned_utf16_units: max_bytes.to_int64(),
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
 }

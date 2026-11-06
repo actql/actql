@@ -32,9 +32,10 @@ pub fn effect_driver_construction_capacity() -> @execution.ExecutionCapacity? {
       // operation entries, root/selectors and their original typed carriers.
       // Staging keeps both initial/maximum capacity sets, eight extra extent
       // alternatives/four Some maxima, and four original callback/context
-      // pairs per kind. Five added captured native methods share one owner.
-      records: 2L * 25L + 3L + 3L * (24L + 17L + 7L + 9L + 3L + 16L + 4L + 8L),
-      record_references: 25L * 14L +
+      // pairs per kind. Six added captured native methods share one owner.
+      // The current-body projector adds the same 2H14R original-method view.
+      records: 2L * 26L + 3L + 3L * (24L + 17L + 7L + 9L + 3L + 16L + 4L + 8L),
+      record_references: 26L * 14L +
       19L +
       3L * (17L * 8L + 7L * 3L + 9L * 2L + 48L + 4L + 4L * 14L),
       record_words: 1L + 3L * (24L * 2L + 17L * 4L + 7L * 3L + 32L + 4L),

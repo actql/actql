@@ -71,7 +71,7 @@ function observation(fixture, leg, rates, residentEstimates) {
     clock++;
     environment ||= isResident;
     current = {...current, task, planningWork: current.planningWork + 1,
-      attempts: current.attempts + 1 + environments + imports, holdings: current.holdings + 1,
+      attempts: current.attempts + 1, holdings: current.holdings + 1,
       heldBytes: current.heldBytes + 48, environments: current.environments + environments,
       imports: current.imports + imports, reservedExecutionBytes: environment ? 128 : 0};
     owners.push({...current, boundary: 'after-task'});

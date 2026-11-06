@@ -801,12 +801,13 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     borrow=runtime?.clientProgramInstalledEffectOperationBorrow,
     start=runtime?.clientProgramInstalledEffectOperationStart,
     beginInput=runtime?.clientProgramInstalledEffectOperationInputBegin,
+    responseComplete=runtime?.clientProgramInstalledEffectOperationResponseProjectionComplete,
     charge=runtime?.clientProgramInstalledEffectOperationCharge,
     retire=runtime?.clientProgramInstalledEffectOperationRetire;
   if (![readPlan,select,isPhysical,transfer,responseBackingFits,borrow,start,charge,retire].every(value=>typeof value==='function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
-  if(responseExtent!==undefined&&(typeof responseExtent!=='function'||typeof beginInput!=='function')){
+  if(responseExtent!==undefined&&(typeof responseExtent!=='function'||typeof beginInput!=='function'||typeof responseComplete!=='function')){
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
   const originalRecord=()=>{
@@ -906,7 +907,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     const response = responseExtent === undefined ? result : Promise.resolve(result).then(value=>{
       originalRecord();
       if(!Buffer.isBuffer(value?.body)&&!(value?.body instanceof Uint8Array))fail('InvalidInstalledEffectResponseBody');
-      const extent=responseExtent(value.body.byteLength);
+      const extent=responseExtent(value.body.byteLength, value.body);
       originalRecord();
       checked(Reflect.apply(beginInput,runtime,[token,extent]));
       originalRecord();return value;
@@ -969,8 +970,17 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
       finally{
         const observed=physicalFlight===undefined?undefined:await physicalFlight;
         if(fenceFlight!==undefined){await fenceFlight;fenceFlight=undefined;}
-        preparing=false;
-        if(!primaryFailed&&observed?.ok===false){state='failed';throw observed.error;}
+        try{
+          if(!primaryFailed&&observed?.ok===false){state='failed';throw observed.error;}
+          if(!primaryFailed&&responseExtent!==undefined){
+            try{
+              // The SAME request flight and provider projection both settled.
+              // Keep all body/output retention and physical cleanup pending;
+              // this typed original cut returns only private parser workspace.
+              check();checked(Reflect.apply(responseComplete,runtime,[token]));check();
+            }catch(error){state='failed';throw error;}
+          }
+        }finally{preparing=false;}
       }
     },
     release:drain,retry:drain,status:()=>Object.freeze({pending:state!=='retired'}),

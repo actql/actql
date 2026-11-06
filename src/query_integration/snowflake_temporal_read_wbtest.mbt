@@ -45,7 +45,7 @@ test "Snowflake temporal Source request selects UTC and fixed formats from the s
     ),
   )
   assert_true(@snowflake_read.statement_read_complete(statement))
-  let captured = @snowflake_read.capture_result_read(read).unwrap()
+  let captured = snowflake_capture_result(read).unwrap()
   let input = @query.captured_source_storage(
     @row_host.row_capture_source(captured).unwrap(),
     10000,

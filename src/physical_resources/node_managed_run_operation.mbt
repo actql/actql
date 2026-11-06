@@ -401,3 +401,30 @@ pub fn[P, E] resize_node_managed_run_operation_control_construction(
     execution_bytes,
   )
 }
+
+///|
+/// The original physical caller has joined its request and returned the typed
+/// response projection. Keep its full retained body/output and spent physical
+/// reservation; dispose only the private projection workspace. This is not a
+/// physical stop, settlement, retry allowance or cleanup acknowledgement.
+pub fn[P, E] complete_prepared_run_operation_response_projection(
+  value : PreparedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  backing : NodeManagedRunOperationBacking,
+) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
+  match
+    check_prepared_run_operation_original(value, prepared, ledger, original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard backing is Physical(reservation) else {
+    return Err(Control(InvalidCharge))
+  }
+  reduce_execution_reservation_current(
+    ledger,
+    reservation,
+    Int64::min(reservation.retention, reservation.execution),
+  ).map_err(issue => Control(issue))
+}
