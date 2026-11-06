@@ -58,3 +58,13 @@ Focused Effect native/Row tests additionally cover both mixed orders, original
 Ledger/capacity identity, foreign and absent inputs, exhaustion without attempts,
 and synchronous current reentry. These are Core/source checks, not an installed
 DuckDB/Model/Effect execution or physical cleanup acknowledgement.
+
+Managed Source frame correspondence retains the same current read, Ledger and
+physical issuer frame without issuing capacity. The issuer performs its physical
+current observation before the callback-free final retained fence checks local
+stop, park and read lifetime. A nonmanaged read must retain that exact child,
+not merely a present child with a stale Ledger reference. Existing Source
+currentness paths inline their post-callback identity guards and keep their
+original Result construction shape; they do not call another Result-returning
+helper. The new opaque observation and its control/error wrappers require
+already funded enclosing capacity and do not certify installed Source funding.

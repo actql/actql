@@ -926,7 +926,7 @@
     {
       "module": "src/client_local_host/installed_source_read.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "83ec77509f18947b55e2d91d8f19009223e823552ddf356c633ed745da8eafea",
+      "sha256": "d50ffc621b8c54d4593742811a16c00771620d29112ee0a1a2cf3919a58a2b3c",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -956,8 +956,20 @@
           "declaration": "check_installed_source_read_current ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
         },
         {
+          "name": "check_installed_source_read_frame",
+          "declaration": "check_installed_source_read_frame ( value : ClientInstalledSourceRead , frame : @ resources . ImportedChildLedger , ) - > Result [ ClientInstalledSourceReadFrame , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "check_installed_source_read_frame_retained",
+          "declaration": "check_installed_source_read_frame_retained ( observation : ClientInstalledSourceReadFrame , value : ClientInstalledSourceRead , frame : @ resources . ImportedChildLedger , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
           "name": "check_installed_source_read_ledger",
           "declaration": "check_installed_source_read_ledger ( value : ClientInstalledSourceRead , expected : @ resources . Ledger , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "check_installed_source_read_retained_ledger",
+          "declaration": "check_installed_source_read_retained_ledger ( value : ClientInstalledSourceRead , ledger : @ resources . Ledger , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
         },
         {
           "name": "claim_installed_source_read_start",
@@ -1002,7 +1014,10 @@
             "bind_installed_source_read_owner",
             "bind_installed_source_read_program",
             "check_installed_source_read_current",
+            "check_installed_source_read_frame",
+            "check_installed_source_read_frame_retained",
             "check_installed_source_read_ledger",
+            "check_installed_source_read_retained_ledger",
             "claim_installed_source_read_start",
             "require_installed_source_read_current",
             "require_installed_source_read_original",
