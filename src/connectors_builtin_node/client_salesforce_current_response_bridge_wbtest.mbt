@@ -253,3 +253,90 @@ test "Describe syntax preflight preserves retained families and original refusal
     is None,
   )
 }
+
+///|
+test "current query workspace does not reopen an already completed Describe parser" {
+  let limits = [
+    4000000, 48000000, 400000, 32, 2000, 100, 12, 2000, 2048, 4000000, 24002944,
+    400000, 4000000, 4000000, 400000, 32,
+  ]
+  let read = current_salesforce_query_fixture()
+  let path = @salesforce_catalog.query_read_next_path(read).unwrap().unwrap()
+  let body = @utf8.encode(
+    "{\"totalSize\":1,\"done\":true,\"records\":[{\"Id\":\"original-row\"}]}",
+  )
+  let capacity = client_program_installed_salesforce_current_response_capacity(
+    limits,
+    100,
+    65536,
+    [4000000, 400000, 32, 1000, 200000],
+    8000000,
+    306,
+    14,
+    10,
+    5,
+    4096,
+    251217,
+    Some(read),
+    path,
+    Some(body),
+    502434L + body.length().to_int64(),
+    3,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_execution_bytes(capacity) < 536870912L,
+  )
+  assert_false(@salesforce_catalog.query_read_complete(read))
+}
+
+///|
+test "query phase retains metadata families while the unentered metadata phase keeps its workspace" {
+  let read = current_salesforce_query_fixture()
+  let path = @salesforce_catalog.query_read_next_path(read).unwrap().unwrap()
+  let body = @utf8.encode(
+    "{\"totalSize\":1,\"done\":true,\"records\":[{\"Id\":\"row\"}]}",
+  )
+  let geometry = @salesforce_catalog.prepare_query_read_response(
+    read, path, body,
+  ).unwrap()
+  let quote = (active : Bool) => {
+    @salesforce_host.native_read_construction_capacity(
+      {
+        max_bytes: 251217,
+        max_nodes: 251217,
+        max_depth: 32,
+        max_fields: 1000,
+        max_name_units: 200000,
+      },
+      {
+        max_bytes: body.length(),
+        max_nodes: 100,
+        max_depth: 32,
+        max_rows: 2000,
+        max_locator_units: 2048,
+      },
+      8000000,
+      306,
+      14,
+      1,
+      10,
+      5,
+      4096,
+      query_geometry=if active { Some(geometry) } else { None },
+      value_nodes=Some(1),
+    ).unwrap()
+  }
+  let current = quote(true)
+  let before = quote(false)
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(current),
+    @execution.execution_capacity_retained_bytes(before),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(current) < 536870912L,
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(before) >= 536870912L,
+  )
+  assert_false(@salesforce_catalog.query_read_complete(read))
+}
