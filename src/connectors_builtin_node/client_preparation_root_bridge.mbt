@@ -1427,6 +1427,11 @@ pub fn client_program_prepare_request_native_computation(
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   values_max_rows : Int?,
 ) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  let selected = match
+    @client_local_host.request_default_program_preparation_limits(parent, input) {
+    Ok(limits) => limits
+    Err(issue) => return Err(issue)
+  }
   @client_local_host.prepare_request_native_computation_check(
     parent,
     input,
@@ -1435,10 +1440,7 @@ pub fn client_program_prepare_request_native_computation(
     environment,
     publication,
     [],
-    {
-      ..@publication_host.client_standard_program_preparation_limits(),
-      values_max_rows,
-    },
+    { ..selected, values_max_rows, },
     @publication_host.client_standard_effect_computation_limits(),
     supplied=if native_json_parameter_is_absent(parameters) {
       None

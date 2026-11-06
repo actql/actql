@@ -68,11 +68,92 @@ extern "js" fn request_native_wide_public_program() -> String =
 test "standard native Program input retains the original public 100 by 99 Values document" {
   let document = request_native_wide_public_program()
   assert_eq(document.length(), 98034)
-  let limits = @publication_host.client_standard_program_preparation_limits().checking.input
+  let (parent, input) = native_driver_parent(document)
+  let limits = request_default_program_preparation_limits(parent, input).unwrap().checking.input
   let admitted = @syntax.admit_captured_program_input(
-    request_native_test_value(document), native_json_reader, limits,
+    request_native_test_value(document),
+    native_json_reader,
+    limits,
   )
+  abort_request_preparation_after_cleanup(parent).unwrap()
   assert_true(admitted is Ok(_))
+}
+
+///|
+test "explicit native input limits remain tight and default selection cannot borrow a foreign Request" {
+  let document = request_native_wide_public_program()
+  let limits = @publication_host.client_standard_program_preparation_limits().checking.input
+  assert_true(
+    @syntax.admit_captured_program_input(
+      request_native_test_value(document),
+      native_json_reader,
+      limits,
+    )
+    is Err(_),
+  )
+  let (parent, input) = native_driver_parent(document)
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    request_default_program_preparation_limits(parent, [1])
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(
+    request_default_program_preparation_limits(parent, input) is Err(_),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+extern "js" fn request_native_numeric_public_program(count : Int) -> String =
+  #|(count) => JSON.stringify({version:'actql/0.1',id:'numeric-scale',
+  #| stages:[{id:'main',inputs:{},steps:[{as:'v',values:{
+  #| schema:{v0:{type:'number',nullable:false}},
+  #| rows:Array.from({length:count},(_,v0)=>({v0}))}}],
+  #| results:{rows:{from:'v',fields:['v0']}}}],
+  #| results:{answer0:{from:{stage:'main',result:'rows'}}}})
+
+///|
+test "default native Program input covers original numeric 10000 and 10001 rows" {
+  for count in [10000, 10001] {
+    let document = request_native_numeric_public_program(count)
+    let (parent, input) = native_driver_parent(document)
+    let limits = request_default_program_preparation_limits(parent, input).unwrap().checking.input
+    let admitted = @syntax.admit_captured_program_input(
+      request_native_test_value(document),
+      native_json_reader,
+      limits,
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_true(admitted is Ok(_))
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "explicit tight native Request fails before compilation and retains original cleanup" {
+  let document = request_native_wide_public_program()
+  let (parent, input) = native_driver_parent(document)
+  let (environment, publication) = request_query_publication_fixture()
+  let original = prepare_request_native_computation_check(
+    parent,
+    input,
+    request_native_test_value(document),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    @publication_host.client_standard_program_preparation_limits(),
+    @publication_host.client_standard_effect_computation_limits(),
+  )
+  assert_true(original is Err(Preparation(ProgramJson(Syntax(Parse(_))))))
+  assert_true(parent.compiled_program is None && parent.compiled_effect is None)
+  assert_true(
+    parent.program_source_free is None && parent.program_captured is None,
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
 ///|
