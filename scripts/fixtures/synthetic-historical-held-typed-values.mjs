@@ -47,8 +47,10 @@ export async function writeSyntheticHistoricalHeldTypedValues({directory, docume
   const namespaceId = 'local', siteKey = 'actql-remote-host', realizationKey = 'source-free-values';
   assert.equal(authorization.siteKey ?? siteKey, siteKey);
   const account = JSON.parse(authorization.accountConfiguration);
-  assert.equal(account.entries.length, 1);
-  assert.equal(account.entries[0].outcome, 'delegate');
+  const delegates = account.entries.filter(entry => entry.entry_id === 'acceptance');
+  assert.equal(delegates.length, 1);
+  assert.equal(delegates[0].outcome, 'delegate');
+  assert.deepEqual(delegates[0].operation, {any_of: ['write']});
   const configurationCid = cid(account);
   const contextCid = cid({host: 'actql-local-host', principal: principalId, account_id: account.account_id});
   // This existing Host identity uses its original ordered JSON preimage, not
@@ -167,7 +169,7 @@ export async function writeSyntheticHistoricalHeldTypedValues({directory, docume
     {enableForeignKeyConstraints: true});
   try {
     assert.equal(database.prepare("SELECT value FROM journal_metadata WHERE key = 'schema_version'").get().value,
-      'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1');
+      'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1;model-current-cut-invalidation=1');
     for (const table of ['runs', 'resolutions', 'resume_intents', 'resume_admissions',
       'preparations', 'checkpoints']) {
       assert.equal(database.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n, 0);

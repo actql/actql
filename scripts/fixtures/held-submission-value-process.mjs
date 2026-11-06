@@ -24,7 +24,11 @@ const authorization = {
   accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
     account_id: 'held-values', entries: [{entry_id: 'acceptance', outcome: 'delegate',
       principal: {all: true}, connection: {all: true}, resource: {all: true},
-      operation: {any_of: ['write']}, exclusions: []}]}),
+    operation: {any_of: ['write']}, exclusions: []},
+  {entry_id: 'owner-run-result-read', outcome: 'allow',
+    principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['run', 'result/answer']},
+    operation: {any_of: ['read']}, exclusions: []}]}),
   reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: owner,
     publicKey: keys.reviewerPublic}], reviewReaders: [owner],
   hostKey: {keyId: 'host', privateKey: keys.hostPrivate},
@@ -64,7 +68,11 @@ const open = async () => {
 };
 try {
   if (phase === 'initial') {
-    await open(); await close();
+    await open();
+    // Local connect is lazy. Use the existing public Checkpoint read to
+    // establish the empty owned journals before writing historical fixtures.
+    assert.deepEqual((await client.checkpoints()).items, []);
+    await close();
     original = await writeSyntheticHistoricalHeldTypedValues({directory: join(root, 'host'),
       document: text, parameters, requestId, authorization, runtimeRootUrl: runtime.root,
       expressionContractUrl: runtime.expressionContractUrl,
