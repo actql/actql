@@ -1255,8 +1255,10 @@ On supported normal Local Files bindings, a new owner record is written, synced
 and closed in a private `.owner-opening-<UUID>` directory. Its directory is synced
 before the existing platform no-replace rename publishes the fixed `owner` name;
 the Store root then receives its separate durability acknowledgement. An existing
-empty directory, symlink or foreign owner is never an overwrite condition. Only
-the same exclusive execution lease may reclaim bounded unpublished owner stages.
+empty directory, symlink or foreign owner is never an overwrite condition.
+Unpublished stages remain owned by their original opening handles. Another
+opener preserves them: its execution lease cannot prove that a concurrent fresh
+preparer, which has not qualified that lease yet, stopped or returned custody.
 An empty or corrupt *final* owner record remains invalid, including records left
 by an older implementation. This protocol does not repair historical state.
 

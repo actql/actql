@@ -916,24 +916,9 @@ async function acquireStoreMetadataOwnership(root, bootstrap, key, lease) {
           directoryPath = ownershipDirectory; ownerPath = finalOwnerPath; staging = false;
         }
         await syncDirectoryPath(root);
-        // Old unpublished stages are not final Owner records. Only the SAME
-        // exclusive execution lease may reclaim them after owning this Store.
-        if (lease?.anchor !== undefined) {
-          for (const name of await (bootstrap?.readDirectory ?? readdir)(root)) {
-            if (!/^\.owner-opening-[0-9a-f-]{36}$/u.test(name)) continue;
-            const path = resolve(root, name), state = await lstat(path);
-            if (!state.isDirectory() || state.isSymbolicLink() || (state.mode & 0o077) !== 0) {
-              fail('InvalidPublicationStoreOwner');
-            }
-            for (const child of await (bootstrap?.readDirectory ?? readdir)(path)) {
-              const file = await lstat(resolve(path, child));
-              if (child !== 'owner.json' || !file.isFile() || file.isSymbolicLink() || file.size > 4096) {
-                fail('InvalidPublicationStoreOwner');
-              }
-            }
-            await removeOpeningTree(path, bootstrap);
-          }
-        }
+        // A fresh preparer may still own another unpublished stage before
+        // qualifying its kernel lease. Our lease proves no custody or stop
+        // for that writer: only its original handle may retire its stage.
         return ownership;
       } catch (cause) {
         // The original token/release closure exists before either awaited

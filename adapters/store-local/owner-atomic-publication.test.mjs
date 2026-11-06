@@ -35,11 +35,19 @@ for (const mode of ['empty', 'partial', 'lease']) {
     assert.equal(code, null, Buffer.concat(stderr).toString()); assert.equal(signal, 'SIGKILL');
     const observation = JSON.parse(Buffer.concat(stdout).toString());
     assert.equal(observation.boundary, 'owner-write');
-    assert.equal((await fs.readFile(observation.path)).length, observation.bytes);
+    const interruptedBytes = await fs.readFile(observation.path);
+    const interruptedFile = await fs.stat(observation.path, {bigint: true});
+    assert.equal(interruptedBytes.length, observation.bytes);
     const reopened = await openLocalPublicationStore(configuration(directory), createPublicationContractControlFixture());
     try {
       assert.equal(reopened.status().closed, false);
-      assert.equal((await fs.readdir(directory)).some(name => name.startsWith('.owner-opening-')), false);
+      if (mode !== 'lease') {
+        // A different opener has no stop/custody proof for an unpublished stage.
+        assert.deepEqual(await fs.readFile(observation.path), interruptedBytes);
+        const retained = await fs.stat(observation.path, {bigint: true});
+        assert.equal(retained.dev, interruptedFile.dev);
+        assert.equal(retained.ino, interruptedFile.ino);
+      }
     } finally {await reopened.close();}
     scratch.passed();
   });
