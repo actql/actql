@@ -1,8 +1,9 @@
 import './native-http-library-lifetime.test.mjs';
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
-import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync,
+import {chmodSync, copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync,
   readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -1475,6 +1476,60 @@ test('full Native Core routes the complete Source package to its existing peer o
     assert.equal((result.stdout.match(/ORIGINAL_SOURCE_PROFILE_REQUIRED/gu)??[]).length,1);
     f.verifyExternal();
   }
+});
+
+function checkpointControlReplayFixture(t) {
+  const sourceUrl = new URL('test-native-http-client.mjs', import.meta.url).href;
+  const source = readFileSync(new URL(sourceUrl), 'utf8');
+  const start = source.indexOf('  const runCheckpointControlReplay = async environment => {');
+  const end = source.indexOf("  if (focus === 'core-http')", start);
+  assert(start >= 0 && end > start);
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-checkpoint-control-handoff-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const calls = [], child = {};
+  let exitCode = 0;
+  const run = runInNewContext(source.slice(start, end).replaceAll('import.meta.url', 'sourceUrl') +
+    '\nrunCheckpointControlReplay', {
+    root, mkdtemp, join, URL, sourceUrl, moon: '/selected/moon', process: {execPath: process.execPath},
+    performance: {now: () => 0}, console: {error: () => {}},
+    execFileSync: (command, args, options) => {calls.push({command, args: Array.from(args), options});},
+    spawn: (command, args, options) => {calls.push({command, args: Array.from(args), options}); return child;},
+    once: async (original, event) => {assert.equal(original, child); assert.equal(event, 'exit'); return [exitCode, null];},
+  });
+  return {root, calls, run, failRun: () => {exitCode = 2;}};
+}
+
+test('Native Checkpoint control replay supplies one owned Slot root to compilation and all selected cases', async t => {
+  const f = checkpointControlReplayFixture(t);
+  const environment = Object.freeze({ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: '/unowned/ambient', ORIGINAL_PEER: 'retained'});
+  await f.run(environment);
+  assert.equal(f.calls.length, 2);
+  const [compiled, executed] = f.calls;
+  const selected = ['--target', 'native', '--jobs', '1',
+    'src/cmd/native_remote_resident_site/effect_checkpoint_replay_wbtest.mbt'];
+  assert.equal(compiled.command, '/selected/moon');
+  assert.deepEqual(compiled.args, ['test', ...selected, '--build-only']);
+  assert.equal(executed.command, process.execPath);
+  assert.deepEqual(JSON.parse(executed.args.at(-1)), selected);
+  assert.equal(compiled.options.env, executed.options.env);
+  const slotRoot = executed.options.env.ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT;
+  assert.equal(dirname(slotRoot), f.root);
+  const stat = lstatSync(slotRoot);
+  assert(stat.isDirectory() && !stat.isSymbolicLink());
+  assert.equal(stat.mode & 0o777, 0o700);
+  assert.equal(executed.options.env.ORIGINAL_PEER, 'retained');
+  assert.equal(environment.ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT, '/unowned/ambient');
+  assert.deepEqual(readdirSync(f.root), [slotRoot.slice(f.root.length + 1)]);
+});
+
+test('Native Checkpoint control replay preserves child failure and leaves its Slot root with the invocation cleanup owner', async t => {
+  const f = checkpointControlReplayFixture(t);
+  f.failRun();
+  await assert.rejects(f.run({}), /native Checkpoint control replay failed: 2/u);
+  assert.equal(f.calls.length, 2);
+  const slotRoot = f.calls[1].options.env.ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT;
+  assert.equal(dirname(slotRoot), f.root);
+  assert(lstatSync(slotRoot).isDirectory());
 });
 
 test('Core Source peer entrance retains complete package, Native target and nonzero count',()=>{
