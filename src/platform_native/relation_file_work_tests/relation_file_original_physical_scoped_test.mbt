@@ -1141,6 +1141,19 @@ test "actual original Account Journal StoreOperation captures relation and execu
   // test baseline separately owns original operation/runtime/retirement duties.
   // The same live roundtrip adds outer H346/R168/S672 (12256 bytes),
   // excluding generic capture-current stages already owned by that baseline.
+  // The terminal pair-refusal diagnostic is an alternative to the entry's
+  // already included failed-Store-return frontier (914 bytes): in this positive
+  // fixture, an earlier sticky routing/body/Work failure stops
+  // relation_original_run before this final cleanup.
+  // One existing observer costs H9/R4/S40=496 logical bytes; its largest
+  // refusal is H11/R6/S28=448. Terminal H1/R2/S1=40 plus retention of the
+  // original pair Result H1/R1/S1=32 makes 568, within that exclusive 914
+  // logical component. Separately, the two explicit native snapshot arrays
+  // use 256 stack bytes in the existing fixed, nonrecursive call-frame baseline;
+  // they are not managed records or a complete physical-peak estimate.
+  // No temporal allocator reuse, lowered inventory or additional capacity is
+  // assumed. Harness rendering is delayed test-only reporting, not construction
+  // under the Read or business owner.
   let outer_addition = @execution.execution_capacity_execution_bytes(
       entry_outer,
     ) +
@@ -1327,9 +1340,16 @@ test "actual original Account Journal StoreOperation captures relation and execu
   .relation_original_value("physical Crypto control retirement")
   // Preserve this one original reply. A refusal stops before ancestor cleanup;
   // its retained lower issue is rendered by the harness, not in this scope.
-  match physical.close_local_host_resources(pair) {
+  let pair_reply = physical.close_local_host_resources(pair)
+  match pair_reply {
     Ok(_) => ()
-    Err(issue) => raise RelationPairRetirementFailure(issue)
+    Err(_) => {
+      // Observe once, outside every child frame, only after the original close
+      // refused. Preserve an observer refusal as such, never as zero counts.
+      // Neither reply supplies an ACK or permits ancestor cleanup to continue.
+      let observation = physical.observe_domain_original_read_cleanup(read)
+      raise RelationPairRetirementFailure(pair_reply, observation)
+    }
   }
   physical
   .close_domain_after_owner_ack(read_domain)

@@ -67,21 +67,47 @@ test('relation fixture checks retained plus execution and real provider layout w
   assert.match(fixture, /fail\("business domain pending: " \+ @debug\.to_string\(issue\)\)/u);
 });
 
-test('relation final pair refusal retains its exact issue before terminal harness rendering', () => {
+test('relation final pair refusal observes once and retains both exact replies before harness rendering', () => {
   const fixture = readFileSync(new URL('../src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt', import.meta.url), 'utf8');
   const diagnostics = readFileSync(new URL('../src/platform_native/relation_file_work_tests/relation_work_diagnostics_test.mbt', import.meta.url), 'utf8');
-  const start = fixture.indexOf('  match physical.close_local_host_resources(pair) {');
+  const start = fixture.indexOf('  let pair_reply = physical.close_local_host_resources(pair)');
   const end = fixture.indexOf('\n  physical\n  .close_domain_after_owner_ack', start);
   assert(start >= 0 && end > start);
   const reply = fixture.slice(start, end);
   assert.equal((fixture.match(/close_local_host_resources\(pair\)/gu) ?? []).length, 1);
   assert.match(reply, /Ok\(_\) => \(\)/u);
-  assert.match(reply, /Err\(issue\) => raise RelationPairRetirementFailure\(issue\)/u);
-  assert(!/fail\(|to_string\(|relation_original_value|observe_|retry_|close_domain|try_close/u.test(reply));
+  assert.match(reply, /match pair_reply \{\s*Ok\(_\) => \(\)\s*Err\(_\) => \{/u);
+  assert.equal((fixture.match(/observe_domain_original_read_cleanup\(read\)/gu) ?? []).length, 1);
+  assert.match(reply, /let observation = physical\.observe_domain_original_read_cleanup\(read\)\s*raise RelationPairRetirementFailure\(pair_reply, observation\)/u);
+  assert(!/fail\(|to_string\(|relation_original_value|retry_|close_domain|try_close/u.test(reply));
+  // Independently authored constructor products, not a product quote output.
+  const observerSuccess = 9 * 16 + 4 * 8 + 40 * 8;
+  const observerRefusal = 11 * 16 + 6 * 8 + 28 * 8;
+  const terminal = 16 + 2 * 8 + 8;
+  const retainedPairResult = 16 + 8 + 8;
+  assert.equal(observerSuccess, 496);
+  assert.equal(observerRefusal, 448);
+  assert.equal(Math.max(observerSuccess, observerRefusal) + terminal + retainedPairResult, 568);
+  const nativeStackArrays = 2 * 16 * 8;
+  const priorConditionalReturn = 16 * 16 + 12 * 8 + 11 * 8 + 237 * 2;
+  assert.equal(nativeStackArrays, 256);
+  assert.equal(priorConditionalReturn, 914);
+  // Stack arrays belong to the existing nonrecursive frame baseline, not the
+  // managed tariff. Do not present their sum as a complete physical peak.
+  assert(568 <= priorConditionalReturn);
+  assert.match(fixture, /let outer_addition = @execution\.execution_capacity_execution_bytes\(\s*entry_outer,\s*\) \+\s*3L \* 24L \+\s*12256L/u);
+  assert.match(fixture, /guard entry is Ok\(_\) else \{/u);
+  assert(fixture.indexOf('"unexpected positive Work refusal after cleanup: "') < fixture.indexOf('test "actual original Account'));
   assert(fixture.indexOf('"physical business retirement"') < start);
   assert(end < fixture.indexOf('"physical arena close"'));
-  assert.match(diagnostics, /suberror RelationPairRetirementFailure \{\s*RelationPairRetirementFailure\(@arena\.InstalledArenaLocalHostResourcesIssue\)\s*\}/u);
+  assert.match(diagnostics, /suberror RelationPairRetirementFailure \{\s*RelationPairRetirementFailure\(\s*Result\[Unit, @arena\.InstalledArenaLocalHostResourcesIssue\]/u);
+  assert.match(diagnostics, /Result\[\s*@bootstrap\.NativeReadCleanupObservation,\s*@arena\.InstalledArenaOriginalReadIssue/u);
   assert.match(diagnostics, /impl Show for RelationPairRetirementFailure with fn output\(self, logger\)/u);
+  const show = diagnostics.slice(diagnostics.indexOf('impl Show for RelationPairRetirementFailure'), diagnostics.indexOf('fn relation_read_retirement_issue'));
+  assert.match(show, /match reply/u);
+  assert.match(show, /match observation \{\s*Err\(issue\) => logger\.write_string\(relation_read_retirement_issue\(issue\)\)/u);
+  for (const field of ['users', 'active', 'closing', 'generic_live_extents', 'generic_live_pages', 'managed_live_pages', 'managed_live_blocks', 'managed_requested_bytes', 'managed_payload_capacity_bytes', 'pending_extents', 'pending_pages', 'minimum_managed_request', 'maximum_managed_request', 'calling_thread_read', 'calling_thread_owned', 'context_payload_bytes']) assert(show.includes(`value.${field}`), field);
+  assert(!/observe_|close\(|retry_/u.test(show));
   const renderer = diagnostics.slice(diagnostics.indexOf('fn relation_pair_retirement_issue('), diagnostics.indexOf('// Failure-only observations'));
   for (const variant of ['Read(Domain(reason))', 'Read(Child(reason))', 'Read(Read(reason))', 'Read(Buffer(reason))', 'Sqlite(Domain(reason))', 'Sqlite(Library(reason))', 'Domain(reason)']) assert(renderer.includes(variant), variant);
   assert(!/_\s*=>|close\(|observe_|retry_/u.test(renderer));
@@ -111,7 +137,7 @@ test('relation fixture retires the acknowledged business loan before its Read-ow
   }
   assert.match(cleanup, /close_domain_retained_execution\(business_execution\.val\.unwrap\(\)\)\s*\.relation_original_value\("physical business retirement"\)/u);
   assert.match(cleanup, /close_domain_after_owner_ack\(business_domain\.val\.unwrap\(\)\)\s*\.relation_original_value\("business domain close"\)/u);
-  assert(cleanup.indexOf('raise RelationPairRetirementFailure(issue)') < cleanup.indexOf('close_domain_after_owner_ack(read_domain)'));
+  assert(cleanup.indexOf('raise RelationPairRetirementFailure(pair_reply, observation)') < cleanup.indexOf('close_domain_after_owner_ack(read_domain)'));
 });
 
 test('relation diagnostic preserves first Work refusal and waits for original returns before formatting', () => {

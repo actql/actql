@@ -3,14 +3,62 @@
 // unresolved lower scope. The test harness renders this terminal error only
 // after catching it. Neither raising nor rendering acknowledges cleanup.
 suberror RelationPairRetirementFailure {
-  RelationPairRetirementFailure(@arena.InstalledArenaLocalHostResourcesIssue)
+  RelationPairRetirementFailure(
+    Result[Unit, @arena.InstalledArenaLocalHostResourcesIssue],
+    Result[
+      @bootstrap.NativeReadCleanupObservation,
+      @arena.InstalledArenaOriginalReadIssue,
+    ]
+  )
 }
 
 ///|
 impl Show for RelationPairRetirementFailure with fn output(self, logger) {
-  let RelationPairRetirementFailure(issue) = self
+  let RelationPairRetirementFailure(reply, observation) = self
   logger.write_string("physical Read SQLite pair retirement: ")
-  logger.write_string(relation_pair_retirement_issue(issue))
+  match reply {
+    Ok(_) => logger.write_string("unexpected successful original reply")
+    Err(issue) => logger.write_string(relation_pair_retirement_issue(issue))
+  }
+  logger.write_string("; original Read cleanup observation: ")
+  match observation {
+    Err(issue) => logger.write_string(relation_read_retirement_issue(issue))
+    Ok(value) => {
+      logger.write_string(
+        "users=\{value.users} active=\{value.active} closing=\{value.closing}",
+      )
+      logger.write_string(
+        " generic_extents=\{value.generic_live_extents} generic_pages=\{value.generic_live_pages}",
+      )
+      logger.write_string(
+        " managed_pages=\{value.managed_live_pages} managed_blocks=\{value.managed_live_blocks}",
+      )
+      logger.write_string(
+        " managed_requested=\{value.managed_requested_bytes} managed_capacity=\{value.managed_payload_capacity_bytes}",
+      )
+      logger.write_string(
+        " pending_extents=\{value.pending_extents} pending_pages=\{value.pending_pages}",
+      )
+      logger.write_string(
+        " min_request=\{value.minimum_managed_request} max_request=\{value.maximum_managed_request}",
+      )
+      logger.write_string(
+        " thread_read=\{value.calling_thread_read} thread_owned=\{value.calling_thread_owned} context_payload=\{value.context_payload_bytes}",
+      )
+    }
+  }
+}
+
+///|
+fn relation_read_retirement_issue(
+  issue : @arena.InstalledArenaOriginalReadIssue,
+) -> String {
+  match issue {
+    Domain(reason) => "Read.Domain: " + @debug.to_string(reason)
+    Child(reason) => "Read.Child: " + @debug.to_string(reason)
+    Read(reason) => "Read.Read: " + @debug.to_string(reason)
+    Buffer(reason) => "Read.Buffer: " + @debug.to_string(reason)
+  }
 }
 
 ///|
