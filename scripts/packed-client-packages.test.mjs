@@ -80,6 +80,23 @@ test('packed read-opening stages its complete authored static helper closure', a
   assert.equal(manifest.exports['./_internal/source-preparation'], './internal/private-source-preparation.mjs');
 });
 
+test('packed capacity group includes every existing policy and recovery entrance', async () => {
+  const {parse} = await import('acorn');
+  const source = await readFile(new URL('./test-packed-read-opening.mjs', import.meta.url), 'utf8');
+  const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
+  const declaration = syntax.body.filter(node => node.type === 'VariableDeclaration')
+    .flatMap(node => node.declarations).find(node => node.id.name === 'groups');
+  assert(declaration);
+  const groups = declaration.init.elements.map(node => Object.fromEntries(
+    node.properties.map(property => [property.key.name, property.value.value])));
+  // Two fixed configuration checks, Local/HTTPS installation for each of two
+  // authored policies, and two recovery cases on each original transport.
+  const capacityCases = 2 + 2 * 2 + 2 * 2;
+  assert.equal(groups.find(group => group.name === 'installed-capacity').count, capacityCases);
+  assert.equal(groups.reduce((count, group) => count + group.count, 0), 52);
+  assert.match(source, /publicRowPolicyAdmission: 2, publicHttpRowPolicyInstallation: 2/u);
+});
+
 test('packed read-opening imports the public installed wire entry without checkout fallback', async t => {
   const repository = fileURLToPath(new URL('../', import.meta.url));
   const root = await mkdtemp(join(tmpdir(), 'actql-packed-read-wire-'));

@@ -37,7 +37,7 @@ test('public query HTTPS observation selects only its original operator and auth
     account_id: 'packed-query-http', entries: [
       {entry_id: 'read-original', outcome: 'allow', principal: {any_of: ['query-operator']},
         connection: {any_of: ['actql-remote-host']},
-        resource: {any_of: ['run', 'result/secondary', 'result/selected']},
+        resource: {any_of: ['result/secondary', 'result/selected', 'run']},
         operation: {any_of: ['read']}, exclusions: []},
       {entry_id: 'request-original', outcome: 'allow', principal: {any_of: ['query-operator']},
         connection: {any_of: ['actql-remote-host']}, resource: {any_of: ['duckdb-acquired']},

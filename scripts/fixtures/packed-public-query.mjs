@@ -1365,7 +1365,7 @@ function createPublicQueryHttpAuthorization(cohort) {
     entries: [{entry_id: 'read-original', outcome: 'allow',
       principal: {any_of: [userInfo().username]},
       connection: {any_of: ['actql-remote-host']},
-      resource: {any_of: ['run', ...results.map(name => 'result/' + name)]},
+      resource: {any_of: ['run', ...results.map(name => 'result/' + name)].sort()},
       operation: {any_of: ['read']}, exclusions: []},
     {entry_id: 'request-original', outcome: 'allow',
       principal: {any_of: [userInfo().username]},
