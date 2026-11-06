@@ -151,7 +151,7 @@ environment.ACTQL_SUBMISSION_CUSTODY_ACCEPTANCE_INPUTS = custodyInputs;
 const groups = [
   {name: 'opening-and-receipt', file: 'client-read-opening.test.mjs', count: 8},
   {name: 'interrupted-121-run', file: 'client-read-run-capacity.test.mjs', count: 4},
-  {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 5},
+  {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 10},
   {name: 'original-cancellation', file: 'client-cancellation-public.test.mjs', count: 4},
   {name: 'typed-cancellation', file: 'client-cancellation-attempt-installed.test.mjs', count: 2},
   {name: 'effect-cancellation', file: 'client-effect-cancellation-public.test.mjs', count: 2},
@@ -187,7 +187,7 @@ for (const group of selectedGroups) {
   passed += checked.counts.passed;
 }
 assert.equal(passed, cancellationOnly ? 8 : submissionCustodyOnly ? 6 : submissionRefusalOnly ? 11
-  : effectReconciliationOnly ? 3 : ownerObservationsOnly ? 5 : 47);
+  : effectReconciliationOnly ? 3 : ownerObservationsOnly ? 5 : 52);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
@@ -205,7 +205,9 @@ await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: st
     : effectReconciliationOnly ? {originalEffectReconciliation: 3}
     : ownerObservationsOnly ? {scopedOwnerSnapshots:2,originalEffectReconciliation:3}
     : {openingLoss: 4, receiptDurability: 4, actual121RunRecovery: 4,
-      installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1, originalCancellationRecovery: 4, typedCancellationRecovery: 2,
+      installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1,
+      finitePolicyOriginals: 1, publicRowPolicyAdmission: 2, publicHttpRowPolicyInstallation: 2,
+      originalCancellationRecovery: 4, typedCancellationRecovery: 2,
       unknownEffectCancellationRecovery: 2,
       submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
       explicitSubmissionRestart: 3, explicitSubmissionRestartProcessRecovery: 2,
