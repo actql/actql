@@ -296,11 +296,14 @@ test('timing diagnostic I/O never replaces the original producer outcome',()=>{
   const timed=runInNewContext(source.slice(start,end)+'timedPreparation;',{
     preparationPhase:0,source:'c'.repeat(40),target:'linux-x64',destination:'/owned/preparation',join,
     writeFileSync:()=>{throw Object.assign(new Error('diagnostic unavailable'),{code:'EACCES'});},
-    performance:{now:()=>1},process:{env:{}},console:{error:line=>messages.push(line)},
+    appendFileSync:()=>{throw new Error('summary unavailable');},
+    performance:{now:()=>1},process:{env:{GITHUB_STEP_SUMMARY:'/owned/summary'}},
+    console:{error:line=>messages.push(line)},
   });
   assert.throws(()=>timed('producer',()=>{throw primary;}),error=>error===primary);
   const value={original:true};assert.equal(timed('producer',()=>value),value);
   assert.equal(messages.filter(line=>line.includes('timing diagnostic unavailable')).length,2);
+  assert.equal(messages.filter(line=>line.includes('timing summary unavailable')).length,2);
 });
 
 test('shared OpenSSL acquisition keeps target/profile boundaries and explicit original input',()=>{

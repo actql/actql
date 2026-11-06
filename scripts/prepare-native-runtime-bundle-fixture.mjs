@@ -49,8 +49,11 @@ function timedPreparation(phase, prepare) {
       writeFileSync(join(destination,`phase-${++preparationPhase}.timing.json`),
         JSON.stringify({source,target,phase,milliseconds,succeeded})+'\n',{flag:'wx',mode:0o600});
     } catch { console.error('Native timing diagnostic unavailable'); }
-    if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-      `- Native ${phase}: ${milliseconds} ms (${succeeded?'success':'failed'}).\n`);
+    if(process.env.GITHUB_STEP_SUMMARY) {
+      try { appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+        `- Native ${phase}: ${milliseconds} ms (${succeeded?'success':'failed'}).\n`); }
+      catch { console.error('Native timing summary unavailable'); }
+    }
   }
 }
 mkdirSync(destination,{mode:0o700});
