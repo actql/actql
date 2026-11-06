@@ -206,7 +206,8 @@ const configuration = outcome === 'missing' ? undefined : canonical({
       connection: {any_of: ['actql-remote-host']},
       operation: {any_of: ['read']}, outcome: 'allow',
       principal: {any_of: [userInfo().username]},
-      resource: {any_of: ['result/answer', 'run']}},
+      resource: {any_of: process.env.ACQUIRED === '1'
+        ? ['result/b', 'result/c', 'run'] : ['result/answer', 'run']}},
     {entry_id: 'run-acceptance', exclusions: [],
       connection: {any_of: ['actql-remote-host']},
       operation: {any_of: ['write']}, outcome, principal: {all: true},
