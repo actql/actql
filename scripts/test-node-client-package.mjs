@@ -870,7 +870,7 @@ const analyticCases = [
       + 'FROM records WHERE id < 3',
     [{id: 1, ranking: 1}, {id: 2, ranking: 2}]],
   ['lead',
-    'SELECT id, LEAD(id) OVER (ORDER BY id) AS following '
+    'SELECT id, LEAD(id) OVER (ORDER BY id) AS `following` '
       + 'FROM records WHERE id < 3',
     [{id: 1, following: 2}, {id: 2, following: null}]],
   ['first-value',
