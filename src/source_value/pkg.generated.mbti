@@ -5,10 +5,11 @@ import {
   "actql/actql/encode_core",
   "actql/actql/source_span",
   "moonbitlang/core/debug",
+  "moonbitlang/core/ref",
 }
 
 // Values
-pub fn[T] admit_captured_json(T, JsonDataReader[T], ParseLimits, program_keys? : Bool, normalize_keys? : Bool, source_path? : String) -> Result[ParsedSource, ParseError]
+pub fn[T] admit_captured_json(T, JsonDataReader[T], ParseLimits, program_keys? : Bool, normalize_keys? : Bool, source_path? : String, max_key_units_out? : @ref.Ref[Int]?) -> Result[ParsedSource, ParseError]
 
 pub fn advance_json_parse(JsonParse, Int) -> Result[JsonParsePoll, JsonParseControlIssue]
 
@@ -17,6 +18,8 @@ pub fn advance_json_source_preflight(JsonSourcePreflight, Int) -> Result[JsonSou
 pub fn cancel_json_parse(JsonParse) -> Unit
 
 pub fn cancel_json_source_preflight(JsonSourcePreflight) -> Unit
+
+pub fn captured_json_construction_extent(Int, Int, normalize_keys? : Bool, key_units? : Int64, max_key_units? : Int) -> JsonLiteralConstructionExtent?
 
 pub fn indexed_source_dependency_extent(Int, Int, Int, Int64) -> IndexedSourceDependencyExtent?
 

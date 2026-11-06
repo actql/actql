@@ -42015,7 +42015,7 @@
     {
       "module": "src/client_local_host/preparation_request_intent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "715e1a394f2c8350bfc8b1768592a7b7ff39dea9231007b4ed37fb9d0c4aafbb",
+      "sha256": "94a05495b5d2839072d0765adcf9722bc51b5475e8390ebf895c4fd0e09394b7",
       "role": "common-semantics",
       "owner": "Existing submitted-intent identity and original Request preparation Owners",
       "exports": [],
@@ -42049,8 +42049,16 @@
           "declaration": "[ I ] retain_request_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , intent : @ publication_host . ClientSubmittedIntent , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
+          "name": "request_captured_intent_limits",
+          "declaration": "request_captured_intent_limits ( units : Int64 , values : Int64 , ) - > @ source . ParseLimits ?"
+        },
+        {
           "name": "request_intent_construction_bytes",
-          "declaration": "request_intent_construction_bytes ( units : Int64 , values : Int64 ) - > Int64 ?"
+          "declaration": "request_intent_construction_bytes ( units : Int64 , values : Int64 , limits : @ source . ParseLimits , captured ? : Bool"
+        },
+        {
+          "name": "request_retained_intent_limits",
+          "declaration": "request_retained_intent_limits ( wire : String ) - > @ source . ParseLimits ?"
         }
       ],
       "contracts": [
@@ -42062,7 +42070,8 @@
             "[I]request_intent_input_ready",
             "[I]request_submitted_intent_original",
             "request_intent_construction_bytes",
-            "[I]request_default_program_preparation_limits"
+            "[I]request_default_program_preparation_limits",
+            "request_captured_intent_limits"
           ],
           "exports": [],
           "attributes": {
@@ -42143,7 +42152,8 @@
         {
           "operations": [
             "[I]reserve_request_retained_program_material",
-            "[I]retain_request_submitted_intent"
+            "[I]retain_request_submitted_intent",
+            "request_retained_intent_limits"
           ],
           "exports": [],
           "attributes": {
@@ -43165,7 +43175,7 @@
     {
       "module": "src/client_local_host/preparation_request_native_input.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b2f97eb9fb59afe53150e5c3b62350f8fffb9aa8976346338753bf8fbeef1a9a",
+      "sha256": "fbbef9ad73d85fcae69cd89158389744b8321a234fb8abec95457645c33e0cae",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -43184,11 +43194,11 @@
         },
         {
           "name": "request_native_input_units",
-          "declaration": "request_native_input_units ( units : Int64 , values : Int64 , limits : @ syntax . Limits , ) - > @ execution . PreparationRepresentationUnits ?"
+          "declaration": "request_native_input_units ( units : Int64 , values : Int64 , limits : @ syntax . Limits , max_key_units ? : Int ?"
         },
         {
           "name": "request_native_tree_units",
-          "declaration": "request_native_tree_units ( units : Int64 , values : Int64 , limits : @ syntax . Limits , ) - > @ execution . PreparationRepresentationUnits ?"
+          "declaration": "request_native_tree_units ( units : Int64 , values : Int64 , limits : @ syntax . Limits , max_key_units ? : Int ?"
         }
       ],
       "contracts": [
@@ -43650,7 +43660,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2cdec1b73c07a669854c53adbd3ae61f7e7f52a022cbf09a76821ae03902b5ad",
+      "sha256": "6fd58768a99356a6ca1864909597e94421c5b9caae302e6442227e6dbe7ed75a",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -72548,7 +72558,7 @@
     {
       "module": "src/source_value/native_json.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "41f8af2ca2820a05183c6800999142ba2bf8bb7ecf5d444da919bb9b6db17dd5",
+      "sha256": "7ee4a275c34aa66a1844e5f7db9ab9f18e8eb7fadab77d62fb23cf5c32ce8f40",
       "role": "common-semantics",
       "owner": "Existing Source value admission",
       "exports": [],
@@ -75721,7 +75731,7 @@
           }
         }
       ],
-      "sha256": "49c0c17a223d9b4890693e0ab51c6d773d4a0c1e42b42856d54b33b1fead99b7",
+      "sha256": "a8eb0f957746aa638d31f8db015c2fe02ad730826f0e2416a70bd7ad8f8fbd66",
       "operations": [
         {
           "name": "[I,P,D]borrow_request_source_preparation_owned",
@@ -81930,6 +81940,100 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/source_value/native_json_construction_extent.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "1b8e8952dad417830053bc2f3cfe48dc2874e92ab5cb9ae4bc824dd108862670",
+      "role": "common-semantics",
+      "owner": "Existing Source value admission and representation inventory",
+      "exports": [],
+      "operations": [
+        {
+          "name": "captured_json_construction_extent",
+          "declaration": "captured_json_construction_extent ( max_nodes : Int , max_depth : Int , normalize_keys ? : Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captured_json_construction_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Captured native Program input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_intent_js_wbtest.mbt",
+                "anchor": "test \"original numeric 100000 intent uses its observed profile under the unchanged Request budget\""
+              },
+              {
+                "path": "src/source_value/native_json_js_wbtest.mbt",
+                "anchor": "test \"same native key visits retain the maximum without changing admission or Unicode refusal\""
+              },
+              {
+                "path": "src/source_value/json_construction_compatibility_wbtest.mbt",
+                "anchor": "test \"native normalized key backing refuses overflow after an otherwise representable output\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
     }
   ]
 }

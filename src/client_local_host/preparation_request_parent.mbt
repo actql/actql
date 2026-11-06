@@ -120,6 +120,7 @@ struct ClientRequestPreparation[I] {
   mut snapshot_base : (Int64, Int64)?
   mut snapshot_units : Int64
   mut snapshot_values : Int64
+  snapshot_key_units : Ref[Int]
   mut submitted_intent : @publication_host.ClientSubmittedIntent?
   mut source_input : ClientRequestSourceInput?
   mut intent_base : (Int64, Int64)?
@@ -229,15 +230,17 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 // and Result wrapper (5H/7R/10W) before the native Source constructor grow:
 // Cache one extra scalar word for that same artifact quote's retired scratch,
 // so a declined grow reuses the original split without interpreting it again:
-// 10,616 logical bytes and the existing separate 4,096-byte installed group.
+// One observed-input ParseLimits record/Some (2H/1R/3W) also precedes its
+// constructor grow. Its original key-extent observation Ref/Some and field
+// (2H/2R/1W) share this fixed control group:10,736 bytes plus4,096 installed.
 // This is intentionally independent of JS closure, carrier and array spelling.
 // Input/AST/wire/row/operation storage, selected domain construction and live
 // child overlap remain separately charged before their actual constructors.
 // The fixed envelope is immutable DATA, not a reservation, phase or RSS bound.
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
-  record_headers: 225L,
-  reference_slots: 409L,
-  scalar_words: 468L,
+  record_headers: 229L,
+  reference_slots: 412L,
+  scalar_words: 472L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -342,6 +345,7 @@ fn[I] begin_request_preparation_original(
     snapshot_base: None,
     snapshot_units: 0L,
     snapshot_values: 0L,
+    snapshot_key_units: Ref(-1),
     submitted_intent: None,
     source_input: None,
     intent_base: None,
@@ -675,6 +679,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   }
   clear_request_source_input(owner)
   owner.submitted_intent = None
+  owner.snapshot_key_units.val = -1
   owner.intent_base = None
   owner.intent_peak_live = false
   owner.held_program = None

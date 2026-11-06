@@ -250,7 +250,8 @@ test "Request native input reaches the existing Program and original checker on 
     native_json_reader,
     limits.input,
   ).unwrap()
-  assert_eq(calls.val - before, 1)
+  // One pre-constructor grow and one post-reader scratch retirement.
+  assert_eq(calls.val - before, 2)
   assert_true(physical_equal(source.capacity, parent.capacity))
   let original_index = source.indexed.unwrap()
   assert_true(
@@ -263,7 +264,7 @@ test "Request native input reaches the existing Program and original checker on 
     )
     is Err(WrongPhase),
   )
-  assert_eq(calls.val - before, 1)
+  assert_eq(calls.val - before, 2)
   construct_program_json_preparation(source).unwrap()
   reconcile_program_json_preparation_structure(source).unwrap()
   assert_true(physical_equal(source.indexed.unwrap(), original_index))
@@ -1110,4 +1111,34 @@ test "refused Query reports original missing declarations beside an independent 
     abort_request_preparation_after_cleanup(parent).unwrap()
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
+}
+
+///|
+test "default native Request input uses its original observed snapshot instead of a legacy fixed ceiling" {
+  let document = request_native_numeric_public_program(100000)
+  assert_eq(document.length(), 1289175)
+  let input = [1]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  // Exact high-water DATA from the existing SDK snapshotClientRequest on the
+  // authored intent envelope. It grants nothing: the SAME Request must back
+  // its snapshot before a default compiler-profile projection is available.
+  reserve_request_snapshot(parent, input, 1703936L, 262144L).unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  let selected = request_default_program_preparation_limits(parent, input).unwrap()
+  assert_true(
+    selected.checking.input.source.max_input_bytes >= document.length(),
+  )
+  assert_true(selected.checking.input.source.max_nodes >= 200026)
+  assert_eq(selected.checking.input.max_stages, 32)
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  assert_true(request_default_program_preparation_limits(parent, [1]) is Err(_))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_true(
+    request_default_program_preparation_limits(parent, input) is Err(_),
+  )
 }
