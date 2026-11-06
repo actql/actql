@@ -8,7 +8,7 @@ function evidence() {
     uncertainTransferBytes: 0, environments: 0, imports: 0, borrowedInputs: 0,
     importedRows: 0, unconfirmedEnvironments: 0, importScratchBytes: 0,
     taskDemandBytes: 0, temporaryViews: 0, tables: 0};
-  const held = {...base, planningWork: 2, attempts: 3, holdings: 1, heldBytes: 40,
+  const held = {...base, planningWork: 2, attempts: 1, holdings: 1, heldBytes: 40,
     reservedExecutionBytes: 128, environments: 1, imports: 1, importedRows: 2,
     tables: 2};
   const closed = {...held, holdings: 0, heldBytes: 0, reservedExecutionBytes: 0, tables: 0};
@@ -34,22 +34,25 @@ function evidence() {
     plannerObserverTime: [{task: 1, value: 2}],
     plannerObserverWork: [{task: 1, value: 1}]},
   holdings: [{task: 1, rows: 2, rowsCid: 'oracle', bytes: 12}],
-  selected: ['duckdb'], final: {attempts: 3, holdings: 0}};
+  selected: ['duckdb'], final: {attempts: 1, holdings: 0}};
 }
 const admit = e => admitNativeOwnerObservations(e.observations, e.holdings,
   e.selected, e.final);
 
-test('resident attempts include environment/import and retention includes metadata', () => {
+test('resident environment/import observations stay separate from consumed parent task attempts', () => {
   const result = admit(evidence());
   assert.deepEqual(result.attempts, [{task: 1, compute: 1, environments: 1,
     imports: 1, canonicalRowsBytes: 12, retainedChargeBytes: 40,
-    selectedRetentionBoundBytes: '64', physicalAttempts: 3}]);
+    selectedRetentionBoundBytes: '64', physicalAttempts: 1}]);
   assert.equal(result.observerMicroseconds, 5);
   assert.equal(result.phaseIntervals[1].precedingIntervalMicroseconds, 16);
 });
 for (const [name, mutate, issue] of [
   ['unsupported candidate contract', e => { e.observations.candidates[0].body[0] = 'unsupported-policy-candidates'; }, /InvalidNativePlannerProjection/],
-  ['unattributed attempt', e => { e.observations.owners[1].attempts++; }, /UnattributedNativePhysicalAttempt/],
+  ['extra parent attempt despite matching final totals and cold environment/import', e => {
+    for (const owner of e.observations.owners.slice(1)) owner.attempts++;
+    e.final.attempts++;
+  }, /UnattributedNativePhysicalAttempt/],
   ['missing intermediate owner', e => { e.observations.owners.splice(1, 1); }, /MissingNativeOwnerBoundary/],
   ['wrong registration', e => { e.observations.choices[0].registration = 'local'; }, /NativeChoiceRegistrationMismatch/],
   ['explanation for another revision', e => { e.observations.explanations[0].body.selection.revision++; }, /NativeExplanationSelectionMismatch/],
