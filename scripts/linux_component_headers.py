@@ -38,28 +38,36 @@ class LinuxSystemHeaders:
         return path.is_absolute() and path.is_relative_to(SYSTEM_INCLUDE)
 
     def _resolve(self, path):
-        links = {}
-        while True:
-            root = next((Path(root) for root in self.roots if path.is_relative_to(Path(root))), None)
-            if root is None:
+        links, current, pending = {}, Path('/'), list(path.parts[1:])
+        roots = tuple(Path(root) for root in self.roots)
+        while pending:
+            part = pending.pop(0)
+            candidate = current.parent if part == '..' else current / part
+            # Canonical ancestors are needed by the original ../ prefixes.
+            # Resolve each reached link BEFORE processing a later '..'; lexical
+            # normalization can otherwise hide a link into an unselected root.
+            if not any(candidate.is_relative_to(root) or root.is_relative_to(candidate) for root in roots):
                 raise ValueError('Linux system-header alias escapes selected roots')
-            current, parts = root, path.relative_to(root).parts
-            for index, part in enumerate(parts):
-                current /= part
-                observed = current.lstat()
-                if stat.S_ISLNK(observed.st_mode):
-                    if len(links) >= 40 or str(current) in links:
-                        raise ValueError('Cyclic or excessive Linux system-header alias chain')
-                    target = os.readlink(current)
-                    links[str(current)] = {'target': target, **_stamp(observed)}
-                    # Restart inside the explicitly selected roots, retaining
-                    # target-side aliases too. Never follow an outside detour
-                    # merely because another link would return to a root.
-                    target = Path(os.path.abspath(current.parent / target))
-                    path = target.joinpath(*parts[index + 1:])
-                    break
+            observed = candidate.lstat()
+            if stat.S_ISLNK(observed.st_mode):
+                if len(links) >= 40 or str(candidate) in links:
+                    raise ValueError('Cyclic or excessive Linux system-header alias chain')
+                target = os.readlink(candidate)
+                links[str(candidate)] = {'target': target, **_stamp(observed)}
+                # Keep empty and '.' components: a trailing slash or '/.'
+                # requires a directory in kernel traversal, even at the end.
+                if target.startswith('/'):
+                    current = Path('/')
+                    pending = target.split('/')[1:] + pending
+                else:
+                    pending = target.split('/') + pending
             else:
-                return current, links
+                if (pending or part in ('', '.')) and not stat.S_ISDIR(observed.st_mode):
+                    raise ValueError('Linux system-header traversal crosses a non-directory')
+                current = candidate
+        if not any(current.is_relative_to(root) for root in roots):
+            raise ValueError('Linux system-header alias escapes selected roots')
+        return current, links
 
     def _observe(self, path):
         if not self.contains(path) or '..' in path.parts:

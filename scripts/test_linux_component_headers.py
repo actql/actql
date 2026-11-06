@@ -128,6 +128,39 @@ class LinuxSystemHeaderTests(unittest.TestCase):
         selected = P.LinuxSystemHeaders((self.extra,))
         with self.assertRaisesRegex(ValueError, 'Cyclic or excessive'): selected.capture(self.alias)
 
+    def test_parent_after_link_cannot_hide_an_outside_kernel_target(self):
+        outside = self.root / 'outside'; (outside / 'subdir').mkdir(parents=True)
+        unsafe = outside / 'safe.h'; unsafe.write_bytes(b'outside kernel target\n')
+        lexical = self.alias.parent / 'safe.h'; lexical.write_bytes(b'local lexical decoy\n')
+        pivot = self.alias.parent / 'pivot'; pivot.symlink_to(outside / 'subdir', target_is_directory=True)
+        self.alias.unlink(); self.alias.symlink_to('pivot/../safe.h')
+        # Independent filesystem oracles, not this recorder's normalization.
+        self.assertEqual(self.alias.resolve(strict=True), unsafe)
+        self.assertEqual(self.alias.read_bytes(), b'outside kernel target\n')
+        selected = P.LinuxSystemHeaders((self.extra,))
+        with self.assertRaisesRegex(ValueError, 'escapes selected roots'): selected.capture(self.alias)
+
+    def test_parent_after_selected_link_follows_kernel_order_and_keeps_link(self):
+        directory = self.extra / 'deep'; (directory / 'subdir').mkdir(parents=True)
+        actual = directory / 'safe.h'; actual.write_bytes(b'selected kernel target\n')
+        (self.alias.parent / 'safe.h').write_bytes(b'local lexical decoy\n')
+        pivot = self.alias.parent / 'pivot'; pivot.symlink_to(directory / 'subdir', target_is_directory=True)
+        self.alias.unlink(); self.alias.symlink_to('pivot/../safe.h')
+        self.assertEqual(self.alias.resolve(strict=True), actual)
+        self.assertEqual(self.alias.read_bytes(), b'selected kernel target\n')
+        selected = P.LinuxSystemHeaders((self.extra,))
+        captured = selected.capture(self.alias)
+        self.assertEqual(captured['resolved_path'], str(actual))
+        self.assertEqual(captured['sha256'], hashlib.sha256(self.alias.read_bytes()).hexdigest())
+        self.assertEqual(set(selected.receipt()['aliases'][str(self.alias)]['links']), {str(self.alias), str(pivot)})
+
+    def test_parent_after_regular_file_is_not_a_directory_traversal(self):
+        file = self.alias.parent / 'file'; file.write_bytes(b'not a directory\n')
+        self.alias.unlink(); self.alias.symlink_to('file/../safe.h')
+        with self.assertRaises(NotADirectoryError): self.alias.read_bytes()
+        selected = P.LinuxSystemHeaders((self.extra,))
+        with self.assertRaisesRegex(ValueError, 'non-directory'): selected.capture(self.alias)
+
     def test_empty_nonregular_oversized_and_missing_targets_refuse(self):
         selected = P.LinuxSystemHeaders((self.extra,))
         for kind in ('empty', 'directory', 'fifo', 'oversized', 'missing'):
@@ -140,6 +173,16 @@ class LinuxSystemHeaderTests(unittest.TestCase):
             alias = self.include / kind; alias.symlink_to(target)
             with self.subTest(kind=kind), self.assertRaises((ValueError, OSError)):
                 selected.capture(alias)
+
+    def test_regular_target_with_trailing_slash_or_dot_is_not_a_directory(self):
+        for ending in ('/', '/.', '//', '/./'):
+            self.alias.unlink(); self.alias.symlink_to('../../uapi/types.h' + ending)
+            # Path normalization would erase these directory requirements.
+            # The actual kernel open independently rejects every spelling.
+            with self.subTest(ending=ending):
+                with self.assertRaises(NotADirectoryError): self.alias.read_bytes()
+                with self.assertRaisesRegex(ValueError, 'non-directory'):
+                    P.LinuxSystemHeaders((self.extra,)).capture(self.alias)
 
     def test_ordinary_default_header_and_internal_alias_remain_supported(self):
         target = self.include / 'local.h'; target.write_bytes(b'local\n')

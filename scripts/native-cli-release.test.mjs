@@ -6,7 +6,7 @@ import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {platformKey, macOSProductVersion, admitInstalledBinary} from '../packages/native-cli/bin/actql.mjs';
-import {admitNativeArtifact, sharedRuntimeSourceDelta} from './native-cli-release.mjs';
+import {admitNativeArtifact, sharedRuntimeSourceDelta, requireLinuxLocalReleaseArtifacts} from './native-cli-release.mjs';
 import {inspectNativeAbi} from './native-cli-artifact.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -20,6 +20,22 @@ const metadata = {version: 'actql-native-cli-artifact/0.1', sourceSha,
   toolchain: {diagnostic: 'synthetic fixture, not compiled Native evidence'},
   abi: {format: 'Mach-O', minimumMacOS: '26.0'}, testedHost: {}, generation: []};
 const expected = {sourceSha, binarySha256: metadata.binarySha256, binaryBytes: binary.length};
+
+test('explicit Local release profile requires its already admitted Linux Local artifact', () => {
+  // Selection-only fixtures. Actual artifact/library validation precedes this
+  // check in the producer; these records do not claim executable admission.
+  const linux = {platform: 'linux-x64-gnu', localRuntime: {syntheticSelection: true}};
+  const remoteDarwin = {platform: 'darwin-arm64'};
+  requireLinuxLocalReleaseArtifacts([linux]);
+  requireLinuxLocalReleaseArtifacts([linux, remoteDarwin]);
+  for (const records of [[], [remoteDarwin], [linux, linux]]) {
+    assert.throws(() => requireLinuxLocalReleaseArtifacts(records), /requires one Linux x64 artifact/u);
+  }
+  for (const localRuntime of [undefined, null, false, 'claimed-local']) {
+    assert.throws(() => requireLinuxLocalReleaseArtifacts([{platform: 'linux-x64-gnu', localRuntime}]),
+      /cannot use a Remote-only Linux artifact/u);
+  }
+});
 
 test('macOS version uses one bounded kernel query when available', () => {
   const calls = [];

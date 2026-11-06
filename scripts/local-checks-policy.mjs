@@ -4,7 +4,7 @@
 import {posix} from 'node:path';
 
 export const heavyJobs = Object.freeze([
-  'core', 'host', 'native', 'session-evidence',
+  'core', 'host', 'native-cli-linux-local', 'native', 'session-evidence',
   'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
   'workers', 'connector-addition', 'duckdb-node', 'spec',
 ]);
