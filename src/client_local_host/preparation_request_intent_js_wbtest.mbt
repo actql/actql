@@ -691,6 +691,9 @@ test "same original 100000 Plan leaves its selected task execution allowance ava
 
 ///|
 fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise {
+  // Match the ordinary installation default: retained-file output is an
+  // explicit separate consumer, not required to retain all completed rows.
+  let retained_file_output = false
   let program = request_native_numeric_public_program(100000)
   let document = "{\"kind\":\"program\",\"input\":" +
     program +
@@ -866,7 +869,7 @@ fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise 
       module_contracts,
       manifests=module_manifests,
       compilation_limits=module_limits,
-      retained_output=true,
+      retained_output=retained_file_output,
       provider_factory=factory,
     ).unwrap()
     |> ignore
@@ -879,7 +882,7 @@ fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise 
       module_contracts,
       manifests=module_manifests,
       compilation_limits=module_limits,
-      retained_output=true,
+      retained_output=retained_file_output,
       provider_factory=factory,
     ) {
     Ok(_) => ()
@@ -1052,7 +1055,7 @@ fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise 
       original_plan.values_body,
       original_plan.fragment_body,
       original_plan.ordered_body,
-      true,
+      retained_file_output,
     ).unwrap()
     let setup = match setup {
       Some(value) => value
