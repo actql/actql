@@ -407,6 +407,10 @@ function directCapturedModelFixture({taskCount = 1, retireBeforeRead = false, re
       modelRetainedBytes: 17n, modelExecutionBytes: 19n};
   const plan = {compiled: {}, runDefinition: {wire: '{"run_id":"direct-model-fixture"}'}, inferGraph: graph};
   const selected = {graph, occurrence, computePrefix: prefix, provider};
+  const checkpoints={},submission={},preparedSource={},adapter={},approval={},
+    sourceOccurrence=Object.freeze({stage:0,input:0,task:0}),sourceEvidenceWire='original-source-evidence',
+    sourceAccess={originalCheckpointApproval:()=>approval},sourceCustody=[];
+  let sourceClosed=false;
   const model = {prepared, selection: selected, control: undefined, compiled: plan.compiled,
     runDefinition: plan.runDefinition, graph, scope, budget, component, managed,
     sourceLedger: ledger, publicationCapacity() {return {};}};
@@ -426,6 +430,7 @@ function directCapturedModelFixture({taskCount = 1, retireBeforeRead = false, re
     },
     finishCheckedClientInferOriginalReadScope(c, d, g, s, stopped) {
       assert.deepEqual([c, d, g, s, stopped], [plan.compiled, plan.runDefinition, graph, scope, true]);
+      assert.equal(sourceClosed,true,'original Source closure retires before Model Scope');
       calls.push('same Scope finish'); return true;
     },
   };
@@ -433,6 +438,8 @@ function directCapturedModelFixture({taskCount = 1, retireBeforeRead = false, re
   const originalSources = {};
   const moon = {clientProgramAcquisitionCount: p => {assert.strictEqual(p, prepared); return 1;},
     clientProgramTaskCount: p => {assert.strictEqual(p, prepared); return taskCount;},
+    clientProgramResultCount:p=>{assert.equal(p,prepared);return 1;},
+    clientProgramResultName:(p,index)=>{assert.equal(p,prepared);assert.equal(index,0);return 'answer';},
     clientProgramInstalledManagedRunModelInputPrefix(run, p) {
       assert.strictEqual(run, parent); assert.strictEqual(p, prepared);
       calls.push('same original prefix'); return {$tag: 1, _0: prefix};
@@ -442,6 +449,34 @@ function directCapturedModelFixture({taskCount = 1, retireBeforeRead = false, re
   managed.runtime = moon;
   const ports = {runtimeField: (v, i) => v[`_${i}`], checked: v => {assert.equal(v.$tag, 1);return v._0;},
     runInstalledComposedInfers: () => {throw wrong;},
+    // Same explicit Source-continuation ports as the fresh singleton caller
+    // fixture. They qualify identity/order, not a physical Checkpoint or grant.
+    acquiredEffectContinuation(options) {
+      assert(cleanup,'retain Model cleanup before Source construction');
+      assert.equal(options.checkpoints,checkpoints);assert.equal(options.submission,submission);
+      assert.equal(options.moon,moon);assert.equal(options.acquired.prepared,prepared);
+      assert.equal(options.acquired.runDefinition,plan.runDefinition);assert.equal(options.acquired.control,control);
+      assert.deepEqual(options.declaredResults,['answer']);assert.equal(options.unitId,'composed-source-input');
+      assert.equal(options.restore,undefined);assert.equal(options.currentRun(),true);
+      const sameSource=item=>{
+        assert.equal(item.occurrence,sourceOccurrence);assert.equal(item.preparedSource,preparedSource);
+        assert.equal(item.adapter,adapter);
+      };
+      return {
+        accessFor(access,actualOccurrence) {
+          assert.equal(access,sourceAccess);assert.equal(actualOccurrence,sourceOccurrence);sourceCustody.push('access');
+        },
+        async prepared(items) {assert.equal(items.length,1);sameSource(items[0]);sourceCustody.push('prepared');},
+        async captured(item,actual,wire,start,end,originalApproval) {
+          sameSource(item);assert.equal(actual,captured);assert.equal(wire,sourceEvidenceWire);
+          assert.equal(start,'authored-start');assert.equal(end,'authored-end');assert.equal(originalApproval,approval);
+          sourceCustody.push('captured');
+        },
+        async close() {assert.equal(sourceClosed,false);sourceClosed=true;sourceCustody.push('close');return true;},
+        beforeRead:()=>assert.fail('no second Source read'),
+        retainAll:()=>assert.fail('fixture stops before Model checkpoint publication'),
+      };
+    },
     retireNodeInferOriginalRead: value => {assert.strictEqual(value, model);
       if (model.read !== undefined) assert.strictEqual(model.read, read);
       calls.push('same read retirement');},
@@ -456,14 +491,16 @@ function directCapturedModelFixture({taskCount = 1, retireBeforeRead = false, re
   const install = Function(...Object.keys(ports), `${bodies}\nreturn installNodeInferRun;`)(...Object.values(ports));
   let cleanup;
   const run = install({moon, core: {publicationControl: control}, selections: new Map([[prepared, selected]]),
+    checkpoints,
     authorityScopeCid: 'authored-authority', modelController: {discover: () => [], release() {}},
     prepareOriginalModelRun(p, actual, s) {
       assert.deepEqual([p, actual, s], [prepared, plan, selected]);
       if (retireBeforeRead) model.closed = true;
       return model;
     }});
-  return {calls, primary, wrong, model, run: () => run({preparedProgram: prepared, plan,
+  return {calls, primary, wrong, model, sourceCustody, run: () => run({preparedProgram: prepared, plan,submission,
     acquiredInfer: {managedRun: parent, ledger, captured, sourceEvidence: evidence,
+      preparedSource,adapter,sourceAccess,occurrence:sourceOccurrence,sourceEvidenceWire,
       captureStartedAt: 'authored-start', captureCompletedAt: 'authored-end'},
     preparationHolder: {}, signal: new AbortController().signal,
     retainExecution(value) {cleanup = value;}}), cleanup: () => cleanup};
@@ -475,6 +512,7 @@ test('same-stage acquired Model uses its original kernel instead of publishing a
   assert.deepEqual(f.calls, ['same Source evidence', 'same original prefix', 'same read', 'same original kernel']);
   assert.equal(await f.cleanup().close(), true);
   assert.deepEqual(f.calls.slice(-2), ['same read retirement', 'same Scope finish']);
+  assert.deepEqual(f.sourceCustody,['access','prepared','captured','close']);
   assert.equal(f.cleanup().cleanupPending(), false);
 });
 
@@ -502,6 +540,7 @@ test('same-stage Source admission reentry preserves the original pending Scope d
   f.model.closed = false; // Explicit fixture makes only its original current again.
   assert.equal(await f.cleanup().cleanup(), true);
   assert.deepEqual(f.calls.slice(-2), ['same read retirement', 'same Scope finish']);
+  assert.deepEqual(f.sourceCustody,['access','prepared','captured','close']);
 });
 
 function restoredComposedSourceFixture({missing, retireAfterFirst = false} = {}) {
