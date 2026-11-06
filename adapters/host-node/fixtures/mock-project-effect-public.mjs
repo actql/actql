@@ -147,9 +147,9 @@ try {
   if (phase === 'capture') {
     const before = await step('read authored target before submission', targetState);
     const source = await step('read original README program', () =>
-      readFile(dealReview ? 'deal-review.aql' : 'churn-risk.aql', 'utf8'));
+      readFile(twoModels ? 'deal-review.program.json' : dealReview ? 'deal-review.aql' : 'churn-risk.aql', 'utf8'));
     const execution = await step('README startSource', () =>
-      client.startSource(source, {format: 'aql', stopBefore: 'commit'}));
+      client.startSource(source, {format: twoModels ? 'json' : 'aql', stopBefore: 'commit'}));
     const state = await step('wait for original Checkpoint', async () => {
       const state = await execution.wait();
       assert.equal(state.status, 'waiting_checkpoint');
