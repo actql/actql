@@ -104,12 +104,17 @@ const expectedGates = {
     "node scripts/test-packed-run-host-core.mjs"
   ],
   "check:local-node-assets": [
+    "npm run check:local-node-source-assets",
+    "node scripts/test-packed-local-node-assets.mjs"
+  ],
+  // CI keeps the cold and external compositions in Host. The local umbrella
+  // above still invokes every source check before its normal tar consumer.
+  "check:local-node-source-assets": [
     "node scripts/build-runtime-packages.mjs local-node",
     "node scripts/build-local-node-adapters.mjs",
     "node scripts/build-local-node-adapters.mjs --check",
     "node --test scripts/local-node-package-inputs.test.mjs scripts/local-node-external-package-inputs.test.mjs scripts/local-node-table-assets.test.mjs",
     "tsc --noEmit --strict --module NodeNext --moduleResolution NodeNext --target ES2022 packages/local-node/connector-installation.typecheck.mts",
-    "node scripts/test-packed-local-node-assets.mjs",
     "node scripts/test-packed-installed-connectors.mjs",
     "node scripts/test-packed-external-connector.mjs",
     "node scripts/test-packed-external-installed.mjs"
