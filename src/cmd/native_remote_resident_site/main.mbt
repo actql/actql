@@ -927,6 +927,7 @@ fn reclaim_orphaned_outputs(
   failed_store : Ref[@publication_store.NativePublicationStoreOpenFailure?],
   slot_progress : Ref[ControlTerminalClose],
   failures : Ref[Int],
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> OrphanReclaim {
   let publication_root = settings.root
   let close_held = fn(store : @publication_store.Store) -> OrphanReclaim {
@@ -939,7 +940,7 @@ fn reclaim_orphaned_outputs(
         OrphansPending
       }
       Err(@publication_store.RecoveryRequired) => {
-        report("allocation-needs-reconciliation", [
+        report_progress("allocation-needs-reconciliation", [
           ("reason", "allocation-ownership-unconfirmed"),
           ("publication_root", publication_root),
           ("journal", environment.journal_path),
@@ -947,14 +948,14 @@ fn reclaim_orphaned_outputs(
         OrphanNeedsReconciliation(store)
       }
       Err(_) => {
-        report("orphan-reclaim-pending", [("reason", "store-close")])
+        report_progress("orphan-reclaim-pending", [("reason", "store-close")])
         OrphanStoreOpen(store)
       }
     }
   }
   guard open_control_replay_journal(environment, replay_journal)
     is Some(journal) else {
-    report("orphan-reclaim-pending", [("reason", "journal-open")])
+    report_progress("orphan-reclaim-pending", [("reason", "journal-open")])
     return match held {
       Some(store) => close_held(store)
       None => OrphansPending
@@ -964,7 +965,7 @@ fn reclaim_orphaned_outputs(
     Ok(value) => value
     Err(_) => {
       close_control_replay_journal(replay_journal)
-      report("orphan-reclaim-pending", [("reason", "journal-read")])
+      report_progress("orphan-reclaim-pending", [("reason", "journal-read")])
       return match held {
         Some(store) => close_held(store)
         None => OrphansPending
@@ -992,12 +993,12 @@ fn reclaim_orphaned_outputs(
         Ok(true) => ()
         Ok(false) => {
           close_control_replay_journal(replay_journal)
-          report("orphan-reclaim-pending", [("reason", "slot-busy")])
+          report_progress("orphan-reclaim-pending", [("reason", "slot-busy")])
           return OrphansPending
         }
         Err(_) => {
           close_control_replay_journal(replay_journal)
-          report("orphan-reclaim-pending", [("reason", "slot-lock")])
+          report_progress("orphan-reclaim-pending", [("reason", "slot-lock")])
           return OrphansPending
         }
       }
@@ -1011,7 +1012,7 @@ fn reclaim_orphaned_outputs(
               replay_journal, slot, slot_progress,
             )
           }
-          report("orphan-reclaim-pending", [("reason", "store-open")])
+          report_progress("orphan-reclaim-pending", [("reason", "store-open")])
           return OrphansPending
         }
       }
@@ -1023,21 +1024,22 @@ fn reclaim_orphaned_outputs(
       @resident_host.OutputPayloadStore(@publication_store.RecoveryRequired)
     ) {
     for intent in intents {
-      report("allocation-reconciliation-intent", [
+      report_progress("allocation-reconciliation-intent", [
         ("payload_request_cid", intent.0),
       ])
     }
   }
   close_control_replay_journal(replay_journal)
   match remaining {
-    Ok(0) => report("orphans-reclaimed", [("intents", pending.to_string())])
+    Ok(0) =>
+      report_progress("orphans-reclaimed", [("intents", pending.to_string())])
     Ok(count) =>
-      report("orphan-reclaim-pending", [
+      report_progress("orphan-reclaim-pending", [
         ("reason", "store"),
         ("intents", count.to_string()),
       ])
     Err(issue) =>
-      report("orphan-reclaim-pending", [("reason", output_code(issue))])
+      report_progress("orphan-reclaim-pending", [("reason", output_code(issue))])
   }
   match close_held(store) {
     OrphansPending if remaining is Ok(0) => OrphansDone
