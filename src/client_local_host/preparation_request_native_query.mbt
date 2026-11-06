@@ -121,6 +121,7 @@ pub fn[I, T] prepare_request_native_query_computation(
   effect_limits : @publication_host.ClientEffectComputationLimits,
   supplied? : T? = None,
   declarations? : T? = None,
+  public_primary? : Bool = true,
 ) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue] {
   match
     prepare_request_native_query_computation_input(
@@ -132,6 +133,7 @@ pub fn[I, T] prepare_request_native_query_computation(
       environment,
       publication,
       binding_limits=Some(request_query_binding_limits(program_limits.checking)),
+      public_primary~,
       supplied~,
       declarations~,
     ) {
@@ -155,6 +157,7 @@ fn[I, T] prepare_request_native_query_computation_input(
   binding_limits? : @admitted.Limits? = None,
   supplied? : T? = None,
   declarations? : T? = None,
+  public_primary? : Bool = true,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   match
     prepare_request_native_query_input(
@@ -174,7 +177,7 @@ fn[I, T] prepare_request_native_query_computation_input(
       publication,
       environment,
       None,
-      public_primary=true,
+      public_primary~,
       binding_limits~,
     ) {
     Err(issue) => return Err(QueryLowering(issue))
@@ -198,6 +201,7 @@ pub fn[I, T] prepare_request_native_source_computation(
   program_limits : @publication_host.ClientProgramPreparationLimits,
   effect_limits : @publication_host.ClientEffectComputationLimits,
   supplied? : T? = None,
+  public_primary? : Bool = true,
 ) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue] {
   match
     prepare_request_native_source_computation_input(
@@ -208,6 +212,7 @@ pub fn[I, T] prepare_request_native_source_computation(
       environment,
       publication,
       program_limits.checking,
+      public_primary~,
       supplied~,
     ) {
     Err(issue) => return Err(issue)
@@ -232,6 +237,7 @@ pub fn[I, T] prepare_request_native_source_computation_check(
   program_limits : @publication_host.ClientProgramPreparationLimits,
   effect_limits : @publication_host.ClientEffectComputationLimits,
   supplied? : T? = None,
+  public_primary? : Bool = true,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   match
     prepare_request_native_source_computation_input(
@@ -242,6 +248,7 @@ pub fn[I, T] prepare_request_native_source_computation_check(
       environment,
       publication,
       program_limits.checking,
+      public_primary~,
       supplied~,
     ) {
     Err(issue) => return Err(issue)
@@ -262,6 +269,7 @@ fn[I, T] prepare_request_native_source_computation_input(
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   limits : @checked.CheckLimits,
   supplied? : T? = None,
+  public_primary? : Bool = true,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   guard owner.phase == Open &&
     !owner.native_parameters_ready &&
@@ -331,6 +339,7 @@ fn[I, T] prepare_request_native_source_computation_input(
     environment,
     publication,
     binding_limits=Some(request_query_binding_limits(limits)),
+    public_primary~,
     supplied~,
     declarations~,
   )
