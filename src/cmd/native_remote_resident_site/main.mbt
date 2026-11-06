@@ -5508,8 +5508,8 @@ fn main {
     control.enter()
     true
   } catch {
-    CommandStop(_) => {
-      resident_control_diagnostic_ffi(1)
+    CommandStop(issue) => {
+      resident_control_diagnostic_ffi(resident_initial_failure_stage(issue))
       false
     }
   }
