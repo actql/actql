@@ -194,7 +194,7 @@ export const joinPropertySuccesses = [
       + 'ON l.id = r.id MAX_OUTPUT_ROWS 12 |> SELECT l.id, r.other AS payload |> ORDER BY id',
     {expected: [{id: 1, payload: {score: 5}}], columns: [idColumn, receiverColumns[2]]}),
   prefilterCase('same-named-value', '',
-    {text: collisionCtes + 'FROM chosen AS payload |> WHERE (payload).score > 15'
+    {text: collisionCtes + 'FROM chosen AS payload |> WHERE (payload.payload).score > 15'
       + ' |> JOIN others AS r ON payload.id = r.id MAX_OUTPUT_ROWS 12'
       + ' |> SELECT payload.id, r.other.score |> ORDER BY id, score'}),
   prefilterCase('same-named-qualified-range', '',
@@ -225,7 +225,7 @@ export const joinPropertySuccesses = [
       + ' ORDER BY (payload).score NULLS LAST',
     {expected: aliasRows, columns: receiverColumns}),
   rangeCase('value-range-collision',
-    'SELECT payload.id AS id, (payload).score AS score '
+    'SELECT payload.id AS id, (payload.payload).score AS score '
       + 'FROM (SELECT id, payload, 90 AS score FROM objects) AS payload '
       + 'JOIN others AS r ON payload.id = r.id MAX_OUTPUT_ROWS 12 ORDER BY id'),
   rangeCase('dotted-range-collision-control',
@@ -243,16 +243,16 @@ export const joinPropertySuccesses = [
       + 'ON l.id = r.id MAX_OUTPUT_ROWS 12 ORDER BY l.id, ((r)).other.score',
     {expected: [{id: 1, score: 5}, {id: 2, score: 30}, {id: 2, score: 40}, {id: 3, score: null}]}),
   rangeCase('ordinary-scoped-order',
-    'FROM objects |> AS current |> ORDER BY ((current)).payload.score NULLS LAST'
+    'FROM objects |> AS `current` |> ORDER BY ((current)).payload.score NULLS LAST'
       + ' |> SELECT current.id AS id, current.payload.score AS score',
-    {text: ordinaryCtes + 'FROM objects |> AS current'
+    {text: ordinaryCtes + 'FROM objects |> AS `current`'
       + ' |> ORDER BY ((current)).payload.score NULLS LAST'
       + ' |> SELECT current.id AS id, current.payload.score AS score',
       parameterDeclarations: {a: payload, b: payload, c: payload},
       parameters: {a: parameters.a, b: parameters.b, c: parameters.c},
       expected: [{id: 2, score: 10}, {id: 1, score: 20}, {id: 3, score: null}]}),
   rangeCase('current-range-order', pipeJoin
-    + ' |> SELECT l.id, l.payload |> AS current'
+    + ' |> SELECT l.id, l.payload |> AS `current`'
     + ' |> ORDER BY ((current)).payload.score NULLS LAST, ((current)).id',
     {expected: [{id: 2, payload: {score: 10}}, {id: 2, payload: {score: 10}},
       {id: 1, payload: {score: 20}}, {id: 3, payload: null}],

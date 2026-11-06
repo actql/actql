@@ -33,7 +33,7 @@ export const qualifiedStarSuccesses = [
   success('pipe-original-values', 'FROM records AS before |> WHERE id > 0 '
     + '|> SET amount = -amount |> SELECT before.* EXCEPT (id) |> ORDER BY amount'),
   success('pipe-replaced-alias', 'FROM records AS before |> WHERE id > 0 '
-    + '|> AS current |> SELECT current.* EXCEPT (id) |> ORDER BY amount'),
+    + '|> AS `current` |> SELECT current.* EXCEPT (id) |> ORDER BY amount'),
   success('left-join-nullability', 'SELECT seed.*, r.id AS id FROM records AS r '
     + 'LEFT JOIN (SELECT 1 AS k) AS seed ON r.id = seed.k MAX_OUTPUT_ROWS 10 '
     + 'WHERE r.id > 0 ORDER BY r.id', {

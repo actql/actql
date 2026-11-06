@@ -96,7 +96,7 @@ export const unnestSuccesses = [
     [], columns, {parameters: {items: null}}),
   success('scalar-star-data-binding',
     'WITH expanded AS (FROM UNNEST(@items) element WITH OFFSET position |> SELECT *) FROM expanded |> ORDER BY position |> RESULT answer',
-    rows, columns, {format: 'aql-text'}),
+    rows, columns, {format: 'aql-text', resultName: 'answer'}),
   success('pipe-duplicates-and-null',
     'FROM UNNEST(@items) AS element WITH OFFSET AS position |> SELECT element, position |> ORDER BY position',
     rows, columns, {format: 'aql-text'}),
@@ -195,11 +195,11 @@ unnestSuccesses.push(
       additional_properties: false}}, column('position')]),
   structSuccess('predicate-except', 'SELECT element.* EXCEPT (label), position FROM UNNEST(@items) element WITH OFFSET position WHERE id IS NOT NULL ORDER BY position',
     [{id: 2, position: 0}, {id: 2, position: 2}], [column('id', true), column('position')]),
-  structSuccess('immutable-range', 'FROM UNNEST(@items) element WITH OFFSET position |> SELECT id, position |> AS input |> SET id = id + 10 |> SELECT id AS current, input.id AS original, position |> ORDER BY position',
+  structSuccess('immutable-range', 'FROM UNNEST(@items) element WITH OFFSET position |> SELECT id, position |> AS input |> SET id = id + 10 |> SELECT id AS `current`, input.id AS original, position |> ORDER BY position',
     [{current: 12, original: 2, position: 0}, {current: null, original: null, position: 1}, {current: 12, original: 2, position: 2}],
     [column('current', true), column('original', true), column('position')], {format: 'aql-text'}),
   structSuccess('data-binding', 'WITH expanded AS (FROM UNNEST(@items) element WITH OFFSET position |> SELECT *) FROM expanded |> ORDER BY position |> RESULT answer',
-    structRows, structColumns, {format: 'aql-text'}),
+    structRows, structColumns, {format: 'aql-text', resultName: 'answer'}),
 );
 for (const [name, text] of [
   ['dropped-receiver', 'FROM UNNEST(@items) element |> SELECT id |> WHERE element.label IS NULL'],
@@ -510,7 +510,8 @@ const asObjectContract = {...structDeclarations.items.items, additional_properti
 const asWholeColumns = [{name: 'original', contract: asObjectContract}, column('position')];
 const asWholeRows = [{original: {id: 2, label: 'z'}, position: 0},
   {original: null, position: 1}, {original: {id: 1, label: 'a'}, position: 2}];
-const asHead = 'FROM UNNEST(@items) element WITH OFFSET position |> AS current';
+const originalAsHead = 'FROM UNNEST(@items) element WITH OFFSET position |> AS current';
+const asHead = 'FROM UNNEST(@items) element WITH OFFSET position |> AS `current`';
 // Both controls are independent common Programs, with no AS computation.
 const asScalarControl = {version: 'actql/0.1', id: 'fixture.unnest.as.scalar',
   params: declarations, stages: [{id: 'main', inputs: {}, steps: [
@@ -538,7 +539,7 @@ unnestSuccesses.push(
     [{value: 1}, {value: 2}], [column('value', true)], {format: 'aql-text', parameters: {items: [2, null, 1]}}),
   asSuccess('whole-json-control', JSON.stringify(asWholeControl), asWholeRows, asWholeColumns,
     {format: 'json', parameterDeclarations: undefined}),
-  asSuccess('single-whole', 'FROM UNNEST(@items) element |> AS current '
+  asSuccess('single-whole', 'FROM UNNEST(@items) element |> AS `current` '
     + '|> SELECT current AS original, id |> ORDER BY id NULLS LAST',
     [{original: {id: 1, label: 'a'}, id: 1}, {original: {id: 2, label: 'z'}, id: 2}, {original: null, id: null}],
     [{name: 'original', contract: asObjectContract}, column('id', true)]),
@@ -567,16 +568,16 @@ unnestSuccesses.push(
     [{name: 'original', contract: {type: 'object', nullable: true, fields: {}, additional_properties: false}}, column('position')],
     {parameterDeclarations: {items: {...structDeclarations.items, max_items: 2,
       items: {type: 'object', nullable: true, fields: {}}}}, parameters: {items: [{}, null]}}),
-  receiverSuccess('as-whole-field-collision', 'FROM UNNEST(@items) element WITH OFFSET position |> AS current '
+  receiverSuccess('as-whole-field-collision', 'FROM UNNEST(@items) element WITH OFFSET position |> AS `current` '
     + '|> SELECT element AS original, current.element.element AS field_value, position |> ORDER BY position', {format: 'aql-text'}),
 );
 unnestRefusals.push(
   refusal('as-single-rename-range', 'FROM UNNEST(@items) element |> AS current |> RENAME current AS next |> SELECT next',
     {format: 'aql-text', expectedCode: 'ClientProgramInvalidInput'}),
-  refusal('as-implicit-member-edit', `${asHead} |> SET id = 100 |> SELECT position`,
+  refusal('as-implicit-member-edit', `${originalAsHead} |> SET id = 100 |> SELECT position`,
     {format: 'aql-text', parameterDeclarations: structDeclarations, parameters: asParameters,
       expectedCode: 'ClientProgramInvalidInput'}),
-  refusal('as-select-removed-range', `${asHead} |> SELECT id |> WHERE current.element IS NOT NULL`,
+  refusal('as-select-removed-range', `${originalAsHead} |> SELECT id |> WHERE current.element IS NOT NULL`,
     {format: 'aql-text', parameterDeclarations: structDeclarations, parameters: asParameters,
       expectedCode: 'ClientProgramInvalidInput'}),
 );

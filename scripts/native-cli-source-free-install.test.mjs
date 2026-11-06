@@ -139,7 +139,7 @@ test('real registry callback failure cannot produce even provisional observation
 });
 
 import {chmod, mkdir, utimes, writeFile} from 'node:fs/promises';
-import {observeUnsupportedMockInitialization, observeTimingEnabledPlainInitialization} from './test-native-cli-source-free-install.mjs';
+import {observeUnsupportedMockInitialization, observeCatalogOnlyMockRefusal, observeTimingEnabledPlainInitialization} from './test-native-cli-source-free-install.mjs';
 
 const supportReply = {code: 0, signal: null, stderr: '',
   stdout: '{"version":"actql-project-init-support/0.1","sourceFree":true,"mock":false}\n'};
@@ -247,3 +247,40 @@ test('query no-write harness rejects config or state creation before any init at
     assert.equal(calls, 1);
   }
 });
+
+const catalogRefusalReply = {code: 1, signal: null, stdout: '',
+  stderr: 'actql-native-client: LocalProjectBindingsUnavailable\n'};
+
+test('catalog-only control requires its original Native refusal without state or input creation', async t => {
+  const root = await initRoot(t), calls = [];
+  // Synthetic replies prove harness assertions only, not Native execution.
+  const report = await observeCatalogOnlyMockRefusal({root, cli: async (args, cwd, code) => {
+    calls.push({args, cwd, code});
+    assert.deepEqual(JSON.parse(await readFile(args[1], 'utf8')), {
+      version: 'actql-config/0.1', mock: {catalog: 'never-opened.json'},
+      connectors: 'never-opened-connectors.json',
+    });
+    return catalogRefusalReply;
+  }});
+  const directory = join(root, 'refused-catalog-only');
+  assert.deepEqual(calls, [{args: ['--config', join(directory, 'actql.config.json'),
+    '--state-dir', join(directory, 'state'), 'check', 'never-read.aql'], cwd: directory, code: 1}]);
+  assert.equal(report.scope, 'catalog-only-mock-binding-refusal-only');
+  assert.deepEqual(report.before, report.after);
+  assert.deepEqual(report.configurationBefore, report.configurationAfter);
+  assert.deepEqual(report.after.entries, ['actql.config.json']);
+});
+
+for (const change of ['success', 'foreign-error', 'output', 'created-state', 'created-input', 'changed-config']) {
+  test(`catalog-only control rejects ${change} rather than reporting an unsupported-binding pass`, async t => {
+    const root = await initRoot(t);
+    await assert.rejects(observeCatalogOnlyMockRefusal({root, cli: async (args, cwd) => {
+      if (change === 'created-state') await mkdir(args[3]);
+      if (change === 'created-input') await writeFile(join(cwd, 'never-opened.json'), '{}');
+      if (change === 'changed-config') await writeFile(args[1], '{}');
+      return {...catalogRefusalReply, ...(change === 'success' ? {code: 0} : {}),
+        ...(change === 'foreign-error' ? {stderr: 'actql-native-client: missing file\n'} : {}),
+        ...(change === 'output' ? {stdout: 'verified\n'} : {})};
+    }}));
+  });
+}

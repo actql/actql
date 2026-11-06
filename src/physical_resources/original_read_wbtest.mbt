@@ -41,13 +41,15 @@ fn[T] issue_original_ledger_descriptor(
 
 ///|
 priv struct OriginalReadTestOrigin {
-  run : String
+  mut run : String
   host : String
 }
 
 ///|
 fn original_read_test_origin() -> OriginalReadTestOrigin {
-  { run: "original-run", host: "original-host", }
+  let original = { run: "", host: "original-host", }
+  original.run = "original-run"
+  original
 }
 
 ///|
@@ -56,6 +58,12 @@ test "funded original read exact fit includes bootstrap and hands off same ledge
   let origin = original_read_test_origin()
   assert_eq(origin.run, "original-run")
   assert_eq(origin.host, "original-host")
+  // Identity tests need independently allocated equal-valued originals on
+  // Native too; an immutable constant literal can be shared by the compiler.
+  let another = original_read_test_origin()
+  assert_eq(another.run, origin.run)
+  assert_eq(another.host, origin.host)
+  assert_false(physical_equal(another, origin))
   let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
   let identity = begin_original_ledger_inventory(ledger, bootstrap, 1, 0, 0).unwrap()
   let duplicate = issue_recorded_original_ledger_descriptor(identity, origin).unwrap()

@@ -427,14 +427,15 @@ export function installedSourceConfigurationReader(services) {
       if (material.busy) fail('InstalledSourceInitializationReentry');
       // The existing bounded text read owns the input. Reserve the parsed,
       // checked and identity views before JSON.parse, without another read.
-      const units = BigInt(text.length);
-      reserveSource(original, material, 4n * units, 12n * units, 0n);
+      const geometry = sourceJsonWireGeometry(text);
+      const nodes = 4n * geometry.nodes, textBytes = 12n * geometry.units;
+      reserveSource(original, material, nodes, textBytes, 0n);
       let value;
       material.busy = true;
       try {
         value = JSON.parse(text);
         material.inputs.push(value);
-        material.nodes += 4n * units; material.text += 12n * units;
+        material.nodes += nodes; material.text += textBytes;
       } finally {material.busy = false;}
       reconcileSource(original, material);
       return value;

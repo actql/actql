@@ -87,6 +87,36 @@ export async function observeUnsupportedMockInitialization({root, cli}) {
     query: {configuration, state, before: queryBefore, after: queryAfter}, cases};
 }
 
+// Catalog metadata alone remains a Mock binding request. This control is a
+// refusal before reading its absent inputs, not Mock execution acceptance.
+export async function observeCatalogOnlyMockRefusal({root, cli}) {
+  const directory = join(root, 'refused-catalog-only');
+  await mkdir(directory, {mode: 0o700});
+  const configuration = join(directory, 'actql.config.json'), state = join(directory, 'state');
+  const absent = [state, join(directory, 'never-opened.json'),
+    join(directory, 'never-opened-connectors.json'), join(directory, 'never-read.aql')];
+  await writeFile(configuration, JSON.stringify({version: 'actql-config/0.1',
+    mock: {catalog: 'never-opened.json'}, connectors: 'never-opened-connectors.json'}) + '\n',
+  {flag: 'wx', mode: 0o600});
+  const retainedConfiguration = async () => {
+    const metadata = await lstat(configuration, {bigint: true});
+    assert(metadata.isFile() && !metadata.isSymbolicLink());
+    return {sha256: createHash('sha256').update(await readFile(configuration)).digest('hex'),
+      ...Object.fromEntries(['dev', 'ino', 'mode', 'size', 'mtimeNs', 'ctimeNs']
+        .map(key => [key, String(metadata[key])]))};
+  };
+  const before = await unchangedDirectory(directory), configurationBefore = await retainedConfiguration();
+  for (const path of absent) await requireAbsent(path);
+  const result = await cli(['--config', configuration, '--state-dir', state, 'check', 'never-read.aql'], directory, 1);
+  assert.equal(result.code, 1); assert.equal(result.signal, null); assert.equal(result.stdout, '');
+  assert.equal(result.stderr, 'actql-native-client: LocalProjectBindingsUnavailable\n');
+  for (const path of absent) await requireAbsent(path);
+  const after = await unchangedDirectory(directory), configurationAfter = await retainedConfiguration();
+  assert.deepEqual(after, before); assert.deepEqual(configurationAfter, configurationBefore);
+  return {scope: 'catalog-only-mock-binding-refusal-only', configuration, state,
+    before, after, configurationBefore, configurationAfter, absent};
+}
+
 export async function observeTimingEnabledPlainInitialization({root, cli, environment}) {
   const original = environment.ACTQL_NATIVE_TIMINGS;
   let result;
@@ -175,6 +205,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     const cli = (args, cwd = project, code = 0) => run(process.execPath, [launcher, ...args], cwd, code);
     assert.equal((await cli(['--version'], root)).stdout, `${manifest.cohort.packageVersion}\n`);
     const mockInitialization = await observeUnsupportedMockInitialization({root, cli});
+    const catalogOnlyMockRefusal = await observeCatalogOnlyMockRefusal({root, cli});
     const plainInitialization = await observeTimingEnabledPlainInitialization({root, cli, environment: env});
     assert.equal(env.ACTQL_NATIVE_TIMINGS, undefined);
     assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
@@ -208,7 +239,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, plainInitialization,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization,
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
   } catch (error) { failure = error; }

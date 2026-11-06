@@ -278,7 +278,11 @@ test "Submission original routing retains the exact intent and rejects changed o
   assert_true(
     calls.contains("insert:client_submitted_intents:" + reference.request_id),
   )
-  assert_false(calls.any(value => value.has_prefix("scan:")))
+  assert_true(
+    calls
+    .filter(value => value.has_prefix("scan:"))
+    .all(value => value.has_prefix("scan:client_submission_epoch:")),
+  )
   assert_true(
     calls.contains("compare_exchange:client_submitted_intent_usage:retained"),
   )

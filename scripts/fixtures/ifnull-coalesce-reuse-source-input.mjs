@@ -88,5 +88,5 @@ export const ifnullCoalesceReuseRefusals = [
 export const ifnullCoalesceReuseExecutionFailures = [{
   name: 'ifnull-coalesce-reuse-demanded-fallback', format: 'sql',
   text: 'SELECT DISTINCT IFNULL(CAST(NULL AS FLOAT64), 1 / 0) AS value FROM records WHERE id > 0 ORDER BY COALESCE(CAST(NULL AS FLOAT64), 1 / 0)',
-  resultNames: ['answer'], sourceRows: rows, sourceReadSessionCount: 1,
+  resultNames: ['main'], sourceRows: rows, sourceReadSessionCount: 1,
 }];

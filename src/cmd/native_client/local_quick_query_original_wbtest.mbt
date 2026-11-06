@@ -113,7 +113,7 @@ test "ordinary literal File selection refuses unsupported or invalid destination
       ),
       (
         ["sql", "SELECT 1", "--format", "csv", "--output", ""],
-        "InvalidLocalResultDestination",
+        "invalid or repeated option --output",
       ),
     ] {
     let parsed = quick_query_arguments(arguments[:])
@@ -131,6 +131,13 @@ test "ordinary literal File selection refuses unsupported or invalid destination
     assert_true(command_preparation_invocation.val is None)
     assert_true(initial_crypto_invocation.val is None)
   }
+  let empty_destination = try {
+    ignore(local_result_output_path("/explicit-project", ""))
+    "unexpected destination"
+  } catch {
+    ClientStop(issue) => issue
+  }
+  assert_eq(empty_destination, "InvalidLocalResultDestination")
 }
 
 ///|
@@ -153,10 +160,13 @@ test "literal File delivery selects only the exact original final Run and keeps 
   assert_eq(optional(stdout, "output"), None)
   assert_eq(required(stdout, "run"), required(file, "run"))
   assert_eq(same, correlation)
-  let pending = original.replace_all(
-    old="\"status\":\"succeeded\"",
-    new="\"status\":\"running\"",
-  )
+  // A running original must also carry its normative nonfinal next action.
+  let pending = original
+    .replace_all(old="\"status\":\"succeeded\"", new="\"status\":\"running\"")
+    .replace_all(
+      old="\"next_action\":{\"kind\":\"refresh_availability\",\"results\":[\"answer\"]}",
+      new="\"next_action\":{\"kind\":\"none\"}",
+    )
   let issue = try {
     local_quick_query_result(
       pending,

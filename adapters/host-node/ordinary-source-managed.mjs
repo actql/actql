@@ -833,7 +833,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         const wire = Reflect.apply(intentWire, moon, [intent]);
         if (typeof wire !== 'string') fail('InvalidHostRuntimeResult');
         const body = JSON.parse(wire);
-        if (body.kind === 'program' && materialWire !== undefined) {
+        if (materialWire !== undefined && (body.kind === 'program' ||
+            body.kind === 'aql' && body.parameters !== null)) {
           if (typeof reserveMaterial !== 'function') fail('NodeManagedRunRuntimeUnavailable');
           checked(Reflect.apply(reserveMaterial, moon, [state.parent, receipt, materialWire]));
           if (closing || closed || producer.finished || producer.preparation !== state ||
@@ -843,18 +844,23 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
               material.parameters !== null && typeof material.parameters !== 'string') {
             fail('ForeignInstalledSourceProducer');
           }
-          const program = JSON.parse(material.program);
+          const program = body.kind === 'program' ? JSON.parse(material.program) : undefined;
           const parameters = material.parameters === null ? null : JSON.parse(material.parameters);
           // The canonical intent already binds the complete structured input.
           // Compare ALL metadata, values and exact data Strings once, then
           // retain the material's original field order before the sole native
           // Program checker/compiler. No reissued intent or changed material
           // bytes bypass the later exact Run/compilation binding.
-          if (canonicalValueJson(program, {dataKeys: true}) !== canonicalValueJson(body.input, {dataKeys: true}) ||
+          if ((body.kind === 'program' &&
+              canonicalValueJson(program, {dataKeys: true}) !== canonicalValueJson(body.input, {dataKeys: true})) ||
               canonicalValueJson(parameters, {dataKeys: true}) !== canonicalValueJson(body.parameters, {dataKeys: true})) {
             fail('ForeignInstalledSourceProducer');
           }
-          body.input = program;
+          // Textual Source keeps its exact frontend input and declarations.
+          // Only the already-bound Parameter values regain their original
+          // interchange order; the later Common material binder still checks
+          // the complete lowered Program, compilation, Request and Run.
+          if (body.kind === 'program') body.input = program;
           body.parameters = parameters;
         }
         // Keep the SDK envelope's literal null sentinel. The same native

@@ -36,6 +36,16 @@ test "public default never rewrites explicit Result or structured Program bytes"
     let public = lower(text, Text, Some(context), public_primary=true).unwrap()
     assert_eq(public.document, original.document)
   }
+  let tail = lower(
+    "SELECT 1 AS id |> RESULT saved |> SELECT id",
+    Text,
+    Some(context),
+    public_primary=true,
+  ).unwrap().program.unwrap()
+  let names = @program.exports(tail).map(entry => entry.0)
+  assert_eq(names.length(), 2)
+  assert_true(names.contains("saved"))
+  assert_true(names.contains("answer"))
   let document = lower("SELECT 1 AS id", Sql, Some(context)).unwrap().document
   assert_eq(
     lower(document, Json, Some(context), public_primary=true).unwrap().document,

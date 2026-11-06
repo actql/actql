@@ -3534,6 +3534,8 @@ pub fn client_program_salesforce_execution_mapping_construction_capacity(Int, In
 
 pub fn client_program_salesforce_initialization_construction_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_salesforce_original_initialization_construction_capacity(Array[String?], Int, Array[Int], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_salesforce_query_page_response_sha256(@actql/actql/connectors/salesforce/catalog.QueryPage) -> String
 
 pub fn client_program_salesforce_query_page_row_count(@actql/actql/connectors/salesforce/catalog.QueryPage) -> Int

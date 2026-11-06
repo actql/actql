@@ -52,6 +52,24 @@ above or complete approval and other recovery profiles. Run this through the
 existing heavy guard after preparing a clean-source Native CLI RC with the
 existing artifact/release producers.
 
+## Mock workflow acceptance target
+
+`node scripts/test-native-cli-mock-install.mjs <fixed-CLI-RC>` is a separate
+positive installed-artifact acceptance target for the public `deal-review-mock`
+and `churn-risk-mock` workflows. It requires a clean checkout at the artifact's
+exact source, installs only the fixed Native CLI cohort in an external prefix,
+and runs every command in a fresh process without inherited credentials,
+Host settings, SDK fallback or runtime-library overrides. It checks the
+original waiting Run and Checkpoint, no writes before approval, the expected
+mock target updates, and retained Named Result rereads without replaying writes.
+An unsupported binding or approval supplier fails; it is never a skip or a
+successful refusal. Its harness unit tests alone do not establish this acceptance.
+
+The Native project adapter currently refuses mock execution. Complete acceptance
+still requires its physical project/catalog/Source/Model bindings, original
+Effect authority supplier, and same-Run approval/continuation to be connected.
+The source-free and Remote installed checks do not establish this workflow.
+
 ## Static Local explanation
 
 The source-level `explain` command accepts the same `--program-file`, explicit

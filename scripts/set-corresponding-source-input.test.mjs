@@ -552,7 +552,7 @@ test('positional ASSERT retains values and validates explicit current/range keys
   assert.ok(refusals.every(x => x.expectedCode === 'ClientProgramInvalidInput'));
   assert.equal(setCorrespondingExecutionFailures.length, 2);
   assert.deepEqual(setCorrespondingExecutionFailures[1].sourceRows, [{id: 1, amount: 10}, {id: 1, amount: 20}]);
-  assert.deepEqual(setCorrespondingExecutionFailures.map(x => x.resultNames), [['answer'], ['answer']]);
+  assert.deepEqual(setCorrespondingExecutionFailures.map(x => x.resultNames), [['answer'], ['main']]);
   const packed = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(packed.includes('executionFailures: setCorrespondingExecutionFailures'));
   assert.ok(packed.includes('scopeInputs.executionFailures.push(...setCorrespondingExecutionFailures)'));
@@ -597,7 +597,11 @@ test('WITH set cutover preserves full independent fixture inventories and JSON b
         assert.deepEqual(current[key], old[key]);
         continue;
       }
-      assert.deepEqual(current[key].map(({text, ...item}) => item), old[key].map(({text, ...item}) => item));
+      const retainedMetadata = old[key].map(({text, ...item}) =>
+        name === 'set-corresponding' && key === 'setCorrespondingExecutionFailures' &&
+          item.name === 'set-corresponding-positional-assert-duplicate-source'
+          ? {...item, resultNames: ['main']} : item);
+      assert.deepEqual(current[key].map(({text, ...item}) => item), retainedMetadata);
       for (let index = 0; index < current[key].length; index++) {
         const before = old[key][index];
         const after = current[key][index];

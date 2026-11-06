@@ -2,7 +2,7 @@ import {queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl, j
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
-import {relationDataSuccesses, relationDataRefusals} from './fixtures/public-query-input.mjs';
+import {relationDataSuccesses, relationDataRefusals, pipeResultSuccesses} from './fixtures/public-query-input.mjs';
 import {graphSourceSuccesses} from './fixtures/graph-source-input.mjs';
 import {pipePivotSuccesses, pipePivotRefusals, pivotArgumentExpressionProgram, fromPivotAcquiredProgram}
   from './fixtures/pipe-pivot-source-input.mjs';
@@ -27,6 +27,17 @@ test('duplicate request names cannot hide conflicting source or expectations', (
     assert.throws(() => uniquePublicQueryCases([original, conflicting]),
       /Conflicting public query fixture/u);
   }
+});
+
+test('retained Result SET keeps original values and its quoted current output', () => {
+  const item = pipeResultSuccesses.find(value => value.name === 'result-after-set');
+  const original = 'FROM records AS old |> SET id = id + 10 |> RESULT changed |> SELECT old.id AS original, id AS current |> ORDER BY original |> RESULT final';
+  assert.equal(item.text, original.replace('id AS current', 'id AS `current`'));
+  assert.deepEqual(Object.keys(item.results), ['changed', 'final']);
+  assert.deepEqual(item.results.final.rows,
+    [{original: 1, current: 11}, {original: 2, current: 12},
+      {original: 3, current: 13}, {original: 3, current: 13}]);
+  assert.equal(item.sourceReadSessionCount, 1);
 });
 
 test('WITH positional fixture keeps NULL duplicates and public output contracts', () => {
@@ -127,6 +138,12 @@ test('optional table aliases preserve independent NULL/duplicate and range-value
  assert.ok(source.text.includes('WHERE id IS NOT NULL'));
  assert.ok(source.text.includes('DESC NULLS FIRST LIMIT 3'));
  const ranged=cases.get('derived-optional-range-snapshot');
+ const originalRange='FROM (SELECT 1 AS x,20 AS y UNION ALL SELECT 2,10) base |> AS r |> SET x=x+10';
+ for(const [name,original] of [
+  ['range-snapshot','SELECT r.x AS original,x AS current,y FROM ('+originalRange+') ORDER BY original'],
+  ['explicit-alias-replaces-ranges','SELECT chosen.x AS current,chosen.y FROM ('+originalRange+') chosen ORDER BY current'],
+  ['captured-range-snapshot','SELECT id,r.amount AS original,amount AS current FROM (FROM records |> AS r |> SET amount=99) ORDER BY id'],
+ ]) assert.equal(cases.get('derived-optional-'+name).text,original.replace(' AS current',' AS `current`'));
  assert.deepEqual(ranged.expected,cases.get('derived-optional-range-snapshot-json-control').expected);
  assert.deepEqual(ranged.expected,[{original:1,current:11,y:20},{original:2,current:12,y:10}]);
  assert.deepEqual(cases.get('derived-optional-captured-range-snapshot').expected,

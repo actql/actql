@@ -174,6 +174,20 @@ failure is a failure, with input/DB evidence retained in that invocation's
 namespace. `cc` and the SQLite development headers are required for this test
 fixture; no install-time download or product execution path is added.
 
+Full Core and selected `platform_native/host_bootstrap` diagnostics prepare the
+existing process-region and channel cases' private 64-page backing files and
+C/Rust handler leaf. The wrapper uses the pre-root builder's pinned Rust tools
+and a digest-verified libc source, caching the compiler archives under
+`.toolchains`. The child and Rust leaf link one shared original C provider.
+Preparation or compilation failure fails the command; a retained handler panic
+or aborted process does not count as physical cleanup. This test fixture is
+separate from the Engine, VM and installed runtime supplier.
+
+Full Native Core runs every `platform_native/http_client` case with the existing
+HTTP harness's actual mTLS and bearer peers. This separate profile preserves the
+compiler-selected case count and original strict flags. Its environment is not
+enabled for unrelated Core packages; transport failure still fails Full Core.
+
 The wrapper defaults the SQLite library to the supported platform's system
 library; `ACTQL_TEST_NATIVE_SQLITE_LIBRARY` can override it. After a successful,
 stopped child, owned scratch is removed and checked absent. Failure, a signal,

@@ -320,7 +320,7 @@ test "Native missing intent and finite capacity cannot issue an Effect Run" {
 }
 
 ///|
-test "Native accepted Effect with lost original Run custody refuses lookup and startup" {
+test "Native accepted Effect with lost original Run custody refuses selected lookup and integrity inspection" {
   let (database, journal, authority, reference) = submitted_test_setup(
     "client-submitted-effect-lost-custody",
   )
@@ -354,7 +354,12 @@ test "Native accepted Effect with lost original Run custody refuses lookup and s
     journal.lookup_submitted_intent(authority, reference, scope, true, 1003.0)
     is Err(CustodyLost),
   )
-  assert_true(open_native_client_run_journal(database, 8) is Err(CustodyLost))
+  assert_true(open_native_client_run_journal(database, 8) is Ok(_))
+  assert_true(run_journal_custody(database, 8) is Err(CustodyLost))
+  assert_true(
+    database.read("client_runs", @host.client_request_scope_cid(request))
+    is Err(@sqlite.NotFound),
+  )
   assert_true(
     journal.accept_submitted_effect_run(
       authority, reference, preparation, request, allowed, definition, scope, true,

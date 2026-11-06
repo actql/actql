@@ -132,13 +132,10 @@ test "selected read snapshot shares original admission and rejects changed targe
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
+    // The existing Run-definition index requires valid JSON on writes.
+    // Keep the original row corrupt so its current check performs the refusal.
     match
-      host.database.compare_exchange(
-        "client_runs",
-        key,
-        before.revision,
-        b"changed target",
-      ) {
+      host.database.compare_exchange("client_runs", key, before.revision, b"{}") {
       Err(issue) => return Err(Journal(Physical(issue)))
       Ok(_) => ()
     }

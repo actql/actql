@@ -28,10 +28,11 @@ export function selectReleaseSequenceQueryCases({
   assert.deepEqual(refusals.map(value => value.name), releaseSequenceRefusalNames,
     'The complete Sequence refusal inventory must remain exact and ordered');
   for (const value of successes) {
+    const resultName = value.format === 'json' ? 'answer' : 'main';
     assert.equal(value.sourceReadCount, 0, `Source-backed Sequence case: ${value.name}`);
     assert.equal(value.sourceReadSessionCount, 0, `Source session required: ${value.name}`);
-    assert.ok(Array.isArray(value.results?.answer?.rows));
-    assert.ok(Array.isArray(value.results?.answer?.columns));
+    assert.ok(Array.isArray(value.results?.[resultName]?.rows));
+    assert.ok(Array.isArray(value.results?.[resultName]?.columns));
   }
   return Object.freeze({successes: Object.freeze([...successes]),
     refusals: Object.freeze([...refusals])});

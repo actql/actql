@@ -1,6 +1,19 @@
 ///|
+// Core owns a separate file-only namespace; an explicit HTTP fixture root
+// remains the original selection when supplied by that caller.
+fn filesystem_custody_fixture_path() -> String? {
+  match @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") {
+    Some(path) => Some(path)
+    None =>
+      @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").map(root => {
+        root + "/filesystem-custody"
+      })
+  }
+}
+
+///|
 fn root_lock_custody_fixture() -> String raise {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
+  guard filesystem_custody_fixture_path() is Some(path) else {
     fail("selected Root/Lock custody cases require an owned isolated Root")
     return ""
   }

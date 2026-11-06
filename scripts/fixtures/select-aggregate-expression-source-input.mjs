@@ -47,5 +47,5 @@ export const selectAggregateExpressionRefusals = [
 ].map((text, index) => ({name: 'select-aggregate-expression-refuse-' + index, format: 'sql', text}));
 export const selectAggregateExpressionExecutionFailures = [{
   name: 'select-aggregate-expression-demanded-division', format: 'sql',
-  text: 'SELECT COUNT(*) / 0 AS n FROM records', resultNames: ['answer'], sourceReadSessionCount: 1,
+  text: 'SELECT COUNT(*) / 0 AS n FROM records', resultNames: ['main'], sourceReadSessionCount: 1,
 }];

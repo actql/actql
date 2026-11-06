@@ -34,6 +34,47 @@ extern "C" fn retire_resident_entry_ffi(
 extern "C" fn resident_control_diagnostic_ffi(stage : Int) -> Unit = "actql_resident_initial_control_diagnostic"
 
 ///|
+/// Closed acquire/enter literals select fixed diagnostics before the Read is
+/// entered. Never encode or print the message here. Unknown failures retain
+/// stage 1; stages 2 and 3 still describe the original cleanup boundaries.
+fn resident_initial_failure_stage(message : String) -> Int {
+  match message {
+    "original installed command entry unavailable" => 101
+    "installed command recipe unavailable" => 102
+    "installed command source unavailable" => 103
+    "installed command supplier refused" => 104
+    "installed command acquisition refused" => 105
+    "installed command acquisition pending" => 106
+    "original bootstrap missing" => 107
+    "installed command claim refused" => 108
+    "installed command borrow refused" => 109
+    "installed command scope refused" => 110
+    "installed command original capacity unavailable" => 111
+    "installed component selection exceeds original backing" => 112
+    "installed managed extent unavailable" => 113
+    "installed managed layout unavailable" => 114
+    "installed components exhaust original Read payload" => 115
+    "installed command domain allocation refused" => 116
+    "installed command region refused" => 117
+    "installed command loan refused" => 118
+    "installed command loan pending" => 119
+    "original command loan missing" => 120
+    "installed command view refused" => 121
+    "installed command view pending" => 122
+    "original command view missing" => 123
+    "installed command domain refused" => 124
+    "installed command domain pending" => 125
+    "original command domain missing" => 126
+    "installed command transfer refused" => 127
+    "installed command parent scope leave pending" => 128
+    "installed command read context refused" => 129
+    "original command backing missing" => 130
+    "installed command read entry refused" => 131
+    _ => 1
+  }
+}
+
+///|
 #borrow(message)
 extern "C" fn resident_command_failure_ffi(
   message : Bytes,
