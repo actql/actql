@@ -31,6 +31,17 @@ The common `execution_relation` representation model issues the typed quantity.
   structural bound; complete input text, normalization, field bounds, hashes,
   independent provider/Common restores and writer limits remain charged. The
   length-only entry remains available as the conservative fallback.
+  Installed Salesforce restoration funds its existing recovery and declaration
+  producers separately on that same initialization parent. Only the completed
+  original recovery can supply field/text dimensions from its immutable typed
+  observation; provider and Common observations remain in distinct runtimes.
+  Recovery keeps its complete peak on failure and may select retained metadata
+  only after the original synchronous return/current checks. Declaration and
+  subsequent fixed evidence projection conservatively keep their full envelope.
+  Both callbacks are one-shot and must return the actual constructor output;
+  equal replacement records cannot supply the correspondence. Direct restoration
+  keeps the original complete path. This introduces no permission or live-use
+  memo and does not weaken Site lifetime, original binding or final Catalog CID.
 - Identity: quantities are issued in the same compiled Common runtime that
   accepts them. Provider observations/declarations stay in their original
   runtime. Matching CIDs, numeric dimensions, JSON or copied object properties

@@ -3,6 +3,8 @@
 // installed once for all its Sites. Programs and callers supply none of them.
 // Credential grants are issued only for a protected decision that installed
 // gate returned as dispatch.
+import {salesforceObservationConstructionCapacity, salesforceDeclarationConstructionCapacity}
+  from './salesforce-initialization-construction.mjs';
 import {createHash} from 'node:crypto';
 import {readSourceProfileJson, captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledCredentialSiteCleanup, releaseInstalledCredentialSite} from
@@ -749,7 +751,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // the exact published Catalog. Restoring is not current authority: every
   // read still needs its own dispatch.
   function restoreDeclaration({connectorId, resources, evidence,
-    observationCid, catalogCid,
+    observationCid, catalogCid, construction,
     limits = {maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 64}} = {}) {
     ensureOpen();
     if (!Array.isArray(resources) || resources.length === 0 ||
@@ -769,16 +771,53 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       throw Object.assign(new Error('ForeignSalesforceDeclaration'),
         {code: 'ForeignSalesforceDeclaration', fields: mismatch});
     }
-    const observation = recoverNamedSalesforceObservation({
+    const recoverOriginal = () => recoverNamedSalesforceObservation({
       moon: salesforceMoon, evidence, expectedObservationCid: observationCid});
-    const restored = generate(observation, connectorId,
-      describedTargets([...new Set(resources)], evidence), limits);
-    if (restored.catalog_cid !== catalogCid) {
-      fail('ForeignSalesforceDeclaration');
-    }
-    return Object.freeze({...restored, observationCid, evidence,
-      observed: Object.freeze({observation, observationCid,
-        observationJson: evidence.observationJson})});
+    const finish = observation => {
+      const restored = generate(observation, connectorId,
+        describedTargets([...new Set(resources)], evidence), limits);
+      if (restored.catalog_cid !== catalogCid) fail('ForeignSalesforceDeclaration');
+      return Object.freeze({...restored, observationCid, evidence,
+        observed: Object.freeze({observation, observationCid,
+          observationJson: evidence.observationJson})});
+    };
+    // Direct/restored callers keep the original complete path. Installed
+    // restoration funds the two existing synchronous producers independently;
+    // the same checked observation is retained before its declaration phase.
+    if (construction === undefined) return finish(recoverOriginal());
+    if (typeof construction.prepareNativeInput !== 'function') fail('InvalidSalesforceDeclaration');
+    const generation = Object.freeze({connector_id: connectorId, evidence});
+    let observedOriginal, recoveryAttempted = false;
+    const observed = construction.prepareNativeInput(Object.freeze({
+      capacity: () => salesforceObservationConstructionCapacity(commonMoon,
+        {generation, siteBinding: expected, declarationLimits: limits}),
+      project() {
+        if (recoveryAttempted) fail('InvalidSalesforceDeclaration');
+        recoveryAttempted = true;
+        ensureOpen();
+        const observation = recoverOriginal();
+        const dimensions = Object.freeze([...salesforceMoon.salesforceObservationConstructionDimensions(observation)]);
+        observedOriginal = Object.freeze({observation, dimensions});
+        return observedOriginal;
+      },
+    }));
+    if (observedOriginal === undefined || observed !== observedOriginal) fail('InvalidSalesforceDeclaration');
+    ensureOpen();
+    let restoredOriginal, declarationAttempted = false;
+    const restored = construction.prepareNativeInput(Object.freeze({
+      capacity: () => salesforceDeclarationConstructionCapacity(commonMoon,
+        {generation, siteBinding: expected, declarationLimits: limits, dimensions: observed.dimensions}),
+      project() {
+        if (declarationAttempted) fail('InvalidSalesforceDeclaration');
+        declarationAttempted = true;
+        ensureOpen();
+        restoredOriginal = finish(observed.observation);
+        return restoredOriginal;
+      },
+    }));
+    if (restoredOriginal === undefined || restored !== restoredOriginal) fail('InvalidSalesforceDeclaration');
+    ensureOpen();
+    return restored;
   }
 
   // A describe of exactly `resource` for one acquisition dispatch, under its

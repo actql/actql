@@ -102,7 +102,12 @@ export async function boundConstructionActualFixture(t) {
     closeHostInitializationPreparation(state);
     active = false; closed = true;
   }
-  t.after(async () => {await close(); await rm(root, {recursive: true, force: true});});
+  t.after(async () => {
+    await close();
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Installed construction component custody retained: ${root}`);
+    } else await rm(root, {recursive: true, force: true});
+  });
   const parentInput = Object.freeze({root, purpose: 'installed connector component verification'});
   const parent = openHostInitializationPreparation(state, moon, parentInput, current, () => childrenPending);
   services = createInstalledHostServices({root, principalId: 'operator', moon,
@@ -141,13 +146,18 @@ export async function boundConstructionActualFixture(t) {
     assert.equal((await loadInstalledConnectorModule(entry)).load, loadInstalledBigQuerySource);
     return {path, value, journalPath: join(site.journalRoot, 'credential-journal.sqlite3')};
   }
-  async function salesforceProfile(role = 'source') {
+  async function salesforceProfile(role = 'source', {largeMetadata = false} = {}) {
     assert.ok(['source', 'effect'].includes(role));
     const resource = 'Test_Record__c', prefix = '/services/data/v62.0/sobjects/';
     const description = {name: resource, queryable: true, createable: true, updateable: true,
       fields: [{name: 'Id', type: 'id', nillable: false, sortable: true},
         {name: 'Name', type: 'string', nillable: false, defaultedOnCreate: false,
           createable: true, updateable: true}]};
+    if (largeMetadata) {
+      description.description = 'a'.repeat(150000);
+      description.providerDetails = Array.from({length: 1500}, () =>
+        ({label: '[x]', value: 0, active: true}));
+    }
     const api = await openHttpsExchangeFixture(t, {routes: [
       {method: 'GET', pathname: prefix, handle: () => ({body: {sobjects: [
         {name: resource, queryable: true, createable: true, updateable: true}]}})},
