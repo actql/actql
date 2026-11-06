@@ -10,13 +10,19 @@ pub fn json_index_borrowed_construction_extent(
   fields : Int,
   max_text_utf16_units : Int64,
   keep_spans~ : Bool,
+  string_nodes? : Int? = None,
 ) -> JsonConstructionExtent? {
   if nodes < 1 || fields < 0 || fields >= nodes || max_text_utf16_units < 0L {
     return None
   }
+  let values = string_nodes.unwrap_or(nodes)
+  if values < 0 || values > nodes {
+    return None
+  }
   let count = nodes.to_int64() + fields.to_int64()
+  let strings = values.to_int64() + fields.to_int64()
   Some({
-    record_headers: count + (if keep_spans { count } else { 0L }),
+    record_headers: strings + (if keep_spans { count } else { 0L }),
     reference_slots: if keep_spans {
       count
     } else {

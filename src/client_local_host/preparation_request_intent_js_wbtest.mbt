@@ -841,6 +841,128 @@ test "original numeric 100000 intent uses its observed profile under the unchang
     Err(QuerySyntax(_)) => fail("Original100000 QuerySyntax")
     Err(QueryLowering(_)) => fail("Original100000 QueryLowering")
   }
+  match
+    prepare_request_program_module_body(
+      parent,
+      input,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=request_program_compilation_limits(parent, input).unwrap(),
+      retained_output=true,
+      provider_factory=_ => [],
+    ) {
+    Ok(_) => ()
+    Err(CapacityExceeded(issue)) =>
+      fail("Original100000 module: " + @debug.to_string(issue))
+    Err(Preparation(Capacity(issue))) => {
+      let artifact = parent.program_artifact_geometry
+      let geometry = match artifact {
+        Some(value) =>
+          " graph=" +
+          @debug.to_string(value.graph) +
+          " material=" +
+          @debug.to_string(value.material) +
+          " plan=" +
+          @debug.to_string(value.executable_plan) +
+          " fragment=" +
+          @debug.to_string(value.fragments.map(x => x.fragment)) +
+          " artifactExtents=" +
+          @debug.to_string(program_artifact_construction_extents(value))
+        None => " artifactGeometry=None"
+      }
+      fail(
+        "Original100000 module capacity: " +
+        @debug.to_string(issue) +
+        "; measurement=" +
+        @debug.to_string(parent.program_measurement_quote) +
+        "; artifactQuote=" +
+        @debug.to_string(parent.program_artifact_quote) +
+        geometry,
+      )
+    }
+    Err(Preparation(_)) => fail("Original100000 module Preparation")
+    Err(Installed(_)) => fail("Original100000 module Installed")
+    Err(Construction(issue)) => {
+      let detail = match issue {
+        @publication_host.InvalidLimits => "InvalidLimits"
+        @publication_host.Encoding => "Encoding"
+        @publication_host.Graph(@publication_host.InvalidLimits) =>
+          "Graph.InvalidLimits"
+        @publication_host.Graph(@publication_host.UnsupportedGraph) =>
+          "Graph.UnsupportedGraph"
+        @publication_host.Graph(
+          @publication_host.Fragment(@publication_host.InvalidLimits)
+        ) => "Graph.Fragment.InvalidLimits"
+        @publication_host.Graph(
+          @publication_host.Fragment(@publication_host.AoA(inner))
+        ) => {
+          let reason = match inner {
+            @publication_host.Pipeline(@publication_host.MissingTask) =>
+              "Pipeline.MissingTask"
+            @publication_host.Pipeline(@publication_host.Sequence(_)) =>
+              "Pipeline.Sequence"
+            @publication_host.Pipeline(@publication_host.NotSingleValues) =>
+              "Pipeline.NotSingleValues"
+            @publication_host.Pipeline(@publication_host.Encoding) =>
+              "Pipeline.Encoding"
+            @publication_host.NoncanonicalPipeline => "NoncanonicalPipeline"
+            @publication_host.Encoding => "Encoding"
+          }
+          "Graph.Fragment.AoA." + reason
+        }
+        @publication_host.Graph(
+          @publication_host.Fragment(@publication_host.MissingCheckedOutput)
+        ) => "Graph.Fragment.MissingCheckedOutput"
+        @publication_host.Graph(
+          @publication_host.Fragment(@publication_host.OutputMismatch)
+        ) => "Graph.Fragment.OutputMismatch"
+        @publication_host.Graph(
+          @publication_host.Fragment(@publication_host.UnrepresentableOutput)
+        ) => "Graph.Fragment.UnrepresentableOutput"
+        @publication_host.Graph(
+          @publication_host.Fragment(@publication_host.Encoding)
+        ) => "Graph.Fragment.Encoding"
+        @publication_host.Graph(@publication_host.Root(_)) => "Graph.Root"
+        @publication_host.Graph(@publication_host.Encoding) => "Graph.Encoding"
+        @publication_host.TaskGraph(_) => "TaskGraph"
+        @publication_host.Material(_) => "Material"
+        @publication_host.Facts(_) => "Facts"
+        @publication_host.Witnesses(_) => "Witnesses"
+        @publication_host.FactManifest(_) => "FactManifest"
+      }
+      let prepared = parent.compiled_program.unwrap()
+      let codec = selected.checking.compilation.artifacts
+      let geometry = match
+        @publication_host.measure_prepared_client_values_pipeline(
+          prepared,
+          0,
+          @publication_host.prepared_client_values_sequence_limits(prepared),
+          codec.bytes,
+          codec.nodes,
+          codec.depth,
+        ) {
+        Ok(value) => @debug.to_string(value)
+        Err(_) => "Unavailable under original checked artifact profile"
+      }
+      fail(
+        "Original100000 module Construction " +
+        detail +
+        "; same-original checked-profile pipeline geometry=" +
+        geometry,
+      )
+    }
+    Err(ValuesCompilation(_)) => fail("Original100000 module ValuesCompilation")
+    Err(TaskCompilation(_)) => fail("Original100000 module TaskCompilation")
+    Err(QueryTime(_)) => fail("Original100000 module QueryTime")
+    Err(SerializationGraph(_)) =>
+      fail("Original100000 module SerializationGraph")
+    Err(ModelGraph(_)) => fail("Original100000 module ModelGraph")
+    Err(ModelBinding(_)) => fail("Original100000 module ModelBinding")
+    Err(ModelQuery(_)) => fail("Original100000 module ModelQuery")
+    Err(ModelSource(_)) => fail("Original100000 module ModelSource")
+    Err(ContentQuery(_)) => fail("Original100000 module ContentQuery")
+    Err(ContentSource(_)) => fail("Original100000 module ContentSource")
+  }
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   // A fresh process Request retains the SAME original Journal intent. Its

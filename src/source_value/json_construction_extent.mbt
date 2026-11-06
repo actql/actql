@@ -19,27 +19,105 @@ pub fn json_construction_extent(
   max_depth : Int,
   normalize_keys~ : Bool,
 ) -> JsonConstructionExtent? {
-  if max_input_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+  json_construction_extent_owned(
+    max_input_bytes,
+    max_nodes,
+    max_depth,
+    max_nodes,
+    max_nodes,
+    max_nodes,
+    max_nodes,
+    max_nodes,
+    normalize_keys~,
+  )
+}
+
+///|
+/// SAME Parser constructor with independently supplied upper bounds for the
+/// emitted tree's fields, containers and objects. These are sizing DATA, not
+/// admission, syntax validation or permission. General callers without those
+/// original observations keep json_construction_extent's whole-node bounds.
+pub fn json_shaped_construction_extent(
+  max_input_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  fields : Int,
+  containers : Int,
+  objects : Int,
+  largest_object : Int,
+  strings : Int,
+  normalize_keys~ : Bool,
+) -> JsonConstructionExtent? {
+  json_construction_extent_owned(
+    max_input_bytes,
+    max_nodes,
+    max_depth,
+    fields,
+    containers,
+    objects,
+    largest_object,
+    strings,
+    normalize_keys~,
+  )
+}
+
+///|
+fn json_construction_extent_owned(
+  max_input_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  fields : Int,
+  containers : Int,
+  objects : Int,
+  largest_object : Int,
+  strings : Int,
+  normalize_keys~ : Bool,
+) -> JsonConstructionExtent? {
+  if max_input_bytes < 1 ||
+    max_nodes < 1 ||
+    max_depth < 1 ||
+    fields < 0 ||
+    fields > max_nodes ||
+    containers < 0 ||
+    containers > max_nodes ||
+    objects < 0 ||
+    objects > containers ||
+    largest_object < 0 ||
+    largest_object > fields ||
+    strings < 0 ||
+    strings > max_nodes {
     return None
   }
-  guard @shape.key_admission_construction_extent(max_nodes, max_nodes)
+  // ObjectFields owns KeyAdmission only while its original Frame is open.
+  // Completing that Frame drops the Map; the returned Object retains fields,
+  // not the seen-key owner. All parsed entries, including discarded duplicate
+  // values, remain covered separately by the full node bound.
+  let live_objects = Int::min(objects, max_depth)
+  let live_keys = Int64::min(
+    fields.to_int64(),
+    live_objects.to_int64() * largest_object.to_int64(),
+  ).to_int()
+  guard @shape.key_admission_construction_extent(live_objects, live_keys)
     is Some(keys) else {
     return None
   }
   let bytes = max_input_bytes.to_int64()
   let nodes = max_nodes.to_int64()
+  let f = fields.to_int64()
+  let c = containers.to_int64()
+  let string_headers = fields.to_int64() + strings.to_int64()
   let edges = nodes - 1L
   let depth = Int::min(max_nodes, max_depth).to_int64() + 1L
   // Node/Value/Span:3H4R8W; Field/key Span:2H4R6W; at most
   // two decoded key/value Strings per node. Each container owns its wrapper
   // and backing. Fields and containers are each bounded by all parsed nodes.
-  let tree_headers = 3L * nodes + 2L * nodes + 2L * nodes + 2L * nodes
-  let tree_refs = 4L * nodes + 4L * nodes + 9L * nodes + 2L * edges
-  let tree_words = 8L * nodes + 6L * nodes + 2L * nodes
+  let tree_headers = 3L * nodes + 2L * f + 2L * c + string_headers
+  let tree_refs = 4L * nodes + 4L * f + 9L * c + 2L * edges
+  let tree_words = 8L * nodes + 6L * f + 2L * c
   // Old/new array backing and the existing exact-key map construction/growth.
   // All object keys, even a discarded duplicate's parsed value, stay charged.
-  let growth_headers = nodes + keys.record_headers
-  let growth_refs = 4L * nodes + edges + keys.reference_slots
+  let growth_headers = c + keys.record_headers
+  let growth_refs = 4L * c + edges + keys.reference_slots
   let growth_words = keys.scalar_words
   // Frame/Container/Point/pending tuple+Some/PathSegment, two growing ancestry
   // vectors and one current leaf. No complete path is copied per success node.

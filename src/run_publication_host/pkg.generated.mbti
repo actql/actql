@@ -3864,6 +3864,7 @@ pub struct ClientPublicationWitnesses {
 
 pub(all) struct ClientPureCompilationConstruction {
   limits : ClientPureCompilationLimits
+  parser_geometry : ClientPureCompilationParserGeometry
   tasks : Bool
   fragments : Array[ClientTaskFragmentConstruction]
   borrowed_inputs : Array[(Int, Int, Int)]
@@ -3887,6 +3888,17 @@ pub(all) struct ClientPureCompilationLimits {
   max_wire_bytes : Int
   max_nodes : Int
   max_depth : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientPureCompilationParserGeometry {
+  nodes : @encode_core.EncodingConstructionGeometry?
+  edges : @encode_core.EncodingConstructionGeometry?
+  roots : @encode_core.EncodingConstructionGeometry?
+  graph : @encode_core.EncodingConstructionGeometry?
+  program : @encode_core.EncodingConstructionGeometry?
+  material : @encode_core.EncodingConstructionGeometry?
+  executable_plan : @encode_core.EncodingConstructionGeometry?
+  borrowed_inputs : Array[@encode_core.EncodingConstructionGeometry?]
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ClientQueryRequirementIssue {
@@ -4706,6 +4718,9 @@ pub(all) enum ClientTaskFragmentAdmissionIssue {
 }
 
 pub(all) struct ClientTaskFragmentConstruction {
+  pipeline_geometry : @encode_core.EncodingConstructionGeometry?
+  fragment_geometry : @encode_core.EncodingConstructionGeometry?
+  output_contract_geometry : @encode_core.EncodingConstructionGeometry?
   initial_pipeline : (Int, Int, Int)
   pipeline : (Int, Int, Int)
   fragment : (Int, Int, Int)

@@ -1326,7 +1326,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7f4ec5821a48c745744a85a29f0c213c14ae3f0843f015c8b2d38820da619e24",
+      "sha256": "c4d20d00f573acbcbd99931da04c5fb99ba4ad2684358d6dc0bda77a784afe87",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1384,6 +1384,10 @@
           "declaration": "[ I ] prepare_request_program_module_body_owned ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
         },
         {
+          "name": "[I]request_program_compilation_limits",
+          "declaration": "[ I ] request_program_compilation_limits ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientPureCompilationLimits , ClientRequestProgramPlanIssue , ]"
+        },
+        {
           "name": "[I]request_program_plan_quote",
           "declaration": "[ I ] request_program_plan_quote ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
         },
@@ -1430,7 +1434,8 @@
             "[I]reserve_request_program_plan",
             "[I]reserve_request_query_time_invocation",
             "[I]retain_request_program_module_inputs",
-            "request_query_time_invocation_extent"
+            "request_query_time_invocation_extent",
+            "[I]request_program_compilation_limits"
           ],
           "exports": [],
           "attributes": {
@@ -1444,6 +1449,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked compiler configuration at the installed module boundary"
               }
             ],
             "identity": [

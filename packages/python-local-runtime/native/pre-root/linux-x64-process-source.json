@@ -118,8 +118,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.c",
-      "bytes": 39540,
-      "sha256": "7676fee4052a7d8f1ea50a908de1828d529bdc449fdde3972f42399d2d1c7c88"
+      "bytes": 40262,
+      "sha256": "5b721be99bb8902767c4c80605459508045ddf08c4841a73ea4c11bb014bbd1f"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -163,8 +163,8 @@
     },
     {
       "path": "scripts/test_native_linux_x64_owned_process.py",
-      "bytes": 14103,
-      "sha256": "b062b675ff525f72966b5fdc9dfadd0e33ebccb6002e267e7197755bcaa763df"
+      "bytes": 14104,
+      "sha256": "37481c240e0db2304bf8e6bdc3a746aa5f986535541b6a1a55a85aea96be9be0"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/linux_x64_process_abi.c",
@@ -278,8 +278,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/domain_supplier.c",
-      "bytes": 15567,
-      "sha256": "3c36748dff9a3234a33718f76fc9dabe745c20e1e54d81630843e09d84c80ff6"
+      "bytes": 21398,
+      "sha256": "286d7fd7a234361df50f671c9e62ccd34f10ef743b416a7a261d2a824fe5c78b"
     }
   ]
 }

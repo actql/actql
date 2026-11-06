@@ -34,6 +34,10 @@ pub fn cancel_writer(Writer) -> Unit
 
 pub fn comparing_writer(String, Int, Int, Int) -> Writer raise EncodeFailure
 
+pub fn construction_geometry_usage(EncodingConstructionGeometry) -> (Int, Int, Int)
+
+pub fn construction_measuring_writer(Int, Int, Int) -> Writer raise EncodeFailure
+
 pub fn decimal_number_value(Writer, String) -> Unit raise EncodeFailure
 
 pub fn document_bytes(EncodedDocument) -> Int
@@ -43,6 +47,8 @@ pub fn document_text(EncodedDocument) -> String
 pub fn drain_buffered_output(Writer) -> String raise EncodeFailure
 
 pub fn drain_hash_output(Writer) -> String raise EncodeFailure
+
+pub fn emit_construction_measurement(Writer, EncodingConstructionGeometry) -> Unit raise EncodeFailure
 
 pub fn emit_document(Writer, EncodedDocument) -> Unit raise EncodeFailure
 
@@ -59,6 +65,8 @@ pub fn finish(Writer) -> String raise EncodeFailure
 pub fn finish_buffered_usage(Writer) -> (Int, Int, Int) raise EncodeFailure
 
 pub fn finish_comparison_usage(Writer) -> (Bool, Int, Int, Int) raise EncodeFailure
+
+pub fn finish_construction_measurement(Writer) -> EncodingConstructionGeometry raise EncodeFailure
 
 pub fn finish_document(Writer) -> EncodedDocument raise EncodeFailure
 
@@ -124,6 +132,18 @@ pub(all) struct BufferedWriterConstructionInventory {
 } derive(Eq, @debug.Debug)
 
 type EncodedDocument
+
+pub(all) struct EncodingConstructionGeometry {
+  bytes : Int
+  nodes : Int
+  depth : Int
+  arrays : Int
+  objects : Int
+  fields : Int
+  largest_object : Int
+  strings : Int
+  text_units : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) struct HashWriterConstructionInventory {
   record_headers : Int64

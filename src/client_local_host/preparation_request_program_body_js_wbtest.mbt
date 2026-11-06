@@ -1954,3 +1954,81 @@ test "successful Request artifact retires returned compiler scratch before runti
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "Request module codec retains the selected checked profile without another current observation" {
+  let standard = @publication_host.client_standard_program_preparation_limits()
+  let limits : @publication_host.ClientProgramPreparationLimits = {
+    ..standard,
+    checking: {
+      ..standard.checking,
+      compilation: {
+        ..standard.checking.compilation,
+        artifacts: { bytes: 54321, nodes: 8765, depth: 23, },
+      },
+    },
+  }
+  let calls = Ref(0)
+  let (parent, _, _, input) = registration_parent_fixture(
+    current=() => {
+      calls.val += 1
+      true
+    },
+    computation_limits=Some(
+      (limits, @publication_host.client_standard_effect_computation_limits()),
+    ),
+  )
+  assert_true(
+    request_program_compilation_limits(parent, input)
+    is Err(Preparation(WrongPhase)),
+  )
+  finish_request_computation_preparation(parent, input).unwrap()
+  let before = calls.val
+  let usage = @resources.ledger_usage(parent.ledger)
+  let selected = request_program_compilation_limits(parent, input).unwrap()
+  assert_eq(selected.max_wire_bytes, 54321)
+  assert_eq(selected.max_nodes, 8765)
+  assert_eq(selected.max_depth, 23)
+  let defaults = @publication_host.client_standard_pure_compilation_limits()
+  assert_eq(selected.max_facts, defaults.max_facts)
+  assert_eq(selected.max_witnesses, defaults.max_witnesses)
+  assert_true(physical_equal(parent.computation_limits.unwrap(), limits))
+  assert_true(
+    request_program_compilation_limits(parent, [1])
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(calls.val, before)
+  assert_eq(@resources.ledger_usage(parent.ledger), usage)
+  reserve_request_program_plan(parent, input).unwrap()
+  assert_eq(
+    request_program_compilation_limits(parent, input).unwrap(),
+    selected,
+  )
+  // An explicit stricter typed constructor is not upgraded to the default
+  // selected profile. The existing constructor retains its original factory
+  // ordering and its original codec refusal.
+  let factory_calls = Ref(0)
+  assert_true(
+    prepare_request_program_module_body(
+      parent,
+      input,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits={ ..selected, max_wire_bytes: 1, },
+      retained_output=true,
+      provider_factory=_ => {
+        factory_calls.val += 1
+        []
+      },
+    )
+    is Err(Construction(_)),
+  )
+  assert_eq(factory_calls.val, 1)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(parent.computation_limits is None)
+  assert_true(
+    request_program_compilation_limits(parent, input)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

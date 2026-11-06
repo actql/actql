@@ -94,9 +94,9 @@ pub fn measure_prepared_client_serialization_compilation_construction(
     [],
     names,
     result_cids,
-    graph_nodes,
-    graph_edges,
-    graph_roots,
+    graph_nodes.map(unknown_client_compilation_geometry),
+    graph_edges.map(unknown_client_compilation_geometry),
+    graph_roots.map(unknown_client_compilation_geometry),
     [("actql-content/0.1", ())],
   )
 }

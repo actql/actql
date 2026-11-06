@@ -181,8 +181,10 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       throw new Error('InstalledInferSelectionMissing');
     }
     let computeSuffix = selected.computeSuffix;
-    if (selected.restoredRun === undefined && selected.components !== undefined &&
-        typeof prepareOriginalModelRun === 'function') {
+    if (selected.restoredRun === undefined && selected.components !== undefined) {
+      if (typeof prepareOriginalModelRun !== 'function') {
+        throw new TypeError('InvalidInstalledRequestModelPreparation');
+      }
       const sourceCount = moon.clientProgramAcquisitionCount(preparedProgram);
       if (originalPreparation !== undefined || replay || sourceCount > 0 &&
           (acquiredInfer?.managedRun === undefined || preparationHolder === undefined) ||
@@ -364,14 +366,6 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // installation's full preparation envelope must fund this record and
       // its overlap with the caller's input; no late grant is inferred here.
       originalPreparation = Object.freeze({...originalPreparation});
-    }
-    if (selected.components !== undefined) {
-      return runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
-        store, principalId, signal, retainExecution, acquiredInfer, replay,
-        beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
-        modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor,
-        namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
-        registry, values, fragment, ordered, computeConfigurations});
     }
     const keyed = directRequestModel === undefined && !requestComposed && selected.occurrence !== undefined && selected.serializationGraph === undefined &&
       checked(moon.clientProgramSelectSingleKeyedAcquisition(preparedProgram)) !== undefined;
