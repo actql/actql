@@ -1355,6 +1355,25 @@ function verifyInputStageStore(leases) {
     assert.equal(store.status().cleanupPending,false);
   }
 }
+// The Source profile's account admits its physical read, not public Run/Result
+// observation. Install only this operator's declared fixture targets at HTTPS.
+function createPublicQueryHttpAuthorization(cohort) {
+  const results = [...new Set(cohort.successes.flatMap(item =>
+    Object.keys(item.results ?? {[cohort.primaryResultName ?? 'answer']: null})))].sort();
+  return {accountConfiguration: canonical({
+    version: 'actql-execution-account-config/0.1', account_id: 'packed-query-http',
+    entries: [{entry_id: 'read-original', outcome: 'allow',
+      principal: {any_of: [userInfo().username]},
+      connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['run', ...results.map(name => 'result/' + name)]},
+      operation: {any_of: ['read']}, exclusions: []},
+    {entry_id: 'request-original', outcome: 'allow',
+      principal: {any_of: [userInfo().username]},
+      connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['duckdb-acquired']},
+      operation: {any_of: ['write']}, exclusions: []}],
+  })};
+}
 const recordCohort = (mode, directory, cohort, authorization) => {
   // Save independently authored boundary oracles for the existing fresh-process
   // public Client regression; it never imports or reruns the partition helper.
@@ -1364,8 +1383,8 @@ const recordCohort = (mode, directory, cohort, authorization) => {
   if (inputStageResultOnly) saved.retainedRelationOutput = true;
   if (graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly) {
     saved.expectedSampleNames = [...boundaryNames];
-    saved.authorization = authorization;
   }
+  if (authorization !== undefined) saved.authorization = authorization;
   if (cohort.successes.length > 0) retainedCohorts.push(saved);
   return async item => {
     recordString(mode)(item);
@@ -1432,12 +1451,13 @@ let remoteAcceptedRuns = 0;
       ? createRetainedGraphAuthorization() : undefined;
     const physicalDispatches = [];
     const retainedLeases = [];
+    const httpAuthorization = authorization === undefined
+      ? createPublicQueryHttpAuthorization(cohort)
+      : observeInputStageStore(observeRetainedGraphDispatch(authorization, physicalDispatches), retainedLeases);
     const host = await openInstalledRemoteHttpHost({
       directory, sourceProfilePath, hostCapacityPolicy,
       ...(inputStageResultOnly ? {retainedRelationOutput:true} : {}),
-      ...(authorization === undefined ? {} : {
-        authorization: observeInputStageStore(
-          observeRetainedGraphDispatch(authorization, physicalDispatches),retainedLeases)}),
+      authorization: httpAuthorization,
       authenticate: header => header === 'Bearer fixture-token'
         ? userInfo().username : undefined,
     });
@@ -1451,7 +1471,7 @@ let remoteAcceptedRuns = 0;
       if (index === 0) await exercisePublicCheck(options);
       await exercisePublicQueryInput(connect, options,
         {requestPrefix: 'packed-http', observe: observe(directory), prepareCase,
-          completedCase: recordCohort('remote', directory, cohort, authorization), ...cohort});
+          completedCase: recordCohort('remote', directory, cohort, authorization ?? httpAuthorization), ...cohort});
       if (authorization !== undefined) assert.ok(physicalDispatches.includes('physical_start_reserved'),
         'Initial Graph execution proves the actual dispatch hook is live');
       const acceptedRuns = observe(directory)().acceptedRuns;
