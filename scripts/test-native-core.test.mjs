@@ -1,3 +1,4 @@
+import './native-http-library-lifetime.test.mjs';
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
 import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync,
@@ -669,7 +670,7 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false} = {}) {
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
-    'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'native-core-scoped-fixture.mjs', 'verification-actions.mjs',
+    'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'native-http-lifetime-fixture.mjs', 'native-core-scoped-fixture.mjs', 'verification-actions.mjs',
     'native-client-checkpoint-fixture.mjs', 'native-private-host-fixture.mjs',
     'native-filesystem-observation-fixture.mjs',
     'native-runtime-reader-custody-fixture.mjs', 'native-project-configuration-fixture.mjs',
@@ -694,6 +695,8 @@ export function nativeProcessRegionFixture(repository, namespace) {
     join(checkout, 'scripts/fixtures/native-unclosed-sqlite.c'));
   copyFileSync(new URL('fixtures/native-runtime-reader-custody.c', import.meta.url),
     join(checkout, 'scripts/fixtures/native-runtime-reader-custody.c'));
+  copyFileSync(new URL('fixtures/native-http-lifetime-library.c', import.meta.url),
+    join(checkout,'scripts/fixtures/native-http-lifetime-library.c'));
   copyFileSync(new URL('fixtures/native-effect-resolution-fixture.mjs', import.meta.url),
     join(checkout, 'scripts/fixtures/native-effect-resolution-fixture.mjs'));
   symlinkSync(new URL('../node_modules', import.meta.url), join(checkout, 'node_modules'), 'dir');
@@ -892,6 +895,17 @@ if (process.env.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT) {
   assert.equal(existsSync(join(project, 'never-created')), false);
   console.log('PROJECT_CONFIGURATION_FIXTURE_PROVISIONED');
 }
+if (process.env.ACTQL_TEST_NATIVE_BOUNDED_FILES_ROOT) {
+  assert.equal(process.env.ACTQL_TEST_NATIVE_BOUNDED_FILES_ROOT, join(root, 'bounded-files'));
+  assert.equal(statSync(process.env.ACTQL_TEST_NATIVE_BOUNDED_FILES_ROOT).mode & 0o777, 0o700);
+  console.log('BOUNDED_FILES_INPUT_PROVISIONED');
+}
+if (process.env.ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY) {
+  assert.equal(existsSync(process.env.ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY), true);
+  assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_LIBRARY, undefined);
+  assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_URL, undefined);
+  console.log('HTTP_LIFETIME_INPUT_PROVISIONED');
+}
 if (process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT) {
   assert.equal(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT, root);
   for (const name of ['runtime-constructor-pending', 'runtime-constructor-acked']) {
@@ -1089,6 +1103,21 @@ test('focused ordinary Arena inputs do not select components or reach unrelated 
     assert.equal(call.allocator,f.env.MOONBIT_ALLOCATOR);
   }
   f.verifyExternal();
+});
+
+test('selected Native bounded files and loader cleanup receive only their owned inputs', t => {
+  for (const [source, expected] of [
+    ['src/platform_native/bounded_files/owned_close_custody_wbtest.mbt', 'BOUNDED_FILES_INPUT_PROVISIONED'],
+    ['src/cmd/native_remote_resident_site/control_terminal_cleanup_native_wbtest.mbt', 'HTTP_LIFETIME_INPUT_PROVISIONED'],
+  ]) {
+    const f = fixture(t);
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs', '--deny-warn', source],
+      {cwd: f.checkout, encoding: 'utf8', timeout: 10_000, env: f.env});
+    assert.equal(result.status, 0, result.stderr);
+    assert(result.stdout.includes(expected));
+    assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+    f.verifyExternal();
+  }
 });
 
 test('selected Native filesystem and client Host provision owned private-root counterexamples', t => {
