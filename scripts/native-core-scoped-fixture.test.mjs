@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {closeSync, fstatSync, mkdirSync, mkdtempSync, openSync, readSync,
-  readdirSync, realpathSync, rmSync, statSync, writeFileSync} from 'node:fs';
+  readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {nativeCoreScopedFixture} from './native-core-scoped-fixture.mjs';
+import {nativeCoreScopedFixture, nativeRelationFileCaptureFixture} from './native-core-scoped-fixture.mjs';
 
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-scoped-case-fixture-')));
@@ -69,4 +69,34 @@ test('case fixture refuses to adopt or reset initialized backing and refuses an 
   for(const cryptoLibrary of ['', 'relative', '/invalid\0library']) {
     assert.throws(()=>nativeCoreScopedFixture(root,{...options,cryptoLibrary}),/absolute component/u);
   }
+});
+
+test('relation capture has independent exact real-file inputs and never resets an existing namespace', t => {
+  const namespace = fixture(t), env = nativeRelationFileCaptureFixture(namespace);
+  const root = join(namespace, 'installed-process');
+  assert.deepEqual(env, {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root});
+  assert.equal(statSync(root).mode & 0o777, 0o700);
+  const sizes = {'row-source-input':62, 'row-source-malformed':10,
+    'row-source-oversized':8193, 'row-source-backing':384*1024**2};
+  assert.deepEqual(readdirSync(root).sort(), Object.keys(sizes).sort());
+  for (const [name, size] of Object.entries(sizes)) {
+    const stat = statSync(join(root,name));
+    assert(stat.isFile());assert.equal(stat.nlink,1);
+    assert.equal(stat.mode & 0o777,0o600);assert.equal(stat.size,size);
+  }
+  assert.equal(readFileSync(join(root,'row-source-input'),'utf8'),
+    '{"items":[{"id":"first","value":1},{"id":"second","value":2}]}');
+  assert.equal(readFileSync(join(root,'row-source-malformed'),'utf8'), '{"items":[');
+  const backing = join(root,'row-source-backing');
+  const fd = openSync(backing,2);
+  try {
+    const header=Buffer.alloc(128,1);
+    assert.equal(readSync(fd,header,0,header.length,0),header.length);
+    assert.deepEqual(header,Buffer.alloc(128));
+  } finally {closeSync(fd);}
+  writeFileSync(backing, 'initialized owner');
+  const before=statSync(backing);
+  assert.throws(()=>nativeRelationFileCaptureFixture(namespace),{code:'EEXIST'});
+  assert.equal(statSync(backing).ino,before.ino);
+  assert.equal(readFileSync(backing,'utf8'),'initialized owner');
 });

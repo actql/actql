@@ -133,7 +133,7 @@ if (full) {
     const scopedScratch = await createOwnedScratch({parent: join(root, '_build', 'native-core-scoped'),
       prefix: 'profile-', label: 'Native Core scoped compiler', preserve: true});
     const {prepareNativeCoreScopedProfile} = await import('./native-core-scoped-profile.mjs');
-    const {nativeCoreScopedFixture} = await import('./native-core-scoped-fixture.mjs');
+    const {nativeCoreScopedFixture, nativeRelationFileCaptureFixture} = await import('./native-core-scoped-fixture.mjs');
     const {prepareNativeRuntimeBundleLibraries} = await import('./native-runtime-bundle-fixture.mjs');
     // The scoped component entrance binds its owned API to this executable's
     // provider. Raw system SQLite/OpenSSL remain the ordinary fixture inputs.
@@ -144,13 +144,15 @@ if (full) {
     // required there; the selected cases must not pretend to execute it again.
     console.log(`Native Core scoped profile: ${selection.profiles.scoped.cases} required cases`);
     const scopedDeadline = Date.now() + 3600000;
-    const arenaSource = 'src/platform_native/installed_arena_control/';
+    const scopedReviewSources = ['src/platform_native/installed_arena_control/',
+      'src/platform_native/row_source/'];
     // Local keeps ordinary copied Moon values on the runtime. The explicitly
-    // scoped Arena diagnostics instead exercise Read-owned managed aliases.
+    // scoped Arena and file-capture diagnostics exercise Read-owned managed aliases.
     // Their existing allocation profiles must never share a compiled target.
     for (const profile of ['runtime-values', 'scoped-review-values']) {
       const tests = selection.profiles.scoped.tests.filter(test =>
-        test.source.startsWith(arenaSource) === (profile === 'scoped-review-values'));
+        scopedReviewSources.some(source => test.source.startsWith(source)) ===
+        (profile === 'scoped-review-values'));
       if (tests.length === 0) continue;
       const profileNamespace = join(scopedScratch.path, profile);
       mkdirSync(profileNamespace, {mode: 0o700});
@@ -165,7 +167,9 @@ if (full) {
       for (const [ordinal, test] of tests.entries()) {
         const caseNamespace = join(namespace, `scoped-${profile}-case-${ordinal}`);
         mkdirSync(caseNamespace, {mode: 0o700});
-        const physical = nativeCoreScopedFixture(caseNamespace, {
+        const physical = test.source === 'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt'
+          ? nativeRelationFileCaptureFixture(caseNamespace)
+          : nativeCoreScopedFixture(caseNamespace, {
           cryptoLibrary: components.cryptoLibrary,
           sqliteLibrary: components.sqliteLibrary,
           backingPages: test.source ===

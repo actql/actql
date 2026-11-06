@@ -704,6 +704,9 @@ function fixture(t, {scoped = false} = {}) {
     writeFileSync(join(checkout,
       'src/platform_native/installed_arena_control/original_read_consumer_scoped_wbtest.mbt'),
     'Original compiler-input fixture\n');
+    mkdirSync(join(checkout, 'src/platform_native/row_source'), {recursive: true});
+    writeFileSync(join(checkout, 'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt'),
+      'Original compiler-input fixture\n');
     // This test observes routing only. Physical compilation is covered by the
     // selected-provider helper and actual Native cases, not this explicit port.
     writeFileSync(join(checkout, 'scripts/native-core-scoped-profile.mjs'), `
@@ -723,6 +726,10 @@ export function prepareNativeCoreScopedProfile(root, scratch, args, {env, profil
     writeFileSync(join(checkout, 'scripts/native-core-scoped-fixture.mjs'), `
 import {mkdirSync} from 'node:fs';
 import {join} from 'node:path';
+export function nativeRelationFileCaptureFixture(namespace) {
+  const root = join(namespace, 'installed-process'); mkdirSync(root, {mode: 0o700});
+  return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root};
+}
 export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary}) {
   const root = join(namespace, 'installed-process'); mkdirSync(root, {mode: 0o700});
   return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root,
@@ -770,6 +777,11 @@ if (process.argv.includes('--dry-run')) {
       '--output-metadata _build/native/release/test/platform_native/installed_arena_control/info.json ' +
       'src/platform_native/installed_arena_control/original_read_consumer_scoped_wbtest.mbt ' +
       '--target native --pkg-name fixture/arena --driver-kind whitebox');
+    console.log('moon generate-test-driver ' +
+      '--output-driver _build/native/release/test/platform_native/row_source/driver.mbt ' +
+      '--output-metadata _build/native/release/test/platform_native/row_source/info.json ' +
+      'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt ' +
+      '--target native --pkg-name fixture/row_source --driver-kind whitebox');
     process.exit(0);
   }
   for (const name of process.argv.includes('src/fixture-native') ? ['fixture-native']
@@ -791,10 +803,15 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
   assert(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT);
   assert(process.env.ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE);
   assert.equal(statSync(process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT).mode & 0o777, 0o700);
-  assert(process.env.ACTQL_TEST_SQLITE_COMPONENT.endsWith('/sqlite-component.dylib'));
-  assert(process.env.ACTQL_TEST_CRYPTO_COMPONENT.endsWith('/crypto-component.dylib'));
-  assert.notEqual(process.env.ACTQL_TEST_SQLITE_COMPONENT, process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY);
-  assert.notEqual(process.env.ACTQL_TEST_CRYPTO_COMPONENT, process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY);
+  if (process.argv.includes('src/platform_native/row_source/capture_physical_scoped_wbtest.mbt')) {
+    assert.equal(process.env.ACTQL_TEST_SQLITE_COMPONENT, undefined);
+    assert.equal(process.env.ACTQL_TEST_CRYPTO_COMPONENT, undefined);
+  } else {
+    assert(process.env.ACTQL_TEST_SQLITE_COMPONENT.endsWith('/sqlite-component.dylib'));
+    assert(process.env.ACTQL_TEST_CRYPTO_COMPONENT.endsWith('/crypto-component.dylib'));
+    assert.notEqual(process.env.ACTQL_TEST_SQLITE_COMPONENT, process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY);
+    assert.notEqual(process.env.ACTQL_TEST_CRYPTO_COMPONENT, process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY);
+  }
   if (process.env.ACTQL_FIXTURE_SCOPED_FAIL === '1') process.exit(7);
   console.log('Total tests: 1, passed: 1, failed: 0.'); process.exit(0);
 }
@@ -1280,7 +1297,7 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     assert.equal(result.signal, null);
     assert.equal(result.status, fail ? 7 : 0, result.stdout + result.stderr);
     const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
-    assert.equal(calls.length, fail ? 4 : 6,
+    assert.equal(calls.length, fail ? 4 : 7,
       'two original checkpoint producers, ordinary Core and every selected case until failure');
     const [ordinary, ...selectedCases] = calls.slice(2);
     const selected = selectedCases[0];
@@ -1293,7 +1310,8 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     assert.deepEqual(selectedCases.flatMap(value => value.args.filter(arg => arg.startsWith('src/'))),
       ['src/cmd/native_client/local_command_business_wbtest.mbt',
         ...(!fail ? ['src/cmd/native_client/local_command_business_cleanup_wbtest.mbt',
-          'src/platform_native/installed_arena_control/original_read_consumer_scoped_wbtest.mbt'] : [])]);
+          'src/platform_native/installed_arena_control/original_read_consumer_scoped_wbtest.mbt',
+          'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt'] : [])]);
     assert.equal(new Set(selectedCases.map(value => value.installedProcess)).size, selectedCases.length,
       'every physical case owns a fresh original backing namespace');
     for (const value of selectedCases) {
@@ -1301,17 +1319,18 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     }
     if (!fail) {
       assert.deepEqual(selectedCases.map(value => value.profile),
-        ['runtime-values', 'runtime-values', 'scoped-review-values']);
+        ['runtime-values', 'runtime-values', 'scoped-review-values', 'scoped-review-values']);
       const targets = selectedCases.map(value => value.args[value.args.indexOf('--target-dir') + 1]);
       assert.equal(targets[0], targets[1], 'reuse the same compiled software within a profile');
       assert.notEqual(targets[0], targets[2], 'distinct allocator profiles require distinct targets');
+      assert.equal(targets[2], targets[3], 'file capture retains the Read-owned allocation profile');
     }
     assert.match(ordinary.path, /\/test-c-compiler:/u);
     assert.equal(selected.path, f.env.PATH, 'selected preparation starts from the original PATH');
     assert.deepEqual(selected.args.slice(0, 3), ['test', '--target', 'native']);
     const target = selected.args[selected.args.indexOf('--target-dir') + 1];
     assert(target.startsWith(join(f.checkout, '_build/native-core-scoped/profile-')));
-    assert.match(result.stdout, /"ordinary":2,"scoped":3,"physical":2,"repeatedGeometry":1/u);
+    assert.match(result.stdout, /"ordinary":2,"scoped":4,"physical":3,"repeatedGeometry":1/u);
     assert.equal((result.stdout.match(/CORE_TARGET_FIXTURE_PROVISIONED/gu) ?? []).length, 1,
       'only ordinary Core executes the Salesforce target oracle');
     const namespace = /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1];
