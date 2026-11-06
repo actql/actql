@@ -3307,3 +3307,16 @@ larger captured inventory is retained rather than shrunk to selected changes.
 This immutable inventory is neither write permission nor physical outcome or
 cleanup evidence. Constructor entry follows the resize, and original current,
 reentry, failure and retirement fences remain in force.
+
+
+The original staged physical response returns projection workspace only after
+its provider callback and same request flight both settle successfully.
+The Host keeps the preparing latch through that completion, including original
+current callbacks, so reentrant release cannot retire the still-active child.
+The existing prepared-run Resource entry checks that same original and live
+physical token once, then returns only execution bytes above its retained
+body/output amount. It neither closes the token nor changes attempts, transfer,
+uncertainty, retention, consumed work, or pending physical cleanup. A repeated
+absolute return is idempotent. An unstaged operation, failed callback, unresolved
+flight, changed original or failed current boundary cannot use this completion;
+the older pure-constructor completion still refuses physical operations.

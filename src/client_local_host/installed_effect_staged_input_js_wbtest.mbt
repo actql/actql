@@ -463,3 +463,94 @@ test "selected outcome control wire bound preserves the original Local envelope 
     installed_effect_control_wire_bound(100000, 0) is Err(Unsupported),
   )
 }
+
+///|
+test "physical response projection returns only its same original workspace without cleanup or history refund" {
+  let calls = Ref(0)
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture(current=() => {
+    calls.val += 1
+  })
+  let child = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 0, 0, "send",
+  ).unwrap()
+  assert_true(
+    complete_installed_effect_operation_response_projection(child)
+    is Err(Unsupported),
+  )
+  start_installed_effect_operation(child).unwrap()
+  let input = prepare_installed_effect_operation_extent(
+    "send",
+    @execution.execution_capacity(9L, 48L).unwrap(),
+    7L,
+    true,
+  ).unwrap()
+  begin_installed_effect_operation_input(child, input).unwrap()
+  charge_installed_effect_operation(child, 2L).unwrap()
+  guard child.backing
+    is Some(@resources.NodeManagedRunOperationBacking::Physical(original)) else {
+    fail("original physical token missing")
+  }
+  @resources.mark_transfer_uncertain(ledger, original, 1L).unwrap()
+  @resources.mark_cleanup_pending(ledger, original).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let current = calls.val
+  complete_installed_effect_operation_response_projection(child).unwrap()
+  assert_eq(calls.val, current + 1)
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after, {
+    ..before,
+    reserved_execution_bytes: before.reserved_execution_bytes - 39L,
+  })
+  assert_true(@resources.reservation_open(original))
+  assert_true(@resources.reservation_pending(original))
+  assert_true(child.input_selected && child.started && !child.retired)
+  assert_true(
+    complete_installed_effect_operation_construction(child) is Err(Unsupported),
+  )
+  complete_installed_effect_operation_response_projection(child).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), after)
+  assert_true(
+    begin_installed_effect_operation_input(child, input) is Err(AlreadyBound),
+  )
+  assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "physical response projection preserves original current reentry fence before workspace return" {
+  let selected : Ref[ClientInstalledEffectOperationBorrow?] = Ref(None)
+  let reenter = Ref(false)
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture(current=() => {
+    if reenter.val {
+      selected.val.unwrap().retired = true
+    }
+  })
+  let child = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 0, 0, "send",
+  ).unwrap()
+  selected.val = Some(child)
+  start_installed_effect_operation(child).unwrap()
+  begin_installed_effect_operation_input(
+    child,
+    prepare_installed_effect_operation_extent(
+      "send",
+      @execution.execution_capacity(9L, 48L).unwrap(),
+      7L,
+      true,
+    ).unwrap(),
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  reenter.val = true
+  assert_true(
+    complete_installed_effect_operation_response_projection(child)
+    is Err(Retired),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  // Whitebox reentry simulation only; restore the original fixture for cleanup.
+  reenter.val = false
+  child.retired = false
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}

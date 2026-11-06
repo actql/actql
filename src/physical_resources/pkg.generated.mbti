@@ -208,6 +208,8 @@ pub fn[P, E] complete_prepared_run_operation_construction(PreparedRunAdmission[P
 
 pub fn[P, E] complete_prepared_run_operation_construction_output(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
 
+pub fn[P, E] complete_prepared_run_operation_response_projection(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking) -> Result[Unit, NodeManagedRunOperationIssue[E]]
+
 pub fn configure_quantities(Ledger, QuantityAmounts) -> Result[Unit, LedgerIssue]
 
 pub fn consume_execution_delegation_attempt(Ledger, ExecutionDelegation) -> Result[Unit, LedgerIssue]
