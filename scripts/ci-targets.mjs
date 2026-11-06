@@ -29,7 +29,7 @@ export const maintenanceFiles = Object.freeze([
 ]);
 const maintenance = new Set(maintenanceFiles);
 export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'core', 'host', 'client',
-  'native', 'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
+  'native-cli-installed', 'native', 'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
   'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests', 'main-performance', 'health-quick']);
 const validPath = path => typeof path === 'string' && path.length > 0 && !/[\0\r\n]/u.test(path)
   && !path.startsWith('/') && !path.split('/').some(part => ['', '.', '..'].includes(part));

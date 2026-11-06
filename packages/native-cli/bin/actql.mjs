@@ -99,6 +99,12 @@ export function launch(args) {
   // Native supplies the answer; no project, Host or second parser is created.
   let selectedArguments = args.length === 1 && args[0] === 'version' ? ['--version'] : args;
   if (initialization) {
+    // This known package capability failure must precede all project writes.
+    // The inherited selector was removed above; only admitted installation
+    // metadata can supply it. Native still owns physical/runtime admission.
+    if (selectedEnvironment.ACTQL_NATIVE_LOCAL_RUNTIME === undefined) {
+      throw Object.assign(Error(`Packaged Local runtime is unavailable for ${key}; actql init requires it. No project files were created. Remote commands remain available.`), {exitCode: 69});
+    }
     // Preparation creates no state or key. Only the same admitted Native image
     // may adopt the explicit project Store through its existing installation
     // Owner. Failure leaves partial files and original cleanup responsibilities.

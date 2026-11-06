@@ -43,7 +43,7 @@ test('full checkpoint binds tested SHA, ancestry, policy and exact successful at
 // Independent full-workflow inventory: focused-tests runs only in its own
 // narrow profile and is skipped alongside the successful full families.
 const fullWorkflowJobs = ['check', 'select-targets', 'preflight', 'lint',
-  'core (js)', 'core (wasm)', 'core (native)', 'host', 'client', 'native',
+  'core (js)', 'core (wasm)', 'core (native)', 'host', 'client', 'native-cli-installed', 'native',
   'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
   'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
 function fullWorkflowFixture() {
@@ -61,6 +61,21 @@ test('real gate inventory accepts complete full main with skipped focused-only j
   assert.equal((await resolveMainBaseline(options)).baseSha, base);
   assert.deepEqual(options.requiredJobs, fullWorkflowJobs);
 });
+for (const conclusion of ['missing', 'skipped', 'failure']) {
+  test(`full main checkpoint rejects ${conclusion} native-cli-installed evidence`, async () => {
+    for (const event of ['push', 'workflow_dispatch']) {
+      const {options, state} = fullWorkflowFixture();
+      state.run.event = event;
+      if (conclusion === 'missing') {
+        state.jobs.jobs = state.jobs.jobs.filter(job => job.name !== 'native-cli-installed');
+      } else {
+        state.jobs.jobs.find(job => job.name === 'native-cli-installed').conclusion = conclusion;
+      }
+      state.jobs.total_count = state.jobs.jobs.length;
+      assert.equal((await resolveMainBaseline(options)).baseSha, null, event);
+    }
+  });
+}
 test('manual proof checkpoint needs no push-only monitor and schedule cannot supply reuse', async () => {
   const f = fullWorkflowFixture();
   f.state.run.event = 'workflow_dispatch';
