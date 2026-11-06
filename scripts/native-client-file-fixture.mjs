@@ -1,8 +1,9 @@
 // Private physical input files for existing CLI Reader/custody cases only.
 // Runtime library bodies are synthetic three-byte files and are never loaded.
 import {createHash} from 'node:crypto';
-import {mkdirSync, symlinkSync, writeFileSync} from 'node:fs';
+import {mkdirSync, readFileSync, symlinkSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 // Independent delivery vectors also authored in
 // src/run_publication_host/client_result_delivery_receipts_wbtest.mbt.
@@ -31,7 +32,17 @@ export function nativeClientFileFixture(namespace) {
       .map(role => `data/${role}.json`),
     'licenses/fixture.txt',
   ];
-  const extent = path => ({path, bytes: 3, sha256: digest('abc')});
+  // The runtime now admits this same installed four-contract closure before
+  // exposing assets. Keep only the mutation targets synthetic; use the actual
+  // bundled Source inputs for contract admission, not copies of product output.
+  const repository = fileURLToPath(new URL('../', import.meta.url));
+  const aoa = JSON.parse(readFileSync(join(repository, 'spec/contracts/actql-aoa.json'), 'utf8'));
+  const bodies = new Map(members.map(path => [path, 'abc']));
+  bodies.set('data/registry.json', readFileSync(join(repository, aoa.pipeline_registry_file), 'utf8'));
+  for (const [role, name] of [['values', 'REL.values'],
+    ['fragment', 'ACTQL.expression_fragment/0.1'], ['ordered', 'REL.derive.ordered']])
+    bodies.set(`data/${role}.json`, JSON.stringify(aoa.execution_contracts[name]));
+  const extent = path => ({path, bytes: Buffer.byteLength(bodies.get(path)), sha256: digest(bodies.get(path))});
   const manifest = JSON.stringify({sourceSha: 'a'.repeat(40), platform: 'darwin-arm64',
     libraries: ['sqlite', 'crypto'].map(role => ({role, ...extent(`lib/${role}.bin`),
       license: 'licenses/fixture.txt', dependencies: ['/usr/lib/libSystem.B.dylib'],
@@ -45,7 +56,7 @@ export function nativeClientFileFixture(namespace) {
     const directory = join(runtime, name);
     mkdirSync(directory, {mode: 0o700});
     for (const child of ['lib', 'data', 'licenses']) mkdirSync(join(directory, child), {mode: 0o700});
-    for (const member of members) write(join(directory, member), 'abc');
+    for (const member of members) write(join(directory, member), bodies.get(member));
     write(join(directory, 'local-runtime.json'), manifest);
   }
   symlinkSync('unchanged', join(runtime, 'alias'), 'dir');

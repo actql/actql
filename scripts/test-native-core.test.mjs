@@ -4,7 +4,7 @@ import {spawn, spawnSync} from 'node:child_process';
 import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync,
   readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
@@ -682,7 +682,7 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false} = {}) {
   // cases exercise the physical C/Rust leaf with the real preparation helper.
   writeFileSync(join(checkout, 'scripts/native-process-region-fixture.mjs'), `
 import {mkdirSync} from 'node:fs';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 export function nativeProcessRegionFixture(repository, namespace) {
   const root = join(namespace, 'process-region'); mkdirSync(root, {mode: 0o700});
   return {ACTQL_TEST_NATIVE_PROCESS_REGION_ROOT: root,
@@ -699,6 +699,13 @@ export function nativeProcessRegionFixture(repository, namespace) {
     join(checkout,'scripts/fixtures/native-http-lifetime-library.c'));
   copyFileSync(new URL('fixtures/native-effect-resolution-fixture.mjs', import.meta.url),
     join(checkout, 'scripts/fixtures/native-effect-resolution-fixture.mjs'));
+  const repository = fileURLToPath(new URL('../', import.meta.url));
+  const aoa = JSON.parse(readFileSync(join(repository, 'spec/contracts/actql-aoa.json'), 'utf8'));
+  for (const path of ['spec/contracts/actql-aoa.json', aoa.pipeline_registry_file]) {
+    const target = join(checkout, path);
+    mkdirSync(dirname(target), {recursive: true});
+    copyFileSync(join(repository, path), target);
+  }
   symlinkSync(new URL('../node_modules', import.meta.url), join(checkout, 'node_modules'), 'dir');
   writeFileSync(join(checkout, '.github/workflows/ci.yml'),
     JSON.stringify({jobs: {core: {'timeout-minutes': 30, steps: [coreStep]}}}));
@@ -765,7 +772,7 @@ process.exitCode=process.env.ACTQL_FIXTURE_SOURCE_FAILED==='1'?9:0;
     writeFileSync(join(checkout, 'scripts/native-core-scoped-profile.mjs'), `
 import assert from 'node:assert/strict';
 import {mkdirSync} from 'node:fs';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 export function prepareNativeCoreScopedProfile(root, scratch, args, {env, profile}) {
   assert.deepEqual(args.slice(0, 2), ['--target', 'native']);
   assert.equal(env.PATH.includes('/test-c-compiler:'), false);
@@ -779,7 +786,7 @@ export function prepareNativeCoreScopedProfile(root, scratch, args, {env, profil
     writeFileSync(join(checkout, 'scripts/native-runtime-bundle-fixture.mjs'), `
 import assert from 'node:assert/strict';
 import {mkdirSync} from 'node:fs';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 export function prepareNativeRuntimeBundleLibraries(root, destination, options) {
   assert(destination.startsWith(join(root, '_build/native-core-scoped/')));
   assert.equal(options.seconds, 900);
