@@ -49,3 +49,24 @@ test('eligible entry finite owner components remain independently authored', () 
   assert.match(source, /65536L \+ 65536L \+ outer_entry_bytes/u);
   assert.equal(8192 - (7168 + 64 + 64), 896);
 });
+
+test('eligible byte-only child preserves root attempts and exact pending refusal', () => {
+  // Independent original-owner arithmetic: reserve_shared_capacity reserves
+  // one attempt, and each delegation reserves one beyond its child allowance.
+  const backing = 1, provisioning = 3, read = 2, sqlite = 2, business = 0;
+  assert.equal(backing + provisioning + read + sqlite + business, 8);
+  assert.equal(backing + provisioning + read + sqlite + 4, 12);
+  assert.match(source, /let root_attempts = 8/u);
+  assert.match(source, /let backing_attempts = 1/u);
+  assert.match(source, /let domain_provisioning_attempts = 3/u);
+  assert.match(source, /let business_limits[^]*?attempts: 0,/u);
+  assert.match(source, /attempts: root_attempts,/u);
+  assert.match(source, /entry\.usage\(\)\.reserved_attempts == 0/u);
+  assert.match(source, /assert_eq\(entry\.usage\(\)\.reserved_attempts, 0\)/u);
+  const domains = source.slice(source.indexOf('let read_domain ='), source.indexOf('host.transfer_domain(business_domain)'));
+  assert.equal((domains.match(/PendingDomain\(_, issue\) =>/gu) ?? []).length, 3);
+  assert.equal((domains.match(/raise EligibleEntryDomainFailure\(/gu) ?? []).length, 3);
+  assert.doesNotMatch(domains, /PendingDomain\(_, _\)|@debug|fail\(|close_|retry/u);
+  assert.match(source, /suberror EligibleEntryDomainFailure[^]*?String, @bootstrap\.NativeBackedExecutionIssue/u);
+  assert.match(source, /impl Show for EligibleEntryDomainFailure[^]*?@debug\.to_string\(issue\)/u);
+});

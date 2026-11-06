@@ -1,4 +1,21 @@
 ///|
+// Keep the exact lower refusal until the harness renders this terminal error.
+// The original partial domain remains registered with its Host. This adds no
+// cleanup, retry or acknowledgement and constructs no diagnostic String here.
+suberror EligibleEntryDomainFailure {
+  EligibleEntryDomainFailure(String, @bootstrap.NativeBackedExecutionIssue)
+}
+
+///|
+impl Show for EligibleEntryDomainFailure with fn output(self, logger) {
+  let EligibleEntryDomainFailure(stage, issue) = self
+  logger.write_string("eligible entry: ")
+  logger.write_string(stage)
+  logger.write_string(" domain pending: ")
+  logger.write_string(@debug.to_string(issue))
+}
+
+///|
 // Keep the Read-created entry/copy in this lexical owner. Returning from this
 // helper drops both before the parent Read pair can physically retire.
 fn nonmodel_eligible_original_work(
@@ -77,6 +94,7 @@ fn nonmodel_eligible_original_work(
     is None
   let same_control = entry.owns_only_control() &&
     entry.usage().attempts == 0 &&
+    entry.usage().reserved_attempts == 0 &&
     entry.usage().transferred_bytes == 0L
   let finished = entry.finish_business_cleanup()
   host
@@ -93,6 +111,7 @@ fn nonmodel_eligible_original_work(
   assert_eq(entry.usage().reserved_retention_bytes, 0L)
   assert_eq(entry.usage().reserved_execution_bytes, 0L)
   assert_eq(entry.usage().attempts, 0)
+  assert_eq(entry.usage().reserved_attempts, 0)
   assert_eq(entry.usage().transferred_bytes, 0L)
   assert_true(entry.close_after_original_return())
   eligible &&
@@ -148,12 +167,30 @@ test "eligible copied entry refuses while the same original takes once and physi
   }
   let business_limits : @resources.LedgerLimits = {
     planning_work: 8,
-    attempts: 4,
+    // This case exercises only byte control, nominal take and original
+    // retirement. Imported admission/current, reserve_capacity and settlement
+    // consume no child attempt. No dispatch/send capability is exercised.
+    attempts: 0,
     holdings: 2,
     transfer_bytes: 4096L,
     retained_bytes: page,
     execution_bytes: 32L * page,
   }
+  // The SAME root pays one reserved backing attempt plus one provisioning
+  // attempt per domain, in addition to each child's delegated allowance.
+  // Three domains with the former business allowance of four required twelve,
+  // not eight. Keep the root fixed and delegate only what this case uses.
+  let root_attempts = 8
+  let backing_attempts = 1
+  let domain_provisioning_attempts = 3
+  assert_eq(
+    backing_attempts +
+    domain_provisioning_attempts +
+    read_limits.attempts +
+    sqlite_limits.attempts +
+    business_limits.attempts,
+    root_attempts,
+  )
   let read_necessary = @bootstrap.execution_domain_necessary_bytes(
     read_extent,
     read_limits.retained_bytes + read_limits.execution_bytes,
@@ -185,7 +222,7 @@ test "eligible copied entry refuses while the same original takes once and physi
     8192L * page,
     {
       planning_work: 20,
-      attempts: 8,
+      attempts: root_attempts,
       holdings: 8,
       transfer_bytes: 65536L,
       retained_bytes: 0L,
@@ -199,7 +236,7 @@ test "eligible copied entry refuses while the same original takes once and physi
   let read_domain = match
     host.prepare_domain(backing, descriptor, read_extent, read_limits).unwrap() {
     PreparedDomain(value) => value
-    PendingDomain(_, _) => fail("eligible entry: Read domain pending")
+    PendingDomain(_, issue) => raise EligibleEntryDomainFailure("Read", issue)
   }
   host.transfer_domain(read_domain).unwrap()
   let sqlite_domain = match
@@ -207,7 +244,7 @@ test "eligible copied entry refuses while the same original takes once and physi
     .prepare_domain(backing, descriptor, sqlite_extent, sqlite_limits)
     .unwrap() {
     PreparedDomain(value) => value
-    PendingDomain(_, _) => fail("eligible entry: SQLite domain pending")
+    PendingDomain(_, issue) => raise EligibleEntryDomainFailure("SQLite", issue)
   }
   host.transfer_domain(sqlite_domain).unwrap()
   let business_domain = match
@@ -215,7 +252,8 @@ test "eligible copied entry refuses while the same original takes once and physi
     .prepare_domain(backing, descriptor, business_extent, business_limits)
     .unwrap() {
     PreparedDomain(value) => value
-    PendingDomain(_, _) => fail("eligible entry: business domain pending")
+    PendingDomain(_, issue) =>
+      raise EligibleEntryDomainFailure("business", issue)
   }
   host.transfer_domain(business_domain).unwrap()
   host.leave_backing_borrow_scope(backing).unwrap()
