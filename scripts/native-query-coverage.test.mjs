@@ -11,10 +11,13 @@ const repositorySources = readNativeQuerySources(root);
 // readers are covered by the repository check below and must permit fallback.
 const sources = {
   ...Object.fromEntries(Object.entries(repositorySources).filter(([path]) =>
-    Object.hasOwn(nativeQueryCoverage.files, path) || path.endsWith('/moon.pkg'))),
+    Object.hasOwn(nativeQueryCoverage.files, path))),
+  'src/query_integration/moon.pkg': 'supported_targets = "+js+wasm+native"\n' +
+    'import { "actql/actql/provider", "actql/actql/platform_native/remote_journal" }',
+  'src/native_values_integration/moon.pkg': 'supported_targets = "+js+wasm+native"',
+  'src/provider/moon.pkg': '',
+  'src/platform_native/remote_journal/moon.pkg': 'options("native-stub": ["inspection_stub.c"])',
   'src/platform_native/remote_journal/inspection_stub.c': 'getenv("TMPDIR")',
-  'src/platform_native/executor_slot/executor_slot_stub.c':
-    'extern char **environ;\nposix_spawn(&pid, path, &actions, NULL, argv, environ)',
 };
 const environment = owner => Object.fromEntries(
   nativeQueryCoverage.requiredEnvironment[owner].map(name => [name, '1']));
@@ -68,15 +71,11 @@ test('all current required cases exist, and core remains unfiltered', () => {
   assert.doesNotMatch(core, /native-query-coverage/u);
 });
 
-test('repository inventory either selects owned cases or explicitly retains full coverage', () => {
+test('the current repository selects each owned Native query subset', () => {
   for (const owner of ['http-client', 'remote-runtime']) {
     const selection = select(owner, repositorySources);
-    if (selection.mode === 'full-fallback') {
-      assert.ok(selection.reasons.length > 0);
-      assert.deepEqual(selection.paths, ['src/query_integration', 'src/native_values_integration']);
-    } else {
-      assert.equal(selection.expected, owner === 'http-client' ? 33 : 12);
-    }
+    assert.equal(selection.mode, 'subset', selection.reasons.join('\n'));
+    assert.equal(selection.expected, owner === 'http-client' ? 33 : 12);
   }
 });
 
@@ -163,7 +162,7 @@ test('a same-named helper in another package cannot hide an environment dependen
   assert.ok(selection.reasons.some(reason => reason.includes('new_wbtest')));
 });
 
-test('unknown production reader preserves full harness coverage', () => {
+test('unknown imported production reader preserves full harness coverage', () => {
   for (const source of ['fn helper() { @env.get_env_var("NEW") }',
     'const char *value = getenv("NEW");', 'extern char **environ;',
     'fn helper() { let reader = @env.get_env_var; reader("NEW") }',
@@ -173,6 +172,54 @@ test('unknown production reader preserves full harness coverage', () => {
     assert.equal(selection.mode, 'full-fallback');
     assert.equal(selection.expected, 35);
   }
+});
+
+test('unrelated commands and conformance programs cannot force Query fallback', () => {
+  for (const path of ['src/cmd/other/main.mbt', 'src/conformance/fixture.c']) {
+    assert.equal(select('http-client', {...sources,
+      [path]: 'getenv("ACTQL_TEST_OTHER");'}).mode, 'subset');
+  }
+});
+
+test('transitive imports and literal FFI includes retain unknown environment dependencies', () => {
+  const input = {...sources,
+    'src/provider/moon.pkg': 'import { "actql/actql/second" }',
+    'src/second/moon.pkg': 'options("native-stub": ["fixture.c"])',
+    'src/second/fixture.c': '#include "../../ffi/reader.inc"',
+    'ffi/reader.inc': 'const char *(*reader)(const char *) = secure_getenv;',
+  };
+  assert.equal(select('http-client', input).mode, 'full-fallback');
+  assert.ok(select('http-client', {...input, 'src/second/fixture.c': '#include SELECTED_HEADER'})
+    .reasons.some(reason => reason.includes('include expression')));
+  delete input['ffi/reader.inc'];
+  assert.ok(select('http-client', input).reasons.some(reason => reason.includes('missing query FFI')));
+  delete input['src/second/moon.pkg'];
+  assert.ok(select('http-client', input).reasons.some(reason => reason.includes('missing query dependency')));
+  assert.equal(select('http-client', {...sources,
+    'src/provider/moon.pkg': 'import { "unknown/environment" }'}).mode, 'full-fallback');
+});
+
+test('new reads beside the reviewed WAL fixture and new fixture callers fall back', () => {
+  const path = 'src/platform_native/sqlite/sqlite_stub.c';
+  const input = {...sources,
+    'src/provider/moon.pkg': 'import { "actql/actql/platform_native/sqlite" }',
+    'src/platform_native/sqlite/moon.pkg': 'options("native-stub": ["sqlite_stub.c"])',
+    [path]: repositorySources[path],
+  };
+  // Its literal includes are already part of the actual source inventory.
+  const withFixture = {...repositorySources, ...input};
+  assert.equal(select('http-client', withFixture).mode, 'subset');
+  assert.equal(select('http-client', {...withFixture,
+    [path]: withFixture[path] + '\ngetenv("NEW");'}).mode, 'full-fallback');
+  assert.equal(select('http-client', {...withFixture,
+    [path]: withFixture[path].replace('getenv("ACTQL_TEST_NATIVE_SQLITE_LIBRARY")', 'getenv("NEW")')}).mode,
+  'full-fallback');
+  for (const code of [
+    'extern "C" fn reader() -> Int = "actql_native_sqlite_test_unclosed_coordinator"\n' +
+      'fn alias() { let callback = reader; callback() }\ntest "new" { alias() }',
+    'test "new" { actql_native_sqlite_test_unclosed_coordinator() }',
+  ]) assert.equal(select('http-client', {...withFixture,
+    [query + 'new_wbtest.mbt']: code}).mode, 'full-fallback');
 });
 
 test('new environment reads beside reviewed C reads are not allowlisted', () => {
@@ -248,15 +295,31 @@ test('unfamiliar and ambiguous target metadata never lower the required count', 
   assert.throws(() => select('http-client', missing), /Missing native package metadata/u);
 });
 
-test('the actual fallback retains Native Values and excludes only the two declared JS tests', () => {
-  const js = query + 'strategy_cleanup_current_js_wbtest.mbt';
-  assert.equal([...repositorySources[js].matchAll(/^test "/gmu)].length, 2);
+test('the actual fallback retains Native Values and excludes exactly both declared JS-only files', () => {
+  // Independently authored file/count inventory, not the selector's output.
+  const jsOnly = {'strategy_cleanup_current_js_wbtest.mbt': 2, 'row_stream_current_js_wbtest.mbt': 2};
+  const pkg = repositorySources[query + 'moon.pkg'];
+  const clause = `  targets: {
+    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],
+    "row_stream_current_js_wbtest.mbt": [ "js" ],
+  },`;
+  assert.equal(pkg.split(clause).length, 2);
+  for (const [file, expected] of Object.entries(jsOnly)) {
+    assert.equal([...repositorySources[query + file].matchAll(/^test "/gmu)].length, expected, file);
+  }
   const declarations = Object.entries(repositorySources)
     .filter(([path]) => path.startsWith(query) || path.startsWith('src/native_values_integration/'))
     .reduce((sum, [, source]) => sum + [...source.matchAll(/^test "/gmu)].length, 0);
-  const selection = select('http-client', {...repositorySources,
-    [query + 'force_full_stub.c']: 'getenv("ACTQL_TEST_FORCE_FULL");'});
+  const forced = {...repositorySources, [query + 'force_full_stub.c']: 'getenv("ACTQL_TEST_FORCE_FULL");'};
+  const selection = select('http-client', forced);
   assert.equal(selection.mode, 'full-fallback');
-  assert.equal(selection.expected, declarations - 2);
+  assert.equal(selection.expected, declarations - Object.values(jsOnly).reduce((sum, count) => sum + count, 0));
   assert.ok(selection.paths.includes('src/native_values_integration'));
+  // Re-admitting either file adds its two cases; it cannot hide another file.
+  for (const [file, expected] of Object.entries(jsOnly)) {
+    const changed = pkg.replace(`"${file}": [ "js" ]`, `"${file}": [ "js", "native" ]`);
+    assert.notEqual(changed, pkg);
+    assert.equal(select('http-client', {...forced, [query + 'moon.pkg']: changed}).expected,
+      selection.expected + expected);
+  }
 });

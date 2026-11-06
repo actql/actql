@@ -267,13 +267,13 @@ test('missing debugger reports availability without a target attempt or fallback
 test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized JSON', () => {
   const jobs = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs;
   const original = jobs.native.steps.find(step => step.id === 'native-runtime-test');
-  assert.equal(original.if, undefined);
+  assert.equal(original.if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
   assert.equal(original['continue-on-error'], undefined);
-  assert(original.run.includes('npm run check:native-http-client'));
+  assert(original.run.includes('node scripts/test-native-resident-site.mjs'));
   const dependencies = jobs.native.steps.find(step => step.name === 'Select the original pinned Noble static Crypto inputs');
   assert(dependencies.run.includes('sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv gdb'));
   const diagnostic = jobs.native.steps.find(step => step.name === 'Diagnose only failed Linux Effect consumer functions');
-  assert.equal(diagnostic.if, "${{ failure() && steps.native-runtime-test.outcome == 'failure' }}");
+  assert.equal(diagnostic.if, "${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}");
   assert.equal(diagnostic['continue-on-error'], true);
   assert.equal(diagnostic['timeout-minutes'], 6);
   assert(diagnostic.run.includes('ulimit -S -s 65536'));

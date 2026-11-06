@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "495cc03d194cbdce7fa170f5278da43db980d6cb2b40244368f4f3a489577309",
+      "sha256": "4f1824d1bf910dc31f8d0e36c243c985d316bf7ff90b509683697b2b9afc8521",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -390,6 +390,7 @@
         "pub fn begin_row_run_keyed_page(RowRun, Bytes) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_run_listing_page(RowRun, Bytes, Int64) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_run_listing_request(RowRun, String?, Int64) -> Result[Unit, RowHostIssue]",
+        "pub fn begin_row_run_response_attempt(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]",
         "pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]",
         "pub fn borrow_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
@@ -413,7 +414,10 @@
         "pub fn consume_row_run_observation_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
         "pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
         "pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView",
+        "pub fn discard_relation_document_original(RelationDocument) -> Bool",
+        "pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool",
         "pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
+        "pub fn extend_row_run_page_charge(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]",
         "pub fn finish_row_run(RowRun) -> Result[Unit, RowHostIssue]",
         "pub fn generate_relation_row_declaration(String, String, String, Array[RowRelationViewSpec], RowDeclarationLimits, classifications? : Array[@check_environment.DataClassification]?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]",
@@ -674,6 +678,10 @@
           "declaration": "pub fn begin_row_run_listing_request(RowRun, String?, Int64) -> Result[Unit, RowHostIssue]"
         },
         {
+          "name": "begin_row_run_response_attempt",
+          "declaration": "pub fn begin_row_run_response_attempt(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]"
+        },
+        {
           "name": "begin_row_run_with_page_limits",
           "declaration": "pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]"
         },
@@ -766,8 +774,20 @@
           "declaration": "pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView"
         },
         {
+          "name": "discard_relation_document_original",
+          "declaration": "pub fn discard_relation_document_original(RelationDocument) -> Bool"
+        },
+        {
+          "name": "discard_relation_target_document_original",
+          "declaration": "pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool"
+        },
+        {
           "name": "export_row_original_read",
           "declaration": "pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]"
+        },
+        {
+          "name": "extend_row_run_page_charge",
+          "declaration": "pub fn extend_row_run_page_charge(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "finish_row_run",
@@ -4041,6 +4061,218 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "begin_row_run_response_attempt",
+            "extend_row_run_page_charge"
+          ],
+          "exports": [
+            "pub fn begin_row_run_response_attempt(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]",
+            "pub fn extend_row_run_page_charge(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "pub fn begin_row_run_response_attempt("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "pub fn extend_row_run_page_charge("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "if !physical_equal(charge.owner, run.attempt) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "if !row_provider_cleanup_bound(run) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "physical_equal(current, read) &&"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "read.page_limits.max_bytes.to_int64() - charge.received_bytes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/query_integration/row_stream_accounting_wbtest.mbt",
+                "anchor": "stream chunks extend one original ticket and cancellation never refunds received bytes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "@resources.consume_reserved_attempt(physical.ledger, physical.reservation)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/query_integration/row_stream_current_js_wbtest.mbt",
+                "anchor": "response attempt refuses current callback closure without refunding its original debit"
+              },
+              {
+                "path": "src/query_integration/row_stream_accounting_wbtest.mbt",
+                "anchor": "foreign stream ticket cannot charge another run or invalidate its original"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "discard_relation_document_original",
+            "discard_relation_target_document_original"
+          ],
+          "exports": [
+            "pub fn discard_relation_document_original(RelationDocument) -> Bool",
+            "pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Responsibility: `discard_relation_document_original` and"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "pub fn discard_relation_document_original(document : RelationDocument) -> Bool {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Inputs and outputs: each function takes its original opaque document and"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Identity: discard requires `Some(original)` physically equal to the supplied"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "physical_equal(document, original) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Ownership: callers discard only their private construction originals, normally"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Synchronization: both operations are synchronous and callback-free. Child"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "pub fn discard_relation_target_document_original("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Failure: false makes no mutation. After discard, existing getters return None"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Cancellation: discarding DATA issues no abort, physical stop, closed-file"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Resources: no child list, callback, counter, allocation credit or capacity"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_construction.mbt",
+                "anchor": "// Document/self Option, work Ref, Bytes header, makei closure, limits,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Extension: this pair covers separately constructed raw and target documents."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation_document_discard_wbtest.mbt",
+                "anchor": "relation original discard severs only self marks and preserves retained immutable DATA"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_discard_wbtest.mbt",
+                "anchor": "copied relation carriers cannot discard or revive their original DATA"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_discard_wbtest.mbt",
+                "anchor": "relation child discard remains available after parent original invalidation"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_discard_wbtest.mbt",
+                "anchor": "discarding one relation projection leaves shared original and sibling unchanged"
+              }
+            ]
+          }
         }
       ]
     },
@@ -5947,6 +6179,136 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/response_stream.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common RowRun response borrow, original Ledger reservation and nominal page-ticket Owner; no transport or permission issuer",
+      "sha256": "0ad57dbac34263f809116bf5c1b5ba6512404d17c00e679e9fb6f5846a9de7cb",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_row_run_response_attempt",
+          "declaration": "begin_row_run_response_attempt ( value : RowRunResponseBorrow , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "extend_row_run_page_charge",
+          "declaration": "extend_row_run_page_charge ( run : RowRun , charge : RowPageCharge , body : Bytes , ) - > Result [ Unit , RowHostIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_row_run_response_attempt",
+            "extend_row_run_page_charge"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "pub fn begin_row_run_response_attempt("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "pub fn extend_row_run_page_charge("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "if !physical_equal(charge.owner, run.attempt) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "if !row_provider_cleanup_bound(run) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "physical_equal(current, read) &&"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "read.page_limits.max_bytes.to_int64() - charge.received_bytes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/query_integration/row_stream_accounting_wbtest.mbt",
+                "anchor": "stream chunks extend one original ticket and cancellation never refunds received bytes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_row_source_host/response_stream.mbt",
+                "anchor": "@resources.consume_reserved_attempt(physical.ledger, physical.reservation)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/response-stream-interface.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/query_integration/row_stream_current_js_wbtest.mbt",
+                "anchor": "response attempt refuses current callback closure without refunding its original debit"
+              },
+              {
+                "path": "src/query_integration/row_stream_accounting_wbtest.mbt",
+                "anchor": "foreign stream ticket cannot charge another run or invalidate its original"
               }
             ]
           }

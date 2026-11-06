@@ -24,7 +24,7 @@ function plan(root, moon, target, driver = '/original/cc') {
 function config() {
   const repository = '/original', moonHome = '/pinned/moon', sourceDirectory = '/owned/read';
   const target = '/original/_build/scoped-owned';
-  return {repository, moonHome, sourceDirectory, profile: 'runtime-values',
+  return {repository, moonHome, sourceDirectory, profile: 'runtime-values', target: 'aarch64-apple-darwin',
     inputs: nativeCoreScopedInputs(repository, plan(repository, moonHome, target), moonHome)};
 }
 
@@ -161,8 +161,89 @@ test('preparation uses the normal verified source copier and preserves compiler/
 test('unsupported host or an explicit foreign compiler/allocator refuses instead of skipping', t => {
   const f = fixture(t);
   const base = {env: {MOON_HOME: f.moonHome}, platform: 'darwin', arch: 'arm64', execute() {assert.fail('no execution');}};
-  for (const changed of [{profile:'foreign'}, {platform: 'linux'}, {arch: 'x64'}, {env: {...base.env, MOON_CC: '/original/owner'}},
+  for (const changed of [{profile:'foreign'}, {platform: 'win32'}, {arch: 'x64'}, {platform: 'linux'}, {env: {...base.env, MOON_CC: '/original/owner'}},
     {env: {...base.env, MOONBIT_ALLOCATOR: 'foreign'}}]) {
     assert.throws(() => prepareNativeCoreScopedProfile(f.repository, f.scratch, ['--target', 'native'], {...base, ...changed}));
   }
+});
+
+for (const [arch, target] of [['x64', 'x86_64-unknown-linux-gnu'],
+  ['arm64', 'aarch64-unknown-linux-gnu']]) test(`Linux ${arch} diagnostics use the exact source recipe and explicit test-owned control`, t => {
+  const f = fixture(t), tools = join(f.root, 'tools');
+  const compiler = join(tools, 'cc'), cxx = join(tools, 'c++');
+  for (const file of [compiler, cxx, join(tools, 'ar')]) writeFileSync(file,
+    '#!/bin/sh\nexit 0\n', {mode: 0o700});
+  const calls = [], definitions = ['_GNU_SOURCE', 'ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN',
+    ...(arch === 'x64' ? ['ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY'] : [])];
+  const execute = (command, args) => {
+    calls.push({command, args});
+    if (command === 'python3') {
+      assert.deepEqual(args.slice(-2), ['--target', target]);
+      mkdirSync(args[args.indexOf('--destination') + 1]);
+      return JSON.stringify({status:'review-source-only', target, installed_supplier:false,
+        required_defines:['MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', 'ACTQL_SCOPED_READ_ALLOCATOR', ...definitions],
+        required_source_parameters:['ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS'],
+        recipe_sha256:'linux-original', patch_sha256:'same-original-patch'});
+    }
+    if (command === '/bin/sh') return args.at(-1) === 'cc' ? compiler : cxx;
+    assert.equal(command, join(f.moonHome, 'bin/moon'));
+    return plan(f.repository, f.moonHome, args[args.indexOf('--target-dir') + 1]);
+  };
+  const env = {MOON_HOME:f.moonHome, PATH:process.env.PATH};
+  const prepared = prepareNativeCoreScopedProfile(f.repository, f.scratch,
+    ['--target','native','--release','original_wbtest.mbt'],
+    {env, platform:'linux', arch, execute, profile:'scoped-review-values', linuxStockFileSlots:64});
+  const c = JSON.parse(readFileSync(prepared.compilerInputs.configPath));
+  assert.equal(c.target, target);
+  assert.equal(c.stockFileControl.slots, 64);
+  assert.deepEqual(prepared.compilerInputs.stockFileControl, c.stockFileControl);
+  assert.deepEqual(JSON.parse(readFileSync(c.stockFileControl.recipe.path)),
+    {kind:'private-native-core-stock-file-control', target, slots:64,
+      ...(arch === 'x64' ? {stockFileControlBytes:1544} : {})});
+  assert.equal(readFileSync(c.stockFileControl.header.path, 'utf8'),
+    '#define ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS 64\n' +
+    (arch === 'x64' ? '#define ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES 1544\n' : ''));
+  assert.equal(c.stockFileControl.stockFileControlBytes, arch === 'x64' ? 64 * 24 + 8 : undefined);
+  assert(!calls.some(value => value.args.includes('--build-only')));
+  for (const input of c.inputs) {
+    const original = ['-o',input.output,'-O2',input.source];
+    const selected = nativeCoreScopedCArguments(c, original);
+    for (const define of definitions) assert(selected.includes('-D' + define));
+    assert(!selected.includes('-DACTQL_RUNTIME_MANAGED_VALUES=1'));
+    assert.equal(selected[selected.indexOf('-include') + 1], c.stockFileControl.header.path);
+    assert(!selected.some(value => /stock_file_control\.linux-x64|local-stock-file-control/u.test(value)));
+    for (const flag of ['-DACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS=999',
+      '-DACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES=4096', '-UACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES',
+      '-DACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN', '-UACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY']) {
+      assert.throws(() => nativeCoreScopedCArguments(c, [...original, flag]), /preselected provider/u);
+    }
+  }
+  const input = c.inputs[0], args = ['-o',input.output,input.source];
+  for (const target of [undefined, 'foreign']) assert.throws(() =>
+    nativeCoreScopedCArguments({...c, target}, args), /Unknown original scoped target/u);
+  for (const member of [c.stockFileControl.recipe, c.stockFileControl.header]) {
+    const original = readFileSync(member.path);
+    writeFileSync(member.path, 'changed original');
+    assert.throws(() => nativeCoreScopedCArguments(c, args), /control changed/u);
+    writeFileSync(member.path, original);
+  }
+});
+
+test('Linux has no implicit stock-File extent and cannot substitute another source target', t => {
+  const f = fixture(t);
+  const options = {env:{MOON_HOME:f.moonHome}, platform:'linux', arch:'x64',
+    execute() {assert.fail('invalid diagnostic must not copy or compile');}};
+  for (const linuxStockFileSlots of [undefined, 0, -1, 0.5, '64', 65537]) {
+    assert.throws(() => prepareNativeCoreScopedProfile(f.repository, f.scratch,
+      ['--target','native'], {...options, linuxStockFileSlots}), /explicit finite/u);
+  }
+  assert.throws(() => prepareNativeCoreScopedProfile(f.repository, f.scratch,
+    ['--target','native'], {...options, platform:'darwin', arch:'arm64', linuxStockFileSlots:64}),
+    /cannot select another target/u);
+});
+
+test('the x64 diagnostic extent remains checked against actual provider C layout', () => {
+  const source = readFileSync(new URL('../src/platform_native/host_bootstrap/bootstrap_stub.c', import.meta.url), 'utf8');
+  assert.match(source, /_Static_assert\(sizeof\(struct stock_file_record\) == 24 && sizeof\(stock_file_entry\) == 8,/u);
+  assert.match(source, /_Static_assert\(sizeof\(stock_files\) \+ sizeof\(stock_file_entry\) <= ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES,/u);
 });

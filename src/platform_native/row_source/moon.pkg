@@ -1,0 +1,24 @@
+supported_targets = "native"
+
+import {
+  "actql/actql/platform_native/installed_arena_control" @arena,
+  "actql/actql/platform_native/host_bootstrap" @bootstrap,
+  "actql/actql/platform_native/filesystem" @files,
+  "actql/actql/client_row_source_host" @rows,
+  "actql/actql/query_planning" @planning,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/value_contract" @contract,
+}
+
+import {
+  "moonbitlang/core/env",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+  "actql/actql/canonical_json" @identity,
+  "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/client_local_host" @local,
+  "actql/actql/execution_query" @query,
+  "actql/actql/value_admission" @admitted,
+} for "wbtest"

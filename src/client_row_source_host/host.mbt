@@ -479,7 +479,7 @@ priv enum RowRunIssuer {
 /// Admission consumes this ticket once; it carries no parallel resource owner.
 struct RowPageCharge {
   owner : RowAttempt
-  received_bytes : Int64
+  mut received_bytes : Int64
   mut consumed : Bool
 }
 
@@ -1000,6 +1000,11 @@ pub fn close_row_run(run : RowRun) -> Unit {
     }
     run.closed = true
   }
+  if run.physical is None && run.residual is None {
+    // A synchronous unaccounted run has no child left to acknowledge. This
+    // Unit API still means revocation; rejected custody remains reachable.
+    retire_closed_row_evidence(run.attempt) |> ignore
+  }
 }
 
 ///|
@@ -1078,6 +1083,9 @@ pub fn close_accounted_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
     // The escaped acquisition stays unavailable, never silently permissive.
     acquisition.input_available = Some(() => false)
     physical.cleanup_confirmed = None
+  }
+  if !retire_closed_row_evidence(run.attempt) {
+    return Err(InvalidState)
   }
   Ok(())
 }

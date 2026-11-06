@@ -1,12 +1,20 @@
 # Client CI groups
 
+The Host job retains `check:local-node-source-assets`: source input/type checks,
+clean prepack from an empty producer, and external connector compositions. These
+construct different inputs and do not consume the normal shared tarballs. The
+local `check:local-node-assets` command still includes the normal asset consumer
+and its existing Sheets postcheck. CI schedules those consumers in `client-packed`
+instead, without making the source-backed Host job wait for package production.
+
 The `client` required check remains the aggregate result for all Client
 acceptance. The workflow now schedules these independent workloads:
 
 - `client-packages` packs the same five Client distributions once
 - `client-distribution` runs the unchanged distribution gate, including source
   fixtures, packed Node/Checkpoint acceptance and native Client verification
-- `client-packed` runs the unchanged Embedded Checkpoint, single INFER,
+- `client-packed` uses the shared tarballs for normal Local asset and Sheets
+  consumers, and runs the unchanged Embedded Checkpoint, single INFER,
   public SQL/Pipe and Result description acceptance, with existing evidence uploads
 - `client-salesforce` runs the unchanged Salesforce and recovery gates, including
   both Compute-count probes and all nine process-death boundaries

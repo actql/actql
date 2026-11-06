@@ -223,6 +223,8 @@ test('the explicit Resident cold-build budget leaves the other preparation windo
     optionsEnd=source.indexOf('const target=',optionsStart);
   const prepareStart=source.indexOf('const entries={};'),
     prepareEnd=source.indexOf("assert.equal(run('git'",prepareStart);
+  const timingStart=source.indexOf('function timedPreparation('),
+    timingEnd=source.indexOf('mkdirSync(destination',timingStart);
   assert(optionsStart>=0 && optionsEnd>optionsStart && prepareStart>=0 && prepareEnd>prepareStart);
   const options=args=>runInNewContext(source.slice(optionsStart,optionsEnd)+
     '\n({selection,seconds,residentSeconds});',{
@@ -241,8 +243,11 @@ test('the explicit Resident cold-build budget leaves the other preparation windo
       if(name!=='http')assert.equal(configuration.moonHome,moonHome);
       calls.push({name,path,seconds:configuration.seconds});
     };
-    runInNewContext(source.slice(prepareStart,prepareEnd),{
+    const phases=[];let clock=0;
+    runInNewContext(source.slice(timingStart,timingEnd)+source.slice(prepareStart,prepareEnd),{
       ...selectedOptions,repository,destination,moonHome,join,originalDescriptor:path=>path,
+      performance:{now:()=>clock++},process:{env:{}},
+      console:{error:line=>phases.push(JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length)))},
       prepareNativeRuntimeBundle:prepare('bundle'),prepareNativeResidentSite:prepare('resident'),
       prepareNativeRuntimeBundleLibraries:prepare('components'),
       prepareNativeResidentHttpComponent:prepare('http'),
@@ -253,7 +258,16 @@ test('the explicit Resident cold-build budget leaves the other preparation windo
       {name:'components',path:join(destination,'components'),seconds:900},
       {name:'http',path:join(destination,'http'),seconds:900},
     ]);
+    assert.equal(phases.length,4);
+    assert(phases.every(phase=>phase.succeeded && phase.milliseconds===1));
   }
+  const primary=new Error('original producer failure'),phases=[];let clock=0;
+  const timed=runInNewContext(source.slice(timingStart,timingEnd)+'timedPreparation;',{
+    performance:{now:()=>clock++},process:{env:{}},
+    console:{error:line=>phases.push(JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length)))},
+  });
+  assert.throws(()=>timed('failed-producer',()=>{throw primary;}),error=>error===primary);
+  assert.equal(phases.length,1);assert.equal(phases[0].succeeded,false);
 });
 
 test('the Resident build allowance retains its caller deadline and original timeout refusal',t=>{

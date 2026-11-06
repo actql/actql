@@ -20,6 +20,22 @@ def entry(data):
     return {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
 
 
+class ScopedReadCommandTests(unittest.TestCase):
+    def test_explicit_x64_cli_target_reaches_the_existing_verified_preparer(self):
+        # This checks routing only. Source pins and actual copied output remain
+        # covered by the existing preparation tests; no compilation is implied.
+        for target in ('aarch64-apple-darwin', 'aarch64-unknown-linux-gnu',
+                       'x86_64-unknown-linux-gnu'):
+            with self.subTest(target=target), \
+                    patch.object(PREPARE, 'prepare', return_value={'target': target}) as selected, \
+                    patch('builtins.print') as output:
+                PREPARE.main(['--moonbit', '/pinned/moon', '--destination', '/fresh/stage',
+                              '--target', target])
+                selected.assert_called_once_with(Path('/pinned/moon'), Path('/fresh/stage'),
+                                                 target=target)
+                output.assert_called_once_with(json.dumps({'target': target}))
+
+
 class CurrentProviderClosureTests(unittest.TestCase):
     def test_existing_linux_process_recipe_keeps_current_source_identities(self):
         root = CANDIDATE.parents[3]

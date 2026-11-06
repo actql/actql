@@ -1539,7 +1539,7 @@ verification: try {
           join(bearerServers.directory, 'control'),
         ACTQL_TEST_NATIVE_SALESFORCE_HTTP_URL: bearerServers.origin,
       } : {};
-    const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
+    const options = {
       cwd: new URL('../', import.meta.url),
       env: packagePath === 'src/platform_native/filesystem'
         ? {...testEnvironment, ...nativePrivateHostFixture(root),
@@ -1551,8 +1551,24 @@ verification: try {
             ? nativeOriginalSigningFixture(root) : {}),
           ACTQL_TEST_NATIVE_STORE_ROOT: packageStoreRoot},
       stdio: 'inherit',
-    });
+    };
+    // Separate the cold compiler/linker interval from the physical fixture
+    // execution. Both invocations use the exact same target and environment;
+    // no test filter, alternate binary or second fixture is introduced.
+    const compileStarted = performance.now();
+    let compiled = false;
+    try {
+      execFileSync(moon, ['test', packagePath, '--target', 'native', '--build-only'], options);
+      compiled = true;
+    } finally {
+      console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({package: packagePath,
+        phase: 'compile', milliseconds: Math.round(performance.now() - compileStarted), succeeded: compiled}));
+    }
+    const executeStarted = performance.now();
+    const child = spawn(moon, ['test', packagePath, '--target', 'native'], options);
     const [code, signal] = await once(child, 'exit');
+    console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({package: packagePath,
+      phase: 'execute', milliseconds: Math.round(performance.now() - executeStarted), code, signal}));
     if (code !== 0) {
       throw new Error(`native HTTP test failed: ${code ?? signal}`);
     }

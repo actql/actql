@@ -22,6 +22,7 @@ export const nativeScopedTestFiles = Object.freeze([
   'src/platform_native/installed_arena_control/store_operation_reentry_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/store_result_return_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/store_wal_original_physical_scoped_wbtest.mbt',
+  'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt',
 ]);
 // These existing credential cases acquire the same real HTTP Client/peer
 // fixture; the rest of credential_resource retains the ordinary write oracle.

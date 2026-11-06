@@ -136,7 +136,10 @@ function nodeFixtureInputs(t) {
   put('src/query_integration/moon.pkg', `supported_targets = "+js+wasm+native"
 
 options(
-  targets: { "strategy_cleanup_current_js_wbtest.mbt": [ "js" ] },
+  targets: {
+    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],
+    "row_stream_current_js_wbtest.mbt": [ "js" ],
+  },
   link: {
     "native": {
       "cc": "./scripts/native-cxx-link-driver.sh",
@@ -146,7 +149,9 @@ options(
   },
 )
 `);
-  put('src/query_integration/strategy_cleanup_current_js_wbtest.mbt', '// JS-only metadata fixture.\n');
+  for (const name of ['strategy_cleanup_current_js_wbtest.mbt', 'row_stream_current_js_wbtest.mbt']) {
+    put('src/query_integration/' + name, '// JS-only metadata fixture.\n');
+  }
   put('src/connectors_workers_bridge/moon.pkg',
     'import { "actql/actql/connectors/local/driver" @local }');
   put('src/connectors_workers_async_bridge/moon.pkg',
@@ -214,6 +219,8 @@ test('Node fixture input refuses unreviewed target metadata before writes', t =>
   const before = readFileSync(path, 'utf8');
   for (const altered of [
     original.replace('strategy_cleanup_current_js_wbtest.mbt', 'unreviewed_wbtest.mbt'),
+    original.replace('row_stream_current_js_wbtest.mbt', 'unreviewed_wbtest.mbt'),
+    original.replace('"row_stream_current_js_wbtest.mbt": [ "js" ]', '"row_stream_current_js_wbtest.mbt": [ "native" ]'),
     original.replace('[ "js" ]', '[ "native" ]'),
     original.replace('[ "js" ]', 'selected_targets'),
   ]) {

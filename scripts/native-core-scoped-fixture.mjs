@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {closeSync, fstatSync, ftruncateSync, mkdirSync, openSync, realpathSync,
-  statSync} from 'node:fs';
+  statSync, writeFileSync} from 'node:fs';
 import {isAbsolute, join} from 'node:path';
 
 const namedBackingFiles = Object.freeze([
@@ -76,4 +76,32 @@ export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary
     ACTQL_TEST_CRYPTO_COMPONENT: cryptoLibrary,
     ACTQL_TEST_SQLITE_COMPONENT: sqliteLibrary,
   };
+}
+
+// Independent finite input for the relation-file component. The existing Arena
+// cases retain their page declarations above; this never changes their profile.
+export function nativeRelationFileCaptureFixture(namespace) {
+  const root = join(realpathSync(namespace), 'installed-process');
+  mkdirSync(root, {mode: 0o700});
+  assert.equal(statSync(root).mode & 0o777, 0o700, 'Private capture fixture required');
+  const files = [
+    ['row-source-input', Buffer.from('{"items":[{"id":"first","value":1},{"id":"second","value":2}]}')],
+    ['row-source-malformed', Buffer.from('{"items":[')],
+    ['row-source-oversized', 8193],
+    ['row-source-backing', 384 * 1024 ** 2],
+  ];
+  for (const [name, content] of files) {
+    const fd = openSync(join(root, name), 'wx', 0o600);
+    try {
+      if (typeof content === 'number') ftruncateSync(fd, content);
+      else writeFileSync(fd, content);
+      const stat = fstatSync(fd);
+      assert(stat.isFile() && stat.nlink === 1, 'Exclusive regular capture fixture required');
+      assert.equal(stat.mode & 0o777, 0o600);
+      assert.equal(stat.size, typeof content === 'number' ? content : content.length);
+    } finally { closeSync(fd); }
+  }
+  // This namespace owns files after the test closes its actual physical owner.
+  // An interrupted test retains the namespace for diagnosis, never resets it.
+  return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root};
 }

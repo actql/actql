@@ -79,16 +79,18 @@ test('Linux Native profile compilers retain their commands and existing stack pr
   const npm = join(root, 'npm');
   writeFileSync(npm, '#!/bin/sh\nprintf "%s:%s\\n" "$ACTQL_FIXTURE_STACK_KIB" "$*"\nexit "$ACTQL_FIXTURE_NPM_EXIT"\n');
   chmodSync(npm, 0o755);
+  writeFileSync(join(root, 'node'), readFileSync(npm));
+  chmodSync(join(root, 'node'), 0o755);
   for (const [job, name, command] of [
-    ['native', 'Test Node-free native storage publication and control', 'check:native-http-client'],
+    ['native', 'Test Node-free native storage publication and control', 'scripts/test-native-http-client.mjs'],
     ['native-separated-network', 'Verify native direct and outbound-only Store profiles', 'check:native-separated-network'],
   ]) {
     assert.equal(jobs[job]['runs-on'], 'ubuntu-24.04');
     const step = jobs[job].steps.find(row => row.name === name);
     assert.ok(step);
-    assert.equal(step.if, undefined);
+    assert.equal(step.if, job === 'native' ? "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}" : undefined);
     assert.equal(step['continue-on-error'], undefined);
-    assert.match(step.run, /ulimit -S -s 65536\s+?npm run /u);
+    assert.match(step.run, /ulimit -S -s 65536\s+?(?:node |npm run )/u);
     // Observe exact shell ordering and child inheritance without starting a
     // Native compiler or changing the host shell's hard resource limit.
     const observe = 'ulimit() { test "$*" = "-S -s 65536" || return 93; ' +
@@ -102,9 +104,44 @@ test('Linux Native profile compilers retain their commands and existing stack pr
       assert.equal(result.error, undefined);
       assert.equal(result.signal, null);
       assert.equal(result.status, status, result.stderr);
-      assert.equal(result.stdout.trim(), `65536:run ${command}`);
+      assert.equal(result.stdout.trim(), `65536:${job === 'native' ? command : `run ${command}`}`);
     }
   }
+});
+
+test('Native consumers keep all original commands and collect independent failures after preparation', t => {
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const expected = manifest.scripts['check:native-http-client'].split(' && ');
+  const condition = "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}";
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-independent-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const log = join(root, 'calls');
+  writeFileSync(join(root, 'node'), '#!/bin/sh\nprintf "%s\\n" "$*" >> "$ACTQL_CALL_LOG"\n' +
+    'exit "$ACTQL_FIXTURE_EXIT"\n');
+  chmodSync(join(root, 'node'), 0o755);
+  for (const name of ['native', 'native-macos']) {
+    const steps = jobs[name].steps.filter(step => step.id?.startsWith('native-') &&
+      step.id !== 'native-preparation');
+    assert.deepEqual(steps.map(step => step.run.trim().split('\n').at(-1)), expected);
+    assert.equal(new Set(steps.map(step => step.env.ACTQL_TEST_SCRATCH_ROOT)).size, expected.length);
+    const results = steps.map((step, index) => {
+      assert.equal(step.if, condition);
+      assert.equal(step['continue-on-error'], undefined, 'a failed case must still fail the job');
+      return spawnSync('bash', ['-eo', 'pipefail', '-c',
+        (name === 'native' ? 'ulimit() { test \"$*\" = \"-S -s 65536\"; }\n' : '') + step.run], {
+        cwd: root, encoding: 'utf8', timeout: 5000,
+        env: {...process.env, PATH: root + ':' + process.env.PATH,
+          ACTQL_CALL_LOG: log, ACTQL_FIXTURE_EXIT: index === 0 ? '7' : '0'},
+      });
+    });
+    assert.equal(results[0].status, 7, results[0].stderr);
+    assert(results.slice(1).every(result => result.status === 0));
+    assert(jobs[name].steps.find(step => step.id === 'native-preparation').run
+      .includes('prepare-native-runtime-bundle-fixture.mjs'));
+  }
+  assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, expected.length * 2);
+  for (const id of ['packed-materials', 'packed-redelivery', 'packed-output-report'])
+    assert.equal(jobs.native.steps.find(step => step.id === id).if, condition);
 });
 
 test('normal lint executes behavioral operation performance assessment tests', () => {
@@ -428,8 +465,8 @@ test('CI selection follows the owned contract baseline without a legacy exceptio
 
 
 test('maintenance inventory is exact and every existing reviewed modification qualifies', () => {
-  assert.equal(maintenanceFiles.length, 15);
-  assert.equal(new Set(maintenanceFiles).size, 15);
+  assert.equal(maintenanceFiles.length, 17);
+  assert.equal(new Set(maintenanceFiles).size, 17);
   for (const path of maintenanceFiles) {
     const selection = validateSelection(maintenanceSelection([path]));
     assert.equal(selection.profile, 'maintenance', path);

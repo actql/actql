@@ -7,5 +7,7 @@
 pub(all) struct NativeFilesystemReadLayout {
   root_payload_bytes : Int64
   reader_payload_bytes : Int64
+  observation_payload_bytes : Int64
+  acquisition_payload_bytes : Int64
   external_object_overhead_bytes : Int64
 } derive(Eq, Debug)

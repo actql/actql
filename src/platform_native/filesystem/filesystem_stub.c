@@ -132,20 +132,6 @@ typedef struct {
   char *close_error;
 } actql_native_filesystem_reader;
 
-// Readonly implementation facts before acquisition. No descriptor, allocation,
-// authority or cleanup acknowledgement is issued here. The pinned runtime's
-// external object adds its header and a trailing finalizer pointer; path,
-// diagnostic and chunk allocations are separate from these payloads.
-int64_t actql_native_filesystem_read_layout_field(int32_t field) {
-  switch (field) {
-    case 0: return (int64_t)sizeof(actql_native_filesystem_root);
-    case 1: return (int64_t)sizeof(actql_native_filesystem_reader);
-    case 2: return (int64_t)(sizeof(struct moonbit_object) +
-      sizeof(void (*)(void *)));
-    default: return -1;
-  }
-}
-
 enum {
   ACTQL_READER_OPEN_READ_FAILURE = 1,
   ACTQL_READER_OPEN_GENERATION_MISMATCH = 2
@@ -2863,3 +2849,19 @@ MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_scoped_open_current_private_r
 #include "filesystem_scoped_acquisition.inc"
 
 #include "observed_component_member.inc"
+
+// Readonly implementation facts before acquisition. No descriptor, allocation,
+// authority or cleanup acknowledgement is issued here. The pinned runtime's
+// external object adds its header and a trailing finalizer pointer; path,
+// diagnostic and chunk allocations are separate from these payloads.
+int64_t actql_native_filesystem_read_layout_field(int32_t field) {
+  switch (field) {
+    case 0: return (int64_t)sizeof(actql_native_filesystem_root);
+    case 1: return (int64_t)sizeof(actql_native_filesystem_reader);
+    case 2: return (int64_t)(sizeof(struct moonbit_object) +
+      sizeof(void (*)(void *)));
+    case 3: return (int64_t)sizeof(actql_native_observed_file_stat);
+    case 4: return (int64_t)sizeof(actql_filesystem_scoped_acquisition);
+    default: return -1;
+  }
+}
