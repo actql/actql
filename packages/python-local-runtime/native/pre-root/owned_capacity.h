@@ -20,6 +20,19 @@ enum actql_owned_status {
 int actql_native_owned_acquire(size_t capacity, uint64_t generation,
                         const unsigned char recipe[32],
                         actql_owned_capacity **out);
+/* Explicit non-moving addition to the same anonymous root after its original
+ * Resource reservation has grown. Current transferred original required.
+ * expected_bytes must equal the current physical amount; stale/lost-result
+ * retries refuse unchanged. Additional bytes include their own controls, whose
+ * actual amount is returned in an initially empty slot. No growth of FD-backed
+ * or carved domains, implicit allocation retry, ledger grant or new generation.
+ * Failure leaves physical capacity and output unchanged. */
+int actql_native_owned_grow(actql_owned_capacity *lease, size_t expected_bytes,
+                            size_t additional_bytes, uint64_t *control_bytes);
+/* Actual new-segment control layout only; neither acquisition nor authority.
+ * The output slot must be empty and the original capacity remains unchanged. */
+int actql_native_owned_growth_control_bytes(actql_owned_capacity *lease,
+    size_t bytes, uint64_t *out);
 /* One transfer to the original LocalCore; this does not issue a Core grant. */
 int actql_native_owned_transfer(actql_owned_capacity *lease, uint64_t generation,
                          const unsigned char recipe[32]);

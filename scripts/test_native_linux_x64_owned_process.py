@@ -34,6 +34,9 @@ CASES = (
     ('first_fit', 'native_first_fit_cases', 23),
     ('extent_work', 'discovered', 14),
     ('cleanup', 'native_cleanup_cases', 16),
+    ('growth', 'native_growth_cases', 29),
+    ('domain_growth', 'native_domain_growth_cases', 37),
+    ('domain_supplier', 'native_domain_supplier_cases', 73),
     ('thread', 'executed', 12),
     ('process_inventory', 'process_inventory_cases', 19),
 )

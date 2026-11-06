@@ -131,7 +131,7 @@ pub fn[T] prepare_installed_arena_supplier(
     recipe.length() != 32 ||
     generation <= 0L ||
     bytes <= 0L ||
-    limits.execution_bytes != bytes ||
+    limits.execution_bytes < bytes ||
     limits.retained_bytes != 0L ||
     limits.attempts < 1 ||
     control_envelope_bytes <= 0L {
@@ -156,6 +156,7 @@ struct NativeHostBootstrap[T] {
   capacity : @resources.SharedCapacity
   backing : Backing
   mut control : @resources.SharedAllocation?
+  mut growth : @resources.SharedCapacityGrowth?
   children : Array[NativeBootstrapAllocation[T]]
   delegations : Array[NativeBootstrapDelegation[T]]
   mut claimed : Bool
@@ -232,6 +233,7 @@ fn[T] NativeInstalledArenaSupplier::acquire_original(
     capacity,
     backing,
     control: None,
+    growth: None,
     children: [],
     delegations: [],
     claimed: false,
@@ -281,7 +283,7 @@ pub fn[T] NativeHostBootstrap::require_current(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if !self.claimed {
+  if !self.claimed || self.growth is Some(_) {
     return Err(Unavailable)
   }
   Ok(())
@@ -674,6 +676,12 @@ pub fn[T] NativeHostBootstrap::try_close(
       return Err(Physical(status))
     }
     self.physical_closed = true
+  }
+  if self.growth is Some(growth) {
+    match @resources.abort_shared_capacity_growth_after_cleanup(growth) {
+      Err(issue) => return Err(Resource(issue))
+      Ok(_) => self.growth = None
+    }
   }
   if self.control is Some(control) {
     match @resources.retire_shared_capacity(control) {

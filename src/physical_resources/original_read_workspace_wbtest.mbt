@@ -97,6 +97,7 @@ test "original workspace binding refuses unrecorded and changed reservation stat
     capacity: 2L,
     allocated: 0L,
     closing: false,
+    growth: None,
   }
   assert_true(
     issue_original_read_workspace_binding(claim, origin, shell)

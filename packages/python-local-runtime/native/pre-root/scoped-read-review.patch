@@ -24,7 +24,7 @@
 
 --- a/owned_capacity.c
 +++ b/owned_capacity.c
-@@ -24,6 +24,7 @@
+@@ -33,6 +33,7 @@
  #include <pthread.h>
 
  /* An extent is a physical allocator record, not a Run or capacity decision. */
@@ -32,7 +32,7 @@
  struct extent {
      size_t pages;
      bool retired;
-@@ -35,6 +36,11 @@
+@@ -44,6 +45,11 @@
      /* Private Rust storage is never a generic exportable span. */
      unsigned char rust_class;
      uint64_t rust_token;
@@ -43,8 +43,8 @@
 +    bool read_heap;
  };
 
- struct actql_owned_capacity {
-@@ -72,6 +78,7 @@
+ /* Each appended mapping belongs to the SAME capacity and lock. Its control
+@@ -113,6 +119,7 @@
      bool transferred;
      bool closing;
      size_t active_scopes;
@@ -52,13 +52,13 @@
      atomic_flag lock;
      struct extent extents[];
  };
-@@ -439,8 +446,11 @@
-         (address - base) % lease->page_size != 0) return false;
-     *start = (address - base) / lease->page_size;
-     return *start >= lease->control_pages && lease->extents[*start].pages != 0 &&
--           lease->extents[*start].pages != SIZE_MAX && lease->extents[*start].rust_class == 0;
+@@ -634,8 +641,11 @@
+         offset % lease->page_size != 0) return false;
+     *start = offset / lease->page_size;
+     return !owned_control_page(lease, *start) && owned_extent(lease, *start)->pages != 0 &&
+-           owned_extent(lease, *start)->pages != SIZE_MAX && owned_extent(lease, *start)->rust_class == 0;
 -}
-+           lease->extents[*start].pages != SIZE_MAX && lease->extents[*start].rust_class == 0 && !lease->extents[*start].read_heap;
++           owned_extent(lease, *start)->pages != SIZE_MAX && owned_extent(lease, *start)->rust_class == 0 && !owned_extent(lease, *start)->read_heap;
 +}
 +
 +/* Capacity lock only; implemented by the same provider's private Read heap. */
@@ -66,18 +66,18 @@
 
  /* Parent-local physical guards cover every page in this original allocation.
   * Interior page records retain their own external use counts. */
-@@ -493,6 +503,10 @@
-         lease->extents[start].domain_storage ||
-         lease->extents[start].retired ||
+@@ -686,6 +696,10 @@
+         owned_extent(lease, start)->domain_storage ||
+         owned_extent(lease, start)->retired ||
          pages > lease->page_count - start) goto done;
-+    if (lease->extents[start].read_heap) {
++    if (owned_extent(lease, start)->read_heap) {
 +        status = read_heap_contains_locked(lease, start, address, bytes);
 +        goto done;
 +    }
      size_t begin = start * lease->page_size;
      size_t length = pages * lease->page_size;
      if (offset >= begin && offset - begin < length && bytes <= length - (offset - begin))
-@@ -617,6 +631,9 @@
+@@ -813,6 +827,9 @@
      if (lease->active_scopes != 0) {
          return ACTQL_OWNED_BUSY;
      }
@@ -85,9 +85,9 @@
 +     * physical cleanup. Logical Host closing remains enforced by its Owner. */
 +    if (lease->read_context_count != 0) return ACTQL_OWNED_BUSY;
      lease->closing = true;
-     for (size_t i = lease->control_pages; i < lease->page_count; i++) {
-         if (lease->extents[i].pages == 0) continue;
-@@ -661,3 +678,6 @@
+     /* First exclude every live original before reaping any failed retirement.
+      * A child may still own the retry receipt for an earlier retired extent;
+@@ -884,3 +901,6 @@
 
  /* Child startup and join reuse this provider's original scope and backing. */
  #include "owned_thread.inc"
@@ -96,7 +96,7 @@
 +#include "scoped_read.inc"
 --- a/owned_region.inc
 +++ b/owned_region.inc
-@@ -469,6 +469,7 @@
+@@ -621,6 +621,7 @@
          return ACTQL_OWNED_IMAGE_MISMATCH;
      lock_capacity(lease);
      if (!lease->transferred || lease->closing || lease->active_scopes != 0 ||
@@ -151,7 +151,7 @@
 +#endif
 --- /dev/null
 +++ b/scoped_read.inc
-@@ -0,0 +1,854 @@
+@@ -0,0 +1,866 @@
 +/* Derived selected-runtime read allocator, included once by the ORIGINAL
 + * owned_capacity.c. Selection still requires its source-bound recipe and
 + * original physical supplier. This is physical provenance
@@ -480,12 +480,12 @@
 + * allocation, never the adjacent slot, page metadata or unused tail. */
 +static int read_heap_contains_locked(actql_owned_capacity *lease, size_t index,
 +                                      const void *address, size_t bytes) {
-+    if (!lease->extents[index].read_heap ||
-+        lease->extents[index].read_process != getpid()) return ACTQL_OWNED_INVALID;
-+    void *page = (unsigned char *)lease + index * lease->page_size;
++    if (!owned_extent(lease, index)->read_heap ||
++        owned_extent(lease, index)->read_process != getpid()) return ACTQL_OWNED_INVALID;
++    void *page = owned_page_address(lease, index);
 +    uintptr_t value = (uintptr_t)address;
 +    for (struct read_heap_block *block = read_heap_first(page); block;
-+         block = read_heap_next(page, lease->extents[index].pages * lease->page_size, block)) {
++         block = read_heap_next(page, owned_extent(lease, index)->pages * lease->page_size, block)) {
 +        uintptr_t begin = (uintptr_t)read_heap_payload(block);
 +        if (block->serial && block->requested && value >= begin &&
 +            value - begin < block->requested && bytes <= block->requested - (value - begin))
@@ -500,13 +500,13 @@
 +    size_t index, size_t bytes, size_t rounded, enum read_allocation_family family,
 +    void **output) {
 +    actql_owned_capacity *lease = context->lease;
-+    if (index < lease->control_pages || index >= lease->page_count) return false;
-+    struct extent *extent = &lease->extents[index];
++    if (index >= lease->page_count || owned_control_page(lease, index)) return false;
++    struct extent *extent = owned_extent(lease, index);
 +    if (!extent->read_heap || extent->read_context != context || extent->retired ||
 +        extent->read_released || extent->read_process != getpid()) return false;
-+    void *page = (unsigned char *)lease + index * lease->page_size;
++    void *page = owned_page_address(lease, index);
 +    for (struct read_heap_block *block = read_heap_first(page); block;
-+         block = read_heap_next(page, lease->extents[index].pages * lease->page_size, block)) {
++         block = read_heap_next(page, owned_extent(lease, index)->pages * lease->page_size, block)) {
 +        if (block->requested || block->capacity < rounded) continue;
 +        if (block->capacity - rounded >= read_heap_header() + _Alignof(max_align_t)) {
 +            struct read_heap_block *tail = (void *)((unsigned char *)read_heap_payload(block) + rounded);
@@ -554,8 +554,10 @@
 +    size_t required = rounded + overhead;
 +    status = allocate_locked(lease, required, lease->page_size, &page);
 +    if (status == ACTQL_OWNED_OK) {
-+        size_t index = ((uintptr_t)page - (uintptr_t)lease) / lease->page_size;
-+        struct extent *extent = &lease->extents[index];
++        size_t logical_offset;
++        owned_pointer_offset(lease, page, &logical_offset);
++        size_t index = logical_offset / lease->page_size;
++        struct extent *extent = owned_extent(lease, index);
 +        extent->read_heap = true; extent->read_context = context;
 +        extent->read_process = getpid();
 +        struct read_heap_block *block = read_heap_first(page);
@@ -580,11 +582,11 @@
 + * Free follows original provenance after leave; current TLS is not reassigned. */
 +static int release_read_heap_locked(actql_owned_capacity *lease, size_t index,
 +    void *pointer, enum read_allocation_family family) {
-+    struct extent *extent = &lease->extents[index];
++    struct extent *extent = owned_extent(lease, index);
 +    if (extent->retired || extent->read_process != getpid()) return ACTQL_OWNED_INVALID;
-+    void *page = (unsigned char *)lease + index * lease->page_size;
++    void *page = owned_page_address(lease, index);
 +    for (struct read_heap_block *block = read_heap_first(page); block;
-+         block = read_heap_next(page, lease->extents[index].pages * lease->page_size, block)) {
++         block = read_heap_next(page, owned_extent(lease, index)->pages * lease->page_size, block)) {
 +        if (read_heap_payload(block) != pointer) continue;
 +        struct read_heap_page *header = page;
 +        if (!block->requested || !block->serial || !header->live ||
@@ -601,7 +603,7 @@
 +        extent->read_context->managed_page_hint = index;
 +        /* Coalesce only free neighbors; no live allocation moves or changes. */
 +        for (struct read_heap_block *item = read_heap_first(page); item;) {
-+            struct read_heap_block *next = read_heap_next(page, lease->extents[index].pages * lease->page_size, item);
++            struct read_heap_block *next = read_heap_next(page, owned_extent(lease, index)->pages * lease->page_size, item);
 +            if (!item->requested && next && !next->requested)
 +                item->capacity += read_heap_header() + next->capacity;
 +            else item = next;
@@ -635,11 +637,13 @@
 +            : actql_native_owned_allocate(context->lease, bytes ? bytes : 1,
 +                _Alignof(max_align_t), &output)) == ACTQL_OWNED_OK) {
 +        lock_capacity(context->lease);
-+        size_t start = ((uintptr_t)output - (uintptr_t)context->lease) / context->lease->page_size;
++        size_t logical_offset;
++        owned_pointer_offset(context->lease, output, &logical_offset);
++        size_t start = logical_offset / context->lease->page_size;
 +        while (start > context->lease->control_pages &&
-+               context->lease->extents[start].pages == SIZE_MAX) start--;
-+        bool private_slot = family != READ_FILE && context->lease->extents[start].read_heap &&
-+            context->lease->extents[start].read_context == context;
++               owned_extent(context->lease, start)->pages == SIZE_MAX) start--;
++        bool private_slot = family != READ_FILE && owned_extent(context->lease, start)->read_heap &&
++            owned_extent(context->lease, start)->read_context == context;
 +        if (!private_slot && !allocation_start(context->lease, output, &start)) {
 +            /* This would violate the same-provider allocator's own postcondition.
 +             * Do not substitute a system allocation or detach the original lease. */
@@ -648,16 +652,16 @@
 +            moonbit_panic();
 +            return NULL;
 +        }
-+        context->lease->extents[start].read_context = context;
-+        context->lease->extents[start].read_process = getpid();
-+        context->lease->extents[start].read_released = false;
++        owned_extent(context->lease, start)->read_context = context;
++        owned_extent(context->lease, start)->read_process = getpid();
++        owned_extent(context->lease, start)->read_released = false;
 +        unlock_capacity(context->lease);
 +    }
 +    if (known && output == NULL) {
 +        lock_capacity(context->lease);
 +        read_allocation_observation.occupied = context->lease->occupied_pages;
 +        read_allocation_observation.peak = context->lease->peak_occupied_pages;
-+        read_allocation_observation.control = context->lease->control_pages;
++        read_allocation_observation.control = owned_control_pages(context->lease);
 +        read_allocation_observation.pages = context->lease->page_count;
 +        read_allocation_observation.page_bytes = context->lease->page_size;
 +        unlock_capacity(context->lease);
@@ -700,14 +704,21 @@
 +    int status = 1;
 +    for (actql_read_context *context = read_contexts; context; context = context->next) {
 +        actql_owned_capacity *lease = context->lease;
-+        uintptr_t value = (uintptr_t)pointer, base = (uintptr_t)lease;
-+        if (value < base || value - base >= lease->length) continue;
-+        status = ACTQL_OWNED_INVALID;
++        size_t logical_offset;
 +        lock_capacity(lease);
-+        size_t start = (value - base) / lease->page_size;
-+        while (start > lease->control_pages && lease->extents[start].pages == SIZE_MAX) start--;
-+        if (lease->extents[start].read_heap) {
-+            bool original = lease->extents[start].read_context == context;
++        if (!owned_pointer_offset(lease, pointer, &logical_offset)) {
++            unlock_capacity(lease);
++            continue;
++        }
++        status = ACTQL_OWNED_INVALID;
++        size_t start = logical_offset / lease->page_size;
++        if (owned_control_page(lease, start)) {
++            unlock_capacity(lease);
++            break;
++        }
++        while (start > lease->control_pages && owned_extent(lease, start)->pages == SIZE_MAX) start--;
++        if (owned_extent(lease, start)->read_heap) {
++            bool original = owned_extent(lease, start)->read_context == context;
 +            if (original && family != READ_FILE)
 +                status = release_read_heap_locked(lease, start, pointer, family);
 +            unlock_capacity(lease);
@@ -715,9 +726,9 @@
 +            continue;
 +        }
 +        bool selected = family != READ_PRIVATE_C && allocation_start(lease, pointer, &start) &&
-+            lease->extents[start].read_context == context &&
-+            lease->extents[start].read_process == getpid() && !lease->extents[start].read_released;
-+        if (selected) lease->extents[start].read_released = true;
++            owned_extent(lease, start)->read_context == context &&
++            owned_extent(lease, start)->read_process == getpid() && !owned_extent(lease, start)->read_released;
++        if (selected) owned_extent(lease, start)->read_released = true;
 +        unlock_capacity(lease);
 +        if (!selected) continue;
 +        status = actql_native_owned_retire(lease, pointer);
@@ -749,10 +760,10 @@
 +     * existing released extents. Live aliases keep their original reservation. */
 +    for (size_t index = lease->control_pages; index < lease->page_count; index++) {
 +        lock_capacity(lease);
-+        bool selected = lease->extents[index].read_context == context &&
-+                        lease->extents[index].read_process == getpid();
-+        bool released = selected && lease->extents[index].read_released;
-+        if (selected && lease->extents[index].read_heap && released) {
++        bool selected = owned_extent(lease, index)->read_context == context &&
++                        owned_extent(lease, index)->read_process == getpid();
++        bool released = selected && owned_extent(lease, index)->read_released;
++        if (selected && owned_extent(lease, index)->read_heap && released) {
 +            int status = clean_retired(lease, index);
 +            unlock_capacity(lease);
 +            if (status != ACTQL_OWNED_OK) { unlock_read_contexts(); return status; }
@@ -762,7 +773,7 @@
 +        if (!selected) continue;
 +        if (!released) { unlock_read_contexts(); return ACTQL_OWNED_BUSY; }
 +        int status = actql_native_owned_retire(lease,
-+            (unsigned char *)lease + index * lease->page_size);
++            owned_page_address(lease, index));
 +        if (status != ACTQL_OWNED_OK) { unlock_read_contexts(); return status; }
 +    }
 +    actql_read_context **link = &read_contexts;
@@ -865,15 +876,16 @@
 +        context->active == 0 || context->lease != lease ||
 +        actql_native_owned_current() != lease) goto done;
 +    lock_capacity(lease);
-+    uintptr_t value = (uintptr_t)pointer, base = (uintptr_t)lease;
++    size_t logical_offset;
 +    if (foreign_domain_process(lease) || lease->closing || !lease->transferred ||
-+        value < base || value - base >= lease->length) goto capacity_done;
-+    size_t index = (value - base) / lease->page_size;
-+    while (index > lease->control_pages && lease->extents[index].pages == SIZE_MAX) index--;
-+    struct extent *extent = &lease->extents[index];
-+    if (index < lease->control_pages || !extent->read_heap || extent->read_context != context ||
++        !owned_pointer_offset(lease, pointer, &logical_offset)) goto capacity_done;
++    size_t index = logical_offset / lease->page_size;
++    if (owned_control_page(lease, index)) goto capacity_done;
++    while (index > lease->control_pages && owned_extent(lease, index)->pages == SIZE_MAX) index--;
++    struct extent *extent = owned_extent(lease, index);
++    if (owned_control_page(lease, index) || !extent->read_heap || extent->read_context != context ||
 +        extent->read_process != getpid() || extent->read_released || extent->retired) goto capacity_done;
-+    void *page = (unsigned char *)lease + index * lease->page_size;
++    void *page = owned_page_address(lease, index);
 +    for (struct read_heap_block *block = read_heap_first(page); block;
 +         block = read_heap_next(page, extent->pages * lease->page_size, block)) {
 +        if (read_heap_payload(block) == pointer && block->family == READ_PRIVATE_C &&
@@ -945,7 +957,7 @@
 +        goto done;
 +    }
 +    for (size_t index = lease->control_pages; index < lease->page_count; index++) {
-+        struct extent *extent = &lease->extents[index];
++        struct extent *extent = owned_extent(lease, index);
 +        if (extent->read_context != context || extent->read_process != getpid()) continue;
 +        if (extent->pages == 0 || extent->pages == SIZE_MAX ||
 +            extent->pages > lease->page_count - index) {
@@ -967,11 +979,11 @@
 +            goto done;
 +        }
 +        values[4] += extent->pages;
-+        void *page = (unsigned char *)lease + index * lease->page_size;
++        void *page = owned_page_address(lease, index);
 +        uintptr_t end = (uintptr_t)page + extent->pages * lease->page_size;
 +        uint64_t live = 0;
 +        for (struct read_heap_block *block = read_heap_first(page); block;
-+             block = read_heap_next(page, lease->extents[index].pages * lease->page_size, block)) {
++             block = read_heap_next(page, owned_extent(lease, index)->pages * lease->page_size, block)) {
 +            uintptr_t start = (uintptr_t)block;
 +            if (start > end || read_heap_header() > end - start ||
 +                block->capacity > end - start - read_heap_header() ||
