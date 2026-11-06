@@ -143,11 +143,15 @@ fn program_artifact_construction_extents(
       value.fact_manifest,
       value.fact_manifest,
       value.fact_manifest,
-      value.executable_plan,
     ] {
     wires.push(body)
     active_values.push(body)
   }
+  // The final Executable Plan is emitted from these SAME admitted canonical
+  // children by finish_client_executable_plan_body. It is never Source-parsed
+  // during this constructor. Retain its wire and writer backing, without an
+  // invented whole-Plan parser/tree peak.
+  wires.push(value.executable_plan)
   let mut held : @execution.PreparationRepresentationUnits = {
     record_headers: 0L,
     reference_slots: 0L,
@@ -229,6 +233,9 @@ fn program_artifact_construction_extents(
     }
     text = next
   }
+  // Only emission, not the preceding Source parser family, visits the final
+  // Plan here. The actual later reader owns its independent read reservation.
+  active_values.push(value.executable_plan)
   for body in active_values {
     let body = bounded(body)
     guard compilation_writer_ancestry_layout(

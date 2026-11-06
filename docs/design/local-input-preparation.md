@@ -5850,3 +5850,38 @@ from other live children through the existing isolated-usage predicate. That
 observation neither returns the parent reservation nor acknowledges physical
 cleanup. Scope retirement, failed construction, pending children and final
 Request abort remain on their original owners.
+
+### Checked compiler configuration at the installed module boundary
+
+A Request retains its original immutable `ClientProgramPreparationLimits` after
+semantic checking and compilation until its existing retirement. The normal
+Node and RelA Pure-module bridges read the byte, node and depth codec dimensions
+from that same selected profile through `request_program_compilation_limits`.
+They preserve the existing fact and witness configuration. This projection is
+DATA only: it performs no current callback, semantic check, parse, capacity
+reservation or compiler invocation. The timed compiler and its later module
+constructor receive the same dimensions on the same Request.
+
+The explicit typed module constructors still consume their supplied
+`ClientPureCompilationLimits` unchanged, including tighter codec limits. Missing
+or retired Request configuration is a refusal rather than a standard-profile
+fallback. Actual emitted geometry and its original Resource reservation remain
+separate obligations; retaining the checked profile does not supply constructor
+storage or make a previously rejected allocation fit.
+
+### Source parser and emitted Plan scratch lifetimes
+
+The original JSON parser retains `KeyAdmission` only in its open `ObjectFields`
+frames. Completing a frame drops that map while the returned object retains its
+original fields. The Source constructor inventory therefore bounds simultaneous
+key owners by the smaller node/depth bound, while retaining the complete parsed
+entry bound, including discarded duplicate values. Unicode, numeric spelling,
+normalization, returned trees and all original admission limits are unchanged.
+
+The compiler's final Executable Plan is emitted from its same admitted canonical
+graph, material and fact children. `finish_client_executable_plan_body` owns the
+hash/text writers and returned wire; it does not parse that whole Plan again.
+The Request construction quote retains those actual writer/wire lifetimes and
+the separately parsed child families. A later reader's independent parser remains
+its own funded boundary. This excludes an absent constructor, without reducing
+any original parser's rejection bound or acknowledging physical cleanup.

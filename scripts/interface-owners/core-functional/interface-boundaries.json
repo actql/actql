@@ -39954,7 +39954,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_artifact_layout.mbt",
-      "sha256": "5dfac82f7c86fda8394d7c8fd3a49e67b779b0b96f8b7ee75bbde69a3e5c15d5",
+      "sha256": "565bc8ca977a791bcf1070e49c8ae51f03fe4391971a05215fac629ba1283ccd",
       "exports": [],
       "operations": [
         {
@@ -44625,7 +44625,8 @@
             "[I]continue_request_program_preparation",
             "[I]prepare_request_program_module_body",
             "[I]request_program_plan_quote",
-            "[I]reserve_request_program_plan"
+            "[I]reserve_request_program_plan",
+            "[I]request_program_compilation_limits"
           ],
           "exports": [],
           "attributes": {
@@ -44641,6 +44642,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked compiler configuration at the installed module boundary"
               }
             ],
             "inputsOutputs": [
@@ -44655,6 +44660,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked compiler configuration at the installed module boundary"
               }
             ],
             "identity": [
@@ -44669,6 +44678,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked compiler configuration at the installed module boundary"
               }
             ],
             "ownership": [
@@ -44771,6 +44784,10 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request module codec retains the selected checked profile without another current observation\""
               }
             ]
           }
@@ -45393,7 +45410,7 @@
           }
         }
       ],
-      "sha256": "7f4ec5821a48c745744a85a29f0c213c14ae3f0843f015c8b2d38820da619e24",
+      "sha256": "c4d20d00f573acbcbd99931da04c5fb99ba4ad2684358d6dc0bda77a784afe87",
       "exports": [],
       "operations": [
         {
@@ -45447,6 +45464,10 @@
         {
           "name": "[I]prepare_request_program_module_body_owned",
           "declaration": "[ I ] prepare_request_program_module_body_owned ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+        },
+        {
+          "name": "[I]request_program_compilation_limits",
+          "declaration": "[ I ] request_program_compilation_limits ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientPureCompilationLimits , ClientRequestProgramPlanIssue , ]"
         },
         {
           "name": "[I]request_program_plan_quote",
@@ -56877,7 +56898,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "45e148a55e256eeab5eca581133d9efc4be90165055a0cd4352ae01ca249ccdd"
+      "sha256": "4951dcc360a31a913583d5bb90b39864e014eba1e3e7d4d87daac709f0141103"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -82034,6 +82055,101 @@
         }
       ],
       "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
+    },
+    {
+      "module": "src/source_value/json_construction_extent.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "e6a7f6ae8dbfe285badd7c0f0862cffae93c326b722956f92aca187a8b20d6e0",
+      "role": "common-semantics",
+      "owner": "Existing Source Parser and logical constructor inventory",
+      "exports": [],
+      "operations": [
+        {
+          "name": "json_construction_extent",
+          "declaration": "json_construction_extent ( max_input_bytes : Int , max_nodes : Int , max_depth : Int , normalize_keys ~ : Bool , ) - > JsonConstructionExtent ?"
+        },
+        {
+          "name": "json_source_grammar_construction_extent",
+          "declaration": "json_source_grammar_construction_extent ( max_input_bytes : Int , max_nodes : Int , max_depth : Int , ) - > JsonConstructionExtent ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "json_construction_extent",
+            "json_source_grammar_construction_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/source_value/json_literal_construction_controls_wbtest.mbt",
+                "anchor": "test \"literal parser retires sibling key owners while retaining all original fields\""
+              },
+              {
+                "path": "src/source_value/json_literal_construction_extent_test.mbt",
+                "anchor": "test \"literal construction bound is pre-read DATA and preserves original parser refusals\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original parser/component/source-only. No native allocator, ordinary Host, capacity grant or physical cleanup evidence."
     }
   ]
 }

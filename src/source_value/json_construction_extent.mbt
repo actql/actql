@@ -22,7 +22,12 @@ pub fn json_construction_extent(
   if max_input_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     return None
   }
-  guard @shape.key_admission_construction_extent(max_nodes, max_nodes)
+  // ObjectFields owns KeyAdmission only while its original Frame is open.
+  // Completing that Frame drops the Map; the returned Object retains fields,
+  // not the seen-key owner. All parsed entries, including discarded duplicate
+  // values, remain covered separately by the full node bound.
+  let live_objects = Int::min(max_nodes, max_depth)
+  guard @shape.key_admission_construction_extent(live_objects, max_nodes)
     is Some(keys) else {
     return None
   }

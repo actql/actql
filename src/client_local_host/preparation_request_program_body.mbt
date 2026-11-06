@@ -51,10 +51,46 @@ pub fn[I] continue_request_program_preparation(
   transfer_program_check_input(child)
   child.busy = false
   owner.program_check = None
-  owner.computation_limits = None
+  // Keep the SAME immutable checked compiler profile until Request retirement.
+  // Default installed module construction consumes it; explicit typed limits
+  // still enter through their existing separate constructor arguments.
   owner.program_json = None
   owner.phase = ProgramCompiled
   Ok(prepared)
+}
+
+///|
+/// Codec dimensions selected by this SAME Request's original checker. This is
+/// immutable DATA, not a semantic recheck, capacity grant or current callback.
+/// Explicit module limits remain independent arguments on the typed entry.
+pub fn[I] request_program_compilation_limits(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  @publication_host.ClientPureCompilationLimits,
+  ClientRequestProgramPlanIssue,
+] {
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  guard (
+      owner.phase == ProgramCompiled ||
+      owner.phase == ProgramPlanQuoted ||
+      owner.phase == ProgramPlanReserved
+    ) &&
+    owner.compiled_program is Some(_) &&
+    owner.program_capacity is Some(_) &&
+    owner.computation_limits is Some(selected) else {
+    return Err(Preparation(WrongPhase))
+  }
+  let standard = @publication_host.client_standard_pure_compilation_limits()
+  let codec = selected.checking.compilation.artifacts
+  Ok({
+    ..standard,
+    max_wire_bytes: codec.bytes,
+    max_nodes: codec.nodes,
+    max_depth: codec.depth,
+  })
 }
 
 ///|

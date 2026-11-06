@@ -847,15 +847,39 @@ test "original numeric 100000 intent uses its observed profile under the unchang
       input,
       request_program_module_contracts(),
       manifests=request_program_module_manifests(),
-      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      compilation_limits=request_program_compilation_limits(parent, input).unwrap(),
       retained_output=true,
       provider_factory=_ => [],
     ) {
     Ok(_) => ()
     Err(CapacityExceeded(issue)) =>
       fail("Original100000 module: " + @debug.to_string(issue))
-    Err(Preparation(Capacity(issue))) =>
-      fail("Original100000 module capacity: " + @debug.to_string(issue))
+    Err(Preparation(Capacity(issue))) => {
+      let artifact = parent.program_artifact_geometry
+      let geometry = match artifact {
+        Some(value) =>
+          " graph=" +
+          @debug.to_string(value.graph) +
+          " material=" +
+          @debug.to_string(value.material) +
+          " plan=" +
+          @debug.to_string(value.executable_plan) +
+          " fragment=" +
+          @debug.to_string(value.fragments.map(x => x.fragment)) +
+          " artifactExtents=" +
+          @debug.to_string(program_artifact_construction_extents(value))
+        None => " artifactGeometry=None"
+      }
+      fail(
+        "Original100000 module capacity: " +
+        @debug.to_string(issue) +
+        "; measurement=" +
+        @debug.to_string(parent.program_measurement_quote) +
+        "; artifactQuote=" +
+        @debug.to_string(parent.program_artifact_quote) +
+        geometry,
+      )
+    }
     Err(Preparation(_)) => fail("Original100000 module Preparation")
     Err(Installed(_)) => fail("Original100000 module Installed")
     Err(Construction(issue)) => {
