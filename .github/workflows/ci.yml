@@ -1546,6 +1546,8 @@ jobs:
           node --version
           moon version --all
           npm ls --prefix adapters/workers
+      - name: Test Workers fixture metadata separation
+        run: node --test scripts/workers-fixtures.test.mjs
       - name: Check generated Workers fixtures
         run: node scripts/workers-fixtures.mjs
       - name: Check isolated Core closure in all targets

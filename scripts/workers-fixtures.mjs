@@ -46,7 +46,10 @@ const aliases = new Set([...source.matchAll(/@(\w+)/g)].map(x => x[1]));
 // directive still fails closed.
 const queryManifest = readFileSync(join(directory, 'moon.pkg'), 'utf8');
 const nativeOptions = `\noptions(
-  targets: { "strategy_cleanup_current_js_wbtest.mbt": [ "js" ] },
+  targets: {
+    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],
+    "row_stream_current_js_wbtest.mbt": [ "js" ],
+  },
   link: {
     "native": {
       "cc": "./scripts/native-cxx-link-driver.sh",
