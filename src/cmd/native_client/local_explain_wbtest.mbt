@@ -464,3 +464,32 @@ test "Native human explain admits the exact UTF8 display bound and refuses one b
   }
   assert_eq(local_explain_reply(wire, true), wire)
 }
+
+///|
+test "Native Local compilation and explain use the checked authored row demand" {
+  for count in [101, 1000] {
+    let rows = Array::makei(count, index => "{\"id\":" + index.to_string() + "}").join(
+      ",",
+    )
+    let document = explain_fixture_chain.replace(
+      old="{\"id\":1},{\"id\":2}",
+      new=rows,
+    )
+    let preparation = explain_fixture(document, Json)
+    guard preparation is Computation(prepared) else {
+      fail("expected a pure checked Program")
+    }
+    let limits = @run_host.prepared_client_values_sequence_limits(prepared)
+    assert_eq(limits.max_rows, count)
+    let wire = local_static_plan_view(preparation)
+    let root = @decode.open_object(local_input_cursor(wire)).unwrap()
+    assert_eq(
+      @decode.text(@decode.required(root, "version").unwrap()).unwrap(),
+      "actql-plan-view/0.1",
+    )
+    assert_eq(
+      @decode.safe_integer(@decode.required(root, "provider_io").unwrap()).unwrap(),
+      0L,
+    )
+  }
+}
