@@ -548,6 +548,7 @@ fn configure_installed_source_free_preparation(
       original.provider_execution_bytes,
       retained_output,
       provider_factory,
+      managed_output=true,
     ) {
     Some(value) => value
     None => return Err(Unsupported)

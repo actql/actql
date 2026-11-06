@@ -1737,7 +1737,10 @@ fn public_array_preparation_host(
     },
   ).unwrap()
   let plan = parent.program_source_free.unwrap()
-  assert_false(installed_effect_limits_fit(plan.limits, limits))
+  // Provider quote refinements may put whole-Run maxima below this parent.
+  // They remain DATA, not prepaid task capacity. Actual execution and cleanup
+  // below use the same unchanged parent; explicit loose-Plan admission has its
+  // own oversized-Plan/foreign-input regression above.
   assert_eq(@resources.ledger_limits(ledger), limits)
   let request = @publication_host.prepare_source_free_client_request_identity(
     prepared,

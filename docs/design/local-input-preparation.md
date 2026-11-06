@@ -5939,3 +5939,18 @@ row roots. Cumulative input/output/work guards still execute unchanged. Text,
 nested values, fragment contexts and other providers retain their conservative
 constructor envelopes. This is a backing correspondence, not a new admission
 rule, semantic classifier, resource tariff or additional allowance.
+
+The primitive Values quote uses the same checked node's row count and schema
+width to inventory its row arrays and outer backing through the shared Array
+constructor rule. The cells still borrow their original admitted values. The
+retained execution-owner envelope survives until its existing cleanup, and the
+active workspace is composed alongside that retained output through the
+canonical execution-capacity constructor. Its execution dimension therefore
+covers its retention dimension through later dispatch composition.
+
+A preparation-owned source-free managed consumer retains a completed output
+through the managed dispatch protocol. Its private configuration omits Local's
+separate row-file exporter, which that consumer never constructs. Existing
+materializing callers retain the exporter policy and its backing. Result
+metadata, independent copies, imported inputs, Native output files and Store
+publication keep their separate existing owners and before-call reservations.
