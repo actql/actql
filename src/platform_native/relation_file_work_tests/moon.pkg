@@ -1,0 +1,27 @@
+supported_targets = "native"
+
+// Moon also links this package's empty internal driver. Its scoped runtime
+// requires the same original provider as the physical blackbox test.
+import {
+  "actql/actql/platform_native/host_bootstrap" @bootstrap,
+}
+
+import {
+  "actql/actql/platform_native/client_host" @client,
+  "actql/actql/platform_native/installed_arena_control" @arena,
+  "actql/actql/platform_native/row_source" @row_file,
+  "actql/actql/platform_native/signature" @crypto,
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/client_row_source_host" @rows,
+  "actql/actql/client_local_host" @local,
+  "actql/actql/run_publication_host" @host,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/physical_strategy_host" @strategy,
+  "actql/actql/check_environment" @environment,
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+} for "test"

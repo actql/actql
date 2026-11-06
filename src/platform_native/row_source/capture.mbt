@@ -191,7 +191,8 @@ fn file_capture_text(value : String, maximum : Int) -> Bool {
 }
 
 ///|
-fn file_capture_input_valid(
+/// Bound only trusted selection DATA; this issues no original or permission.
+pub fn native_relation_file_input_valid(
   value : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
 ) -> Bool {
@@ -245,7 +246,7 @@ pub fn prepare_native_relation_file_capture(
   limits : NativeRelationFileLimits,
 ) -> Result[NativeRelationFileCapture, NativeRelationFileFailure] {
   if !file_capture_text(nonce, 128) ||
-    !file_capture_input_valid(selection, limits) ||
+    !native_relation_file_input_valid(selection, limits) ||
     @rows.row_acquisition_is_listing(acquisition) {
     return Err({ issue: InvalidInput, owner: None, })
   }

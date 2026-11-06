@@ -333,6 +333,7 @@ pub fn InstalledArenaHost::leave_local_host_phase(Self, InstalledArenaLocalHostR
 pub fn InstalledArenaHost::live_channel_capacities(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[(Int64, Int64), @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::live_channel_limits(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.LedgerLimits, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::live_channel_state(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.BackedExecutionLiveState, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::matches_nonmodel_work_entry_read_scope(Self, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaRetainedExecution) -> Bool
 pub fn InstalledArenaHost::observe_backing_extent_work(Self, InstalledArenaBackingBorrow) -> Result[@host_bootstrap.NativeExtentWork, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::observe_domain_inventory(Self, InstalledArenaDomain) -> Result[@host_bootstrap.NativeDomainInventory, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::observe_domain_original_read_cleanup(Self, InstalledArenaOriginalRead) -> Result[@host_bootstrap.NativeReadCleanupObservation, InstalledArenaOriginalReadIssue]
@@ -345,6 +346,7 @@ pub fn InstalledArenaHost::prepare_crypto_component(Self, InstalledArenaDomain, 
 pub fn InstalledArenaHost::prepare_domain(Self, InstalledArenaBackingBorrow, Int, Int64, @physical_resources.LedgerLimits) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_domain_in_process(Self, InstalledArenaBackingBorrow, Int64, @physical_resources.LedgerLimits) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn[I] InstalledArenaHost::prepare_domain_initialization_child(Self, InstalledArenaDomain, I) -> Result[@host_bootstrap.NativeBackedLiveChildAcquisition[Self, InstalledArenaDomain, I], @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::prepare_domain_nonmodel_work_entry(Self, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaRetainedExecution, Int64, Int64) -> Result[InstalledArenaNonModelWorkEntryAcquisition, InstalledArenaNonModelWorkEntryIssue]?
 pub fn InstalledArenaHost::prepare_domain_original_read(Self, InstalledArenaDomain, InstalledArenaOriginalReadBudget) -> Result[InstalledArenaOriginalReadAcquisition, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::prepare_domain_original_read_consumer(Self, InstalledArenaOriginalRead, Int64, Int64) -> Result[InstalledArenaOriginalReadConsumer, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::prepare_domain_read(Self, InstalledArenaDomain, execution_ceiling? : Int64) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
@@ -435,6 +437,26 @@ pub fn InstalledArenaLocalHostResourcesReply::original_read(Self) -> InstalledAr
 pub fn InstalledArenaLocalHostResourcesReply::original_resources(Self) -> InstalledArenaLocalHostResources?
 pub fn InstalledArenaLocalHostResourcesReply::original_sqlite(Self) -> InstalledArenaSqliteLibrary
 pub fn InstalledArenaLocalHostResourcesReply::sqlite_host(Self) -> InstalledArenaHost
+
+type InstalledArenaNonModelWorkEntry
+pub fn InstalledArenaNonModelWorkEntry::business_cleanup_complete(Self) -> Bool
+pub fn InstalledArenaNonModelWorkEntry::cancel_unclaimed_in_original_read(Self) -> Bool
+pub fn InstalledArenaNonModelWorkEntry::close_after_original_return(Self) -> Bool
+pub fn InstalledArenaNonModelWorkEntry::finish_business_cleanup(Self) -> Bool
+pub fn InstalledArenaNonModelWorkEntry::matches_business_scope(Self, Bool) -> Bool
+pub fn InstalledArenaNonModelWorkEntry::owns_only_control(Self) -> Bool
+pub fn InstalledArenaNonModelWorkEntry::take_entered_ledger(Self, InstalledArenaRetainedExecution, Int64, Int64) -> @physical_resources.Ledger?
+pub fn InstalledArenaNonModelWorkEntry::usage(Self) -> @physical_resources.LedgerUsage
+
+pub(all) enum InstalledArenaNonModelWorkEntryAcquisition {
+  ReadyNonModelWorkEntry(InstalledArenaNonModelWorkEntry)
+  PendingNonModelWorkEntry(InstalledArenaNonModelWorkEntry)
+}
+
+pub(all) enum InstalledArenaNonModelWorkEntryIssue {
+  Unavailable
+  Resource(@physical_resources.LedgerIssue)
+}
 
 pub(all) enum InstalledArenaOperation {
   Prepare

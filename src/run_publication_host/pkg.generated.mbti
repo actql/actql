@@ -381,6 +381,8 @@ pub fn client_compiled_run_evaluation_policy_body(ClientCompiledRun) -> (String,
 
 pub fn client_compiled_run_has_infer(ClientCompiledRun, ClientInferPlanGraph) -> Bool
 
+pub fn client_compiled_run_has_infers(ClientCompiledRun) -> Bool
+
 pub fn client_compiled_run_has_original_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
 pub fn client_compiled_run_infer(ClientCompiledRun) -> ClientInferPlanGraph?
