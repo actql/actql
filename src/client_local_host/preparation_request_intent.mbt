@@ -643,3 +643,90 @@ pub fn[I] reserve_request_retained_program_material(
     () => owner.phase = Open,
   )
 }
+
+///|
+/// Back the Native caller's original retained wire decoder BEFORE UTF8/Source
+/// construction. Reuse the existing Source parser inventory and the SAME
+/// preflight's observed node count; a long wire never fabricates tree nodes.
+/// This adds no checker, intent, permission or new Resource owner.
+pub fn[I] reserve_request_retained_intent_source(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[@source.ParseLimits, ClientRequestPreparationIssue] {
+  guard owner.phase == Open &&
+    !owner.native_parameters_ready &&
+    owner.intent_attempted &&
+    !owner.intent_peak_live &&
+    owner.submitted_intent is Some(intent) &&
+    owner.snapshot_values > 0L &&
+    owner.snapshot_values < 2147483647L else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  guard request_retained_intent_limits(
+      @publication_host.client_submitted_intent_wire(intent),
+    )
+    is Some(wire_limits) else {
+    return Err(Policy)
+  }
+  let limits : @source.ParseLimits = {
+    max_input_bytes: wire_limits.max_input_bytes,
+    max_nodes: owner.snapshot_values.to_int(),
+    max_depth: wire_limits.max_depth,
+  }
+  let absolute = match owner.intent_source_quote {
+    Some(original) => original
+    None => {
+      guard @decode.preserving_json_parser_construction_inventory(
+          limits.max_input_bytes,
+          limits.max_nodes,
+          Int::min(limits.max_nodes, limits.max_depth),
+        )
+        is Some(parser) &&
+        @execution.preparation_representation_cost({
+          record_headers: parser.record_headers + 1L,
+          reference_slots: parser.reference_slots,
+          scalar_words: parser.scalar_words,
+          owned_utf16_units: parser.owned_utf16_units,
+          owned_wire_bytes: limits.max_input_bytes.to_int64(),
+        })
+        is Some(bytes) else {
+        return Err(Policy)
+      }
+      owner.phase = Selecting
+      let before : Result[(Int64, Int64), ClientRequestPreparationIssue] = preparation_module_call(
+        () => {
+          @resources.preparation_capacity_working_extents(owner.capacity, input).map_err(issue => {
+              Capacity(issue)
+            },
+          )
+        },
+        () => owner.phase = Open,
+      )
+      let (r, e) = match before {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
+      }
+      guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+        @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+        return Err(Policy)
+      }
+      owner.intent_source_quote = Some((r, e))
+      (r, e)
+    }
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      @resources.reserve_working_preparation_phase(
+        owner.capacity,
+        input,
+        absolute.0,
+        absolute.1,
+      ).map_err(issue => ClientRequestPreparationIssue::Capacity(issue))
+    },
+    () => owner.phase = Open,
+  ).map(_ => limits)
+}

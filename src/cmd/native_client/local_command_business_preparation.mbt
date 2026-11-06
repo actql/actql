@@ -110,7 +110,11 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
         64,
       ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
   }
-  let preparation = local_prepare_submitted_run_program(intent, environment)
+  command_preparation_result(
+    self.prepare_business_request_capacity(capture, intent),
+    stage=Some("business-request-capacity"),
+  )
+  let preparation = self.prepare_business_request(capture, intent, environment)
   guard @local_host.native_client_submitted_preparation(preparation)
     is Computation(prepared) else {
     stop("LocalBusinessProgramUnavailable")
@@ -131,10 +135,6 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     Some(assets.fragment),
     assets.ordered,
   ).unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
-  command_preparation_result(
-    self.prepare_business_capacity(capture, requirements),
-    stage=Some("business-capacity"),
-  )
   command_preparation_result(
     self.require_business_program(
       prepared,

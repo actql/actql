@@ -127,6 +127,7 @@ fn open_native_client_local_values_work(
   ledger? : @resources.Ledger? = None,
   original_access? : NativeLocalValuesOriginalAccess? = None,
   requirements? : @local.ClientLocalRequirements? = None,
+  managed? : @local.ClientInstalledManagedRun? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   if !current() {
     return Err(
@@ -189,30 +190,53 @@ fn open_native_client_local_values_work(
   }
   // A supplied Ledger remains the existing Resource Owner. A refused setup
   // cannot fall back to the legacy constructor and silently obtain a new one.
-  let selected = match ledger {
-    Some(original) =>
-      @local.open_source_free_local_retained_host_on_ledger(
-        prepared,
-        original,
-        installed_contracts,
-        values_body,
-        fragment_body,
-        ordered_body,
-        requirements=Some(requirements),
-      )
+  let selected = match managed {
+    Some(original) => {
+      guard ledger is Some(backing) else {
+        return Err(local_values_work_failure(Configuration))
+      }
+      match
+        @local.open_installed_managed_source_free_host(
+          original,
+          prepared,
+          request,
+          installed_contracts,
+          values_body,
+          fragment_body,
+          ordered_body,
+          false,
+          backing=Some(backing),
+        ) {
+        Err(_) => return Err(local_values_work_failure(Configuration))
+        Ok(value) => value
+      }
+    }
     None =>
-      @local.open_source_free_local_retained_host(
-        prepared,
-        installed_contracts,
-        values_body,
-        1L,
-        0L,
-        0L,
-        0L,
-        fragment_body~,
-        ordered_body~,
-        requirements=Some(requirements),
-      )
+      match ledger {
+        Some(original) =>
+          @local.open_source_free_local_retained_host_on_ledger(
+            prepared,
+            original,
+            installed_contracts,
+            values_body,
+            fragment_body,
+            ordered_body,
+            requirements=Some(requirements),
+          )
+        None =>
+          @local.open_source_free_local_retained_host(
+            prepared,
+            installed_contracts,
+            values_body,
+            1L,
+            0L,
+            0L,
+            0L,
+            fragment_body~,
+            ordered_body~,
+            requirements=Some(requirements),
+          )
+      }
   }
   guard selected is Some(setup) else {
     return Err(local_values_work_failure(Configuration))

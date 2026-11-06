@@ -5,6 +5,7 @@ extern "C" fn retained_execution_control_scope_clear_ffi() -> Int = "actql_boots
 pub(all) enum InstalledArenaRetainedExecutionIssue {
   Domain(@bootstrap.NativeBackedExecutionIssue)
   Child(@resources.ImportedChildLedgerIssue)
+  Initialization(@bootstrap.NativeBackedInitializationIssue)
 }
 
 ///|
@@ -20,6 +21,10 @@ struct InstalledArenaRetainedExecution {
   ]?
   mut frame : @resources.ImportedChildLedger?
   mut ledger : @resources.Ledger?
+  mut initialization_cleanup : (() -> Result[
+    Unit,
+    @bootstrap.NativeBackedInitializationIssue,
+  ])?
   mut owns_read : Bool
   mut child_started : Bool
   mut active : Bool
@@ -51,6 +56,27 @@ pub fn InstalledArenaHost::prepare_domain_retained_execution(
   InstalledArenaRetainedExecutionAcquisition,
   InstalledArenaRetainedExecutionIssue,
 ] {
+  let record = match self.prepare_domain_retained_execution_record(domain) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  match record.prepare_original() {
+    Err(issue) => Ok(PendingRetainedExecution(record, issue))
+    Ok(_) => {
+      record.ready = true
+      Ok(ReadyRetainedExecution(record))
+    }
+  }
+}
+
+///|
+fn InstalledArenaHost::prepare_domain_retained_execution_record(
+  self : InstalledArenaHost,
+  domain : InstalledArenaDomain,
+) -> Result[
+  InstalledArenaRetainedExecution,
+  InstalledArenaRetainedExecutionIssue,
+] {
   match self.require_domain_read_current(domain) {
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
@@ -67,6 +93,7 @@ pub fn InstalledArenaHost::prepare_domain_retained_execution(
     live: None,
     frame: None,
     ledger: None,
+    initialization_cleanup: None,
     owns_read: false,
     child_started: false,
     active: false,
@@ -79,13 +106,80 @@ pub fn InstalledArenaHost::prepare_domain_retained_execution(
   }
   // The original domain retains every partial stage before admission/start.
   domain.retained_execution = Some(record)
-  match record.prepare_original() {
-    Err(issue) => Ok(PendingRetainedExecution(record, issue))
-    Ok(_) => {
-      record.ready = true
-      Ok(ReadyRetainedExecution(record))
-    }
+  Ok(record)
+}
+
+///|
+pub(all) enum InstalledArenaRequestExecutionAcquisition[I] {
+  ReadyRequestExecution(
+    InstalledArenaRetainedExecution,
+    @resources.BackedPreparationAdmission[I]
+  )
+  PendingRequestExecution(
+    InstalledArenaRetainedExecution,
+    InstalledArenaRetainedExecutionIssue
+  )
+}
+
+///|
+/// Select the Request before this original frame starts. The same registered
+/// Native execution carrier retains every pending stage and its physical ACK.
+pub fn[I] InstalledArenaHost::prepare_domain_retained_request_execution(
+  self : InstalledArenaHost,
+  domain : InstalledArenaDomain,
+  input : I,
+  budget : @bootstrap.NativeBackedInitializationBudget,
+) -> Result[
+  InstalledArenaRequestExecutionAcquisition[I],
+  InstalledArenaRetainedExecutionIssue,
+] {
+  let record = match self.prepare_domain_retained_execution_record(domain) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
   }
+  let original = domain.domain.unwrap()
+  let live = match
+    domain.backing.prepare_backed_initialization_live_child(
+      self, original, domain, input,
+    ) {
+    Err(issue) => return Ok(PendingRequestExecution(record, Domain(issue)))
+    Ok(@bootstrap.LiveChildPending(live, issue)) => {
+      record.owns_read = true
+      record.initialization_cleanup = Some(() => {
+        domain.backing.close_backed_preparation(self, live)
+      })
+      return Ok(PendingRequestExecution(record, Domain(issue)))
+    }
+    Ok(@bootstrap.LiveChildReady(live)) => live
+  }
+  record.owns_read = true
+  record.initialization_cleanup = Some(() => {
+    domain.backing.close_backed_preparation(self, live)
+  })
+  let initial = match
+    domain.backing.initialize_backed_request_preparation(
+      self, live, input, budget,
+    ) {
+    Err(issue) =>
+      return Ok(PendingRequestExecution(record, Initialization(issue)))
+    Ok(value) => value
+  }
+  let frame = match
+    @resources.backed_preparation_original_frame(initial, input) {
+    Err(issue) => return Ok(PendingRequestExecution(record, Child(issue)))
+    Ok(value) => value
+  }
+  record.frame = Some(frame)
+  record.child_started = true
+  let ledger = match
+    domain.backing.borrow_initialized_preparation_ledger(self, live, input) {
+    Err(issue) =>
+      return Ok(PendingRequestExecution(record, Initialization(issue)))
+    Ok(value) => value
+  }
+  record.ledger = Some(ledger)
+  record.ready = true
+  Ok(ReadyRequestExecution(record, initial))
 }
 
 ///|
@@ -355,6 +449,19 @@ pub fn InstalledArenaHost::close_domain_retained_execution(
   }
   let domain = record.domain
   let original = domain.domain.unwrap()
+  if record.initialization_cleanup is Some(cleanup) {
+    match cleanup() {
+      Err(issue) => return Err(Initialization(issue))
+      Ok(_) => ()
+    }
+    record.initialization_cleanup = None
+    record.physical_retired = true
+    record.reported = true
+    record.ledger = None
+    record.frame = None
+    record.closed = true
+    return Ok(())
+  }
   if record.frame is Some(frame) {
     match @resources.stop_imported_child_ledger(frame) {
       Err(issue) => return Err(Child(issue))

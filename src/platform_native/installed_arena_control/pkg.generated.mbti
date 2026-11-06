@@ -349,6 +349,7 @@ pub fn InstalledArenaHost::prepare_domain_original_read(Self, InstalledArenaDoma
 pub fn InstalledArenaHost::prepare_domain_original_read_consumer(Self, InstalledArenaOriginalRead, Int64, Int64) -> Result[InstalledArenaOriginalReadConsumer, InstalledArenaOriginalReadIssue]
 pub fn InstalledArenaHost::prepare_domain_read(Self, InstalledArenaDomain, execution_ceiling? : Int64) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_domain_retained_execution(Self, InstalledArenaDomain) -> Result[InstalledArenaRetainedExecutionAcquisition, InstalledArenaRetainedExecutionIssue]
+pub fn[I] InstalledArenaHost::prepare_domain_retained_request_execution(Self, InstalledArenaDomain, I, @host_bootstrap.NativeBackedInitializationBudget) -> Result[InstalledArenaRequestExecutionAcquisition[I], InstalledArenaRetainedExecutionIssue]
 pub fn InstalledArenaHost::prepare_initial_domain(Self, InstalledArenaBackingBorrow, Int, Int, Int, Int, Int64) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_live_channel(Self, InstalledArenaDomain, Int, Int, Int, Int64) -> Result[@host_bootstrap.NativeBackedLiveChannelAcquisition[Self, InstalledArenaDomain], @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_live_channel_before_spawn(Self, InstalledArenaDomain, Int, Int, Int64) -> Result[@host_bootstrap.NativeBackedLiveChannelAcquisition[Self, InstalledArenaDomain], @host_bootstrap.NativeBackedExecutionIssue]
@@ -525,6 +526,11 @@ pub fn InstalledArenaReply::issue_family(Self) -> Int
 pub fn InstalledArenaReply::operation_tag(Self) -> Int
 pub fn InstalledArenaReply::original_host(Self) -> InstalledArenaHost?
 
+pub(all) enum InstalledArenaRequestExecutionAcquisition[I] {
+  ReadyRequestExecution(InstalledArenaRetainedExecution, @physical_resources.BackedPreparationAdmission[I])
+  PendingRequestExecution(InstalledArenaRetainedExecution, InstalledArenaRetainedExecutionIssue)
+}
+
 type InstalledArenaRetainedExecution
 
 pub(all) enum InstalledArenaRetainedExecutionAcquisition {
@@ -535,6 +541,7 @@ pub(all) enum InstalledArenaRetainedExecutionAcquisition {
 pub(all) enum InstalledArenaRetainedExecutionIssue {
   Domain(@host_bootstrap.NativeBackedExecutionIssue)
   Child(@physical_resources.ImportedChildLedgerIssue)
+  Initialization(@host_bootstrap.NativeBackedInitializationIssue)
 }
 
 pub(all) enum InstalledArenaSqliteAcquisition {
