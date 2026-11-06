@@ -20,6 +20,7 @@ const {connect} = await import(runtime.client);
 const {openInstalledRemoteHttpHost} = await import(runtime.httpHost);
 const owner = userInfo().username;
 const keys = JSON.parse(await readFile(join(root, 'keys.json'), 'utf8'));
+const recoveryDiagnostics = [];
 const authorization = {
   accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
     account_id: 'held-values', entries: [{entry_id: 'acceptance', outcome: 'delegate',
@@ -27,7 +28,7 @@ const authorization = {
     operation: {any_of: ['write']}, exclusions: []},
   {entry_id: 'owner-run-result-read', outcome: 'allow',
     principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
-    resource: {any_of: ['run', 'result/answer']},
+    resource: {any_of: ['result/answer', 'run']},
     operation: {any_of: ['read']}, exclusions: []}]}),
   reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: owner,
     publicKey: keys.reviewerPublic}], reviewReaders: [owner],
@@ -36,6 +37,13 @@ const authorization = {
   observe(name) {
     if (name === 'computed') computes++;
     if (name === 'physical_start_reserved') starts++;
+  },
+  faultInjection(name, detail) {
+    if (recoveryDiagnostics.length < 32 && /^(?:recovery|resume|abandon)_/u.test(name)) {
+      const code = detail?.code;
+      recoveryDiagnostics.push({name,
+        ...(typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,79}$/u.test(code) ? {code} : {})});
+    }
   },
 };
 let client, host, server, computes = 0, starts = 0;
@@ -65,13 +73,15 @@ const open = async () => {
     client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`,
       durability: 'durable', token: 'fixture-owner'});
   } else client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
+  // Enter the existing Checkpoint service in every new process. A lazy
+  // connection or a request-journal lookup is not service activation.
+  return client.checkpoints();
 };
 try {
   if (phase === 'initial') {
-    await open();
     // Local connect is lazy. Use the existing public Checkpoint read to
     // establish the empty owned journals before writing historical fixtures.
-    assert.deepEqual((await client.checkpoints()).items, []);
+    assert.deepEqual((await open()).items, []);
     await close();
     original = await writeSyntheticHistoricalHeldTypedValues({directory: join(root, 'host'),
       document: text, parameters, requestId, authorization, runtimeRootUrl: runtime.root,
@@ -119,7 +129,8 @@ try {
       Object.entries(current.physicalHoldings).every(([name, present]) =>
         present === (name === 'invocation_request')) && current.pendingPhysicalDeletions === 0 && current;
   }) : await snapshot();
-} catch (error) {report = {error: error.code ?? error.message, stack: error.stack};}
+} catch (error) {report = {error: error.code ?? error.message, stack: error.stack,
+  recoveryDiagnostics};}
 finally {
   await close();
 }
