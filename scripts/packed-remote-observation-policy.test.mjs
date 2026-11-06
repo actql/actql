@@ -28,6 +28,8 @@ test('both packed Remote Hosts install only the authored request and observation
   const account = JSON.parse(authorization.accountConfiguration);
   assert.equal(account.version, 'actql-execution-account-config/0.1');
   assert.equal(account.account_id, 'packed-remote-account');
+  const rowSource = readFileSync(new URL('../adapters/host-node/installed-duckdb-source.mjs', import.meta.url), 'utf8');
+  assert.match(rowSource, /realizationKey: 'duckdb-acquired'/u);
   const tuples = [];
   for (const entry of account.entries) {
     assert.equal(entry.outcome, 'allow');
@@ -43,7 +45,7 @@ test('both packed Remote Hosts install only the authored request and observation
     }
   }
   assert.deepEqual(tuples.sort(), ['result/answer:read', 'result/b:read', 'result/c:read',
-    'result/last:read', 'run:read', 'source-free-values:write'].sort());
+    'result/last:read', 'run:read', 'duckdb-acquired:write', 'source-free-values:write'].sort());
   const primary = ast.filter(node => node.type === 'VariableDeclarator' && node.id.name === 'remoteHost');
   assert.equal(primary.length, 1);
   const first = primary[0].init.argument.arguments[0];

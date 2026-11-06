@@ -2204,7 +2204,7 @@ const remoteAuthorization = {accountConfiguration: JSON.stringify({
   {entry_id: 'packed-request', outcome: 'allow',
     principal: {any_of: [userInfo().username]},
     connection: {any_of: ['actql-remote-host']},
-    resource: {any_of: ['source-free-values']},
+    resource: {any_of: ['duckdb-acquired', 'source-free-values']},
     operation: {any_of: ['write']}, exclusions: []}],
 })};
 await writeFile(join(root, 'remote-authorization.json'), JSON.stringify(remoteAuthorization));
