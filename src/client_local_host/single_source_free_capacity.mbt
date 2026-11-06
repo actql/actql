@@ -62,13 +62,13 @@ fn prepare_local_requirements(
     count <= first {
     return None
   }
-  for task in 0..<count {
-    if @publication_host.prepared_client_infer_execution_occurrence(
-        prepared, task,
-      )
-      is Some(_) {
-      return None
-    }
+  // The legacy infer-execution selector takes a step of task zero, not a
+  // task index. Inspect the original composed graph so later-stage Model
+  // occurrences cannot be quoted as an ordinary Common suffix.
+  guard @publication_host.prepared_client_composed_infer_occurrences(prepared)
+    is Some(occurrences) &&
+    occurrences.is_empty() else {
+    return None
   }
   guard prepare_client_local_sequences(
       prepared, installed_contracts, values_body, fragment_body, ordered_body,
