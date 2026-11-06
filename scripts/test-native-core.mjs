@@ -17,6 +17,7 @@ import {nativeCoreTestSelection} from './native-core-test-selection.mjs';
 import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
 import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
+import {nativeClientFileFixture} from './native-client-file-fixture.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -52,6 +53,7 @@ const selection = full ? nativeCoreTestSelection(root, args,
   {env: compilerEnvironment, partitionProfiles: true}) : undefined;
 if (selection) console.log('Native test selection: ' + JSON.stringify({cases: selection.cases,
   packages: selection.packages, prunedDrivers: selection.prunedDrivers,
+  ...(selection.benchmarkDeclarations ? {benchmarkDeclarations: selection.benchmarkDeclarations} : {}),
   profiles: {ordinary: selection.profiles.ordinary.cases,
     http: selection.profiles.http.cases,
     source: selection.profiles.source.cases,
@@ -91,11 +93,14 @@ if (full || args.some(arg => arg.includes('platform_native/remote_journal'))) {
     throw new Error(`Native WAL fixture compilation failed: ${compiled.error?.message ?? compiled.signal ?? compiled.status}`);
   }
 }
+const clientFiles = full || args.some(arg => arg.includes('cmd/native_client'))
+  ? nativeClientFileFixture(namespace) : {};
 const httpLifetime = full || args.some(arg => arg.includes('cmd/native_remote_resident_site'))
   ? nativeHttpLifetimeFixture(namespace) : {};
 const fixtureEnvironment = {
   ...process.env,
   ...httpLifetime,
+  ...clientFiles,
   ...bundle,
   ...clientCheckpoint,
   ...privateHost,

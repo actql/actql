@@ -670,7 +670,7 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false} = {}) {
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
-    'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'native-http-lifetime-fixture.mjs', 'native-core-scoped-fixture.mjs', 'verification-actions.mjs',
+    'native-client-file-fixture.mjs', 'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'native-http-lifetime-fixture.mjs', 'native-core-scoped-fixture.mjs', 'verification-actions.mjs',
     'native-client-checkpoint-fixture.mjs', 'native-private-host-fixture.mjs',
     'native-filesystem-observation-fixture.mjs',
     'native-runtime-reader-custody-fixture.mjs', 'native-project-configuration-fixture.mjs',
@@ -905,6 +905,25 @@ if (process.env.ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY) {
   assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_LIBRARY, undefined);
   assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_URL, undefined);
   console.log('HTTP_LIFETIME_INPUT_PROVISIONED');
+}
+if (process.env.ACTQL_TEST_NATIVE_OUTPUT_VERIFY_ROOT) {
+  const output = process.env.ACTQL_TEST_NATIVE_OUTPUT_VERIFY_ROOT;
+  const runtime = process.env.ACTQL_TEST_NATIVE_RUNTIME_NAMESPACE_ROOT;
+  assert.equal(output, join(root, 'output-verification'));
+  assert.equal(runtime, join(root, 'runtime-namespace'));
+  assert.equal(statSync(output).mode & 0o777, 0o700);
+  assert.equal(require('node:fs').readFileSync(join(output, 'data.bin'), 'utf8'), 'data');
+  const receipt = JSON.parse(require('node:fs').readFileSync(join(output, 'single.json'), 'utf8'));
+  assert.equal(receipt.result_delivery_receipt_cid,
+    'sha256:653b739f7a85f39a048ed77fe1d38f8fc5e1edcf1ab50a867a83216e76a1d146');
+  const manifest = require('node:fs').readFileSync(join(runtime, 'unchanged/local-runtime.json'));
+  assert.equal(createHash('sha256').update(manifest).digest('hex'),
+    process.env.ACTQL_TEST_NATIVE_RUNTIME_NAMESPACE_MANIFEST_SHA256);
+  assert.equal(JSON.parse(manifest).sourceSha, 'a'.repeat(40));
+  assert.equal(require('node:fs').readFileSync(join(runtime, 'unchanged/lib/sqlite.bin'), 'utf8'), 'abc');
+  assert.equal(readlinkSync(join(runtime, 'alias')), 'unchanged');
+  assert.equal(existsSync(join(runtime, 'never-acquired')), false);
+  console.log('CLI_FILE_INPUTS_PROVISIONED');
 }
 if (process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT) {
   assert.equal(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT, root);
