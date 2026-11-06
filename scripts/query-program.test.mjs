@@ -108,14 +108,19 @@ test('INFER KEEP and omitted KEEP match independent complete Program fixtures', 
     const text = await readFile(fixture(`infer-keep/${name}.aql`), 'utf8');
     const expected = JSON.parse(await readFile(
       fixture(`infer-keep/${name}.expected-program.json`), 'utf8'));
-    const actual = compileValuesQueryJson(text, 'tickets', 'tickets',
+    const wire = compileValuesQueryJson(text, 'tickets', 'tickets',
       JSON.stringify(input), JSON.stringify(['id', 'text', 'secret']),
       'fixture.infer_keep');
-    assert.notEqual(actual, '');
-    assert.deepEqual(JSON.parse(actual), expected);
+    assert.notEqual(wire, '');
+    const actual = JSON.parse(wire);
+    assert.deepEqual(actual, expected);
+    // Omitted KEEP is KEEP (*); explicit KEEP still has its authored subset.
+    // These are public Result fields, independent of internal join-back slots.
+    assert.deepEqual(actual.stages[0].results.rows.fields, name === 'omitted'
+      ? ['id', 'text', 'secret', 'assessment'] : ['id', 'risk']);
     // Lowering emits no second Values/source acquisition or model egress from KEEP.
     assert.equal(expected.stages[0].steps.filter(step => step.values).length, 1);
-    assert.deepEqual(expected.stages[0].steps.find(step => step.infer).infer.input,
+    assert.deepEqual(actual.stages[0].steps.find(step => step.infer).infer.input,
       {text: {field: 'text'}});
   }
 });
