@@ -1,6 +1,7 @@
 // Explicit selected-provider test tooling. Preparation is neither a physical
 // acquisition, a test result nor a Native artifact/installation authority.
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {accessSync, constants, mkdirSync, readFileSync, realpathSync,
   symlinkSync, writeFileSync} from 'node:fs';
@@ -12,6 +13,12 @@ const runtimeNames = new Set(['backtrace.c', 'env.c', 'runtime.c', 'sync_io.c', 
 const cSource = value => /\.(?:c|cc|cpp|cxx)$/u.test(value);
 const allocator = '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC';
 const profiles = new Set(['runtime-values', 'scoped-review-values']);
+const targets = new Map([['darwin-arm64', 'aarch64-apple-darwin'],
+  ['linux-arm64', 'aarch64-unknown-linux-gnu'], ['linux-x64', 'x86_64-unknown-linux-gnu']]);
+const linuxDefinitions = target => ['_GNU_SOURCE', 'ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN',
+  ...(target === 'x86_64-unknown-linux-gnu' ? ['ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY'] : [])];
+const identity = bytes => ({bytes: bytes.length,
+  sha256: createHash('sha256').update(bytes).digest('hex')});
 const canonicalSource = (root, value) => resolve(root, value);
 
 export function nativeCoreScopedInputs(root, plan, moonHome) {
@@ -50,6 +57,7 @@ export function nativeCoreScopedInputs(root, plan, moonHome) {
 
 export function nativeCoreScopedCArguments(config, args) {
   assert(profiles.has(config.profile), 'Unknown Native Core allocation profile');
+  assert([...targets.values()].includes(config.target), 'Unknown original scoped target');
   const sources = args.filter(cSource);
   assert.equal(sources.length, 1, 'One original scoped C source per invocation');
   assert.equal(args.filter(value => value === '-o').length, 1, 'One scoped C output');
@@ -59,13 +67,25 @@ export function nativeCoreScopedCArguments(config, args) {
     'C input/output is outside the original scoped Moon plan');
   assert(args.filter(value => value.startsWith('-DMOONBIT_ALLOCATOR=')).every(value => value === allocator),
     'Scoped tests retain the original mimalloc selection');
-  assert(!args.some(value => /^-[DU]ACTQL_(?:SCOPED_READ_|RUNTIME_MANAGED_VALUES|BOOTSTRAP_IMPORT_PROVIDER)/u.test(value)),
+  assert(!args.some(value => /^-[DU]ACTQL_(?:SCOPED_READ_|RUNTIME_MANAGED_VALUES|BOOTSTRAP_IMPORT_PROVIDER|NATIVE_LINUX_|NATIVE_OWNED_LINUX_|BUNDLE_STOCK_FILE_CONTROL_BYTES)/u.test(value)),
     'Do not replace a preselected provider profile');
   const selected = nativeCoreCArguments(config.repository, args).map(value =>
     value === sources[0] && dirname(source) === join(config.moonHome, 'lib/runtime')
       ? join(config.sourceDirectory, basename(source)) : value);
   const prefix = ['-I' + config.sourceDirectory, '-DACTQL_SCOPED_READ_ALLOCATOR',
     ...(config.profile === 'runtime-values' ? ['-DACTQL_RUNTIME_MANAGED_VALUES=1'] : [])];
+  if (config.target !== 'aarch64-apple-darwin') {
+    assert([...targets.values()].includes(config.target), 'Unknown original scoped target');
+    const control = config.stockFileControl;
+    assert(control && control.slots > 0 && Number.isSafeInteger(control.slots),
+      'Original Linux test control required');
+    for (const member of [control.recipe, control.header]) {
+      assert.deepEqual(identity(readFileSync(member.path)), {bytes: member.bytes, sha256: member.sha256},
+        'Original Linux test control changed');
+    }
+    prefix.push(...linuxDefinitions(config.target).map(value => '-D' + value),
+      '-include', control.header.path);
+  }
   if (source === join(config.repository, 'src/platform_native/host_bootstrap/bootstrap_stub.c')) {
     prefix.push('-DACTQL_SCOPED_READ_PROVIDER=' + JSON.stringify(join(config.sourceDirectory, 'owned_capacity.c')));
   }
@@ -87,11 +107,15 @@ export function runNativeCoreScopedCompiler(configPath, kind, args) {
 
 export function prepareNativeCoreScopedProfile(repository, scratch, args, {
   env = process.env, platform = process.platform, arch = process.arch,
-  execute = execFileSync, profile = 'runtime-values',
+  execute = execFileSync, profile = 'runtime-values', linuxStockFileSlots,
 } = {}) {
   assert(profiles.has(profile), 'Unknown Native Core allocation profile');
-  assert.equal(platform, 'darwin', 'This scoped Core test profile requires Darwin arm64');
-  assert.equal(arch, 'arm64', 'This scoped Core test profile requires Darwin arm64');
+  const target = targets.get(`${platform}-${arch}`);
+  assert(target, 'Unsupported scoped Core test target');
+  if (platform === 'linux') {
+    assert(Number.isSafeInteger(linuxStockFileSlots) && linuxStockFileSlots > 0 && linuxStockFileSlots <= 65536,
+      'An explicit finite diagnostic Linux stock-File control is required');
+  } else assert.equal(linuxStockFileSlots, undefined, 'Linux control cannot select another target');
   assert.equal(env.MOON_CC, undefined, 'Keep an explicit Moon compiler profile authoritative');
   assert(env.MOON_HOME, 'Explicit pinned Moon toolchain required');
   assert(env.MOONBIT_ALLOCATOR === undefined || env.MOONBIT_ALLOCATOR === 'mimalloc',
@@ -108,13 +132,36 @@ export function prepareNativeCoreScopedProfile(repository, scratch, args, {
   const sourceDirectory = join(directory, 'derived-read-source');
   const prepare = join(repository, 'packages/python-local-runtime/native/pre-root/prepare_scoped_read.py');
   const record = JSON.parse(execute('python3', [prepare, '--moonbit', moonHome,
-    '--destination', sourceDirectory], {cwd: repository, env, encoding: 'utf8',
+    '--destination', sourceDirectory, ...(platform === 'linux' ? ['--target', target] : [])], {cwd: repository, env, encoding: 'utf8',
     timeout: 60000, maxBuffer: 2 * 1024 ** 2}));
-  assert.equal(record.target, 'aarch64-apple-darwin');
+  assert.equal(record.target, target);
   assert.equal(record.status, 'review-source-only');
   assert.equal(record.installed_supplier, false);
   assert.deepEqual(record.required_defines,
-    ['MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', 'ACTQL_SCOPED_READ_ALLOCATOR']);
+    ['MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', 'ACTQL_SCOPED_READ_ALLOCATOR',
+      ...(platform === 'linux' ? linuxDefinitions(target) : [])]);
+  let stockFileControl;
+  if (platform === 'linux') {
+    assert.deepEqual(record.required_source_parameters, ['ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS']);
+    // This test-owned finite table is explicit diagnostic input, never the
+    // Local command's initial-control envelope or an installed capacity claim.
+    // The x64 provider already checks its actual 24-byte record and 8-byte
+    // entry with C static assertions. Retain that check against this test's
+    // exact finite extent; do not borrow the Local command's 4096-byte page.
+    const extent = target === 'x86_64-unknown-linux-gnu'
+      ? {stockFileControlBytes: linuxStockFileSlots * 24 + 8} : {};
+    const recipe = Buffer.from(JSON.stringify({kind: 'private-native-core-stock-file-control',
+      target, slots: linuxStockFileSlots, ...extent}) + '\n');
+    const header = Buffer.from('#define ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS ' + linuxStockFileSlots + '\n' +
+      (extent.stockFileControlBytes === undefined ? ''
+        : '#define ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES ' + extent.stockFileControlBytes + '\n'));
+    const member = (name, bytes) => {
+      const path = join(directory, name); writeFileSync(path, bytes, {flag: 'wx'});
+      return {path, ...identity(bytes)};
+    };
+    stockFileControl = {slots: linuxStockFileSlots, ...extent,
+      recipe: member('stock-file-control.json', recipe), header: member('stock-file-control.h', header)};
+  } else assert.equal(record.required_source_parameters, undefined);
   // Keep test-only O0 recognition in the existing owner: its pattern is rooted
   // under _build, while this fresh target remains separate from default Core.
   const targetDirectory = join(directory, 'target');
@@ -137,7 +184,7 @@ export function prepareNativeCoreScopedProfile(repository, scratch, args, {
   const inputs = nativeCoreScopedInputs(repository, plan, moonHome);
   const configPath = join(directory, 'compiler-inputs.json');
   const config = {repository, moonHome, sourceDirectory, targetDirectory, inputs,
-    compilers, profile};
+    compilers, profile, target, ...(stockFileControl ? {stockFileControl} : {})};
   writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', {flag: 'wx'});
   const bin = join(directory, 'bin'); mkdirSync(bin);
   for (const kind of Object.keys(compilers)) writeFileSync(join(bin, kind),
@@ -152,5 +199,6 @@ export function prepareNativeCoreScopedProfile(repository, scratch, args, {
     qualification: 'selected-provider compiler inputs only; no test execution or artifact authority',
     configPath, sourceDirectory, inputs, profile, recipeSha256: record.recipe_sha256,
     patchSha256: record.patch_sha256, target: record.target,
+    ...(stockFileControl ? {stockFileControl} : {}),
   }};
 }
