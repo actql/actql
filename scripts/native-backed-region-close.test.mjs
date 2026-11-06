@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 
 // Native Array.clear keeps the unused backing slots. The existing owner may
 // release those references only after its actual region-close success.
@@ -18,3 +19,21 @@ test('closed Native region releases loan backing only after original close succe
   assert.equal((tests.match(/assert_eq\(region\.loans\.capacity\(\), 0\)/gu) ?? []).length, 2);
 });
 
+test('closed-region source and regression retain their distribution input identities', () => {
+  const directory = '../packages/python-local-runtime/native/pre-root/';
+  for (const [manifest, paths] of [
+    ['host-bootstrap-source.json', ['backed_region_native.mbt', 'backed_region_wbtest.mbt']],
+    ['linux-x64-process-source.json', ['backed_region_native.mbt']],
+  ]) {
+    const document = JSON.parse(readFileSync(new URL(directory + manifest, import.meta.url), 'utf8'));
+    for (const file of paths) {
+      const path = 'src/platform_native/host_bootstrap/' + file;
+      const inputs = document.inputs.filter(input => input.path === path);
+      assert.equal(inputs.length, 1, `${manifest}: ${path}`);
+      const bytes = readFileSync(new URL('../' + path, import.meta.url));
+      assert.equal(inputs[0].bytes, bytes.length, `${manifest}: ${path} bytes`);
+      assert.equal(inputs[0].sha256, createHash('sha256').update(bytes).digest('hex'),
+        `${manifest}: ${path} SHA256`);
+    }
+  }
+});
