@@ -6,7 +6,7 @@ import {checkDriverRetirementSource, driverPath, scratchRetirementPath, inputSto
 import {retirementOverlay,retirementExecutable,retirementExecutionArtifacts} from './driver-retirement-overlay.mjs';
 import {inspectDriverRetirement} from './driver-retirement-inspect.mjs';
 import {snapshot,hash} from '../../inventory.mjs';
-import {omitUnselectedTests,helperCompilation,helperImports,retirementCompilation,retirementPackageTargets,retirementJsOnlyFixture} from './driver-retirement-compilation.mjs';
+import {omitUnselectedTests,helperCompilation,helperImports,retirementCompilation,retirementPackageTargets,retirementJsOnlyFixtures} from './driver-retirement-compilation.mjs';
 const root = fileURLToPath(new URL('../../../../',import.meta.url));
 const read = p => readFileSync(root+p);
 const changed = (path, from, to, anchor) => {
@@ -32,6 +32,11 @@ test('current driver/common owner source and additive Native overlay are admitte
   const {overlay,boundary} = retirementOverlay(read,snapshot(root));
   assert(boundary.compilation.omittedTests > 0);
   assert.equal(boundary.compilation.repositoryTestsRemoved,false);
+  for(const path of retirementJsOnlyFixtures) {
+    assert.equal(overlay[path],read(path).toString());
+    assert.equal(boundary.compilation.inputs[path].preservedOriginalBytes,true);
+    assert.deepEqual(boundary.compilation.inputs[path].omittedTests,[]);
+  }
   assert.match(overlay[scratchRetirementPath],/println\(driver_retirement_probe\(provider, 0, 3\)\)/);
   assert.equal((overlay[scratchRetirementPath].match(/cleanup_managed_provider\(active\)/g)??[]).length,
     (read(scratchRetirementPath).toString().match(/cleanup_managed_provider\(active\)/g)??[]).length);
@@ -95,40 +100,49 @@ test('selected Host helper retains transitive declarations and enum variants wit
   assert.throws(()=>helperImports(pkg.replace('"x/used" @used,','dynamic_import()'),r.referencedText));
 });
 
-test('Native fixture projection retains the original JS-only target and native link metadata',()=>{
+test('Native fixture projection retains both original JS-only targets and native link metadata',()=>{
   const original=read('src/query_integration/moon.pkg').toString();
-  const clause='  targets: { "strategy_cleanup_current_js_wbtest.mbt": [ "js" ] },';
-  const added='  targets: {\n    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],\n'+
-    '    "driver_retirement_native_wbtest.mbt": [ "native" ],\n  },';
+  const clause=`  targets: {
+    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],
+    "row_stream_current_js_wbtest.mbt": [ "js" ],
+  },`;
+  const added=clause.replace('  },','    "driver_retirement_native_wbtest.mbt": [ "native" ],\n  },');
   const projected=retirementPackageTargets(original);
   assert.equal(projected.split(added).length,2);
   assert.equal(projected.replace(added,clause),original);
-  for(const changed of [original.replace('strategy_cleanup_current_js_wbtest.mbt','unknown_wbtest.mbt'),
-    original.replace('[ "js" ]','[ "native" ]'),original.replace(clause,clause+'\n'+clause)]) {
-    assert.throws(()=>retirementPackageTargets(changed),/Changed reviewed query fixture targets/);
+  for(const path of retirementJsOnlyFixtures) {
+    const name=path.split('/').at(-1);
+    for(const changed of [original.replace(name,'unknown_wbtest.mbt'),
+      original.replace(`"${name}": [ "js" ]`,`"${name}": [ "native" ]`),
+      original.replace(clause,clause+'\n'+clause)]) {
+      assert.throws(()=>retirementPackageTargets(changed),/Changed reviewed query fixture targets/);
+    }
   }
 });
 
-test('Native fixture projection keeps compiler-excluded JS bytes and refuses unreviewed foreign declarations',()=>{
+test('Native fixture projection keeps both compiler-excluded JS files and refuses unreviewed foreign declarations',()=>{
   const pkg='src/query_integration/moon.pkg',fixture='src/query_integration/driver_retirement_native_wbtest.mbt';
   const host='src/query_integration/host_wbtest.mbt',unknown='src/query_integration/unreviewed_wbtest.mbt';
   const js='#external\npriv type Loader\nextern "js" fn load() -> Loader = "load"\n';
-  const sources={[host]:'fn run_current_host_graph_relation_path() {}\n',[retirementJsOnlyFixture]:js};
+  const sources={[host]:'fn run_current_host_graph_relation_path() {}\n',
+    ...Object.fromEntries(retirementJsOnlyFixtures.map(path=>[path,js]))};
   const originalPkg=read(pkg).toString();
   const source={sources:Object.fromEntries(Object.entries(sources).map(([path,text])=>[path,hash(text)]))};
   const overlay={[pkg]:retirementPackageTargets(originalPkg),[fixture]:'test { run_current_host_graph_relation_path() }'};
   const reader=path=>path===pkg?originalPkg:sources[path];
   const result=retirementCompilation(reader,source,overlay);
-  assert.equal(overlay[retirementJsOnlyFixture],js);
-  assert.equal(result.inputs[retirementJsOnlyFixture].preservedOriginalBytes,true);
-  assert.deepEqual(result.inputs[retirementJsOnlyFixture].omittedTests,[]);
+  for(const path of retirementJsOnlyFixtures) {
+    assert.equal(overlay[path],js);
+    assert.equal(result.inputs[path].preservedOriginalBytes,true);
+    assert.deepEqual(result.inputs[path].omittedTests,[]);
+    assert.throws(()=>retirementCompilation(reader,source,
+      {[pkg]:retirementPackageTargets(originalPkg),[fixture]:overlay[fixture],[path]:''}),
+      /Changed compiler-excluded JS fixture/);
+  }
   const extra={...sources,[unknown]:js};
   const extraSource={sources:{...source.sources,[unknown]:hash(js)}};
   assert.throws(()=>retirementCompilation(path=>path===pkg?originalPkg:extra[path],extraSource,
     {[pkg]:retirementPackageTargets(originalPkg),[fixture]:overlay[fixture]}),/Unsupported helper declaration #/);
-  assert.throws(()=>retirementCompilation(reader,source,
-    {[pkg]:retirementPackageTargets(originalPkg),[fixture]:overlay[fixture],[retirementJsOnlyFixture]:''}),
-    /Changed compiler-excluded JS fixture/);
 });
 
 test('projection keeps complete immutable raw String constants and omits unreferenced literal ranges',()=>{

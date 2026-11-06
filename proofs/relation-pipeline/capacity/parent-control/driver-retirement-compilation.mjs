@@ -3,16 +3,21 @@
 import assert from 'node:assert/strict';
 import {hash} from '../../inventory.mjs';
 
-export const retirementJsOnlyFixture='src/query_integration/strategy_cleanup_current_js_wbtest.mbt';
-const originalTargetClause='  targets: { "strategy_cleanup_current_js_wbtest.mbt": [ "js" ] },';
+export const retirementJsOnlyFixtures=Object.freeze([
+  'src/query_integration/strategy_cleanup_current_js_wbtest.mbt',
+  'src/query_integration/row_stream_current_js_wbtest.mbt',
+]);
+const originalTargetClause=`  targets: {
+    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],
+    "row_stream_current_js_wbtest.mbt": [ "js" ],
+  },`;
 export function retirementPackageTargets(pkg) {
-  // Preserve this existing compiler-owned JS selection and native link block.
+  // Preserve both existing compiler-owned JS selections and native link block.
   // This diagnostic adds only its one Native fixture to the same target map;
   // it does not interpret target expressions or admit foreign declarations.
   assert.equal(pkg.split(originalTargetClause).length,2,'Changed reviewed query fixture targets');
-  return pkg.replace(originalTargetClause,
-    '  targets: {\n    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],\n' +
-    '    "driver_retirement_native_wbtest.mbt": [ "native" ],\n  },');
+  return pkg.replace(originalTargetClause,originalTargetClause.replace('  },',
+    '    "driver_retirement_native_wbtest.mbt": [ "native" ],\n  },'));
 }
 
 function tokens(source) {
@@ -220,7 +225,7 @@ export function retirementCompilation(read, source, overlay) {
   for (const path of paths) {
     const original = read(path).toString();
     assert.equal(hash(original), source.sources[path], 'Changed compilation source '+path);
-    if (path===retirementJsOnlyFixture) {
+    if (retirementJsOnlyFixtures.includes(path)) {
       // Keep the complete original file, including its foreign declarations.
       // The original compiler target excludes it from this Native build; the
       // helper projection must neither parse it as Native nor erase its bytes.

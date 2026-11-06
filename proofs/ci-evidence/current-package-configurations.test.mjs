@@ -224,6 +224,52 @@ test('current preparation manifest binds the integrated literal value-admission 
   }
 });
 
+test('current query configuration binds both JS-only files without changing imports or Native options', () => {
+  const path = 'src/query_integration/moon.pkg';
+  const revision = 'd0a65454c66690c3725c9cfbcc31ee84fdd4c3f1';
+  const digest = '85c6a9e865217e88e0322ca57208d43cc60742d508da3f04d5be00c724f8c15b';
+  const prior = gitTree(root, '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c').read(path).toString();
+  const body = gitTree(root, revision).read(path).toString();
+  assert.equal(hash(prior), '179d0c70d9c11c032372634cef98528fdebe13e3afb97a1e917c51bf0d1515fe');
+  assert.equal(hash(body), digest);
+  execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
+  const before = '  targets: { "strategy_cleanup_current_js_wbtest.mbt": [ "js" ] },';
+  const after = `  targets: {
+    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],
+    "row_stream_current_js_wbtest.mbt": [ "js" ],
+  },`;
+  assert.equal(body.split(after).length, 2);
+  assert.equal(body.replace(after, before), prior);
+  assert.deepEqual(packageImports(body).imports, packageImports(prior).imports);
+  assert.equal(currentTree.read(path).toString(), body);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, digest))?.revision, revision);
+  const selected = packageSourceInputs({tree: currentTree, packages: ['src/query_integration'], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  const members = [...currentTree.entries.keys()].filter(member => member.startsWith('src/query_integration/') &&
+    !member.slice('src/query_integration/'.length).includes('/')).sort();
+  assert.deepEqual(selected.directories.find(entry => entry.path === 'src/query_integration/*')?.members, members);
+  for (const member of members) {
+    assert(selected.paths.includes(member));
+    assert.equal(currentTree.entries.get(member)?.kind, 'blob');
+    assert.equal(currentTree.entries.get(member)?.mode, '100644');
+  }
+  for (const name of ['strategy_cleanup_current_js_wbtest.mbt', 'row_stream_current_js_wbtest.mbt']) {
+    assert(members.includes('src/query_integration/' + name));
+    assert.equal([...currentTree.read('src/query_integration/' + name).toString().matchAll(/^test "/gmu)].length, 2);
+    for (const changed of [body.replace(name, 'unreviewed_wbtest.mbt'),
+      body.replace(`"${name}": [ "js" ]`, `"${name}": [ "native" ]`)]) {
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+    }
+  }
+  for (const changed of [prior, body + '\noptions(pre_build: {command: "unreviewed"})\n',
+    body.replace('"-lssl -lcrypto"', '"-lunreviewed"')]) {
+    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+    const altered = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
+    assert(packageSourceInputs({tree: altered, packages: ['src/query_integration'], target: 'js'})
+      .unresolved.includes('Unreviewed package configuration: ' + path));
+  }
+});
+
 test('single current map binds exact per-entry reviews and full literal import closure', () => {
   assert.equal(Object.keys(currentPackageConfigurations).length, 19);
   assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 11);

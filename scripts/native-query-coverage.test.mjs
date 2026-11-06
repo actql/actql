@@ -248,15 +248,31 @@ test('unfamiliar and ambiguous target metadata never lower the required count', 
   assert.throws(() => select('http-client', missing), /Missing native package metadata/u);
 });
 
-test('the actual fallback retains Native Values and excludes only the two declared JS tests', () => {
-  const js = query + 'strategy_cleanup_current_js_wbtest.mbt';
-  assert.equal([...repositorySources[js].matchAll(/^test "/gmu)].length, 2);
+test('the actual fallback retains Native Values and excludes exactly both declared JS-only files', () => {
+  // Independently authored file/count inventory, not the selector's output.
+  const jsOnly = {'strategy_cleanup_current_js_wbtest.mbt': 2, 'row_stream_current_js_wbtest.mbt': 2};
+  const pkg = repositorySources[query + 'moon.pkg'];
+  const clause = `  targets: {
+    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],
+    "row_stream_current_js_wbtest.mbt": [ "js" ],
+  },`;
+  assert.equal(pkg.split(clause).length, 2);
+  for (const [file, expected] of Object.entries(jsOnly)) {
+    assert.equal([...repositorySources[query + file].matchAll(/^test "/gmu)].length, expected, file);
+  }
   const declarations = Object.entries(repositorySources)
     .filter(([path]) => path.startsWith(query) || path.startsWith('src/native_values_integration/'))
     .reduce((sum, [, source]) => sum + [...source.matchAll(/^test "/gmu)].length, 0);
-  const selection = select('http-client', {...repositorySources,
-    [query + 'force_full_stub.c']: 'getenv("ACTQL_TEST_FORCE_FULL");'});
+  const forced = {...repositorySources, [query + 'force_full_stub.c']: 'getenv("ACTQL_TEST_FORCE_FULL");'};
+  const selection = select('http-client', forced);
   assert.equal(selection.mode, 'full-fallback');
-  assert.equal(selection.expected, declarations - 2);
+  assert.equal(selection.expected, declarations - Object.values(jsOnly).reduce((sum, count) => sum + count, 0));
   assert.ok(selection.paths.includes('src/native_values_integration'));
+  // Re-admitting either file adds its two cases; it cannot hide another file.
+  for (const [file, expected] of Object.entries(jsOnly)) {
+    const changed = pkg.replace(`"${file}": [ "js" ]`, `"${file}": [ "js", "native" ]`);
+    assert.notEqual(changed, pkg);
+    assert.equal(select('http-client', {...forced, [query + 'moon.pkg']: changed}).expected,
+      selection.expected + expected);
+  }
 });
