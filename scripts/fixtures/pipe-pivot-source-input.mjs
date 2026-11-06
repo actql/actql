@@ -263,7 +263,7 @@ const fromColumns = [string('product',4),number('second',false),number('first',f
 pipePivotSuccesses.push(
   success('from-matched-json-control',JSON.stringify(control),[{product:'kale',second:0,first:2}],
     [string('product'),number('second',false),number('first',false)],{format:'json'}),
-  success('from-cte-scope', 'WITH sales AS ('+fromRows+") SELECT product,second,first FROM sales PIVOT(COUNT(sales) FOR quarter IN('Q2' AS second,'Q1' AS first)) ORDER BY product",
+  success('from-cte-scope', 'WITH sales AS ('+fromRows+") SELECT product,second,first FROM sales PIVOT(COUNT(sales.sales) FOR quarter IN('Q2' AS second,'Q1' AS first)) ORDER BY product",
     [{product:'kale',second:0,first:2}],fromColumns),
   success('from-derived-without-input-alias', 'SELECT product,second,first FROM ('+fromRows+") PIVOT(COUNT(sales) FOR quarter IN('Q2' AS second,'Q1' AS first)) ORDER BY product",
     [{product:'kale',second:0,first:2}],fromColumns),
