@@ -130,15 +130,15 @@
       "root": "moonbit",
       "path": "lib/libmoonbitrun.o",
       "output": "libmoonbitrun.o",
-      "bytes": 183752,
-      "sha256": "a5e00ff1cb24c75311c56d4b53341d72c0145c0127d3571d889de72e951e4966"
+      "bytes": 188920,
+      "sha256": "d9db2413e755c00ab374901211a03a9551222fe779022bc3648235747ed2bd96"
     },
     {
       "root": "moonbit",
       "path": "lib/libbacktrace.a",
       "output": "libbacktrace.a",
-      "bytes": 691938,
-      "sha256": "1cdb27a3a058513b9a9efac3416e47365c8aa91daa9ec4e7b4a77ccac9c9fb36"
+      "bytes": 281872,
+      "sha256": "a0ed98ead4be023f2840063c0e1c016fe581895c936759e68fd6e0e23dfaf9b7"
     },
     {
       "root": "provider",
