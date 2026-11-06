@@ -54,6 +54,7 @@ test "unnamed derived table preserves NULL predicate duplicates and explicit ord
 test "unaliased table preserves its inner Pipe ranges and value receiver" {
   for
     source in [
+      "SELECT r.x AS original,x AS `current`,y FROM (FROM (SELECT 1 AS x,20 AS y UNION ALL SELECT 2,10) base |> AS r |> SET x=x+10) ORDER BY original",
       "SELECT r.x AS original,x AS `current` FROM (FROM t |> AS r |> SET x=x+10) ORDER BY original",
       "FROM (FROM t |> AS r |> SET x=x+10) |> WHERE r.x > 0 |> SELECT r.x AS original,x AS `current` |> ORDER BY original",
       "SELECT current.x,current.y FROM (FROM t |> AS r |> SET x=x+10) AS `current` ORDER BY current.x",

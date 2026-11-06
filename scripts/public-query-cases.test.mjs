@@ -127,6 +127,12 @@ test('optional table aliases preserve independent NULL/duplicate and range-value
  assert.ok(source.text.includes('WHERE id IS NOT NULL'));
  assert.ok(source.text.includes('DESC NULLS FIRST LIMIT 3'));
  const ranged=cases.get('derived-optional-range-snapshot');
+ const originalRange='FROM (SELECT 1 AS x,20 AS y UNION ALL SELECT 2,10) base |> AS r |> SET x=x+10';
+ for(const [name,original] of [
+  ['range-snapshot','SELECT r.x AS original,x AS current,y FROM ('+originalRange+') ORDER BY original'],
+  ['explicit-alias-replaces-ranges','SELECT chosen.x AS current,chosen.y FROM ('+originalRange+') chosen ORDER BY current'],
+  ['captured-range-snapshot','SELECT id,r.amount AS original,amount AS current FROM (FROM records |> AS r |> SET amount=99) ORDER BY id'],
+ ]) assert.equal(cases.get('derived-optional-'+name).text,original.replace(' AS current',' AS `current`'));
  assert.deepEqual(ranged.expected,cases.get('derived-optional-range-snapshot-json-control').expected);
  assert.deepEqual(ranged.expected,[{original:1,current:11,y:20},{original:2,current:12,y:10}]);
  assert.deepEqual(cases.get('derived-optional-captured-range-snapshot').expected,
