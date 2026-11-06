@@ -32,6 +32,8 @@ function run(command, args, cwd = root, env = environment,
 console.log(`Packed public-query evidence: ${directory}`);
 console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
   'scripts/distinct-join-order-source-input.test.mjs',
+  'scripts/graph-difference-source-input.test.mjs',
+  'scripts/graph-relation-join-source-input.test.mjs',
   'scripts/public-query-profiles.test.mjs', 'scripts/packed-query-transports.test.mjs',
   'scripts/graph-argument-check.test.mjs', 'scripts/graph-argument-origin-literals.test.mjs'],
   repository).trimEnd());
