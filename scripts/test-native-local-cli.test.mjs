@@ -174,11 +174,9 @@ test('Native Local refuses duplicate configuration fields', async () => {
 test('Native Local human preparation output does not claim Run acceptance', () => {
   const result=runNative(['check','--program-file','values.json','--format','json']);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout,/^Local check \(no Run admitted\):\n/u);
-  const outcome=JSON.parse(result.stdout.slice(result.stdout.indexOf('\n')+1));
-  assert.equal(outcome.version,'actql-check-outcome/0.1');
-  assert.equal(outcome.report.verdict,'verified');
-  assert.equal(result.stdout.includes('"id"'), false);
+  assert.match(result.stdout,/^ActQL CHECK\nValidation: Valid\nRunnable: yes\nScope: bound input\n/u);
+  assert(result.stdout.includes('No Run started; no provider calls.'));
+  assert.doesNotMatch(result.stdout,/sha256:|ctx:|rev:|"outcome"|"id"/u);
 });
 
 // These are the independently authored 101/1000-row controls used by the
