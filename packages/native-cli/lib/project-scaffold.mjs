@@ -144,7 +144,9 @@ export function projectInitArguments(args) {
 // A positive answer cannot adopt a Store or supply runtime/Account authority.
 export function requireProjectInitSupport(executable, environment, template, query = spawnSync) {
   const child = query(executable, ['project-init-support'], {
-    env: environment, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+    // Suppress diagnostic-only atexit output for this bounded private query.
+    // The caller retains its original environment for the actual adoption.
+    env: {...environment, ACTQL_NATIVE_TIMINGS: '0'}, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
     timeout: 5000, killSignal: 'SIGKILL', maxBuffer: 4096,
   });
   const unavailable = () => { throw Object.assign(new Error(

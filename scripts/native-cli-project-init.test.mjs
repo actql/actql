@@ -41,10 +41,11 @@ async function installedFixture(t, {runtime = false} = {}) {
   // or package acceptance result. Its exact bytes pass normal launcher checks.
   const binary = Buffer.from(`#!${process.execPath}\n` +
     'if (process.argv[2] === "project-init-support") {\n' +
+    '  if (process.env.ACTQL_NATIVE_TIMINGS !== "0") process.stderr.write("query timing diagnostics must be suppressed");\n' +
     '  process.stdout.write(process.env.ACTQL_INIT_FIXTURE_SUPPORT ?? JSON.stringify({version:"actql-project-init-support/0.1",sourceFree:true,mock:false}));\n' +
     '  process.exit(0);\n' +
     '}\n' +
-    'process.stdout.write(JSON.stringify({args:process.argv.slice(2),runtime:process.env.ACTQL_NATIVE_LOCAL_RUNTIME ?? null}) + "\\n");\n' +
+    'process.stdout.write(JSON.stringify({args:process.argv.slice(2),runtime:process.env.ACTQL_NATIVE_LOCAL_RUNTIME ?? null,...(process.env.ACTQL_INIT_FIXTURE_OBSERVE_TIMINGS === "1" ? {timings:process.env.ACTQL_NATIVE_TIMINGS} : {})}) + "\\n");\n' +
     'process.exitCode=Number(process.env.ACTQL_INIT_FIXTURE_EXIT ?? 0);\n');
   await writeFile(executable, binary, {mode: 0o755});
   const sourceSha = 'a'.repeat(40);
@@ -275,11 +276,13 @@ const supportReply = value => ({status: 0, signal: null, stderr: '',
   stdout: JSON.stringify({version: 'actql-project-init-support/0.1', sourceFree: true, mock: false, ...value})});
 
 test('init implementation query uses only the admitted executable and fixed bounded arguments', () => {
-  const environment = {ACTQL_NATIVE_LOCAL_RUNTIME: 'admitted'};
+  const environment = Object.freeze({ACTQL_NATIVE_LOCAL_RUNTIME: 'admitted', ACTQL_NATIVE_TIMINGS: '1'});
   requireProjectInitSupport('/admitted/native', environment, undefined, (executable, args, options) => {
     assert.equal(executable, '/admitted/native');
     assert.deepEqual(args, ['project-init-support']);
-    assert.equal(options.env, environment);
+    assert.notEqual(options.env, environment);
+    assert.deepEqual(options.env, {...environment, ACTQL_NATIVE_TIMINGS: '0'});
+    assert.equal(environment.ACTQL_NATIVE_TIMINGS, '1');
     assert.deepEqual(options.stdio, ['ignore', 'pipe', 'pipe']);
     assert.equal(options.timeout, 5000);
     assert.equal(options.killSignal, 'SIGKILL');
@@ -382,4 +385,20 @@ test('installed launcher rejects malformed and oversized support replies before 
     assert.match(result.stderr, /initialization support is unavailable/u);
     assert.deepEqual(await readdir(f.cwd), []);
   }
+});
+
+
+test('installed init silences only private query timings and preserves adoption diagnostics', installedTest, async t => {
+  const f = await installedFixture(t, {runtime: true});
+  const result = f.invoke(['init', 'project'], {
+    ACTQL_NATIVE_TIMINGS: '1', ACTQL_INIT_FIXTURE_OBSERVE_TIMINGS: '1',
+  });
+  assert.ifError(result.error); assert.equal(result.status, 0);
+  const observed = JSON.parse(result.stdout);
+  assert.equal(observed.timings, '1');
+  assert.deepEqual(observed.args, ['--mode', 'local', '--config', join(f.cwd, 'project/actql.config.json'),
+    '--state-dir', join(f.cwd, 'project/.actql'), 'adopt', '--initialize-signing']);
+  assert.match(result.stderr, /^ACTQL_NATIVE_LAUNCHER_TIMINGS /u);
+  assert.doesNotMatch(result.stderr, /query timing diagnostics/u);
+  assert.deepEqual(await readdir(join(f.cwd, 'project')), ['actql.config.json', 'connectors.json', 'model-tasks.json']);
 });

@@ -124,7 +124,7 @@
     },
     {
       "module": "packages/native-cli/lib/project-scaffold.mjs",
-      "sha256": "2f739f1e328d06ad690085c09653f26f58cbff0f7f2b978b57ee0d0720edc083",
+      "sha256": "6dc7dab61378f8b8fd8e263de4444571af74a4596950c948c0b80a4b0104b2a3",
       "exports": [
         "projectInitArguments",
         "projectInitialAdoptionArguments",
@@ -366,7 +366,7 @@
             "synchronization": [
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
-                "anchor": "env: environment, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],"
+                "anchor": "env: {...environment, ACTQL_NATIVE_TIMINGS: '0'}, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],"
               }
             ],
             "failure": [
@@ -405,6 +405,10 @@
               {
                 "path": "src/cmd/native_client/local_project_configuration_wbtest.mbt",
                 "anchor": "test \"project init support is implementation data and acquires no command original\""
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('installed init silences only private query timings and preserves adoption diagnostics'"
               }
             ]
           }
