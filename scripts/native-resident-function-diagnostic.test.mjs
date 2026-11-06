@@ -296,3 +296,51 @@ test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized 
   assert.equal(spawnSync(python, ['-c', 'import ast,sys;ast.parse(open(sys.argv[1]).read())',
     fileURLToPath(new URL('./fixtures/native-resident-function-bootstrap.py', import.meta.url))]).status, 0);
 });
+
+test('Native CI observes an early Effect failure once and preserves Site-only fallback', () => {
+  const steps = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs.native.steps;
+  const effect = steps.findIndex(step => step.id === 'native-effect');
+  const site = steps.findIndex(step => step.id === 'native-runtime-test');
+  const setup = steps.findIndex(step => step.id === 'failure-debugger');
+  assert.equal(setup, effect + 1, 'capture the failed Effect before starting the long Site group');
+  const early = steps.slice(setup, setup + 3);
+  assert.equal(steps.indexOf(early[2]) + 1, site);
+  const fallbackStart = steps.findIndex(step => step.id === 'site-failure-debugger');
+  assert(fallbackStart > steps.findIndex(step => step.id === 'native-cancel'));
+  const fallback = steps.slice(fallbackStart, fallbackStart + 3);
+  assert(fallback.every(step => step.name.endsWith(' (Site fallback)')));
+  const body = ({name, id, if: condition, ...value}) => value;
+  for (let index = 0; index < early.length; index++) {
+    assert.deepEqual(body(early[index]), body(fallback[index]),
+      'same fixed probe, bounds, scratch, sanitized path and immutable artifact name');
+    assert.equal(early[index].if, early[0].if);
+    assert.equal(fallback[index].if, fallback[0].if);
+  }
+  const evaluate = (condition, effect, site, cancelled) => {
+    const expression = condition.slice(3, -2).trim()
+      .replaceAll('steps.native-effect.outcome', 'effect')
+      .replaceAll('steps.native-runtime-test.outcome', 'site')
+      .replaceAll('cancelled()', 'cancelled');
+    return new Function('effect', 'site', 'cancelled', 'return (' + expression + ');')(
+      effect, site, cancelled);
+  };
+  for (const effect of ['success', 'failure', 'skipped', 'cancelled', '']) {
+    for (const site of ['success', 'failure', 'skipped', 'cancelled', '']) {
+      for (const cancelled of [false, true]) {
+        const count = Number(evaluate(early[0].if, effect, site, cancelled)) +
+          Number(evaluate(fallback[0].if, effect, site, cancelled));
+        assert.equal(count, Number(!cancelled && (effect === 'failure' || site === 'failure')),
+          JSON.stringify({effect, site, cancelled}));
+      }
+    }
+  }
+  for (const id of ['native-effect', 'native-runtime-test', 'native-source',
+    'native-observation', 'native-release', 'native-cancel', 'packed-materials']) {
+    const step = steps.find(step => step.id === id);
+    assert(step, id);
+    assert.equal(step.if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
+    assert.equal(step['continue-on-error'], undefined);
+  }
+  const ids = steps.filter(step => step.id).map(step => step.id);
+  assert.equal(new Set(ids).size, ids.length);
+});
