@@ -526,6 +526,10 @@ pub fn model_mock_profile_originals(ModelMockProfile) -> (String, String, String
 
 pub fn model_openai_chat_instructions(ModelDependency) -> String?
 
+pub fn model_provider_defaults_resolution_construction_inventory(ModelProviderDefaults, Int64?) -> ModelProviderDefaultsResolutionConstructionInventory
+
+pub fn model_provider_defaults_resolution_retained_extent(ModelProviderDefaults, Int64?) -> @decode_shape.CollectionConstructionExtent
+
 pub fn model_provider_defaults_usage(ModelProviderDefaults) -> (Int, Int, Int)
 
 pub fn model_provider_handling_identity(ModelProviderHandling) -> String
@@ -1550,6 +1554,18 @@ pub(all) enum ModelMediaRoleIssue {
 type ModelMockProfile
 
 type ModelProviderDefaults
+
+pub(all) struct ModelProviderDefaultsResolutionConstructionInventory {
+  resolved_records : Int64
+  generation_copies : Int64
+  comparison_arrays : Int64
+  comparison_items : Int64
+  comparison_array_constructions : Int64
+  work_cells : Int64
+  issue_tags : Int64
+  error_results : Int64
+  success_results : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ModelProviderDefaultsResolutionIssue {
   InvalidLimits
