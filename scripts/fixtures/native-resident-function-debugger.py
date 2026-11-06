@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GDB parents one original control; only function/stage DATA is retained.
+"""GDB follows the original control into its holder; only function/stage DATA is retained.
 
 Target stdout continues to its existing Node caller. Debugger text, target
 arguments, environment, values, addresses and source paths are never reported.
@@ -42,7 +42,8 @@ def run(report, target):
             temporary = report + ".tmp"
             descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             with os.fdopen(descriptor, "w") as stream:
-                json.dump({"consumerExecutorEntered": entered.is_set(),
+                json.dump({"sampleTarget": "holder-descendant",
+                           "consumerExecutorEntered": entered.is_set(),
                            "sampleRequested": sampled.is_set(), "functions": functions,
                            "conditions": sorted(conditions | (
                                set() if entered.is_set() else {"stage-not-observed"}))}, stream)
@@ -54,10 +55,13 @@ def run(report, target):
     if debugger is None:
         conditions.add("debugger-unavailable")
     else:
+        # The original control uses posix_spawn for its holder. Follow that
+        # child through exec, detaching the control so its poll/current duties
+        # continue normally. A parent sample cannot locate consumer execution.
         commands = ["set pagination off", "set confirm off", "set startup-with-shell off",
                     "set print inferior-events off", "set print frame-arguments none",
                     "set print entry-values no", "set print address off",
-                    "set disable-randomization off", "set follow-fork-mode parent",
+                    "set disable-randomization off", "set follow-fork-mode child",
                     "set detach-on-fork on", "set follow-exec-mode same",
                     "handle SIGPIPE nostop noprint pass",
                     "handle SIGCHLD nostop noprint pass", "handle SIGUSR1 nostop noprint pass",
