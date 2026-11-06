@@ -93,14 +93,16 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     if (modelGroup !== undefined) return modelGroup.cleanup(includeContinuation);
     let failure, failed = false;
     if ((inferCapture !== undefined || inferOperation !== undefined) && !inferReleased) {
-      const recover = inferCloseAttempted;
-      inferCloseAttempted = true;
       try {
         const child = inferCapture?.custody ?? inferOperation;
         if (originalPreparation !== undefined && inferOperation?.publicationCapacityPending?.()) {
           if (!await inferCapture.custody.retirePublication() ||
               !inferOperation.releaseOriginalPublicationCapacity()) return false;
         }
+        // Prerequisite refusal is not a child close attempt. Once invoked,
+        // even a throwing close recovers only through this same child's cleanup.
+        const recover = inferCloseAttempted;
+        inferCloseAttempted = true;
         const result = await (recover ? child.cleanup() : child.close());
         inferReleased = result !== false && child.cleanupPending() === false;
       } catch (error) { failure = error; failed = true; }
