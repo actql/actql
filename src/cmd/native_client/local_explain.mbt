@@ -132,7 +132,11 @@ fn local_explain_for_environment(
     Err(issue) => local_stop_native_preparation(issue)
   }
   let wire = local_static_plan_view(prepared)
-  local_explain_reply(wire, child.flags.get("json").unwrap_or(false))
+  local_explain_reply(
+    wire,
+    child.flags.get("json").unwrap_or(false),
+    verbose=child.flags.get("verbose").unwrap_or(false),
+  )
 }
 
 ///|
