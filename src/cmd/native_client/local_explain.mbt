@@ -33,7 +33,7 @@ fn local_static_plan_view(
       let compiled = @run_host.issue_prepared_client_task_compilation(
         prepared,
         manifests,
-        @run_host.client_standard_values_sequence_limits(),
+        @run_host.prepared_client_values_sequence_limits(prepared),
         1000,
         1000,
         65536,
