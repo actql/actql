@@ -97,6 +97,35 @@ test('the current keyed README fixture is exact JSON data and cannot admit chang
 
 // One current map records each input's exact review, while archived preimages
 // above remain evidence for their own source only, never runtime acceptance.
+test('current Source JSON review binds only its checked normalization count dependency', () => {
+  const path='src/source_value/moon.pkg', revision='3ce2057976a7c88a13246a6349fbd7a584d11478';
+  const digest='7924497475b1578e83add3ebe773c473b6eba23182ed7c8e9b54ec38ecfba44b';
+  const entry=currentPackageConfigurations[path], selectedTree=gitTree(root,revision);
+  const body=selectedTree.read(path).toString();
+  const prior=gitTree(root,'523ada3259bf9e8147f746727fbfd56065036fd5').read(path).toString();
+  assert.equal(entry.revision,revision);assert.equal(entry.digest,digest);
+  assert.equal(hash(body),digest);
+  const dependency='  "actql/actql/capacity_arithmetic" @counts,\n';
+  assert.equal(body.split(dependency).length,2);
+  assert.equal(body.replace(dependency,''),prior,'all target and file selectors remain exact');
+  assert.deepEqual(packageImports(body).imports,
+    [...packageImports(prior).imports,'actql/actql/capacity_arithmetic'].sort());
+  assert.equal(currentPackageConfigurationReviewFor(request(path,hash(prior))),null,
+    'the old preimage is not promoted to the new current review');
+  const selected=packageSourceInputs({tree:currentTree,packages:['src/source_value'],target:'js'});
+  assert.deepEqual(selected.unresolved,[]);
+  for(const member of ['src/capacity_arithmetic/moon.pkg','src/capacity_arithmetic/preparation_counts.mbt',
+    'src/source_value/native_json_construction_extent.mbt','src/source_value/native_json_js_wbtest.mbt']) {
+    assert(selected.paths.includes(member),member);
+    assert.equal(currentTree.entries.get(member)?.kind,'blob');
+    assert.equal(currentTree.entries.get(member)?.mode,'100644');
+  }
+  for(const changed of [body.replace('@counts','@permission'),
+    body.replace('native_json_js_wbtest.mbt','unreviewed_native_json.mbt')]) {
+    assert.equal(currentPackageConfigurationReviewFor(request(path,hash(changed))),null);
+  }
+});
+
 test('current Local Host review binds the original carrier, Source builder and Model completion imports with existing JS selectors', () => {
   const path = 'src/client_local_host/moon.pkg';
   const entry = currentPackageConfigurations[path];
