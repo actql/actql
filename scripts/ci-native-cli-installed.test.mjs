@@ -43,6 +43,10 @@ test('installed gate uses real producers and independent Host permissions rather
   assert.match(source, /await packedClientPackage\(/u);
   assert.match(source, /release-native-host-authorization\.mjs/u);
   assert.match(source, /state: join\(host, 'host-state'\)/u);
+  assert.match(source, /\['release-native-host\.mjs', launcher\]/u);
+  assert.match(source, /cwd: launcherHost/u);
+  assert(source.indexOf('await registry.close()') < source.indexOf('await save(receipt)'));
+  assert.match(source, /new AggregateError\(\[failure, error\]/u);
   assert.match(source, /assert\.equal\(after\.mtimeMs, before\.mtimeMs\)/u);
   assert.match(source, /assert\.rejects\(stat\(target\), \{code: 'ENOENT'\}\)/u);
   assert.doesNotMatch(source, /publishPackageRelease|npm.*\['publish'|git.*\['push'/u);

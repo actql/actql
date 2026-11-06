@@ -5,6 +5,7 @@ import {createServer} from 'node:https';
 import {readFile, writeFile} from 'node:fs/promises';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
+import {setTimeout as sleep} from 'node:timers/promises';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 
@@ -24,6 +25,27 @@ function fixtureAuthorization(omitted) {
         connection: {any_of: ['actql-remote-host']},
         resource: {any_of: [resource]}, operation: {any_of: [operation]}, exclusions: []})),
   })};
+}
+
+async function readReadyResult(execution, receipt) {
+  const signal = AbortSignal.timeout(30_000);
+  const result = execution.result('main');
+  receipt.pendingResultReads = [];
+  receipt.resultReadAttempts = 0;
+  for (let attempt = 1; attempt <= 300; attempt++) {
+    signal.throwIfAborted();
+    receipt.resultReadAttempts = attempt;
+    try {return await result.all({signal});}
+    catch (error) {
+      // A not-yet-committed Result also returns this zero-row refusal. Poll
+      // only that original Result; no Run observation or new submission is
+      // authorized here. Eventual rows prove the separate permission works.
+      if (error?.code !== 'ResultAccessDenied' || error.rowsYielded !== 0 ||
+          signal.aborted || attempt === 300) throw error;
+      receipt.pendingResultReads.push({attempt, code: error.code, rowsYielded: error.rowsYielded});
+      await sleep(100, undefined, {signal});
+    }
+  }
 }
 
 const root = process.cwd(), receipts = [];
@@ -65,7 +87,7 @@ async function exercise(omitted) {
         ['lookup-submission', () => client.lookupSubmission(submissionRef)],
       ]) await denied(operation, action, 'ClientConnectionDenied');
       // The separate Result permission remains usable on that same Run.
-      receipt.rows = await execution.result('main').all({signal: AbortSignal.timeout(30_000)});
+      receipt.rows = await readReadyResult(execution, receipt);
       assert.deepEqual(receipt.rows, [{id: 1}, {id: 2}]);
     } else {
       assert.equal(omitted, 'result-main-read');

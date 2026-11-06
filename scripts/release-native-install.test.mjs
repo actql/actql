@@ -103,6 +103,55 @@ test('Native public consumer: installed denial controls remove only the selected
   }
 });
 
+test('Native public consumer: Result readiness polls only the original Result under one finite deadline', async () => {
+  const source = await readFile(new URL('./fixtures/release-native-host-authorization.mjs', import.meta.url), 'utf8');
+  const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
+  const helper = syntax.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'readReadyResult');
+  assert(helper);
+  const abort = new Error('fixture deadline');
+  let signal, deadlines, sleeps, reads, selected;
+  const reset = () => {
+    signal = {aborted: false, throwIfAborted() {if (this.aborted) throw abort;}};
+    deadlines = 0; sleeps = 0; reads = 0; selected = 0;
+  };
+  const ready = Function('AbortSignal', 'sleep', `return (${source.slice(helper.start, helper.end)});`)(
+    {timeout(ms) {assert.equal(ms, 30_000); deadlines++; return signal;}},
+    async (ms, value, options) => {
+      assert.equal(ms, 100); assert.equal(value, undefined); assert.equal(options.signal, signal); sleeps++;
+    });
+  const execution = read => Object.freeze({result(name) {
+    assert.equal(name, 'main'); selected++;
+    return Object.freeze({all(options) {assert.equal(options.signal, signal); reads++; return read();}});
+  }});
+  const pending = () => Object.assign(new Error('ResultAccessDenied'), {code: 'ResultAccessDenied', rowsYielded: 0});
+  reset();
+  const receipt = {denials: []}, rows = [{id: 1}, {id: 2}];
+  assert.equal(await ready(execution(() => {if (reads < 3) throw pending(); return rows;}), receipt), rows);
+  assert.deepEqual({deadlines, sleeps, reads, selected}, {deadlines: 1, sleeps: 2, reads: 3, selected: 1});
+  assert.equal(receipt.resultReadAttempts, 3);
+  assert.deepEqual(receipt.pendingResultReads, [1, 2].map(attempt =>
+    ({attempt, code: 'ResultAccessDenied', rowsYielded: 0})));
+  assert.deepEqual(receipt.denials, []);
+
+  for (const error of [Object.assign(pending(), {code: 'ResultUnavailable'}),
+    Object.assign(pending(), {rowsYielded: 1}), new Error('unexpected')]) {
+    reset();
+    await assert.rejects(ready(execution(() => {throw error;}), {}), actual => actual === error);
+    assert.deepEqual({reads, sleeps}, {reads: 1, sleeps: 0});
+  }
+  reset();
+  const failure = pending(), exhausted = {};
+  await assert.rejects(ready(execution(() => {throw failure;}), exhausted), error => error === failure);
+  assert.deepEqual({deadlines, sleeps, reads, selected}, {deadlines: 1, sleeps: 299, reads: 300, selected: 1});
+  assert.equal(exhausted.resultReadAttempts, 300);
+  reset();
+  await assert.rejects(ready(execution(() => {signal.aborted = true; throw failure;}), {}), error => error === failure);
+  assert.deepEqual({reads, sleeps}, {reads: 1, sleeps: 0});
+  reset(); signal.aborted = true;
+  await assert.rejects(ready(execution(() => assert.fail('expired deadline cannot read')), {}), error => error === abort);
+  assert.deepEqual({reads, sleeps}, {reads: 0, sleeps: 0});
+});
+
 test('Native public consumer: implicit SQL Result is main; every other original Remote business assertion stays pinned', async () => {
   const {source, syntax} = await remoteFixture();
   const allCalls = calls(syntax);

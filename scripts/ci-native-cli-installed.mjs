@@ -49,9 +49,6 @@ export async function acceptInstalledNativeCli(directory) {
   const env = publicConsumerEnvironment(process.env, consumer);
   await mkdir(env.HOME); await mkdir(env.TMPDIR);
   const records = [], registry = await openReleaseTestRegistry([{directory, manifest}]);
-  Object.assign(env, {npm_config_registry: registry.url, NO_PROXY: '127.0.0.1,localhost'});
-  await writeFile(env.npm_config_userconfig, `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
-  await writeFile(env.npm_config_globalconfig, '');
   const save = body => writeFile(join(directory, 'installed-ci.json'), `${JSON.stringify(body, null, 2)}\n`);
   const run = async (command, args, options = {}) => {
     try {
@@ -63,7 +60,11 @@ export async function acceptInstalledNativeCli(directory) {
       throw failure;
     }
   };
+  let receipt, failure;
   try {
+    Object.assign(env, {npm_config_registry: registry.url, NO_PROXY: '127.0.0.1,localhost'});
+    await writeFile(env.npm_config_userconfig, `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
+    await writeFile(env.npm_config_globalconfig, '');
     await run('npm', ['install', '-g', '--prefix', prefix, '--no-audit', '--no-fund',
       `actql@${manifest.cohort.packageVersion}`]);
     const launcher = join(prefix, 'bin/actql');
@@ -118,22 +119,41 @@ export async function acceptInstalledNativeCli(directory) {
     // acknowledges actual live closed state descriptors before process exit.
     await run(process.execPath, ['release-native-host.mjs', binary],
       {cwd: host, env: hostEnv, state: join(host, 'host-state')});
+    // Separately exercise the public npm launcher against fresh Host state.
+    // Its fixture resolves the same installed Host packages from the parent
+    // consumer, never checkout code or a second product build.
+    const launcherHost = join(host, 'launcher-positive'); await mkdir(launcherHost);
+    for (const name of ['release-native-host.mjs', 'remote.key', 'remote.crt'])
+      await copyFile(join(host, name), join(launcherHost, name));
+    await run(process.execPath, ['release-native-host.mjs', launcher], {cwd: launcherHost,
+      env: {...env, NODE_EXTRA_CA_CERTS: join(launcherHost, 'remote.crt')}});
     const authorizationEnv = {...env, NODE_EXTRA_CA_CERTS: join(host, 'remote.crt')};
     await run(process.execPath, ['release-native-host-authorization.mjs', binary],
       {cwd: host, env: authorizationEnv});
     assert.equal(hash(await readFile(binary)), artifact.binarySha256);
     assert.deepEqual(checkoutState(repository), source);
     await verifyNativeCliRelease(directory);
-    await save({source: source.revision, status: 'passed', platform, consumer,
+    receipt = {source: source.revision, status: 'passed', platform, consumer,
       publicPublication: false, cliVersion: manifest.cohort.packageVersion,
       binarySha256: artifact.binarySha256, registryRequests: registry.requested, records,
-      scope: ['fresh npm installation', 'Remote real Host', 'finite Account refusals',
+      hostAcceptance: {
+        nodeFreeBinary: JSON.parse(await readFile(join(host, 'native-host-acceptance.json'), 'utf8')),
+        npmLauncher: JSON.parse(await readFile(join(launcherHost, 'native-host-acceptance.json'), 'utf8')),
+        authorization: JSON.parse(await readFile(join(host, 'native-host-authorization.json'), 'utf8')),
+      },
+      scope: ['fresh npm installation', 'npm launcher Remote real Host', 'finite Account refusals',
         'Node-free installed executable', 'closed state descriptors', 'unavailable Local init leaves no files'],
-      unverified: ['Linux Local execution', 'mock workflow execution', 'other platforms']});
-  } catch (failure) {
+      unverified: ['Linux Local execution', 'mock workflow execution', 'other platforms']};
+  } catch (error) {failure = error;}
+  try {await registry.close();}
+  catch (error) {failure = failure === undefined ? error
+    : new AggregateError([failure, error], 'Installed acceptance and registry cleanup failed');}
+  if (failure !== undefined) {
     await save({source: source.revision, status: 'failed', consumer, error: failure.message, records});
     throw failure;
-  } finally {await registry.close();}
+  }
+  // A receipt is successful only after every owned resource has closed.
+  await save(receipt);
   scratch.passed();
 }
 
