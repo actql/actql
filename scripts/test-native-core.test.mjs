@@ -175,6 +175,61 @@ test('Reader custody callbacks preserve the pinned Moon nested Native compiler a
       evidenceScratch: join(scratch, 'command-evidence')}), 0);
 });
 
+test('Reader custody callbacks preserve Linux x64 dependency constructors before its fixture scope exists',
+  {skip: process.platform !== 'linux' || process.arch !== 'x64'}, () => {
+  const checkout = fileURLToPath(new URL('../', import.meta.url));
+  const parent = join(checkout, '_build', 'native-reader-helper-tests');
+  mkdirSync(parent, {recursive: true});
+  const scratch = realpathSync(mkdtempSync(join(parent, 'early-constructor-')));
+  const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  const earlySource = join(scratch, 'early.c');
+  const mainSource = join(scratch, 'main.c');
+  writeFileSync(earlySource, `
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+static int observed;
+__attribute__((constructor)) static void early(void) {
+  struct stat status;
+  errno = 0;
+  if (fstat(-1, &status) != -1 || errno != EBADF) _exit(81);
+  errno = 0;
+  if (close(-1) != -1 || errno != EBADF) _exit(82);
+  int fd = open("/dev/null", O_RDONLY);
+  if (fd < 0 || fstat(fd, &status) != 0 || !S_ISCHR(status.st_mode)) _exit(83);
+  if (close(fd) != 0) _exit(84);
+  observed = 1;
+}
+int early_observed(void) { return observed; }
+`);
+  writeFileSync(mainSource,
+    'extern int early_observed(void); int main(void) { return early_observed() == 1 ? 0 : 85; }\n');
+  const earlyLibrary = join(scratch, 'libearly.so');
+  const preload = join(scratch, 'early-reader-custody.so');
+  const helper = join(scratch, 'early-helper');
+  const flags = ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror'];
+  const linkEarly = ['-L', scratch, '-Wl,--no-as-needed', '-learly', '-Wl,-rpath,' + scratch];
+  for (const args of [
+    [...flags, '-shared', '-fPIC', earlySource, '-o', earlyLibrary],
+    // A direct dependency must initialize before the preloaded fixture. This
+    // reproduces the real compiler DSO ordering without relying on its internals.
+    [...flags, '-shared', '-fPIC', join(checkout, 'scripts/fixtures/native-runtime-reader-custody.c'),
+      ...linkEarly, '-ldl', '-o', preload],
+    [...flags, mainSource, ...linkEarly, '-o', helper],
+  ]) {
+    const built = spawnSync('cc', args, {encoding: 'utf8', timeout: 30000});
+    assert.equal(built.error, undefined);
+    assert.equal(built.signal, null, built.stderr);
+    assert.equal(built.status, 0, built.stderr);
+  }
+  const observed = spawnSync(helper, [], {encoding: 'utf8', timeout: 10000,
+    env: {...process.env, ...injected, LD_PRELOAD: preload}});
+  assert.equal(observed.error, undefined);
+  assert.equal(observed.signal, null, observed.stderr);
+  assert.equal(observed.status, 0, observed.stderr);
+});
+
 test('Reader custody callbacks preserve ordinary FDs and exact pending/acked behavior', () => {
   const checkout = fileURLToPath(new URL('../', import.meta.url));
   const parent = join(checkout, '_build', 'native-reader-helper-tests');
