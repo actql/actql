@@ -2189,12 +2189,15 @@ fn source_projection_capture_query(query : @query.Query) -> Bool {
   if @query.operation_at(query, index) is Some(Where(_)) {
     index += 1
   }
-  guard @query.operation_at(query, index) is Some(Select(projections, false)) &&
-    @query.operation_at(query, index + 1) is Some(Order(_)) else {
+  guard @query.operation_at(query, index) is Some(Select(projections, false)) else {
     return false
   }
-  // This unit moves only the adopted pure Vector scalar calls. Other
-  // functions may have their own evaluation-context contract and stay put.
+  // Field/parameter/literal projection has no evaluation-context callback.
+  // Keep it inside the same acquisition capture before its cross-stage
+  // publication, so an unselected structured column is not a Result field.
+  // Other expressions retain their original placement, except the already
+  // adopted Vector scalar route below with its original ORDER-only suffix.
+  let mut direct_projection = true
   let mut has_vector_scalar = false
   for projection in projections {
     if projection.aggregate is Some(_) ||
@@ -2205,20 +2208,40 @@ fn source_projection_capture_query(query : @query.Query) -> Bool {
     }
     if projection.expression is Some(expression) {
       for node_index in 0..<@query.expression_node_count(expression) {
-        if @query.expression_node(expression, node_index).unwrap().kind
-          is Call(path, _) {
-          guard path.length() == 1 else { return false }
-          match ascii_upper(path[0].value) {
-            "VECTOR_COSINE_SIMILARITY"
-            | "VECTOR_INNER_PRODUCT"
-            | "VECTOR_L2_DISTANCE" => has_vector_scalar = true
-            _ => return false
+        match @query.expression_node(expression, node_index).unwrap().kind {
+          Null
+          | Boolean(_)
+          | Number(_)
+          | StringLiteral(_)
+          | Reference(_)
+          | ParameterReference(_) => ()
+          Call(path, _) => {
+            direct_projection = false
+            guard path.length() == 1 else { return false }
+            match ascii_upper(path[0].value) {
+              "VECTOR_COSINE_SIMILARITY"
+              | "VECTOR_INNER_PRODUCT"
+              | "VECTOR_L2_DISTANCE" => has_vector_scalar = true
+              _ => return false
+            }
           }
+          _ => direct_projection = false
         }
       }
     }
   }
-  if !has_vector_scalar {
+  if direct_projection {
+    // Only the selected first projection may move. A later SELECT must not
+    // overwrite the retained prefix and carry intervening operations with it.
+    for tail in (index + 1)..<@query.operation_count(query) {
+      if @query.operation_at(query, tail) is Some(Select(_, _)) {
+        return false
+      }
+    }
+    return true
+  }
+  if !has_vector_scalar ||
+    !(@query.operation_at(query, index + 1) is Some(Order(_))) {
     return false
   }
   index += 2
@@ -7243,7 +7266,17 @@ fn compile_steps(
       let tail = Array::makei(step_entries.length() - capture.count, i => {
         step_entries[capture.count + i]
       })
-      guard !tail.is_empty() else { raise Abort(InvalidContext) }
+      if tail.is_empty() {
+        // The projection itself was the complete Query. Preserve the normal
+        // consumer Stage and public Result name without evaluating it twice.
+        tail.push([
+          (
+            "select",
+            construction.array(output.map(field => construction.text(field))),
+          ),
+          ("as", construction.text(final_alias)),
+        ])
+      }
       // Continue from the exact projected Result, not the raw provider input.
       tail[0].insert(0, ("from", construction.text(input.name)))
       tail

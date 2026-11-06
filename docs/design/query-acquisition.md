@@ -63,6 +63,24 @@ there is no authored `WHERE`; Common emits the true predicate as part of the
 checked Program. A Native Program is not rewritten by acquisition admission:
 its original shape must satisfy the selected execution entry.
 
+For a single-consumer captured Source, the existing projection continuation
+also accepts an initial non-distinct field, literal or Parameter projection.
+An optional preceding predicate keeps its existing acquisition position. The
+projection runs after the original full Source admission and before publishing
+the capture's cross-stage Result; unselected structured columns remain in the
+Source contract without becoming publication fields. The same declared and
+supplied Parameters, policy and physical acquisition owners remain in force.
+The ordinary checker still resolves the complete projected Result's order.
+Selecting a nonorderable value therefore retains its original refusal.
+
+Function calls retain their original placement except for the already adopted
+Vector scalar continuation. Aggregates, analytic projections, stars, DISTINCT,
+multiple SELECTs and a projection deferred for an original-input ORDER do not
+enter the new direct-projection case. A projection-only query retains its normal
+consumer Stage and public Result through an identity projection, rather than
+evaluating the original expression twice. No provider pushdown, grant, currentness
+proof, capture evidence or cleanup acknowledgement is issued by this placement.
+
 For an independent two-Source JOIN, the existing Script binder retains each
 Direct request in its own capture Stage before the local JOIN. This preserves
 the two-acquisition graph prefix and the original Parameter bindings. A right
