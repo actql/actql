@@ -81,28 +81,28 @@
       "expected":[{"amount":1,"id":null},{"amount":2,"id":20},{"amount":3,"id":30},{"amount":3,"id":30}]
     },
     {
-      "name":"scoped-order-rebound-alias", "format":"aql-text",
+      "name":"scoped-order-rebound-alias", "format":"aql-text", "resultName":"answer",
       "sourceRows":[{"id":1,"amount":10},{"id":2,"amount":20}],
       "text":"FROM records |> AS original |> SELECT -id AS id |> ORDER BY -id |> RESULT answer",
       "columns":[{"name":"id","contract":{"type":"number","nullable":false}}],
       "expected":[{"id":-1},{"id":-2}]
     },
     {
-      "name":"scoped-order-distinct-rebound-alias", "format":"aql-text",
+      "name":"scoped-order-distinct-rebound-alias", "format":"aql-text", "resultName":"answer",
       "sourceRows":[{"id":1,"amount":10},{"id":2,"amount":20},{"id":1,"amount":10}],
       "text":"FROM records |> AS original |> SELECT DISTINCT -id AS id |> ORDER BY -id |> RESULT answer",
       "columns":[{"name":"id","contract":{"type":"number","nullable":false}}],
       "expected":[{"id":-1},{"id":-2}]
     },
     {
-      "name":"scoped-order-unchanged-expression", "format":"aql-text",
+      "name":"scoped-order-unchanged-expression", "format":"aql-text", "resultName":"answer",
       "sourceRows":[{"id":1,"amount":10},{"id":2,"amount":20}],
       "text":"FROM records |> AS original |> SELECT -id AS score |> ORDER BY -id |> RESULT answer",
       "columns":[{"name":"score","contract":{"type":"number","nullable":false}}],
       "expected":[{"score":-2},{"score":-1}]
     },
     {
-      "name":"scoped-order-qualified-input", "format":"aql-text",
+      "name":"scoped-order-qualified-input", "format":"aql-text", "resultName":"answer",
       "sourceRows":[{"id":1,"amount":10},{"id":2,"amount":20}],
       "text":"FROM records |> AS original |> SELECT -original.id AS id |> ORDER BY -original.id |> RESULT answer",
       "columns":[{"name":"id","contract":{"type":"number","nullable":false}}],
