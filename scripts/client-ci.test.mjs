@@ -1535,3 +1535,4 @@ test('computation cleanup keeps shared reservations and cumulative use', async (
   assert.throws(() => check(completed, pending, snapshot('1', '6', '9')));
   assert.throws(() => check(completed, pending, undefined));
 });
+import './packed-duckdb-capability-input.test.mjs';
