@@ -14,6 +14,7 @@ import {types as nodeTypes} from 'node:util';
 import './two-source-optional-effect.test.mjs';
 import './composition-release-input.test.mjs';
 import './table-ctas-result-controls.test.mjs';
+import './packed-original-submission-callers.test.mjs';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
