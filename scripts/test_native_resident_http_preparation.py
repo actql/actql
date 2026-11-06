@@ -162,7 +162,7 @@ class LinuxInspectionTools(unittest.TestCase):
 
 
 class ExistingProducerComposition(unittest.TestCase):
-    def compose(self,target,fail=False,key_fingerprint='A'*40):
+    def compose(self,target,fail=False,key_fingerprint='A'*40,tls_jobs=1):
         with tempfile.TemporaryDirectory() as raw:
             root=Path(raw).resolve();(root/'scripts').mkdir()
             data=b'pinned Source-only input';pin={'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
@@ -184,7 +184,8 @@ class ExistingProducerComposition(unittest.TestCase):
                     self.assertEqual(command[command.index('--output')+1],'-')
                 else:self.assertIn('show-only',command)
                 return subprocess.CompletedProcess(command,0,output,b'')
-            def build_tls(*args):
+            def build_tls(*args,**kwargs):
+                self.assertEqual(kwargs,{'jobs':tls_jobs})
                 calls.append(('tls',args));destination=args[2];destination.mkdir()
                 stage=destination/'stage';stage.mkdir()
                 (destination/'build.json').write_text(json.dumps({'source':args[0],'target':args[-2]}))
@@ -201,7 +202,7 @@ class ExistingProducerComposition(unittest.TestCase):
                     patch.object(P.HTTP,'build',side_effect=build_http),\
                     patch.object(P.urllib.request,'urlopen',side_effect=AssertionError('duplicate download')):
                 invoke=lambda:P.prepare(source,target,cc,sdk,make,perl,gpg,gpgv,output,60,
-                    curl_archive=curl,curl_signature=signature,release_key=key,tls_archive=tls)
+                    curl_archive=curl,curl_signature=signature,release_key=key,tls_archive=tls,tls_jobs=tls_jobs)
                 if key_fingerprint!='A'*40:
                     with self.assertRaisesRegex(ValueError,'release key fingerprint differs'):invoke()
                     self.assertFalse(calls);self.assertFalse((output/'preparation.json').exists());return
@@ -222,6 +223,9 @@ class ExistingProducerComposition(unittest.TestCase):
         for target in ('linux-x64','darwin-arm64'):
             with self.subTest(target=target):self.compose(target)
 
+    def test_explicit_two_jobs_reach_the_same_tls_producer(self):
+        self.compose('darwin-arm64',tls_jobs=2)
+
     def test_component_refusal_cannot_publish_complete_preparation(self):
         self.compose('darwin-arm64',fail=True)
 
@@ -230,7 +234,7 @@ class ExistingProducerComposition(unittest.TestCase):
 
 
 class OwnedTlsReceipt(unittest.TestCase):
-    def test_copying_headers_preserves_the_selected_serializable_target(self):
+    def produce(self,jobs=None):
         with tempfile.TemporaryDirectory() as raw:
             root=Path(raw).resolve();(root/'scripts').mkdir()
             source='a'*40;original=root/'original/openssl-test'
@@ -251,7 +255,9 @@ class OwnedTlsReceipt(unittest.TestCase):
             (root/'scripts/produce-native-remote-scoped-runtime.py').write_bytes(b'Source-only original observer')
             for name in ('cc','make','perl'):(root/name).write_bytes(b'Source-only tool')
             output=root/'output'
+            commands=[]
             def execute(command,**kwargs):
+                commands.append(command)
                 if 'build_libs' in command:
                     build=output/'build'
                     for name in ('libssl.a','libcrypto.a'):(build/name).write_bytes(b'Fixture archive; never loaded')
@@ -263,9 +269,27 @@ class OwnedTlsReceipt(unittest.TestCase):
                     patch.object(P.HTTP.TLS.subprocess,'check_output',
                         side_effect=lambda args,**kw:source+'\n' if 'rev-parse' in args else ''),\
                     patch.object(P.HTTP.TLS.subprocess,'run',side_effect=execute):
-                result=P.HTTP.TLS.build(source,archive,output,root/'cc',None,root/'make',root/'perl',30,'linux-x64')
+                result=P.HTTP.TLS.build(source,archive,output,root/'cc',None,root/'make',root/'perl',30,'linux-x64',
+                    **({} if jobs is None else {'jobs':jobs}))
             self.assertEqual(result['target'],'linux-x64')
-            self.assertEqual(json.loads((output/'build.json').read_text())['target'],'linux-x64')
+            receipt=json.loads((output/'build.json').read_text())
+            self.assertEqual(receipt['target'],'linux-x64')
+            self.assertEqual(receipt['buildJobs'],1 if jobs is None else jobs)
+            self.assertIn([str(root/'make'),'-j'+str(1 if jobs is None else jobs),'build_libs'],commands)
+
+    def test_copying_headers_preserves_the_selected_serializable_target(self):
+        self.produce()
+
+    def test_two_job_build_keeps_target_headers_and_records_actual_parallelism(self):
+        self.produce(jobs=2)
+
+    def test_invalid_parallelism_refuses_before_io_or_commands(self):
+        for jobs in (True,False,0,3,-1,1.5,'2',None):
+            with self.subTest(jobs=jobs),patch.object(P.HTTP.TLS.subprocess,'check_output',side_effect=AssertionError('Source read')):
+                with self.assertRaisesRegex(ValueError,'TLS build jobs'):
+                    P.HTTP.TLS.build('a'*40,None,None,None,None,None,None,30,jobs=jobs)
+                with self.assertRaisesRegex(ValueError,'TLS build jobs'):
+                    P.prepare('a'*40,'linux-x64',None,None,None,None,None,None,None,30,tls_jobs=jobs)
 
 
 if __name__=='__main__':unittest.main()

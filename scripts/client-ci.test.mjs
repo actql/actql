@@ -31,8 +31,9 @@ import {canonicalText} from './check-canonical-json.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const normal = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
-const groups = ['client-packages', 'client-distribution', 'client-packed', 'client-salesforce'];
-const consumers = ['client-distribution', 'client-packed'];
+const groups = ['client-packages', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce'];
+const consumers = ['client-distribution', 'client-distribution-callers',
+  'client-distribution-mutations', 'client-distribution-packed', 'client-packed'];
 const runs = name => jobs[name].steps.filter(step => step.run).map(step => step.run.trim());
 const run = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: root, env: {...process.env, ...env}, encoding: 'utf8',
@@ -621,10 +622,30 @@ test('packed Effect target reads keep distinct approval phases and independent p
 });
 
 test('each Client group retains its acceptance commands exactly once', () => {
-  assert.deepEqual(runs('client-distribution'), [
-    'npm ci --prefix packages/provider-ai-sdk --ignore-scripts',
-    'npm run check:distribution-client',
-  ]);
+  const original = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    .scripts['check:distribution-client'].split(' && ');
+  assert.equal(original.length, 53, 'the existing full local gate remains unchanged');
+  const prepared = ['npm ci --prefix packages/provider-ai-sdk --ignore-scripts',
+    original.slice(0, 4).join('\n')];
+  const partitions = {
+    'client-distribution': [4],
+    'client-distribution-callers': Array.from({length: 36}, (_, index) => index + 17),
+    'client-distribution-mutations': [6, 7, 8, 9],
+    'client-distribution-packed': [5, 10, 11, 12, 13, 14],
+    'client-distribution-native': [15, 16],
+  };
+  for (const [name, indexes] of Object.entries(partitions)) {
+    assert.deepEqual(runs(name), [
+      ...(['client-distribution', 'client-distribution-callers', 'client-distribution-mutations'].includes(name) ? prepared : []),
+      ...indexes.map(index => original[index]),
+    ], name);
+  }
+  assert.deepEqual(Object.values(partitions).flat().sort((a, b) => a - b),
+    Array.from({length: 49}, (_, index) => index + 4),
+    'every original acceptance command remains exactly once; only four source-preparation commands repeat');
+  assert(!jobs['client-distribution-packed'].steps.some(step => step.id === 'distribution-preparation'),
+    'normal tar acceptance does not rebuild the checkout runtime');
+  assert.deepEqual(jobs['client-distribution-native'].needs, ['select-targets', 'preflight']);
   assert.deepEqual(runs('client-packed'), [
     'node scripts/test-packed-local-node-assets.mjs',
     'node scripts/test-packed-sheets.mjs',
@@ -648,17 +669,23 @@ for boundary in effect-source effect-capture publication-private; do
   node scripts/test-effect-capture-crash.mjs "$boundary"
 done`,
   ]);
-  const distribution = jobs['client-distribution'].steps.find(step => step.run === 'npm run check:distribution-client');
-  assert.deepEqual(distribution.env, {TMPDIR: '${{ github.workspace }}/_build'});
+  for (const name of Object.keys(partitions)) for (const step of jobs[name].steps.filter(step => step.name?.startsWith('Test ')))
+    assert.deepEqual(step.env, {TMPDIR: '${{ github.workspace }}/_build'});
   for (const name of groups) {
     assert.equal(jobs[name].if, normal);
     assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
     assert.equal(jobs[name]['timeout-minutes'], 30);
     assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
     for (const step of jobs[name].steps.filter(step => step.run)) {
-      assert.equal(step.if, name === 'client-packed' && step.name.startsWith('Test ')
-        ? "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}" : undefined,
-      'independent packed cases require the original successful download, not a previous case');
+      let preparation;
+      if (step.name?.startsWith('Test ')) {
+        if (['client-packed', 'client-distribution-packed'].includes(name)) preparation = 'client-inputs';
+        else if (name === 'client-distribution-native') preparation = 'native-client-preparation';
+        else if (Object.hasOwn(partitions, name)) preparation = 'distribution-preparation';
+      }
+      assert.equal(step.if, preparation
+        ? '${{ !cancelled() && steps.' + preparation + ".outcome == 'success' }}" : undefined,
+      'independent cases require their original successful preparation, not a previous case');
       assert.equal(step['continue-on-error'], undefined);
     }
   }
@@ -750,7 +777,7 @@ test('the original client check succeeds only when every producer and acceptance
 });
 
 test('local commands remain available for each independently retryable group', () => {
-  for (const name of [...consumers, 'client-salesforce']) {
+  for (const name of [...consumers, 'client-distribution-native', 'client-salesforce']) {
     const child = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'run', name, '--dry-run'], {cwd: root, encoding: 'utf8'});
     assert.equal(child.status, 0, child.stderr);
     for (const command of runs(name)) {

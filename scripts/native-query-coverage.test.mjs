@@ -113,6 +113,19 @@ test('missing known file or renamed required case fails, never silently skips', 
   }
 });
 
+test('new environment inputs inside an already owned file cannot inherit its registration', () => {
+  const path = query + 'duckdb_native_runtime_wbtest.mbt';
+  for (const extra of [
+    '\nfn new_input() { "ACTQL_TEST_NEW_2" }',
+    '\nextern "C" fn new_reader() -> Int = "getenv"',
+    '\nextern "C" fn new_reader() -> Int = "secure_getenv"',
+    '\nextern "C" fn new_reader() -> Int = "actql_native_sqlite_test_unclosed_coordinator"',
+  ]) {
+    const selection = select('http-client', {...sources, [path]: sources[path] + extra});
+    assert.equal(selection.mode, 'full-fallback', extra);
+  }
+});
+
 test('new direct environment consumer falls back to full current suite', () => {
   const selection = select('http-client', {...sources,
     [query + 'new_wbtest.mbt']: 'test "new" { @env.get_env_var("NEW") }'});
@@ -136,6 +149,21 @@ test('new indirect helper consumer also rejects the subset', () => {
     [query + 'new_wbtest.mbt']: 'test "new" { wrapper() }'});
   assert.equal(selection.mode, 'full-fallback');
   assert.ok(selection.reasons.some(reason => reason.includes('new_wbtest')));
+});
+
+test('generic environment helpers cannot hide a new consumer behind an owned fixture', () => {
+  const path = query + 'physical_adaptive_dispatch_wbtest.mbt';
+  for (const generic of ['[T]', '[\nT\n]']) {
+    const input = {...sources,
+      [path]: sources[path] + '\nfn' + generic + ' fixture_environment(original : T) -> String { ' +
+        '@env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY").unwrap() }',
+      [query + 'new_generic_wbtest.mbt']:
+        'test "new inferred helper" { let callback = fixture_environment; callback([1]) }',
+    };
+    const selection = select('http-client', input);
+    assert.equal(selection.mode, 'full-fallback', generic);
+    assert(selection.reasons.some(reason => reason.includes('new_generic_wbtest.mbt')));
+  }
 });
 
 test('environment helper function values and aliases reject subset selection', () => {

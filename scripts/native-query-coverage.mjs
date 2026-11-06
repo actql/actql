@@ -18,7 +18,7 @@ const queryReader = /get_env_var|native_duckdb_test_library|native_resident_test
 const testNames = source => [...source.matchAll(/^test "([^"]+)"/gmu)]
   .map(match => match[1]);
 const variables = source => [...new Set([
-  ...source.matchAll(/"(ACTQL_[A-Z_]+)"/gu),
+  ...source.matchAll(/"(ACTQL_[A-Z_0-9]+)"/gu),
   ...source.matchAll(/get_env_var\s*\(\s*"([^"]+)"/gu),
 ].map(match => match[1]))].sort();
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
@@ -43,7 +43,7 @@ function queryEnvironmentHelpers(sources) {
   const functions = new Map();
   for (const [path, source] of Object.entries(sources)) {
     if (!path.endsWith('.mbt') || !inHarnessPackage(path) && /_(?:wb|bb)?test\.mbt$/u.test(path)) continue;
-    const starts = [...source.matchAll(/^(?:(?:(?:pub|priv) )?(?:extern "[^"]+" )?fn ([a-zA-Z_][a-zA-Z_0-9]*)\b|test\b)/gmu)];
+    const starts = [...source.matchAll(/^(?:(?:(?:pub|priv) )?(?:extern "[^"]+" )?fn(?:\[[^]*?\])?\s+([a-zA-Z_][a-zA-Z_0-9]*)\b|test\b)/gmu)];
     for (let index = 0; index < starts.length; index++) {
       if (starts[index][1]) {
         const name = starts[index][1];
@@ -286,6 +286,10 @@ export function selectNativeQueryTests(owner, sources, env,
     if (inHarnessPackage(path)) {
       if (native(path)) total += testNames(source).length;
       const file = path;
+      // An existing file registration owns its declared fixture variables,
+      // never a newly bound libc reader or the exec-only Journal WB producer.
+      if (/\b(?:(?:secure_)?getenv|environ|actql_native_sqlite_test_unclosed_coordinator)\b/u.test(source))
+        reasons.push(`unreviewed native query FFI environment reader: ${file}`);
       const readsEnvironment = environmentReader.test(source) || queryReader.test(source) ||
         identifiers(source).some(name => helpers.has(name));
       if (readsEnvironment && !manifest.files[file]) {
