@@ -96,6 +96,11 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       try {
         const child = inferCapture?.custody ?? inferOperation;
         if (originalPreparation !== undefined && inferOperation?.publicationCapacityPending?.()) {
+          // A completed result still owns its Model stop/settlement. Await
+          // that SAME operation before retiring publication aliases: the
+          // custody gate requires physicalStopped and cannot initiate stop.
+          // Keep this continuation/result while pending; never run it again.
+          await inferOperation.stop();
           if (!await inferCapture.custody.retirePublication() ||
               !inferOperation.releaseOriginalPublicationCapacity()) return false;
         }

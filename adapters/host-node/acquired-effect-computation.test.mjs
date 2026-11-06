@@ -572,7 +572,8 @@ for (const [name, options] of [
 // Actual cleanup and successful publication block, extracted unchanged. The
 // Core/Store/Task owner ports are explicit; this is not ordinary funding proof.
 function persistedModelScratchFixture({retire = true, release = true,
-  releaseFailure, closeFailure, heldOutput = false} = {}) {
+  releaseFailure, closeFailure, heldOutput = false, stopBeforeRetirement = false,
+  stop, current = () => {}} = {}) {
   const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const declaration = ast.body.map(node => node.declaration ?? node)
@@ -584,17 +585,24 @@ function persistedModelScratchFixture({retire = true, release = true,
     source.slice(node.start, node.end).includes('(await inferCapture.persist()).plan'));
   assert.ok(cleanup && persisted);
   const events = [], plan = {}, content = {live: true};
-  let modelClosed = false;
+  let modelClosed = false, physicallyStopped = !stopBeforeRetirement;
   const inferCapture = {persist: async () => {events.push('persist'); return {plan};},
     custody: {retirePublication: async () => {
-      events.push('retire-publication'); return typeof retire === 'function' ? retire() : retire;
+      events.push('retire-publication');
+      return physicallyStopped && (typeof retire === 'function' ? retire() : retire);
     },
       close: async () => {
         events.push('close-model'); closeFailure?.(); modelClosed = true;
       },
       cleanup: async () => {events.push('cleanup-model'); modelClosed = true; return true;},
       cleanupPending: () => !modelClosed}};
-  const inferOperation = {publicationCapacityPending: () => true,
+  const inferOperation = {
+    async stop() {
+      events.push('stop-model');
+      await stop?.();
+      physicallyStopped = true;
+    },
+    publicationCapacityPending: () => true,
     releaseOriginalPublicationCapacity() {
       events.push('release-capacity');
       if (releaseFailure !== undefined) releaseFailure();
@@ -604,24 +612,23 @@ function persistedModelScratchFixture({retire = true, release = true,
     assert.strictEqual(this, execution); assert.equal(modelClosed, true);
     events.push('refresh-original-scratch'); assert.equal(content.live, true);
   }};
-  const original = new Function('inferCapture', 'inferOperation', 'execution', 'events', `
+  const original = new Function('inferCapture', 'inferOperation', 'execution', 'events', 'current', `
     let inferReleased=false,inferCloseAttempted=false,modelReleased=false,modelCloseAttempted=false;
     const modelContinuation={close(){throw Error('same journal continuation must remain');}};
     const originalPreparation={},component={},restoredModelOutput=${heldOutput ? '{}' : 'undefined'};
     let publicationPlan,modelGroup;
-    const current=()=>{};
     const faultInjection=async()=>{events.push('capture-committed');};
     ${source.slice(cleanup.start, cleanup.end)}
     return {run:async()=>{${source.slice(persisted.start, persisted.end)} return publicationPlan;},
       cleanup:()=>cleanupInfer(false)};
-  `)(inferCapture, inferOperation, execution, events);
+  `)(inferCapture, inferOperation, execution, events, current);
   return {...original, events, plan, content, inferCapture};
 }
 
 test('persisted original Model retires its aliases before scratch refresh while Content and journal remain', async () => {
   const f = persistedModelScratchFixture();
   assert.strictEqual(await f.run(), f.plan);
-  assert.deepEqual(f.events, ['persist', 'retire-publication', 'release-capacity',
+  assert.deepEqual(f.events, ['persist', 'stop-model', 'retire-publication', 'release-capacity',
     'close-model', 'refresh-original-scratch', 'capture-committed']);
   assert.equal(f.content.live, true);
 });
@@ -629,7 +636,7 @@ test('persisted original Model retires its aliases before scratch refresh while 
 test('pending original Model publication keeps aliases and forbids scratch refresh', async () => {
   const f = persistedModelScratchFixture({retire: false});
   await assert.rejects(f.run(), {code: 'ClientDispatchCleanupPending'});
-  assert.deepEqual(f.events, ['persist', 'retire-publication']);
+  assert.deepEqual(f.events, ['persist', 'stop-model', 'retire-publication']);
   assert.equal(f.inferCapture.custody.cleanupPending(), true);
   assert.equal(f.content.live, true);
 });
@@ -697,7 +704,7 @@ test('original Model alias retirement preserves thrown undefined null and Error 
     let rejected = false;
     try {await f.run();} catch (error) {rejected = true; assert.strictEqual(error, original);}
     assert.equal(rejected, true);
-    assert.deepEqual(f.events, ['persist', 'retire-publication', 'release-capacity']);
+    assert.deepEqual(f.events, ['persist', 'stop-model', 'retire-publication', 'release-capacity']);
     assert.equal(f.content.live, true);
   }
 });
@@ -1121,4 +1128,56 @@ test('plural Effect downstream Model retains original Source provenance and cons
   assert.strictEqual(f.contexts[0].capturedInput, f.capturedInput);
   assert.equal(f.contexts[1].capturedInput, undefined);
   assert.equal(await f.group.cleanup(true), true);
+});
+
+
+test('completed original Model awaits the same pending stop then continues its retained publication once', async () => {
+  let release, stopping = false, settled = false;
+  const stopped = new Promise(resolve => {release = resolve;});
+  const f = persistedModelScratchFixture({stopBeforeRetirement: true,
+    async stop() {stopping = true; await stopped;}});
+  const completion = f.run().finally(() => {settled = true;});
+  // Observe both resolution/rejection while the original stop is suspended.
+  const outcome = completion.then(value => ({value}), error => ({error}));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(stopping, true, 'The real stop precedes publication retirement');
+  assert.equal(settled, false, 'Pending cleanup must not fail the completed continuation');
+  assert.deepEqual(f.events, ['persist', 'stop-model']);
+  assert.equal(f.inferCapture.custody.cleanupPending(), true);
+  release();
+  const result = await outcome;
+  assert.strictEqual(result.value, f.plan);
+  assert.deepEqual(f.events, ['persist', 'stop-model', 'retire-publication',
+    'release-capacity', 'close-model', 'refresh-original-scratch', 'capture-committed']);
+  assert.equal(f.content.live, true);
+  assert.equal(f.events.filter(value => value === 'persist').length, 1);
+});
+
+test('completed original Model stop failure preserves the exact primary without refresh or publication', async () => {
+  for (const primary of [undefined, null, new Error('OriginalModelStop')]) {
+    const f = persistedModelScratchFixture({stopBeforeRetirement: true,
+      stop() {throw primary;}});
+    let rejected = false;
+    try {await f.run();} catch (error) {rejected = true; assert.strictEqual(error, primary);}
+    assert.equal(rejected, true);
+    assert.deepEqual(f.events, ['persist', 'stop-model']);
+    assert.equal(f.inferCapture.custody.cleanupPending(), true);
+  }
+});
+
+test('completed original Model rechecks currentness after the same pending stop before scratch or publication', async () => {
+  let release, current = true;
+  const stopped = new Promise(resolve => {release = resolve;});
+  const primary = new Error('OriginalSelectionRetired');
+  const f = persistedModelScratchFixture({stopBeforeRetirement: true,
+    stop: () => stopped,
+    current() {if (!current) throw primary;}});
+  const outcome = f.run().then(value => ({value}), error => ({error}));
+  await new Promise(resolve => setImmediate(resolve));
+  current = false; release();
+  const result = await outcome;
+  assert.strictEqual(result.error, primary);
+  assert.equal(f.events.includes('refresh-original-scratch'), false);
+  assert.equal(f.events.includes('capture-committed'), false);
+  assert.equal(f.events.filter(value => value === 'persist').length, 1);
 });
