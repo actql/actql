@@ -44,6 +44,7 @@ fn command_preparation_cleanup_cause(
       match cause {
         Domain(_) => "Domain"
         Child(_) => "Child"
+        Initialization(_) => "Initialization"
       }
     CommandStoreOperation(cause) =>
       match cause {

@@ -9,6 +9,7 @@ struct BackedInitializationAdmission[I] {
   owner_retired : () -> Bool
   mut transitioning : Bool
   mut host_taken : Bool
+  mut preparation_selected : Bool
   mut cleaned : Bool
 }
 
@@ -37,6 +38,7 @@ pub fn[P, C, I] prepare_backed_initialization_admission(
     owner_retired: () => projection.retired_after_owner_ack,
     transitioning: false,
     host_taken: false,
+    preparation_selected: false,
     cleaned: false,
   }
   owner.original = Some(owner)
@@ -107,16 +109,44 @@ pub fn[I] take_backed_initialization_admission(
   owner : BackedInitializationAdmission[I],
   input : I,
 ) -> Result[Ledger, ImportedChildLedgerIssue] {
+  take_backed_initialization_for_host(owner, input, false)
+}
+
+///|
+fn[I] take_backed_initialization_for_host(
+  owner : BackedInitializationAdmission[I],
+  input : I,
+  request : Bool,
+) -> Result[Ledger, ImportedChildLedgerIssue] {
   match check_backed_initialization_input(owner, input) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if owner.host_taken {
+  if owner.host_taken || owner.preparation_selected != request {
     return Err(AlreadyConsumed)
   }
   let frame = owner.frame
   guard frame.taken && frame.ledger is Some(ledger) else {
     return Err(Unavailable)
+  }
+  if request {
+    // The Request itself owns the FIRST working reservation/census. An
+    // initialized Source bootstrap cannot become this pristine continuation.
+    if !backed_request_ledger_pristine(ledger) {
+      return Err(Unavailable)
+    }
+    owner.host_taken = true
+    owner.transitioning = true
+    let current = check_imported_child_admission(ledger)
+    owner.transitioning = false
+    match current {
+      Err(issue) => return Err(Resource(issue))
+      Ok(_) => ()
+    }
+    if !backed_request_ledger_pristine(ledger) {
+      return Err(Unavailable)
+    }
+    return Ok(ledger)
   }
   guard ledger.original_inventory is Some(inventory) &&
     physical_equal(inventory.bootstrap.reservation.owner, ledger) &&

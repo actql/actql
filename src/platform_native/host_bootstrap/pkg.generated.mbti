@@ -169,6 +169,7 @@ pub fn[T, C] NativeHostBootstrap::bind_prepared_process_region(Self[T], T, Nativ
 pub fn[T, C] NativeHostBootstrap::bind_process_channel_child(Self[T], T, NativeBackedProcessRegion[T, C]) -> Result[Unit, NativeBackedProcessRegionIssue]
 pub fn[T] NativeHostBootstrap::borrow(Self[T], T, NativeBootstrapAllocation[T]) -> Result[NativeBootstrapBorrow[T], NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::borrow_backing(Self[T], T) -> Result[NativeBootstrapBorrow[T], NativeBootstrapIssue]
+pub fn[T, C, I] NativeHostBootstrap::borrow_initialized_preparation_ledger(Self[T], T, NativeBackedLiveChild[T, C, I], I) -> Result[@physical_resources.Ledger, NativeBackedInitializationIssue]
 pub fn[T] NativeHostBootstrap::capacity_usage(Self[T]) -> @physical_resources.SharedCapacityUsage
 pub fn[T] NativeHostBootstrap::claim(Self[T], T, String, Bytes, Int64) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::close_backed_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
@@ -185,6 +186,7 @@ pub fn[T, C] NativeHostBootstrap::finish_backed_failed_read_entry_cleanup(Self[T
 pub fn[T] NativeHostBootstrap::grow_backing(Self[T], T, NativeBootstrapBorrow[T], Int64) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::initial_payload_capacity(Self[T], T) -> Result[Int64, NativeBootstrapIssue]
 pub fn[T, C, I] NativeHostBootstrap::initialize_backed_preparation(Self[T], T, NativeBackedLiveChild[T, C, I], I, NativeBackedInitializationBudget) -> Result[@physical_resources.BackedInitializationAdmission[I], NativeBackedInitializationIssue]
+pub fn[T, C, I] NativeHostBootstrap::initialize_backed_request_preparation(Self[T], T, NativeBackedLiveChild[T, C, I], I, NativeBackedInitializationBudget) -> Result[@physical_resources.BackedPreparationAdmission[I], NativeBackedInitializationIssue]
 pub fn[T, C] NativeHostBootstrap::issue_backed_region(Self[T], T, NativeBootstrapAllocation[T]) -> Result[NativeBackedExecutionRegion[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::leave_backed_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::leave_backed_read_context(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]

@@ -1,11 +1,11 @@
 ///|
-// Allocate only after bounded checked preparation, before the first durable
-// Submission or Run action. The declared Host maximum is not initialized
+// Acquire the existing conservative installed facility BEFORE semantic
+// preparation, and before the first durable Submission or Run action. The declared Host maximum is not initialized
 // execution capacity. Every partial acquisition remains on this same carrier.
-fn LocalCommandPreparationOriginal::prepare_business_capacity(
+fn LocalCommandPreparationOriginal::prepare_business_request_capacity(
   self : LocalCommandPreparationOriginal,
   capture : @local_host.NativeLocalJournalCapture,
-  requirements : @local_values.ClientLocalRequirements,
+  input : @run_host.ClientSubmittedIntent,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.host is Some(host) &&
     self.journal is Some(journal) &&
@@ -24,19 +24,10 @@ fn LocalCommandPreparationOriginal::prepare_business_capacity(
     return Err(CommandUnavailable)
   }
   let maximum = business.profile.limits
-  let supported = requirements.maximum_limits()
-  if supported.planning_work > maximum.planning_work ||
-    supported.attempts > maximum.attempts ||
-    supported.holdings > maximum.holdings ||
-    supported.transfer_bytes > maximum.transfer_bytes ||
-    supported.retained_bytes > maximum.retained_bytes ||
-    supported.execution_bytes > maximum.execution_bytes {
-    return Err(CommandUnavailable)
-  }
-  let selected = local_command_selected_business_limits(
-    maximum,
-    requirements.simultaneous_limits(),
-  )
+  // This is the pre-existing installer ceiling, not inferred Program demand.
+  // The SAME Request reservation grows within it before each constructor.
+  let selected = maximum
+  business.request_input = Some(input)
   if selected.retained_bytes > 9223372036854775807L - selected.execution_bytes {
     return Err(CommandUnavailable)
   }
@@ -92,7 +83,7 @@ fn LocalCommandPreparationOriginal::prepare_business_capacity(
   let prepared = match (acquired, returned) {
     (Ok(_), Ok(_)) =>
       try {
-        command_preparation_value(self.prepare_business_execution(host))
+        command_preparation_value(self.prepare_business_execution(host, input))
         command_preparation_value(self.prepare_business_operation())
         Ok(())
       } catch {

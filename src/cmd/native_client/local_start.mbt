@@ -480,24 +480,28 @@ fn local_submission_start(
       local_input_cursor(@publication.publication_contract_json(run.retention)),
     ).unwrap_or_else(() => stop("InvalidLocalResultRetentionPolicy"))
     let until = run_text(retention, "available_until")
-    let compilation = {
-      let manifests = @run_host.admit_client_compilation_manifests(
-        @compiler_environment.compiler_grammar_manifest_wire(),
-        @compiler_environment.compiler_barrier_contract_manifest_wire(),
-        10000,
-        1000,
-        20,
-      ).unwrap_or_else(() => stop("LocalCompilerManifestUnavailable"))
-      @run_host.issue_prepared_client_task_compilation(
-        prepared,
-        manifests,
-        @run_host.prepared_client_values_sequence_limits(prepared),
-        1000,
-        1000,
-        65536,
-        8192,
-        64,
-      ).unwrap_or_else(() => stop("LocalCompilationNotReady"))
+    let compilation = match business {
+      Some(original) => original.request_compilation()
+      None => {
+        let manifests = @run_host.admit_client_compilation_manifests(
+          @compiler_environment.compiler_grammar_manifest_wire(),
+          @compiler_environment.compiler_barrier_contract_manifest_wire(),
+          10000,
+          1000,
+          20,
+        ).unwrap_or_else(() => stop("LocalCompilerManifestUnavailable"))
+        let original = @run_host.issue_prepared_client_task_compilation(
+          prepared,
+          manifests,
+          @run_host.prepared_client_values_sequence_limits(prepared),
+          1000,
+          1000,
+          65536,
+          8192,
+          64,
+        ).unwrap_or_else(() => stop("LocalCompilationNotReady"))
+        @run_host.Tasks(original)
+      }
     }
     let (compiled, definition) = {
       let configuration_cid = local_host_result(
@@ -506,9 +510,20 @@ fn local_submission_start(
           Some(original) => original.capture.configuration_in_original_read()
         },
       ).configuration_cid()
-      let compiled = @run_host.issue_client_task_compiled_run(
-        prepared, compilation, scope, configuration_cid, until,
-      ).unwrap_or_else(() => stop("LocalCompiledRunNotReady"))
+      let compiled = match compilation {
+        @run_host.Values(original) =>
+          @run_host.issue_client_values_compiled_run(
+            prepared, original, scope, configuration_cid, until,
+          )
+        @run_host.Tasks(original) =>
+          @run_host.issue_client_task_compiled_run(
+            prepared, original, scope, configuration_cid, until,
+          )
+        @run_host.Effects(_) => stop("LocalBusinessProgramUnavailable")
+      }
+      let compiled = compiled.unwrap_or_else(() => {
+        stop("LocalCompiledRunNotReady")
+      })
       let compiled = if source_free {
         let values = run.source_free.unwrap()
         @run_host.with_client_source_free_result_policy(
@@ -530,6 +545,9 @@ fn local_submission_start(
         until,
       ).unwrap_or_else(() => stop("LocalRunDefinitionNotReady"))
       (compiled, definition)
+    }
+    if business is Some(original) {
+      original.adopt_request_run(request)
     }
     let accepted : Result[
       @local_host.NativeClientSubmittedIntentRecord,

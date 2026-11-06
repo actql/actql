@@ -5954,3 +5954,29 @@ separate row-file exporter, which that consumer never constructs. Existing
 materializing callers retain the exporter policy and its backing. Result
 metadata, independent copies, imported inputs, Native output files and Store
 publication keep their separate existing owners and before-call reservations.
+
+### Native initialization selected for a Request
+
+The Native command retains its input and Request on the existing business
+custody before semantic preparation. A fresh Initialization-purpose child
+starts and takes its original physical frame once. The Request continuation
+accepts that same frame only while its Ledger is pristine; it owns the first
+working reservation and preparation census. The independent Source initializer
+keeps its existing standalone bootstrap and cannot be converted into a Request.
+Neither continuation creates another Ledger, changes child purpose, resets
+history or repeats physical initialization.
+
+Native input decoding and the shared checker/compiler run inside the original
+retained execution while the Journal Read is suspended. The same original Read
+resumes afterward. The command retains each partial constructor before a
+fallible boundary, reuses the Request's original Values/Task compilation for
+module construction and Run publication, and opens execution on that same
+managed Run and physical Ledger. Existing non-business command routes remain
+separate; a failed Request does not select them as a fallback.
+
+Cleanup returns the actual body borrow and retires the same Request/Run before
+asking its Native physical owner to close. Logical retirement can remain
+pending until that owner observes its own C-context retirement, usage report
+and after-owner acknowledgement. Only then does the command finish the original
+Core retirement and close the domain. Cancellation, failed construction and
+Unknown physical outcomes retain these same duties and consumed work.

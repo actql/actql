@@ -81,6 +81,7 @@ fn LocalCommandBusinessPreparation::open_values_work(
       16,
       1000,
       requirements=Some(self.requirements),
+      managed=business.request_run,
     ) {
     Ok(work) => {
       business.values_work = Some(work)
@@ -209,6 +210,36 @@ fn LocalCommandPreparationOriginal::close_business_children(
         host, domain, 14,
       )
     }
+    match host.leave_domain_retained_execution(execution) {
+      Err(issue) => return Err(CommandRetainedExecution(issue))
+      Ok(_) => business.active = false
+    }
+  }
+  if business.request_parent is Some(_) ||
+    business.request_run is Some(_) ||
+    business.request_body is Some(_) {
+    guard self.host is Some(host) && business.execution is Some(execution) else {
+      return Err(CommandBusinessChildren)
+    }
+    match business.enter_children_cleanup(host) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    if business.request_body is Some(holder) {
+      match @initial_resources.return_preparation_body_borrow(holder) {
+        Err(_) => return Err(CommandBusinessChildren)
+        Ok(_) => business.request_body = None
+      }
+    }
+    // Logical cleanup intentionally stays pending until this SAME Native
+    // initializer has observed its separate physical retirement and report.
+    // The Native close below still refuses any outstanding live reservation.
+    if business.request_run is Some(run) {
+      ignore(@local_values.retire_installed_managed_run(run))
+    } else if business.request_parent is Some(parent) {
+      ignore(@local_values.abort_request_preparation_after_cleanup(parent))
+    }
+    business.request_retiring = true
     match host.leave_domain_retained_execution(execution) {
       Err(issue) => return Err(CommandRetainedExecution(issue))
       Ok(_) => business.active = false

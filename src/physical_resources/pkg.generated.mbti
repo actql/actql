@@ -452,6 +452,8 @@ pub fn[P, C, I] prepare_backed_preparation_admission(BackedExecutionLiveProjecti
 
 pub fn prepare_imported_child_ledger(Int64) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
 
+pub fn[I] prepare_initialized_backed_preparation_admission(BackedInitializationAdmission[I], I) -> Result[BackedPreparationAdmission[I], ImportedChildLedgerIssue]
+
 pub fn[P] prepare_node_local_content_run_admission(OriginalNodeManagedRunReference, P) -> Result[NodeManagedRunAdmission[P], ImportedChildLedgerIssue]
 
 pub fn[P] prepare_node_local_mock_model_run_admission(OriginalNodeManagedRunReference, P) -> Result[NodeManagedRunAdmission[P], ImportedChildLedgerIssue]

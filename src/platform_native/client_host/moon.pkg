@@ -6,6 +6,7 @@ import {
   "actql/actql/platform_native/host_bootstrap" @bootstrap,
   "actql/actql/run_publication_host" @host,
   "actql/actql/client_local_host" @local,
+  "actql/actql/client_source_publication" @source_publication,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/physical_host_dispatch" @driver,
   "actql/actql/execution_relation" @execution,

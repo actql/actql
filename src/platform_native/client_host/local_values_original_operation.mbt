@@ -367,6 +367,7 @@ pub fn NativeLocalHostConnection::open_original_values_work(
   finalization_quantum : Int,
   max_finalization_rounds : Int,
   requirements? : @local.ClientLocalRequirements? = None,
+  managed? : @local.ClientInstalledManagedRun? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   let receiver = operation.receiver
   guard receiver.domain is StoreBusinessDomain(execution) else {
@@ -431,6 +432,7 @@ pub fn NativeLocalHostConnection::open_original_values_work(
     ledger=Some(ledger),
     original_access=Some(access),
     requirements~,
+    managed~,
   )
   match result {
     Ok(work) => Ok(work)

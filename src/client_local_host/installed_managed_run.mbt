@@ -1399,6 +1399,7 @@ pub fn open_installed_managed_source_free_host(
   fragment_body : String?,
   ordered_body : String?,
   retained_output : Bool,
+  backing? : @resources.Ledger? = None,
   provider_factory? : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ] = _ => [],
@@ -1406,6 +1407,12 @@ pub fn open_installed_managed_source_free_host(
   @builtin.ConfiguredComputeHost[@strategy.RunIssue]?,
   ClientInstalledManagedRunIssue,
 ] {
+  // The trusted Native caller already owns an entered physical frame. This
+  // immutable identity comparison supplies no grant and invokes no callback.
+  if backing is Some(original) &&
+    !(value.ledger is Some(selected) && physical_equal(selected, original)) {
+    return Err(ForeignOriginal)
+  }
   if value.source_free_opening || value.source_free_captured is Some(_) {
     return Err(AlreadyBound)
   }
