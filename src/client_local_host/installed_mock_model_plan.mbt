@@ -120,6 +120,7 @@ pub fn prepare_installed_mock_model_capture_plan(
   ],
   direct_occurrences? : @publication_host.ClientDirectAcquisitionOccurrences? = None,
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   if !installed_mock_model_compilation_matches(prepared, compilation) {
     return Err(ForeignOriginal)
@@ -150,6 +151,7 @@ pub fn prepare_installed_mock_model_capture_plan(
         None
       },
       direct_occurrences~,
+      runtime_admission~,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value

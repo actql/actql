@@ -489,6 +489,7 @@ fn installed_effect_model_plan_from_original_sources(
       }
       providers
     },
+    runtime_admission=true,
   )
 }
 

@@ -999,6 +999,7 @@ pub fn[I] prepare_request_model_capture_module(
           },
           query_time~,
           direct_occurrences=Some(direct),
+          runtime_admission=true,
         ) {
         Err(issue) => return Err(Installed(issue))
         Ok(value) => value

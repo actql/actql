@@ -482,6 +482,14 @@ test "unknown Effect capture grows its same control from completed original rows
 }
 
 ///|
+test "acquired Unit pins its computed original Result target" {
+  unknown_effect_capture_controls(
+    effect_operation_source_plan_fixture(same_unit_results=true),
+    same_unit_results=true,
+  )
+}
+
+///|
 test "Ledger codec uses the same grown original unknown-row controls instead of the initial zero-row quote" {
   let original = effect_operation_source_plan_fixture()
   let before = original.operations[0]
@@ -516,6 +524,7 @@ test "Ledger codec uses the same grown original unknown-row controls instead of 
 fn unknown_effect_capture_controls(
   plan : ClientInstalledEffectManagedPlan,
   check_codec? : Bool = false,
+  same_unit_results? : Bool = false,
 ) -> Unit raise {
   assert_true(plan.closed_rows is None)
   // Existing fixed policy and explicit transport/current ports. This does not
@@ -595,83 +604,147 @@ fn unknown_effect_capture_controls(
   let dag = @strategy.captured_effect_run_dag(captured)
   @row_source_host.retain_row_capture_task(source, dag, 0).unwrap()
   let graph = @strategy.captured_dag_graph(dag)
-  let task = @strategy.next_captured_task(dag).unwrap()
-  assert_eq(task, 1)
-  let installed = @builtin.configured_local_module(
-    @builtin.configured_host_modules(host),
-  ).unwrap()
-  // The predecessor is the already captured Source, not a managed output
-  // supplied by this fixture. Select that existing typed input alternative.
-  let available : Array[@local_driver.LocalManagedAvailableOutput[Int]] = [
+  let output_live = Ref(true)
+  let completed_operations : Array[
+    @local_driver.LocalManagedDispatchOperations[Int],
+  ] = []
+  let mut available : Array[@local_driver.LocalManagedAvailableOutput[Int]] = [
     @local_driver.local_managed_captured_relation_input(),
   ]
-  let dispatch = @local_driver.prepare_local_managed_dispatch_with_outputs(
-      installed,
-      available,
-      @execution.process_managed_obligations(
-        @strategy.graph_task_owner(graph, task).unwrap(),
-      ),
-      0L,
-    )
-    .unwrap()
-    .unwrap()
-  // Preparation is side-effect free. The common Host must select the SAME
-  // original registration before that candidate may enter the Run lifecycle.
-  @strategy.select_captured_managed_registration(
-    dag,
-    task,
-    @local_driver.local_dispatch_registration(installed),
-  ).unwrap()
-  let operations = match
-    @local_driver.start_local_managed_dispatch_node(dispatch) {
-    Ok(value) => value
-    Err(Execution(Physical(issue))) =>
-      fail("UnknownEffectOriginalComputePhysical: " + @debug.to_string(issue))
-    Err(Execution(ActivationNotAuthorized)) =>
-      fail("UnknownEffectOriginalComputeActivationNotAuthorized")
-    Err(Execution(ForeignCandidate)) =>
-      fail("UnknownEffectOriginalComputeForeignCandidate")
-    Err(Execution(ForeignCapture)) =>
-      fail("UnknownEffectOriginalComputeForeignCapture")
-    Err(Execution(NotReady)) => fail("UnknownEffectOriginalComputeNotReady")
-    Err(Execution(Stopped)) => fail("UnknownEffectOriginalComputeStopped")
-    Err(Execution(UnsupportedGraph)) =>
-      fail("UnknownEffectOriginalComputeUnsupportedGraph")
-    Err(Execution(PreviewWorkLimit)) =>
-      fail("UnknownEffectOriginalComputePreviewWorkLimit")
-    Err(Execution(MissingOutput)) =>
-      fail("UnknownEffectOriginalComputeMissingOutput")
-    Err(Execution(Capture(_))) => fail("UnknownEffectOriginalComputeCapture")
-    Err(Execution(Binding(_))) => fail("UnknownEffectOriginalComputeBinding")
-    Err(Execution(Read(_))) => fail("UnknownEffectOriginalComputeRead")
-    Err(Execution(Compute(_))) => fail("UnknownEffectOriginalComputeCandidate")
-    Err(Execution(Implementation(_))) =>
-      fail("UnknownEffectOriginalComputeImplementation")
-    Err(Configuration(CommonInputRows)) =>
-      fail("UnknownEffectOriginalComputeCommonInputRows")
-    Err(Configuration(_)) => fail("UnknownEffectOriginalComputeConfiguration")
-    Err(_) => fail("UnknownEffectOriginalComputeOther")
+  let tasks = @strategy.graph_task_count(graph) - 1
+  assert_eq(tasks, if same_unit_results { 3 } else { 1 })
+  for ordinal in 0..<tasks {
+    let task = @strategy.next_captured_task(dag).unwrap()
+    assert_eq(task, ordinal + 1)
+    let installed = @builtin.configured_local_module(
+      @builtin.configured_host_modules(host),
+    ).unwrap()
+    // The predecessor is the already captured Source, not a managed output
+    // supplied by this fixture. Select that existing typed input alternative.
+    let dispatch = @local_driver.prepare_local_managed_dispatch_with_outputs(
+        installed,
+        available,
+        @execution.process_managed_obligations(
+          @strategy.graph_task_owner(graph, task).unwrap(),
+        ),
+        0L,
+      )
+      .unwrap()
+      .unwrap()
+    // Preparation is side-effect free. The common Host must select the SAME
+    // original registration before that candidate may enter the Run lifecycle.
+    @strategy.select_captured_managed_registration(
+      dag,
+      task,
+      @local_driver.local_dispatch_registration(installed),
+    ).unwrap()
+    let operations = match
+      @local_driver.start_local_managed_dispatch_node(dispatch) {
+      Ok(value) => value
+      Err(Execution(Physical(issue))) =>
+        fail("UnknownEffectOriginalComputePhysical: " + @debug.to_string(issue))
+      Err(Execution(ActivationNotAuthorized)) =>
+        fail("UnknownEffectOriginalComputeActivationNotAuthorized")
+      Err(Execution(ForeignCandidate)) =>
+        fail("UnknownEffectOriginalComputeForeignCandidate")
+      Err(Execution(ForeignCapture)) =>
+        fail("UnknownEffectOriginalComputeForeignCapture")
+      Err(Execution(NotReady)) => fail("UnknownEffectOriginalComputeNotReady")
+      Err(Execution(Stopped)) => fail("UnknownEffectOriginalComputeStopped")
+      Err(Execution(UnsupportedGraph)) =>
+        fail("UnknownEffectOriginalComputeUnsupportedGraph")
+      Err(Execution(PreviewWorkLimit)) =>
+        fail("UnknownEffectOriginalComputePreviewWorkLimit")
+      Err(Execution(MissingOutput)) =>
+        fail("UnknownEffectOriginalComputeMissingOutput")
+      Err(Execution(Capture(_))) => fail("UnknownEffectOriginalComputeCapture")
+      Err(Execution(Binding(_))) => fail("UnknownEffectOriginalComputeBinding")
+      Err(Execution(Read(_))) => fail("UnknownEffectOriginalComputeRead")
+      Err(Execution(Compute(_))) =>
+        fail("UnknownEffectOriginalComputeCandidate")
+      Err(Execution(Implementation(_))) =>
+        fail("UnknownEffectOriginalComputeImplementation")
+      Err(Configuration(CommonInputRows)) =>
+        fail("UnknownEffectOriginalComputeCommonInputRows")
+      Err(Configuration(_)) => fail("UnknownEffectOriginalComputeConfiguration")
+      Err(_) => fail("UnknownEffectOriginalComputeOther")
+    }
+    if ordinal == 0 {
+      assert_true(operations.inputs.is_empty())
+    } else {
+      assert_eq(operations.inputs.length(), 1)
+      let previous = completed_operations[ordinal - 1]
+      for transfer in operations.inputs {
+        for row in 0..<2 {
+          (transfer.append)((previous.output_row)(row).unwrap()).unwrap()
+        }
+        (transfer.finish)().unwrap()
+      }
+    }
+    (operations.execute)().unwrap()
+    (operations.prepare_finalization)(task, operations.storage_bytes, () => {
+      output_live.val
+    }).unwrap()
+    let mut finalized = false
+    for _ in 0..<10000 {
+      if (operations.advance_finalization)(256).unwrap().complete {
+        finalized = true
+        break
+      }
+    }
+    assert_true(finalized)
+    (operations.settle)().unwrap()
+    let completed = (operations.complete)(task, operations.storage_bytes, () => {
+      output_live.val
+    }).unwrap()
+    assert_eq(@execution.managed_completed_output_row_count(completed), 2)
+    completed_operations.push(operations)
+    available = [@local_driver.local_managed_relation_output(completed)]
   }
-  assert_true(operations.inputs.is_empty())
-  (operations.execute)().unwrap()
-  let output_live = Ref(true)
-  (operations.prepare_finalization)(task, operations.storage_bytes, () => {
-    output_live.val
-  }).unwrap()
-  let mut finalized = false
-  for _ in 0..<10000 {
-    if (operations.advance_finalization)(256).unwrap().complete {
-      finalized = true
-      break
+  for task in 1..<=tasks {
+    assert_true(
+      @strategy.captured_task_completed(dag, task),
+      msg="original compute must be completed before pin",
+    )
+  }
+  if same_unit_results {
+    for index in 0..<@strategy.graph_result_count(graph) {
+      let task = @strategy.graph_result_task(graph, index).unwrap()
+      let occurrence = @strategy.graph_result_occurrence(graph, index).unwrap()
+      let pins = match
+        @strategy.pin_captured_any_result_output_set(
+          dag,
+          [(task, occurrence)],
+          2,
+        ) {
+        Ok(value) => value
+        Err(_) =>
+          fail("Original root Result unavailable at task " + task.to_string())
+      }
+      assert_true(@strategy.release_captured_any_result_output_set(pins))
     }
   }
-  assert_true(finalized)
-  (operations.settle)().unwrap()
-  let completed = (operations.complete)(task, operations.storage_bytes, () => {
-    output_live.val
-  }).unwrap()
-  assert_eq(@execution.managed_completed_output_row_count(completed), 2)
-  let inputs = @strategy.pin_captured_effect_sources(captured, 2).unwrap()
+  let inputs = match @strategy.pin_captured_effect_sources(captured, 2) {
+    Ok(value) => value
+    Err(ForeignCandidate) =>
+      fail("Effect original Result target was routed to a foreign task")
+    Err(UnsupportedGraph) =>
+      fail("Effect original Result pin: UnsupportedGraph")
+    Err(ForeignCapture) => fail("Effect original Result pin: ForeignCapture")
+    Err(NotReady) => fail("Effect original Result pin: NotReady")
+    Err(Stopped) => fail("Effect original Result pin: Stopped")
+    Err(PreviewWorkLimit) =>
+      fail("Effect original Result pin: PreviewWorkLimit")
+    Err(MissingOutput) => fail("Effect original Result pin: MissingOutput")
+    Err(Capture(_)) => fail("Effect original Result pin: Capture")
+    Err(Binding(_)) => fail("Effect original Result pin: Binding")
+    Err(Read(_)) => fail("Effect original Result pin: Read")
+    Err(Compute(_)) => fail("Effect original Result pin: Compute")
+    Err(Implementation(_)) => fail("Effect original Result pin: Implementation")
+    Err(Physical(_)) => fail("Effect original Result pin: Physical")
+    Err(ActivationNotAuthorized) =>
+      fail("Effect original Result pin: ActivationNotAuthorized")
+  }
   assert_eq(
     @strategy.captured_effect_inputs_row_inventory(inputs, plan.rows),
     Some(2),
@@ -817,9 +890,13 @@ fn unknown_effect_capture_controls(
   // Revoke the same publication witness after its last original input pin.
   // A permanently true witness correctly keeps the managed snapshot alive.
   output_live.val = false
-  (operations.close)()
+  for operations in completed_operations {
+    (operations.close)()
+  }
   @strategy.stop_captured_dag(dag)
-  @strategy.close_captured_task_output(dag, 1)
+  for task in 1..<=tasks {
+    @strategy.close_captured_task_output(dag, task)
+  }
   @strategy.close_captured_task_output(dag, 0)
   retire_installed_source_read(read).unwrap()
   @strategy.refresh_captured_retention(dag)
@@ -827,8 +904,14 @@ fn unknown_effect_capture_controls(
   // Drive the original bounded disposal before returning the parent holder.
   let mut cleaned = false
   for _ in 0..<10000 {
-    let stopped = (operations.execution_stopped)()
-    let released = (operations.cleanup_refresh)()
+    let mut stopped = true
+    let mut released = true
+    for operations in completed_operations {
+      let original_stopped = (operations.execution_stopped)()
+      let original_released = (operations.cleanup_refresh)()
+      stopped = stopped && original_stopped
+      released = released && original_released
+    }
     @strategy.refresh_captured_retention(dag)
     if stopped && released {
       cleaned = true

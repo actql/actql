@@ -66,7 +66,7 @@ function tableEffectValue(root, approval = 'required') {
       permissions: ['scope:store'], footprint: {version: 'fixture-only'}}], limits: {}};
 }
 
-export async function boundConstructionActualFixture(t, {capacityEvents} = {}) {
+export async function boundConstructionActualFixture(t, {capacityEvents, nativeCompletions} = {}) {
   // Observe only actual typed quotes on the unchanged original parent. The
   // wrapper forwards every call/result/error; it grants no capacity or current.
   const observe = name => function (...args) {
@@ -80,9 +80,26 @@ export async function boundConstructionActualFixture(t, {capacityEvents} = {}) {
       return value;
     } finally {capacityEvents.push({operation: name, retained: runtimeField(pair, 0), peak: runtimeField(pair, 1), returned, accepted});}
   };
-  const moon = capacityEvents === undefined ? originalMoon : Object.freeze({...originalMoon,
-    clientProgramReserveInstalledSourceConstruction: observe('clientProgramReserveInstalledSourceConstruction'),
-    clientProgramReconcileInstalledSourceConstruction: observe('clientProgramReconcileInstalledSourceConstruction')});
+  const moon = capacityEvents === undefined && nativeCompletions === undefined ? originalMoon
+    : Object.freeze({...originalMoon,
+      ...(capacityEvents === undefined ? {} : {
+        clientProgramReserveInstalledSourceConstruction: observe('clientProgramReserveInstalledSourceConstruction'),
+        clientProgramReconcileInstalledSourceConstruction: observe('clientProgramReconcileInstalledSourceConstruction')}),
+      ...(nativeCompletions === undefined ? {} : {
+        clientProgramComposeInstalledSourceConstructionCapacity(base, providers) {
+          // Observe the original supplied DATA even when its later physical
+          // reserve refuses. This does not inspect or repair the Ledger.
+          for (const value of nativeCompletions) value.lastProviderQuantity = providers.find(
+            quantity => quantity === value.quantity || quantity === value.retained);
+          return originalMoon.clientProgramComposeInstalledSourceConstructionCapacity(base, providers);
+        },
+        clientProgramInstalledSourceRetainedConstructionCapacity(quantity) {
+          const result = originalMoon.clientProgramInstalledSourceRetainedConstructionCapacity(quantity);
+          // DATA projection observation is separate from actual reserve and
+          // reconcile Results. Do not count it as a completed admission.
+          nativeCompletions.push({quantity, retained: checked(result), eventIndex: capacityEvents?.length});
+          return result;
+        }})});
   const root = await mkdtemp(join(tmpdir(), 'actql-bound-construction-actual-'));
   const state = {}, sources = [], failures = [];
   let active = true, childrenPending = false, services, closed = false, secretReads = 0;
@@ -96,7 +113,12 @@ export async function boundConstructionActualFixture(t, {capacityEvents} = {}) {
   };
   const current = () => {
     assert.equal(active, true, 'same initial parent remains current');
-    if (currentFault !== undefined && currentFault.calls === 0 &&
+    if (currentFault?.nativeQuantity !== undefined && currentFault.calls === 0 &&
+        nativeCompletions?.some(value => value.quantity === currentFault.nativeQuantity)) {
+      currentFault.calls++;
+      throw currentFault.failure;
+    }
+    if (currentFault !== undefined && currentFault.nativeQuantity === undefined && currentFault.calls === 0 &&
         (currentFault.journal ? currentFault.siteReturned !== undefined : existsSync(currentFault.path))) {
       // The actual bound Site has returned to its original custody owner.
       // /proc descriptors remain an additional Linux assertion, not readiness.
@@ -167,8 +189,9 @@ export async function boundConstructionActualFixture(t, {capacityEvents} = {}) {
   async function salesforceProfile(role = 'source', {largeMetadata = false, fieldCount = 2, describeDocument} = {}) {
     assert.ok(Number.isSafeInteger(fieldCount) && fieldCount >= 2 && fieldCount <= 1000);
     assert.ok(['source', 'effect'].includes(role));
-    const resource = describeDocument?.name ?? 'Test_Record__c', prefix = '/services/data/v62.0/sobjects/';
-    const description = describeDocument ?? {name: resource, queryable: true, createable: true, updateable: true,
+    const suppliedDescription = typeof describeDocument === 'string' ? JSON.parse(describeDocument) : describeDocument;
+    const resource = suppliedDescription?.name ?? 'Test_Record__c', prefix = '/services/data/v62.0/sobjects/';
+    const description = suppliedDescription ?? {name: resource, queryable: true, createable: true, updateable: true,
       fields: [{name: 'Id', type: 'id', nillable: false, sortable: true},
         {name: 'Name', type: 'string', nillable: false, defaultedOnCreate: false,
           createable: true, updateable: true}]};
@@ -184,7 +207,8 @@ export async function boundConstructionActualFixture(t, {capacityEvents} = {}) {
     const api = await openHttpsExchangeFixture(t, {routes: [
       {method: 'GET', pathname: prefix, handle: () => ({body: {sobjects: [
         {name: resource, queryable: true, createable: true, updateable: true}]}})},
-      {method: 'GET', pathname: `${prefix}${resource}/describe`, handle: () => ({body: description})}]});
+      {method: 'GET', pathname: `${prefix}${resource}/describe`, handle: () => ({
+        body: typeof describeDocument === 'string' ? describeDocument : description})}]});
     const name = `salesforce${++serial}`, siteProfilePath = join(root, `${name}-site.json`);
     const path = join(root, `${name}-profile.json`), journalRoot = join(root, `${name}-journal`);
     await writeFile(siteProfilePath, JSON.stringify({version: 'actql-installed-salesforce-site/0.1',
@@ -419,6 +443,13 @@ export async function boundConstructionActualFixture(t, {capacityEvents} = {}) {
       assert.equal(currentFault, undefined);
       currentFault = {path: join(root, 'state', 'effects', 'ledger'), calls: 0,
         failure: new Error('OriginalPostTableConstructionCurrentFailure')};
+      return currentFault;
+    },
+    failCurrentAfterNativeRetention(quantity) {
+      assert.equal(currentFault, undefined);
+      assert.ok(nativeCompletions);
+      currentFault = {nativeQuantity: quantity, calls: 0,
+        failure: new Error('OriginalCurrentAfterNativeRetentionFailure')};
       return currentFault;
     },
     failCurrentAfterJournal(selection) {

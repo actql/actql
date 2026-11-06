@@ -56,6 +56,7 @@ pub fn prepare_installed_effect_managed_source_plan(
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
   model? : ClientInstalledEffectModelDemand? = None,
   content? : ClientInstalledEffectContentPreparation? = None,
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
   prepare_installed_effect_managed_plan_owned(
     prepared,
@@ -75,6 +76,7 @@ pub fn prepare_installed_effect_managed_source_plan(
     model~,
     content~,
     source_inputs=Some(inputs),
+    runtime_admission~,
   )
 }
 
