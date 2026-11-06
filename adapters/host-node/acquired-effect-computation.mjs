@@ -93,6 +93,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     if (modelGroup !== undefined) return modelGroup.cleanup(includeContinuation);
     let failure, failed = false;
     if ((inferCapture !== undefined || inferOperation !== undefined) && !inferReleased) {
+      let phase = 'model_child';
       try {
         const child = inferCapture?.custody ?? inferOperation;
         if (originalPreparation !== undefined && inferOperation?.publicationCapacityPending?.()) {
@@ -100,17 +101,32 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
           // that SAME operation before retiring publication aliases: the
           // custody gate requires physicalStopped and cannot initiate stop.
           // Keep this continuation/result while pending; never run it again.
+          phase = 'stop';
           await inferOperation.stop();
-          if (!await inferCapture.custody.retirePublication() ||
-              !inferOperation.releaseOriginalPublicationCapacity()) return false;
+          phase = 'publication';
+          if (!await inferCapture.custody.retirePublication()) {
+            diagnostic('effect_computation_cleanup_pending', {modelCleanupPhase: 'publication'});
+            return false;
+          }
+          phase = 'publication_capacity';
+          if (!inferOperation.releaseOriginalPublicationCapacity()) {
+            diagnostic('effect_computation_cleanup_pending', {modelCleanupPhase: 'publication_capacity'});
+            return false;
+          }
         }
         // Prerequisite refusal is not a child close attempt. Once invoked,
         // even a throwing close recovers only through this same child's cleanup.
+        phase = 'model_child';
         const recover = inferCloseAttempted;
         inferCloseAttempted = true;
         const result = await (recover ? child.cleanup() : child.close());
         inferReleased = result !== false && child.cleanupPending() === false;
-      } catch (error) { failure = error; failed = true; }
+        if (!inferReleased) diagnostic('effect_computation_cleanup_pending', {modelCleanupPhase: 'model_child'});
+      } catch (error) {
+        diagnostic('effect_computation_cleanup_pending',
+          {modelCleanupPhase: phase, modelCleanupOutcome: 'throw'});
+        failure = error; failed = true;
+      }
     }
     if (includeContinuation && modelContinuation !== undefined && !modelReleased) {
       const recover = modelCloseAttempted;

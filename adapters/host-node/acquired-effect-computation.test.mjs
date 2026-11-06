@@ -573,7 +573,7 @@ for (const [name, options] of [
 // Core/Store/Task owner ports are explicit; this is not ordinary funding proof.
 function persistedModelScratchFixture({retire = true, release = true,
   releaseFailure, closeFailure, heldOutput = false, stopBeforeRetirement = false,
-  stop, current = () => {}} = {}) {
+  stop, current = () => {}, childPending = false} = {}) {
   const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const declaration = ast.body.map(node => node.declaration ?? node)
@@ -584,7 +584,7 @@ function persistedModelScratchFixture({retire = true, release = true,
   const persisted = main.block.body.find(node => node.type === 'IfStatement' &&
     source.slice(node.start, node.end).includes('(await inferCapture.persist()).plan'));
   assert.ok(cleanup && persisted);
-  const events = [], plan = {}, content = {live: true};
+  const events = [], diagnostics = [], plan = {}, content = {live: true};
   let modelClosed = false, physicallyStopped = !stopBeforeRetirement;
   const inferCapture = {persist: async () => {events.push('persist'); return {plan};},
     custody: {retirePublication: async () => {
@@ -592,7 +592,7 @@ function persistedModelScratchFixture({retire = true, release = true,
       return physicallyStopped && (typeof retire === 'function' ? retire() : retire);
     },
       close: async () => {
-        events.push('close-model'); closeFailure?.(); modelClosed = true;
+        events.push('close-model'); closeFailure?.(); modelClosed = !childPending; return childPending ? false : undefined;
       },
       cleanup: async () => {events.push('cleanup-model'); modelClosed = true; return true;},
       cleanupPending: () => !modelClosed}};
@@ -612,7 +612,7 @@ function persistedModelScratchFixture({retire = true, release = true,
     assert.strictEqual(this, execution); assert.equal(modelClosed, true);
     events.push('refresh-original-scratch'); assert.equal(content.live, true);
   }};
-  const original = new Function('inferCapture', 'inferOperation', 'execution', 'events', 'current', `
+  const original = new Function('inferCapture', 'inferOperation', 'execution', 'events', 'current', 'diagnostic', `
     let inferReleased=false,inferCloseAttempted=false,modelReleased=false,modelCloseAttempted=false;
     const modelContinuation={close(){throw Error('same journal continuation must remain');}};
     const originalPreparation={},component={},restoredModelOutput=${heldOutput ? '{}' : 'undefined'};
@@ -621,8 +621,9 @@ function persistedModelScratchFixture({retire = true, release = true,
     ${source.slice(cleanup.start, cleanup.end)}
     return {run:async()=>{${source.slice(persisted.start, persisted.end)} return publicationPlan;},
       cleanup:()=>cleanupInfer(false)};
-  `)(inferCapture, inferOperation, execution, events, current);
-  return {...original, events, plan, content, inferCapture};
+  `)(inferCapture, inferOperation, execution, events, current,
+    (name, detail) => diagnostics.push({name, ...detail}));
+  return {...original, events, diagnostics, plan, content, inferCapture};
 }
 
 test('persisted original Model retires its aliases before scratch refresh while Content and journal remain', async () => {
@@ -1180,4 +1181,37 @@ test('completed original Model rechecks currentness after the same pending stop 
   assert.equal(f.events.includes('refresh-original-scratch'), false);
   assert.equal(f.events.includes('capture-committed'), false);
   assert.equal(f.events.filter(value => value === 'persist').length, 1);
+});
+
+
+test('Model cleanup pending diagnostics name the refusing original boundary without changing refusal', async () => {
+  for (const [options, phase] of [[{retire: false}, 'publication'],
+    [{release: false}, 'publication_capacity'], [{childPending: true}, 'model_child']]) {
+    const f = persistedModelScratchFixture(options);
+    await assert.rejects(f.run(), {code: 'ClientDispatchCleanupPending'});
+    assert.deepEqual(f.diagnostics, [{name: 'effect_computation_cleanup_pending', modelCleanupPhase: phase}]);
+    assert.equal(f.events.includes('refresh-original-scratch'), false);
+    assert.equal(f.events.includes('capture-committed'), false);
+    assert.equal(f.content.live, true);
+  }
+});
+
+
+test('Model cleanup diagnostic preserves each original thrown primary at its exact boundary', async () => {
+  for (const phase of ['stop', 'publication', 'publication_capacity', 'model_child']) {
+    for (const primary of [undefined, null, new Error('OriginalModelCleanup')]) {
+      const fail = () => {throw primary;};
+      const options = phase === 'stop' ? {stop: fail}
+        : phase === 'publication' ? {retire: fail}
+        : phase === 'publication_capacity' ? {releaseFailure: fail} : {closeFailure: fail};
+      const f = persistedModelScratchFixture(options);
+      let rejected = false;
+      try {await f.run();} catch (error) {rejected = true; assert.strictEqual(error, primary);}
+      assert.equal(rejected, true);
+      assert.deepEqual(f.diagnostics, [{name: 'effect_computation_cleanup_pending',
+        modelCleanupPhase: phase, modelCleanupOutcome: 'throw'}]);
+      assert.equal(f.events.includes('refresh-original-scratch'), false);
+      assert.equal(f.events.includes('capture-committed'), false);
+    }
+  }
 });
