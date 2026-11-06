@@ -43,7 +43,7 @@ function queryEnvironmentHelpers(sources) {
   const functions = new Map();
   for (const [path, source] of Object.entries(sources)) {
     if (!path.endsWith('.mbt') || !inHarnessPackage(path) && /_(?:wb|bb)?test\.mbt$/u.test(path)) continue;
-    const starts = [...source.matchAll(/^(?:(?:(?:pub|priv) )?(?:extern "[^"]+" )?fn ([a-zA-Z_][a-zA-Z_0-9]*)\b|test\b)/gmu)];
+    const starts = [...source.matchAll(/^(?:(?:(?:pub|priv) )?(?:extern "[^"]+" )?fn(?:\[[^]*?\])?\s+([a-zA-Z_][a-zA-Z_0-9]*)\b|test\b)/gmu)];
     for (let index = 0; index < starts.length; index++) {
       if (starts[index][1]) {
         const name = starts[index][1];
