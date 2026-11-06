@@ -12,6 +12,7 @@ import {inventory, unpack} from './package-release.mjs';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
+import {twoModelDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {digest, jsonDigest, nodeColdStateKinds, nodeColdPublicPhases} from './health-monitor-report.mjs';
 
 const self = fileURLToPath(import.meta.url);
@@ -332,9 +333,10 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
 }
 
 export async function mockWorkflowMetrics({prepared, root, repository, command, counts, onMetric,
-  template = 'churn-risk-mock'}) {
+  template = 'churn-risk-mock', variant = 'readme'}) {
+  assert.ok(variant === 'readme' || variant === 'two-models' && template === 'deal-review-mock');
   const fixture = await readFile(join(repository, healthFixtures.workflow));
-  const files = projectTemplateFiles(template);
+  const files = variant === 'two-models' ? twoModelDealReviewFiles() : projectTemplateFiles(template);
   assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
   const metric = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
     unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), files}),
@@ -350,7 +352,8 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     try {
       for (const [phase, expected] of [['capture', 9], ['approve', 11], ['recover', 7]]) {
         const observation = await command(process.execPath, [join(project, 'workflow.mjs'), phase, join(project, 'handoff.json'),
-          ...(template === 'churn-risk-mock' ? [] : [template])],
+          ...(template === 'churn-risk-mock' ? [] : [template]),
+          ...(variant === 'readme' ? [] : [variant])],
           {cwd: project, name: `workflow-${iteration}-${phase}`, timeout: 30_000});
         const rows = observation.stdout.trim().split('\n').map(line => JSON.parse(line));
         assert.equal(rows.filter(row => row.step && row.status === 'passed').length, expected);
