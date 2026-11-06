@@ -1774,3 +1774,27 @@ test('Native checkpoint and full child keep the selected backend and explicit co
     f.verifyExternal();
   }
 });
+
+test('Core Native prepares existing scoped producer dependencies before expensive consumers', () => {
+  const steps = workflow.jobs.core.steps;
+  const dependencies = steps.find(step => step.name === 'Install existing scoped component producer dependencies');
+  assert(dependencies, 'the Native scoped component producer imports the pinned Python dependencies');
+  const existing = workflow.jobs['native-macos'].steps.find(step => step.name === dependencies.name);
+  assert(existing);
+  assert.equal(dependencies.run, existing.run, 'use the same existing pinned selection, not another version list');
+  assert.equal(dependencies.if, "${{ matrix.target == 'native' }}");
+  assert.equal(dependencies['continue-on-error'], undefined);
+  const setup = steps.find(step => step.uses === './.github/actions/setup-toolchain');
+  assert.equal(setup.with.python, 'true');
+  const platform = steps.findIndex(step => step.name === 'Require the supported Core Native platform');
+  const preparation = steps.indexOf(dependencies);
+  assert(steps.indexOf(setup) < platform && platform < preparation);
+  for (const name of ['Check common core', 'Test actual Native Reader callbacks and original empty compiler driver',
+    'Test common core']) {
+    assert(preparation < steps.findIndex(step => step.name === name), name);
+  }
+  for (const target of ['js', 'wasm', 'native']) {
+    assert.equal(runInNewContext(dependencies.if.slice(3, -2), {matrix: {target}}, {timeout: 100}),
+      target === 'native');
+  }
+});
