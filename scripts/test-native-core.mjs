@@ -51,6 +51,7 @@ const selection = full ? nativeCoreTestSelection(root, args,
 if (selection) console.log('Native test selection: ' + JSON.stringify({cases: selection.cases,
   packages: selection.packages, prunedDrivers: selection.prunedDrivers,
   profiles: {ordinary: selection.profiles.ordinary.cases,
+    http: selection.profiles.http.cases,
     scoped: selection.profiles.scoped.cases, physical: selection.profiles.physicalCases,
     repeatedGeometry: selection.profiles.repeatedGeometryCases}}));
 const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_client'))
@@ -122,6 +123,17 @@ const checkChild = result => {
   }
 };
 if (full) {
+  if (selection.profiles.http.args !== null) {
+    console.log(`Native Core HTTP profile: ${selection.profiles.http.cases} required cases`);
+    checkChild(spawnSync(process.execPath, ['scripts/test-native-http-client.mjs'], {
+      cwd: root, stdio: 'inherit', env: {...compilerEnvironment,
+        ACTQL_TEST_SCRATCH_ROOT: namespace,
+        ACTQL_TEST_PRESERVE_SCRATCH: '1',
+        ACTQL_TEST_NATIVE_HTTP_FOCUS: 'core-http',
+        ACTQL_TEST_NATIVE_CORE_HTTP_ARGS: JSON.stringify(selection.profiles.http.args),
+        ACTQL_TEST_NATIVE_CORE_HTTP_COUNT: String(selection.profiles.http.cases)},
+    }));
+  }
   // Each configuration executes its original compiler-owned cases. The
   // ordinary configuration also checks that no physical provider was selected;
   // physical custody cases must instead run with the real scoped provider.

@@ -91,20 +91,26 @@ test('actual Native profile partition executes every original and both geometry 
     ['local_command_business_wbtest.mbt', 'both geometry configurations'],
   ]) writeFileSync(join(root, directory, file),
     `test "${name}" { assert_eq(answer(), 7) }\n`);
+  const http = 'src/platform_native/http_client';
+  mkdirSync(join(root, http), {recursive: true});
+  writeFileSync(join(root, http, 'moon.pkg'), '');
+  writeFileSync(join(root, http, 'main_wbtest.mbt'),
+    'test "HTTP original with its own peer profile" { assert_eq(7, 7) }\n');
   const env = {...process.env, MOONBIT_NEW_NATIVE: '0'};
   const moon = join(env.MOON_HOME, 'bin/moon');
   const args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose'];
   const selected = nativeCoreTestSelection(root, args, {env, partitionProfiles: true});
-  assert.equal(selected.cases, 3);
+  assert.equal(selected.cases, 4);
   assert.deepEqual(selected.profiles, {
     ordinary: {args: [...args, directory+'/ordinary_wbtest.mbt',
       directory+'/local_command_business_wbtest.mbt'], cases: 2},
+    http: {args: [...args, http], cases: 1},
     scoped: {args: [...args, directory+'/local_command_business_wbtest.mbt',
       directory+'/local_command_business_cleanup_wbtest.mbt'], cases: 2, tests: [
       {source: directory+'/local_command_business_wbtest.mbt', index: 0},
       {source: directory+'/local_command_business_cleanup_wbtest.mbt', index: 0},
     ]},
-    physicalCases: 1, repeatedGeometryCases: 1, uniqueCases: 3,
+    physicalCases: 1, repeatedGeometryCases: 1, uniqueCases: 4,
   });
   // These tiny programs test real compiler file selection, not a provider or
   // physical acceptance. A case count alone cannot detect equal-sized swaps.
@@ -122,6 +128,10 @@ test('actual Native profile partition executes every original and both geometry 
   assert.match(ordinary, /ordinary profile original/u);
   assert.match(ordinary, /both geometry configurations/u);
   assert.doesNotMatch(ordinary, /physical profile original/u);
+  assert.doesNotMatch(ordinary, /HTTP original/u);
+  const transport = execute(selected.profiles.http);
+  assert.match(transport, /HTTP original with its own peer profile/u);
+  assert.doesNotMatch(transport, /ordinary profile original|both geometry configurations|physical profile original/u);
   const scoped = selected.profiles.scoped.tests.map(test => execute({
     args: [...args, test.source, '--index', String(test.index)], cases: 1,
   })).join('\n');
@@ -157,6 +167,7 @@ test('actual Native package selection preserves full WB/BB/inline/doc outline an
   const profiled = nativeCoreTestSelection(root, args, {env, partitionProfiles: true});
   assert.deepEqual(profiled.profiles, {
     ordinary: {args: selected.args, cases: 4},
+    http: {args: null, cases: 0},
     scoped: {args: null, cases: 0, tests: []},
     physicalCases: 0, repeatedGeometryCases: 0, uniqueCases: 4,
   });

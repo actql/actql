@@ -660,7 +660,7 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
   }
 });
 
-function fixture(t, {scoped = false} = {}) {
+function fixture(t, {scoped = false, http = false} = {}) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-namespace-test-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const checkout = join(root, 'checkout');
@@ -706,6 +706,23 @@ export function nativeProcessRegionFixture(repository, namespace) {
   for (const name of ['fixture-native', 'fixture-empty']) {
     mkdirSync(join(checkout, 'src', name), {recursive: true});
     writeFileSync(join(checkout, 'src', name, 'main.mbt'), 'Original compiler-input fixture\n');
+  }
+  if (http) {
+    const source = join(checkout, 'src/platform_native/http_client');
+    mkdirSync(source, {recursive: true});
+    writeFileSync(join(source, 'main.mbt'), 'Original compiler-input fixture\n');
+    // Explicit wrapper-routing port, not physical HTTPS acceptance.
+    writeFileSync(join(checkout, 'scripts/test-native-http-client.mjs'), `
+import assert from 'node:assert/strict';
+assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS, 'core-http');
+assert.equal(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_COUNT, '1');
+assert.deepEqual(JSON.parse(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_ARGS),
+  ['--deny-warn', 'src/platform_native/http_client']);
+assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_URL, undefined);
+assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1');
+console.log('ORIGINAL_HTTP_PROFILE_REQUIRED');
+process.exitCode = process.env.ACTQL_FIXTURE_HTTP_FAILED === '1' ? 9 : 0;
+`);
   }
   if (scoped) {
     mkdirSync(join(checkout, 'src/cmd/native_client'), {recursive: true});
@@ -785,8 +802,10 @@ if (process.argv.includes('--dry-run')) {
       '--target native --pkg-name fixture/arena --driver-kind whitebox');
     process.exit(0);
   }
-  for (const name of process.argv.includes('src/fixture-native') ? ['fixture-native']
-    : ['fixture-native','fixture-empty']) console.log('moon generate-test-driver ' +
+  for (const name of process.argv.includes('src/fixture-native') ? ['fixture-native',
+    ...(process.argv.includes('src/platform_native/http_client') ? ['platform_native/http_client'] : [])]
+    : ['fixture-native','fixture-empty',
+      ...(process.env.ACTQL_FIXTURE_CORE_HTTP === '1' ? ['platform_native/http_client'] : [])]) console.log('moon generate-test-driver ' +
       '--output-driver _build/native/release/test/'+name+'/driver.mbt '+
       '--output-metadata _build/native/release/test/'+name+'/info.json '+
       'src/'+name+'/main.mbt --target native --pkg-name fixture/'+name+' --driver-kind internal');
@@ -945,6 +964,7 @@ process.exit(result.status ?? 1);
 `);
   const env = {...process.env, PATH: `${bin}:${process.env.PATH}`,
     ...(scoped ? {ACTQL_FIXTURE_CORE_SCOPED: '1'} : {}),
+    ...(http ? {ACTQL_FIXTURE_CORE_HTTP: '1'} : {}),
     HOME: root, RUNNER_TEMP: join(root, 'runner'), ACTQL_TEST_NATIVE_SQLITE_ROOT: parent,
     ACTQL_TEST_PRESERVE_SCRATCH: '',
     ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: parent,
@@ -1286,6 +1306,25 @@ test('strict Native checkpoint producers share the full release child compilatio
   f.verifyExternal();
 });
 
+test('full Native Core requires every HTTP case in its own peer profile and propagates transport failure', t => {
+  for (const fail of [false, true]) {
+    const f = fixture(t, {http: true});
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs', '--deny-warn'], {
+      cwd: f.checkout, encoding: 'utf8', timeout: 10000,
+      env: {...f.env, ACTQL_FIXTURE_HTTP_FAILED: fail ? '1' : '0'},
+    });
+    assert.ifError(result.error);
+    assert.equal(result.signal, null);
+    assert.equal(result.status, fail ? 9 : 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /"ordinary":1,"http":1,"scoped":0/u);
+    assert.match(result.stdout, /Native Core HTTP profile: 1 required cases/u);
+    assert.match(result.stdout, /ORIGINAL_HTTP_PROFILE_REQUIRED/u);
+    if (fail) assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+    else assert.match(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+    f.verifyExternal();
+  }
+});
+
 test('full Native Core requires both ordinary and selected profiles and propagates selected failure', t => {
   for (const fail of [false, true]) {
     const f = fixture(t, {scoped: true}), commands = join(f.root, 'native-commands.jsonl');
@@ -1330,7 +1369,7 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     assert.deepEqual(selected.args.slice(0, 3), ['test', '--target', 'native']);
     const target = selected.args[selected.args.indexOf('--target-dir') + 1];
     assert(target.startsWith(join(f.checkout, '_build/native-core-scoped/profile-')));
-    assert.match(result.stdout, /"ordinary":2,"scoped":3,"physical":2,"repeatedGeometry":1/u);
+    assert.match(result.stdout, /"ordinary":2,"http":0,"scoped":3,"physical":2,"repeatedGeometry":1/u);
     assert.equal((result.stdout.match(/CORE_TARGET_FIXTURE_PROVISIONED/gu) ?? []).length, 1,
       'only ordinary Core executes the Salesforce target oracle');
     const namespace = /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1];

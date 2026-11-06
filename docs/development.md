@@ -143,6 +143,11 @@ Preparation or compilation failure fails the command; a retained handler panic
 or aborted process does not count as physical cleanup. This test fixture is
 separate from the Engine, VM and installed runtime supplier.
 
+Full Native Core runs every `platform_native/http_client` case with the existing
+HTTP harness's actual mTLS and bearer peers. This separate profile preserves the
+compiler-selected case count and original strict flags. Its environment is not
+enabled for unrelated Core packages; transport failure still fails Full Core.
+
 The wrapper defaults the SQLite library to the supported platform's system
 library; `ACTQL_TEST_NATIVE_SQLITE_LIBRARY` can override it. After a successful,
 stopped child, owned scratch is removed and checked absent. Failure, a signal,

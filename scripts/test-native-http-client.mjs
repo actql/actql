@@ -42,7 +42,7 @@ import {pinnedEngineContracts} from
 
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
 if (focus !== undefined &&
-    !['effect-control-replay', 'remote-client-poll', 'http-retirement', 'http-symbol-unload',
+    !['effect-control-replay', 'remote-client-poll', 'core-http', 'http-retirement', 'http-symbol-unload',
       'http-constructor-retirement', 'resident-review-regressions',
       'resident-review-provider', 'resident-review-checkpoint',
       'resident-review-write'].includes(focus)) {
@@ -1106,6 +1106,39 @@ verification: try {
       throw new Error(`native Checkpoint control replay failed: ${code ?? signal}`);
     }
   };
+  if (focus === 'core-http') {
+    const args = JSON.parse(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_ARGS);
+    const expectedTests = Number(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_COUNT);
+    assert(Array.isArray(args) && args.every(value => typeof value === 'string'));
+    assert.equal(args.at(-1), 'src/platform_native/http_client');
+    assert(!args.includes('--target'), 'Core retains its original Native target');
+    assert(Number.isSafeInteger(expectedTests) && expectedTests > 0,
+      'Original compiler-owned HTTP case count required');
+    await writeFile(join(root, 'credential.secret'), 'native-secret\n', {mode: 0o600});
+    const child = spawn(process.execPath, ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+      "process.exitCode=runFocusedTests('moon',['--target','native',...JSON.parse(process.argv[1])]," +
+      "{cwd:process.cwd(),timeout:300000,expectedTests:Number(process.argv[2])});",
+      JSON.stringify(args), String(expectedTests)], {
+      cwd: new URL('../', import.meta.url), stdio: 'inherit',
+      env: {...process.env,
+        ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
+        ACTQL_TEST_NATIVE_HTTP_NON_CURL_LIBRARY: nonCurlLibrary,
+        ACTQL_TEST_NATIVE_HTTP_URL: nativeHttpOrigin,
+        ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
+        ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
+        ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
+        ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
+        ACTQL_TEST_NATIVE_HTTP_BEARER_URL: bearerServers.origin,
+        ACTQL_TEST_NATIVE_HTTP_BEARER_FOREIGN_URL: bearerServers.foreignOrigin,
+        ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT: bearerServers.directory,
+        ACTQL_TEST_NATIVE_HTTP_BAD_CERT: join(root, 'foreign-client.crt'),
+        ACTQL_TEST_NATIVE_HTTP_BAD_KEY: join(root, 'foreign-client.key')},
+    });
+    const [code, signal] = await once(child, 'exit');
+    assert.equal(code, 0, `Native Core HTTP profile failed: ${code ?? signal}`);
+    break verification;
+  }
   if (focus === 'effect-control-replay') {
     await runCheckpointControlReplay({
       ...process.env,
