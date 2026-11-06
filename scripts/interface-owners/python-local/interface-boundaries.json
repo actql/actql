@@ -330,6 +330,10 @@
               {
                 "path": "packages/native-cli/bin/actql.mjs",
                 "anchor": "return child.status ??"
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "if (selectedEnvironment.ACTQL_NATIVE_LOCAL_RUNTIME === undefined)"
               }
             ],
             "cancellation": {
@@ -526,6 +530,10 @@
               {
                 "path": "scripts/native-cli-project-init.test.mjs",
                 "anchor": "test('root README deal-review init selects its exact documented template"
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('an installed package without Local runtime refuses every init template before any project writes'"
               }
             ]
           }
