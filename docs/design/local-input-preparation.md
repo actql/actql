@@ -438,6 +438,14 @@ available for retirement; no second imported business child is started.
 Standalone admissions that still allocate their complete envelope retain that
 full-envelope check.
 
+The installed Node Effect constructors and the Request-owned captured Model
+constructor select the same runtime admission already used by captured Pure
+programs. Their Compute import/output maxima remain policy and planning DATA;
+the original finite Ledger admits each actual provider, input and output before
+construction. Legacy standalone quote constructors retain their full-envelope
+default. This choice does not reduce any single constructor or simultaneous
+physical/Model/Content overlap.
+
 The Run retains a closed Pure/EffectPlan case and uses one generic retirement
 procedure. The selected dispatch borrows its original body before opening its
 Host; pending siblings keep the original preparation reservation charged after

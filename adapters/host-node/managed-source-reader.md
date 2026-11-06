@@ -75,11 +75,29 @@ Source construction and registration.
 Each entrance is one-shot, including reservation refusal, thrown `undefined`
 and failed native construction. Copied receivers and reentry refuse. An invalid
 native Promise remains with the same initial material until settlement; its
-completion cannot turn the refused constructor into success. The full selected
-native peak stays retained until original Source retirement. There is no
-retained-output approximation or physical cleanup acknowledgement at this
-entrance. Provider recipes must cover their own complete native serializer,
-failed-prefix and coexisting outputs before calling it.
+completion cannot turn the refused constructor into success. Running or failed
+constructors keep the full selected native peak and their callback slot.
+
+Native input and declaration completion use one private common routine. After
+the actual output and required declaration export/parsed export are retained,
+the same original reserve entrance checks physical currentness before the
+existing typed retained projection is selected. A second original current fence
+precedes numerical reconciliation; reconciliation alone is not currentness.
+A failed final fence restores the original quote and projection slot. Success
+clears that spent callback slot and the caller's local callback aliases before
+the next Environment constructor, preserving the same opaque declaration,
+wire, parsed export and separately funded dependencies. No other runtime's
+opaque handle, output-length estimate or garbage-collection observation can
+supply this completion. A legacy runtime without the existing retained DATA
+port conservatively keeps its original whole quote.
+
+The outer Host export parse keeps its old returned-tree and workspace bounds.
+Both separate roles remain debt after a parse/freeze failure; only successful
+synchronous return removes that ended workspace. This does not add retained
+and execution when execution already includes retained, or change the generic
+configuration reader's later identity/snapshot envelope. Provider recipes must
+still cover every escaped output and complete serializer/failed-prefix peak.
+Physical children retain their own original cleanup acknowledgement duty.
 
 BigQuery uses the bound `prepareNativeDeclaration` entrance with one actual
 `ReadDeclarationConstructionCapacity` quote for the canonical base64 Buffer,
@@ -154,6 +172,13 @@ callers against the same complete Environment wire/CID and actual typed reserve
 and reconcile Results. The failure-debt control derives its unchanged-parent
 probe from the actual completed prefix and independent constructor delta, rather
 than a historical empirical offset that includes unrelated sibling workspaces.
+
+The native completion cases additionally verify the exact original retained
+quote before the next Environment, project/export/parse failure debt and the
+original current refusal remaining unavailable to the next constructor. The
+full sanitized Account metadata fixture exercises initial identity, Source and
+Effect together on the original 512-MiB parent; this component has no business
+Run, actual Salesforce credential, approval or update acceptance.
 
 ## Original binding retirement acknowledgement
 

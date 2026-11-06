@@ -262,9 +262,50 @@ function freezeSourceProjection(value) {
   return value;
 }
 
-// This reader is created only by the real initializer, before the first
-// configuration open. Its fixed Buffer peak is reserved before allocation;
-// actual received bytes fund native decoding BEFORE concat/text/JSON.parse.
+// Both existing native entrances complete through this SAME material. Their
+// callers retain every actual output before entering here. Preserve the full
+// admitted prefix through the original current fence; only then select the
+// existing typed retained quantity and detach its spent callback slot.
+function retainCompletedSourceNativeConstruction(original, material, providerIndex,
+  projectionIndex, quantity, projection, validate) {
+  const check = () => {
+    validate();
+    if (material.phase !== 'working' || material.providers[providerIndex] !== quantity ||
+        material.inputs[projectionIndex] !== projection) fail('InstalledSourceInputCapacityUnavailable');
+  };
+  check();
+  // Reconciliation itself is numerical. The existing reserve entrance also
+  // checks the SAME physical parent when its admitted debit is sufficient.
+  reserveSource(original, material);
+  check();
+  let retained;
+  material.busy = true;
+  try {
+    retained = checked(Reflect.apply(material.methods.InstalledSourceRetainedConstructionCapacity,
+      original.moon, [quantity]));
+    check();
+    if (!retained || typeof retained !== 'object' || nodeTypes.isProxy(retained)) {
+      fail('InstalledSourceInputCapacityUnavailable');
+    }
+    material.inputs[projectionIndex] = undefined;
+    material.providers[providerIndex] = retained;
+  } finally {material.busy = false;}
+  try {
+    // The full old debit is still held: reserve observes currentness before
+    // any shrink. A failed original fence therefore cannot spend that debt.
+    reserveSource(original, material);
+    validate();
+    if (material.phase !== 'working' || material.providers[providerIndex] !== retained ||
+        material.inputs[projectionIndex] !== undefined) fail('InstalledSourceInputCapacityUnavailable');
+    reconcileSource(original, material);
+  } catch (cause) {
+    // A failed final fence keeps the SAME original quote and callback debt.
+    material.providers[providerIndex] = quantity;
+    material.inputs[projectionIndex] = projection;
+    throw cause;
+  }
+}
+
 // One pure metadata/native-input constructor under an already existing Source
 // material. Context and metadata-reader entrances supply only private guards;
 // neither can replace the original material or reserve after construction.
@@ -299,26 +340,15 @@ function prepareSourceNativeInput(original, material, projection, attempts, vali
     }
     retain(value);
   } finally {material.busy = false;}
-  // This synchronous producer has returned and its actual output is retained.
-  // Cut only its input callback aliases, then keep the existing Core retained
-  // quantity. Failed/asynchronous producers above keep their full original
-  // peak and callbacks; no physical child or GC observation is an ACK here.
-  material.busy = true;
-  try {
-    const retained = checked(Reflect.apply(material.methods.InstalledSourceRetainedConstructionCapacity,
-      original.moon, [quantity]));
-    validate();
-    if (!retained || typeof retained !== 'object' || nodeTypes.isProxy(retained) ||
-        material.phase !== 'working' || material.providers[providerIndex] !== quantity ||
-        material.inputs[projectionIndex] !== projection) fail('InstalledSourceInputCapacityUnavailable');
-    material.inputs[projectionIndex] = undefined;
-    material.providers[providerIndex] = retained;
-    projection = capacityFor = project = quantity = undefined;
-  } finally {material.busy = false;}
-  reconcileSource(original, material);
+  retainCompletedSourceNativeConstruction(original, material, providerIndex,
+    projectionIndex, quantity, projection, validate);
+  projection = capacityFor = project = quantity = undefined;
   return value;
 }
 
+// This reader is created only by the real initializer, before the first
+// configuration open. Its fixed Buffer peak is reserved before allocation;
+// actual received bytes fund native decoding BEFORE concat/text/JSON.parse.
 export function installedSourceConfigurationReader(services) {
   const original = installations.get(services);
   if (original === undefined) fail('ForeignInstalledHostServices');
@@ -975,16 +1005,16 @@ function createInstalledSourceContext(original, material, installation, connecto
     prepareNativeDeclaration(projection) {
       if (this !== context || !scope.active || scope.prepared !== undefined || scope.source !== undefined || scope.declarationAttempted ||
           material.phase !== 'working' || material.busy) fail('ForeignInstalledSourceInitialization');
-      const {capacity: capacityFor, project} = sourceProjectionMethods(projection);
+      let {capacity: capacityFor, project} = sourceProjectionMethods(projection);
       scope.declarationAttempted = true;
       let quantity;
       material.busy = true;
       try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
       finally {material.busy = false;}
       if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceDeclarationCapacityUnavailable');
-      // The selected producer owns its actual parse/schema/declaration/export
-      // peak. Keep that opaque native quote through failures and retirement;
-      // an output size or a later successful registration cannot replace it.
+      // Running and failed native construction keeps its complete original
+      // peak. Only this caller can close the original declaration/export phase.
+      const providerIndex = material.providers.length, projectionIndex = material.inputs.length;
       material.providers.push(quantity); material.inputs.push(projection);
       reserveSource(original, material);
       if (!scope.active || scope.prepared !== undefined || scope.source !== undefined || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
@@ -1016,14 +1046,30 @@ function createInstalledSourceContext(original, material, installation, connecto
       const parsedGeometry = sourceJsonWireGeometry(declaredWire);
       const parseNodes = 4n * parsedGeometry.nodes, parseText = 12n * parsedGeometry.units;
       reserveSource(original, material, parseNodes, parseText, 0n);
+      // The original quote has TWO separate equal roles: returned tree and
+      // parsing workspace. Keep their admitted total on failure; only the
+      // successful pure parse can remove its ended workspace below. This is
+      // not retained+execution (whose execution already contains retained).
+      material.nodes += 2n * parseNodes; material.text += 2n * parseText;
       if (!scope.active || scope.prepared !== undefined || scope.source !== undefined || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
       material.busy = true;
       try {
         declared = JSON.parse(declaredWire);
         material.inputs.push(declared);
         freezeSourceProjection(declared);
-        material.nodes += parseNodes; material.text += parseText;
       } finally {material.busy = false;}
+      material.nodes -= parseNodes; material.text -= parseText;
+      if (typeof material.methods.InstalledSourceRetainedConstructionCapacity === 'function') {
+        retainCompletedSourceNativeConstruction(original, material, providerIndex,
+          projectionIndex, quantity, projection, () => {
+            if (!scope.active || scope.prepared !== undefined || scope.source !== undefined) {
+              fail('ForeignInstalledSourceInitialization');
+            }
+          });
+        projection = capacityFor = project = quantity = undefined;
+      }
+      // A legacy runtime without the existing retained DATA port keeps its
+      // old complete quote; no Host reconstruction or guessed shrink occurs.
       let environment;
       if (scope.role === 'effect') reserveSource(original, material);
       else environment = prepareSourceEnvironment(declared);

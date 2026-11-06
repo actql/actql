@@ -533,6 +533,7 @@ pub fn prepare_installed_effect_managed_plan(
   source_providers? : Array[@execution.ExecutionCapacity]? = None,
   model? : ClientInstalledEffectModelDemand? = None,
   content? : ClientInstalledEffectContentPreparation? = None,
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
   prepare_installed_effect_managed_plan_owned(
     prepared,
@@ -552,6 +553,7 @@ pub fn prepare_installed_effect_managed_plan(
     source_providers~,
     model~,
     content~,
+    runtime_admission~,
   )
 }
 
@@ -577,6 +579,7 @@ fn prepare_installed_effect_managed_plan_owned(
   model? : ClientInstalledEffectModelDemand? = None,
   content? : ClientInstalledEffectContentPreparation? = None,
   source_inputs? : Array[ClientInstalledEffectSourceInput]? = None,
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
   if !installed_effect_managed_request_matches(prepared, request) {
     return Err(ForeignOriginal)
@@ -773,6 +776,7 @@ fn prepare_installed_effect_managed_plan_owned(
           }
         }
       },
+      runtime_admission~,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value

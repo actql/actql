@@ -154,6 +154,8 @@ fn request_model_graph_fixture(
 fn request_model_fixture(
   captured? : Bool = false,
   model_input? : Bool = true,
+  model_copies? : Int = 1,
+  model_limits? : @resources.LedgerLimits = effect_model_plan_limits,
   current? : () -> Bool = () => true,
   quantities? : @resources.QuantityAmounts? = Some({
     tokens: 128L,
@@ -169,6 +171,7 @@ fn request_model_fixture(
   let declaration = request_model_module_declaration()
   let (parent, input, prepared) = request_model_input_fixture(
     captured~,
+    model_copies~,
     current~,
     declaration=if model_input && captured { Some(declaration) } else { None },
   )
@@ -297,8 +300,8 @@ fn request_model_fixture(
       ).unwrap()
     }
     prepare_installed_mock_model_capture_plan_binding(
-      original, compiled, definition, occurrence, graph, effect_model_plan_limits,
-      500L, 700L, 20, 20, 20,
+      original, compiled, definition, occurrence, graph, model_limits, 500L, 700L,
+      20, 20, 20,
     ).unwrap()
   } else {
     let original = if model_input {
@@ -319,8 +322,8 @@ fn request_model_fixture(
       ).unwrap()
     }
     prepare_installed_mock_model_source_free_plan(
-      original, request, compiled, definition, occurrence, graph, effect_model_plan_limits,
-      500L, 700L, 20, 20, 20,
+      original, request, compiled, definition, occurrence, graph, model_limits, 500L,
+      700L, 20, 20, 20,
     ).unwrap()
   }
   assert_eq(factory_calls.val, 1)
@@ -363,6 +366,49 @@ test "Pure Scope funds its new origin and original census before binding for sou
     retire_installed_managed_run(run).unwrap()
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
+}
+
+///|
+test "captured Model adopts the ordinary finite parent without requiring the whole future Plan" {
+  let (parent, input, plan, construction) = request_model_fixture(
+    captured=true,
+    model_copies=0,
+    // Both components may use the same finite ceiling at different times.
+    // Their actual Scope/bootstrap and work still reserve on one parent.
+    model_limits={
+      ..effect_model_plan_limits,
+      retained_bytes: client_local_retained_byte_ceiling(),
+      execution_bytes: client_local_execution_byte_ceiling(),
+    },
+  )
+  let ledger = parent.ledger
+  let limits = @resources.ledger_limits(ledger)
+  assert_false(installed_effect_limits_fit(plan.limits, limits))
+  let scope = prepare_request_model_read_scope(parent, input, plan).unwrap()
+  complete_request_model_preparation(parent, input, plan).unwrap()
+  @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+  let owner = begin_request_model_managed_run(parent, plan.request, scope).unwrap()
+  assert_true(
+    physical_equal(require_installed_managed_run(owner).unwrap(), ledger),
+  )
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    @resources.reserve_capacity(ledger, limits.retained_bytes + 1L, 0L)
+    is Err(@resources.RetentionLimit),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_eq(@resources.ledger_limits(ledger), limits)
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      plan.compiled,
+      plan.definition,
+      plan.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
 
 ///|
