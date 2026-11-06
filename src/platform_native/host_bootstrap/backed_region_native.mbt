@@ -324,6 +324,10 @@ pub fn[T, C] NativeHostBootstrap::close_backed_region(
       if closed {
         region.closed = true
         region.loans.clear()
+        // Native clear retains backing slots. Release the empty backing only
+        // after this original region closes, breaking loan -> region custody
+        // without changing a pending loan's settlement or physical ACK.
+        region.loans.shrink_to_fit()
       }
       Ok(closed)
     }
