@@ -89,6 +89,31 @@ test('relation final pair refusal retains its exact issue before terminal harnes
   assert(renderer.includes('relation_original_sqlite_issue(reason)'));
 });
 
+test('relation fixture retires the acknowledged business loan before its Read-owned limits', () => {
+  const fixture = readFileSync(new URL('../src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt', import.meta.url), 'utf8');
+  const cleanup = fixture.slice(fixture.indexOf('  runtime.close().relation_original_value("original Runtime close")'));
+  const calls = [
+    'close_domain_retained_execution(business_execution.val.unwrap())',
+    'close_domain_after_owner_ack(business_domain.val.unwrap())',
+    'close_crypto_component(component)',
+    'close_local_host_resources(pair)',
+    'close_domain_after_owner_ack(read_domain)',
+    'close_domain_after_owner_ack(sqlite_domain)',
+    'physical.try_close()',
+    'relation_original_close(fd)',
+  ];
+  let previous = -1;
+  for (const call of calls) {
+    const at = cleanup.indexOf(call);
+    assert(at > previous, `Original cleanup order: ${call}`);
+    assert.equal(cleanup.indexOf(call, at + call.length), -1, `Only one ${call}`);
+    previous = at;
+  }
+  assert.match(cleanup, /close_domain_retained_execution\(business_execution\.val\.unwrap\(\)\)\s*\.relation_original_value\("physical business retirement"\)/u);
+  assert.match(cleanup, /close_domain_after_owner_ack\(business_domain\.val\.unwrap\(\)\)\s*\.relation_original_value\("business domain close"\)/u);
+  assert(cleanup.indexOf('raise RelationPairRetirementFailure(issue)') < cleanup.indexOf('close_domain_after_owner_ack(read_domain)'));
+});
+
 test('relation diagnostic preserves first Work refusal and waits for original returns before formatting', () => {
   const fixture = readFileSync(new URL('../src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt', import.meta.url), 'utf8');
   // The earlier entry-preparation refusal also saves this out-slot. Select

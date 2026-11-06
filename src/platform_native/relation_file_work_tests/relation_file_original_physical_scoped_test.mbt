@@ -1316,6 +1316,12 @@ test "actual original Account Journal StoreOperation captures relation and execu
   physical
   .close_domain_retained_execution(business_execution.val.unwrap())
   .relation_original_value("physical business retirement")
+  // The distinct business loan still retains the exact limits quoted in Read.
+  // After its real execution ACK, retire that domain/view/loan before the Read
+  // pair that owns those limit bytes. This does not acknowledge either parent.
+  physical
+  .close_domain_after_owner_ack(business_domain.val.unwrap())
+  .relation_original_value("business domain close")
   physical
   .close_crypto_component(component)
   .relation_original_value("physical Crypto control retirement")
@@ -1325,9 +1331,6 @@ test "actual original Account Journal StoreOperation captures relation and execu
     Ok(_) => ()
     Err(issue) => raise RelationPairRetirementFailure(issue)
   }
-  physical
-  .close_domain_after_owner_ack(business_domain.val.unwrap())
-  .relation_original_value("business domain close")
   physical
   .close_domain_after_owner_ack(read_domain)
   .relation_original_value("Read domain close")
