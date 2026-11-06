@@ -67,7 +67,7 @@ const machine = empty => JSON.stringify({version: 'actql/0.1', id: 'fixture.grap
   {from: 'g', graph_diff: {with: empty ? 'empty' : 'g'}, as: 'changes'},
   {from: 'changes', select: ['delta'], as: 'projected'},
 ], results: {out: {from: 'projected', fields: ['delta']}}}], results: {changes: {from: {stage: 'main', result: 'out'}}}});
-const result = delta => ({changes: {rows: delta === undefined ? [] : [{delta}], columns}});
+const result = delta => ({changes: {rows: delta === undefined ? [] : [{delta: {$json: delta}}], columns}});
 const item = (name, format, text, delta) => ({name: 'graph-difference-' + name, format, text, results: result(delta), sourceReadCount: 0});
 export const graphDifferenceSourceSuccesses = [
   item('json-parallel-unchanged', 'json', machine(false), machineDelta(false)),
