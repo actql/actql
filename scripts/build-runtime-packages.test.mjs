@@ -405,8 +405,23 @@ test('runtime preparation refuses missing fixture ownership before compiling', t
 
 for (const [gate, commands] of Object.entries(expectedGates)) {
   test(`${gate} retains its exact registered commands without duplicate checks`, () => {
-    const actual = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts[gate];
-    assert.deepEqual(actual.split(' && '), commands);
+    const scripts = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts;
+    let actual = scripts[gate].split(' && ');
+    if (gate === 'check:local-node-assets') {
+      assert.deepEqual(actual, ['npm run check:local-node-source-assets',
+        'node scripts/test-packed-local-node-assets.mjs']);
+      const source = scripts['check:local-node-source-assets'].split(' && ');
+      assert.deepEqual(source, commands.filter(command =>
+        command !== 'node scripts/test-packed-local-node-assets.mjs'),
+        'the delegated source gate retains every original source check and external build');
+      actual = [...source, actual[1]];
+      assert.equal(new Set(actual).size, actual.length,
+        'the expanded source and tarball consumer commands run exactly once');
+      assert.deepEqual(actual.toSorted(), commands.toSorted(),
+        'the expanded gate retains the complete original nine-command union');
+    } else {
+      assert.deepEqual(actual, commands);
+    }
   });
 }
 
