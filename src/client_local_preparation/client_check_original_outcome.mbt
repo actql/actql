@@ -1,5 +1,5 @@
 ///|
-/// Project only an already-retained original semantic refusal. The Request
+/// Project an already-retained original semantic outcome. The Request
 /// facade supplies these typed originals while its parent remains live and
 /// backs this output/working frame before entry. This function has no checker,
 /// binder, Source collector/resolver, compiler or ownership transfer.
@@ -29,7 +29,7 @@ pub fn client_program_project_original_check_outcome(
   selector_namespace : ClientCheckSourceSelectorNamespace?,
   original_parameters? : String? = None,
 ) -> String {
-  if outcome is @checked.Checked(_) || !["program", "text"].contains(input_kind) {
+  if !["program", "text"].contains(input_kind) {
     return check_failed_json("check_request_invalid", correlation_ref)
   }
   if selector_namespace is Some(proof) &&
@@ -165,7 +165,7 @@ pub fn client_program_project_original_check_outcome(
     Report
   } else {
     match outcome {
-      @checked.Checked(_) => Failed("check_internal")
+      @checked.Checked(_) => Report
       @checked.NeedsInputs(requests) => {
         for index in 0..<@checked.input_request_count(requests) {
           match @checked.input_request_at(requests, index).unwrap().kind {

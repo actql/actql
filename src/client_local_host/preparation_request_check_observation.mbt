@@ -161,6 +161,88 @@ pub fn[I] project_request_check_outcome(
     CheckOutcome(value) => value
     _ => return Ok(None)
   }
+  project_request_semantic_check_observation(
+    owner,
+    input,
+    original,
+    visible_publication,
+    context_ref,
+    input_kind,
+    input_revision,
+    input_bytes,
+    declarations_revision,
+    declarations_bytes,
+    parameters_revision,
+    parameters_bytes,
+    correlation_ref,
+    selector_namespace,
+    original_parameters~,
+  )
+}
+
+///|
+/// Observe the SAME completed semantic outcome for static checks. This does
+/// not compile, select a Plan, transfer the body or manufacture a refusal.
+pub fn[I] project_request_completed_check_outcome(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  visible_publication : String,
+  context_ref : String,
+  input_kind : String,
+  input_revision : String,
+  input_bytes : Int,
+  declarations_revision : String?,
+  declarations_bytes : Int,
+  parameters_revision : String?,
+  parameters_bytes : Int,
+  correlation_ref : String,
+  selector_namespace : @local_preparation.ClientCheckSourceSelectorNamespace?,
+  original_parameters? : String? = None,
+) -> Result[String?, ClientRequestPreparationIssue] {
+  guard owner.program_check is Some(child) &&
+    child.check_outcome is Some(original) else {
+    return Ok(None)
+  }
+  if !(original is @checked.Checked(_)) {
+    return Ok(None)
+  }
+  project_request_semantic_check_observation(
+    owner,
+    input,
+    original,
+    visible_publication,
+    context_ref,
+    input_kind,
+    input_revision,
+    input_bytes,
+    declarations_revision,
+    declarations_bytes,
+    parameters_revision,
+    parameters_bytes,
+    correlation_ref,
+    selector_namespace,
+    original_parameters~,
+  )
+}
+
+///|
+fn[I] project_request_semantic_check_observation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  original : @checked.CheckOutcome,
+  visible_publication : String,
+  context_ref : String,
+  input_kind : String,
+  input_revision : String,
+  input_bytes : Int,
+  declarations_revision : String?,
+  declarations_bytes : Int,
+  parameters_revision : String?,
+  parameters_bytes : Int,
+  correlation_ref : String,
+  selector_namespace : @local_preparation.ClientCheckSourceSelectorNamespace?,
+  original_parameters? : String? = None,
+) -> Result[String?, ClientRequestPreparationIssue] {
   if owner.phase != ProgramCheck {
     return if owner.phase == Selecting { Err(WrongPhase) } else { Ok(None) }
   }
@@ -177,7 +259,14 @@ pub fn[I] project_request_check_outcome(
   if child.busy || child.work is Some(_) || child.policy_subject_work is Some(_) {
     return Err(WrongPhase)
   }
-  guard child.phase == SemanticCheckRejected &&
+  let original_phase = child.phase
+  guard (
+      original_phase == SemanticCheckRejected ||
+      (
+        original_phase == SemanticCheckComplete &&
+        original is @checked.Checked(_)
+      )
+    ) &&
     child.arguments is Some(arguments) &&
     arguments.source_preparation is Some(source) &&
     child.check_outcome is Some(outcome) &&
@@ -272,7 +361,7 @@ pub fn[I] project_request_check_outcome(
         owner.program_check is Some(current) &&
         physical_equal(current, child) &&
         child.busy &&
-        child.phase == SemanticCheckRejected &&
+        child.phase == original_phase &&
         child.arguments is Some(current_arguments) &&
         physical_equal(current_arguments, arguments) &&
         child.check_outcome is Some(current_outcome) &&

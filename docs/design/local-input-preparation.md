@@ -6028,3 +6028,17 @@ the same cached reservation baseline; a declined grow does not add the baseline
 twice, refund consumed work or issue another Root. A constructor that fits an
 existing debit checks original currentness without a no-op resize. Failed file
 constructors retain their own Reader/Root before the same Request can retire.
+
+A Native static check can stop on the same Request's semantic boundary. The
+submitted-input continuation and its ordinary execution continuation share that
+checker; only the latter finishes the checked computation and compiles its
+selected body. Observing the completed checker does not create a refusal value,
+select an execution mode, transfer the body or issue a Run.
+
+Success and refusal observations use the same retained Program, Parameters,
+Source inventory, original outcome and report constructor. The Request reserves
+report construction before the current boundary and fences reentry across it.
+After that boundary, the same original phase and identities must still hold.
+Audience metadata remains a trusted Host input and the publication visibility
+filter still applies to a successful semantic outcome; checking a private Source
+does not make its availability disclosable.

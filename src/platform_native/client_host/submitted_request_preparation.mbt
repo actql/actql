@@ -112,6 +112,48 @@ pub fn[I] prepare_native_client_submitted_request_input(
   ),
   NativeClientSubmittedPreparationIssue,
 ] {
+  match
+    check_native_client_submitted_request_input(
+      owner, input, intent, environment, publication,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match
+    @local.finish_request_checked_computation(
+      owner, input, environment, publication,
+    ) {
+    Err(issue) => return Err(Request(issue))
+    Ok(@local.Effect) => return Err(RequestBranchUnavailable)
+    Ok(@local.Pure) => ()
+  }
+  let borrow = match @local.borrow_request_program_plan_input(owner, input) {
+    Err(issue) => return Err(RequestPreparation(issue))
+    Ok(value) => value
+  }
+  let original = @resources.preparation_body_borrow_value(borrow).unwrap()
+  Ok(
+    (
+      {
+        intent_cid: @host.client_submitted_intent_cid(intent),
+        preparation: Computation(original),
+      },
+      borrow,
+    ),
+  )
+}
+
+///|
+/// Same original Request intake and semantic checker, before compilation or
+/// eventual body selection. Static check/explain callers keep this parent and
+/// its original outcome; neither a second parser nor a Run is issued here.
+pub fn[I] check_native_client_submitted_request_input(
+  owner : @local.ClientRequestPreparation[I],
+  input : I,
+  intent : @host.ClientSubmittedIntent,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+) -> Result[Unit, NativeClientSubmittedPreparationIssue] {
   match @local.retain_request_submitted_intent(owner, input, intent) {
     Err(issue) => return Err(RequestPreparation(issue))
     Ok(_) => ()
@@ -194,7 +236,7 @@ pub fn[I] prepare_native_client_submitted_request_input(
     program: program_limits,
   }
   let prepared = if kind == "program" {
-    @local.prepare_request_native_computation(
+    @local.prepare_request_native_computation_check(
       owner,
       input,
       selected,
@@ -207,7 +249,7 @@ pub fn[I] prepare_native_client_submitted_request_input(
       supplied~,
     )
   } else if kind == "aql" {
-    @local.prepare_request_native_source_computation(
+    @local.prepare_request_native_source_computation_check(
       owner,
       input,
       selected,
@@ -222,23 +264,5 @@ pub fn[I] prepare_native_client_submitted_request_input(
   } else {
     return Err(InvalidSubmittedInput)
   }
-  match prepared {
-    Err(issue) => return Err(Request(issue))
-    Ok(@local.Effect) => return Err(RequestBranchUnavailable)
-    Ok(@local.Pure) => ()
-  }
-  let borrow = match @local.borrow_request_program_plan_input(owner, input) {
-    Err(issue) => return Err(RequestPreparation(issue))
-    Ok(value) => value
-  }
-  let original = @resources.preparation_body_borrow_value(borrow).unwrap()
-  Ok(
-    (
-      {
-        intent_cid: @host.client_submitted_intent_cid(intent),
-        preparation: Computation(original),
-      },
-      borrow,
-    ),
-  )
+  prepared.map_err(issue => Request(issue))
 }

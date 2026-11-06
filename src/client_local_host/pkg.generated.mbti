@@ -911,6 +911,8 @@ pub fn program_json_preparation_initial_inventory() -> @execution_relation.Prepa
 
 pub fn[I] project_request_check_outcome(ClientRequestPreparation[I], I, ClientRequestTerminalIssue, String, String, String, String, Int, String?, Int, String?, Int, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?, source_namespace? : @client_local_preparation.ClientCheckSourceNamespace?, original_parameters? : String?) -> Result[String?, ClientRequestPreparationIssue]
 
+pub fn[I] project_request_completed_check_outcome(ClientRequestPreparation[I], I, String, String, String, String, Int, String?, Int, String?, Int, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?, original_parameters? : String?) -> Result[String?, ClientRequestPreparationIssue]
+
 pub fn quiesce_installed_managed_run(ClientInstalledManagedRun) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn read_client_infer_retained_input_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientInferRetainedInputIssue]
