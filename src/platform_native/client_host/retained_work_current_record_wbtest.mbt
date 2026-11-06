@@ -114,7 +114,7 @@ test "Native retained work current rejects a foreign journal before invoking cur
 }
 
 ///|
-test "Native retained work current still scans malformed nonselected Run originals" {
+test "Native retained work current stays selected while integrity detects malformed other Runs" {
   let database = epoch_test_database("retained-current-nonselected")
   initialize_native_client_run_journal(database).unwrap()
   let journal = open_native_client_run_journal(database, 8).unwrap()
@@ -139,11 +139,11 @@ test "Native retained work current still scans malformed nonselected Run origina
   .compare_exchange("client_runs", key, original.revision, b"{}")
   .unwrap()
   |> ignore
-  assert_true(
-    start.require_current(journal, request, () => true)
-    is Err(Journal(CustodyLost)),
-  )
-  assert_eq(database.read("client_runs", key).unwrap().body, b"{}")
+  start.require_current(journal, request, () => true).unwrap()
+  assert_true(run_journal_custody(database, 8) is Err(CustodyLost))
+  let unchanged = database.read("client_runs", key).unwrap()
+  assert_eq(unchanged.body, b"{}")
+  assert_eq(unchanged.revision, original.revision + 1L)
   database.close_checked().unwrap()
 }
 
