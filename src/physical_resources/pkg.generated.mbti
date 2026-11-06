@@ -10,6 +10,8 @@ import {
 // Values
 pub fn[I, P] abort_preparation_capacity_after_cleanup(PreparationCapacity[I, P], I) -> Result[Bool, PreparationCapacityIssue]
 
+pub fn abort_shared_capacity_growth_after_cleanup(SharedCapacityGrowth) -> Result[Unit, LedgerIssue]
+
 pub fn add_ledger_limits(LedgerLimits, LedgerLimits) -> LedgerLimits?
 
 pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]
@@ -79,6 +81,8 @@ pub fn[I, P] begin_preparation_phase_work64(PreparationCapacity[I, P], I, Prepar
 pub fn[I, P] begin_preparation_phase_work_continuation64(PreparationCapacity[I, P], I, PreparationWorkPhase, Int64) -> Result[PreparationPhaseWorkContinuation64, PreparationWorkIssue]
 
 pub fn[P, E] begin_prepared_run_operation_construction(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
+
+pub fn begin_shared_capacity_growth(SharedCapacity, SharedAllocation, Int64, Int64) -> Result[SharedCapacityGrowth, LedgerIssue]
 
 pub fn bind_platform_vm_capacity(Int64, Ledger, SharedCapacity) -> Result[PlatformVMCapacity, ImportedChildLedgerIssue]
 
@@ -209,6 +213,8 @@ pub fn[P, E] complete_prepared_run_operation_construction(PreparedRunAdmission[P
 pub fn[P, E] complete_prepared_run_operation_construction_output(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
 
 pub fn[P, E] complete_prepared_run_operation_response_projection(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking) -> Result[Unit, NodeManagedRunOperationIssue[E]]
+
+pub fn complete_shared_capacity_growth_after_acquisition(SharedCapacityGrowth) -> Result[Unit, LedgerIssue]
 
 pub fn configure_quantities(Ledger, QuantityAmounts) -> Result[Unit, LedgerIssue]
 
@@ -1207,6 +1213,8 @@ pub(all) struct SharedAllocationUsage {
 type SharedBorrow
 
 type SharedCapacity
+
+type SharedCapacityGrowth
 
 pub(all) struct SharedCapacityUsage {
   capacity : Int64

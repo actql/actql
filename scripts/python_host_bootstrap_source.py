@@ -41,6 +41,9 @@ INPUTS = (
     'src/platform_native/host_bootstrap/read_cleanup_observation_native.mbt',
     'src/platform_native/host_bootstrap/extent_work_native.mbt',
     'src/platform_native/host_bootstrap/domain_inventory_native.mbt',
+    'src/platform_native/host_bootstrap/backing_growth_native.mbt',
+    'src/platform_native/host_bootstrap/backing_growth_wbtest.mbt',
+    'packages/python-local-runtime/native/pre-root/owned_domain_growth.inc',
 )
 MANIFEST = 'packages/python-local-runtime/native/pre-root/host-bootstrap-source.json'
 

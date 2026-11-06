@@ -4,9 +4,10 @@
 struct SharedCapacity {
   ledger : Ledger
   reservation : Reservation
-  capacity : Int64
+  mut capacity : Int64
   mut allocated : Int64
   mut closing : Bool
+  mut growth : SharedCapacityGrowth?
 }
 
 ///|
@@ -35,6 +36,7 @@ pub fn reserve_shared_capacity(
         capacity: bytes,
         allocated: 0L,
         closing: false,
+        growth: None,
       })
   }
 }
@@ -61,6 +63,7 @@ pub fn reserve_shared_workspace_capacity(
     capacity: execution_bytes,
     allocated: 0L,
     closing: false,
+    growth: None,
   })
 }
 
@@ -77,7 +80,9 @@ pub fn allocate_shared_capacity(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if owner.closing || !reservation_open(owner.reservation) {
+  if owner.closing ||
+    owner.growth is Some(_) ||
+    !reservation_open(owner.reservation) {
     return Err(ClosedReservation)
   }
   if bytes < 0L {
@@ -107,6 +112,7 @@ pub fn borrow_shared_capacity(
     Ok(_) => ()
   }
   if owner.closing ||
+    owner.growth is Some(_) ||
     !reservation_open(owner.reservation) ||
     allocation.retiring ||
     allocation.released {
@@ -165,6 +171,10 @@ pub fn release_shared_capacity(
   if !allocation.retiring || allocation.readers != 0 {
     return Err(InvalidCharge)
   }
+  if allocation.owner.growth is Some(growth) &&
+    physical_equal(growth.control, allocation) {
+    return Err(InvalidCharge)
+  }
   allocation.owner.allocated -= allocation.bytes
   allocation.released = true
   Ok(())
@@ -187,7 +197,7 @@ pub fn close_shared_capacity(
 pub fn settle_shared_capacity(
   owner : SharedCapacity,
 ) -> Result[Unit, LedgerIssue] {
-  if !owner.closing || owner.allocated != 0L {
+  if !owner.closing || owner.allocated != 0L || owner.growth is Some(_) {
     return Err(InvalidCharge)
   }
   settle_reservation(owner.ledger, owner.reservation)
