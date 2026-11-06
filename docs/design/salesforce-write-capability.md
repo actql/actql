@@ -314,3 +314,51 @@ larger foreign prefixes before parse. Other composed implementations select the
 existing full-control fallback. This preserves the selected writer's complete
 accepted output and the original maximum-codec path, without granting extra
 bytes or treating arbitrary provider messages as a closed outcome.
+
+### Current Describe construction geometry
+
+The original physical Describe child passes its same received body to the
+captured native quantity method before any provider decoding. That method uses
+the existing Source lexical preflight, shared with the Source reader, to bound
+only the next Describe parser/index workspace. A long scalar is not one JSON
+node per encoded byte. The original metadata families, observation limits,
+field/name/depth rules, grammar validation and failure paths stay unchanged.
+A refused lexical scan retains the complete prior envelope; geometry does not
+admit a Catalog or grant access.
+
+The same initial staged metadata extent backs the bounded decoded Source String
+and fixed preflight controls before the quantity callback. Preflight and the
+later parser use sequential workspace peaks, while existing raw response,
+metadata and physical-child custody remain held. The actual selected response
+then grows only that original operation token. Refusal keeps its received body
+and cleanup duties; this does not refund transfer, issue another attempt, alter
+the parent limit or acknowledge physical retirement.
+
+## Target record-state identity and physical evidence
+
+The original target observation retains `response_sha256` over the exact
+physical response bytes. The Preview version preimage separately names
+`record_state_policy: actql-salesforce-read-history-values/0.1`, its
+`record_state_sha256`, the target `object_cid` and the existing
+`actql-salesforce-target-observation/0.1` version. A record-state digest is
+never presented as a raw response digest.
+
+The policy streams the original admitted UTF-8 byte sequence, substituting the
+four ASCII bytes `null` only for the complete value spans of the two top-level
+standard metadata fields `LastViewedDate` and `LastReferencedDate` when their
+values are Text or null. Those nullable date-time fields record reads, not
+business revisions; reading a record must not invalidate an otherwise unchanged
+Preview. Unexpected types remain significant. Keys, presence, whitespace,
+ordering, nested values and every other byte remain guarded, including `Id`,
+`Name`, `SystemModstamp`, `LastModifiedDate`, `attributes` and unselected fields.
+The original preserving parser supplies byte spans; no body copy or second
+parse, writable-fields-only comparison, or provider-version normalization exists.
+
+Both digests use sequential instances of the existing incremental SHA-256
+state. The selected Native target constructor backs the additional borrowed
+cursor/span/control records and co-held 64-character record-state digest before
+entry. The original response and parser remain under their existing owners.
+This provider-law clarification changes the version preimage coherently; it does
+not retag old Preview CIDs, Saved Runs or failed assertions. Target, Catalog,
+Credential, current grant, conditional write and approved-Preview checks retain
+their independent original correspondence.

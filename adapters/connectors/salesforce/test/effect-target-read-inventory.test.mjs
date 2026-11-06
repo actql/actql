@@ -113,6 +113,7 @@ function managedRecipeFixture() {
       // Both original methods were captured before the first callback.
       provider.salesforceEffectInputCaptureConstructionProfile = () => assert.fail('replacement');
       provider.salesforceEffectMetadataInputConstructionProfile = () => assert.fail('replacement');
+      provider.salesforceEffectCurrentMetadataConstructionProfile = () => assert.fail('replacement');
       return profile;
     },
     salesforceEffectInputCaptureConstructionProfile(...args) {
@@ -121,6 +122,11 @@ function managedRecipeFixture() {
     },
     salesforceEffectTargetInputConstructionProfile(original) {assert.equal(this,provider);assert.equal(original,profile);return profile;},
     salesforceEffectMetadataInputConstructionProfile(original) {assert.equal(this,provider);assert.equal(original,profile);return profile;},
+    salesforceEffectCurrentMetadataConstructionProfile(original, ...args) {
+      assert.strictEqual(this,provider);assert.strictEqual(original,profile);
+      const body=args.at(-1);assert(body instanceof Uint8Array);
+      return profile;
+    },
   };
   const write = Object.freeze({resource: 'Account', fields: Object.freeze(['Name'])});
   const installed = Object.freeze({mappings: Object.freeze([Object.freeze({write})])});
@@ -163,6 +169,10 @@ test('Salesforce managed recipes retain original native profiles and distinct me
       const extent = staged.initial;
       assert.strictEqual(extent.capacity, capacities[7]);assert.equal(extent.physical, true);
       assert.equal(extent.operation, 'salesforce:catalog:describe');
+      const originalBody=Buffer.from('{"name":"Account"}');
+      const observed=entry.responseExtent(originalBody.byteLength,originalBody);
+      assert.strictEqual(observed.capacity, capacities[7]);
+      assert.throws(()=>entry.responseExtent(originalBody.byteLength+1,originalBody));
     }
     const targets = recipe.credentialOperations.filter(entry => entry.phase.endsWith('-target'));
     assert.equal(targets.length, kind === 'create' ? 0 : 3);

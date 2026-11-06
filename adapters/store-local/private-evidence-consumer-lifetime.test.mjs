@@ -144,7 +144,7 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
   const f = await fixture(t, JSON.stringify(body));
   await f.store.commitPhysicalHolding({version:'actql-local-physical-holding/0.1',
     namespace:'effect-capture', holding_cid:captureCid, manifest_cid:capturedCid, objects:[]}, []);
-  let pending = true, releases = 0, retries = 0, retired = 0, resource, reserves = 0;
+  let pending = true, releases = 0, retries = 0, retired = 0, resource, reserves = 0, completed = 0;
   const original = new Error('original schema release');
   const schema = {prepared:{status:() => ({pending}),
     async release() {releases++; throw original;},
@@ -175,12 +175,16 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
     },
     reserveEffectCaptureRecovery:assert.fail,
   };
-  const originalDefinition = {}, moon = {clientProgramPrepareInstalledEffectCaptureRecovery(
+  const originalDefinition = {}, recovery = {}, moon = {clientProgramPrepareInstalledEffectCaptureRecovery(
     _run, _prepared, _request, definition) {
-    assert.equal(definition, originalDefinition); return {$tag:1, _0:{}};
+    assert.equal(definition, originalDefinition); return {$tag:1, _0:recovery};
   }, clientProgramReserveInstalledEffectCaptureRecovery(_value, bytes) {
-    assert.ok(bytes > 0); reserves++; return {$tag:1, _0:undefined};
-  }, clientProgramRetireInstalledEffectCaptureRecovery() {
+    assert.equal(_value,recovery);assert.ok(bytes > 0); reserves++; return {$tag:1, _0:undefined};
+  }, clientProgramCompleteInstalledEffectCaptureRecovery(value) {
+    assert.equal(value,recovery);assert.equal(reserves,1);assert.equal(retired,0);
+    completed++;return {$tag:1, _0:undefined};
+  }, clientProgramRetireInstalledEffectCaptureRecovery(value) {
+    assert.equal(value,recovery);
     assert.equal(pending, false); retired++; return {$tag:1, _0:undefined};
   }};
   const limits = {maxWireBytes:16384, maxNodes:4096, maxDepth:64};
@@ -191,10 +195,12 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
   const recovered = await recoverCompletedEffectfulComputation({store, control, runDefinition:run,
     contractLimits:limits}, resources);
   assert.equal(recovered.storedResults.results.length, 0); assert.equal(reserves, 1); assert.equal(retired, 0);
+  assert.equal(completed,1);
   await assert.rejects(resources.close(), error => error.cleanupPending === true && error.cleanupHandle.status().pending);
   assert.equal(releases, 1); assert.equal(retired, 0);
   assert.equal(await resources.close(), true); assert.equal(retries, 1); assert.equal(retired, 1);
   assert.equal(await resources.close(), true); assert.equal(releases, 1); assert.equal(retries, 1);
+  assert.equal(completed,1);
   assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
   assert.notEqual(await f.store.inspectPhysicalHolding(captureCid), undefined);
 });

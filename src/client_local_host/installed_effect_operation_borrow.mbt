@@ -76,7 +76,9 @@ fn installed_effect_operation_control_capacity(
       // Optional owned output retains one wire callback frame and its
       // original method/output references; the wire DATA has its own extent.
       records: 27L * calls,
-      record_references: (64L + 3L + 2L + 4L) * calls,
+      // One original response-projection completion method is retained by
+      // the physical child; its existing preparation latch owns the flight.
+      record_references: (64L + 3L + 2L + 4L + 1L) * calls,
       record_words: (12L + 2L + 3L) * calls,
       // Deferred member construction retains one original preparation-method
       // vector. Its length is bounded by these same checked child slots.
@@ -936,6 +938,52 @@ pub fn begin_installed_effect_operation_construction(
       Ok(())
     }
   }
+}
+
+///|
+/// The selected physical response callback and its same original flight have
+/// completed. Retain the complete input/output backing and all cleanup duties;
+/// only the private decode/projection workspace returns. Repeating this
+/// absolute disposal cannot create another input, attempt or operation slot.
+pub fn complete_installed_effect_operation_response_projection(
+  value : ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard value.original is Some(original) && physical_equal(original, value) else {
+    return Err(ForeignOriginal)
+  }
+  guard !value.retired &&
+    value.owner is Some(owner) &&
+    value.ledger is Some(ledger) &&
+    value.backing is Some(backing) else {
+    return Err(Retired)
+  }
+  guard backing is @resources.NodeManagedRunOperationBacking::Physical(_) &&
+    value.started &&
+    value.input_selected else {
+    return Err(Unsupported)
+  }
+  guard owner.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) else {
+    return Err(Retired)
+  }
+  if owner.effect_operation_opening || owner.effect_operation_closing {
+    return Err(AlreadyBound)
+  }
+  owner.effect_operation_opening = true
+  defer {
+    owner.effect_operation_opening = false
+  }
+  @resources.complete_prepared_run_operation_response_projection(
+    admission,
+    plan,
+    ledger,
+    () => {
+      check_installed_effect_operation_backing_original(
+        value, owner, ledger, preparation, backing,
+      )
+    },
+    backing,
+  ).map_err(installed_effect_operation_reservation_issue)
 }
 
 ///|

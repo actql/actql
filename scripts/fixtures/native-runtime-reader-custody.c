@@ -12,6 +12,7 @@
 #include <unistd.h>
 #ifndef __APPLE__
 #include <dlfcn.h>
+#include <sys/syscall.h>
 #endif
 
 static char pending_path[PATH_MAX];
@@ -26,11 +27,28 @@ static int (*actual_fstat)(int, struct stat *);
 static int (*actual_close)(int);
 
 static int original_fstat(int descriptor, struct stat *status) {
-  if (actual_fstat == NULL) _exit(125);
+  // A compiler dependency's constructor can run before this preload's own
+  // constructor. Forward that ordinary call without resolving symbols or
+  // consulting an as-yet uncaptured fixture scope at the callback boundary.
+  if (actual_fstat == NULL) {
+    // The selected LP64 Linux x86_64 profile shares the kernel stat layout.
+    // Do not project that ABI onto another Linux time64/compatibility layout.
+#if defined(__linux__) && defined(__x86_64__) && !defined(__ILP32__)
+    return (int)syscall(SYS_fstat, descriptor, status);
+#else
+    _exit(125);
+#endif
+  }
   return actual_fstat(descriptor, status);
 }
 static int original_close(int descriptor) {
-  if (actual_close == NULL) _exit(125);
+  if (actual_close == NULL) {
+#if defined(__linux__) && defined(__x86_64__) && !defined(__ILP32__)
+    return (int)syscall(SYS_close, descriptor);
+#else
+    _exit(125);
+#endif
+  }
   return actual_close(descriptor);
 }
 #endif

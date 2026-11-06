@@ -8506,7 +8506,7 @@
               },
               {
                 "path": "adapters/host-node/installed-infer-compilation-selection.test.mjs",
-                "anchor": "test('restored Model selects its original checked Result suffix without preparing saved input again'"
+                "anchor": "test('restored Model defers checked segments until its funded original Read without preparing saved input again'"
               },
               {
                 "path": "src/client_infer_host/compute_boundary_wbtest.mbt",
@@ -18163,7 +18163,7 @@
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs"
               },
               {
-                "anchor": "test('restored Model selects its original checked Result suffix without preparing saved input again'",
+                "anchor": "test('restored Model defers checked segments until its funded original Read without preparing saved input again'",
                 "path": "adapters/host-node/installed-infer-compilation-selection.test.mjs"
               },
               {

@@ -68,7 +68,7 @@ class SourceClosureTests(unittest.TestCase):
 
     def test_source_closure_does_not_claim_physical_or_installed_success(self):
         result = self.check()
-        self.assertEqual(result['verified_inputs'], 29)
+        self.assertEqual(result['verified_inputs'], 32)
         self.assertEqual(result['native_execution'], 0)
         self.assertIs(result['installed_capability'], False)
 
@@ -115,6 +115,22 @@ class SourceClosureTests(unittest.TestCase):
         self.write_manifest()
         with self.assertRaisesRegex(ValueError, 'source manifest'):
             self.check()
+
+    def test_growth_source_and_consuming_fixture_are_required(self):
+        for required in (
+                'src/platform_native/host_bootstrap/backing_growth_native.mbt',
+                'src/platform_native/host_bootstrap/backing_growth_wbtest.mbt',
+                'packages/python-local-runtime/native/pre-root/owned_domain_growth.inc'):
+            with self.subTest(required=required):
+                self.assertIn(required, INPUTS)
+                original = self.manifest['inputs']
+                self.manifest['inputs'] = [entry for entry in original
+                                           if entry['path'] != required]
+                self.write_manifest()
+                with self.assertRaisesRegex(ValueError, 'source manifest'):
+                    self.check()
+                self.manifest['inputs'] = original
+                self.write_manifest()
 
     def test_modified_source_blob_is_rejected(self):
         (self.root / INPUTS[-1]).write_bytes(b'abd')

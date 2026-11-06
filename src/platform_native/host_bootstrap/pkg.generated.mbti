@@ -188,6 +188,7 @@ pub fn[T, C] NativeHostBootstrap::enter_backed_read_cleanup(Self[T], T, NativeBa
 pub fn[T, C] NativeHostBootstrap::enter_backed_read_context(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::enter_borrow_scope(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::finish_backed_failed_read_entry_cleanup(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
+pub fn[T] NativeHostBootstrap::grow_backing(Self[T], T, NativeBootstrapBorrow[T], Int64) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::initial_payload_capacity(Self[T], T) -> Result[Int64, NativeBootstrapIssue]
 pub fn[T, C, I] NativeHostBootstrap::initialize_backed_preparation(Self[T], T, NativeBackedLiveChild[T, C, I], I, NativeBackedInitializationBudget) -> Result[@physical_resources.BackedInitializationAdmission[I], NativeBackedInitializationIssue]
 pub fn[T, C] NativeHostBootstrap::issue_backed_region(Self[T], T, NativeBootstrapAllocation[T]) -> Result[NativeBackedExecutionRegion[T, C], NativeBackedExecutionIssue]

@@ -7,6 +7,44 @@ import {pathToFileURL} from 'node:url';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {checkComputeAssembly, generateComputeAssembly} from './connector-compute-bundles.mjs';
 import {checkNodeAssembly, generateInstallations, readHostBundles} from './connector-node-bundles.mjs';
+import {tokens} from './portable-core.mjs';
+import {manifestImports} from './test-packed-external-connector.mjs';
+
+function copiedFixtureImports(manifest) {
+  const imports = new Map(manifestImports(manifest).map(({alias, path}) => [alias, path]));
+  const original = new Map(manifestImports(readFileSync(
+    new URL('../src/node_host_conformance/moon.pkg', import.meta.url), 'utf8'))
+    .map(({alias, path}) => [alias, path]));
+  const source = tokens(readFileSync(
+    new URL('../src/node_host_conformance/fixture.generated.mbt', import.meta.url), 'utf8'), true);
+  const missing = new Set();
+  for (let index = 0; index < source.length; index++) {
+    if (source[index].value !== '@' || source[index + 1]?.kind !== 'word' ||
+        source[index + 2]?.value !== '.') continue;
+    const alias = source[index + 1].value;
+    // The fixture deliberately replaces only the ordinary Compute assembly
+    // with its separately compiled external contribution. Other copied Core
+    // references keep the exact original package selected by their generator.
+    const expected = alias === 'builtin' ? 'fixture/compute_host/compute' : original.get(alias);
+    assert.ok(expected, `Undeclared original fixture alias: ${alias}`);
+    if (imports.get(alias) !== expected) missing.add(alias);
+  }
+  return [...missing].sort();
+}
+
+test('external Compute fixture retains imports of its copied generated Core source', () => {
+  const manifest = readFileSync(new URL(
+    './fixtures/external-compute/compute-host/src/scenario/moon.pkg', import.meta.url), 'utf8');
+  assert.deepEqual(copiedFixtureImports(manifest), []);
+  // Independent regression for the real packed-build failure: the generated
+  // fixture's pipeline Step match must not lose its package during the copy.
+  const withoutPipeline = manifest.replace('  "actql/actql/pipeline_typing" @pipeline,\n', '');
+  assert.notEqual(withoutPipeline, manifest);
+  assert.deepEqual(copiedFixtureImports(withoutPipeline), ['pipeline']);
+  const wrongOwner = manifest.replace('"actql/actql/pipeline_typing" @pipeline',
+    '"actql/actql/pipeline_check_context" @pipeline');
+  assert.deepEqual(copiedFixtureImports(wrongOwner), ['pipeline']);
+});
 
 function fixture(t) {
   const root = mkdtempSync(join(realpathSync(tmpdir()), 'external-connector-build-'));

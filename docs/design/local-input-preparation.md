@@ -2870,6 +2870,22 @@ raw/no-plan success or an unqualified fallback.
 
 ## Native submitted intent on the same Request
 
+The normal captured native Program caller explicitly selects the original
+Request's input envelope for its later Program Source/index admission. That
+default projection requires the same live Request/input association and ready
+intent phase; it performs no current callback or second input traversal. The
+existing intent owner remains the single definition of the 1 MiB, 65,536-node,
+depth-64 envelope. The independent general preparation profile is not widened,
+and explicit tighter preparation limits keep their original typed entry.
+
+The projection constructs four nested immutable limit records and its Result
+wrapper. Their 5H/7R/10W peak is included in the existing Request's initial
+control envelope before selection, not charged to unused policy headroom or a
+later parser grow. Actual native Source/index and Program construction still
+reserve their observed input-derived inventory before allocation. The selected
+limits admit no Run or execution resources and do not relax field/schema,
+currentness, physical-stop, failure-prefix or same-owner cleanup requirements.
+
 The SDK captures its native input once. The fixed manager projects only the
 existing intent fields from that exact detached body: kind, input, Parameters,
 and present stopBefore/readOnly restrictions. The shallow projection neither
@@ -3177,7 +3193,10 @@ maximum, while distinct retained wires and values coexist. Unicode and escaped
 JSON use the non-normalizing Source construction recipe and data-key canonical
 admission, without borrowing the closed numeric/ASCII profile. Shared
 representation tariffs price these original constructor dimensions. Fixed VM
-continuation wrappers remain installed Host overhead.
+continuation wrappers remain installed Host overhead. The original absolute
+quote caches its scratch component in one additional scalar word, backed by the
+Request's fixed initial control envelope. A declined grow does not repeat this
+geometry interpretation to rediscover an already selected split.
 
 A declined grow retains the original module, immutable geometry, absolute
 quote, manifests, sequence contracts, output mode and provider-factory
@@ -3190,9 +3209,17 @@ its parent's retirement.
 
 After successful construction, the Plan retains the actual Values/Tasks
 artifact before the body becomes borrowable. Measurement and retry inventories
-have no later consumer and are severed; the constructor peak is not shrunk
-while its local frames may still be live. The Run adopts that same Plan and
-reservation. Its original getter performs neither another compiler entry nor
+have no later consumer and are severed. The original artifact constructor and
+its work receipt return before the same working Request reconciles only that
+constructor's nonescaping parser, ancestry-map, writer and local projection
+scratch. Returned values/wires, immutable geometry, all earlier input/check
+storage and later module/Graph/provider domains remain charged. The split comes
+from the same original construction inventory, not runtime headroom, sampled
+success or a second capacity calculator. Reentrant current callbacks still see
+the active parent fence, and a failed reconciliation retains the original
+artifact for same-owner cleanup. The Run adopts that same Plan and reservation;
+preparation-only scratch is not held throughout runtime. No work, attempt,
+transfer, physical holding or uncertain child duty is refunded. Its original getter performs neither another compiler entry nor
 an external current callback. These geometry quantities are not consumed-work
 counts: compiler-work observation and the independent Source/Effect/Content/
 Model constructor boundaries retain their own obligations.

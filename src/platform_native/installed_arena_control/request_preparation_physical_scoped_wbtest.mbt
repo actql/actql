@@ -107,3 +107,59 @@ test "actual Request can close an unstarted retained admission without a fabrica
   @resources.cleanup_backed_preparation_admission(initial).unwrap()
   initialization_physical_finish(host, domain, descriptor)
 }
+
+///|
+// Real Common Request entrance and teardown. The initial controller/Ledger
+// constructors deliberately remain in the original outer control lifetime.
+// This diagnostic emits their selected Native layouts; its finite physical
+// fixture is not a proof of the logical quote's Native representation or an
+// installed CLI prefix. Variable Request construction is not exercised here.
+test "actual Common Request entrance keeps its controller outside child Read retirement" {
+  let (host, domain, descriptor) = initialization_physical_fixture(
+    "common-request-entrance",
+  )
+  let input = Ref(71)
+  let live = match host.prepare_domain_request_child(domain, input).unwrap() {
+    @bootstrap.LiveChildReady(value) => value
+    @bootstrap.LiveChildPending(_, _) => fail("Common Request live pending")
+  }
+  let initial = host.prepare_request_admission(live, input).unwrap()
+  let frame = @resources.backed_preparation_original_frame(initial, input).unwrap()
+  let policy = @client.client_local_resource_policy()
+  let quoted = @client.client_request_preparation_control_capacity(policy).unwrap()
+  assert_eq(quoted, (14712L, 0L))
+  // Native's issued limits narrow the immutable ordinary policy. No policy
+  // ceiling is allocated or asserted to be the actual physical fixture size.
+  let owner = @client.begin_backed_request_preparation(initial, input, policy).unwrap()
+  let before = @client.request_preparation_accounting(owner)
+  assert_eq(before, (quoted.0, 0L, 0L, quoted.0, quoted.0, 0L))
+  assert_true(
+    physical_equal(
+      frame,
+      @resources.backed_preparation_original_frame(initial, input).unwrap(),
+    ),
+  )
+  let held : Ref[Bytes?] = Ref(None)
+  host.enter_domain_read(domain).unwrap()
+  held.val = Some(Bytes::make(32, input.val.to_byte()))
+  host.leave_domain_read(domain).unwrap()
+  // Common settles only its original logical token. Its initial admission
+  // still requires the same Native physical owner's independently observed ACK.
+  assert_true(
+    @client.abort_request_preparation_after_cleanup(owner)
+    is Err(Initial(@resources.Unavailable)),
+  )
+  assert_eq(
+    @client.request_preparation_accounting(owner),
+    (0L, 0L, 0L, quoted.0, 0L, 0L),
+  )
+  assert_true(@resources.imported_child_retirement_readiness(frame).unwrap())
+  assert_true(host.close_request_preparation(live) is Err(_))
+  assert_eq(held.val.unwrap()[0], 71)
+  held.val = None
+  host.close_request_preparation(live).unwrap()
+  @client.abort_request_preparation_after_cleanup(owner).unwrap()
+  @client.abort_request_preparation_after_cleanup(owner).unwrap()
+  host.close_request_preparation(live).unwrap()
+  initialization_physical_finish(host, domain, descriptor)
+}

@@ -23,20 +23,22 @@ test('installed Node package snapshots Host policy before loading Local and bind
   Object.defineProperty(supplied, 'max_effect_items', {enumerable: true, configurable: true,
     get() {reads++; return 1234;}});
   const directory = await mkdtemp(join(tmpdir(), 'actql-packed-host-policy-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  let client;
+  // Settle the Host's cleanup before removing its original Journal directory.
+  t.after(async () => {await client?.close(); await rm(directory, {recursive: true, force: true});});
   const pending = connect({mode: 'local', owner: 'local',
     installation: {directory, hostCapacityPolicy: supplied}});
   assert.equal(reads, 1, '[host-policy:node-pre-await]');
   Object.defineProperty(supplied, 'max_effect_items', {value: 4321});
-  const client = await pending;
-  t.after(() => client.close());
+  client = await pending;
   const effective = {max_graph_construction_edges: 1000,
     max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000, ...selected};
   const scope = hash(JSON.stringify({version: 'actql-local-owner-scope/0.1', root: directory,
     principalId: userInfo().username, hostCapacityPolicyCid: hash(canonical(effective))}));
+  // A new public SQL Source without RESULT exports main, not an answer alias.
   const run = await client.startSource('SELECT 1 AS n', {format: 'sql', requestId: 'packed-policy'});
   assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');
-  assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
+  assert.deepEqual(await run.result('main').all(), [{n: 1}]);
   assert.equal(run.ref.authorityScopeCid, scope);
   assert.equal(client.profile.scopeRef, scope);
   assert.equal(reads, 1);
@@ -61,7 +63,7 @@ for (const initial of ['absent', 'undefined']) {
       principalId: userInfo().username}));
     const run = await client.startSource('SELECT 1 AS n', {format: 'sql', requestId: 'captured-default'});
     assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');
-    assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
+    assert.deepEqual(await run.result('main').all(), [{n: 1}]);
     assert.equal(run.ref.authorityScopeCid, scope, '[host-policy:node-captured-absence]');
     assert.equal(client.profile.scopeRef, scope);
   });

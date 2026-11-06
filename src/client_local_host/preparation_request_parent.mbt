@@ -158,7 +158,7 @@ struct ClientRequestPreparation[I] {
   // coexist in the distinct existing domain/body slots below.
   mut program_domain_quote : (Int64, Int64)?
   mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
-  mut program_artifact_quote : (Int64, Int64)?
+  mut program_artifact_quote : (Int64, Int64, Int64)?
   mut program_invocation_quote : (Int64, Int64)?
   mut program_artifact_work : @resources.PreparationPhaseWork64?
   mut program_artifact_work_charged : Bool
@@ -224,17 +224,20 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 ///|
 // One conservative fixed Host/Request control envelope, expressed through the
 // existing common representation tariff. Preserve the original 10,368-byte
-// envelope plus one Source-context reference slot and two growth-fence words
-// for the existing old/new typed capacity continuation: 10,392 logical bytes and
-// the existing separate 4,096-byte installed group.
+// envelope plus one Source-context reference slot and two growth-fence words.
+// Default Request input selection adds its four nested immutable limit records
+// and Result wrapper (5H/7R/10W) before the native Source constructor grow:
+// Cache one extra scalar word for that same artifact quote's retired scratch,
+// so a declined grow reuses the original split without interpreting it again:
+// 10,616 logical bytes and the existing separate 4,096-byte installed group.
 // This is intentionally independent of JS closure, carrier and array spelling.
 // Input/AST/wire/row/operation storage, selected domain construction and live
 // child overlap remain separately charged before their actual constructors.
 // The fixed envelope is immutable DATA, not a reservation, phase or RSS bound.
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
-  record_headers: 220L,
-  reference_slots: 402L,
-  scalar_words: 457L,
+  record_headers: 225L,
+  reference_slots: 409L,
+  scalar_words: 468L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
