@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_document_target.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "81fd005d7ba451b3336b274a864430c42c41cf3299c53e0b7bb6d00a7ad90ead",
+      "sha256": "e69f4c13874c0697ceb00b80988796ec35ffbf072923060b52ea72b7372988e2",
       "role": "common-semantics",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -20,6 +20,14 @@
         {
           "name": "admit_relation_target_document",
           "declaration": "admit_relation_target_document ( declaration : RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] ? , primary_identity : String , writable_fields : Array [ String ] , bytes : Bytes , limits : RowPageLimits , max_work : Int , ) - > Result [ RelationTargetDocument , RowSourceIssue ]"
+        },
+        {
+          "name": "discard_relation_document_original",
+          "declaration": "discard_relation_document_original ( document : RelationDocument ) - > Bool"
+        },
+        {
+          "name": "discard_relation_target_document_original",
+          "declaration": "discard_relation_target_document_original ( document : RelationTargetDocument , ) - > Bool"
         },
         {
           "name": "emit_relation_document_value",
@@ -190,6 +198,103 @@
               {
                 "path": "src/client_row_source_host/relation-document-interface.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "discard_relation_document_original",
+            "discard_relation_target_document_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Responsibility: `discard_relation_document_original` and"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "pub fn discard_relation_document_original(document : RelationDocument) -> Bool {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Inputs and outputs: each function takes its original opaque document and"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Identity: discard requires `Some(original)` physically equal to the supplied"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "physical_equal(document, original) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Ownership: callers discard only their private construction originals, normally"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Synchronization: both operations are synchronous and callback-free. Child"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "pub fn discard_relation_target_document_original("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Failure: false makes no mutation. After discard, existing getters return None"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Cancellation: discarding DATA issues no abort, physical stop, closed-file"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Resources: no child list, callback, counter, allocation credit or capacity"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_construction.mbt",
+                "anchor": "// Document/self Option, work Ref, Bytes header, makei closure, limits,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Extension: this pair covers separately constructed raw and target documents."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation_document_discard_wbtest.mbt",
+                "anchor": "relation original discard severs only self marks and preserves retained immutable DATA"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_discard_wbtest.mbt",
+                "anchor": "copied relation carriers cannot discard or revive their original DATA"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_discard_wbtest.mbt",
+                "anchor": "relation child discard remains available after parent original invalidation"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_discard_wbtest.mbt",
+                "anchor": "discarding one relation projection leaves shared original and sibling unchanged"
               }
             ]
           }

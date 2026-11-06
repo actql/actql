@@ -79,6 +79,8 @@ pub fn begin_row_run_listing_page(RowRun, Bytes, Int64) -> Result[Unit, RowHostI
 
 pub fn begin_row_run_listing_request(RowRun, String?, Int64) -> Result[Unit, RowHostIssue]
 
+pub fn begin_row_run_response_attempt(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]
+
 pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]
 
 pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]
@@ -125,7 +127,13 @@ pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, Ro
 
 pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView
 
+pub fn discard_relation_document_original(RelationDocument) -> Bool
+
+pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool
+
 pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
+
+pub fn extend_row_run_page_charge(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]
 
 pub fn finish_row_run(RowRun) -> Result[Unit, RowHostIssue]
 

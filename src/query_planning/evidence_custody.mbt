@@ -187,6 +187,28 @@ pub struct QueryEvidenceCaptured[I, A, R] {
 }
 
 ///|
+/// Retire only the original custody's reciprocal references. An issued set
+/// without a capture may be abandoned; a successful capture must first lose
+/// its original registration. This is not transport cleanup or allocation
+/// acknowledgement. Escaped records and observations retain immutable DATA.
+/// A rejected retirement leaves every reference intact; success is idempotent.
+pub fn[I, A, R] retire_query_evidence_custody(
+  issued : QueryEvidenceIssued[I, A, R],
+) -> Bool {
+  let owner = issued.owner
+  match owner.issued {
+    None => return owner.captured is None
+    Some(original) => if !physical_equal(original, issued) { return false }
+  }
+  if owner.captured is Some(_) && owner.registration.live {
+    return false
+  }
+  owner.captured = None
+  owner.issued = None
+  true
+}
+
+///|
 pub(all) enum QueryEvidenceCustodyIssue {
   InvalidLimits
   InvalidIdentity
