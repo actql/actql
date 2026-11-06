@@ -32125,7 +32125,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3e18afb94911a6ae377fe332b423bf28955aeac5690fbb6ada79de1e11939dfa",
+      "sha256": "2e5a550f0717b3b6e90d2e084215ffba0d2e735b4f9c3a035bd2023d2e07992c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32418,6 +32418,11 @@
             "member"
           ],
           "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/retirePublication",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "acquiredEffectModelGroup/same/same",
@@ -32731,6 +32736,11 @@
           "async": false
         },
         {
+          "name": "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "selectRestoredKeyedSource",
           "parameters": [
             "moon",
@@ -32903,7 +32913,9 @@
             "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted#2",
             "acquiredEffectModelGroup/same/same",
             "acquiredEffectModelGroup/same/same/same",
-            "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited"
+            "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
+            "acquiredEffectModelGroup/retirePublication",
+            "openAcquiredEffectComputation/retireInferPublication/retireInferPublication"
           ],
           "exports": [
             "openAcquiredEffectComputation"

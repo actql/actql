@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "3e18afb94911a6ae377fe332b423bf28955aeac5690fbb6ada79de1e11939dfa",
+      "sha256": "2e5a550f0717b3b6e90d2e084215ffba0d2e735b4f9c3a035bd2023d2e07992c",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -299,6 +299,11 @@
             "member"
           ],
           "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/retirePublication",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "acquiredEffectModelGroup/same/same",
@@ -612,6 +617,11 @@
           "async": false
         },
         {
+          "name": "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "selectRestoredKeyedSource",
           "parameters": [
             "moon",
@@ -787,7 +797,9 @@
             "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted#2",
             "acquiredEffectModelGroup/same/same",
             "acquiredEffectModelGroup/same/same/same",
-            "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited"
+            "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
+            "acquiredEffectModelGroup/retirePublication",
+            "openAcquiredEffectComputation/retireInferPublication/retireInferPublication"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -8346,7 +8358,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -11776,7 +11788,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -15047,7 +15059,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -18003,7 +18015,7 @@
                 "path": "adapters/host-node/infer-run-original-host.test.mjs"
               },
               {
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1",
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921",
                 "path": "adapters/host-node/model-resume-public.test.mjs"
               },
               {
