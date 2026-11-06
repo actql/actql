@@ -81944,7 +81944,7 @@
     {
       "module": "src/source_value/native_json_construction_extent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "5804c2ed47500b84562d42d4e8256aeadcad1bd6a2c497d497c91fe85c494b3d",
+      "sha256": "1b8e8952dad417830053bc2f3cfe48dc2874e92ab5cb9ae4bc824dd108862670",
       "role": "common-semantics",
       "owner": "Existing Source value admission and representation inventory",
       "exports": [],
@@ -82024,6 +82024,10 @@
               {
                 "path": "src/source_value/native_json_js_wbtest.mbt",
                 "anchor": "test \"same native key visits retain the maximum without changing admission or Unicode refusal\""
+              },
+              {
+                "path": "src/source_value/json_construction_compatibility_wbtest.mbt",
+                "anchor": "test \"native normalized key backing refuses overflow after an otherwise representable output\""
               }
             ]
           }

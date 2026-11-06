@@ -58,7 +58,15 @@ pub fn captured_json_construction_extent(
   }
   guard @canonical.nfc_lf_construction_scratch_extent(max_key_units)
     is Some(normalization) &&
-    @canonical.nfc_lf_retained_output_units(key_units) is Some(output) else {
+    @canonical.nfc_lf_retained_output_units(key_units) is Some(output) &&
+    @counts.checked_nonnegative_add_product(
+      native.owned_utf16_units,
+      normalization.owned_utf16_units,
+      1L,
+    )
+    is Some(backing) &&
+    @counts.checked_nonnegative_add_product(backing, output, 1L)
+    is Some(backing) else {
     return None
   }
   // Only one original key is normalized at a time. The SAME canonical Owner
@@ -69,8 +77,6 @@ pub fn captured_json_construction_extent(
     record_headers: native.record_headers + normalization.record_headers,
     reference_slots: native.reference_slots + normalization.reference_slots,
     scalar_words: native.scalar_words + normalization.scalar_words,
-    owned_utf16_units: native.owned_utf16_units +
-    normalization.owned_utf16_units +
-    output,
+    owned_utf16_units: backing,
   })
 }
