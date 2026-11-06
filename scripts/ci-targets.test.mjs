@@ -185,10 +185,86 @@ test('normal Host CI checks real connector initialization after its ordinary run
   const index = steps.findIndex(row => row.name === 'Test actual bound connector initialization and cleanup');
   assert.ok(build >= 0 && index > build);
   assert.equal(steps[index].run, 'node --test adapters/host-node/installed-bound-construction.actual.test.mjs adapters/host-node/installed-bound-construction-failures.actual.test.mjs adapters/host-node/installed-source-construction-geometry.test.mjs');
-  assert.equal(steps[index].if, undefined);
+  assert.equal(steps[index].if, "${{ !cancelled() && steps.cold-runtime-preparation.outcome == 'success' }}");
   assert.equal(steps[index]['continue-on-error'], undefined);
   // These cases use actual Core/Resource/registration and temporary SQLite,
   // not live provider credentials or another runtime build/cleanup substitute.
+});
+
+test('Host collection retains original command bodies and their actual build prerequisites', () => {
+  const {scripts} = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const steps = jobs.host.steps;
+  const step = name => {
+    const found = steps.filter(row => row.name === name);
+    assert.equal(found.length, 1, name);
+    return found[0];
+  };
+  const commands = name => scripts[name].split(' && ');
+  const retained = commands('check:retained-boundary');
+  const publication = commands('check:publication-runtime');
+  assert.equal(retained[0], publication[0]);
+  assert.equal(step('Prepare the shared Host runtime').run, retained[0]);
+  assert.equal(step('Test bounded retained storage and process lifecycle').run, retained[1]);
+  assert.equal(step('Test prepared holder cleanup owner').run, retained[2]);
+  assert.equal(step('Test portable publication control with the durable Store').run, publication[1]);
+  assert.equal(step('Test original publication owned extents').run, publication[2]);
+  const ownedHost = commands('check:publication-owned-host');
+  assert.deepEqual(ownedHost.length, 2);
+  assert.equal(publication[3], 'npm run check:publication-owned-host');
+  assert.equal(step('Test original publication Host extents').run, ownedHost[0]);
+  assert.equal(step('Test original publication Host callers').run, ownedHost[1]);
+  const remote = commands('check:remote-site-runtime');
+  assert.equal(remote.length, 4);
+  assert.equal(step('Prepare the Remote Site runtime').run, remote.slice(0, 2).join('\n') + '\n');
+  assert.equal(step('Test durable Remote Site dispatch admission').run, remote[2]);
+  assert.equal(step('Test packed Remote coordinator').run, remote[3]);
+  assert.equal(step('Test original holder terminal facade').run,
+    'node --test packages/coordinator-core/holder-terminal.test.mjs');
+  const runHost = commands('check:run-host-core');
+  assert.equal(runHost.length, 4);
+  assert.equal(step('Prepare the Run Host runtime').run, runHost[0]);
+  assert.equal(step('Check Run Host types').run, runHost[1]);
+  assert.equal(step('Test portable Run Host compilation package').run, runHost[2]);
+  assert.equal(step('Test packed Run Host compilation package').run, runHost[3]);
+  assert.equal(step('Test original Local result authorization').run,
+    'node --test adapters/host-node/local-result-authorization.test.mjs');
+  assert.equal(steps.filter(row => row.run === retained[0]).length, 1,
+    'the two identical Common build prefixes are shared, without another build');
+});
+
+test('Host independent failures are collected while failed prerequisites and cancellation stop consumers', () => {
+  const steps = jobs.host.steps;
+  const prerequisites = {
+    'host-toolchain': new Set(['host-runtime-preparation']),
+    'remote-site-preparation': new Set(['Test durable Remote Site dispatch admission',
+      'Test packed Remote coordinator', 'Test original holder terminal facade']),
+    'run-host-preparation': new Set(['Check Run Host types',
+      'Test portable Run Host compilation package', 'Test packed Run Host compilation package',
+      'Test original Local result authorization']),
+    'cold-runtime-preparation': new Set(['Test actual bound connector initialization and cleanup']),
+  };
+  const setup = steps.find(row => row.id === 'host-toolchain');
+  assert.equal(setup.uses, './.github/actions/setup-toolchain');
+  assert.equal(setup.if, undefined);
+  for (const row of steps.filter(row => row.run)) {
+    const preparation = Object.entries(prerequisites).find(([, names]) =>
+      names.has(row.id) || names.has(row.name))?.[0] ?? 'host-runtime-preparation';
+    assert.equal(row.if, '${{ !cancelled() && steps.' + preparation + ".outcome == 'success' }}", row.name);
+    assert.equal(row['continue-on-error'], undefined, row.name);
+    const expression = row.if.slice(3, -3).replace(/steps\.([a-z][a-z0-9-]*)/gu,
+      (_, name) => `steps[${JSON.stringify(name)}]`);
+    const admitted = (outcome, cancelled = false) => Function('steps', 'cancelled',
+      `return (${expression});`)({[preparation]: {outcome}, 'earlier-independent-test': {outcome: 'failure'}},
+      () => cancelled);
+    assert.equal(admitted('success'), true, 'a failed sibling cannot suppress this original case');
+    for (const outcome of ['failure', 'cancelled', 'skipped', undefined])
+      assert.equal(admitted(outcome), false, `${row.name}: ${outcome}`);
+    assert.equal(admitted('success', true), false, 'workflow cancellation remains authoritative');
+    assert(steps.findIndex(item => item.id === preparation) < steps.indexOf(row), row.name);
+  }
+  assert.equal(jobs.host['timeout-minutes'], 30);
+  assert.equal(jobs.host.strategy, undefined, 'collect serially without new shared-state concurrency');
+  assert.equal(jobs.host['continue-on-error'], undefined);
 });
 
 test('manual integration keeps full core and explicit macOS opt-in', () => {

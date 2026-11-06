@@ -819,46 +819,109 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-toolchain
+        id: host-toolchain
         with:
           python: 'true'
+      # A failed case does not invalidate these unchanged shared build inputs.
+      - name: Prepare the shared Host runtime
+        id: host-runtime-preparation
+        if: ${{ !cancelled() && steps.host-toolchain.outcome == 'success' }}
+        run: moon build --target js --release src/connectors_builtin_node
       - name: Test bounded retained storage and process lifecycle
-        run: npm run check:retained-boundary
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node --test adapters/local-node/managed-output-custody.test.mjs adapters/host-common/run-publication-preflight-capacity.test.mjs adapters/host-common/publication-global-capacity.test.mjs adapters/store-local/files.test.mjs adapters/store-local/shared-read.test.mjs adapters/store-local/delegated-file.test.mjs adapters/store-local/direct-file.test.mjs adapters/store-local/managed-manifest.test.mjs adapters/store-local/managed-representations.test.mjs adapters/store-local/managed-memory-transfer.test.mjs adapters/store-local/publication-store.test.mjs adapters/store-local/physical-retirement-owner.test.mjs adapters/store-local/publication-commit-owner.test.mjs adapters/store-local/process-service.test.mjs adapters/store-local/process-client.test.mjs adapters/store-local/row-frames.test.mjs adapters/store-local/representations.test.mjs adapters/local-node/retained-input.test.mjs adapters/local-node/retained-output.test.mjs adapters/local-node/carrier-snapshot.test.mjs adapters/local-node/strategy-bundle.test.mjs adapters/host-common/execution-sites.test.mjs adapters/host-common/managed-site-transfer.test.mjs adapters/host-common/managed-failure.test.mjs adapters/host-common/publication-contract-control.fixture.test.mjs adapters/host-node/managed-identity-policy.test.mjs adapters/host-node/process-frames.test.mjs adapters/host-node/process-channel.test.mjs adapters/host-node/host-service.test.mjs adapters/host-node/completion-custody.test.mjs adapters/store-local/publication-capacity.test.mjs adapters/store-local/prepared-custody-queue.test.mjs
+      - name: Test prepared holder cleanup owner
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node scripts/local-checks.mjs test node -- adapters/store-local/prepared-holder-owner.test.mjs
       - name: Test publication object writer cleanup owner
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/store-local/object-writer-owner.test.mjs
       - name: Test retired Result cleanup owner
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/store-local/result-deletion-owner.test.mjs
       - name: Test retired metadata cleanup owner
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/store-local/metadata-deletion-owner.test.mjs
       - name: Test publication commit custody owner
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/store-local/delivery-attempt-index.test.mjs adapters/store-local/delivery-attempt-schema-statements.test.mjs adapters/store-local/semantic-publication-commit.test.mjs adapters/store-local/prepared-custody-atomic-record.test.mjs adapters/store-local/prepared-custody-pending-admission.test.mjs
       - name: Test portable publication control with the durable Store
-        run: npm run check:publication-runtime
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node --test adapters/host-common/publication-contract-control.test.mjs adapters/host-common/durable-result-payload.test.mjs adapters/host-common/publication-yield.test.mjs adapters/host-common/captured-computation-retention.test.mjs adapters/host-common/publication-capacity.test.mjs adapters/host-common/publication-capacity-common.test.mjs adapters/host-common/run-publication-preflight-capacity.test.mjs
+      - name: Test original publication owned extents
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: npm run check:publication-owned-extents
+      - name: Test original publication Host extents
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node scripts/local-checks.mjs test moon -- --target js src/physical_resources/preparation_publication_phase_wbtest.mbt src/client_local_host/preparation_scalar_snapshot_layout_wbtest.mbt src/canonical_value/snapshot_normalization_wbtest.mbt src/client_local_host/publication_capture_constructor_layout_wbtest.mbt src/run_publication_host/client_compiled_run_original_definition_wbtest.mbt src/client_local_host/installed_managed_retirement_wbtest.mbt src/client_local_host/preparation_publication_custody_wbtest.mbt src/client_local_host/preparation_publication_snapshot_wbtest.mbt src/client_local_host/preparation_publication_validation_layout_wbtest.mbt src/client_local_host/preparation_publication_validation_custody_wbtest.mbt src/client_local_host/preparation_publication_start_custody_wbtest.mbt src/execution_relation/managed_output_success_retirement_wbtest.mbt
+      - name: Test original publication Host callers
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node scripts/local-checks.mjs test node -- scripts/scalar-snapshot-projector-layout.test.mjs scripts/capture-projector-layout.test.mjs adapters/host-node/publication-currentness-boundary.test.mjs adapters/host-node/client-publication-preparation-phase.test.mjs
       - name: Test retained experiment fixtures and timing assessment
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test benchmarks/retained-results/*.test.mjs
       - name: Test control-side process admission without DuckDB
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: npm run check:process-capacity
+      - name: Prepare the Remote Site runtime
+        id: remote-site-preparation
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: |
+          moon build --target js --release src/connectors_builtin_node src/connectors/github/host_node src/connectors/notion/host_node src/connectors/slack/host_node src/connectors/calendar/host_node src/connectors/gmail/host_node src/connectors/sheets/host_node src/connectors/hubspot/host_node
+          node scripts/build-runtime-packages.mjs coordinator-core
       - name: Test durable Remote Site dispatch admission
-        run: npm run check:remote-site-runtime && node --test packages/coordinator-core/holder-terminal.test.mjs
+        if: ${{ !cancelled() && steps.remote-site-preparation.outcome == 'success' }}
+        run: node --test packages/coordinator-core/payload.test.mjs packages/coordinator-core/cancellation.test.mjs packages/coordinator-core/bundle-retention.test.mjs adapters/host-common/remote-bundle-control.test.mjs adapters/host-common/remote-coordinator-abi.test.mjs adapters/host-common/remote-credential-control.test.mjs adapters/host-common/remote-dispatch-wire.test.mjs adapters/host-common/remote-transfer-control.test.mjs adapters/host-node/sqlite-coordinator-journal.test.mjs adapters/host-node/remote-site-coordinator.test.mjs adapters/host-node/outbound-site-gateway.test.mjs adapters/site-node/runtime-bundle-operations.test.mjs adapters/site-node/runtime-bundle-store.test.mjs adapters/site-node/sqlite-credential-journal.test.mjs adapters/site-node/sqlite-dispatch-journal.test.mjs adapters/site-node/sqlite-transfer-journal.test.mjs adapters/site-node/sqlite-transfer-store-journal.test.mjs adapters/site-node/sqlite-transaction-custody.test.mjs adapters/site-node/https-credential-resource.test.mjs adapters/site-node/https-credential-response-accounting.test.mjs adapters/connectors/slack/test/remaining-row-requests.test.mjs adapters/connectors/slack/test/slack-source-read.test.mjs adapters/connectors/slack/test/slack-source-reader-join.test.mjs adapters/connectors/slack/test/installed-slack-source.test.mjs adapters/connectors/slack/test/installed-slack-channels.test.mjs adapters/connectors/slack/test/installed-slack-messages.test.mjs adapters/connectors/slack/test/installed-slack-message-parameters.test.mjs adapters/connectors/slack/test/installed-slack-limit-parameters.test.mjs adapters/connectors/notion/test/remaining-row-requests.test.mjs adapters/connectors/notion/test/user-list-read.test.mjs adapters/connectors/notion/test/installed-notion-source.test.mjs adapters/connectors/hubspot/test/hubspot-remaining-row-requests.test.mjs adapters/connectors/hubspot/test/hubspot-account-response-facts.test.mjs adapters/connectors/calendar/test/calendar-list-read.test.mjs adapters/connectors/gmail/test/gmail-label-shared-pages.actual.test.mjs adapters/connectors/calendar/test/calendar-events-pages.test.mjs adapters/connectors/calendar/test/calendar-events-request-pages.test.mjs adapters/connectors/calendar/test/calendar-original-profile.test.mjs adapters/connectors/calendar/test/calendar-free-busy-pages.test.mjs adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs adapters/connectors/sheets/test/sheets-grid-pages.test.mjs adapters/connectors/sheets/test/sheets-grid-pages.actual.test.mjs adapters/connectors/sheets/test/sheets-tabs-pages.test.mjs adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs adapters/connectors/github/test/github-issue-read.test.mjs adapters/connectors/github/test/github-comment-read.test.mjs adapters/connectors/github/test/github-installed-comment-source.test.mjs adapters/connectors/github/test/github-installed-comment-outcome.test.mjs adapters/connectors/github/test/github-comment-marker.test.mjs adapters/site-node/https-direct-transfer.test.mjs adapters/site-node/https-transfer-store.test.mjs adapters/site-node/remote-dispatch-runtime.test.mjs adapters/site-node/remote-standard-direct-execution.test.mjs adapters/site-node/https-agent.test.mjs adapters/site-node/https-agent-authorization.test.mjs adapters/host-node/embedded-source-identity-initialization.test.mjs adapters/host-node/rest-source-initial-material.test.mjs adapters/host-node/installed-source-authorization-cleanup.test.mjs adapters/host-node/installed-whole-source-row-run.test.mjs adapters/host-node/installed-reader-binding-retirement.test.mjs adapters/host-node/installation-metadata-configuration-reader.test.mjs adapters/host-node/installed-source-reader-page-demand.test.mjs adapters/host-node/installed-credential-source-reader-modes.test.mjs adapters/host-node/installed-credential-source-reader.test.mjs adapters/host-node/installed-source-child-use.test.mjs adapters/host-node/installed-source-credential-constructor.test.mjs
+      - name: Test packed Remote coordinator
+        if: ${{ !cancelled() && steps.remote-site-preparation.outcome == 'success' }}
+        run: node scripts/test-packed-coordinator-core.mjs
+      - name: Test original holder terminal facade
+        if: ${{ !cancelled() && steps.remote-site-preparation.outcome == 'success' }}
+        run: node --test packages/coordinator-core/holder-terminal.test.mjs
       - name: Test non-destructive SQLite format inspection
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/host-common/sqlite-format-inspection.test.mjs adapters/host-node/ordinary-host-journal.test.mjs
       - name: Test bounded Journal preparation and execution
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/host-node/client-request-journal-sql-bounds.test.mjs adapters/host-node/client-request-journal-execution-bounds.test.mjs adapters/host-node/client-request-journal-wal-bounds.test.mjs adapters/host-node/client-request-journal-fresh-schema.test.mjs
       - name: Test durable Checkpoint journal and resumed dispatch admission
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: npm run check:checkpoint-runtime
       - name: Test operation authorization and unchanged Run observations
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/local-run-authorization.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/mock-effect-host-original.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/installed-managed-source.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-common/observation.test.mjs adapters/host-node/in-process-result-observation.test.mjs
       - name: Test native retained task file ownership
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: npm run check:native-retained-task-file
       - name: Test portable Remote Transfer owner package
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: npm run check:transfer-core
+      - name: Prepare the Run Host runtime
+        id: run-host-preparation
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node scripts/build-runtime-packages.mjs run-host-core coordinator-core
+      - name: Check Run Host types
+        if: ${{ !cancelled() && steps.run-host-preparation.outcome == 'success' }}
+        run: npm run check:run-host-types
       - name: Test portable Run Host compilation package
-        run: npm run check:run-host-core && node --test adapters/host-node/local-result-authorization.test.mjs
+        if: ${{ !cancelled() && steps.run-host-preparation.outcome == 'success' }}
+        run: node --test packages/run-host-core/index.test.mjs packages/run-host-core/schema-field-order.test.mjs packages/run-host-core/checkpoints.test.mjs adapters/host-common/publication-action.test.mjs adapters/host-common/result-access-clock.test.mjs adapters/host-common/result-delivery.test.mjs packages/run-host-core/effect-checkpoint-retention.test.mjs packages/run-host-core/effect-checkpoint-binding.test.mjs packages/run-host-core/effect-publication.test.mjs packages/run-host-core/effect-publication.runtime.test.mjs packages/run-host-core/review-binding-facts.test.mjs packages/run-host-core/source-preparation.test.mjs
+      - name: Test packed Run Host compilation package
+        if: ${{ !cancelled() && steps.run-host-preparation.outcome == 'success' }}
+        run: node scripts/test-packed-run-host-core.mjs
+      - name: Test original Local result authorization
+        if: ${{ !cancelled() && steps.run-host-preparation.outcome == 'success' }}
+        run: node --test adapters/host-node/local-result-authorization.test.mjs
       - name: Build runtime packages without prebuilt bundles
+        id: cold-runtime-preparation
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node scripts/test-runtime-package-build.mjs
       - name: Test actual bound connector initialization and cleanup
+        if: ${{ !cancelled() && steps.cold-runtime-preparation.outcome == 'success' }}
         # Reuse the ordinary Local build above; external provider I/O is loopback-only.
         run: node --test adapters/host-node/installed-bound-construction.actual.test.mjs adapters/host-node/installed-bound-construction-failures.actual.test.mjs adapters/host-node/installed-source-construction-geometry.test.mjs
       - name: Test Local runtime source and external connector builds
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: npm run check:local-node-source-assets
   # Share only clean-checkout tarballs and their source/digest manifest.
   # Consumers retain fresh installs and private target/native build outputs.
