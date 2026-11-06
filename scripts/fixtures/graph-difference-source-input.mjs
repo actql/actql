@@ -74,7 +74,7 @@ export const graphDifferenceSourceSuccesses = [
   item('json-parallel-removed', 'json', machine(true), machineDelta(true)),
   item('terminal-self', 'aql-text', prefix + 'FROM g |> graph_diff(with: g) |> SELECT delta |> RESULT changes', singleDelta),
   item('quoted-alias-normalized', 'aql-text', prefix + ', `peer graph` AS (FROM g) , changes AS (FROM g |> normalize_graph() |> graph_diff(with: `peer graph`)) FROM changes |> SELECT delta |> RESULT changes', singleDelta),
-  item('parallel-removed', 'aql-text', parallelPrefix + ', selected AS (FROM g |> node_rows() |> WHERE FALSE |> SELECT id) , empty AS (FROM g |> subgraph(nodes: {from: selected, id: "id"})) FROM g |> graph_diff(with: empty) |> SELECT delta |> RESULT changes', textParallelDelta(true)),
+  item('parallel-removed', 'aql-text', parallelPrefix + ', selected AS (FROM g |> node_rows() |> WHERE FALSE |> SELECT id) , empty AS (FROM g |> subgraph(nodes: {from: selected, id: `id`})) FROM g |> graph_diff(with: empty) |> SELECT delta |> RESULT changes', textParallelDelta(true)),
   item('empty-typed-relation', 'aql-text', prefix + 'FROM g |> graph_diff(with: g) |> WHERE FALSE |> SELECT delta |> RESULT changes'),
 ];
 export const graphDifferenceSourceRefusals = [

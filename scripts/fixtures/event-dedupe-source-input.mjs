@@ -23,7 +23,7 @@ const variants=[
 ];
 const rowsText='SELECT 1 AS event_id, 20 AS occurred_ms, CAST(NULL AS FLOAT64) AS bucket, CAST(NULL AS FLOAT64) AS score UNION ALL SELECT 2, 10, CAST(NULL AS FLOAT64), 7 UNION ALL SELECT 3, 30, 2, 5 UNION ALL SELECT 4, 5, 2, CAST(NULL AS FLOAT64)';
 function source(v,rows=rowsText){
-  return 'WITH rows AS ('+(v.empty?'WITH all_rows AS ('+rows+') SELECT event_id, occurred_ms, bucket, score FROM all_rows WHERE FALSE':rows)+'), '
+  return 'WITH `rows` AS ('+(v.empty?'WITH all_rows AS ('+rows+') SELECT event_id, occurred_ms, bucket, score FROM all_rows WHERE FALSE':rows)+'), '
     +'ev AS (FROM rows |> to_events(id: event_id, time: occurred_ms)), '
     +'picked AS (FROM ev |> dedupe_events(by: '+v.sourceBy+', order_by: '+v.sourceOrder+')), '
     +'result_rows AS (FROM picked |> events()) '

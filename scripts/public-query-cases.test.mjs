@@ -2,7 +2,7 @@ import {queryCompositionSuccesses, queryCompositionRefusals, joinedRowControl, j
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
-import {relationDataSuccesses, relationDataRefusals} from './fixtures/public-query-input.mjs';
+import {relationDataSuccesses, relationDataRefusals, pipeResultSuccesses} from './fixtures/public-query-input.mjs';
 import {graphSourceSuccesses} from './fixtures/graph-source-input.mjs';
 import {pipePivotSuccesses, pipePivotRefusals, pivotArgumentExpressionProgram, fromPivotAcquiredProgram}
   from './fixtures/pipe-pivot-source-input.mjs';
@@ -27,6 +27,17 @@ test('duplicate request names cannot hide conflicting source or expectations', (
     assert.throws(() => uniquePublicQueryCases([original, conflicting]),
       /Conflicting public query fixture/u);
   }
+});
+
+test('retained Result SET keeps original values and its quoted current output', () => {
+  const item = pipeResultSuccesses.find(value => value.name === 'result-after-set');
+  const original = 'FROM records AS old |> SET id = id + 10 |> RESULT changed |> SELECT old.id AS original, id AS current |> ORDER BY original |> RESULT final';
+  assert.equal(item.text, original.replace('id AS current', 'id AS `current`'));
+  assert.deepEqual(Object.keys(item.results), ['changed', 'final']);
+  assert.deepEqual(item.results.final.rows,
+    [{original: 1, current: 11}, {original: 2, current: 12},
+      {original: 3, current: 13}, {original: 3, current: 13}]);
+  assert.equal(item.sourceReadSessionCount, 1);
 });
 
 test('WITH positional fixture keeps NULL duplicates and public output contracts', () => {

@@ -43,7 +43,7 @@ export const aggregateFilterSuccesses = [
     sourceReadSessionCount: 0,
   }),
   success('retained-alias-value', 'FROM records |> WHERE id > 0 |> AS before |> SET amount = 0 '
-    + '|> AGGREGATE COUNT(* WHERE before.amount > 0) AS originals, COUNT(* WHERE amount > 0) AS current', {
+    + '|> AGGREGATE COUNT(* WHERE before.amount > 0) AS originals, COUNT(* WHERE amount > 0) AS `current`', {
     format: 'aql-text', expected: [{originals: 2, current: 0}], columns: [column('originals'), column('current')],
   }),
   success('analytic-caller', 'SELECT id, COUNT(* WHERE amount > 0) OVER '

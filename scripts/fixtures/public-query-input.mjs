@@ -118,7 +118,7 @@ export const pipeResultSuccesses = [
       active: {rows: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')]},
     }, sourceReadSessionCount: 1},
   {name: 'result-after-set', format: 'aql-text',
-    text: 'FROM records AS old |> SET id = id + 10 |> RESULT changed |> SELECT old.id AS original, id AS current |> ORDER BY original |> RESULT final',
+    text: 'FROM records AS old |> SET id = id + 10 |> RESULT changed |> SELECT old.id AS original, id AS `current` |> ORDER BY original |> RESULT final',
     results: {
       changed: {rows: [{id: 13, amount: 30}, {id: 11, amount: null}, {id: 12, amount: 20}, {id: 13, amount: 30}], columns: sourceColumns, unordered: true},
       final: {rows: [{original: 1, current: 11}, {original: 2, current: 12}, {original: 3, current: 13}, {original: 3, current: 13}], columns: [relationNumber('original'), relationNumber('current')]},

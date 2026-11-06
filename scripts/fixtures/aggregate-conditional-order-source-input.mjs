@@ -76,7 +76,7 @@ export const aggregateConditionalOrderSuccesses = [
     columns: ['names', 'reverse'].map(name => ({name, contract: {type: 'string', nullable: true}})),
   }),
   success('current-and-snapshot', 'FROM objects AS before |> SET payload = other '
-    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY IFNULL(payload.score, 0), id) AS current, "
+    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY IFNULL(payload.score, 0), id) AS `current`, "
     + "STRING_AGG(name, '|' ORDER BY IFNULL(before.payload.score, 0), id) AS previous", {
     expected: [{current: 'a|c|b|b', previous: 'c|b|b|a'}],
     columns: ['current', 'previous'].map(name => ({name, contract: {type: 'string', nullable: true}})),
@@ -117,7 +117,7 @@ export const aggregateConditionalOrderSuccesses = [
     columns: ['names', 'reverse'].map(name => ({name, contract: {type: 'string', nullable: true}})),
   }),
   success('predicate-current-and-snapshot', 'FROM objects AS before |> SET payload = other '
-    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score > 15 NULLS LAST, id) AS current, "
+    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score > 15 NULLS LAST, id) AS `current`, "
     + "STRING_AGG(name, '|' ORDER BY before.payload.score > 15 NULLS LAST, id) AS previous", {
     expected: [{current: 'a|c|b|b', previous: 'b|b|a|c'}],
     columns: ['current', 'previous'].map(name => ({name, contract: {type: 'string', nullable: true}})),
@@ -161,7 +161,7 @@ export const aggregateConditionalOrderSuccesses = [
   success('membership-null-safe-null', sql.replace('COALESCE(payload.score, 0)', 'payload.score IS DISTINCT FROM NULL'),
     {expected: [{names: 'c|a|b|b'}]}),
   success('membership-current-and-snapshot', 'FROM objects AS before |> SET payload = other '
-    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score IN (25, 30) NULLS LAST, id) AS current, "
+    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score IN (25, 30) NULLS LAST, id) AS `current`, "
     + "STRING_AGG(name, '|' ORDER BY before.payload.score IN (25, 30) NULLS LAST, id) AS previous", {
     expected: [{current: 'a|c|b|b', previous: 'a|b|b|c'}],
     columns: ['current', 'previous'].map(name => ({name, contract: {type: 'string', nullable: true}})),

@@ -88,7 +88,7 @@ export const aggregatePropertyOrderSuccesses = [
     expected: [{names: 'b|b|a|c', reverse: 'c|a|b|b'}], columns: [column('names'), column('reverse')],
   }),
   success('current-and-snapshot', 'FROM objects AS before |> SET payload = other '
-    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score, id) AS current, "
+    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score, id) AS `current`, "
     + "STRING_AGG(name, '|' ORDER BY before.payload.score NULLS LAST, id) AS previous", {
     expected: [{current: 'a|c|b|b', previous: 'b|b|a|c'}], columns: [column('current'), column('previous')],
   }),

@@ -20,7 +20,8 @@ const variants=[
   {name:'empty',threshold:{watermark_ms:-0.5},source:'watermark_ms: -0.5',policy:'mark',empty:true,expected:[]},
 ];
 const rowsText='SELECT 1 AS id, 10 AS at UNION ALL SELECT 2, 3 UNION ALL SELECT 3, 9';
-function source(v){return 'WITH rows AS ('+(v.empty?'WITH all_rows AS ('+rowsText+') SELECT id, at FROM all_rows WHERE FALSE':rowsText)+'), '
+const sourceRowsText='SELECT 1 AS id, 10 AS `at` UNION ALL SELECT 2, 3 UNION ALL SELECT 3, 9';
+function source(v){return 'WITH `rows` AS ('+(v.empty?'WITH all_rows AS ('+sourceRowsText+') SELECT id, at FROM all_rows WHERE FALSE':sourceRowsText)+'), '
   +'ordered AS (FROM rows |> ORDER BY id), marked AS (FROM ordered AS r |> watermark_rows(time: r.AT, late_policy: \''+v.policy+'\', '+v.source+')) '
   +'SELECT id, at, watermark_ms, watermark_late, watermark_decision FROM marked ORDER BY id';}
 function control(v){const fields=columns.map(c=>c.name);return {version:'actql/0.1',id:'fixture.row_watermark_'+v.name,

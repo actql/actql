@@ -32,7 +32,7 @@ const source = 'WITH n AS (SELECT 1 AS node_key) '
   + ', g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES) '
   + 'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES))) ';
 const seeds = ', seeds AS (FROM g |> node_rows() |> SELECT id AS element) ';
-const call = emit => "traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 2, max_hops: 2, path_mode: 'trail', emit: '"
+const call = (emit, id = 'element') => "traverse(start: {from: seeds, id: " + id + "}, direction: 'out', min_hops: 2, max_hops: 2, path_mode: 'trail', emit: '"
   + emit + "', max_output_rows: 10)";
 const tail = (key, bound = 10) => ' |> AS v |> JOIN r AS rr ON v.' + key + ' = rr.depth MAX_OUTPUT_ROWS ' + bound
   + ' |> SELECT v.' + key + ' AS depth, rr.tag AS tag |> ORDER BY depth, tag';
@@ -58,14 +58,14 @@ export const traversalJoinSuccesses = [
     {columns: [columns[1], columns[0]]}),
 ];
 export const traversalJoinRefusals = [
-  ['nodes-path-field', source + seeds + 'FROM g |> ' + call('nodes') + tail('hop_count')],
-  ['paths-node-field', source + seeds + 'FROM g |> ' + call('paths') + tail('depth')],
-  ['removed-column', source + seeds + 'FROM g |> ' + call('nodes') + ' |> SELECT depth'
+  ['nodes-path-field', source + seeds + 'FROM g |> ' + call('nodes', "'element'") + tail('hop_count')],
+  ['paths-node-field', source + seeds + 'FROM g |> ' + call('paths', "'element'") + tail('depth')],
+  ['removed-column', source + seeds + 'FROM g |> ' + call('nodes', "'element'") + ' |> SELECT depth'
     + ' |> AS v |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT v.start_id'],
-  ['removed-range', source + seeds + 'FROM g |> ' + call('nodes')
+  ['removed-range', source + seeds + 'FROM g |> ' + call('nodes', "'element'")
     + ' |> AS v |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT g.depth'],
-  ['invalid-mode', source + seeds + 'FROM g |> ' + call('nodes').replace("'trail'", "'invented'") + tail('depth')],
-  ['invalid-join-bound', source + seeds + 'FROM g |> ' + call('nodes') + tail('depth', 0)],
+  ['invalid-mode', source + seeds + 'FROM g |> ' + call('nodes', "'element'").replace("'trail'", "'invented'") + tail('depth')],
+  ['invalid-join-bound', source + seeds + 'FROM g |> ' + call('nodes', "'element'") + tail('depth', 0)],
 ].map(([name, text]) => ({name: 'traversal-join-' + name, format: 'aql-text', text}));
 export const traversalJoinExecutionFailures = [{name: 'traversal-join-explicit-bound-exceeded',
   format: 'aql-text', text: source + seeds + 'FROM g |> ' + call('nodes') + tail('depth', 1),

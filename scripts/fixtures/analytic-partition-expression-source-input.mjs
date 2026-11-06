@@ -55,7 +55,7 @@ export const analyticPartitionExpressionSuccesses = [
   success('existing-direct-column', sql('id'), {expected: expected.map(row => ({id: row.id, pos: 1}))}),
   success('pipe-current-snapshot', 'FROM records AS original |> WHERE id > 0 |> SET amount = -amount '
     + '|> SELECT id, ROW_NUMBER() OVER (PARTITION BY original.amount > 25 ORDER BY id) AS before, '
-    + 'ROW_NUMBER() OVER (PARTITION BY amount > 25 ORDER BY id) AS current |> ORDER BY id',
+    + 'ROW_NUMBER() OVER (PARTITION BY amount > 25 ORDER BY id) AS `current` |> ORDER BY id',
     {format: 'aql-text', columns: [column('id'), column('before'), column('current')],
       expected: [{id: 1, before: 1, current: 1}, {id: 2, before: 2, current: 2},
         {id: 3, before: 1, current: 1}, {id: 4, before: 1, current: 3},

@@ -109,7 +109,7 @@ graphRowSourceSuccesses.push(
   {name: 'graph-node-label-source', format: 'aql-text', text: selectedBindings + selectedMapping + 'FROM g |> node_rows(label: "pErSoN")' + selectedTail, results: selectedResult([...selectedRows, {key: 3, p: 9}]), sourceReadCount: 0},
   {name: 'graph-edge-definition-json-control', format: 'json', text: JSON.stringify(edgeSelectedControl), results: edgeResults, sourceReadCount: 0},
   {name: 'graph-edge-definition-source', format: 'aql-text', text: edgeBindings + edgeMapping + 'FROM `g` |> edge_rows(definition: "e") |> SELECT part, edge_key, labels |> ORDER BY edge_key |> RESULT edges', results: edgeResults, sourceReadCount: 0},
-  {name: 'graph-edge-label-source', format: 'aql-text', text: edgeBindings + edgeMapping + ", rows AS (FROM g |> edge_rows(label: 'r') |> SELECT part, edge_key, labels) FROM rows |> ORDER BY edge_key |> RESULT edges", results: edgeResults, sourceReadCount: 0},
+  {name: 'graph-edge-label-source', format: 'aql-text', text: edgeBindings + edgeMapping + ", `rows` AS (FROM g |> edge_rows(label: 'r') |> SELECT part, edge_key, labels) FROM rows |> ORDER BY edge_key |> RESULT edges", results: edgeResults, sourceReadCount: 0},
   {name: 'graph-node-definition-empty', format: 'aql-text', text: "WITH n AS (SELECT 1 AS key, CAST(NULL AS FLOAT64) AS p WHERE FALSE), m AS (SELECT 3 AS key, 9 AS p, 'company' AS q), " + selectedMapping + "FROM g |> node_rows(definition: 'N')" + selectedTail, results: selectedResult([]), sourceReadCount: 0},
 );
 for (const [name, tail] of [

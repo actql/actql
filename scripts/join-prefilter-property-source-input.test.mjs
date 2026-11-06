@@ -46,5 +46,5 @@ test('future range and scalar receiver require exact pre-admission input refusal
   assert.ok(refusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
   assert.match(refusals[0].text, /WHERE \(\(r\)\)\.other\.score > 0 \|> JOIN/u);
   const removed = joinPropertyRefusals.find(item => item.name === 'join-property-invalid-4');
-  assert.equal(removed.expectedCode, 'ClientProgramImplementationLimit');
+  assert.equal(removed.expectedCode, 'ClientProgramInvalidInput');
 });

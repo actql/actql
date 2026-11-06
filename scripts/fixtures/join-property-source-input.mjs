@@ -243,16 +243,16 @@ export const joinPropertySuccesses = [
       + 'ON l.id = r.id MAX_OUTPUT_ROWS 12 ORDER BY l.id, ((r)).other.score',
     {expected: [{id: 1, score: 5}, {id: 2, score: 30}, {id: 2, score: 40}, {id: 3, score: null}]}),
   rangeCase('ordinary-scoped-order',
-    'FROM objects |> AS current |> ORDER BY ((current)).payload.score NULLS LAST'
+    'FROM objects |> AS `current` |> ORDER BY ((current)).payload.score NULLS LAST'
       + ' |> SELECT current.id AS id, current.payload.score AS score',
-    {text: ordinaryCtes + 'FROM objects |> AS current'
+    {text: ordinaryCtes + 'FROM objects |> AS `current`'
       + ' |> ORDER BY ((current)).payload.score NULLS LAST'
       + ' |> SELECT current.id AS id, current.payload.score AS score',
       parameterDeclarations: {a: payload, b: payload, c: payload},
       parameters: {a: parameters.a, b: parameters.b, c: parameters.c},
       expected: [{id: 2, score: 10}, {id: 1, score: 20}, {id: 3, score: null}]}),
   rangeCase('current-range-order', pipeJoin
-    + ' |> SELECT l.id, l.payload |> AS current'
+    + ' |> SELECT l.id, l.payload |> AS `current`'
     + ' |> ORDER BY ((current)).payload.score NULLS LAST, ((current)).id',
     {expected: [{id: 2, payload: {score: 10}}, {id: 2, payload: {score: 10}},
       {id: 1, payload: {score: 20}}, {id: 3, payload: null}],

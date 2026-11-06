@@ -228,9 +228,9 @@
     {
       "name": "join-chain-data-pipe",
       "format": "aql-text",
-      "text": "DATA a = SELECT 1 AS x; DATA b = SELECT 2 AS y; DATA c = SELECT 3 AS z; FROM a AS l |> CROSS JOIN b AS m |> CROSS JOIN c AS r |> SELECT l.x, m.y, r.z",
+      "text": "WITH a AS (SELECT 1 AS x), b AS (SELECT 2 AS y), c AS (SELECT 3 AS z) FROM a AS l |> CROSS JOIN b AS m |> CROSS JOIN c AS r |> SELECT l.x, m.y, r.z",
       "results": {
-        "answer": {
+        "main": {
           "rows": [
             {
               "x": 1,
@@ -295,9 +295,9 @@
     {
       "name": "join-chain-acquired-shared-producer",
       "format": "aql-text",
-      "text": "DATA seed = FROM records |> SELECT id; DATA joined = SELECT l.id FROM seed AS l JOIN seed AS m ON l.id = m.id JOIN seed AS r ON m.id = r.id; FROM joined |> ORDER BY id",
+      "text": "WITH seed AS (FROM records |> SELECT id), joined AS (SELECT l.id FROM seed AS l JOIN seed AS m ON l.id = m.id JOIN seed AS r ON m.id = r.id) FROM joined |> ORDER BY id",
       "results": {
-        "answer": {
+        "main": {
           "rows": [
             {
               "id": 1

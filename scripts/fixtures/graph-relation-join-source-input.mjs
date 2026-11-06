@@ -22,8 +22,8 @@ const operations = [
   ['graph_bounds', {max_nodes: 0}, 'max_nodes: 0', 'actual', 1, number],
   ['graphs_equal', {with: 'g'}, 'with: g', 'equal', true, {type: 'boolean', nullable: false}],
   ['match_nodes', {definition: 'N', where: {literal: true}, fields: ['p']},
-    "definition: 'N', where: {literal: true}, fields: ['p']", 'p', 7, number],
-  ['match_edges', {definition: 'E', fields: ['p']}, "definition: 'E', fields: ['p']", 'p', 7, number],
+    "definition: 'N', where: {literal: true}, fields: [p]", 'p', 7, number],
+  ['match_edges', {definition: 'E', fields: ['p']}, "definition: 'E', fields: [p]", 'p', 7, number],
 ];
 function control(operation, arguments_, field) {
   return JSON.stringify({version: 'actql/0.1', id: 'fixture.graph_relation_join',
@@ -48,7 +48,7 @@ graphRelationJoinSuccesses.push(
   success('normalized-degree', source + "FROM g |> normalize_graph() |> degree(direction: 'out')" + tail('degree'), rows(1)),
   success('parameter-bounds', source + 'FROM g |> graph_bounds(max_nodes: @p)' + tail('actual'), rows(1), number,
     {parameterDeclarations: {p: number}, parameters: {p: 0}}),
-  success('empty-match', source + "FROM g |> match_nodes(definition: 'N', where: {gt: [{field: 'p'}, {literal: 7}]}, fields: ['p'])"
+  success('empty-match', source + "FROM g |> match_nodes(definition: 'N', where: {gt: [{field: p}, {literal: 7}]}, fields: [p])"
     + tail('p'), []),
   success('degree-filter-limit', source + "FROM g |> degree(direction: 'out') |> WHERE degree = 1"
     + tail('degree') + ' |> LIMIT 1', [{value: 1, tag: 10}]),

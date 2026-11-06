@@ -243,7 +243,7 @@ pipePivotSuccesses.push(
     [{aql_pivot_row_4: 9, A: 1}], [number('aql_pivot_row_4', false), number('A', false)]),
   success('count-star-private-shaped-bucket', "SELECT 'A' AS axis |> PIVOT(COUNT(*) FOR axis IN('A' AS aql_pivot_row_4))",
     [{aql_pivot_row_4: 1}], [number('aql_pivot_row_4', false)]),
-  success('count-star-prefix-range-axis', countStarInput + " |> AS r |> PIVOT(COUNT(*) AS total FOR r.axis IN('B' AS later,'A' AS first)) AS current "
+  success('count-star-prefix-range-axis', countStarInput + " |> AS r |> PIVOT(COUNT(*) AS total FOR r.axis IN('B' AS later,'A' AS first)) AS `current` "
     + '|> SELECT current.* |> ORDER BY n NULLS LAST', [{n: 1, total_later: 0, total_first: 1}, {n: null, total_later: 0, total_first: 2}],
     [number('n', true), number('total_later', false), number('total_first', false)]),
   success('count-star-data', 'WITH counts AS (' + countStarSource + ') FROM counts |> SELECT n, A |> ORDER BY n NULLS LAST',

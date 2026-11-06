@@ -41,7 +41,7 @@ const subsetPrefix = prefix.replace('1 AS node_key, 7 AS p)',
   .replace('1 AS dst_key, 5 AS w', '2 AS dst_key, 5 AS w')
   .replace('1 AS src_key, 1 AS dst_key, 2 AS w', '2 AS src_key, 2 AS dst_key, 2 AS w');
 const peerSelection = ', selected AS (FROM g |> node_rows() |> WHERE node_key = 1 |> SELECT id) ' +
-  ', peer AS (FROM g |> subgraph(nodes: {from: selected, id: "id"})) ';
+  ', peer AS (FROM g |> subgraph(nodes: {from: selected, id: `id`})) ';
 export const graphSubtractionSubsetProgram = structuredClone(graphSubtractionProgram);
 graphSubtractionSubsetProgram.id = 'fixture.graph_subtraction_subset';
 const subsetSteps = graphSubtractionSubsetProgram.stages[0].steps;

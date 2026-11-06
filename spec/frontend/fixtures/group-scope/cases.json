@@ -234,9 +234,9 @@
     {
       "name": "group-acquired-shared-producer",
       "format": "aql-text",
-      "text": "DATA seed = FROM records |> SELECT id; SELECT l.id AS id, COUNT(*) AS n FROM seed AS l JOIN seed AS r ON l.id = r.id JOIN seed AS s ON r.id = s.id GROUP BY id ORDER BY id",
+      "text": "WITH seed AS (FROM records |> SELECT id) SELECT l.id AS id, COUNT(*) AS n FROM seed AS l JOIN seed AS r ON l.id = r.id JOIN seed AS s ON r.id = s.id GROUP BY id ORDER BY id",
       "results": {
-        "answer": {
+        "main": {
           "rows": [
             {
               "id": 1,

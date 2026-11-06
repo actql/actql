@@ -25,7 +25,7 @@ function control(v) {
     results:{answer:{from:{stage:'main',result:'rows'}}}};
 }
 function source(v) {
-  return 'WITH rows AS ('+(v.empty?'WITH all_rows AS ('+rowsText+') SELECT id, amount FROM all_rows WHERE FALSE':rowsText)+'), '
+  return 'WITH `rows` AS ('+(v.empty?'WITH all_rows AS ('+rowsText+') SELECT id, amount FROM all_rows WHERE FALSE':rowsText)+'), '
     +'keyed AS (FROM rows |> ASSERT UNIQUE BY (id)), '
     +'lagged AS (FROM keyed AS r |> lag(partition_by: '+v.sourcePartition
     +", order_by: [{field: r.AMOUNT, dir: 'desc', nulls: 'last'}], field: r.amount, output: previous"
