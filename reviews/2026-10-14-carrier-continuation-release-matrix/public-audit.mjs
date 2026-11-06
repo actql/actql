@@ -30,7 +30,8 @@ export function auditCarrierContinuationTransport(mode, report, receipt) {
     assert.equal(actual.mode, mode);
     assert.ok(actual.ref && typeof actual.ref === 'object' && Object.keys(actual.ref).length > 0);
     assert.deepEqual(actual.results, fixture.results);
-    actualRows += actual.results.answer.rows.length;
+    const resultName = fixture.format === 'json' ? 'answer' : 'main';
+    actualRows += actual.results[resultName].rows.length;
     assert.equal(actual.beforeRead.acceptedRuns - actual.beforeSubmit.acceptedRuns, 1);
     for (const key of ['sourceIo', 'sourceReads', 'sourceReadSessions']) {
       assert.equal(actual.beforeRead[key] - actual.beforeSubmit[key], fixture.sourceReadSessionCount);

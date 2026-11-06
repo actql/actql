@@ -42,7 +42,7 @@ function control(v,rows=input){
 export const eventDedupeSourceSuccesses=variants.flatMap(v=>{
   const results={answer:{rows:v.ids.map(id=>input.find(row=>row.event_id===id)),columns}};
   return [{name:'event-dedupe-json-'+v.name,format:'json',text:JSON.stringify(control(v)),results,sourceReadCount:0},
-    {name:'event-dedupe-text-'+v.name,format:'aql-text',text:source(v),results,sourceReadCount:0}];
+    {name:'event-dedupe-text-'+v.name,format:'aql-text',text:source(v),results:{main:results.answer},sourceReadCount:0}];
 });
 const prefix='WITH rows AS ('+rowsText+'), ev AS (FROM rows |> to_events(id: event_id, time: occurred_ms)) ';
 export const eventDedupeSourceRefusals=[

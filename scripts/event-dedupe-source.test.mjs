@@ -9,7 +9,7 @@ test('independent dedupe controls distinguish global NULL grouping order and emp
   for(const [name,ids] of Object.entries(expectedIds)){
     const json=successes.find(c=>c.name==='event-dedupe-json-'+name);
     const text=successes.find(c=>c.name==='event-dedupe-text-'+name);
-    assert.deepEqual(json.results,text.results);
+    assert.deepEqual(text.results,{main:json.results.answer});
     assert.deepEqual(json.results.answer.rows.map(row=>row.event_id),ids);
     assert.deepEqual(json.results.answer.columns,[
       {name:'event_id',contract:{type:'number',nullable:false}},
@@ -31,7 +31,7 @@ test('top tie remains an execution failure rather than a hidden arrival-order ch
   assert.equal(rows[0].occurred_ms,rows[1].occurred_ms);
   assert.notEqual(rows[0].event_id,rows[1].event_id);
   assert.deepEqual(steps[2].dedupe_events,{by:['bucket'],order_by:[{occurred_ms:'asc'}]});
-  assert.ok(failures.every(c=>c.resultNames.length===1&&c.resultNames[0]==='answer'));
+  assert.deepEqual(failures.map(c=>c.resultNames),[['answer'],['main']]);
   assert.equal(refusals.length,6);
   assert.ok(refusals.every(c=>c.expectedCode==='ClientProgramInvalidInput'));
   assert.equal(new Set([...successes,...refusals,...failures].map(c=>c.name)).size,18);

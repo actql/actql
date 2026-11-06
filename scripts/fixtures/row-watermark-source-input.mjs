@@ -32,7 +32,7 @@ function control(v){const fields=columns.map(c=>c.name);return {version:'actql/0
 export const rowWatermarkSourceSuccesses=variants.flatMap(v=>{
   const results={answer:{rows:v.expected,columns}};
   return [{name:'row-watermark-json-'+v.name,format:'json',text:JSON.stringify(control(v)),results,sourceReadCount:0},
-    {name:'row-watermark-text-'+v.name,format:'aql-text',text:source(v),results,sourceReadCount:0}];
+    {name:'row-watermark-text-'+v.name,format:'aql-text',text:source(v),results:{main:results.answer},sourceReadCount:0}];
 });
 const prefix='WITH rows AS ('+rowsText+') FROM rows |> ';
 export const rowWatermarkSourceRefusals=[

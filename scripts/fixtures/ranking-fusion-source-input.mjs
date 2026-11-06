@@ -29,7 +29,7 @@ function source(c) {
 export const rankingFusionSourceSuccesses=variants.flatMap(v=>{
  const results={answer:{rows:v.rows,columns}};
  return [{name:'ranking-fusion-json-'+v.name,format:'json',text:JSON.stringify(program(v)),results,sourceReadCount:0},
- ...['sql','aql-text'].map(format=>({name:'ranking-fusion-'+format+'-'+v.name,format,text:source(call(v)),results,sourceReadCount:0}))];
+ ...['sql','aql-text'].map(format=>({name:'ranking-fusion-'+format+'-'+v.name,format,text:source(call(v)),results:{main:results.answer},sourceReadCount:0}))];
 });
 const valid=call(variants[0]);
 export const rankingFusionSourceRefusals=[

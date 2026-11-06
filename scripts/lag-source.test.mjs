@@ -7,7 +7,7 @@ test('Lag independent controls distinguish navigation order, offset, partitions 
   assert.equal(refusals.length,6);
   for(let i=0;i<successes.length;i+=2){
     const json=successes[i],text=successes[i+1],program=JSON.parse(json.text);
-    assert.deepEqual(json.results,text.results);
+    assert.deepEqual(text.results,{main:json.results.answer});
     assert.deepEqual(program.stages[0].steps[1].assert_rows,{unique_by:['id']});
     assert.deepEqual(program.stages[0].steps.at(-1).select,['id','amount','previous']);
     assert.deepEqual(json.results.answer.columns,[{name:'id',contract:{type:'number',nullable:false}},

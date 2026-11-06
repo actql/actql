@@ -161,7 +161,7 @@ for (const [name, text, rows, extra] of [
   ['node-set-named', nodeSource + nodeSetHead + nodeSetOperand.replace('p + 1)', 'p + 1 AS other)') + setTail, nodeSetRows],
   ['node-set-anonymous', nodeSource + nodeSetHead + nodeSetOperand + setTail, nodeSetRows],
   ['node-set-unselected', nodeSource + nodeSetHead + nodeSetOperand.replace("definition: 'N'", '') + setTail, nodeSetRows],
-  ['node-set-head', nodeSource + "FROM g |> node_rows(definition: 'N') |> SELECT p AS value |> UNION ALL (FROM n |> SELECT p + 1) |> ORDER BY value", nodeSetRows, {results: {answer: {rows: nodeSetRows, columns: [number('value', true)]}}}],
+  ['node-set-head', nodeSource + "FROM g |> node_rows(definition: 'N') |> SELECT p AS value |> UNION ALL (FROM n |> SELECT p + 1) |> ORDER BY value", nodeSetRows, {results: {main: {rows: nodeSetRows, columns: [number('value', true)]}}}],
   ['node-set-data-head', nodeSource + ", combined AS (FROM g |> node_rows(definition: 'N') |> SELECT p AS value |> UNION ALL (FROM n |> SELECT p + 1)" + setTail, nodeSetRows],
   ['edge-set-json-control', setControl(true), edgeSetRows, {format: 'json'}],
   ['edge-set-named', edgeBindings + edgeMapping + edgeSetHead + edgeSetOperand.replace('edge_key + 1)', 'edge_key + 1 AS other)') + setTail, edgeSetRows],

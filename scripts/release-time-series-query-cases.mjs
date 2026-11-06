@@ -10,10 +10,11 @@ export function selectReleaseTimeSeriesQueryCases({successes = timeSeriesPrimary
   assert.deepEqual(successes.map(item => item.name), normalNames);
   assert.deepEqual(refusals.map(item => item.name), refusalNames);
   for (const item of successes) {
+    const resultName = item.format === 'json' ? 'answer' : 'main';
     assert.equal(item.sourceReadCount, 0);
     assert.equal(item.sourceReadSessionCount, 0);
-    assert.ok(Array.isArray(item.results.answer.rows));
-    assert.ok(Array.isArray(item.results.answer.columns));
+    assert.ok(Array.isArray(item.results[resultName].rows));
+    assert.ok(Array.isArray(item.results[resultName].columns));
   }
   return Object.freeze({successes: Object.freeze([...successes]), refusals: Object.freeze([...refusals])});
 }
