@@ -150,6 +150,8 @@ pub fn reserve_issuer_number(IssuerCounter) -> Int?
 
 pub fn[C, Q, A, P] reserve_selected_query_evidence_attempt(QueryEvidenceRegistration[C, Q, A], AcquisitionChoice[Q], PreparedAcquisition[Q, P], (P) -> Q) -> Result[(P, QueryEvidenceAttemptAuthority[C, Q, A]), QueryEvidenceCustodyIssue]
 
+pub fn[I, A, R] retire_query_evidence_custody(QueryEvidenceIssued[I, A, R]) -> Bool
+
 pub fn source_acquisition_evidence_facts(@sourceview_resolution.SourceAcquisition) -> QuerySourceEvidenceFacts?
 
 pub fn source_acquisition_evidence_members(@sourceview_resolution.SourceAcquisition) -> Result[@check_environment.ConnectorSourceEvidenceMembers, @check_environment.SourceEvidenceMemberIssue]

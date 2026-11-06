@@ -150,11 +150,16 @@ def prepare(moonbit: Path, destination: Path, *, provider: Path = HERE,
     return record
 
 
-if __name__ == '__main__':
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--moonbit', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--target', choices=['aarch64-apple-darwin',
-                                              'aarch64-unknown-linux-gnu'])
-    args = parser.parse_args()
+                                              'aarch64-unknown-linux-gnu',
+                                              'x86_64-unknown-linux-gnu'])
+    args = parser.parse_args(argv)
     print(json.dumps(prepare(args.moonbit, args.destination, target=args.target)))
+
+
+if __name__ == '__main__':
+    main()

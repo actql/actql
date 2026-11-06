@@ -1,0 +1,59 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/row_source"
+
+import {
+  "actql/actql/client_row_source_host",
+  "actql/actql/physical_resources",
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/installed_arena_control",
+  "actql/actql/query_planning",
+}
+
+// Values
+pub fn prepare_native_relation_file_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
+
+// Errors
+
+// Types and methods
+type NativeRelationFileCapture
+pub fn NativeRelationFileCapture::advance(Self, Int) -> Result[Bool, NativeRelationFileFailure]
+pub fn NativeRelationFileCapture::capture(Self) -> Result[@client_row_source_host.RowSourceCapture, NativeRelationFileIssue]
+pub fn NativeRelationFileCapture::close(Self) -> Result[Bool, NativeRelationFileIssue]
+
+type NativeRelationFileFailure
+pub fn NativeRelationFileFailure::issue(Self) -> NativeRelationFileIssue
+pub fn NativeRelationFileFailure::retry_cleanup(Self) -> Result[Bool, NativeRelationFileIssue]
+
+pub(all) enum NativeRelationFileIssue {
+  InvalidInput
+  Unavailable
+  ForeignOriginal
+  Capacity
+  FileLimit
+  Filesystem(@filesystem.NativeFilesystemIssue)
+  Execution(@installed_arena_control.InstalledArenaRetainedExecutionIssue)
+  Resource(@physical_resources.LedgerIssue)
+  Row(@client_row_source_host.RowHostIssue)
+  Document(@client_row_source_host.RowSourceIssue)
+  Mapping(@client_row_source_host.RowMappingIssue)
+}
+
+pub(all) struct NativeRelationFileLimits {
+  page : @client_row_source_host.RowPageLimits
+  max_work : Int
+  chunk_bytes : Int
+  diagnostic_ceiling : Int
+}
+
+pub(all) struct NativeRelationFileSelection {
+  directory : String
+  name : String
+  resource : String
+  items_path : Array[String]
+  key_path : Array[String]?
+  primary_identity : String
+}
+
+// Type aliases
+
+// Traits

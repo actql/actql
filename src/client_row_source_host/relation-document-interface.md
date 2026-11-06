@@ -70,3 +70,41 @@ UPDATE Mapping constructor delegates to the retained original Relation Mapping
 owner, using only the explicitly declared writable fields, permission and
 approval data. A Mapping does not grant current permission. RelA is an exact
 source mirror, not another schema, parser, compiler or authority issuer.
+
+## Discarding private construction originals
+
+- Responsibility: `discard_relation_document_original` and
+  `discard_relation_target_document_original` only sever the supplied DATA
+  handle's self-original reference. Neither operation is a cleanup owner.
+- Inputs and outputs: each function takes its original opaque document and
+  returns true only when this call clears its own mark. Already discarded or
+  copied carriers return false; the result is not a physical cleanup receipt.
+- Identity: discard requires `Some(original)` physically equal to the supplied
+  handle. It does not follow a copied carrier to mutate another object, and it
+  does not weaken any getter, projection or charged-admission identity check.
+- Ownership: callers discard only their private construction originals, normally
+  projections before their raw backing. Target discard never changes its parent
+  or siblings. Escaped immutable values and the stored payload are unchanged.
+- Synchronization: both operations are synchronous and callback-free. Child
+  discard checks its own mark without requiring a live parent, so mistaken
+  parent-first invalidation does not prevent later child discard.
+- Failure: false makes no mutation. After discard, existing getters return None
+  and projection/observation/admission retain their ordinary ForeignSource or
+  typed refusal. A retained previously returned scalar or byte value is not
+  rewritten, and no discarded handle can restore original status.
+- Cancellation: discarding DATA issues no abort, physical stop, closed-file
+  acknowledgement or release of an accounted RowRun. Those remain with the
+  original provider and RowRun cleanup, including every failed cleanup retry.
+- Resources: no child list, callback, counter, allocation credit or capacity
+  change is added. The existing constructor inventory already includes these
+  self Option references. Clearing them permits ordinary reference-counted
+  reclamation only after remaining aliases disappear; it does not prove it.
+- Extension: this pair covers separately constructed raw and target documents.
+  It does not retire RelationTargetRow marks or the hidden backing produced by
+  `admit_relation_target_document`, including that convenience entry's failed
+  projection path. Those existing caller boundaries remain separate; this is
+  not complete retirement of the relation-document family or Effect handles.
+- Verification: `relation_document_discard_wbtest.mbt` checks self-only mutation,
+  copied-carrier refusal, immutable retained DATA, sibling isolation and child
+  discard after parent invalidation. Source callers must still demonstrate real
+  original retained-execution closure; these references do not establish it.

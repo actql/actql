@@ -60,6 +60,13 @@ erase the observer. Failed stop keeps the same reservation and cleanup debt.
 Only confirmed physical retirement permits the reader's aliases to disappear
 and the original Owner to release its root.
 
+The [response stream accounting contract](response-stream-interface.md) describes
+spending that same attempt before I/O and extending one original page ticket
+with actual received chunks. Partial-prefix cancellation does not refund them.
+The [Common evidence custody contract](../query_planning/evidence-custody-interface.md)
+separates successful-capture cancellation, issuer revocation and retirement of
+closed custody while preserving immutable observation DATA.
+
 ### Original provider declaration projection
 
 `project_row_declaration` is a typed metadata port for an existing Common

@@ -220,6 +220,37 @@ fn relation_target_row_original(row : RelationTargetRow) -> Bool {
 }
 
 ///|
+/// Discard only this DATA handle's self-original mark. True means this call
+/// severed that reference, not that children, escaped DATA or physical backing
+/// retired. Callers discard their private projections before the raw document.
+/// Existing getters reject the discarded handle; already returned DATA is
+/// unchanged. A copied carrier cannot mutate the original's mark.
+pub fn discard_relation_document_original(document : RelationDocument) -> Bool {
+  guard document.original is Some(original) &&
+    physical_equal(document, original) else {
+    return false
+  }
+  document.original = None
+  true
+}
+
+///|
+/// Discard only this projection's self-original mark, never its shared backing
+/// or sibling projections. Check this handle itself rather than parent liveness:
+/// a caller can still discard its child after an earlier parent invalidation.
+/// False means no mark was severed; neither result acknowledges physical cleanup.
+pub fn discard_relation_target_document_original(
+  document : RelationTargetDocument,
+) -> Bool {
+  guard document.original is Some(original) &&
+    physical_equal(document, original) else {
+    return false
+  }
+  document.original = None
+  true
+}
+
+///|
 /// Admit one owned original from explicit caller bytes, without model data or
 /// a schema cache. Later projections share this exact byte/cursor backing.
 pub fn admit_relation_document(

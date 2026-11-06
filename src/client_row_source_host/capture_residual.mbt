@@ -135,13 +135,22 @@ pub fn cleanup_row_capture(run : RowRun) -> Result[Bool, RowHostIssue] {
   if run.configuration is InputConfiguration(_) {
     return Ok(cleanup_input_row_capture(run, 64))
   }
-  guard run.residual is Some(residual) else { return Ok(true) }
+  guard run.residual is Some(residual) else {
+    return if run.closed && run.physical is None {
+      Ok(retire_closed_row_evidence(run.attempt))
+    } else {
+      Ok(true)
+    }
+  }
   guard run.closed else { return Ok(false) }
   let result = @local.cleanup_managed_provider(
     @local.guarded_relation_execution(residual.execution),
   ).map_err(issue => RowHostIssue::Residual(issue))
   if result is Ok(true) {
     run.residual = None
+    if run.physical is None {
+      return Ok(retire_closed_row_evidence(run.attempt))
+    }
   }
   result
 }

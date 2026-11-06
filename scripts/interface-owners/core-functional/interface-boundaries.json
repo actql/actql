@@ -47401,7 +47401,7 @@
     },
     {
       "module": "src/client_row_source_host/capture_residual.mbt",
-      "sha256": "94230dc7deb289d366f8416b2135e40375eff05ca9e4cd3fc1df4520844848bd",
+      "sha256": "a8f80639cedb0a3e158a65ba49b179c1521124d6f4b915a23f45f56901d9eeed",
       "exports": [],
       "operations": [
         {
@@ -47433,9 +47433,7 @@
           "operations": [
             "<module>",
             "advance_row_capture",
-            "advance_row_capture_cleanup",
             "begin_row_capture",
-            "cleanup_row_capture",
             "row_capture_input_live"
           ],
           "exports": [],
@@ -47501,12 +47499,121 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "cleanup_row_capture",
+            "advance_row_capture_cleanup"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/capture_residual.mbt",
+                "anchor": "fn cleanup_row_capture("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/query_planning/pkg.generated.mbti",
+                "anchor": "pub fn[I, A, R] retire_query_evidence_custody("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "src/query_planning/evidence_custody.mbt",
+                "anchor": "if !physical_equal(original, issued) { return false }"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/query_planning/evidence_custody.mbt",
+                "anchor": "owner.captured = None"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/query_planning/evidence_custody.mbt",
+                "anchor": "if owner.captured is Some(_) && owner.registration.live {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_row_source_host/capture_residual.mbt",
+                "anchor": "A failed or stopped child remains owned and retryable until cleanup confirms."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/client_row_source_host/custody.mbt",
+                "anchor": "if attempt.state is (Captured(_) | InputCaptured(_) | KeyedRetained(_)) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_row_source_host/capture_residual.mbt",
+                "anchor": "if result is Ok(true) {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "src/connectors/duckdb/acquisition/duckdb_broad_attempt.mbt",
+                "anchor": "pub fn cleanup_duckdb_broad_residual("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/query_integration/evidence_retirement_wbtest.mbt",
+                "anchor": "common captured retirement requires its closed registration and retains immutable DATA aliases"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/client_row_source_host/custody.mbt",
-      "sha256": "4b74954ee97b018a34ce83bdbe43eba62baad55fb2ee854417beb1dc89271faa",
+      "sha256": "5db5d68df62de37136d114c00cf81f68eb08002fe85a7c02d2ce0a79ff4fdbe1",
       "exports": [],
       "operations": [
         {
@@ -47530,6 +47637,10 @@
           "declaration": "custody_issue ( issue : @ planning . QueryEvidenceCustodyIssue , ) - > RowEvidenceIssue"
         },
         {
+          "name": "retire_closed_row_evidence",
+          "declaration": "retire_closed_row_evidence ( attempt : RowAttempt ) - > Bool"
+        },
+        {
           "name": "row_captured_source",
           "declaration": "row_captured_source ( issuer : RowIssuer , attempt : RowAttempt , observation : RowObservation , ) - > Result [ @ query . CapturedInputSource , @ query . CapturedSourceIssue ]"
         },
@@ -47550,9 +47661,7 @@
           "operations": [
             "<module>",
             "[T]fail_attempt",
-            "abort_row_attempt",
             "complete_row_capture",
-            "complete_row_capture_output",
             "custody_issue",
             "row_captured_source",
             "row_observation_cid",
@@ -47621,12 +47730,118 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "abort_row_attempt",
+            "complete_row_capture_output",
+            "retire_closed_row_evidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/custody.mbt",
+                "anchor": "fn abort_row_attempt("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/query_planning/pkg.generated.mbti",
+                "anchor": "pub fn[I, A, R] retire_query_evidence_custody("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "src/query_planning/evidence_custody.mbt",
+                "anchor": "if !physical_equal(original, issued) { return false }"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/query_planning/evidence_custody.mbt",
+                "anchor": "owner.captured = None"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/query_planning/evidence_custody.mbt",
+                "anchor": "if owner.captured is Some(_) && owner.registration.live {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_row_source_host/custody.mbt",
+                "anchor": "Never lose an original holder when its custody refuses retirement."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/client_row_source_host/custody.mbt",
+                "anchor": "if attempt.state is (Captured(_) | InputCaptured(_) | KeyedRetained(_)) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "src/connectors/duckdb/acquisition/duckdb_broad_attempt.mbt",
+                "anchor": "pub fn cleanup_duckdb_broad_residual("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/query_integration/evidence_retirement_wbtest.mbt",
+                "anchor": "common captured retirement requires its closed registration and retains immutable DATA aliases"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/client_row_source_host/host.mbt",
-      "sha256": "96c0ef1f317aa0b7f8e855868ea39708c82bed8a8fa882a7bbc89545db96140d",
+      "sha256": "bbdb8c60f8d037338b98157464cf2b2d4e2535ae474b55a1b896c93ae0a74736",
       "exports": [],
       "operations": [
         {
@@ -47813,7 +48028,6 @@
         {
           "operations": [
             "<module>",
-            "abort_row_run",
             "accept_charged_row_run_page",
             "accept_charged_row_run_values",
             "accept_row_run_page",
@@ -47829,8 +48043,6 @@
             "begin_row_run_with_page_limits",
             "capture_row_run",
             "charge_row_run_page",
-            "close_accounted_row_run",
-            "close_row_run",
             "consume_row_page_charge",
             "consume_row_run_observation_charge",
             "finish_row_run",
@@ -47962,6 +48174,116 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "same Request acquired Model prefix"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "abort_row_run",
+            "close_row_run",
+            "close_accounted_row_run"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "fn abort_row_run("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/query_planning/pkg.generated.mbti",
+                "anchor": "pub fn[I, A, R] retire_query_evidence_custody("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "src/query_planning/evidence_custody.mbt",
+                "anchor": "if !physical_equal(original, issued) { return false }"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/query_planning/evidence_custody.mbt",
+                "anchor": "owner.captured = None"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/query_planning/evidence_custody.mbt",
+                "anchor": "if owner.captured is Some(_) && owner.registration.live {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "return Err(Evidence(UnverifiedTransport))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/client_row_source_host/custody.mbt",
+                "anchor": "if attempt.state is (Captured(_) | InputCaptured(_) | KeyedRetained(_)) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "if !retire_closed_row_evidence(run.attempt) {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "src/connectors/duckdb/acquisition/duckdb_broad_attempt.mbt",
+                "anchor": "pub fn cleanup_duckdb_broad_residual("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_planning/evidence-custody-interface.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/query_integration/evidence_retirement_wbtest.mbt",
+                "anchor": "common captured retirement requires its closed registration and retains immutable DATA aliases"
               }
             ]
           }
