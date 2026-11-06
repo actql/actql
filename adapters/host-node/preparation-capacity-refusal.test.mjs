@@ -140,3 +140,68 @@ test('original metadata quote failure refuses admission without inventing numeri
   assert.equal(checkedRequestProgramPreparation(moon, {$tag: 1, _0: body},
     () => assert.fail('Success must not project a refusal')), body);
 });
+
+import {readFile as readEffectPhaseFile} from 'node:fs/promises';
+import {createHash as effectPhaseHash} from 'node:crypto';
+import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
+import {canonicalText as effectPhaseCanonical} from '../../scripts/check-canonical-json.mjs';
+
+// Real Request/check/Effect preparation and retirement. The only observation
+// forwards the same typed projection; no executor or successful Result is supplied.
+for (const installedContract of [false, true]) test(installedContract
+  ? 'original Request reports unsupported Effect execution only after valid contracts'
+  : 'original Request refuses missing Effect contracts before implementation selection', async () => {
+  const phaseRuntime = await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
+  const categories = [];
+  // Observe the original typed projection without replacing its Result or
+  // supplying a successful compiler, preparation or physical operation.
+  const moon = Object.freeze({...phaseRuntime,
+    clientProgramRequestPreparationIssueCode(result) {
+      const category = phaseRuntime.clientProgramRequestPreparationIssueCode(result);
+      categories.push(category);
+      return category;
+    },
+  });
+  const body = JSON.parse(await readEffectPhaseFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
+  const cid = body => `sha256:${effectPhaseHash('sha256').update(effectPhaseCanonical(body)).digest('hex')}`;
+  if (installedContract) {
+    const targetSchema = {additional_properties: false, fields: {
+      Id: {nullable: false, type: 'string'}, Name: {nullable: true, type: 'number'},
+    }, nullable: false, type: 'object'};
+    const mapping = {connector_manifest_cid: withFixtureConnector(body, 'connector://crm/account'),
+      conversions: [], mapping_ref: 'mapping:crm.account.v1', minimum_approval: 'required',
+      permission_rules: [{effect_kind: 'update', permissions: ['scope:update'], selector_class: 'id', write_fields: ['Name']}],
+      primary_identity: 'Id', required_fields: [], required_permissions: [],
+      resource_identity_cid: `sha256:${'b'.repeat(64)}`, row_mapping: {Name: {field: 'value', null_behavior: 'reject'}},
+      schema: 'actql.mapping_contract/0.1', target_ref: 'connector://crm/account',
+      target_schema: targetSchema, target_schema_identity: cid(targetSchema), version: 'fixture', writable_fields: ['Name']};
+    body.mapping_contracts = [{...mapping, mapping_contract_cid: cid(mapping)}];
+    delete body.evidence_bundle_cid;
+    body.evidence_bundle_cid = cid(body);
+  }
+  const wire = effectPhaseCanonical(body);
+  const environment = moon.clientProgramCheckEnvironment(wire, JSON.parse(wire).evidence_bundle_cid,
+    true, false, true, false, false, false, false);
+  assert.ok(environment);
+  const fixture = await openFundedClientPreparation({moon, environment});
+  try {
+    const input = {version: 'actql/0.1', id: 'original-effect-contract-phase', stages: [{
+      id: 'source', inputs: {}, steps: [{values: {
+        schema: {id: {type: 'string', nullable: false}, value: {type: 'number', nullable: false}},
+        rows: [{id: 'a00000000000001', value: 1}],
+      }, as: 'selected'}], results: {rows: {from: 'selected', fields: ['id', 'value']}},
+      effects: {save: {update: {target: 'connector://crm/account',
+        mapping: 'mapping:crm.account.v1', from: {result: 'rows'}, id: 'id',
+        set: {Name: {field: 'value'}}}}},
+    }], results: {answer: {from: {stage: 'source', result: 'rows'}}}};
+    await assert.rejects(fixture.prepare({kind: 'program', input, parameters: null}),
+      error => {
+        assert.equal(error.code, installedContract ? 'ClientProgramUnsupported' : 'ClientProgramRejected');
+        assert.deepEqual(categories, installedContract ? [] : ['effect_static_rejected']);
+        return true;
+      });
+  } finally {
+    await fixture.close();
+  }
+});
