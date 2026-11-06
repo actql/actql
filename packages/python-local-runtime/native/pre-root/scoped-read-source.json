@@ -10,16 +10,16 @@
   ],
   "patch": {
     "path": "scoped-read-review.patch",
-    "bytes": 49697,
-    "sha256": "e8ad15e5848cb5308682a7780d19907e3bb04cbe82adebff47eb754ad3d5bf64"
+    "bytes": 52592,
+    "sha256": "3ec2048e414aea70bb9514ae5a7b936d9ff0430310b1a5ef6d081cf885eefa57"
   },
   "inputs": [
     {
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 39540,
-      "sha256": "7676fee4052a7d8f1ea50a908de1828d529bdc449fdde3972f42399d2d1c7c88"
+      "bytes": 40262,
+      "sha256": "5b721be99bb8902767c4c80605459508045ddf08c4841a73ea4c11bb014bbd1f"
     },
     {
       "root": "provider",
@@ -221,8 +221,8 @@
       "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
     },
     "owned_capacity.c": {
-      "bytes": 40473,
-      "sha256": "aba92bb51833e2b825bd760c5151d654b72433c8771667efaf7cd38f6a52aa40"
+      "bytes": 41863,
+      "sha256": "ac0ba7d89903fcecbaeaa5ee2d87a4d23caf4e9563570c60c97f40316af8b752"
     },
     "owned_capacity.h": {
       "bytes": 7243,
@@ -265,8 +265,8 @@
       "sha256": "dce7895efa71903d5ee7149b128f3ea29768a468627eff865fc7d66bfcbe5e90"
     },
     "scoped_read.inc": {
-      "bytes": 41743,
-      "sha256": "9ac6015661403594304499254dc95960fc90b4cc687c6f85e3eda615e76d6896"
+      "bytes": 41798,
+      "sha256": "c62792feedde68038938e65375aa970bd540a88fef22e189b66cb46e67bfdebd"
     },
     "sync_io.c": {
       "bytes": 6246,

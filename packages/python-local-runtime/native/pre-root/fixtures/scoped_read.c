@@ -28,7 +28,19 @@ static void *observed_calloc(size_t n,size_t z) { stock_file_allocations++; retu
 static void observed_free(void *p) { stock_file_frees++; free(p); }
 static void *retirement_target;
 static unsigned retirement_failures, retirement_calls;
+static unsigned activation_mode, activation_failures;
+static void *activation_target;
+static size_t activation_bytes;
 static int observed_mprotect(void *p,size_t n,int prot) {
+    if(activation_failures && prot==(PROT_READ|PROT_WRITE)) {
+        activation_failures--; activation_target=p; activation_bytes=n;
+        if(activation_mode==2) assert(mprotect(p,n,prot)==0);
+        if(activation_mode==3) {
+            size_t page=(size_t)sysconf(_SC_PAGESIZE);
+            assert(n>page && mprotect(p,page,prot)==0);
+        }
+        errno=EIO; return -1;
+    }
     if(p==retirement_target && prot==PROT_NONE) {
         retirement_calls++;
         if(retirement_failures) { retirement_failures--; errno=EIO; return -1; }
@@ -663,7 +675,12 @@ static bool managed_subpages(void) {
         assert(actql_native_owned_contains_live_span(lease,values[i],32)==0);
         assert(actql_native_owned_contains_live_span(lease,values[i],33)==ACTQL_OWNED_INVALID);
     }
-    assert(stock==stock_mi_allocations && lease->occupied_pages<16);
+    size_t overhead=read_heap_round(sizeof(struct read_heap_page));
+    size_t per_page=(lease->page_size-overhead)/(read_heap_header()+read_heap_round(32));
+    assert(per_page>0);
+    size_t expected_pages=(1024+per_page-1)/per_page;
+    assert(stock==stock_mi_allocations &&
+        lease->occupied_pages==lease->control_pages+1+expected_pages);
     void *page=(void *)((uintptr_t)values[0] & ~(lease->page_size-1));
     assert(actql_native_owned_protect(lease,page,0,lease->page_size,PROT_READ)==ACTQL_OWNED_INVALID);
     assert(actql_native_owned_retire(lease,page)==ACTQL_OWNED_INVALID);
@@ -903,9 +920,60 @@ static bool cleanup_snapshot_original(void) {
     return true;
 }
 
+/* Fallible private C consumers use the ordinary current Read, not a prepared
+ * constructor cohort. Failed, lost and partially completed physical activation
+ * all retain the same extent until its actual protection ACK. */
+static void read_activation_failure(unsigned mode) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    size_t occupied=lease->occupied_pages, stock=stock_mi_allocations;
+    uint64_t serial=context->managed_serial;
+    activation_mode=mode; activation_failures=1; activation_target=NULL;
+    size_t bytes=mode==3 ? lease->page_size+64 : 64;
+    assert(actql_native_private_scoped_allocate(bytes)==NULL);
+    assert(activation_target && activation_failures==0);
+    size_t pages=mode==3 ? 2 : 1;
+    assert(activation_bytes==pages*lease->page_size);
+    assert(lease->occupied_pages==occupied+pages && context->managed_serial==serial);
+    size_t offset; assert(owned_pointer_offset(lease,activation_target,&offset));
+    struct extent *pending=owned_extent(lease,offset/lease->page_size);
+    assert(pending->pages==pages && pending->read_context==context);
+    assert(pending->retired && pending->read_released && pending->read_heap);
+    assert(actql_native_owned_contains_live_span(lease,activation_target,1)==ACTQL_OWNED_INVALID);
+    assert(actql_native_private_scoped_contains_allocation(context,lease,
+        activation_target,1)==ACTQL_OWNED_INVALID);
+    uint64_t snapshot[16]={0};
+    assert(actql_read_context_cleanup_snapshot(context,snapshot,16)==0);
+    assert(snapshot[8]==1 && snapshot[9]==pages);
+    unsigned char *live=actql_native_private_scoped_allocate(64); assert(live);
+    size_t live_offset; assert(owned_pointer_offset(lease,live,&live_offset));
+    assert(live_offset/lease->page_size!=offset/lease->page_size);
+    memset(live,53,64);
+    assert(stock_mi_allocations==stock && context->managed_serial==serial+1);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    retirement_target=activation_target; retirement_failures=1; retirement_calls=0;
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_PHYSICAL_FAILURE);
+    assert(context && retirement_calls==1 && lease->occupied_pages==occupied+pages+1);
+    assert(actql_native_owned_try_close(&lease)==ACTQL_OWNED_BUSY);
+    retirement_target=NULL;
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    assert(lease->occupied_pages==occupied+1 && live[63]==53);
+    assert(actql_native_private_scoped_free(live)==0);
+    activation_mode=0; activation_target=NULL;
+    finish(&lease,&context);
+}
+
 int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
+    if(argc==2 && strcmp(argv[1],"--read-activation-only")==0) {
+        read_activation_failure(1); read_activation_failure(2); read_activation_failure(3);
+        puts("{\"case\":\"ordinary-read-activation-custody\",\"passed\":3,\"failed\":0}");
+        return 0;
+    }
 #if defined(ACTQL_RUNTIME_MANAGED_VALUES)
     if(argc==2 && strcmp(argv[1],"--runtime-managed-values-only")==0) {
         assert(runtime_managed_values());
