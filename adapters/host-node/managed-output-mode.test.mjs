@@ -17,11 +17,19 @@ function visit(node, fn) {
   }
 }
 function normalMode() {
+  const entry=declaration('connectEmbeddedLocal').body.body;
+  assert.equal(entry.length,1);
+  assert.equal(entry[0].type,'ReturnStatement');
+  assert.equal(entry[0].argument.callee.name,'openPreparedInstalledHost');
+  assert.deepEqual(entry[0].argument.arguments.map(value=>value.name),['options','initialEntry']);
   const values = [];
-  visit(declaration('connectEmbeddedLocal').body, node => {
+  visit(declaration('openPreparedInstalledHost').body, node => {
     if (node.type !== 'CallExpression' || node.callee?.object?.name !== 'Object' ||
         node.callee?.property?.name !== 'assign' || node.arguments[0]?.name !== 'originalInstallation') return;
-    const property = node.arguments[1]?.properties?.find(p => p.key.name === 'retainedRelationOutput');
+    // Select Local Project initialization, independently of the same helper's
+    // Remote initialization and its separate retained-output argument.
+    if (!node.arguments[1]?.properties?.some(p=>p.key.name==='project')) return;
+    const property = node.arguments[1].properties.find(p => p.key.name === 'retainedRelationOutput');
     if (property) values.push(property.value);
   });
   assert.equal(values.length, 1);

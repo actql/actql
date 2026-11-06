@@ -17,7 +17,9 @@ test('Closed Values layout names the exact original literal and lowering owner f
     ['source','schema','rows','pending','binding_cells','usage']);
   assert.deepEqual(await fields('relation_values/types.mbt', 'Row'), ['source','cells']);
   assert.deepEqual(await fields('value_admission/types.mbt', 'CheckedValue'), ['contract','value']);
-  assert.deepEqual(await fields('decode_core/types.mbt', 'Cursor'), ['tree','index','usage']);
+  // One admission-owned measurement is shared by child Cursors; no reparse or
+  // per-node preparation owner is introduced by this retained field.
+  assert.deepEqual(await fields('decode_core/types.mbt', 'Cursor'), ['tree','index','usage','preparation']);
   assert.deepEqual(await fields('lowering_relation/prepare.mbt', 'Prepared'),
     ['owner','nodes','input_ids','input_schemas','input_carriers','usage']);
   assert.deepEqual(await fields('lowering_relation/prepare.mbt', 'PreparedNode'),
@@ -101,7 +103,8 @@ test('original closed Values permutations fit the pending and current-child boun
 
 test('Closed Values topology retains empty original parameters and strict ancestry without field drift', async () => {
   for (const [file,name,expected] of [
-    ['stage_parameters/source.mbt','Source',['program','prefix','stages','declarations']],
+    // Retain the same original declaration limits and optional binding reader.
+    ['stage_parameters/source.mbt','Source',['program','prefix','stages','declarations','declaration_limits','binding_read']],
     ['parameter_binding/types.mbt','Declarations',['entries','usage']],
     ['parameter_binding/types.mbt','BoundValues',['declarations','entries','usage']],
     ['stage_parameters/source.mbt','CollectedStage',['source','stage_index','collection','work']],
