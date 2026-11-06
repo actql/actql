@@ -11,7 +11,7 @@ import {originalDescriptor} from './native-preparation-originals.mjs';
 
 const args=process.argv.slice(2),options={};
 for(let i=0;i<args.length;i+=2) {
-  assert(['--destination','--entries','--seconds','--resident-seconds'].includes(args[i]) && args[i+1]!==undefined);
+  assert(['--destination','--entries','--seconds','--resident-seconds','--http-jobs'].includes(args[i]) && args[i+1]!==undefined);
   assert.equal(options[args[i]],undefined);options[args[i]]=args[i+1];
 }
 assert(options['--destination']);
@@ -20,6 +20,8 @@ const seconds=Number(options['--seconds']??900);
 assert(Number.isSafeInteger(seconds) && seconds>0 && seconds<=1800);
 const residentSeconds=Number(options['--resident-seconds']??seconds);
 assert(Number.isSafeInteger(residentSeconds) && residentSeconds>0 && residentSeconds<=1800);
+const httpJobs=Number(options['--http-jobs']??1);
+assert(Number.isSafeInteger(httpJobs) && [1,2].includes(httpJobs));
 const target=process.platform==='darwin' && process.arch==='arm64'?'darwin-arm64'
   :process.platform==='linux' && process.arch==='x64'?'linux-x64':undefined;
 assert(target,'No selected native preparation target');
@@ -66,9 +68,15 @@ for(const [name,prepare,selected] of [
 const components=join(destination,'components');
 timedPreparation('runtime_libraries',()=>
   prepareNativeRuntimeBundleLibraries(repository,components,{moonHome,seconds,preparation:null}));
+// Reuse only the immutable original archive already checked by Crypto. TLS
+// performs its own digest check and independent build with its own lifetime
+// flags; no compiled library or provider is borrowed across these recipes.
+const sharedOpenSSL=process.env.ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE??
+  (target==='darwin-arm64' && (process.env.ACTQL_TEST_NATIVE_CRYPTO_PROFILE??'source-macos11')==='source-macos11'
+    ?join(components,'crypto-source','openssl-original.tar.gz'):undefined);
 const httpReceipt=selection==='bundle'?undefined:
   timedPreparation('http_component',()=>
-    prepareNativeResidentHttpComponent(repository,join(destination,'http'),{seconds}));
+    prepareNativeResidentHttpComponent(repository,join(destination,'http'),{seconds,tlsArchive:sharedOpenSSL,tlsJobs:httpJobs}));
 assert.equal(run('git',['rev-parse','HEAD']).trim(),source);
 assert.equal(run('git',['status','--porcelain']),'');
 writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target,moon_home:moonHome,

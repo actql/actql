@@ -227,7 +227,7 @@ test('the explicit Resident cold-build budget leaves the other preparation windo
     timingEnd=source.indexOf('mkdirSync(destination',timingStart);
   assert(optionsStart>=0 && optionsEnd>optionsStart && prepareStart>=0 && prepareEnd>prepareStart);
   const options=args=>runInNewContext(source.slice(optionsStart,optionsEnd)+
-    '\n({selection,seconds,residentSeconds});',{
+    '\n({selection,seconds,residentSeconds,httpJobs});',{
       assert,process:{argv:['node','prepare','--destination','/owned/preparation',...args]},
     });
   const original=options(['--entries','all']);
@@ -236,11 +236,18 @@ test('the explicit Resident cold-build budget leaves the other preparation windo
   assert.equal(selected.seconds,900);assert.equal(selected.residentSeconds,1200);
   for(const value of ['0','-1','1801','1.5','NaN'])
     assert.throws(()=>options(['--resident-seconds',value]));
-  for(const selectedOptions of [original,selected]){
+  const parallel=options(['--entries','all','--http-jobs','2']);
+  assert.equal(original.httpJobs,1);assert.equal(parallel.httpJobs,2);
+  for(const value of ['0','3','-1','1.5','NaN'])assert.throws(()=>options(['--http-jobs',value]));
+  for(const selectedOptions of [original,selected,parallel]){
     const calls=[],repository='/owned/source',destination='/owned/preparation',moonHome='/selected/moon';
     const prepare=name=>(root,path,configuration)=>{
       assert.equal(root,repository);assert.equal(configuration.preparation,name==='http'?undefined:null);
       if(name!=='http')assert.equal(configuration.moonHome,moonHome);
+      else {
+        assert.equal(configuration.tlsJobs,selectedOptions.httpJobs);
+        assert.equal(configuration.tlsArchive,join(destination,'components/crypto-source/openssl-original.tar.gz'));
+      }
       calls.push({name,path,seconds:configuration.seconds});
     };
     const phases=[],timings=[];let clock=0;
@@ -294,6 +301,20 @@ test('timing diagnostic I/O never replaces the original producer outcome',()=>{
   assert.throws(()=>timed('producer',()=>{throw primary;}),error=>error===primary);
   const value={original:true};assert.equal(timed('producer',()=>value),value);
   assert.equal(messages.filter(line=>line.includes('timing diagnostic unavailable')).length,2);
+});
+
+test('shared OpenSSL acquisition keeps target/profile boundaries and explicit original input',()=>{
+  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
+  const start=source.indexOf('const sharedOpenSSL='),end=source.indexOf('const httpReceipt=',start);
+  assert(start>=0 && end>start);
+  const select=(target,env)=>runInNewContext(source.slice(start,end)+'sharedOpenSSL;',{
+    target,process:{env},components:'/owned/components',join,
+  });
+  assert.equal(select('darwin-arm64',{}),'/owned/components/crypto-source/openssl-original.tar.gz');
+  assert.equal(select('linux-x64',{}),undefined);
+  assert.equal(select('darwin-arm64',{ACTQL_TEST_NATIVE_CRYPTO_PROFILE:'homebrew26'}),undefined);
+  for(const target of ['linux-x64','darwin-arm64'])
+    assert.equal(select(target,{ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE:'/original/archive'}),'/original/archive');
 });
 
 test('the Resident build allowance retains its caller deadline and original timeout refusal',t=>{

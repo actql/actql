@@ -50,7 +50,8 @@ def acquire_release_key(key: dict, destination: Path, original: Path | None,
 def prepare(source: str, target: str, clang: Path, sdk: Path | None, make: Path,
             perl: Path, gpg: Path, gpgv: Path, destination: Path, seconds: int, *,
             curl_archive: Path | None = None, curl_signature: Path | None = None,
-            release_key: Path | None = None, tls_archive: Path | None = None) -> dict:
+            release_key: Path | None = None, tls_archive: Path | None = None, tls_jobs: int = 1) -> dict:
+    HTTP.require(type(tls_jobs) is int and tls_jobs in (1, 2), 'TLS build jobs must be one or two')
     HTTP.require(type(seconds) is int and 0 < seconds <= 1800, 'Bounded HTTP preparation required')
     HTTP.TLS.command_profile(target, clang, sdk, destination, '11.0' if sdk else None)
     def clean():
@@ -104,7 +105,7 @@ def prepare(source: str, target: str, clang: Path, sdk: Path | None, make: Path,
     with keyring.open('xb') as stream:
         stream.write(packets)
     tls = HTTP.TLS.build(source, tls_archive, destination / 'owned-tls', clang, sdk, make, perl,
-                         remaining(), target, '11.0' if sdk else None)
+                         remaining(), target, '11.0' if sdk else None, jobs=tls_jobs)
     HTTP.build(source, curl_archive, curl_signature, keyring, Path(tls['stage']), clang, sdk,
                make, gpgv, destination / 'component', remaining(), destination / 'owned-tls/build.json',
                target, '11.0' if sdk else None)
@@ -127,10 +128,11 @@ if __name__ == '__main__':
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--sdk', type=Path)
     parser.add_argument('--seconds', type=int, required=True)
+    parser.add_argument('--tls-jobs', type=int, choices=(1, 2), default=1)
     for name in ('curl-archive', 'curl-signature', 'release-key', 'tls-archive'):
         parser.add_argument('--' + name, type=Path)
     args = parser.parse_args()
     print(json.dumps(prepare(args.source, args.target, args.clang, args.sdk, args.make,
         args.perl, args.gpg, args.gpgv, args.destination, args.seconds,
         curl_archive=args.curl_archive, curl_signature=args.curl_signature,
-        release_key=args.release_key, tls_archive=args.tls_archive)))
+        release_key=args.release_key, tls_archive=args.tls_archive, tls_jobs=args.tls_jobs)))

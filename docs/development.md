@@ -1153,6 +1153,14 @@ Execution includes Moon's incremental freshness check; it is not a pure test-CPU
 measurement. Compare these intervals with Actions job start/queue observations;
 case counts alone do not predict wall-time savings.
 
+The preparation helper reuses the verified OpenSSL source archive from the
+compatible Darwin Crypto producer for HTTP TLS acquisition. TLS rechecks the
+original digest and builds its own patched source/libraries; Homebrew and Linux
+profiles do not assume that Darwin archive exists. An explicit original archive
+continues to take precedence. `--http-jobs 1|2` bounds only the build-time TLS
+compiler parallelism and records it in the TLS receipt; the default remains one.
+It changes neither runtime resource limits nor the component lifetime profile.
+
 ### Full integration and release evidence
 
 Every main push selects full runtime coverage, including all three Core
