@@ -92,7 +92,10 @@ fn require_installed_source_read_current(
       physical_equal(selected, value) else {
       return Err(ForeignOriginal)
     }
-    return Ok(ledger)
+    return match check_installed_source_read_retained_ledger(value, ledger) {
+      Err(issue) => Err(issue)
+      Ok(_) => Ok(ledger)
+    }
   }
   guard value.child is Some(child) else { return Err(Retired) }
   match @resources.check_imported_original_child_ledger(child, ledger) {
@@ -101,8 +104,40 @@ fn require_installed_source_read_current(
   }
   match @resources.check_original_resources_mutable(ledger) {
     Err(issue) => Err(Resource(issue))
-    Ok(_) => Ok(ledger)
+    Ok(_) =>
+      check_installed_source_read_retained_ledger(value, ledger).map(_ => ledger)
   }
+}
+
+///|
+// No callback: fence the retained original after a current boundary, which may
+// synchronously retire the read while leaving its parent's slot in place.
+fn check_installed_source_read_retained_ledger(
+  value : ClientInstalledSourceRead,
+  ledger : @resources.Ledger,
+) -> Result[Unit, ClientInstalledSourceReadIssue] {
+  match require_installed_source_read_original(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard value.ledger is Some(original) else { return Err(Retired) }
+  if !physical_equal(original, ledger) {
+    return Err(ForeignOriginal)
+  }
+  if value.managed_run is Some((run, occurrence)) {
+    guard run.original is Some(original) &&
+      physical_equal(original, run) &&
+      run.ledger is Some(original_ledger) &&
+      physical_equal(original_ledger, ledger) &&
+      run.preparation is Some(_) &&
+      run.reads.get(occurrence) is Some(Some(selected)) &&
+      physical_equal(selected, value) else {
+      return Err(ForeignOriginal)
+    }
+  } else if value.child is None {
+    return Err(Retired)
+  }
+  Ok(())
 }
 
 ///|
@@ -130,6 +165,64 @@ pub fn check_installed_source_read_ledger(
   } else {
     Err(ForeignOriginal)
   }
+}
+
+///|
+/// Opaque observation of one current read and its physical issuer's frame.
+/// It grants no new capacity and remains valid only while its original read
+/// retains the same Ledger and parent ownership. Its construction and all
+/// success/error wrappers require already funded enclosing control capacity;
+/// this observation is not an installed physical funding certificate.
+struct ClientInstalledSourceReadFrame {
+  read : ClientInstalledSourceRead
+  ledger : @resources.Ledger
+  frame : @resources.ImportedChildLedger
+}
+
+///|
+/// Bind a physical issuer's existing Request frame to this exact current read.
+/// Request-to-Run transfer preserves the same Ledger, not an equal-limit child.
+/// The check neither takes/starts the frame nor exposes its Ledger or issues a
+/// second Source owner. The original imported-current callback may reenter.
+pub fn check_installed_source_read_frame(
+  value : ClientInstalledSourceRead,
+  frame : @resources.ImportedChildLedger,
+) -> Result[ClientInstalledSourceReadFrame, ClientInstalledSourceReadIssue] {
+  let ledger = match require_installed_source_read_current(value) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  match @resources.check_imported_original_child_ledger(frame, ledger) {
+    Err(issue) => return Err(Import(issue))
+    Ok(_) => ()
+  }
+  match check_installed_source_read_retained_ledger(value, ledger) {
+    Err(issue) => Err(issue)
+    Ok(_) => Ok({ read: value, ledger, frame, })
+  }
+}
+
+///|
+/// Callback-free fence after the issuer's final physical-current observation.
+/// Repeating either current callback here would open another reentry boundary.
+pub fn check_installed_source_read_frame_retained(
+  observation : ClientInstalledSourceReadFrame,
+  value : ClientInstalledSourceRead,
+  frame : @resources.ImportedChildLedger,
+) -> Result[Unit, ClientInstalledSourceReadIssue] {
+  if !physical_equal(observation.read, value) ||
+    !physical_equal(observation.frame, frame) {
+    return Err(ForeignOriginal)
+  }
+  match
+    @resources.check_imported_original_child_ledger_retained(
+      frame,
+      observation.ledger,
+    ) {
+    Err(issue) => return Err(Import(issue))
+    Ok(_) => ()
+  }
+  check_installed_source_read_retained_ledger(value, observation.ledger)
 }
 
 ///|

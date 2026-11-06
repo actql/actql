@@ -71,3 +71,46 @@ pub fn[I] InstalledArenaHost::close_request_preparation(
   }
   backing.close_backed_request_preparation(self, live)
 }
+
+///|
+/// The existing Request issuer's entered original frame, including after Run
+/// transfer. It creates no observer record, new child, Ledger or cleanup owner.
+pub fn[I] InstalledArenaHost::borrow_request_read_frame(
+  self : InstalledArenaHost,
+  live : @bootstrap.NativeBackedLiveChild[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+    I,
+  ],
+  input : I,
+) -> Result[
+  @resources.ImportedChildLedger,
+  @bootstrap.NativeBackedRequestPreparationIssue,
+] {
+  let backing = match self.original_backing() {
+    Err(issue) => return Err(@bootstrap.Domain(@bootstrap.Bootstrap(issue)))
+    Ok(value) => value
+  }
+  backing.borrow_backed_request_read_frame(self, live, input)
+}
+
+///|
+/// Identity-only cleanup observation remains available after ordinary stop.
+/// It does not acknowledge any Reader, allocation, frame or domain retirement.
+pub fn[I] InstalledArenaHost::observe_request_read_cleanup_scope(
+  self : InstalledArenaHost,
+  live : @bootstrap.NativeBackedLiveChild[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+    I,
+  ],
+  input : I,
+) -> Result[
+  @bootstrap.NativeBackedReadScope,
+  @bootstrap.NativeBackedRequestPreparationIssue,
+] {
+  guard self.backing is Some(backing) else {
+    return Err(@bootstrap.Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
+  }
+  backing.observe_backed_request_read_cleanup_scope(self, live, input)
+}

@@ -140,6 +140,8 @@ pub fn[P] check_backed_prepared_run_admission(BackedPreparedRunAdmission[P], P, 
 
 pub fn check_imported_original_child_ledger(ImportedChildLedger, Ledger) -> Result[Unit, ImportedChildLedgerIssue]
 
+pub fn check_imported_original_child_ledger_retained(ImportedChildLedger, Ledger) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn check_ledger_continuation_current(Ledger, LedgerContinuationState) -> Result[Unit, LedgerContinuationIssue]
 
 pub fn[P] check_node_local_content_run_preparation(NodeManagedRunAdmission[P], P) -> Result[Unit, ImportedChildLedgerIssue]
