@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {chmod, mkdtemp, open, readFile, rm, writeFile} from 'node:fs/promises';
+import {chmod, lstat, mkdtemp, open, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -53,6 +53,8 @@ test('actual Store failed opening cleanup retains exact ownership for same-handl
   prototype.sync = async function(...args) {
     const result = await Reflect.apply(sync, this, args);
     if (!blocked && new Error().stack.includes('at async acquireStoreOwnership ')) {
+      // Stage durability precedes final visibility; block the published Owner only.
+      try {await lstat(ownershipDirectory);} catch (cause) {if (cause.code === 'ENOENT') return result; throw cause;}
       blocked = true;
       await chmod(ownershipDirectory, 0o500);
     }
