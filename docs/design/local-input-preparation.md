@@ -5949,8 +5949,10 @@ canonical execution-capacity constructor. Its execution dimension therefore
 covers its retention dimension through later dispatch composition.
 
 A preparation-owned source-free managed consumer retains a completed output
-through the managed dispatch protocol. Its private configuration omits Local's
-separate row-file exporter, which that consumer never constructs. Existing
-materializing callers retain the exporter policy and its backing. Result
-metadata, independent copies, imported inputs, Native output files and Store
-publication keep their separate existing owners and before-call reservations.
+through the managed dispatch protocol. The original `retained_output` selection
+still determines whether Local's separate row-file exporter and its full
+simultaneous backing are present. The ordinary default leaves that exporter
+unselected; an explicit retained-file installation keeps it through the same
+prepared module and bound driver. Result metadata, independent copies, imported
+inputs, Native output files and Store publication keep their separate existing
+owners and before-call reservations.
