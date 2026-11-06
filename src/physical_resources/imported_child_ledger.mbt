@@ -222,7 +222,14 @@ fn imported_child_seed_capacity(
     observed_quantities: (false, false, false),
     completed_output: None,
   }
-  { ledger, reservation, capacity: bytes, allocated: 0L, closing: false, }
+  {
+    ledger,
+    reservation,
+    capacity: bytes,
+    allocated: 0L,
+    closing: false,
+    growth: None,
+  }
 }
 
 ///|

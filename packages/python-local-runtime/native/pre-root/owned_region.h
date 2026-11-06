@@ -114,6 +114,45 @@ int actql_native_owned_map_extent_payload(int fd,
  * Domain retirement precedes view retirement, which precedes parent return. */
 int actql_native_owned_acquire_extent_domain(actql_owned_extent_view *view,
                                             actql_owned_capacity **out);
+/* Attach an already acquired whole private same-parent local loan/view to this
+ * SAME entered domain. The trusted Common owner must admit the precise added
+ * backing and controls first. Neither this port nor its quote grants capacity.
+ * It performs no mapping, parent allocation, TLS switch or fallback. Original
+ * and added views stay address-bound and caller-retained until domain close;
+ * that ACK does not close views, return loans or retire parent allocations.
+ * FD/process domains and a previously selected allocation ceiling refuse.
+ * Expected current bytes fence replay; an unknown outcome retains all custody.
+ * Each allocation must still fit wholly within one segment, so aggregate free
+ * bytes alone do not prove a constructor's contiguous-space requirement. */
+int actql_native_owned_attach_in_process_domain_segment(
+    actql_owned_capacity *domain, actql_owned_extent_view *original_view,
+    actql_owned_extent_view *addition_view, size_t expected_domain_bytes,
+    uint64_t *control_bytes);
+/* Fixed physical supplier state is included in this domain's original header
+ * quote. Prepare once before entry; caller retains the original view graph.
+ * These ports accept no callback, never replace TLS and issue no Common grant.
+ * Quote serials only fence the same original operation; they are not handles
+ * or funding. The trusted owner must reserve the complete quoted root addition
+ * before acquire. Partial/unknown outcome stays charged until actual cleanup.
+ * Scalars: 0 state (idle/quoted/acquiring/attached/refused/partial/closed),
+ * 1 expected root bytes, 2 expected child bytes, 3 added root bytes,
+ * 4 added root controls, 5 added child bytes, 6 added child controls.
+ * Quote payload is a complete contiguous constructor coexistence requirement,
+ * not merely aggregate free-byte shortage. Existing policy ceilings still apply.
+ * Parent receipts are stored in acquired root control pages. Domain close
+ * retires them in view/loan/allocation order; root maps close separately. */
+int actql_native_owned_prepare_domain_growth(actql_owned_capacity *domain,
+    actql_owned_extent_view *original_view);
+int actql_native_owned_quote_domain_growth(actql_owned_capacity *domain,
+    size_t contiguous_payload_bytes, uint64_t *serial);
+int actql_native_owned_domain_growth_scalar(actql_owned_capacity *domain,
+    uint64_t serial, unsigned field, uint64_t *out);
+int actql_native_owned_acquire_domain_growth(actql_owned_capacity *domain,
+    uint64_t serial);
+int actql_native_owned_finish_domain_growth(actql_owned_capacity *domain,
+    uint64_t serial);
+int actql_native_owned_cancel_domain_growth_quote(actql_owned_capacity *domain,
+    uint64_t serial);
 int actql_native_owned_close_extent_domain(actql_owned_extent_view *view,
                                           actql_owned_capacity **slot);
 /* Trusted original worker bootstrap only, AFTER nominal Core child/loan/current

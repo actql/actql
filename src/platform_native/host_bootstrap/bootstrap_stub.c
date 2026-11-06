@@ -227,6 +227,32 @@ MOONBIT_FFI_EXPORT int64_t actql_bootstrap_control_bytes(actql_bootstrap_backing
         bytes <= INT64_MAX ? (int64_t)bytes : -1;
 }
 
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_capacity_bytes(actql_bootstrap_backing *record) {
+    uint64_t bytes = 0;
+    return actql_native_owned_capacity_bytes(record->lease, &bytes) == ACTQL_OWNED_OK &&
+        bytes <= INT64_MAX ? (int64_t)bytes : -1;
+}
+
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_growth_control_bytes(
+    actql_bootstrap_backing *record, int64_t additional) {
+    if (record == NULL || record->lease == NULL || additional <= 0 ||
+        (uint64_t)additional > SIZE_MAX) return -1;
+    uint64_t controls = 0;
+    return actql_native_owned_growth_control_bytes(record->lease, (size_t)additional,
+        &controls) == ACTQL_OWNED_OK && controls <= INT64_MAX ? (int64_t)controls : -1;
+}
+
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_grow(actql_bootstrap_backing *record,
+    int64_t expected, int64_t additional) {
+    if (record == NULL || expected <= 0 || additional <= 0 ||
+        (uint64_t)expected > SIZE_MAX || (uint64_t)additional > SIZE_MAX)
+        return ACTQL_OWNED_INVALID;
+    uint64_t controls = 0;
+    int status = actql_native_owned_grow(record->lease, (size_t)expected,
+                                        (size_t)additional, &controls);
+    return status == ACTQL_OWNED_OK ? (int64_t)controls : status;
+}
+
 MOONBIT_FFI_EXPORT int64_t actql_bootstrap_rounded_bytes(actql_bootstrap_backing *record,
                                                        int64_t bytes) {
     if (record->lease == NULL || bytes <= 0 || (uint64_t)bytes > SIZE_MAX) return -1;

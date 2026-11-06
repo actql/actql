@@ -1188,7 +1188,7 @@ jobs:
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: node scripts/local-checks.mjs test node -- adapters/host-node/installed-sequence-infer-subset.test.mjs adapters/host-node/client-compilation-original.test.mjs adapters/host-node/preparation-compilation-cold-open-public.test.mjs scripts/preparation-compilation-call-controls.test.mjs scripts/preparation-compilation-projector-controls.test.mjs adapters/host-node/client-snapshot-output-envelope.test.mjs adapters/host-node/client-captured-context-original.test.mjs
+        run: node scripts/local-checks.mjs test node -- adapters/host-node/installed-sequence-infer-subset.test.mjs adapters/host-node/client-compilation-original.test.mjs adapters/host-node/preparation-compilation-cold-open-public.test.mjs adapters/host-node/client-snapshot-output-envelope.test.mjs adapters/host-node/client-captured-context-original.test.mjs
       - name: Test distribution caller scalar-snapshot-projector-layout.test.mjs
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:

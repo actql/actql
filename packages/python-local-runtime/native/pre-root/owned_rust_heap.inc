@@ -43,9 +43,11 @@ int actql_native_owned_rust_allocate(actql_owned_capacity *lease, size_t bytes,
     if (class == RUST_HEAP_CLASSES || slot_bytes > lease->page_size / 2) {
         status = allocate_locked(lease, bytes, alignment, &memory);
         if (status != ACTQL_OWNED_OK) goto done;
-        size_t index = ((uintptr_t)memory - (uintptr_t)lease) / lease->page_size;
-        lease->extents[index].rust_class = RUST_HEAP_LARGE;
-        lease->extents[index].rust_token = ++lease->rust_serial;
+        size_t offset;
+        owned_pointer_offset(lease, memory, &offset);
+        size_t index = offset / lease->page_size;
+        owned_extent(lease, index)->rust_class = RUST_HEAP_LARGE;
+        owned_extent(lease, index)->rust_token = ++lease->rust_serial;
         *token = lease->rust_serial;
         *out = memory;
         goto done;
@@ -57,8 +59,10 @@ int actql_native_owned_rust_allocate(actql_owned_capacity *lease, size_t bytes,
             goto done;
         status = allocate_locked(lease, lease->page_size, lease->page_size, &memory);
         if (status != ACTQL_OWNED_OK) goto done;
-        index = ((uintptr_t)memory - (uintptr_t)lease) / lease->page_size;
-        lease->extents[index].rust_class = (unsigned char)(class + 1);
+        size_t logical_offset;
+        owned_pointer_offset(lease, memory, &logical_offset);
+        index = logical_offset / lease->page_size;
+        owned_extent(lease, index)->rust_class = (unsigned char)(class + 1);
         struct rust_heap_page *page = memory;
         page->slot_bytes = slot_bytes;
         page->offset = offset;
@@ -92,15 +96,16 @@ int actql_native_owned_rust_retire(actql_owned_capacity *lease, void *allocation
     if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     lock_capacity(lease);
     int status = ACTQL_OWNED_INVALID;
-    uintptr_t base = (uintptr_t)lease, address = (uintptr_t)allocation;
-    if (foreign_domain_process(lease) || address < base || address - base >= lease->length)
+    uintptr_t address = (uintptr_t)allocation;
+    size_t logical_offset;
+    if (foreign_domain_process(lease) || !owned_pointer_offset(lease, allocation, &logical_offset))
         goto done;
-    size_t index = (address - base) / lease->page_size;
-    if (index < lease->control_pages) goto done;
-    struct extent *extent = &lease->extents[index];
+    size_t index = logical_offset / lease->page_size;
+    if (owned_control_page(lease, index)) goto done;
+    struct extent *extent = owned_extent(lease, index);
     if (extent->retired || extent->pages == 0 || extent->pages == SIZE_MAX) goto done;
     if (extent->rust_class == RUST_HEAP_LARGE) {
-        if ((address - base) % lease->page_size != 0 || extent->rust_token != token) goto done;
+        if (logical_offset % lease->page_size != 0 || extent->rust_token != token) goto done;
         extent->retired = true;
         status = clean_retired(lease, index);
         goto done;
@@ -138,18 +143,19 @@ int actql_native_owned_contains_live_rust_span(actql_owned_capacity *lease,
     if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     lock_capacity(lease);
     int status = ACTQL_OWNED_INVALID;
-    uintptr_t base = (uintptr_t)lease, pointer = (uintptr_t)address;
+    uintptr_t pointer = (uintptr_t)address;
+    size_t logical_offset;
     if (foreign_domain_process(lease) || !lease->transferred || lease->closing ||
-        pointer < base || pointer - base >= lease->length ||
-        bytes > lease->length - (pointer - base)) goto done;
-    size_t index = (pointer - base) / lease->page_size;
-    if (index < lease->control_pages) goto done;
-    while (index > lease->control_pages && lease->extents[index].pages == SIZE_MAX)
+        !owned_pointer_offset(lease, address, &logical_offset) ||
+        bytes > lease->length - logical_offset) goto done;
+    size_t index = logical_offset / lease->page_size;
+    if (owned_control_page(lease, index)) goto done;
+    while (index > lease->control_pages && owned_extent(lease, index)->pages == SIZE_MAX)
         index--;
-    struct extent *extent = &lease->extents[index];
+    struct extent *extent = owned_extent(lease, index);
     if (extent->pages == 0 || extent->pages == SIZE_MAX || extent->retired ||
         extent->pages > lease->page_count - index) goto done;
-    uintptr_t begin = base + index * lease->page_size;
+    uintptr_t begin = (uintptr_t)owned_page_address(lease, index);
     if (extent->rust_class == RUST_HEAP_LARGE) {
         if (extent->rust_token != 0 && pointer >= begin &&
             pointer - begin < extent->pages * lease->page_size &&

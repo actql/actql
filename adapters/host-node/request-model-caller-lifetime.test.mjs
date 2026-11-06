@@ -642,6 +642,9 @@ test('Request Effect Model Graph uses its original Effect borrower and same exis
   assert.equal(f.state.compilationFamily, undefined);
   assert.deepEqual(f.calls, ['original Model']);
   assert.equal(f.state.preparing, false);
+  // Plural original Graph construction stays in the typed Core's ordered
+  // occurrence checks. The Host closes this entrance once compilation exists.
+  f.state.modelCompilation = {};
   assert.throws(f.invoke, {code: 'ForeignInstalledSourceProducer'});
   assert.deepEqual(f.calls, ['original Model']);
 });

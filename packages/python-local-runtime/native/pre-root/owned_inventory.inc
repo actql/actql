@@ -15,7 +15,7 @@ struct rust_heap_page {
 };
 
 static struct rust_heap_page *rust_page(actql_owned_capacity *lease, size_t index) {
-    return (void *)((unsigned char *)lease + index * lease->page_size);
+    return owned_page_address(lease, index);
 }
 
 int actql_native_owned_inventory(actql_owned_capacity *lease, uint64_t *out,
@@ -31,20 +31,21 @@ int actql_native_owned_inventory(actql_owned_capacity *lease, uint64_t *out,
     int status = ACTQL_OWNED_INVALID;
     if (foreign_domain_process(lease) || !lease->transferred ||
         lease->occupied_pages > lease->peak_occupied_pages ||
-        lease->peak_occupied_pages > lease->page_count) goto done;
+        lease->occupied_pages > lease->page_count) goto done;
     values[0] = lease->length;
     values[1] = lease->page_size;
-    values[2] = lease->control_pages * lease->page_size;
+    values[2] = owned_control_pages(lease) * lease->page_size;
     values[3] = lease->occupied_pages * lease->page_size;
     values[4] = lease->peak_occupied_pages * lease->page_size;
-    size_t observed = lease->control_pages;
+    size_t observed = owned_control_pages(lease);
     for (size_t i = lease->control_pages; i < lease->page_count;) {
-        struct extent *extent = &lease->extents[i];
+        if (owned_control_page(lease, i)) { i++; continue; }
+        struct extent *extent = owned_extent(lease, i);
         size_t pages = extent->pages;
         if (pages == 0) { i++; continue; }
         if (pages == SIZE_MAX || pages > lease->page_count - i) goto done;
         for (size_t j = 1; j < pages; j++)
-            if (lease->extents[i + j].pages != SIZE_MAX) goto done;
+            if (owned_extent(lease, i + j)->pages != SIZE_MAX) goto done;
         size_t bytes = pages * lease->page_size;
         observed += pages;
         if (extent->retired) {

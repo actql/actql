@@ -32,14 +32,14 @@ size_t actql_native_owned_thread_control_alignment(void) {
  * Read the control record ONLY after proving its allocation remains accessible.
  * The caller must exclude storage retirement while start/join is in progress. */
 static bool thread_storage_locked(actql_owned_capacity *lease, void *storage) {
-    uintptr_t base = (uintptr_t)lease, address = (uintptr_t)storage;
-    if (address < base || address - base >= lease->length ||
-        address % alignof(struct actql_owned_thread_control) != 0) return false;
-    size_t offset = (size_t)(address - base), start = offset / lease->page_size;
-    if (start < lease->control_pages) return false;
-    while (start > lease->control_pages && lease->extents[start].pages == SIZE_MAX) start--;
-    size_t pages = lease->extents[start].pages;
-    if (pages == 0 || pages == SIZE_MAX || lease->extents[start].retired ||
+    size_t offset;
+    if (!owned_pointer_offset(lease, storage, &offset) ||
+        (uintptr_t)storage % alignof(struct actql_owned_thread_control) != 0) return false;
+    size_t start = offset / lease->page_size;
+    if (owned_control_page(lease, start)) return false;
+    while (start > lease->control_pages && owned_extent(lease, start)->pages == SIZE_MAX) start--;
+    size_t pages = owned_extent(lease, start)->pages;
+    if (pages == 0 || pages == SIZE_MAX || owned_extent(lease, start)->retired ||
         pages > lease->page_count - start) return false;
     size_t begin = start * lease->page_size, length = pages * lease->page_size;
     return offset >= begin && offset - begin < length &&

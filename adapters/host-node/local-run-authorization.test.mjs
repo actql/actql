@@ -257,18 +257,22 @@ test('Sheets public fixture admits only owner Run and answer reads while keeping
   }
 });
 
-test('packed Checkpoint fixture separates owner observation from business authorization', async () => {
-  const wrapper = readFileSync(new URL('../../scripts/test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
-  const wrapperAst = parse(wrapper, {ecmaVersion: 'latest', sourceType: 'module'});
-  const write = wrapperAst.body.find(node => node.type === 'ExpressionStatement' &&
+const checkpointWrapper = readFileSync(new URL('../../scripts/test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
+const checkpointWrapperAst = parse(checkpointWrapper, {ecmaVersion: 'latest', sourceType: 'module'});
+function checkpointActor(name) {
+  const write = checkpointWrapperAst.body.find(node => node.type === 'ExpressionStatement' &&
     node.expression.type === 'AwaitExpression' &&
     node.expression.argument.callee?.name === 'writeFile' &&
-    node.expression.argument.arguments[0]?.arguments?.some(arg => arg.value === 'remote-host.mjs'));
+    node.expression.argument.arguments[0]?.arguments?.some(arg => arg.value === name));
   assert.ok(write, 'Select the actual installed Host actor');
   const template = write.expression.argument.arguments[1];
   assert.equal(template.type, 'TemplateLiteral');
   assert.equal(template.expressions.length, 0);
-  const hostSource = template.quasis[0].value.cooked;
+  return template.quasis[0].value.cooked;
+}
+
+test('packed Checkpoint fixture separates owner observation from business authorization', async () => {
+  const hostSource = checkpointActor('remote-host.mjs');
   const hostAst = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'});
   const declaration = hostAst.body.flatMap(node => node.type === 'VariableDeclaration'
     ? node.declarations : []).find(node => node.id.name === 'configuration');
@@ -299,4 +303,72 @@ test('packed Checkpoint fixture separates owner observation from business author
       }
     }
   }
+});
+
+// Execute the authored packed refusal actor and its actual scenario wiring.
+// These explicit ports test fixture expectations, not a packed Host/runtime.
+test('packed Checkpoint refusal actor preserves missing-Account lookup denial only', async () => {
+  const clientSource = checkpointActor('client.mjs');
+  const clientAst = parse(clientSource, {ecmaVersion: 'latest', sourceType: 'module'});
+  const steps = clientAst.body.flatMap(node => node.type === 'VariableDeclaration'
+    ? node.declarations : []).find(node => node.id.name === 'steps');
+  const refused = steps.init.properties.find(node => node.key.name === 'refused').value;
+  const actor = new Function('assert', 'as', 'requestId', 'text', 'getSubmissionOutcome', 'process',
+    'return async function ' + clientSource.slice(refused.start, refused.end));
+  const scenarios = [];
+  const collect = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'ForOfStatement' && node.left.declarations?.[0]?.id.type === 'ArrayPattern' &&
+        node.left.declarations[0].id.elements.map(item => item.name).join(',') === 'outcome,code,lookup') {
+      scenarios.push(node);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(collect);
+      else if (value !== null && typeof value === 'object') collect(value);
+    }
+  };
+  collect(checkpointWrapperAst);
+  assert.equal(scenarios.length, 1);
+  const calls = [];
+  const run = async (outcome, env, lookupFailure) => {
+    const submissionRef = {nonce: outcome + '-a'};
+    const refusal = {kind: 'preparation_failed', submissionRef, problem: {code: env.CODE}};
+    const visited = [];
+    const client = {
+      newSubmission: () => submissionRef,
+      async startSource() { throw {code: 'SubmissionPreparationFailed', refusal}; },
+      async lookupSubmission(ref) {
+        assert.equal(ref, submissionRef); visited.push('lookup');
+        // Independent fixture contract: missing Account never supplies Run-read.
+        const code = lookupFailure ?? (outcome === 'missing' ? 'ClientConnectionDenied' : undefined);
+        if (code) throw Object.assign(new Error(code), {code});
+        return refusal;
+      },
+      async checkpoints() {visited.push('checkpoints'); return {items: []};},
+    };
+    await actor(assert, async token => {
+      assert.equal(token, 'owner-token'); return client;
+    }, submissionRef.nonce, 'original source', error => error.refusal, {env})();
+    assert.deepEqual(visited, ['lookup', 'checkpoints']);
+    calls.push({outcome, env});
+  };
+  const matrix = new Function('withHost', 'client', 'assert', 'counts', 'none',
+    'return (async () => {' + checkpointWrapper.slice(scenarios[0].start, scenarios[0].end) + '})();');
+  await matrix(async (outcome, hostEnv, action) => {
+    assert.equal(hostEnv.OUTCOME, outcome); await action(outcome);
+  }, async (outcome, step, args, env) => {
+    assert.equal(step, 'refused'); assert.deepEqual(args, [outcome + '-a']);
+    await run(outcome, env);
+  }, assert, async () => [], []);
+  assert.deepEqual(calls, [
+    {outcome: 'deny', env: {CODE: 'ACTQL_E_ACCOUNT_DENIED', LOOKUP: 'allowed'}},
+    {outcome: 'missing', env: {CODE: 'ACTQL_E_ACCOUNT_CONFIG_INVALID', LOOKUP: 'denied'}},
+  ]);
+  for (const CODE of ['ACTQL_E_DELEGATION_REJECTED', 'ACTQL_E_DELEGATION_UNAVAILABLE']) {
+    await run('delegate', {CODE});
+  }
+  await assert.rejects(run('missing', calls[1].env, 'ClientHostFailure'),
+    {code: 'ERR_ASSERTION'}, 'A different Host failure is not the expected permission refusal');
+  await assert.rejects(run('deny', calls[0].env, 'ClientConnectionDenied'),
+    {code: 'ClientConnectionDenied'}, 'Authorized refusal recovery must still succeed');
 });

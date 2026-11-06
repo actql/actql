@@ -111,6 +111,7 @@ fn grow_platform_vm_working_capacity_current(
   let allocation = owner.allocation
   if owner.closing ||
     capacity.closing ||
+    capacity.growth is Some(_) ||
     allocation.retiring ||
     !reservation_open(capacity.reservation) {
     return Err(Unavailable)

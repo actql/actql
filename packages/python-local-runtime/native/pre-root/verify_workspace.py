@@ -14,6 +14,7 @@ import tomllib
 PROVIDER_SOURCES = (
     'owned_capacity.c', 'owned_capacity.h', 'owned_image.c', 'owned_region.h',
     'owned_region.inc', 'owned_domain_borrow.h', 'owned_domain_borrow.inc',
+    'owned_domain_growth.inc',
     'owned_thread.h', 'owned_thread.inc', 'owned_rust_heap.inc',
 )
 RUST_COPIES = {
