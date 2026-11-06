@@ -358,6 +358,14 @@ test "Native Checkpoint metadata refuses another original request and missing Ru
     is Err(Journal(ChangedIntent)),
   )
   let before = host.journal.retained(request).unwrap().unwrap()
+  let accepted_submission = host.journal
+    .retained_submission(reference)
+    .unwrap()
+    .unwrap()
+  let saved_submission = host.database
+    .read("client_submitted_intents", reference.request_id)
+    .unwrap()
+  assert_eq(saved_submission.revision, accepted_submission.revision)
   let table = @utf8.encode("client_runs")
   let key = @utf8.encode(@host.client_request_scope_cid(request))
   assert_true(
@@ -375,10 +383,15 @@ test "Native Checkpoint metadata refuses another original request and missing Ru
   )
   // The accepted Submission is never converted into a replacement Run.
   assert_true(host.journal.retained(request).unwrap() is None)
-  assert_eq(
-    host.journal.retained_submission(reference).unwrap().unwrap().run_admission.unwrap().revision,
-    0L,
-  )
+  // Current admission refuses the missing Run; the independently observed
+  // physical Submission must retain its exact accepted bytes and revision.
+  assert_true(host.journal.retained_submission(reference) is Err(CustodyLost))
+  let after_submission = host.database
+    .read("client_submitted_intents", reference.request_id)
+    .unwrap()
+  assert_eq(after_submission.body, saved_submission.body)
+  assert_eq(after_submission.revision, saved_submission.revision)
+  assert_eq(accepted_submission.run_admission.unwrap().revision, 0L)
   assert_true(before.physical_start_claimed)
   host.close().unwrap()
 }
