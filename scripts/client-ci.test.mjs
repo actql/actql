@@ -1067,6 +1067,56 @@ test('synthetic held Salesforce fixture retains distinct Host observation and Ru
   }
 });
 
+test('packed Checkpoint owner reads only the original Program named Results', () => {
+  const source = readFileSync(new URL('./test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  let template;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'TemplateLiteral' && node.quasis[0].value.cooked.includes('const installation = {')) {
+      assert.equal(template, undefined); template = node;
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  })(tree);
+  assert(template);
+  const generated = new Function('hostCapacityPolicy', 'return (' +
+    source.slice(template.start, template.end) + ');')({});
+  const actor = parseJavaScript(generated, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declaration = name => actor.body.filter(node => node.type === 'VariableDeclaration')
+    .flatMap(node => node.declarations).find(node => node.id.name === name)?.init;
+  const configuration = declaration('configuration'), tokens = declaration('tokens');
+  assert(configuration && tokens);
+  const userInfo = () => ({username: 'fixture-owner'});
+  const retainedTokens = new Function('userInfo', 'return (' +
+    generated.slice(tokens.start, tokens.end) + ');')(userInfo);
+  assert.equal(retainedTokens.get('owner-token'), userInfo().username);
+  assert.notEqual(retainedTokens.get('stranger-token'), userInfo().username);
+  const configure = new Function('outcome', 'canonical', 'userInfo', 'process',
+    'return (' + generated.slice(configuration.start, configuration.end) + ');');
+  for (const [acquired, path] of [[false, '../packages/sdk/fixtures/values.json'],
+    [true, '../adapters/connectors/duckdb/node/examples/program.json']]) {
+    const original = JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
+    const resources = [...Object.keys(original.results).map(name => 'result/' + name), 'run'].sort();
+    const actorProcess = {env: {ACQUIRED: acquired ? '1' : '0'}};
+    assert.equal(configure('missing', canonicalText, userInfo, actorProcess), undefined);
+    for (const outcome of ['allow', 'deny', 'delegate']) {
+      const account = JSON.parse(configure(outcome, canonicalText, userInfo, actorProcess));
+      const read = account.entries.find(entry => entry.entry_id === 'owner-run-result-read');
+      assert.deepEqual(read, {entry_id: 'owner-run-result-read', exclusions: [],
+        connection: {any_of: ['actql-remote-host']}, operation: {any_of: ['read']},
+        outcome: 'allow', principal: {any_of: [userInfo().username]},
+        resource: {any_of: resources}});
+      assert(!read.resource.any_of.includes('result/other'));
+      const write = account.entries.find(entry => entry.entry_id === 'run-acceptance');
+      assert.equal(write.outcome, outcome);
+      assert.deepEqual(write.operation, {any_of: ['write']});
+    }
+  }
+});
+
 test('packed Checkpoint Source publication shares its explicit installed Host policy', async () => {
   const source = readFileSync(new URL('./test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
   const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
