@@ -52,7 +52,7 @@ function fixture(t) {
     [sqlite, ['scripts/produce-python-sqlite-component.py', 'packages/python-local-runtime/native/sqlite-component/prepare.py']],
     [crypto, ['scripts/produce-native-crypto-component.py']],
   ]) {
-    for (const name of names) receipt.inputs[join(sourceRoot, name)] =
+    for (const name of [...names, 'scripts/linux_component_headers.py']) receipt.inputs[join(sourceRoot, name)] =
       put(join(sourceRoot, name), Buffer.from(`synthetic source: ${name}\n`));
     receipt.inputs[join(sourceRoot, capacityPath)] = providerInputs[capacityPath];
   }

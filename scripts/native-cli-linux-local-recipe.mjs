@@ -102,7 +102,7 @@ export function assembleNativeLinuxLocalRecipe({sourceSha, sqliteDirectory, cryp
     const producerInputs = role === 'sqlite' ? [
       'scripts/produce-python-sqlite-component.py', `${componentRoot}/sqlite-component/prepare.py`,
     ] : ['scripts/produce-native-crypto-component.py'];
-    for (const input of [...producerInputs, `${componentRoot}/pre-root/owned_capacity.h`]) {
+    for (const input of [...producerInputs, 'scripts/linux_component_headers.py', `${componentRoot}/pre-root/owned_capacity.h`]) {
       recordedInput(receipt, input, identity(capture(sourcePath(input), 1024 * 1024)));
     }
     for (const [name, expected] of Object.entries(recipe.local)) {

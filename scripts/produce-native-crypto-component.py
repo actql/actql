@@ -591,7 +591,8 @@ def inspect_linux_component(library: Path, *, execute=subprocess.check_output) -
 
 
 def produce_linux(output: Path, openssl: Path | None, clang: Path, seconds: int, *,
-                  package_archives: list[Path] | None = None) -> dict:
+                  package_archives: list[Path] | None = None,
+                  system_header_roots: tuple[Path, ...] = ()) -> dict:
     if platform.system() != 'Linux' or platform.machine() != 'x86_64':
         raise ValueError('Selected Linux x64 Crypto component target unavailable')
     if type(seconds) is not int or not 0 < seconds <= 1800:
@@ -601,6 +602,9 @@ def produce_linux(output: Path, openssl: Path | None, clang: Path, seconds: int,
             raise ValueError('Linux Crypto producer requires exact clean committed source')
         return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     source = clean()
+    sys.path.insert(0, str(ROOT / 'scripts'))
+    from linux_component_headers import LinuxSystemHeaders
+    system_headers = LinuxSystemHeaders(system_header_roots)
     recipe_path = SOURCE / 'source.json'
     recipe = json.loads(recipe_path.read_bytes())
     selected = recipe['source_targets'][LINUX_TARGET]
@@ -624,6 +628,7 @@ def produce_linux(output: Path, openssl: Path | None, clang: Path, seconds: int,
         inputs[str(Path('/usr/bin/dpkg-deb').resolve())] = original(Path('/usr/bin/dpkg-deb').resolve())
     for path in (clang, Path('/usr/bin/nm').resolve(), Path('/usr/bin/readelf').resolve(),
                  Path('/usr/bin/dpkg-query').resolve(), Path(__file__).resolve(),
+                 ROOT / 'scripts/linux_component_headers.py',
                  ROOT / 'packages/python-local-runtime/native/pre-root/owned_capacity.h'):
         inputs[str(path)] = original(path, 512 * 1024 * 1024)
     if package_archives is None:
@@ -682,12 +687,17 @@ def produce_linux(output: Path, openssl: Path | None, clang: Path, seconds: int,
     compiled, aliases = {}, {}
     for name in sorted(set(dependencies)):
         path = Path(name)
-        resolved = path.resolve(strict=True)
-        if resolved != path:
-            if not path.is_relative_to('/usr/include') or not resolved.is_relative_to('/usr/include'):
+        if system_headers.contains(path):
+            observed = system_headers.capture(path)
+            resolved = Path(observed['resolved_path'])
+            if resolved != path:
+                aliases[name] = str(resolved)
+            compiled[str(resolved)] = {key: observed[key] for key in ('bytes', 'sha256')}
+        else:
+            resolved = path.resolve(strict=True)
+            if resolved != path:
                 raise ValueError('Unqualified Linux Crypto compiler input alias')
-            aliases[name] = str(resolved)
-        compiled[str(resolved)] = original(resolved, 16 * 1024 * 1024)
+            compiled[str(resolved)] = original(resolved, 16 * 1024 * 1024)
     verify_original_inputs(inputs, compiled)
     verify_tool_aliases(tool_aliases)
     if clean() != source:
@@ -699,6 +709,7 @@ def produce_linux(output: Path, openssl: Path | None, clang: Path, seconds: int,
         'provider_binding': 'existing original process provider; actual binding required before first allocation',
         'compiler_target': compiler_target, 'compiler_version': compiler_version,
         'compiler_tool_aliases': tool_aliases,
+        'system_headers': system_headers.receipt(),
         'startup_objects': {name: str(path) for name, path in startup.items()},
         'inputs': inputs, 'compiled_inputs': compiled, 'compiler_header_aliases': aliases,
         **inspected, 'loaded': False, 'initialized': False, 'providers': 0}
@@ -718,9 +729,13 @@ def main() -> None:
     parser.add_argument('--sdk', type=Path)
     parser.add_argument('--target', choices=('darwin-arm64', 'linux-x64'), default='darwin-arm64')
     parser.add_argument('--seconds', type=int, default=600)
+    parser.add_argument('--system-header-root', type=Path, action='append', default=[],
+                        help='Explicit additional Linux system-header destination root; never a fallback')
     parser.add_argument('--static-profile', choices=('homebrew26', 'source-macos11'), default='homebrew26')
     parser.add_argument('--source-archive', type=Path)
     args = parser.parse_args()
+    if args.system_header_root and args.target != 'linux-x64':
+        raise ValueError('Additional system-header roots require a Linux Crypto component')
     if args.target == 'linux-x64':
         if args.sdk is not None or args.source_archive is not None:
             raise ValueError('Linux Crypto preparation cannot select a Darwin SDK')
@@ -728,7 +743,8 @@ def main() -> None:
             args.openssl_prefix.resolve(strict=True) if args.openssl_prefix else None,
             args.clang.resolve(strict=True), args.seconds,
             package_archives=[path.resolve(strict=True) for path in args.openssl_package_archive]
-                if args.openssl_package_archive is not None else None)
+                if args.openssl_package_archive is not None else None,
+            system_header_roots=tuple(args.system_header_root))
     elif args.static_profile == 'source-macos11':
         if args.sdk is None or args.openssl_prefix is not None or args.openssl_package_archive is not None:
             raise ValueError('Source-built Darwin Crypto requires its SDK and source profile only')

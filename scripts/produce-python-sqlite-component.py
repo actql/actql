@@ -423,7 +423,8 @@ def inspect_linux_process_component(library: Path, *, process_target: str = 'lin
 
 def build_linux_process_import(source: str, archive: Path, clang: Path,
                                destination: Path, seconds: int, *,
-                               process_target: str = 'linux-arm64-gnu') -> dict[str, Any]:
+                               process_target: str = 'linux-arm64-gnu',
+                               system_header_roots: tuple[Path, ...] = ()) -> dict[str, Any]:
     """Prepare one ELF for the same original process; never a second provider.
 
     No image is loaded and no physical supplier, normal installation or Python
@@ -440,6 +441,9 @@ def build_linux_process_import(source: str, archive: Path, clang: Path,
                 and not subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT),
                 'Use the exact committed clean Linux process SQLite producer source')
     clean()
+    sys.path.insert(0, str(ROOT / 'scripts'))
+    from linux_component_headers import LinuxSystemHeaders
+    system_headers = LinuxSystemHeaders(system_header_roots)
     require(not destination.exists() and not destination.is_symlink(), 'SQLite output already exists')
     # Select and hash actual tools before their first invocation. Resolving the
     # trusted system bin link identifies the tool; it does not adopt a provider.
@@ -449,6 +453,7 @@ def build_linux_process_import(source: str, archive: Path, clang: Path,
         (nm, 64 * 1024 * 1024), (readelf, 64 * 1024 * 1024),
         (SOURCE / 'source.json', 65536), (SOURCE / 'prepare.py', 65536),
         (ROOT / 'scripts/produce-python-sqlite-component.py', 65536),
+        (ROOT / 'scripts/linux_component_headers.py', 65536),
         (ROOT / 'packages/python-local-runtime/native/pre-root/owned_capacity.h', 65536))}
     destination.mkdir(parents=True, exist_ok=False)
     deadline, steps = time.monotonic() + seconds, []
@@ -493,7 +498,10 @@ def build_linux_process_import(source: str, archive: Path, clang: Path,
     compiled = {}
     for name in sorted(set(dependencies)):
         path = Path(name)
-        header_root = next((root for root in (resource, Path('/usr/include'))
+        if system_headers.contains(path):
+            compiled[name] = system_headers.capture(path)
+            continue
+        header_root = next((root for root in (resource,)
                             if path.is_relative_to(root)), None)
         compiled[name] = (compiled_input(path, header_root) if header_root is not None
                           else {'resolved_path': name, **identity(path, 16 * 1024 * 1024)})
@@ -506,7 +514,9 @@ def build_linux_process_import(source: str, archive: Path, clang: Path,
                 'Linux process SQLite compiler input changed')
     checked_copy(stage / 'NOTICE', destination / NOTICE, identity(stage / 'NOTICE', 1024 * 1024), 1024 * 1024)
     clean()
+    header_receipt = system_headers.receipt()
     record = {'source_sha': source, 'provider_binding': 'same original process namespace; actual binding required before use',
+              'system_headers': header_receipt,
               'recipe_sha256': staged['recipe_sha256'], 'stage': staged, **inspected,
               'object': identity(obj, 128 * 1024 * 1024), 'inputs': inputs,
               'compiled_inputs': compiled, 'compiler_target': target,
@@ -529,16 +539,20 @@ if __name__ == '__main__':
     parser.add_argument('--process-target', choices=('darwin-arm64', 'linux-arm64-gnu', 'linux-x64-gnu'), default='darwin-arm64')
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--seconds', type=int, default=50)
+    parser.add_argument('--system-header-root', type=Path, action='append', default=[],
+                        help='Explicit additional Linux system-header destination root; never a fallback')
     parser.add_argument('--diagnostic-retained-provider-source',
                         help='Explicit mixed-source candidate only; never a matching release cohort')
     args = parser.parse_args()
+    require(not args.system_header_root or (args.process_provider and args.process_target.startswith('linux-')),
+            'Additional system-header roots require a Linux process component')
     if args.process_provider:
         require(args.diagnostic_retained_provider_source is None,
                 'Process component cannot borrow a diagnostic provider source')
         if args.process_target in ('linux-arm64-gnu', 'linux-x64-gnu'):
             require(args.sdk is None, 'Linux process preparation does not accept a Darwin SDK')
             result = build_linux_process_import(args.source, args.archive, args.clang, args.destination, args.seconds,
-                process_target=args.process_target)
+                process_target=args.process_target, system_header_roots=tuple(args.system_header_root))
         else:
             require(args.sdk is not None, 'Darwin process preparation requires its selected SDK')
             result = build_process_import(args.source, args.archive, args.clang,
