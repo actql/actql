@@ -391,6 +391,7 @@ fn open_site_environment(
   matches : @argparse.Matches,
   process_hold_id : String,
   entry : ResidentInitialControl,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Result[SiteEnvironment, SiteEnvironmentOpenCustody] raise CommandStop {
   let max_file_bytes = required_int64(matches, "max-file-bytes")
   let max_record_bytes = required_int64(matches, "max-record-bytes")
@@ -435,7 +436,7 @@ fn open_site_environment(
     }
   }
   if loaded_component_cid != component_cid {
-    report("setup-failed", [("reason", "executable-identity-mismatch")])
+    report_progress("setup-failed", [("reason", "executable-identity-mismatch")])
     stop("resident Site executable identity mismatch")
   }
   let sqlite_library = match
@@ -889,12 +890,16 @@ priv struct RunningHolder {
 ///|
 /// Acceptance evidence only: defer an actual nonempty reclaim pass. The empty
 /// startup scan must complete normally before the first holder can start.
-fn skip_reclaim(failures : Ref[Int], pending : Int) -> Bool {
+fn skip_reclaim(
+  failures : Ref[Int],
+  pending : Int,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
+) -> Bool {
   if failures.val <= 0 || pending == 0 {
     return false
   }
   failures.val -= 1
-  report("orphan-reclaim-pending", [("reason", "injected")])
+  report_progress("orphan-reclaim-pending", [("reason", "injected")])
   true
 }
 
@@ -936,7 +941,7 @@ fn reclaim_orphaned_outputs(
     }
     match store.close() {
       Ok(_) => {
-        retain_control_reclaim_slot_close(slot, slot_progress)
+        retain_control_reclaim_slot_close(slot, slot_progress, report_progress~)
         OrphansPending
       }
       Err(@publication_store.RecoveryRequired) => {
@@ -964,7 +969,7 @@ fn reclaim_orphaned_outputs(
   let intents = match journal.pending_output_intents() {
     Ok(value) => value
     Err(_) => {
-      close_control_replay_journal(replay_journal)
+      close_control_replay_journal(replay_journal, report_progress~)
       report_progress("orphan-reclaim-pending", [("reason", "journal-read")])
       return match held {
         Some(store) => close_held(store)
@@ -980,10 +985,10 @@ fn reclaim_orphaned_outputs(
       OrphansPending
     }
   }
-  if held is None && skip_reclaim(failures, pending) {
+  if held is None && skip_reclaim(failures, pending, report_progress~) {
     // No Store or Slot was acquired by this pass. A failed Journal close
     // remains in its original custody and keeps admission fenced below.
-    close_control_replay_journal(replay_journal)
+    close_control_replay_journal(replay_journal, report_progress~)
     return OrphansPending
   }
   let store = match held {
@@ -992,12 +997,12 @@ fn reclaim_orphaned_outputs(
       match slot.try_acquire() {
         Ok(true) => ()
         Ok(false) => {
-          close_control_replay_journal(replay_journal)
+          close_control_replay_journal(replay_journal, report_progress~)
           report_progress("orphan-reclaim-pending", [("reason", "slot-busy")])
           return OrphansPending
         }
         Err(_) => {
-          close_control_replay_journal(replay_journal)
+          close_control_replay_journal(replay_journal, report_progress~)
           report_progress("orphan-reclaim-pending", [("reason", "slot-lock")])
           return OrphansPending
         }
@@ -1009,7 +1014,10 @@ fn reclaim_orphaned_outputs(
           // and the Slot until reverse-order cleanup acknowledges originals.
           if failed_store.val is None {
             retain_control_orphan_reader_cleanup(
-              replay_journal, slot, slot_progress,
+              replay_journal,
+              slot,
+              slot_progress,
+              report_progress~,
             )
           }
           report_progress("orphan-reclaim-pending", [("reason", "store-open")])
@@ -1029,7 +1037,7 @@ fn reclaim_orphaned_outputs(
       ])
     }
   }
-  close_control_replay_journal(replay_journal)
+  close_control_replay_journal(replay_journal, report_progress~)
   match remaining {
     Ok(0) =>
       report_progress("orphans-reclaimed", [("intents", pending.to_string())])
@@ -1096,13 +1104,14 @@ fn open_release_recovery(
 fn close_recovery_bundle(
   owner : StoppedReleaseRecovery,
   failures : Ref[Int],
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Bool {
   if owner.bundle_closed {
     return true
   }
   if failures.val > 0 {
     failures.val -= 1
-    report("release-recovery-pending", [
+    report_progress("release-recovery-pending", [
       ("reason", "bundle-close"),
       ("request_cid", owner.request_identity),
     ])
@@ -1127,6 +1136,7 @@ fn recover_stopped_release(
   request : @remote.DispatchRequest,
   retained : Ref[StoppedReleaseRecovery?],
   close_failures : Ref[Int],
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Bool raise CommandStop {
   let identity = @remote.dispatch_request_identity(request)
   let owner = match retained.val {
@@ -1140,7 +1150,7 @@ fn recover_stopped_release(
       match acquire_release_recovery_slot_with_custody(slot, identity) {
         Ok(_) => ()
         Err(original) => {
-          finish_failed_release_recovery_open(original)
+          finish_failed_release_recovery_open(original, report_progress~)
           return false
         }
       }
@@ -1151,8 +1161,8 @@ fn recover_stopped_release(
           // Keep all other controller responsibilities on this same stack.
           // Only checked retirement of this failed preparation permits return;
           // it does not confirm the original Run's release or retry execution.
-          finish_failed_release_recovery_open(original)
-          report("release-recovery-preparation-failed", [
+          finish_failed_release_recovery_open(original, report_progress~)
+          report_progress("release-recovery-preparation-failed", [
             ("request_cid", identity),
           ])
           return false
@@ -1217,15 +1227,19 @@ fn recover_stopped_release(
       owner.physical_cleanup_done || codes[2] == 2,
     )
     is Some(attempt) {
-    report("cleanup-pending", [
+    report_progress("cleanup-pending", [
       ("step", "release"),
       ("request_cid", identity),
       ("attempt", attempt.to_string()),
     ])
     return false
   }
-  if !settle_stopped_holder_custody(matches, owner, request) {
-    retire_failed_stopped_holder_input_constructor(owner, retained)
+  if !settle_stopped_holder_custody(matches, owner, request, report_progress~) {
+    retire_failed_stopped_holder_input_constructor(
+      owner,
+      retained,
+      report_progress~,
+    )
     return false
   }
   if !owner.bundle_closed {
@@ -1288,7 +1302,7 @@ fn recover_stopped_release(
       _ => return false
     }
   }
-  if !close_recovery_bundle(owner, close_failures) {
+  if !close_recovery_bundle(owner, close_failures, report_progress~) {
     return false
   }
   // The exclusive slot proves process-local operations/readers/holdings
@@ -1326,7 +1340,7 @@ fn recover_stopped_release(
           return false
         }
         if required(matches, "release-recovery-kill-at") == "after-transition" {
-          report("release-recovery-killed", [("request_cid", identity)])
+          report_progress("release-recovery-killed", [("request_cid", identity)])
           @slot.native_kill_self()
         }
       }

@@ -70,15 +70,18 @@ fn retry_control_bundle_custody_cleanup(
 /// A prepared response reaches only its existing report Owner after physical
 /// ACKs. Unconfirmed action/response binding keeps this exact duty and never
 /// returns to Waiting or calls the Store action again.
+/// Private callers can observe the same synchronous progress without writing
+/// into the test driver stream; the production default remains the CLI report.
 fn advance_control_bundle_custody_cleanup(
   original : ControlBundleCustodyCleanup,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> PendingBundleCustody? {
   guard retry_control_bundle_custody_cleanup(original) else {
     return Some(Retiring(original))
   }
   match original.completion {
     BundleCustodyRejected(reason) => {
-      report("bundle-custody-refused", [("reason", reason)])
+      report_progress("bundle-custody-refused", [("reason", reason)])
       None
     }
     BundleCustodyPrepared(response) =>
@@ -94,6 +97,7 @@ fn advance_control_bundle_custody_cleanup(
               Unconfirmed(original),
               "response-identity",
               "response",
+              report_progress~,
             ),
           )
       }
@@ -108,6 +112,7 @@ fn advance_control_bundle_custody_cleanup(
             @agent.RegistrationMismatch => "registration-mismatch"
             @agent.Store(_) => "store"
           },
+          report_progress~,
         ),
       )
   }
@@ -120,10 +125,11 @@ fn report_unconfirmed_bundle_custody(
   pending : PendingBundleCustody,
   reason : String,
   category : String,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> PendingBundleCustody {
   match pending {
     Unconfirmed(original) =>
-      report("bundle-custody-unconfirmed", [
+      report_progress("bundle-custody-unconfirmed", [
         ("reason", reason),
         ("category", category),
         (
