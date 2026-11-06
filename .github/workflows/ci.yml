@@ -1741,7 +1741,7 @@ jobs:
           ulimit -S -s 65536
           node scripts/test-native-resident-site.mjs --cancel-only
       - name: Install debugger only for failed Linux Effect consumer diagnosis
-        id: native-debugger
+        id: failure-debugger
         if: ${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}
         continue-on-error: true
         timeout-minutes: 5

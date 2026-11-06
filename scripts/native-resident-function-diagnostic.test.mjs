@@ -277,7 +277,7 @@ test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized 
   assert.equal(diagnostic.if, "${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}");
   assert.equal(diagnostic['continue-on-error'], true);
   assert.equal(diagnostic['timeout-minutes'], 6);
-  const debuggerSetup = jobs.native.steps.find(step => step.id === 'native-debugger');
+  const debuggerSetup = jobs.native.steps.find(step => step.id === 'failure-debugger');
   assert.equal(debuggerSetup.if, diagnostic.if);
   assert.equal(debuggerSetup['continue-on-error'], true);
   assert.equal(debuggerSetup['timeout-minutes'], 5);
