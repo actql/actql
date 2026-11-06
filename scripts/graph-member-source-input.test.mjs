@@ -48,7 +48,11 @@ test('Graph nullable, empty and unknown-member cases retain their separate oblig
     [{id: 3, score: null}, {id: 4, score: null}]);
   const empty = successes.find(item => item.name.endsWith('folded-typed-empty'));
   assert.deepEqual(empty.results.matched.rows, []);
-  assert.deepEqual(empty.results.matched.columns, nullable.results.matched.columns);
+  assert.deepEqual(empty.results.matched.columns, [
+    {name: 'id', contract: {type: 'number', nullable: false}},
+    {name: 'score', contract: {type: 'number', nullable: false}},
+  ]);
+  assert.equal(nullable.results.matched.columns[1].contract.nullable, true);
   assert.ok(refusals.some(item => item.text.includes('a.payload.MISSING')));
   assert.ok(refusals.some(item => item.name.endsWith('removed-graph-variable')));
   assert.ok(refusals.some(item => item.name.endsWith('scalar-receiver')));

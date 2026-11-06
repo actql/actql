@@ -18,12 +18,18 @@ const graph = ', g AS (GRAPH (NODE TABLES '
   + '(objects AS N KEY (id) LABEL Person PROPERTIES (id, payload)))) ';
 const head = data + graph + 'FROM GRAPH g |> MATCH WALK (a:Person) |> ';
 const result = values => ({matched: {rows: values, columns}});
+// A strict property comparison can be true only when receiver and member are
+// non-null. Keep this checked contract even if the authored result is empty.
+const filteredResult = values => ({matched: {rows: values,
+  columns: [{name: 'id', contract: number}, {name: 'score', contract: number}]}});
 const sourceCase = (name, tail, values = expected, extra = {}) => ({
   name: 'graph-projection-property-' + name, format: 'aql-text',
   text: head + tail + ' |> ORDER BY id |> RESULT matched',
   parameterDeclarations: declarations, parameters,
   results: result(values), sourceReadCount: 0, ...extra,
 });
+const filteredSourceCase = (name, tail, values, extra = {}) =>
+  sourceCase(name, tail, values, {...extra, results: filteredResult(values)});
 const program = {version: 'actql/0.1', id: 'fixture.graph_projection_property',
   stages: [{id: 'main', inputs: {}, steps: [
     {values: {schema: {id: number, payload}, rows}, as: 'objects'},
@@ -81,18 +87,18 @@ export const graphProjectionPropertySuccesses = [
   sourceCase('qualified', 'SELECT a.id AS id, a.payload.score AS score'),
   sourceCase('local', 'SELECT id, payload.score AS score'),
   sourceCase('quoted', 'SELECT `A`.`ID` AS id, `A`.`PAYLOAD`.`score` AS score'),
-  sourceCase('identity-macro-and-parameter',
+  filteredSourceCase('identity-macro-and-parameter',
     'WHERE NODE_ID(a) IS NOT NULL AND a.payload.score > @min '
       + '|> SELECT a.id AS id, a.payload.score AS score', [{id: 1, score: 20}],
     {parameterDeclarations: {...declarations, min: number}, parameters: {...parameters, min: 10}}),
   {name: 'graph-projection-property-grouped-identity-independent-json', format: 'json',
-    text: JSON.stringify({...identityProgram, id: 'fixture.graph_grouped_identity'}), results: result([{id: 1, score: 20}]), sourceReadCount: 0},
+    text: JSON.stringify({...identityProgram, id: 'fixture.graph_grouped_identity'}), results: filteredResult([{id: 1, score: 20}]), sourceReadCount: 0},
   ...['(a)', '(((a)))', '(`A`)'].map((argument, index) =>
-    sourceCase('grouped-identity-' + index,
+    filteredSourceCase('grouped-identity-' + index,
       'WHERE NODE_ID(' + argument + ') IS NOT NULL AND a.payload.score > @min '
         + '|> SELECT a.id AS id, a.payload.score AS score', [{id: 1, score: 20}],
       {parameterDeclarations: {...declarations, min: number}, parameters: {...parameters, min: 10}})),
-  sourceCase('grouped-identity-typed-empty',
+  filteredSourceCase('grouped-identity-typed-empty',
     'WHERE NODE_ID((a)) IS NOT NULL AND a.payload.score > 100 '
       + '|> SELECT a.id AS id, a.payload.score AS score', []),
   {name: 'graph-projection-property-grouped-path-independent-json', format: 'json',
@@ -104,13 +110,13 @@ export const graphProjectionPropertySuccesses = [
     results: pathResult, sourceReadCount: 0,
   })),
   {name: 'graph-projection-property-identity-independent-json', format: 'json',
-    text: JSON.stringify(identityProgram), results: result([{id: 1, score: 20}]), sourceReadCount: 0},
+    text: JSON.stringify(identityProgram), results: filteredResult([{id: 1, score: 20}]), sourceReadCount: 0},
   ...['`NODE_ID`', '`nOdE_iD`', '`\\x4eODE_ID`'].map((name, index) =>
-    sourceCase('quoted-identity-' + index,
+    filteredSourceCase('quoted-identity-' + index,
       'WHERE ' + name + '(`A`) IS NOT NULL AND a.payload.score > @min '
         + '|> SELECT a.id AS id, a.payload.score AS score', [{id: 1, score: 20}],
       {parameterDeclarations: {...declarations, min: number}, parameters: {...parameters, min: 10}})),
-  sourceCase('quoted-identity-typed-empty',
+  filteredSourceCase('quoted-identity-typed-empty',
     'WHERE `NODE_ID`(a) IS NOT NULL AND a.payload.score > 100 '
       + '|> SELECT a.id AS id, a.payload.score AS score', []),
   {name: 'graph-projection-property-path-independent-json', format: 'json',
@@ -124,7 +130,7 @@ export const graphProjectionPropertySuccesses = [
   sourceCase('null-receiver-and-member',
     'WHERE a.payload.score IS NULL |> SELECT a.id AS id, a.payload.score AS score',
     [{id: 3, score: null}, {id: 4, score: null}]),
-  sourceCase('typed-empty',
+  filteredSourceCase('typed-empty',
     'WHERE a.payload.score > 100 |> SELECT a.id AS id, a.payload.score AS score', []),
   sourceCase('projected-object-current-scope',
     'SELECT a.id AS id, a.payload AS kept |> SELECT id, kept.score AS score'),
@@ -135,7 +141,7 @@ export const graphProjectionPropertySuccesses = [
   sourceCase('folded-null-receiver-and-member',
     'WHERE a.payload.SCORE IS NULL |> SELECT a.id AS id, a.payload.SCORE AS score',
     [{id: 3, score: null}, {id: 4, score: null}]),
-  sourceCase('folded-typed-empty',
+  filteredSourceCase('folded-typed-empty',
     'WHERE a.payload.SCORE > 100 |> SELECT a.id AS id, a.payload.SCORE AS score', []),
 ];
 export const graphProjectionPropertyRefusals = [

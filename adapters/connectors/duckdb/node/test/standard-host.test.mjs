@@ -4335,7 +4335,9 @@ async function exerciseStrategyGraph(
                   advanced = true;
                   if (cancelling && !scheduled) {
                     scheduled = true;
-                    setTimeout(() => cancellation.abort(), 0);
+                    // Deliver after this incomplete advance returns, before
+                    // another advance can finish the tiny pooling fixture.
+                    queueMicrotask(() => cancellation.abort());
                   }
                 }
                 return value;
