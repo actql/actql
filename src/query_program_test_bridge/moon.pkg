@@ -9,4 +9,6 @@ import {
   "actql/actql/decode_core" @wire,
   "actql/actql/stage_syntax" @program,
   "actql/actql/encode_core" @encode,
+  "actql/actql/check_environment" @environment,
+  "moonbitlang/core/encoding/utf8",
 }
