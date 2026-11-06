@@ -502,3 +502,93 @@ test "Source document actual submitted intent keeps the same text format Paramet
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
 }
+
+///|
+test "configured Native query result keeps answer and public Source keeps main" {
+  let (environment, publication) = request_query_publication_fixture()
+  for (public_primary, expected) in [(false, "answer"), (true, "main")] {
+    let document = "SELECT 2 AS id"
+    let (parent, input) = native_driver_parent(document)
+    // This is the SAME actual Query/Source/checker/compiler path selected by
+    // Native. No result rename, authority override or replacement Run is used.
+    prepare_request_native_source_computation(
+      parent,
+      input,
+      request_document_test_source(document, "sql"),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+      public_primary~,
+    ).unwrap()
+    |> ignore
+    let syntax = parent.query_syntax.unwrap()
+    let artifact = prepare_request_program_compilation(
+      parent,
+      input,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      retained_output=false,
+      provider_factory=_ => [],
+    ).unwrap()
+    let names = match artifact {
+      @publication_host.Values(original) =>
+        @publication_host.client_values_compilation_result_names(original)
+      @publication_host.Tasks(original) =>
+        @publication_host.client_task_compilation_result_names(original)
+      _ => fail("Expected the same Pure compilation")
+    }
+    assert_eq(names, [expected])
+    assert_true(physical_equal(parent.query_syntax.unwrap(), syntax))
+    assert_true(physical_equal(parent.program_compilation.unwrap(), artifact))
+    abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}
+
+///|
+test "configured Native query result preserves explicit Source exports" {
+  let (environment, publication) = request_query_publication_fixture()
+  for (public_primary, expected) in [(false, "chosen"), (true, "chosen")] {
+    let document = "WITH seed AS (SELECT 2 AS id) FROM seed |> SELECT id |> RESULT chosen"
+    let (parent, input) = native_driver_parent(document)
+    // This is the SAME actual Query/Source/checker/compiler path selected by
+    // Native. No result rename, authority override or replacement Run is used.
+    prepare_request_native_source_computation(
+      parent,
+      input,
+      request_document_test_source(document, "aql-text"),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+      public_primary~,
+    ).unwrap()
+    |> ignore
+    let syntax = parent.query_syntax.unwrap()
+    let artifact = prepare_request_program_compilation(
+      parent,
+      input,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      retained_output=false,
+      provider_factory=_ => [],
+    ).unwrap()
+    let names = match artifact {
+      @publication_host.Values(original) =>
+        @publication_host.client_values_compilation_result_names(original)
+      @publication_host.Tasks(original) =>
+        @publication_host.client_task_compilation_result_names(original)
+      _ => fail("Expected the same Pure compilation")
+    }
+    assert_eq(names, [expected])
+    assert_true(physical_equal(parent.query_syntax.unwrap(), syntax))
+    assert_true(physical_equal(parent.program_compilation.unwrap(), artifact))
+    abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}

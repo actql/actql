@@ -6011,3 +6011,12 @@ its existing same-Request document/Query constructor reserves the selected
 representation before parsing or lowering. The structured Program continuation
 continues to use its observed native input inventory. No permission, additional
 check, fallback compiler or numerical resource grant follows from this choice.
+
+The installed Native CLI keeps its existing configured query primary when
+continuing through the shared Request lowerer. Its selected publication Context
+already names that primary. The newer public Source entry still selects its
+public implicit primary by default; authored exports keep their own names in
+either entry. This is compiler configuration, not Result permission. The actual
+compiled inventory reaches the Result reader unchanged, and the adopted Account
+continues to decide access to that exact name. A migration must not compensate
+for a changed implicit name by broadening the Account or rewriting saved Results.
