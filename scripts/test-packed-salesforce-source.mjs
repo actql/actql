@@ -1137,7 +1137,21 @@ try {
       throw error;
     }
     if (pendingScratch) {
-      await waitFor(async () => (await execution.status()).status === 'waiting_checkpoint');
+      let pendingStatus;
+      try {
+        await waitFor(async () => {
+          pendingStatus = (await execution.status()).status;
+          return pendingStatus === 'waiting_checkpoint';
+        });
+      } catch (error) {
+        // Keep the original wait failure and its finite bound. Report only
+        // the same Run's last status, never its input or retained owner graph.
+        console.error('packed composition wait ' + JSON.stringify({
+          boundary: 'pending-composition-wait', status: pendingStatus,
+          expectedStatus: 'waiting_checkpoint',
+        }));
+        throw error;
+      }
     } else {
       const state = await execution.wait();
       const expectedStatus = optionalKind && !optionalEnabled ? 'succeeded' : 'waiting_checkpoint';

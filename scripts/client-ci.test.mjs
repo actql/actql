@@ -183,7 +183,7 @@ test('packed INFER keeps at most its first original admission event in existing 
       {event: 'dispatch_failed', code: 'MoonBitHostFailure', issueTag: 7, calls: 0}]);
 });
 
-test('packed composition retains the first original Model admission event in command stderr', () => {
+function packedEffectDriverSource() {
   const source = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
   let template;
   const visit = node => {
@@ -198,7 +198,46 @@ test('packed composition retains the first original Model admission event in com
   };
   visit(parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}));
   assert.equal(template.expressions.length, 0);
-  const driver = template.quasis[0].value.cooked;
+  return template.quasis[0].value.cooked;
+}
+
+test('packed pending composition reports its last original status without hiding the wait failure', async () => {
+  const driver = packedEffectDriverSource();
+  let branch;
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'IfStatement' && node.test.type === 'Identifier' &&
+        node.test.name === 'pendingScratch') {assert.equal(branch, undefined); branch = node;}
+    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
+    else if (value && typeof value === 'object') visit(value);
+  };
+  visit(parseJavaScript(driver, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert(branch);
+  const run = new Function('execution', 'waitFor', 'console',
+    'return (async()=> ' + driver.slice(branch.consequent.start, branch.consequent.end) + ')();');
+  for (const status of ['running', 'failed', 'needs_reconciliation']) {
+    for (const primary of [new Error('original wait failure'), undefined]) {
+      const lines = []; let reads = 0, rejected = false;
+      try {
+        await run({async status() {reads++; return {status, privateInput: 'never disclose'};}},
+          async check => {assert.equal(await check(), false); throw primary;},
+          {error: line => lines.push(line)});
+      } catch (error) {rejected = true; assert.strictEqual(error, primary);}
+      assert(rejected); assert.equal(reads, 1);
+      assert.equal(lines.length, 1);
+      assert.deepEqual(JSON.parse(lines[0].slice('packed composition wait '.length)), {
+        boundary: 'pending-composition-wait', status, expectedStatus: 'waiting_checkpoint',
+      });
+      assert(!lines[0].includes('never disclose'));
+    }
+  }
+  await run({async status() {return {status: 'waiting_checkpoint'};}},
+    async check => assert.equal(await check(), true),
+    {error() {assert.fail('successful waiting must not report a failure');}});
+});
+
+test('packed composition retains the first original Model admission event in command stderr', () => {
+  const driver = packedEffectDriverSource();
   const tree = parseJavaScript(driver, {ecmaVersion: 'latest', sourceType: 'module'});
   const assignment = tree.body.find(node => node.type === 'ExpressionStatement' &&
     node.expression.type === 'AssignmentExpression' &&
