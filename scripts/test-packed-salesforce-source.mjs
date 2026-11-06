@@ -950,6 +950,9 @@ try {
         problem: {code: 'submission_history_unresolvable'}});
     console.log('empty');
   } else if (step === 'rce-unsupported') {
+    // This Source-only installation also omits the Effect Mapping contracts.
+    // The same Request therefore refuses static preparation before it can
+    // select the later unsupported-executor boundary. Keep this case's ID.
     const submission = JSON.parse(readFileSync('rce-submission.json', 'utf8'));
     assert.equal(createHash('sha256').update(submission.document).digest('hex'),
       process.argv[3], 'the exact positively executed Program is reused');
@@ -962,7 +965,7 @@ try {
       assert.equal(outcome.kind, 'not_accepted');
       assert.deepEqual(outcome.submissionRef, submissionRef);
       assert.deepEqual(outcome.problem,
-        {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
+        {code: 'ClientProgramRejected', classification: 'operation_failed'});
       assert.equal(outcome.admission, undefined);
       return true;
     });
@@ -1740,7 +1743,9 @@ try {
     if (!composed) {
       // The preceding public execution and independent rows establish semantic
       // validity. Reuse its exact bytes in a fresh source-only installation;
-      // the unsupported refusal alone must never be treated as a validity check.
+      // this different installation's refusal alone is not a validity check.
+      // Removing the Effect profile removes its declarations as well as its
+      // executor; the earlier static refusal is not implementation selection.
       const submission = JSON.parse(await readFile(join(root,
         'rce-submission.json'), 'utf8'));
       const programSha256 = createHash('sha256').update(
@@ -1760,7 +1765,7 @@ try {
       assert.equal(refusal.code, 'SubmissionNotAccepted');
       assert.equal(refusal.lookup.kind, 'not_accepted');
       assert.deepEqual(refusal.lookup.problem,
-        {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
+        {code: 'ClientProgramRejected', classification: 'operation_failed'});
       assert.equal(refusal.lookup.admission, undefined);
       assert.equal(refusal.programSha256, programSha256);
       const journalAfter = readTwoSourceJournal(
@@ -1769,9 +1774,9 @@ try {
         'unsupported input creates no Run, dispatch or physical-start reservation');
       assert.deepEqual(server.seen, providerBefore,
         'unsupported input performs no provider HTTP request, including source reads or Effect writes');
-      console.log('packed unsupported admission ' + JSON.stringify({
+      console.log('packed missing Effect contract admission ' + JSON.stringify({
         transport, sourceRevision, programSha256,
-        profile: 'installed Salesforce Source; no Effect execution profile',
+        profile: 'installed Salesforce Source; no Effect declaration or execution profile',
         positive: 'same bytes completed Read→Compute→Effect with independent rows',
         ...refusal, providerRequests: 0, journalBefore, journalAfter}));
       assert.equal((await runChild('effect-run.mjs', unsupportedEnvironment,

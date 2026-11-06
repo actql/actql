@@ -28,6 +28,7 @@ import {composeInstalledCheckEnvironment} from '../adapters/host-node/installed-
 import {contentCid} from '../adapters/host-node/local-account-config.mjs';
 import {inferPreparationFailureData} from './fixtures/packed-infer-preparation-diagnostic.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+import {machineCid} from './actql-spec-family.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -1198,4 +1199,102 @@ test('historical Checkpoint identities retain the same explicit Host policy', ()
     `return (${values.slice(assignments[0].start, assignments[0].end)});`)(
     {host_policy_profile: {capacity: raw}}, undefined, normalized);
   assert.deepEqual(bindingCapacity, normalized);
+});
+
+test('packed Query Source Hosts and reopens retain the published fixture policy', async () => {
+  const source = readFileSync(new URL('./test-node-client-package.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  function nodes(tree, predicate) {
+    const found = [];
+    (function visit(node) {
+      if (!node || typeof node !== 'object') return;
+      if (predicate(node)) found.push(node);
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(visit);
+        else if (value && typeof value === 'object') visit(value);
+      }
+    })(tree);
+    return found;
+  }
+  const baseWire = readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8');
+  const start = source.indexOf('const sourceCatalog = await readFile(');
+  const end = source.indexOf('const compileCapturedQuery = ', start);
+  assert(start > 0 && end > start);
+  const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
+  const prepare = new AsyncFunction('root', 'repository', 'readFile', 'join', 'assert', 'machineCid',
+    source.slice(start, end) + '\nreturn sourceEnvironment;');
+  const published = await prepare('/app', root, async (path, encoding) => {
+    assert.equal(encoding, 'utf8');
+    if (path === '/app/node_modules/@actql/local-node/spec/local-check-environment.json') return baseWire;
+    assert.equal(path, join(root, 'src/query_integration/query_amount_catalog_wbtest.mbt'));
+    return readFile(path, encoding);
+  }, join, assert, machineCid);
+  const profileBindings = nodes(tree, node => node.type === 'VariableDeclarator' &&
+    node.id.name === 'sourceProfilePath');
+  assert.equal(profileBindings.length, 1);
+  assert.equal(profileBindings[0].init.callee.name, 'join');
+  assert.equal(profileBindings[0].init.arguments[1].value, 'source-profile.json');
+  const profiles = nodes(tree, node => node.type === 'CallExpression' && node.callee.name === 'writeFile' &&
+    node.arguments[0]?.type === 'Identifier' && node.arguments[0].name === 'sourceProfilePath');
+  assert.equal(profiles.length, 1);
+  const profile = profiles[0].arguments[1].arguments[0];
+  const wireNode = profile.properties.find(property => property.key.name === 'checkEnvironmentWire').value;
+  const publishedWire = new Function('canonicalText', 'sourceEnvironment',
+    'return (' + source.slice(wireNode.start, wireNode.end) + ');')(canonicalText, published);
+  const originalPolicy = Object.freeze({});
+  const moon = {
+    clientLocalResourcePolicyOriginal: () => originalPolicy,
+    clientLocalResourcePolicyRowCeiling(value) {assert.equal(value, originalPolicy); return 2097152;},
+    clientLocalResourcePolicyModelRequestByteCeiling(value) {assert.equal(value, originalPolicy); return 65536n;},
+    clientProgramCheckEnvironment: () => ({}),
+  };
+  let checked = 0;
+  function checkOptions(text, node, policy, embedded) {
+    const options = new Function('hostCapacityPolicy', 'root', 'join', 'sourceProfilePath', 'process',
+      'return (' + text.slice(node.start, node.end) + ');')(policy, '/app', join, '/app/source-profile.json',
+      {env: {}, cwd: () => '/app'});
+    const selected = embedded ? options.installation?.hostCapacityPolicy : options.hostCapacityPolicy;
+    const effective = selectInstalledLocalMaterializationEnvironment(moon, baseWire.trimEnd(), selected);
+    const composed = composeInstalledCheckEnvironment(moon, effective, effective, publishedWire);
+    assert.deepEqual(JSON.parse(composed).host_policy_profile, published.host_policy_profile);
+    assert.deepEqual(selected, published.host_policy_profile.capacity);
+    checked++;
+  }
+  const remote = nodes(tree, node => node.type === 'CallExpression' &&
+    node.callee.name === 'openInstalledRemoteHttpHost');
+  assert.equal(remote.length, 1);
+  checkOptions(source, remote[0].arguments[0], published.host_policy_profile.capacity, false);
+  for (const file of ['smoke.mjs', 'restart.mjs', 'restart-remote-host.mjs']) {
+    const writers = nodes(tree, node => node.type === 'CallExpression' && node.callee.name === 'writeFile' &&
+      node.arguments[0]?.type === 'CallExpression' && node.arguments[0].arguments.some(
+        arg => arg.type === 'Literal' && arg.value === file));
+    assert.equal(writers.length, 1);
+    const template = writers[0].arguments[1];
+    assert.equal(template.expressions.length, 0);
+    const text = template.quasis[0].value.cooked;
+    const actor = parseJavaScript(text, {ecmaVersion: 'latest', sourceType: 'module'});
+    const bindings = actor.body.filter(node => node.type === 'VariableDeclaration' &&
+      node.declarations[0].id.name === 'hostCapacityPolicy');
+    assert(bindings.length <= 1);
+    const policy = bindings.length === 0 ? undefined : new Function('readFileSync',
+      text.slice(bindings[0].start, bindings[0].end) + '\nreturn hostCapacityPolicy;')((path, encoding) => {
+      assert.equal(path, 'source-profile.json'); assert.equal(encoding, 'utf8');
+      return JSON.stringify({checkEnvironmentWire: publishedWire});
+    });
+    const calls = nodes(actor, node => node.type === 'CallExpression' &&
+      ['connect', 'runApplication', 'runAcquiredApplication', 'openInstalledRemoteHttpHost'].includes(node.callee.name) &&
+      node.arguments[0]?.type === 'ObjectExpression');
+    for (const call of calls) {
+      const properties = call.arguments[0].properties;
+      const value = name => properties.find(property => property.key.name === name)?.value;
+      const embedded = call.callee.name !== 'openInstalledRemoteHttpHost';
+      if (embedded && (value('mode')?.value !== 'local' || value('endpoint') !== undefined)) continue;
+      checkOptions(text, call.arguments[0], policy, embedded);
+    }
+  }
+  assert.equal(checked, 7, 'initial, projection, acquired, variant and both restart Host openings');
+  assert.throws(() => composeInstalledCheckEnvironment(moon,
+    selectInstalledLocalMaterializationEnvironment(moon, baseWire.trimEnd()),
+    selectInstalledLocalMaterializationEnvironment(moon, baseWire.trimEnd()), publishedWire),
+  error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
 });
