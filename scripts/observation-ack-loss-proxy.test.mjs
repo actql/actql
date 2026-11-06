@@ -137,6 +137,12 @@ test('resident cancellation uses the tested selector and exact refusal identity'
   const source = await readFile(new URL('./test-native-resident-site.mjs', import.meta.url), 'utf8');
   assert.match(source, /loseAck: body => cancellationAckMatches\(body, \{\s*dispatchRequestCid: siteControl.identity\(dispatch\),\s*executionState: mode === 'running-lost-reply' \? 2 : 5,\s*cancelOffers, lostReply,/u);
   assert.match(source, /line.kind === 'cancel-unreported' &&\s*line.request_cid === siteControl.identity\(dispatch\)/u);
+  // Any resident fixture edit also has to retain its diagnostic's whole-source
+  // fence. Run that real consumer here so the focused ACK gate closes the pin.
+  const {rewriteResidentControlSpawn} = await import('./diagnose-native-resident-functions.mjs');
+  const diagnostic = {python: '/usr/bin/python3', wrapper: '/test/wrapper.py', report: '/test/report.json'};
+  assert.notEqual(rewriteResidentControlSpawn(source, diagnostic), source);
+  assert.throws(() => rewriteResidentControlSpawn(source + '\n', diagnostic), /Source hash differs/u);
   const workflow = await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.match(workflow, /^        run: node --test scripts\/test-native-core\.test\.mjs scripts\/native-query-coverage\.test\.mjs scripts\/native-resident-phase-watchdog\.test\.mjs scripts\/native-resident-function-diagnostic\.test\.mjs scripts\/observation-ack-loss-proxy\.test\.mjs$/mu);
 });
