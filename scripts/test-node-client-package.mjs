@@ -1950,6 +1950,9 @@ await checkSegmentedProgram(installedRemote, 'remote');
 await checkSegmentedResults(installedRemote, 'remote');
 const acquiredRemote = await runAcquiredApplication(remoteOptions,
   'packed-acquired-remote');
+writeFileSync('acquired-remote-original.json', JSON.stringify({
+  submissionRef: getSubmissionOutcome(acquiredRemote.execution).submissionRef,
+  ref: acquiredRemote.execution.ref}), {mode: 0o600});
 const capturedQueryRemote = await acquiredRemote.client.startSource(
   capturedQueryDocument,
   {format: 'json', requestId: 'packed-captured-query-remote'});
@@ -2189,6 +2192,8 @@ run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
 const remoteModule = pathToFileURL(join(root, 'node_modules', '@actql',
   'local-node', 'adapters', 'host-node', 'embedded-local.mjs')).href;
 const {openInstalledRemoteHttpHost} = await import(remoteModule);
+const installedControl = await import(pathToFileURL(join(root, 'node_modules', '@actql',
+  'local-node', '_build', 'js', 'release', 'build', 'connectors_builtin_node', 'connectors_builtin_node.js')));
 let releaseDispatch;
 const heldDispatch = new Promise(resolve => { releaseDispatch = resolve; });
 let failNextDispatch = false;
@@ -2264,11 +2269,21 @@ if (graphOnly || projectionOnly) {
   scratch.passed();
   process.exit(0);
 }
-const acquiredRecoveryRequest = {requestId: 'packed-acquired-remote',
+const acquiredOriginal = JSON.parse(await readFile(join(root,
+  'acquired-remote-original.json'), 'utf8'));
+const acquiredOriginalEpoch = acquiredOriginal.submissionRef.epoch;
+// Decode the same stored identity with the installed Host's existing Core;
+// this neither renews its epoch nor admits or submits another request.
+const acquiredRecoveryRequest = {requestId: installedControl.clientSubmissionRequestId(
+  installedControl.clientSubmissionEpoch(acquiredOriginalEpoch.authorityScopeCid,
+    acquiredOriginalEpoch.epochNonce, acquiredOriginalEpoch.notBefore, acquiredOriginalEpoch.expiresAt),
+  acquiredOriginal.submissionRef.nonce),
   principalId: userInfo().username,
   connection: {mode: 'remote', owner: 'remote'}};
-assert.equal((await remoteHost.inspectAcquisition(
-  acquiredRecoveryRequest)).state, 'completed_retained');
+assert.equal(typeof acquiredRecoveryRequest.requestId, 'string');
+const acquiredInspection = await remoteHost.inspectAcquisition(acquiredRecoveryRequest);
+assert.equal(acquiredInspection.state, 'completed_retained');
+assert.deepEqual(acquiredInspection.ref, acquiredOriginal.ref);
 assert.equal((await remoteHost.inspectAcquisition({
   ...acquiredRecoveryRequest, requestId: 'never-submitted'})).state,
   'not_started');
