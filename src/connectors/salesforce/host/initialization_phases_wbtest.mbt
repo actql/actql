@@ -44,7 +44,12 @@ test "Salesforce phased recovery keeps full failed peak and only closed metadata
   let retained = @execution.execution_capacity_retained_bytes(observation)
   let declared = @execution.execution_capacity_execution_bytes(declaration)
   assert_true(retained < peak)
-  assert_eq(@execution.execution_capacity_retained_bytes(declaration), declared)
+  assert_true(
+    @execution.execution_capacity_retained_bytes(declaration) < declared,
+  )
+  // Frozen435d original working peaks: only the completed output cut changes.
+  assert_eq(peak, 212287177L)
+  assert_eq(declared, 38337530L)
   println(
     "SF phased peak=\{peak} retained=\{retained} declaration=\{declared} prefix=\{prefix}",
   )

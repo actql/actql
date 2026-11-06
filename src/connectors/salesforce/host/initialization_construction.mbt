@@ -312,7 +312,11 @@ fn sf_initialization_construction_capacity(
         guard sf_initialization_metadata_retained(
             f,
             n.to_int64(),
-            parsed.owned_utf16_units,
+            // JsonString normalizes keys only. Metadata stores literal
+            // values, not keys: decoded value text plus a borrowed source
+            // substring's complete backing fits two original UTF16 bounds.
+            // The independently computed response SHA is another 71 units.
+            2L * b.to_int64() + 71L,
           )
           is Some(retained) else {
           return None
@@ -358,6 +362,9 @@ fn sf_initialization_construction_capacity(
     }
     parts.push(raw)
     parts.push(sf_initialization_collection_units(declared))
+    if fields is Some(_) {
+      retained_parts.push(sf_initialization_collection_units(declared))
+    }
     for
       (bytes, nodes) in [
         (envelope + 100L, 12L),
@@ -378,6 +385,9 @@ fn sf_initialization_construction_capacity(
         return None
       }
       parts.push(evidence)
+      if fields is Some(_) {
+        retained_parts.push(evidence)
+      }
     }
   }
   if observation_only {
@@ -487,7 +497,7 @@ fn sf_initialization_construction_capacity(
   parts.push(observation_parse)
   parts.push(export_parse)
   parts.push(sf_initialization_collection_units(projections))
-  parts.push({
+  let native_text : @execution.PreparationRepresentationUnits = {
     record_headers: 0L,
     reference_slots: 0L,
     scalar_words: 0L,
@@ -498,7 +508,24 @@ fn sf_initialization_construction_capacity(
     2L * (catalog_bytes + member_bytes + manifest_bytes) +
     Int64::min(export_bytes, limits.max_bytes.to_int64()),
     owned_wire_bytes: observation_bytes,
-  })
+  }
+  parts.push(native_text)
+  if fields is Some(_) {
+    // StaticDeclaration/RowDeclaration retain strings, metadata and arrays;
+    // raw Json forests and writer/hash cursors do not escape the completed
+    // callback. The whole export parser remains a conservative upper bound
+    // for the returned native JSON graph, including borrowed text backing.
+    for
+      part in [
+        export_parse,
+        observation_parse,
+        sf_initialization_collection_units(projections),
+        native_text,
+      ] {
+      retained_parts.push(part)
+    }
+    return sf_initialization_closed_capacity(parts, retained_parts)
+  }
   sf_initialization_capacity(parts)
 }
 

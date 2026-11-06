@@ -2,7 +2,8 @@
 // Closed recovery retains ResourceMetadata and its primitive text, never the
 // Parser/JsonDocument, Cursor/ObjectView, lookup Results or normalization
 // cursors. Keep the original conservative three metadata-copy field roles;
-// retaining all parser-owned text also covers normalized/borrowed strings.
+// literal value text and its borrowed source backing stay charged; normalized
+// keys and the parser/normalizer workspaces are not metadata fields.
 // ReferenceTo may retain many strings per field: preserve their node-bound
 // String headers and the original plus two copied reference-array item roles.
 fn sf_initialization_metadata_retained(
@@ -93,8 +94,6 @@ fn sf_initialization_observation_capacity(
     total_names,
     owned_wire_bytes: observation_bytes,
   }
-  // These deliberately remain in both totals: bounded binding copies,
-  // observation writer/hash, original evidence strings and fixed carriers.
   for
     part in [
       writer,
@@ -106,8 +105,30 @@ fn sf_initialization_observation_capacity(
       text,
     ] {
     parts.push(part)
+  }
+  // restoreDeclaration's outer binding remains live until its second phase
+  // returns. recoverNamed's binding parser has returned, and generate's parse
+  // belongs to the separately funded declaration phase. Typed binding strings
+  // fit the original observation text envelope above; no parser/lookup tree
+  // is stored in CatalogObservation. Keep ONE complete binding envelope here.
+  for
+    part in [
+      writer,
+      hash,
+      binding_parse,
+      sf_initialization_collection_units(carriers),
+      text,
+    ] {
     retained.push(part)
   }
+  sf_initialization_closed_capacity(parts, retained)
+}
+
+///|
+fn sf_initialization_closed_capacity(
+  parts : Array[@execution.PreparationRepresentationUnits],
+  retained : Array[@execution.PreparationRepresentationUnits],
+) -> @execution.ExecutionCapacity? {
   guard @execution.compose_preparation_representation(parts) is Some(peak) &&
     @execution.compose_preparation_representation(retained) is Some(kept) &&
     @execution.preparation_representation_cost(peak) is Some(peak_bytes) &&
@@ -145,8 +166,9 @@ pub fn initialization_declaration_construction_capacity(
   }
   // The existing declaration/export inventory is unchanged. Its source text
   // bound now describes admitted metadata strings, not ignored Describe JSON.
-  // Keep this complete phase peak retained through subsequent fixed evidence
-  // projection; only recovery has a closed-output retained/workspace cut.
+  // Closed outputs retain their complete native graph/text and typed arrays.
+  // Fixed evidence projection keeps its original writer envelopes prepaid;
+  // failed constructors still hold the complete original phase peak.
   sf_initialization_construction_capacity(
     text,
     nodes,

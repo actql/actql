@@ -35,9 +35,13 @@ The common `execution_relation` representation model issues the typed quantity.
   producers separately on that same initialization parent. Only the completed
   original recovery can supply field/text dimensions from its immutable typed
   observation; provider and Common observations remain in distinct runtimes.
-  Recovery keeps its complete peak on failure and may select retained metadata
-  only after the original synchronous return/current checks. Declaration and
-  subsequent fixed evidence projection conservatively keep their full envelope.
+  Each constructor keeps its complete peak on failure and may select retained
+  outputs only after its original synchronous return/current checks. Metadata
+  retains primitive literal text plus possible borrowed source backing, not
+  normalized keys or parser workspaces. Declaration retains its native export
+  graph/text and typed arrays, not temporary Json forests or writer cursors.
+  The outer Site binding and fixed evidence projection remain conservatively
+  funded until the original owner retires.
   Both callbacks are one-shot and must return the actual constructor output;
   equal replacement records cannot supply the correspondence. Direct restoration
   keeps the original complete path. This introduces no permission or live-use
