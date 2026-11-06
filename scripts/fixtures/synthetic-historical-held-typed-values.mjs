@@ -152,7 +152,12 @@ export async function writeSyntheticHistoricalHeldTypedValues({directory, docume
   // returned acceptance result; the original binding is independently hashed.
   environmentBody.host_policy_profile.capacity = {max_graph_construction_edges: 1000,
     max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
-    ...environmentBody.host_policy_profile.capacity};
+    ...environmentBody.host_policy_profile.capacity,
+    // Same declared Local materialization windows as the ordinary Values
+    // historical fixture, independently authored before current acceptance.
+    max_relation_output_rows: 536870912 / 256,
+    max_artifact_rows: 536870912 / 256,
+    max_model_request_bytes_per_item: 65536};
   const binding = {authorization_context_cid: cid({principal: principalId,
     account_id: account.account_id, configuration_cid: configurationCid, source_configuration_cid: null}),
   environment_binding_cid: cid({version: 'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,
