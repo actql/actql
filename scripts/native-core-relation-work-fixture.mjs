@@ -16,6 +16,15 @@ const platforms = {'linux-x64': 'linux-x64-gnu', 'darwin-arm64': 'darwin-arm64'}
 const emitterKeys = ['ACTQL_TEST_NATIVE_RELATION_ENVIRONMENT_OUTPUT',
   'ACTQL_TEST_NATIVE_RELATION_BASELINE_ASSETS_OUTPUT', 'ACTQL_TEST_NATIVE_RELATION_CONFIGURATION_INPUTS'];
 export const nativeRelationWorkBackingBytes = 768 * 1024 ** 2;
+export const nativeRelationWorkModes = Object.freeze(['positive', 'run-only',
+  'wrong-connection', 'wrong-resource', 'short-capacity', 'foreign-declaration', 'wrong-selection']);
+
+// These last three refusals are made by the actual Native owner, not by
+// malformed configuration. Preserve the ordinary canonical setup bytes.
+export function nativeRelationWorkInputVariant(mode) {
+  assert(nativeRelationWorkModes.includes(mode), 'Unknown Native relation Work mode');
+  return ['run-only', 'wrong-connection', 'wrong-resource'].includes(mode) ? mode : 'positive';
+}
 
 export function verifyNativeRelationProducerInputs(receipt) {
   assert(receipt.inputs && Object.keys(receipt.inputs).length > 0);
@@ -151,7 +160,7 @@ export async function prepareNativeCoreRelationRuntime(repository, destination, 
 }
 
 export async function nativeRelationOriginalWorkFixture(namespace, prepared, {mode = 'positive'} = {}) {
-  assert(['positive', 'run-only', 'wrong-connection', 'wrong-resource'].includes(mode));
+  const inputVariant = nativeRelationWorkInputVariant(mode);
   assert(isAbsolute(namespace));
   const original = lstatSync(namespace);
   assert(original.isDirectory() && !original.isSymbolicLink() && (original.mode & 0o777) === 0o700);
@@ -163,8 +172,8 @@ export async function nativeRelationOriginalWorkFixture(namespace, prepared, {mo
   runNativeRelationInputEmitter(prepared.repository, prepared.targetDirectory, {
     ACTQL_TEST_NATIVE_RELATION_CONFIGURATION_INPUTS: join(directory, 'configuration-inputs.json'),
   }, prepared.env, prepared.execute, prepared.seconds);
-  const refusals = mode === 'positive' ? null : await prepareNativeRelationRefusalInputs(directory);
-  const inputRoot = mode === 'positive' ? receipt.inputRoot : refusals[mode];
+  const refusals = inputVariant === 'positive' ? null : await prepareNativeRelationRefusalInputs(directory);
+  const inputRoot = inputVariant === 'positive' ? receipt.inputRoot : refusals[inputVariant];
   provisionNativeRelationBacking(inputRoot);
   const result = {
     ACTQL_TEST_RELATION_ORIGINAL_ROOT: inputRoot,

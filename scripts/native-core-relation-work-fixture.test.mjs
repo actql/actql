@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync,
+import {chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync,
   statSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {nativeCoreScopedAllocationProfile, nativeRelationWorkTestFile, nativeScopedTestFiles}
   from './native-core-test-selection.mjs';
-import {nativeRelationWorkBackingBytes, prepareNativeCoreRelationRuntime,
+import {nativeRelationOriginalWorkFixture, nativeRelationWorkBackingBytes,
+  nativeRelationWorkInputVariant, nativeRelationWorkModes, prepareNativeCoreRelationRuntime,
   provisionNativeRelationBacking, runNativeRelationInputEmitter, selectNativeRelationBundle,
   verifyNativeRelationProducerInputs}
   from './native-core-relation-work-fixture.mjs';
@@ -131,6 +132,40 @@ function configuration(root) {
   for (const name of ['account', 'environment', 'records', 'row-declaration', 'run', 'runtime'])
     writeFileSync(join(root, name + '.json'), `original ${name}`, {flag: 'wx', mode: 0o600});
 }
+
+test('Native relation refusal modes preserve canonical inputs except the exact Source Account change', () => {
+  const expected = ['positive', 'run-only', 'wrong-connection', 'wrong-resource',
+    'short-capacity', 'foreign-declaration', 'wrong-selection'];
+  assert.deepEqual(nativeRelationWorkModes, expected);
+  assert(Object.isFrozen(nativeRelationWorkModes));
+  for (const mode of ['positive', 'short-capacity', 'foreign-declaration', 'wrong-selection'])
+    assert.equal(nativeRelationWorkInputVariant(mode), 'positive');
+  for (const mode of ['run-only', 'wrong-connection', 'wrong-resource'])
+    assert.equal(nativeRelationWorkInputVariant(mode), mode);
+  const native = readFileSync(new URL('../src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt', import.meta.url), 'utf8');
+  for (const mode of expected) assert(native.includes(`mode == "${mode}"`));
+  // A mode is an expected original refusal, never a skipped or accepted case.
+  assert(native.includes('assert_eq(original_entry.usage().attempts, 0)'));
+  assert(native.includes('assert_eq(original_entry.usage().transferred_bytes, 0L)'));
+  assert.match(native, /mode == "foreign-declaration" \{\s*\/\/[^\n]+\s*assert_true\(\s*failure\.issue\(\) is OriginalOperation\(AuthorizationDenied\)/u);
+  assert.match(native, /assert_eq\(mode, "wrong-selection"\)\s*assert_true\(\s*failure\.issue\(\) is RelationFile\(@row_file\.ForeignOriginal\)/u);
+});
+
+test('unknown Native relation modes refuse before touching a fresh or initialized namespace', async t => {
+  const base = namespace(t);
+  for (const mode of ['', 'skip', 'wrong-resource ', undefined, null]) {
+    assert.throws(() => nativeRelationWorkInputVariant(mode), /Unknown Native relation Work mode/u);
+  }
+  for (const initialized of [false, true]) {
+    const root = join(base, initialized ? 'initialized' : 'fresh');
+    mkdirSync(root, {mode: 0o700});
+    if (initialized) writeFileSync(join(root, 'state'), 'original', {flag: 'wx', mode: 0o600});
+    await assert.rejects(nativeRelationOriginalWorkFixture(root, {}, {mode: 'skip'}),
+      /Unknown Native relation Work mode/u);
+    assert.deepEqual(readdirSync(root), initialized ? ['state'] : []);
+    if (initialized) assert.equal(readFileSync(join(root, 'state'), 'utf8'), 'original');
+  }
+});
 
 test('Native relation backing owns exactly 768 MiB without resetting initialized input or config bytes', t => {
   const root = join(namespace(t), 'input'); configuration(root);

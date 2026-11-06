@@ -931,9 +931,15 @@ fn relation_original_run(
             )
           } else if mode == "short-capacity" {
             assert_true(failure.issue() is Configuration)
-          } else {
+          } else if mode == "foreign-declaration" {
+            // The original acquisition check denies current before claim.
             assert_true(
-              mode == "foreign-declaration" || mode == "wrong-selection",
+              failure.issue() is OriginalOperation(AuthorizationDenied),
+            )
+          } else {
+            assert_eq(mode, "wrong-selection")
+            assert_true(
+              failure.issue() is RelationFile(@row_file.ForeignOriginal),
             )
           }
           // The same two cleanup calls remain ordered. A refusal stops with
