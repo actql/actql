@@ -184,3 +184,61 @@ test('packed restart actors retain complete original submission refs beside thei
     }
   }
 });
+
+test('packed acquisition inspection consumes the original SDK outcome and existing typed identity projection', async t => {
+  const f = await sdkOriginal(t, 'packed-acquired-remote', {minimum: 1});
+  const smoke = actor('smoke.mjs'), parsed = parse(smoke, {ecmaVersion: 'latest', sourceType: 'module'});
+  const writers = nodes(parsed, node => node.type === 'CallExpression' && node.callee.name === 'writeFileSync' &&
+    node.arguments[0]?.value === 'acquired-remote-original.json');
+  assert.equal(writers.length, 1, 'The child must retain its actual original outcome beside the original Run ref');
+  let saved;
+  new Function('writeFileSync', 'acquiredRemote', 'getSubmissionOutcome',
+    smoke.slice(writers[0].start, writers[0].end))((file, wire, options) => {
+    assert.equal(file, 'acquired-remote-original.json'); assert.equal(options.mode, 0o600); saved = wire;
+  }, {execution: f.execution}, f.sdk.getSubmissionOutcome);
+  const original = JSON.parse(saved);
+  assert.deepEqual(original.submissionRef, f.original);
+  assert.deepEqual(original.ref, f.execution.ref);
+  assert.notDeepEqual(original.submissionRef, f.sdk.getSubmissionInput(f.execution).submissionRef);
+  const imports = nodes(tree, node => node.type === 'VariableDeclarator' && node.id.name === 'installedControl');
+  assert.equal(imports.length, 1);
+  const installedUrl = imports[0].init.argument.source;
+  assert.equal(installedUrl.callee.name, 'pathToFileURL');
+  const installedPath = installedUrl.arguments[0];
+  assert.equal(installedPath.callee.name, 'join');
+  assert.equal(installedPath.arguments[0].name, 'root');
+  assert.deepEqual(installedPath.arguments.slice(1).map(node => node.value),
+    ['node_modules', '@actql', 'local-node', '_build', 'js', 'release', 'build',
+      'connectors_builtin_node', 'connectors_builtin_node.js']);
+  const start = source.indexOf('const acquiredOriginal =');
+  const end = source.indexOf('await remoteHost.close();', start);
+  assert.ok(start >= 0 && end > start);
+  const epoch = Object.freeze({fixture: 'typed-original-epoch'}), calls = [];
+  const control = {
+    clientSubmissionEpoch(...args) {
+      calls.push('epoch');
+      assert.deepEqual(args, [f.original.epoch.authorityScopeCid, f.original.epoch.epochNonce,
+        f.original.epoch.notBefore, f.original.epoch.expiresAt]);
+      return epoch;
+    },
+    clientSubmissionRequestId(value, nonce) {
+      calls.push('identity'); assert.equal(value, epoch); assert.equal(nonce, f.original.nonce);
+      return 'original-internal-request';
+    },
+  };
+  let inspections = 0;
+  const host = {async inspectAcquisition(value) {
+    inspections++;
+    if (value.principalId !== 'fixture-owner') throw new Error('AcquisitionInspectionDenied');
+    assert.deepEqual(value.connection, {mode: 'remote', owner: 'remote'});
+    if (value.requestId === 'never-submitted') return {state: 'not_started'};
+    assert.equal(value.requestId, 'original-internal-request');
+    return {state: 'completed_retained', ref: f.execution.ref};
+  }};
+  await new Function('assert', 'readFile', 'join', 'root', 'installedControl', 'userInfo', 'remoteHost',
+    'return (async () => {' + source.slice(start, end) + '})();')(
+    assert, async (path, encoding) => {assert.equal(path, 'fixture-root/acquired-remote-original.json');
+      assert.equal(encoding, 'utf8'); return saved;}, (...parts) => parts.join('/'), 'fixture-root',
+    control, () => ({username: 'fixture-owner'}), host);
+  assert.deepEqual(calls, ['epoch', 'identity']); assert.equal(inspections, 3);
+});
