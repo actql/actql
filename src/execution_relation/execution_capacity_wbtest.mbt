@@ -136,3 +136,102 @@ test "bounded selected capacity funds exact completion metadata and preserves op
   assert_eq(fallback.retained_bytes, original.retained_bytes)
   assert_eq(fallback.execution_bytes, original.execution_bytes)
 }
+
+///|
+test "one original primitive Values constructor keeps logical budgets without phantom input copies" {
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(
+      bound_pipeline(
+        "[{\"values\":{\"schema\":{\"n\":{\"type\":\"number\",\"nullable\":true},\"b\":{\"type\":\"boolean\",\"nullable\":false}},\"rows\":[{\"n\":1,\"b\":true},{\"n\":null,\"b\":false}]},\"as\":\"out\"}]",
+      ),
+    ),
+    [],
+    ["values_0"],
+    100000,
+    10000,
+  ).unwrap()
+  let values : ValueLimits = {
+    max_nodes: 100,
+    max_text_bytes: 100,
+    max_depth: 10,
+    max_work: 10000,
+  }
+  let limits : SequenceExecutionLimits = {
+    rows: {
+      max_rows: 2,
+      retained_entries: 100,
+      metadata_entries: 100,
+      operation_entries: 100,
+      input_values: values,
+      output_values: values,
+    },
+    max_work: 10000,
+    max_frames: 16,
+  }
+  let measure : FixedInputGuardMeasureLimits = {
+    max_work: 10000,
+    max_bytes: 100,
+    max_nodes: 100,
+    max_depth: 10,
+  }
+  let selected = select_generated_sequence_step(generated, 0).unwrap()
+  let whole = generated_bounded_sequence_capacity(generated, limits, measure).unwrap()
+  let one = generated_bounded_sequence_capacity(selected, limits, measure).unwrap()
+  assert_eq(whole.retained_bytes, one.retained_bytes)
+  assert_eq(whole.execution_bytes, one.execution_bytes)
+  let unused_measurement = {
+    ..measure,
+    max_nodes: 1000000,
+    max_bytes: 1000000,
+  }
+  let larger = generated_bounded_sequence_capacity(
+    generated, limits, unused_measurement,
+  ).unwrap()
+  assert_eq(larger.execution_bytes, whole.execution_bytes)
+  let output = generated_bounded_sequence_capacity(
+    generated,
+    {
+      ..limits,
+      rows: { ..limits.rows, output_values: { ..values, max_nodes: 200, }, },
+    },
+    measure,
+  ).unwrap()
+  assert_true(output.retained_bytes > whole.retained_bytes)
+  let tight = { ..values, max_nodes: 1, }
+  assert_true(
+    start_bounded_values(
+      @bounded.control(),
+      generated,
+      2,
+      tight,
+      values,
+      10000,
+      16,
+      100,
+      100,
+    )
+    is Err(InputLimit),
+  )
+  let ordinary = generated_sequence_capacity(generated, limits, measure).unwrap()
+  assert_true(ordinary.execution_bytes > whole.execution_bytes)
+  // Text keeps the conservative constructor envelope; unused DATA must not
+  // turn a non-primitive schema into this borrowed-scalar case.
+  let text = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(
+      bound_pipeline(
+        "[{\"values\":{\"schema\":{\"t\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"t\":\"x\"}]},\"as\":\"out\"}]",
+      ),
+    ),
+    [],
+    ["values_0"],
+    100000,
+    10000,
+  ).unwrap()
+  let text_small = generated_bounded_sequence_capacity(text, limits, measure).unwrap()
+  let text_large = generated_bounded_sequence_capacity(
+    text, limits, unused_measurement,
+  ).unwrap()
+  assert_true(text_large.execution_bytes > text_small.execution_bytes)
+}

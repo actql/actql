@@ -681,6 +681,16 @@ extern "js" fn request_numeric_environment_cid(wire : String) -> String =
 
 ///|
 test "original numeric 100000 intent uses its observed profile under the unchanged Request budget" {
+  request_numeric_100000_profile_fixture(false)
+}
+
+///|
+test "same original 100000 Plan leaves its selected task execution allowance available" {
+  request_numeric_100000_profile_fixture(true)
+}
+
+///|
+fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise {
   let program = request_native_numeric_public_program(100000)
   let document = "{\"kind\":\"program\",\"input\":" +
     program +
@@ -841,15 +851,36 @@ test "original numeric 100000 intent uses its observed profile under the unchang
     Err(QuerySyntax(_)) => fail("Original100000 QuerySyntax")
     Err(QueryLowering(_)) => fail("Original100000 QueryLowering")
   }
+  let module_base = @resources.ledger_usage(parent.ledger).reserved_execution_bytes
+  let module_contracts = request_program_module_contracts()
+  let module_manifests = request_program_module_manifests()
+  let module_limits = request_program_compilation_limits(parent, input).unwrap()
+  let factory : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider] = _ => {
+    []
+  }
+  let artifact_peak : Ref[(Int64, Int64, Int64)?] = Ref(None)
+  if check_execution {
+    prepare_request_program_compilation(
+      parent,
+      input,
+      module_contracts,
+      manifests=module_manifests,
+      compilation_limits=module_limits,
+      retained_output=true,
+      provider_factory=factory,
+    ).unwrap()
+    |> ignore
+    artifact_peak.val = parent.program_artifact_quote
+  }
   match
     prepare_request_program_module_body(
       parent,
       input,
-      request_program_module_contracts(),
-      manifests=request_program_module_manifests(),
-      compilation_limits=request_program_compilation_limits(parent, input).unwrap(),
+      module_contracts,
+      manifests=module_manifests,
+      compilation_limits=module_limits,
       retained_output=true,
-      provider_factory=_ => [],
+      provider_factory=factory,
     ) {
     Ok(_) => ()
     Err(CapacityExceeded(issue)) =>
@@ -962,6 +993,101 @@ test "original numeric 100000 intent uses its observed profile under the unchang
     Err(ModelSource(_)) => fail("Original100000 module ModelSource")
     Err(ContentQuery(_)) => fail("Original100000 module ContentQuery")
     Err(ContentSource(_)) => fail("Original100000 module ContentSource")
+  }
+  if check_execution {
+    let original_plan = parent.program_source_free.unwrap()
+    let plan = original_plan.capacity_plan
+    let original = plan.sequences[0]
+    let graph = plan.graph.unwrap()
+    let selected = match @strategy.graph_task_selected_step(graph, 0) {
+      Some(step) =>
+        @execution.select_generated_sequence_step(original, step).unwrap()
+      None => original
+    }
+    let provider = @local.local_bounded_relation_provider(
+      plan.execution,
+      plan.measurement,
+      selected,
+    ).unwrap()
+    let child = @local.managed_provider_capacity(provider, selected).unwrap()
+    let required = @execution.execution_capacity_execution_bytes(child) +
+      @execution.execution_capacity_retained_bytes(child)
+    let reserved = @resources.ledger_usage(parent.ledger).reserved_execution_bytes
+    let available = original_limits.execution_bytes - reserved
+    assert_true(
+      required <= available,
+      msg="Same original first task execution=" +
+        required.to_string() +
+        "; remaining=" +
+        available.to_string() +
+        "; preparation=" +
+        reserved.to_string() +
+        "; providerE=" +
+        @execution.execution_capacity_execution_bytes(child).to_string() +
+        "; providerR=" +
+        @execution.execution_capacity_retained_bytes(child).to_string() +
+        "; moduleBase=" +
+        module_base.to_string() +
+        "; artifactPeak=" +
+        @debug.to_string(artifact_peak.val),
+    )
+    let prepared = parent.compiled_program.unwrap()
+    let request = @publication_host.prepare_source_free_client_request_identity(
+      prepared,
+      "sha256:" + "a".repeat(64),
+      "same-original-numeric-first-task",
+    ).unwrap()
+    let run = begin_request_program_managed_run(parent, request).unwrap()
+    let setup = open_installed_managed_source_free_host(
+        run,
+        prepared,
+        request,
+        original_plan.installed_contracts,
+        original_plan.values_body,
+        original_plan.fragment_body,
+        original_plan.ordered_body,
+        true,
+      )
+      .unwrap()
+      .unwrap()
+    let dag = @host_driver.dispatch_driver_run(
+      @builtin.configured_host_driver(setup),
+    )
+    assert_true(
+      physical_equal(@strategy.captured_dag_ledger(dag), parent.ledger),
+    )
+    assert_true(
+      @strategy.configure_captured_managed_identity_policy(
+        dag, true, false, false, false,
+      ),
+    )
+    let execution = match
+      execute_source_free_local_tasks_guarded(setup, 64, 1000000, () => true) {
+      Ok(value) => value
+      Err(failure) => {
+        let issue = local_values_execution_failure_issue(failure)
+        retry_local_values_execution_failure_cleanup(failure) |> ignore
+        retire_installed_managed_run(run) |> ignore
+        let reason = match issue {
+          Driver(Execution(Physical(original))) => @debug.to_string(original)
+          _ => "OtherLocalValuesExecutionIssue"
+        }
+        fail("Same original100000 actual task: " + reason)
+      }
+    }
+    let rows = execution.rows().unwrap()
+    assert_eq(rows.length(), 100000)
+    for index in 0..<rows.length() {
+      assert_eq(rows[index], "{\"v0\":" + index.to_string() + "}")
+    }
+    let attempts = @resources.ledger_usage(parent.ledger).attempts
+    assert_true(attempts > 0)
+    assert_true(execution.close())
+    retire_installed_managed_run(run).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).attempts, attempts)
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    assert_eq(@resources.ledger_limits(parent.ledger), original_limits)
+    return
   }
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)

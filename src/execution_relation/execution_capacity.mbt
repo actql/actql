@@ -82,7 +82,12 @@ pub fn generated_bounded_sequence_capacity(
   limits : SequenceExecutionLimits,
   measurement : FixedInputGuardMeasureLimits,
 ) -> ExecutionCapacity? {
-  guard generated.selected_steps is Some([step]) &&
+  guard generated_sequence_step_index_at(generated, 0) is Some(step) &&
+    generated_sequence_step_index_at(generated, 1) is None &&
+    (
+      generated.selected_steps is Some([_]) ||
+      generated_sequence_step_at(generated, 0) is Some(@lower.ValuesStep(_))
+    ) &&
     generated_sequence_step_at(generated, 0) is Some(operation) else {
     return generated_sequence_capacity(generated, limits, measurement)
   }
@@ -103,9 +108,62 @@ pub fn generated_bounded_sequence_capacity(
   }
   let roots = @schema.field_count(schema).to_int64() +
     @lower.node_input_count(node).to_int64()
-  generated_sequence_capacity_with_roots(
+  let ordinary = generated_sequence_capacity_with_roots(
     generated, limits, measurement, roots, roots, true,
   )
+  guard ordinary is Some(ordinary) else { return None }
+  // The Values provider does not pass FixedInputGuardMeasureLimits to its
+  // constructor. Its original admitted Number/Boolean cells are borrowed;
+  // bounded_values_step uses the scalar measure/recheck branch, without a
+  // copied input tree, stepped-measure cursor or output-recheck tree. Keep
+  // the complete accumulated output in retained (and the driver's independent
+  // copy), plus all operation/frame/metadata slots and the current row roots.
+  // This changes constructor DATA only; all cumulative input/output budgets
+  // and failures still execute. Other schemas/providers keep the old quote.
+  if generated_sequence_step_at(generated, 0) is Some(@lower.ValuesStep(_)) &&
+    limits.max_frames > 0 &&
+    limits.rows.operation_entries.to_int64() >=
+    @schema.field_count(schema).to_int64() + 2L &&
+    !generated.contexts.any(context => {
+      capacity_uses_fragment_step(generated, @lower.kernel_step(context.kernel))
+    }) {
+    let mut primitive = true
+    for index in 0..<@schema.field_count(schema) {
+      guard @schema.field_at(schema, index) is Some(field) else { return None }
+      match @schema.field_contract(field).shape {
+        @contract.Number | @contract.Boolean => ()
+        _ => primitive = false
+      }
+    }
+    if primitive {
+      guard execution_capacity_inventory_bytes([
+          {
+            unit: CursorRootSlots,
+            count: limits.rows.operation_entries.to_int64(),
+            copies: 1,
+          },
+          { unit: CursorRootSlots, count: roots, copies: 1, },
+          {
+            unit: CursorRootSlots,
+            count: limits.max_frames.to_int64(),
+            copies: 1,
+          },
+          {
+            unit: CursorRootSlots,
+            count: 2L * @schema.field_count(schema).to_int64() + 2L,
+            copies: 1,
+          },
+        ])
+        is Some(execution) else {
+        return None
+      }
+      return Some({
+        retained_bytes: ordinary.retained_bytes,
+        execution_bytes: execution,
+      })
+    }
+  }
+  Some(ordinary)
 }
 
 ///|

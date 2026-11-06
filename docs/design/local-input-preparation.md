@@ -5926,3 +5926,16 @@ The material emitter also cuts its local parsed Program after synchronous
 emission and before parsing its independently retained material. Original wires,
 Prepared owners, work history, current fences and physical cleanup duties remain
 separate and unchanged.
+
+The bounded Values provider selects its constructor from the original single
+step, including an unprojected one-step sequence. Its capacity selector uses
+that same inventory; a missing `selected_steps` projection is not evidence of
+another constructor. For its admitted Number/Boolean schema, source cells are
+borrowed and the scalar measurement/recheck branches construct no whole input
+copy or stepped value tree. This constructor does not consume the separate
+fixed-input measurement limits. Its physical quote retains the complete output,
+the driver's independent copy, operation and metadata slots, frames and current
+row roots. Cumulative input/output/work guards still execute unchanged. Text,
+nested values, fragment contexts and other providers retain their conservative
+constructor envelopes. This is a backing correspondence, not a new admission
+rule, semantic classifier, resource tariff or additional allowance.
