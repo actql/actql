@@ -14,6 +14,7 @@ import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreTestSelection} from './native-core-test-selection.mjs';
+import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -57,6 +58,8 @@ const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_c
   : {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: undefined};
 const privateHost = full || args.some(arg => arg.includes('platform_native/filesystem'))
   ? nativePrivateHostFixture(namespace) : {};
+const processRegion = full || args.some(arg => arg.includes('platform_native/host_bootstrap'))
+  ? nativeProcessRegionFixture(root, namespace) : {};
 const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/client_host'))
   // Match optimization, debug and warning modes before the original producers
   // populate the cache. Changing the mode afterwards invalidates their Core
@@ -86,6 +89,7 @@ const fixtureEnvironment = {
   ...bundle,
   ...clientCheckpoint,
   ...privateHost,
+  ...processRegion,
   ...readerCustody,
   ...projectConfiguration,
   ...(walFixture ? {ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE: walFixture} : {}),

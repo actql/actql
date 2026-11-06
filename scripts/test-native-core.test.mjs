@@ -23,6 +23,7 @@ import './native-core-c-compiler.test.mjs';
 import './native-core-test-selection.test.mjs';
 import './native-core-scoped-profile.test.mjs';
 import './native-core-scoped-fixture.test.mjs';
+import './native-process-region-fixture.test.mjs';
 
 test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-capture-progress-'));
@@ -676,6 +677,18 @@ function fixture(t, {scoped = false} = {}) {
     'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
   }
+  // This fixture observes wrapper routing. The original ten process/channel
+  // cases exercise the physical C/Rust leaf with the real preparation helper.
+  writeFileSync(join(checkout, 'scripts/native-process-region-fixture.mjs'), `
+import {mkdirSync} from 'node:fs';
+import {join} from 'node:path';
+export function nativeProcessRegionFixture(repository, namespace) {
+  const root = join(namespace, 'process-region'); mkdirSync(root, {mode: 0o700});
+  return {ACTQL_TEST_NATIVE_PROCESS_REGION_ROOT: root,
+    ACTQL_TEST_NATIVE_HANDLER_PROCESS_CHILD: join(root, 'handler-process-child'),
+    ACTQL_TEST_NATIVE_HANDLER_LIBRARY: join(root, 'handler-thread.dylib')};
+}
+`);
   mkdirSync(join(checkout, 'scripts/fixtures'));
   copyFileSync(new URL('fixtures/native-unclosed-sqlite.c', import.meta.url),
     join(checkout, 'scripts/fixtures/native-unclosed-sqlite.c'));
@@ -872,6 +885,12 @@ assert.equal(existsSync(process.env.ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY), f
 assert.equal(process.env.ACTQL_TEST_NATIVE_STORE_ROOT, undefined,
   'Core must not activate unrelated shared Store fixtures');
 assert.equal(process.env.ACTQL_REQUIRE_NATIVE_RETAINED_TEST, '1');
+if (process.env.ACTQL_TEST_NATIVE_PROCESS_REGION_ROOT) {
+  assert.equal(process.env.ACTQL_TEST_NATIVE_PROCESS_REGION_ROOT, join(root, 'process-region'));
+  assert.equal(process.env.ACTQL_TEST_NATIVE_HANDLER_PROCESS_CHILD, join(root, 'process-region/handler-process-child'));
+  assert.equal(process.env.ACTQL_TEST_NATIVE_HANDLER_LIBRARY, join(root, 'process-region/handler-thread.dylib'));
+  console.log('PROCESS_REGION_INPUTS_PROVISIONED');
+}
 for (const [variable, child] of [
   ['ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT', 'standard'],
   ['ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT', 'bundles'],
