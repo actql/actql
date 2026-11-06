@@ -14,6 +14,8 @@ import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreTestSelection} from './native-core-test-selection.mjs';
+import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
+import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -50,6 +52,7 @@ const selection = full ? nativeCoreTestSelection(root, args,
 if (selection) console.log('Native test selection: ' + JSON.stringify({cases: selection.cases,
   packages: selection.packages, prunedDrivers: selection.prunedDrivers,
   profiles: {ordinary: selection.profiles.ordinary.cases,
+    http: selection.profiles.http.cases,
     scoped: selection.profiles.scoped.cases, physical: selection.profiles.physicalCases,
     repeatedGeometry: selection.profiles.repeatedGeometryCases}}));
 const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_client'))
@@ -58,6 +61,8 @@ const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_c
 const privateHost = full || args.some(arg =>
   arg.includes('platform_native/filesystem') || arg.includes('platform_native/client_host'))
   ? nativePrivateHostFixture(namespace) : {};
+const processRegion = full || args.some(arg => arg.includes('platform_native/host_bootstrap'))
+  ? nativeProcessRegionFixture(root, namespace) : {};
 const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/client_host'))
   // Match optimization, debug and warning modes before the original producers
   // populate the cache. Changing the mode afterwards invalidates their Core
@@ -87,6 +92,7 @@ const fixtureEnvironment = {
   ...bundle,
   ...clientCheckpoint,
   ...privateHost,
+  ...processRegion,
   ...readerCustody,
   ...projectConfiguration,
   ...(walFixture ? {ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE: walFixture} : {}),
@@ -111,6 +117,11 @@ const fixtureEnvironment = {
     process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so'),
   ACTQL_TEST_NATIVE_SQLITE_ROOT: namespace,
 };
+// Keep physical file inputs separate from the selected-provider environment.
+// Only the ordinary child/focused Arena caller receives these fresh originals.
+const ordinaryProcess = (full ? selection.profiles.ordinary.args !== null :
+  args.some(arg => arg.includes('platform_native/installed_arena_control')))
+  ? nativeCoreOrdinaryProcessFixture(namespace) : {};
 const checkChild = result => {
   if (result.error) throw result.error;
   if (result.status !== 0) {
@@ -119,6 +130,17 @@ const checkChild = result => {
   }
 };
 if (full) {
+  if (selection.profiles.http.args !== null) {
+    console.log(`Native Core HTTP profile: ${selection.profiles.http.cases} required cases`);
+    checkChild(spawnSync(process.execPath, ['scripts/test-native-http-client.mjs'], {
+      cwd: root, stdio: 'inherit', env: {...compilerEnvironment,
+        ACTQL_TEST_SCRATCH_ROOT: namespace,
+        ACTQL_TEST_PRESERVE_SCRATCH: '1',
+        ACTQL_TEST_NATIVE_HTTP_FOCUS: 'core-http',
+        ACTQL_TEST_NATIVE_CORE_HTTP_ARGS: JSON.stringify(selection.profiles.http.args),
+        ACTQL_TEST_NATIVE_CORE_HTTP_COUNT: String(selection.profiles.http.cases)},
+    }));
+  }
   // Each configuration executes its original compiler-owned cases. The
   // ordinary configuration also checks that no physical provider was selected;
   // physical custody cases must instead run with the real scoped provider.
@@ -129,7 +151,7 @@ if (full) {
       '--core-test-json', JSON.stringify(profile.args), '--core-test-count', String(profile.cases)],
     {cwd: root, stdio: 'inherit', env: environment}));
   };
-  runProfile(selection.profiles.ordinary, {...fixtureEnvironment, ...testCompiler});
+  runProfile(selection.profiles.ordinary, {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler});
   if (selection.profiles.scoped.args !== null) {
     const scopedScratch = await createOwnedScratch({parent: join(root, '_build', 'native-core-scoped'),
       prefix: 'profile-', label: 'Native Core scoped compiler', preserve: true});
@@ -189,7 +211,7 @@ if (full) {
   }
 } else {
   checkChild(spawnSync('moon', ['test', '--target', 'native', ...args],
-    {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...testCompiler}}));
+    {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler}}));
 }
 // spawnSync has reaped every child; within-run database reopen is unchanged.
 scratch.passed();

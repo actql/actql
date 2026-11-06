@@ -23,6 +23,7 @@ import './native-core-c-compiler.test.mjs';
 import './native-core-test-selection.test.mjs';
 import './native-core-scoped-profile.test.mjs';
 import './native-core-scoped-fixture.test.mjs';
+import './native-process-region-fixture.test.mjs';
 
 test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-capture-progress-'));
@@ -659,7 +660,7 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
   }
 });
 
-function fixture(t, {scoped = false} = {}) {
+function fixture(t, {scoped = false, http = false} = {}) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-namespace-test-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const checkout = join(root, 'checkout');
@@ -668,7 +669,7 @@ function fixture(t, {scoped = false} = {}) {
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
-    'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'verification-actions.mjs',
+    'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'native-core-scoped-fixture.mjs', 'verification-actions.mjs',
     'native-client-checkpoint-fixture.mjs', 'native-private-host-fixture.mjs',
     'native-filesystem-observation-fixture.mjs',
     'native-runtime-reader-custody-fixture.mjs', 'native-project-configuration-fixture.mjs',
@@ -676,6 +677,18 @@ function fixture(t, {scoped = false} = {}) {
     'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
   }
+  // This fixture observes wrapper routing. The original ten process/channel
+  // cases exercise the physical C/Rust leaf with the real preparation helper.
+  writeFileSync(join(checkout, 'scripts/native-process-region-fixture.mjs'), `
+import {mkdirSync} from 'node:fs';
+import {join} from 'node:path';
+export function nativeProcessRegionFixture(repository, namespace) {
+  const root = join(namespace, 'process-region'); mkdirSync(root, {mode: 0o700});
+  return {ACTQL_TEST_NATIVE_PROCESS_REGION_ROOT: root,
+    ACTQL_TEST_NATIVE_HANDLER_PROCESS_CHILD: join(root, 'handler-process-child'),
+    ACTQL_TEST_NATIVE_HANDLER_LIBRARY: join(root, 'handler-thread.dylib')};
+}
+`);
   mkdirSync(join(checkout, 'scripts/fixtures'));
   copyFileSync(new URL('fixtures/native-unclosed-sqlite.c', import.meta.url),
     join(checkout, 'scripts/fixtures/native-unclosed-sqlite.c'));
@@ -693,6 +706,23 @@ function fixture(t, {scoped = false} = {}) {
   for (const name of ['fixture-native', 'fixture-empty']) {
     mkdirSync(join(checkout, 'src', name), {recursive: true});
     writeFileSync(join(checkout, 'src', name, 'main.mbt'), 'Original compiler-input fixture\n');
+  }
+  if (http) {
+    const source = join(checkout, 'src/platform_native/http_client');
+    mkdirSync(source, {recursive: true});
+    writeFileSync(join(source, 'main.mbt'), 'Original compiler-input fixture\n');
+    // Explicit wrapper-routing port, not physical HTTPS acceptance.
+    writeFileSync(join(checkout, 'scripts/test-native-http-client.mjs'), `
+import assert from 'node:assert/strict';
+assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS, 'core-http');
+assert.equal(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_COUNT, '1');
+assert.deepEqual(JSON.parse(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_ARGS),
+  ['--deny-warn', 'src/platform_native/http_client']);
+assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_URL, undefined);
+assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1');
+console.log('ORIGINAL_HTTP_PROFILE_REQUIRED');
+process.exitCode = process.env.ACTQL_FIXTURE_HTTP_FAILED === '1' ? 9 : 0;
+`);
   }
   if (scoped) {
     mkdirSync(join(checkout, 'src/cmd/native_client'), {recursive: true});
@@ -718,15 +748,6 @@ export function prepareNativeCoreScopedProfile(root, scratch, args, {env, profil
   const targetDirectory = join(scratch, 'selected-target'); mkdirSync(targetDirectory);
   assert(['runtime-values', 'scoped-review-values'].includes(profile));
   return {targetDirectory, environment: {...env, ACTQL_FIXTURE_PROFILE: profile}};
-}
-`);
-    writeFileSync(join(checkout, 'scripts/native-core-scoped-fixture.mjs'), `
-import {mkdirSync} from 'node:fs';
-import {join} from 'node:path';
-export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary}) {
-  const root = join(namespace, 'installed-process'); mkdirSync(root, {mode: 0o700});
-  return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root,
-    ACTQL_TEST_CRYPTO_COMPONENT: cryptoLibrary, ACTQL_TEST_SQLITE_COMPONENT: sqliteLibrary};
 }
 `);
     writeFileSync(join(checkout, 'scripts/native-runtime-bundle-fixture.mjs'), `
@@ -772,8 +793,10 @@ if (process.argv.includes('--dry-run')) {
       '--target native --pkg-name fixture/arena --driver-kind whitebox');
     process.exit(0);
   }
-  for (const name of process.argv.includes('src/fixture-native') ? ['fixture-native']
-    : ['fixture-native','fixture-empty']) console.log('moon generate-test-driver ' +
+  for (const name of process.argv.includes('src/fixture-native') ? ['fixture-native',
+    ...(process.argv.includes('src/platform_native/http_client') ? ['platform_native/http_client'] : [])]
+    : ['fixture-native','fixture-empty',
+      ...(process.env.ACTQL_FIXTURE_CORE_HTTP === '1' ? ['platform_native/http_client'] : [])]) console.log('moon generate-test-driver ' +
       '--output-driver _build/native/release/test/'+name+'/driver.mbt '+
       '--output-metadata _build/native/release/test/'+name+'/info.json '+
       'src/'+name+'/main.mbt --target native --pkg-name fixture/'+name+' --driver-kind internal');
@@ -784,7 +807,8 @@ if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
     JSON.stringify({args:process.argv.slice(2),path:process.env.PATH,
       allocator:process.env.MOONBIT_ALLOCATOR,compiler:process.env.MOON_CC,
       backend:process.env.MOONBIT_NEW_NATIVE,profile:process.env.ACTQL_FIXTURE_PROFILE ?? 'ordinary',
-      installedProcess:process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT}) + '\\n');
+      installedProcess:process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT,
+      sqliteComponent:process.env.ACTQL_TEST_SQLITE_COMPONENT,cryptoComponent:process.env.ACTQL_TEST_CRYPTO_COMPONENT}) + '\\n');
 }
 if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE_PROFILE)) {
   assert(process.argv.includes('--target-dir'));
@@ -872,6 +896,12 @@ assert.equal(existsSync(process.env.ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY), f
 assert.equal(process.env.ACTQL_TEST_NATIVE_STORE_ROOT, undefined,
   'Core must not activate unrelated shared Store fixtures');
 assert.equal(process.env.ACTQL_REQUIRE_NATIVE_RETAINED_TEST, '1');
+if (process.env.ACTQL_TEST_NATIVE_PROCESS_REGION_ROOT) {
+  assert.equal(process.env.ACTQL_TEST_NATIVE_PROCESS_REGION_ROOT, join(root, 'process-region'));
+  assert.equal(process.env.ACTQL_TEST_NATIVE_HANDLER_PROCESS_CHILD, join(root, 'process-region/handler-process-child'));
+  assert.equal(process.env.ACTQL_TEST_NATIVE_HANDLER_LIBRARY, join(root, 'process-region/handler-thread.dylib'));
+  console.log('PROCESS_REGION_INPUTS_PROVISIONED');
+}
 for (const [variable, child] of [
   ['ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT', 'standard'],
   ['ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT', 'bundles'],
@@ -887,6 +917,7 @@ for (const [variable, child] of [
 const body = process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY;
 const cid = 'sha256:' + createHash('sha256').update(body).digest('hex');
 assert.equal(process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID, cid);
+assert.equal(process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET,JSON.parse(body).target_triple);
 assert.deepEqual(JSON.parse(body), {
   bundle_name: 'native-runtime',
   components: [{bytes: '14',
@@ -926,6 +957,7 @@ process.exit(result.status ?? 1);
 `);
   const env = {...process.env, PATH: `${bin}:${process.env.PATH}`,
     ...(scoped ? {ACTQL_FIXTURE_CORE_SCOPED: '1'} : {}),
+    ...(http ? {ACTQL_FIXTURE_CORE_HTTP: '1'} : {}),
     HOME: root, RUNNER_TEMP: join(root, 'runner'), ACTQL_TEST_NATIVE_SQLITE_ROOT: parent,
     ACTQL_TEST_PRESERVE_SCRATCH: '',
     ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: parent,
@@ -979,6 +1011,26 @@ test('selected Native tests do not activate the unrelated target fixture', t => 
   assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
   assert.doesNotMatch(result.stdout, /PRIVATE_HOST_FIXTURE_PROVISIONED/u);
   assert.match(result.stdout, /child stopped/u);
+  f.verifyExternal();
+});
+
+test('focused ordinary Arena inputs do not select components or reach unrelated Native callers', t => {
+  const f=fixture(t),commands=join(f.root,'native-commands.jsonl');
+  for(const file of ['src/platform_native/installed_arena_control/process_transport_wbtest.mbt',
+    'src/platform_native/trusted_clock/clock_wbtest.mbt']) {
+    const result=spawnSync(process.execPath,['scripts/test-native-core.mjs','--deny-warn',file],
+      {cwd:f.checkout,encoding:'utf8',timeout:10000,
+        env:{...f.env,ACTQL_FIXTURE_NATIVE_COMMANDS:commands}});
+    assert.equal(result.status,0,result.stdout+result.stderr);
+  }
+  const [arena,unrelated]=readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse);
+  assert(arena.installedProcess.endsWith('/installed-process'));
+  assert.equal(unrelated.installedProcess,undefined);
+  for(const call of [arena,unrelated]) {
+    assert.equal(call.profile,'ordinary');
+    assert.equal(call.sqliteComponent,undefined);assert.equal(call.cryptoComponent,undefined);
+    assert.equal(call.allocator,f.env.MOONBIT_ALLOCATOR);
+  }
   f.verifyExternal();
 });
 
@@ -1271,6 +1323,25 @@ test('strict Native checkpoint producers share the full release child compilatio
   f.verifyExternal();
 });
 
+test('full Native Core requires every HTTP case in its own peer profile and propagates transport failure', t => {
+  for (const fail of [false, true]) {
+    const f = fixture(t, {http: true});
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs', '--deny-warn'], {
+      cwd: f.checkout, encoding: 'utf8', timeout: 10000,
+      env: {...f.env, ACTQL_FIXTURE_HTTP_FAILED: fail ? '1' : '0'},
+    });
+    assert.ifError(result.error);
+    assert.equal(result.signal, null);
+    assert.equal(result.status, fail ? 9 : 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /"ordinary":1,"http":1,"scoped":0/u);
+    assert.match(result.stdout, /Native Core HTTP profile: 1 required cases/u);
+    assert.match(result.stdout, /ORIGINAL_HTTP_PROFILE_REQUIRED/u);
+    if (fail) assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+    else assert.match(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+    f.verifyExternal();
+  }
+});
+
 test('full Native Core requires both ordinary and selected profiles and propagates selected failure', t => {
   for (const fail of [false, true]) {
     const f = fixture(t, {scoped: true}), commands = join(f.root, 'native-commands.jsonl');
@@ -1289,6 +1360,11 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     const [ordinary, ...selectedCases] = calls.slice(2);
     const selected = selectedCases[0];
     assert.equal(ordinary.profile, 'ordinary');
+    assert.equal(ordinary.installedProcess.endsWith('/installed-process'), true);
+    assert.equal(ordinary.sqliteComponent, undefined);
+    assert.equal(ordinary.cryptoComponent, undefined);
+    for (const producer of calls.slice(0, 2)) assert.equal(producer.installedProcess, undefined);
+    for (const selected of selectedCases) assert.notEqual(selected.installedProcess, ordinary.installedProcess);
     assert.equal(selected.profile, 'runtime-values');
     assert.deepEqual(ordinary.args.filter(value => value.startsWith('src/')), [
       'src/cmd/native_client/ordinary_wbtest.mbt',
@@ -1315,7 +1391,7 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     assert.deepEqual(selected.args.slice(0, 3), ['test', '--target', 'native']);
     const target = selected.args[selected.args.indexOf('--target-dir') + 1];
     assert(target.startsWith(join(f.checkout, '_build/native-core-scoped/profile-')));
-    assert.match(result.stdout, /"ordinary":2,"scoped":3,"physical":2,"repeatedGeometry":1/u);
+    assert.match(result.stdout, /"ordinary":2,"http":0,"scoped":3,"physical":2,"repeatedGeometry":1/u);
     assert.equal((result.stdout.match(/CORE_TARGET_FIXTURE_PROVISIONED/gu) ?? []).length, 1,
       'only ordinary Core executes the Salesforce target oracle');
     const namespace = /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1];

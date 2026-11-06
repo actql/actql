@@ -31,9 +31,14 @@ const selectedGeometryFiles = new Set([
 function partitionProfiles(args, records) {
   const scopedFiles = new Set(nativeScopedTestFiles);
   const physical = records.filter(record => scopedFiles.has(record.source));
-  const ordinary = records.filter(record => !scopedFiles.has(record.source));
+  // These existing transport cases require the real mTLS/bearer peers from
+  // the HTTP harness. Do not inject its optional environment into other Core
+  // packages, or count a missing environment as transport execution.
+  const http = records.filter(record => record.directory === 'src/platform_native/http_client');
+  const ordinary = records.filter(record => !scopedFiles.has(record.source) &&
+    record.directory !== 'src/platform_native/http_client');
   const geometry = ordinary.filter(record => selectedGeometryFiles.has(record.source));
-  assert.equal(ordinary.length + physical.length, records.length);
+  assert.equal(ordinary.length + physical.length + http.length, records.length);
   const affected = new Set(physical.map(record => record.directory));
   const ordinaryPaths = [...new Set(ordinary.map(record =>
     affected.has(record.directory) ? record.source : record.directory))];
@@ -51,6 +56,8 @@ function partitionProfiles(args, records) {
   return {
     ordinary: {args: ordinaryPaths.length ? [...args, ...ordinaryPaths] : null,
       cases: ordinary.length},
+    http: {args: http.length ? [...args, 'src/platform_native/http_client'] : null,
+      cases: http.length},
     scoped: {args: selectedPaths.length ? [...args, ...selectedPaths] : null,
       cases: physical.length + geometry.length, tests},
     physicalCases: physical.length,
