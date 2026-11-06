@@ -197,6 +197,101 @@ class LinuxCryptoSources(unittest.TestCase):
             P.verify_original_inputs(pinned, compiled)
 
 
+class LinuxCryptoPackageArchives(LinuxCryptoSources):
+    def setUp(self):
+        super().setUp()
+        self.archives, self.metadata, self.members = [], {}, {}
+        for expected, marker in ((self.selected['package'], b'original dev package'),
+                                 (self.selected['license']['package'], b'original runtime package')):
+            path = self.root / (expected['name'] + '.deb')
+            path.write_bytes(marker)
+            expected.update(P.original(path))
+            self.archives.append(path)
+            self.metadata[str(path)] = ('Package: ' + expected['name'] + '\nVersion: ' + expected['version'] +
+                                        '\nArchitecture: ' + expected['architecture'] + '\n')
+            self.members[str(path)] = []
+        for path in self.root.rglob('*'):
+            if path.is_file() and path.suffix != '.deb':
+                relative = str(path.relative_to(self.root))
+                owner = self.archives[1] if relative == self.selected['license']['path'] else self.archives[0]
+                self.members[str(owner)].append(('usr/' + relative, path.read_bytes(), tarfile.REGTYPE, ''))
+
+    def query(self, arguments, *, text, timeout):
+        self.assertEqual(arguments[0], '/usr/bin/dpkg-deb')
+        self.assertEqual(timeout, 30)
+        if arguments[1] == '--field':
+            self.assertTrue(text)
+            return self.metadata[arguments[2]]
+        self.assertEqual(arguments[1], '--fsys-tarfile')
+        self.assertFalse(text)
+        raw = io.BytesIO()
+        with tarfile.open(fileobj=raw, mode='w:') as output:
+            for name, data, kind, link in self.members[arguments[2]]:
+                member = tarfile.TarInfo(name)
+                member.type, member.linkname = kind, link
+                member.size = len(data) if kind == tarfile.REGTYPE else 0
+                output.addfile(member, io.BytesIO(data) if member.size else None)
+        return raw.getvalue()
+
+    def materialize(self, name='materialized'):
+        return P.prepare_linux_package_inputs(self.root / name, self.archives, self.selected, query=self.query)
+
+    def test_explicit_packages_materialize_only_the_same_pinned_regular_members(self):
+        self.members[str(self.archives[0])].append(('usr/lib/x86_64-linux-gnu/libcrypto.so', b'', tarfile.SYMTYPE, 'libcrypto.so.3'))
+        result = self.materialize()
+        self.assertEqual(len(result['packages']), 2)
+        self.assertEqual(len(result['inputs']), 6)
+        self.assertFalse((self.root / 'materialized/lib/x86_64-linux-gnu/libcrypto.so').exists())
+        self.assertEqual(len(P.linux_member_inputs(self.root / 'materialized', self.selected)), 4)
+
+    def test_archive_identity_refuses_without_system_package_fallback(self):
+        self.archives[0].write_bytes(b'changed package')
+        with self.assertRaisesRegex(ValueError, 'archive mismatch'):
+            self.materialize()
+        self.assertFalse((self.root / 'materialized').exists())
+
+    def test_package_version_name_and_architecture_are_independently_checked(self):
+        path = str(self.archives[0])
+        original = self.metadata[path]
+        for old, new in (('libssl-dev', 'foreign-package'), ('3.0.13-0ubuntu3.16', '3.0.13'), ('amd64', 'arm64')):
+            with self.subTest(old=old):
+                self.metadata[path] = original.replace(old, new)
+                with self.assertRaisesRegex(ValueError, 'package identity mismatch'):
+                    self.materialize()
+                self.assertFalse((self.root / 'materialized').exists())
+        self.metadata[path] = original
+
+    def test_escaped_duplicate_and_selected_symlink_members_refuse_before_writes(self):
+        path = str(self.archives[0])
+        original = list(self.members[path])
+        for extra in [
+            ('../../escape', b'bad', tarfile.REGTYPE, ''),
+            ('/absolute', b'bad', tarfile.REGTYPE, ''),
+            ('usr/include/openssl/alias.h', b'', tarfile.SYMTYPE, 'original.h'),
+            ('usr/include/openssl/alias.h', b'', tarfile.LNKTYPE, 'usr/include/openssl/original.h'),
+            ('usr/unselected', b'', tarfile.SYMTYPE, '../../escape'),
+            original[0],
+        ]:
+            with self.subTest(name=extra[0]):
+                self.members[path] = original + [extra]
+                with self.assertRaisesRegex(ValueError, 'archive member'):
+                    self.materialize()
+                self.assertFalse((self.root / 'materialized').exists())
+        self.members[path] = original
+
+    def test_missing_header_static_library_or_license_never_produces_a_prefix(self):
+        for archive in self.archives:
+            key = str(archive)
+            original = list(self.members[key])
+            for index in range(len(original)):
+                with self.subTest(archive=key, index=index):
+                    self.members[key] = original[:index] + original[index + 1:]
+                    with self.assertRaisesRegex(ValueError, 'member mismatch|header membership'):
+                        self.materialize()
+                    self.assertFalse((self.root / 'materialized').exists())
+            self.members[key] = original
+
+
 class CompatibleDarwinSource(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory()

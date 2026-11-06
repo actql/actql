@@ -1,0 +1,118 @@
+// Actual fixed-cohort global installation and source-free Local execution.
+// Mock bindings, live Connectors, approval and public-registry publication are
+// separate acceptance subjects. No repository runtime or Node Host is loaded.
+import assert from 'node:assert/strict';
+import {execFile} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {mkdir, readFile, readdir, writeFile, unlink} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {promisify} from 'node:util';
+import {platformKey} from '../packages/native-cli/bin/actql.mjs';
+import {checkoutState} from './packed-client-packages.mjs';
+import {verifyNativeCliRelease} from './native-cli-release.mjs';
+import {createOwnedScratch} from './owned-scratch.mjs';
+import {openReleaseTestRegistry} from './release-test-registry.mjs';
+
+const repository = fileURLToPath(new URL('../', import.meta.url));
+const [input, ...extra] = process.argv.slice(2);
+assert(input && extra.length === 0, 'usage: test-native-cli-source-free-install.mjs <fixed-CLI-RC>');
+const directory = resolve(input), manifest = await verifyNativeCliRelease(directory);
+const source = checkoutState(repository);
+assert(source.clean && source.revision === manifest.sourceSha, 'Exact clean fixed source required');
+const glibc = process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : undefined;
+const platform = platformKey({platform: process.platform, arch: process.arch, glibc});
+const expected = manifest.artifacts.find(value => value.platform === platform);
+assert(expected?.localRuntime, 'Source-free installed acceptance requires a real Local runtime artifact');
+const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-source-free-install-',
+  label: 'Native source-free Local external installation'});
+const root = scratch.path, prefix = join(root, 'global'), project = join(root, 'project'), records = [];
+const registry = await openReleaseTestRegistry([{directory, manifest}]);
+const env = {...process.env};
+for (const key of Object.keys(env)) if (/^npm_config_/iu.test(key) || /^(?:ACTQL_|DYLD_)/u.test(key) ||
+  ['NODE_PATH', 'NODE_OPTIONS', 'LD_PRELOAD', 'LD_LIBRARY_PATH', 'MOON_HOME'].includes(key)) delete env[key];
+Object.assign(env, {HOME: join(root, 'home'), TMPDIR: join(root, 'tmp'),
+  npm_config_registry: registry.url, npm_config_userconfig: join(root, 'npmrc'),
+  npm_config_globalconfig: join(root, 'npmrc-global'), npm_config_cache: join(root, 'cache'),
+  npm_config_proxy: '', npm_config_https_proxy: '', npm_config_update_notifier: 'false',
+  NO_PROXY: '127.0.0.1,localhost'});
+const execute = promisify(execFile);
+async function run(command, args, cwd = root, expectedCode = 0) {
+  const started = Date.now();
+  let result;
+  try {
+    result = {...await execute(command, args, {cwd, env, timeout: 180_000,
+      killSignal: 'SIGKILL', maxBuffer: 8 * 1024 * 1024}), code: 0, signal: null};
+  } catch (error) {
+    result = {code: error.code ?? null, signal: error.signal ?? null,
+      killed: error.killed ?? false, stdout: error.stdout ?? '', stderr: error.stderr ?? ''};
+  }
+  const record = {command, args, cwd, elapsedMs: Date.now() - started, ...result};
+  records.push(record);
+  await writeFile(join(root, 'commands.json'), `${JSON.stringify(records, null, 2)}\n`);
+  assert.equal(record.code, expectedCode, `${command}: ${record.code}/${record.signal}\n${record.stdout}\n${record.stderr}`);
+  assert.equal(record.signal, null);
+  return record;
+}
+const rows = text => text.trim().split('\n').map(line => JSON.parse(line));
+try {
+  for (const path of [prefix, env.HOME, env.TMPDIR, join(root, 'empty-path')]) await mkdir(path);
+  await writeFile(join(root, 'npmrc'), `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
+  await writeFile(join(root, 'npmrc-global'), '');
+  await run('npm', ['install', '-g', '--prefix', prefix, '--ignore-scripts', '--no-audit', '--no-fund',
+    `actql@${manifest.cohort.packageVersion}`]);
+  const installed = join(prefix, 'lib/node_modules/actql'), launcher = join(prefix, 'bin/actql');
+  assert.deepEqual((await readdir(join(installed, 'node_modules/@actql'))).sort(), [`cli-${platform}`]);
+  const platformRoot = join(installed, 'node_modules/@actql', `cli-${platform}`);
+  const artifact = JSON.parse(await readFile(join(platformRoot, 'artifact.json'), 'utf8'));
+  assert.deepEqual(artifact, expected);
+  const originalBinary = await readFile(join(platformRoot, 'bin/actql-native-client'));
+  assert.equal(originalBinary.length, expected.binaryBytes);
+  assert.equal(createHash('sha256').update(originalBinary).digest('hex'), expected.binarySha256);
+  // Node launches only the installed npm entry. Neither it nor the Native child
+  // can discover a compiler, a repository executable, a provider or a Node Host.
+  env.PATH = join(root, 'empty-path');
+  const cli = (args, cwd = project, code = 0) => run(process.execPath, [launcher, ...args], cwd, code);
+  assert.equal((await cli(['--version'], root)).stdout, `${manifest.cohort.packageVersion}\n`);
+  await cli(['init', 'project'], root);
+  assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
+  await writeFile(join(project, 'query.sql'), 'SELECT 1 AS id\n');
+  const checked = JSON.parse((await cli(['check', 'query.sql', '--format', 'sql', '--json'])).stdout);
+  assert.equal(checked.version, 'actql-check-outcome/0.1');
+  assert.equal(checked.outcome, 'completed');
+  assert.equal(checked.report.verdict, 'verified');
+  assert.equal(checked.report.runnable.verdict, 'yes');
+  const explained = JSON.parse((await cli(['explain', 'query.sql', '--format', 'sql', '--json'])).stdout);
+  assert.equal(explained.version, 'actql-plan-view/0.1');
+  assert.deepEqual(rows((await cli(['sql', 'SELECT 2 AS id', '--format', 'jsonl'])).stdout), [{id: 2}]);
+  const state = JSON.parse((await cli(['run', 'query.sql', '--format', 'sql', '--json'])).stdout);
+  assert.equal(state.version, 'actql-run-state/0.1');
+  assert.equal(state.status, 'succeeded');
+  assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+  // Subsequent processes must use retained Run/Result originals, not reexecute
+  // the now-absent source file or manufacture a fresh successful Run.
+  await unlink(join(project, 'query.sql'));
+  for (let count = 0; count < 2; count++) {
+    const saved = JSON.parse((await cli(['status', state.run_id, '--json'])).stdout);
+    assert.equal(saved.run_id, state.run_id); assert.equal(saved.status, 'succeeded');
+    assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'])).stdout), [{id: 1}]);
+  }
+  await cli(['result', state.run_id, '--format', 'jsonl', '--output', 'saved.jsonl']);
+  assert.deepEqual(rows(await readFile(join(project, 'saved.jsonl'), 'utf8')), [{id: 1}]);
+  assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), originalBinary);
+  assert.deepEqual(checkoutState(repository), source);
+  const receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
+    cliSourceSha: manifest.sourceSha, platform, node: process.version, glibc: glibc ?? null,
+    artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
+    cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
+    registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
+    publicRegistryPublication: 'not-tested', records,
+    unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
+  const output = join(directory, `source-free-install-${platform}-${Date.now()}.json`);
+  await writeFile(output, `${JSON.stringify(receipt, null, 2)}\n`, {flag: 'wx'});
+  console.log(`Installed Native source-free Local passed: ${output}`);
+} finally {
+  await registry.close();
+}
+scratch.passed();

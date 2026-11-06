@@ -7,10 +7,12 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import platform
+import posixpath
 import re
 import shlex
 import stat
@@ -398,14 +400,18 @@ raise SystemExit(result.returncode)
     return produce(component_output or output / 'component', prefix, clang, sdk, source_static=proof)
 
 
-def linux_source_inputs(openssl: Path, selected: dict, *, query=subprocess.check_output) -> dict:
-    """Select exact official Noble package members; no shared crypto loading."""
+def validate_linux_source_profile(selected: dict) -> None:
     if (selected['target'] != LINUX_TARGET or selected['required_defines'] != ['_GNU_SOURCE']
             or selected['archive']['path'] != 'lib/x86_64-linux-gnu/libcrypto.a'
             or selected['header_roots'] != ['include/openssl', 'include/x86_64-linux-gnu/openssl']
             or selected['link_startup'] != 'compiler-selected-shared'
             or selected['weak_c_runtime_imports'] != sorted(LINUX_WEAK_C_RUNTIME_IMPORTS)):
         raise ValueError('Unselected Linux Crypto source profile')
+
+
+def linux_source_inputs(openssl: Path, selected: dict, *, query=subprocess.check_output) -> dict:
+    """Select exact installed official Noble packages; never fall back to archives."""
+    validate_linux_source_profile(selected)
     packages = query(['/usr/bin/dpkg-query', '--show',
         '--showformat=${Package}\t${Version}\t${Architecture}\n',
         'libssl-dev', 'libssl3t64'], text=True)
@@ -414,6 +420,11 @@ def linux_source_inputs(openssl: Path, selected: dict, *, query=subprocess.check
                 for item in (selected['package'], selected['license']['package'])}
     if observed != expected or len(packages.splitlines()) != len(expected):
         raise ValueError('Selected official Linux OpenSSL package version/target mismatch')
+    return linux_member_inputs(openssl, selected)
+
+
+def linux_member_inputs(openssl: Path, selected: dict) -> dict:
+    """Common exact member census, independent of the explicit package source."""
     inputs = {}
     for item in (selected['archive'], selected['license']):
         path = openssl / item['path']
@@ -438,6 +449,98 @@ def linux_source_inputs(openssl: Path, selected: dict, *, query=subprocess.check
     if len(headers) != selected['header_count'] or census != selected['header_census_sha256']:
         raise ValueError('Selected Linux OpenSSL header membership mismatch')
     return inputs
+
+
+def prepare_linux_package_inputs(destination: Path, archives: list[Path], selected: dict,
+                                 *, query=subprocess.check_output) -> dict:
+    """Materialize only pinned regular members from explicitly selected .debs.
+
+    No package is installed and no dpkg database is substituted. Archive mode
+    is selected before admission; failure never switches to system packages.
+    """
+    validate_linux_source_profile(selected)
+    if len(archives) != 2 or destination.exists() or destination.is_symlink():
+        raise ValueError('Two explicit Linux package originals and a fresh destination required')
+    packages = (selected['package'], selected['license']['package'])
+    retained: dict[str, bytes] = {}
+    inputs, package_originals = {}, []
+    for archive, expected in zip(archives, packages):
+        observed = original(archive, 16 * 1024 * 1024)
+        if observed != {key: expected[key] for key in ('bytes', 'sha256')}:
+            raise ValueError('Selected official Linux package archive mismatch: ' + expected['name'])
+        inputs[str(archive)] = observed
+        metadata = query(['/usr/bin/dpkg-deb', '--field', str(archive),
+                          'Package', 'Version', 'Architecture'], text=True, timeout=30)
+        wanted = {'Package': expected['name'], 'Version': expected['version'],
+                  'Architecture': expected['architecture']}
+        fields = [line.split(': ', 1) for line in metadata.splitlines()]
+        if len(fields) != 3 or any(len(field) != 2 for field in fields) or dict(fields) != wanted:
+            raise ValueError('Selected official Linux package identity mismatch')
+        # Only already hash-qualified official archives reach dpkg-deb. Bound
+        # their decoded inventory before retaining or publishing any member.
+        raw = query(['/usr/bin/dpkg-deb', '--fsys-tarfile', str(archive)], text=False, timeout=30)
+        if len(raw) > 32 * 1024 * 1024:
+            raise ValueError('Oversized Linux package member container')
+        with tarfile.open(fileobj=io.BytesIO(raw), mode='r:') as container:
+            names = set()
+            for member in container:
+                name = member.name.removeprefix('./')
+                path = PurePosixPath(name)
+                if name in ('', '.') and member.isdir():
+                    continue
+                if path.is_absolute() or '..' in path.parts or str(path) != name or name in names:
+                    raise ValueError('Invalid Linux package archive member')
+                names.add(name)
+                relative = name.removeprefix('usr/') if name.startswith('usr/') else None
+                if relative in selected['header_roots'] and not member.isdir():
+                    raise ValueError('Invalid selected Linux package archive member root')
+                selected_member = relative is not None and (relative in
+                    (selected['archive']['path'], selected['license']['path']) or
+                    any(relative.startswith(root + '/') for root in selected['header_roots']))
+                if member.isdir():
+                    continue
+                if not selected_member:
+                    # No nonselected file or symlink is extracted. Reject path
+                    # escapes even though those members can never be followed.
+                    if member.issym() or member.islnk():
+                        link = PurePosixPath(member.linkname)
+                        resolved = posixpath.normpath(str(path.parent / link) if member.issym() else str(link))
+                        if link.is_absolute() or resolved == '..' or resolved.startswith('../'):
+                            raise ValueError('Invalid Linux package archive member link')
+                    continue
+                if (not member.isfile() or member.sparse is not None or relative in retained
+                        or member.size <= 0 or member.size > 16 * 1024 * 1024):
+                    raise ValueError('Invalid selected Linux package archive member')
+                stream = container.extractfile(member)
+                if stream is None:
+                    raise ValueError('Missing selected Linux package archive member')
+                with stream:
+                    data = stream.read(member.size + 1)
+                if len(data) != member.size:
+                    raise ValueError('Incomplete Linux package archive member')
+                retained[relative] = data
+        if original(archive, 16 * 1024 * 1024) != observed:
+            raise ValueError('Selected Linux package archive changed')
+        package_originals.append({'path': str(archive), **observed, **wanted})
+    for item in (selected['archive'], selected['license']):
+        data = retained.get(item['path'])
+        if data is None or len(data) != item['bytes'] or hashlib.sha256(data).hexdigest() != item['sha256']:
+            raise ValueError('Selected official Linux OpenSSL member mismatch')
+    headers = [{'path': name.removeprefix('include/'), 'bytes': len(data),
+                'sha256': hashlib.sha256(data).hexdigest()} for name, data in retained.items()
+               if any(name.startswith(root + '/') for root in selected['header_roots'])]
+    headers.sort(key=lambda item: item['path'])
+    census = hashlib.sha256(json.dumps(headers, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    if len(headers) != selected['header_count'] or census != selected['header_census_sha256']:
+        raise ValueError('Selected Linux OpenSSL header membership mismatch')
+    destination.mkdir(parents=True, exist_ok=False)
+    for name, data in retained.items():
+        path = destination / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open('xb') as output:
+            output.write(data)
+    inputs.update(linux_member_inputs(destination, selected))
+    return {'packages': package_originals, 'inputs': inputs}
 
 
 def inspect_linux_component(library: Path, *, execute=subprocess.check_output) -> dict:
@@ -487,7 +590,8 @@ def inspect_linux_component(library: Path, *, execute=subprocess.check_output) -
             'target': LINUX_TARGET, 'dynamic': dynamic}
 
 
-def produce_linux(output: Path, openssl: Path, clang: Path, seconds: int) -> dict:
+def produce_linux(output: Path, openssl: Path | None, clang: Path, seconds: int, *,
+                  package_archives: list[Path] | None = None) -> dict:
     if platform.system() != 'Linux' or platform.machine() != 'x86_64':
         raise ValueError('Selected Linux x64 Crypto component target unavailable')
     if type(seconds) is not int or not 0 < seconds <= 1800:
@@ -500,6 +604,8 @@ def produce_linux(output: Path, openssl: Path, clang: Path, seconds: int) -> dic
     recipe_path = SOURCE / 'source.json'
     recipe = json.loads(recipe_path.read_bytes())
     selected = recipe['source_targets'][LINUX_TARGET]
+    if (package_archives is None) == (openssl is None):
+        raise ValueError('Select exactly one Linux OpenSSL source: installed prefix or explicit package archives')
     inputs = {str(recipe_path): original(recipe_path)}
     for name, expected in recipe['local'].items():
         path = SOURCE / name
@@ -507,12 +613,21 @@ def produce_linux(output: Path, openssl: Path, clang: Path, seconds: int) -> dic
         if actual != expected:
             raise ValueError('Stale original Crypto source identity: ' + name)
         inputs[str(path)] = actual
-    inputs.update(linux_source_inputs(openssl, selected))
+    package_inputs = None
+    if package_archives is None:
+        inputs.update(linux_source_inputs(openssl, selected))
+    else:
+        output.mkdir(parents=True, exist_ok=False)
+        openssl = output / 'openssl-input'
+        package_inputs = prepare_linux_package_inputs(openssl, package_archives, selected)
+        inputs.update(package_inputs['inputs'])
+        inputs[str(Path('/usr/bin/dpkg-deb').resolve())] = original(Path('/usr/bin/dpkg-deb').resolve())
     for path in (clang, Path('/usr/bin/nm').resolve(), Path('/usr/bin/readelf').resolve(),
                  Path('/usr/bin/dpkg-query').resolve(), Path(__file__).resolve(),
                  ROOT / 'packages/python-local-runtime/native/pre-root/owned_capacity.h'):
         inputs[str(path)] = original(path, 512 * 1024 * 1024)
-    output.mkdir(parents=True, exist_ok=False)
+    if package_archives is None:
+        output.mkdir(parents=True, exist_ok=False)
     deadline, steps = time.monotonic() + seconds, []
     def run(name, arguments):
         remaining = deadline - time.monotonic()
@@ -587,6 +702,8 @@ def produce_linux(output: Path, openssl: Path, clang: Path, seconds: int) -> dic
         'startup_objects': {name: str(path) for name, path in startup.items()},
         'inputs': inputs, 'compiled_inputs': compiled, 'compiler_header_aliases': aliases,
         **inspected, 'loaded': False, 'initialized': False, 'providers': 0}
+    if package_inputs is not None:
+        result['package_archives'] = package_inputs['packages']
     (output / 'producer.json').write_text(json.dumps(result, indent=2) + '\n')
     return result
 
@@ -595,6 +712,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--openssl-prefix', type=Path)
+    parser.add_argument('--openssl-package-archive', type=Path, action='append',
+                        help='Explicit pinned Linux .deb, in libssl-dev then libssl3t64 order; never installed')
     parser.add_argument('--clang', type=Path, required=True)
     parser.add_argument('--sdk', type=Path)
     parser.add_argument('--target', choices=('darwin-arm64', 'linux-x64'), default='darwin-arm64')
@@ -603,18 +722,21 @@ def main() -> None:
     parser.add_argument('--source-archive', type=Path)
     args = parser.parse_args()
     if args.target == 'linux-x64':
-        if args.sdk is not None or args.openssl_prefix is None or args.source_archive is not None:
+        if args.sdk is not None or args.source_archive is not None:
             raise ValueError('Linux Crypto preparation cannot select a Darwin SDK')
-        result = produce_linux(args.output.resolve(), args.openssl_prefix.resolve(strict=True),
-                               args.clang.resolve(strict=True), args.seconds)
+        result = produce_linux(args.output.resolve(),
+            args.openssl_prefix.resolve(strict=True) if args.openssl_prefix else None,
+            args.clang.resolve(strict=True), args.seconds,
+            package_archives=[path.resolve(strict=True) for path in args.openssl_package_archive]
+                if args.openssl_package_archive is not None else None)
     elif args.static_profile == 'source-macos11':
-        if args.sdk is None or args.openssl_prefix is not None:
+        if args.sdk is None or args.openssl_prefix is not None or args.openssl_package_archive is not None:
             raise ValueError('Source-built Darwin Crypto requires its SDK and source profile only')
         result = produce_darwin_source(args.output.resolve(), args.clang.resolve(strict=True),
             args.sdk.resolve(strict=True), args.seconds,
             source_archive=args.source_archive.resolve(strict=True) if args.source_archive else None)
     else:
-        if args.sdk is None or args.openssl_prefix is None or args.source_archive is not None:
+        if args.sdk is None or args.openssl_prefix is None or args.source_archive is not None or args.openssl_package_archive is not None:
             raise ValueError('Darwin Crypto preparation requires its original SDK')
         result = produce(args.output.resolve(), args.openssl_prefix.resolve(strict=True),
                          args.clang.resolve(strict=True), args.sdk.resolve(strict=True))
