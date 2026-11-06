@@ -138,13 +138,14 @@ fn effect_dependency_ports(
     work -= results
     for index in 0..<results {
       let port = @ports.port_at(publications, index).unwrap()
-      // Every checked acquisition-prefix Unit occupies its own source task,
-      // without a selected Compute target. The actual Result target remains
-      // checked against that source's completion when the pin is acquired.
-      let selected = if stage < graph.captured_prefix_value() {
-        Some(stage)
-      } else {
-        graph_stage_target_task(graph, stage, @ports.port_target(port))
+      // A captured Unit can also publish a later computed Result. Resolve its
+      // exact checked target before falling back to that Unit's Source task.
+      // The ordinary pin still checks the original owner, target and lifetime.
+      let selected = match
+        graph_stage_target_task(graph, stage, @ports.port_target(port)) {
+        Some(task) => Some(task)
+        None if stage < graph.captured_prefix_value() => Some(stage)
+        None => None
       }
       guard selected is Some(task) && graph.owners_at(task) is Some(owner) else {
         return Err(ForeignCandidate)
