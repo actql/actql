@@ -244,6 +244,7 @@ fn effect_operation_source_plan_fixture(
   bounded_output? : Bool = false,
   additional_source? : Bool = false,
   second_result? : Bool = false,
+  same_unit_results? : Bool = false,
   provider? : @execution.ExecutionCapacity? = None,
   query_time_for? : ((
     @publication_host.PreparedClientEffectComputation,
@@ -324,6 +325,15 @@ fn effect_operation_source_plan_fixture(
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"source-effect-operation-plan","stages":[{"id":"acquire","inputs":{"remote":{"connector":"operation-source","resource":"r"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id"]}}},{"id":"apply","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"id > 2","as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"apply","result":"rows"}}}}
+  // The acquired Unit publishes both its captured prefix and a later computed
+  // Result. The downstream Effect must pin each exact original producer.
+  let document = if same_unit_results {
+    let same_unit =
+      #|{"version":"actql/0.1","id":"source-effect-operation-plan","stages":[{"id":"acquire","inputs":{"remote":{"connector":"operation-source","resource":"r"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"captured"},{"derive":{"tag":{"literal":1}},"as":"tagged"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]},"original":{"from":"captured","fields":["id"]}}},{"id":"apply","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"id > 2","as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"apply","result":"rows"}}}}
+    same_unit
+  } else {
+    document
+  }
   let document = if query_time_for is Some(_) {
     document.replace(
       old="id > 0",
