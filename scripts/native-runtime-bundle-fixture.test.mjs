@@ -78,7 +78,11 @@ function residentLaunchSource() {
   const install=source.indexOf('  execFileSync(bundleTool, [...bundleCommon, \'install\'');
   const installed=source.indexOf('  const [registry, values, fragment]',install);
   assert(install>=0 && installed>install);
-  return {declaration,startSite:source.slice(start,end),install:source.slice(install,installed)};
+  const inspect=source.indexOf("    const inspection = execFileSync(executable, [...common, 'output-reports']");
+  const retried=source.indexOf('    invalidAck = undefined;',inspect);
+  assert(inspect>=0 && retried>inspect);
+  return {declaration,startSite:source.slice(start,end),install:source.slice(install,installed),
+    reportControls:source.slice(inspect,retried)};
 }
 
 function assertSelectedChildEnvironment(value) {
@@ -119,6 +123,27 @@ test('Resident original process launch does not inherit the Python producer load
   assert.equal(calls[0].command,'original-Resident');
   assert.equal(calls[0].args[0],'run');
   assertSelectedChildEnvironment(original.lines[0].value);
+  const controls=[],common=['--journal','original-journal','--http-library','original-library'];
+  const context={assert,executable:'original-Resident',common,
+    execFileSync:(command,args,options)=>{
+      const environment=JSON.parse(executeChild(process.execPath,
+        ['-e','console.log(JSON.stringify(process.env))'],
+        {...options,env:options.env??parent,stdio:'pipe',encoding:'utf8'}));
+      assertSelectedChildEnvironment(environment);
+      controls.push({command,args:Array.from(args)});
+      // Explicit control output only selects the existing retry arguments.
+      // No Native image, output ACK or physical resource is issued here.
+      return JSON.stringify({kind:'output-report-state',state:'attention',
+        reason:'authorization_denied',intent_cid:'original-report'});
+    }};
+  runInNewContext(source.declaration+'\n'+source.reportControls,context);
+  assert.deepEqual(controls,[
+    {command:'original-Resident',args:[...common,'output-reports']},
+    {command:'original-Resident',args:[...common,'retry-output-report','--intent-cid','original-report']},
+  ]);
+  const primary=new Error('original control failure');
+  assert.throws(()=>runInNewContext(source.declaration+'\n'+source.reportControls,
+    {...context,execFileSync:()=>{throw primary;}}),error=>error===primary);
   assert.equal(parent.LD_LIBRARY_PATH,'/hosted/python/lib');
 });
 

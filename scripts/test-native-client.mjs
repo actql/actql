@@ -620,7 +620,6 @@ try {
 
 // Keep the independent shared-contract corpus on the normal Native CI entry.
 await import('./test-native-client-wire.test.mjs');
-// Reuse the same generated or externally installed Native executable. The
-// Local ingress regression adds no independent build or packed CI job.
-await import('./test-native-local-cli.test.mjs');
+// Local ingress runs in the mandatory installed Local consumer, which owns
+// an actual packaged runtime. This transport artifact has no Local provider.
 scratch.passed();

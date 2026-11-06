@@ -8,6 +8,43 @@ let request_intent_limits : @source.ParseLimits = {
 }
 
 ///|
+/// Default captured Program intake consumes the SAME original Request input
+/// envelope as submitted-intent admission. This is immutable compiler DATA,
+/// not a reservation or permission. Explicitly selected preparation limits
+/// keep their original separate entry and are never recognized by equality.
+pub fn[I] request_default_program_preparation_limits(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  @publication_host.ClientProgramPreparationLimits,
+  ClientRequestTerminalIssue,
+] {
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  guard owner.phase == Open && request_intent_input_ready(owner) else {
+    return Err(Preparation(WrongPhase))
+  }
+  let standard = @publication_host.client_standard_program_preparation_limits()
+  Ok({
+    ..standard,
+    checking: {
+      ..standard.checking,
+      input: {
+        source: request_intent_limits,
+        tree: {
+          max_nodes: request_intent_limits.max_nodes,
+          max_depth: request_intent_limits.max_depth,
+          max_string_bytes: request_intent_limits.max_input_bytes,
+          max_total_string_bytes: request_intent_limits.max_input_bytes,
+        },
+        max_stages: standard.checking.input.max_stages,
+      },
+    },
+  })
+}
+
+///|
 // One bounded native Source/canonical expansion, then sequential text/hash
 // emission. SDK-owned native DATA stays on its already retained snapshot.
 // Source's generic Unicode/key inventory applies; no ClosedValues eligibility,

@@ -281,3 +281,88 @@ test "backed prepared operation preserves original consumer refusal and post-con
   // Stopping that physical original is not ACK and cannot dispose its holders.
   assert_true(cleanup_prepared_run_admission(admission) is Err(Unavailable))
 }
+
+///|
+test "original prepared response projection refuses foreign and closed physical tokens without returning other bytes" {
+  let (access, input, admission, body, ledger, frame, retirement, holder) = backed_prepared_operation_fixture()
+  let (control, backing) = reserve_prepared_run_operation(
+    admission,
+    body,
+    ledger,
+    () => (Ok(()) : Result[Unit, Unit]),
+    None,
+    1L,
+    1L,
+    true,
+    2L,
+    2L,
+    6L,
+  ).unwrap()
+  guard backing.unwrap() is Physical(reservation) else {
+    fail("Expected original physical reservation")
+  }
+  consume_reserved_attempt(ledger, reservation).unwrap()
+  charge_transfer(ledger, reservation, 1L).unwrap()
+  let before = ledger_usage(ledger)
+  // A different supplied Ledger cannot replace the admitted original.
+  let foreign = create_ledger(backed_test_limits()).unwrap()
+  assert_true(
+    complete_prepared_run_operation_response_projection(
+      admission,
+      body,
+      foreign,
+      () => (Ok(()) : Result[Unit, Unit]),
+      Physical(reservation),
+    )
+    is Err(_),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  let foreign_token = reserve_attempt(foreign, 1L, 1L, 2L).unwrap()
+  let foreign_before = ledger_usage(foreign)
+  assert_true(
+    complete_prepared_run_operation_response_projection(
+      admission,
+      body,
+      ledger,
+      () => (Ok(()) : Result[Unit, Unit]),
+      Physical(foreign_token),
+    )
+    is Err(Control(ForeignOwner)),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(ledger_usage(foreign), foreign_before)
+  settle_reservation(foreign, foreign_token).unwrap()
+  complete_prepared_run_operation_response_projection(
+    admission,
+    body,
+    ledger,
+    () => (Ok(()) : Result[Unit, Unit]),
+    Physical(reservation),
+  ).unwrap()
+  assert_eq(ledger_usage(ledger), {
+    ..before,
+    reserved_execution_bytes: before.reserved_execution_bytes - 4L,
+  })
+  settle_reservation(ledger, reservation).unwrap()
+  let settled = ledger_usage(ledger)
+  assert_true(
+    complete_prepared_run_operation_response_projection(
+      admission,
+      body,
+      ledger,
+      () => (Ok(()) : Result[Unit, Unit]),
+      Physical(reservation),
+    )
+    is Err(Control(ClosedReservation)),
+  )
+  assert_eq(ledger_usage(ledger), settled)
+  settle_capacity(ledger, control).unwrap()
+  assert_false(retire_transferred_preparation(retirement).unwrap())
+  return_preparation_body_borrow(holder).unwrap() |> ignore
+  release_prepared_run_holder(admission).unwrap() |> ignore
+  assert_true(retire_transferred_preparation(retirement).unwrap())
+  assert_true(cleanup_prepared_run_admission(admission) is Err(Unavailable))
+  report_imported_child_ledger(frame).unwrap()
+  retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
+  cleanup_prepared_run_admission(admission).unwrap()
+}

@@ -1,5 +1,5 @@
-// Focused installed Native Local preparation acceptance. This does not claim
-// Run execution, approval, restart recovery or a complete standard Local CLI.
+// Installed Native Local ingress and authored Pure row-demand acceptance.
+// Approval, general recovery and complete Local coverage remain separate.
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -13,6 +13,7 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
+import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [input, ...extra] = process.argv.slice(2);
@@ -77,6 +78,13 @@ try {
   assert.equal(createHash('sha256').update(bytes).digest('hex'), manifest.platforms[platform].binarySha256);
   await run(launcher, ['--help']);
   await run(launcher, ['--version']);
+  assert(artifact.localRuntime,'Native Local checks require the actual selected Local runtime');
+  const localRuntime=admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime,
+    expected:{sourceSha:manifest.sourceSha,platform,localRuntimeSha256:artifact.localRuntime.sha256}});
+  for(const [role,key] of [['sqlite','ACTQL_TEST_NATIVE_SQLITE_LIBRARY'],['crypto','ACTQL_TEST_NATIVE_CRYPTO_LIBRARY']]) {
+    const library=localRuntime.libraries.find(value=>value.role===role);assert(library);
+    env[key]=join(platformRoot,library.path);
+  }
   env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER = launcher;
   env.ACTQL_TEST_NATIVE_CLIENT_BINARY = binary;
   const focused = new URL('./test-execution.mjs', import.meta.url).href;
@@ -85,13 +93,13 @@ try {
   await run(process.execPath, ['--input-type=module', '-e',
     `import {runFocusedTests} from ${JSON.stringify(focused)}; process.exitCode=runFocusedTests("node",[${JSON.stringify(fixture)}],{cwd:process.cwd(),evidenceScratch:${JSON.stringify(evidenceScratch)}});`]);
   assert.deepEqual(checkoutState(repository), source);
-  const receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'local-preparation',
+  const receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'local-ingress-and-pure-row-demand',
     cliSourceSha: manifest.sourceSha, platform, node: process.version, glibc: glibc ?? null,
     artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
     cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
     registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
     publicRegistryPublication: 'not-tested', records,
-    unverified: ['Local Run execution', 'approval', 'cross-process Local recovery', 'other platforms']};
+    unverified: ['other Programs and Sources', 'approval', 'cross-process Local recovery', 'other platforms']};
   const receiptFile = join(directory, `local-preparation-install-${platform}-${Date.now()}.json`);
   await writeFile(receiptFile, `${JSON.stringify(receipt, null, 2)}\n`, {flag: 'wx'});
   console.log(`Installed Native Local preparation passed: ${receiptFile}`);

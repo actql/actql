@@ -93,8 +93,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_region_native.mbt",
-      "bytes": 9358,
-      "sha256": "4a01777dbc3696514e099af416eed9c9ef44753b116cc3e063319f3dd4d618ac"
+      "bytes": 9624,
+      "sha256": "68359c1023cf162f17a4ebac90102dbc4e2d6b4d85549b7dc5be4d594ef9a614"
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_view_native.mbt",

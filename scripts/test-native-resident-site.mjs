@@ -2362,13 +2362,13 @@ try {
     currentSite = site;
     assert.deepEqual(await within(site.exited, 'checked refusal'), [0, null]);
     assert.equal(reportState().pending, 1);
-    const inspection = execFileSync(executable, [...common, 'output-reports'], {encoding: 'utf8'})
+    const inspection = execFileSync(executable, [...common, 'output-reports'], {encoding: 'utf8', env: siteProcessEnvironment})
       .trim().split('\n').map(line => JSON.parse(line));
     const attention = inspection.find(line => line.kind === 'output-report-state');
     assert.equal(attention.state, 'attention');
     assert.equal(attention.reason, 'authorization_denied');
     execFileSync(executable, [...common, 'retry-output-report', '--intent-cid',
-      attention.intent_cid], {stdio: 'pipe'});
+      attention.intent_cid], {stdio: 'pipe', env: siteProcessEnvironment});
     invalidAck = undefined;
     const initialReportCount = observationBodies.filter(body =>
       JSON.parse(body).version === 'actql-remote-output-result/0.1').length;

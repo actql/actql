@@ -19,9 +19,9 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
   "actql/actql/run_publication" @publication,
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {
   "moonbitlang/core/encoding/base64",
-  "moonbitlang/core/encoding/utf8",
 } for "wbtest"

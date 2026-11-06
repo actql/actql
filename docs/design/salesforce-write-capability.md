@@ -314,3 +314,22 @@ larger foreign prefixes before parse. Other composed implementations select the
 existing full-control fallback. This preserves the selected writer's complete
 accepted output and the original maximum-codec path, without granting extra
 bytes or treating arbitrary provider messages as a closed outcome.
+
+### Current Describe construction geometry
+
+The original physical Describe child passes its same received body to the
+captured native quantity method before any provider decoding. That method uses
+the existing Source lexical preflight, shared with the Source reader, to bound
+only the next Describe parser/index workspace. A long scalar is not one JSON
+node per encoded byte. The original metadata families, observation limits,
+field/name/depth rules, grammar validation and failure paths stay unchanged.
+A refused lexical scan retains the complete prior envelope; geometry does not
+admit a Catalog or grant access.
+
+The same initial staged metadata extent backs the bounded decoded Source String
+and fixed preflight controls before the quantity callback. Preflight and the
+later parser use sequential workspace peaks, while existing raw response,
+metadata and physical-child custody remain held. The actual selected response
+then grows only that original operation token. Refusal keeps its received body
+and cleanup duties; this does not refund transfer, issue another attempt, alter
+the parent limit or acknowledge physical retirement.

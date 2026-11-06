@@ -347,6 +347,8 @@ pub fn complete_installed_effect_operation_control_construction(ClientInstalledM
 
 pub fn complete_installed_effect_operation_ledger_codec(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[Unit, ClientInstalledManagedRunIssue]
 
+pub fn complete_installed_effect_operation_response_projection(ClientInstalledEffectOperationBorrow) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn[I, S] complete_installed_source_material(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I, S, @client_source_publication.PreparedPublishedQueryEnvironment, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
 
 pub fn[I] complete_request_content_preparation(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedKeyedPreparation) -> Result[Unit, ClientRequestPreparationIssue]
@@ -970,6 +972,8 @@ pub fn[I, P] reconcile_program_check_views(ClientProgramCheckPreparation[I, P]) 
 pub fn[I, P] reconcile_program_json_preparation_structure(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
 pub fn[I] request_computation_policy_subject(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, Int) -> Result[String, ClientRequestTerminalIssue]
+
+pub fn[I] request_default_program_preparation_limits(ClientRequestPreparation[I], I) -> Result[@run_publication_host.ClientProgramPreparationLimits, ClientRequestTerminalIssue]
 
 pub fn[I] request_model_direct_occurrences(ClientRequestPreparation[I], I) -> Result[@run_publication_host.ClientDirectAcquisitionOccurrences, ClientInstalledManagedRunIssue]
 

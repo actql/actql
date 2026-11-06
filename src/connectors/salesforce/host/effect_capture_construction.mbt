@@ -492,6 +492,7 @@ pub fn effect_metadata_input_construction_profile(
   binding_units : Int,
   resource_units : Int,
   response_bytes : Int,
+  source_geometry? : @source.JsonSourceGeometry? = None,
 ) -> Array[
   (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
 ]? {
@@ -509,6 +510,25 @@ pub fn effect_metadata_input_construction_profile(
       observation_bytes,
       binding_units,
       resource_units,
+      source_geometry~,
+    )
+    is Some(capacity) &&
+    sf_read_describe_preflight_capacity(describe.max_bytes) is Some(preflight) else {
+    return None
+  }
+  let retained = @execution.execution_capacity_retained_bytes(capacity)
+  guard @execution.checked_preparation_add_product(
+      retained,
+      @execution.execution_capacity_execution_bytes(preflight),
+      1L,
+    )
+    is Some(preflight_peak) &&
+    @execution.execution_capacity(
+      retained,
+      Int64::max(
+        @execution.execution_capacity_execution_bytes(capacity),
+        preflight_peak,
+      ),
     )
     is Some(capacity) else {
     return None
