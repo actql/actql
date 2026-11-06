@@ -6002,3 +6002,12 @@ pending until that owner observes its own C-context retirement, usage report
 and after-owner acknowledgement. Only then does the command finish the original
 Core retirement and close the domain. Cancellation, failed construction and
 Unknown physical outcomes retain these same duties and consumed work.
+
+A retained structured Program and a Source envelope have different inventory
+subjects. Observing the envelope's single document String does not establish
+the JSON/YAML document's structural node count or the SQL/Pipe lowering's Program
+inventory. The Native Source continuation retains its original syntax policy;
+its existing same-Request document/Query constructor reserves the selected
+representation before parsing or lowering. The structured Program continuation
+continues to use its observed native input inventory. No permission, additional
+check, fallback compiler or numerical resource grant follows from this choice.

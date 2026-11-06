@@ -26,6 +26,7 @@ fn submitted_request_native_work(
   physical : @arena.InstalledArenaRetainedExecution,
   initial : @resources.BackedPreparationAdmission[@host.ClientSubmittedIntent],
   input : @host.ClientSubmittedIntent,
+  expected_rows? : Array[String]? = None,
 ) -> @local.ClientInstalledManagedRun raise {
   arena
   .enter_domain_retained_execution(physical)
@@ -151,18 +152,23 @@ fn submitted_request_native_work(
     () => true,
   ).native_request_stage("Native Request stage 14")
   let rows = execution.rows().native_request_stage("Native Request stage 15")
-  assert_eq(rows.length(), 104)
-  let mut bytes = 0
-  for index in 0..<104 {
-    let expected = "{\"id\":" +
-      index.to_string() +
-      ",\"payload\":\"" +
-      "a".repeat(1000) +
-      "\"}"
-    assert_eq(rows[index], expected)
-    bytes += @utf8.encode(rows[index]).length()
+  match expected_rows {
+    Some(expected) => assert_eq(rows, expected)
+    None => {
+      assert_eq(rows.length(), 104)
+      let mut bytes = 0
+      for index in 0..<104 {
+        let expected = "{\"id\":" +
+          index.to_string() +
+          ",\"payload\":\"" +
+          "a".repeat(1000) +
+          "\"}"
+        assert_eq(rows[index], expected)
+        bytes += @utf8.encode(rows[index]).length()
+      }
+      assert_true(bytes > 65536)
+    }
   }
-  assert_true(bytes > 65536)
   let attempts = @resources.ledger_usage(ledger).attempts
   assert_true(execution.close())
   @resources.return_preparation_body_borrow(holder).native_request_stage(

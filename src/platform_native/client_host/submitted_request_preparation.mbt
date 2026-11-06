@@ -94,11 +94,6 @@ pub fn prepare_native_client_submitted_request(
     Err(issue) => return Err(RequestPreparation(issue))
     Ok(_) => ()
   }
-  let program_limits = match
-    @local.request_default_program_preparation_limits(owner, intent) {
-    Err(issue) => return Err(Request(issue))
-    Ok(value) => value
-  }
   let limits = match
     @local.reserve_request_retained_intent_source(owner, intent) {
     Err(issue) => return Err(RequestPreparation(issue))
@@ -119,6 +114,18 @@ pub fn prepare_native_client_submitted_request(
   let reader = submitted_request_source_reader
   let source = Some(source)
   let kind = (reader.text)((reader.field)(source, "kind"))
+  // A structured Program uses its observed native inventory. Source carries
+  // a document in Text: that envelope is not the document's node inventory.
+  // Preserve the existing Native Source policy rather than treating the outer
+  // captured Text as a new structural restriction on its authored document.
+  let program_limits = if kind == "program" {
+    match @local.request_default_program_preparation_limits(owner, intent) {
+      Err(issue) => return Err(Request(issue))
+      Ok(value) => value
+    }
+  } else {
+    @host.client_standard_program_preparation_limits()
+  }
   let supplied = (reader.field)(source, "parameters")
   let supplied = if (reader.kind)(supplied) == 0 {
     None
