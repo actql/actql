@@ -7,6 +7,7 @@ import {test} from 'node:test';
 import {createTransportOwner, requireCompleteInventory, sourceFixturePaths}
   from './fixtures/packed-query-transport-owner.mjs';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
+import {publicQueryResultOracles} from './fixtures/public-query-input.mjs';
 
 const helper = new URL('./fixtures/packed-query-transport-owner.mjs', import.meta.url).href;
 const command = (name, source) => ({name, args: ['--input-type=module', '-e', source]});
@@ -27,9 +28,9 @@ test('public query HTTPS observation selects only its original operator and auth
   visit(syntax);
   assert.equal(declarations.length, 1);
   const declaration = declarations[0];
-  const create = Function('userInfo', 'canonical',
+  const create = Function('userInfo', 'canonical', 'publicQueryResultOracles',
     `return (${source.slice(declaration.start, declaration.end)});`)(
-      () => ({username: 'query-operator'}), JSON.stringify);
+      () => ({username: 'query-operator'}), JSON.stringify, publicQueryResultOracles);
   const account = JSON.parse(create({primaryResultName: 'selected', successes: [
     {name: 'one'}, {name: 'two', results: {secondary: {}, selected: {}}},
   ]}).accountConfiguration);
@@ -46,6 +47,23 @@ test('public query HTTPS observation selects only its original operator and auth
   assert.match(source, /authorization: httpAuthorization/u);
   assert.match(source, /recordCohort\('remote', directory, cohort, authorization \?\? httpAuthorization\)/u);
   assert.match(source, /if \(authorization !== undefined\) saved\.authorization = authorization/u);
+});
+
+test('public query fixture names preserve explicit and structured exports independently of product output', () => {
+  const expected = [{value: 1}], columns = [{name: 'value'}];
+  const implicit = {format: 'sql', text: 'SELECT 1 AS value', expected, columns};
+  assert.deepEqual(publicQueryResultOracles(implicit), {main: {rows: expected, columns}});
+  assert.deepEqual(publicQueryResultOracles({...implicit, resultName: 'answer'}),
+    {answer: {rows: expected, columns}});
+  for (const format of ['json', 'aql-json']) {
+    const structured = {...implicit, format, text: JSON.stringify({results: {answer: {from: {stage: 'main', result: 'answer'}}}})};
+    assert.deepEqual(publicQueryResultOracles(structured), {answer: {rows: expected, columns}});
+    assert.throws(() => publicQueryResultOracles({...structured,
+      text: JSON.stringify({results: {answer: {}, other: {}}})}), /requires authored result oracles/u);
+  }
+  const results = {original: {rows: expected, columns}, answer: {rows: [], columns}};
+  assert.equal(publicQueryResultOracles({...implicit, results}), results);
+  assert.equal(publicQueryResultOracles(implicit).main.rows, expected);
 });
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-transport-owner-'));

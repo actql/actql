@@ -759,12 +759,30 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
   'ClientProgramUnsupported', 'ClientProgramNeedsInputs',
   'ClientProgramRejected']);
 
+// Public text without an explicit RESULT exports main. Explicit text names
+// belong to authored fixture metadata; structured Programs retain their own
+// declared exports. None of these names comes from a product reply.
+export function publicQueryResultOracles(item, primaryResultName = 'main') {
+  if (item.results !== undefined) return item.results;
+  let resultName = item.resultName;
+  if (resultName === undefined && ['json', 'aql-json'].includes(item.format)) {
+    const names = Object.keys(JSON.parse(item.text).results ?? {});
+    assert.equal(names.length, 1,
+      'A structured fixture with multiple exports requires authored result oracles');
+    [resultName] = names;
+  }
+  resultName ??= primaryResultName;
+  assert.equal(typeof resultName, 'string');
+  assert.ok(resultName.length > 0);
+  return {[resultName]: {rows: item.expected, columns: item.columns}};
+}
+
 // Run this unchanged with installed Local and HTTP connect options. The test
 // owner supplies cumulative observations of real Run admission and source
 // I/O, not a replacement provider or a Client-side alias map. This function
 // does not lower source, manufacture schema, or call a test compiler bridge.
 export async function exercisePublicQueryInput(connect, options,
-  {requestPrefix, observe, successes = querySuccesses, primaryResultName = 'answer',
+  {requestPrefix, observe, successes = querySuccesses, primaryResultName = 'main',
     refusals = queryRefusals, executionFailures = [], prepareCase, persistSubmission, completedCase, completedRefusal}) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
@@ -777,7 +795,9 @@ export async function exercisePublicQueryInput(connect, options,
   };
   const client = await connect(options);
   try {
-    for (const {name, text, expected, columns, results, sourceRows, sourceReadCount, sourceReadSessionCount, ...input} of successes) {
+    for (const item of successes) {
+      const {name, text, expected, columns, results, resultName, sourceRows,
+        sourceReadCount, sourceReadSessionCount, ...input} = item;
       await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
       const submissionRef = client.newSubmission({nonce: requestId});
@@ -797,7 +817,7 @@ export async function exercisePublicQueryInput(connect, options,
           sourceReadSessionCount, 'one acquisition session per authored source: ' +
             JSON.stringify((await observe()).sourceReadCommands));
       }
-      const expectedResults = results ?? {[primaryResultName]: {rows: expected, columns}};
+      const expectedResults = publicQueryResultOracles(item, primaryResultName);
       const compare = (actual, expected, unordered) => {
         // An unordered SQL Relation is compared as a multiset. Sorting this
         // test copy preserves duplicates and never changes the product output.
@@ -840,7 +860,8 @@ export async function exercisePublicQueryInput(connect, options,
         beforeSubmit, beforeRead, afterReplay, observedResults});
       console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
-        await assert.rejects(execution.result(primaryResultName).all({maxRows: 1}),
+        assert.equal(Object.keys(expectedResults).length, 1);
+        await assert.rejects(execution.result(Object.keys(expectedResults)[0]).all({maxRows: 1}),
           {code: 'ResultRetainedLimit'});
         const attemptId = requestId + '-changed-intent';
         const expectedAttemptRef = {operation: 'submit', attemptId};

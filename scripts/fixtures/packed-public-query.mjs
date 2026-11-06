@@ -150,7 +150,7 @@ import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
 const {createLocalRetainedStore} = await import(new URL(
   './adapters/store-local/files.mjs', import.meta.resolve('@actql/local-node')));
-import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures, relationDataSuccesses, relationDataRefusals}
+import {exercisePublicQueryInput, publicQueryResultOracles, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures, relationDataSuccesses, relationDataRefusals}
   from './public-query-input.mjs';
 
 import {graphSourceSuccesses, graphSourceExecutionFailures, graphSourceRefusals}
@@ -1359,7 +1359,7 @@ function verifyInputStageStore(leases) {
 // observation. Install only this operator's declared fixture targets at HTTPS.
 function createPublicQueryHttpAuthorization(cohort) {
   const results = [...new Set(cohort.successes.flatMap(item =>
-    Object.keys(item.results ?? {[cohort.primaryResultName ?? 'answer']: null})))].sort();
+    Object.keys(publicQueryResultOracles(item, cohort.primaryResultName))))].sort();
   return {accountConfiguration: canonical({
     version: 'actql-execution-account-config/0.1', account_id: 'packed-query-http',
     entries: [{entry_id: 'read-original', outcome: 'allow',
