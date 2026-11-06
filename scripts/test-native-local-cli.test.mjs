@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {cp, mkdir, readFile, writeFile} from 'node:fs/promises';
+import {cp, mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {after, test} from 'node:test';
@@ -16,60 +16,40 @@ assert(executable && process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER,
   'Select the actual installed Native Local launcher and binary');
 const scratch = await createOwnedScratch({parent: process.platform==='darwin'?'/private/tmp':tmpdir(), prefix: 'actql-native-local-cli-',
   label: 'Native Local CLI ingress'});
-await cp(fileURLToPath(new URL('./fixtures/native-local-cli', import.meta.url)), scratch.path,
-  {recursive: true});
+const project=join(scratch.path,'project');
 const emptyPath = join(scratch.path, 'empty-path');
 await mkdir(emptyPath);
 console.log(`Native CLI binary sha256:${createHash('sha256').update(await readFile(executable)).digest('hex')}`);
-const originalEnvironment=await readFile(join(scratch.path,'environment.json'));
+// Only the installed launcher's actual initialization creates the Product,
+// Account and runtime bindings. Program fixtures do not construct that context.
+const initialized=runNative(['init',project],scratch.path);
+assert.equal(initialized.status,0,initialized.stderr);
+assert.match(initialized.stdout,/^Local Host adopted; no Run has been admitted\./u);
+const originalConfiguration=await readFile(join(project,'actql.config.json'));
+const fixtures=fileURLToPath(new URL('./fixtures/native-local-cli',import.meta.url));
+for(const name of await readdir(fixtures)) {
+  if(name!=='actql.config.json') await cp(join(fixtures,name),join(project,name));
+}
+const originalEnvironment=await readFile(join(project,'environment.json'));
 verifyNativeLocalCheckEnvironmentOriginal(originalEnvironment);
-const sqlite=process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
-  crypto=process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY;
-assert(sqlite && crypto,'Select both admitted installed Local runtime libraries');
-const libraries={sqliteLibrary:sqlite,cryptoLibrary:crypto};
-await mkdir(join(scratch.path,'managed'),{mode:0o700});
-const permission=(entry_id,resource,operation)=>({entry_id,outcome:'allow',
-  principal:{any_of:['operator']},connection:{any_of:['cli']},
-  resource:{any_of:[resource]},operation:{any_of:[operation]},exclusions:[]});
-await writeFile(join(scratch.path,'account.json'),JSON.stringify({
-  version:'actql-execution-account-config/0.1',account_id:'operator',entries:[
-    permission('submit','run','submit'),permission('run-read','run','read'),
-    permission('result-read','result/answer','read')],
-})+'\r\n');
-const configuration=JSON.parse(await readFile(join(scratch.path,'actql.config.json'),'utf8'));
-configuration.account_config='account.json';
-configuration.native.local={account_id:'operator',principal:'operator',connection:'cli',
-  state_parent:scratch.path,state_name:'host',managed_root:join(scratch.path,'managed'),
-  sqlite_library:libraries.sqliteLibrary,signature_library:libraries.cryptoLibrary,
-  submission_ttl_ms:60000,journal_record_limit:8,journal_snapshot_bytes:8388608,
-  installation_files:['run-installation.json','read-installation.json'],
-  run_file:'run-installation.json',read_file:'read-installation.json'};
-const originalConfiguration=Buffer.from(JSON.stringify(configuration)+'\r\n');
-await writeFile(join(scratch.path,'actql.config.json'),originalConfiguration);
-const adopted=runNative(['--mode','local','--config-root',scratch.path,
-  '--config-file','actql.config.json','adopt','--json']);
-assert.equal(adopted.status,0,adopted.stderr);
-assert.equal(JSON.parse(adopted.stdout).kind,'local_host_adopted');
-assert.equal(JSON.parse(adopted.stdout).accountId,'operator');
-assert.equal(Object.hasOwn(JSON.parse(adopted.stdout),'run'),false);
 after(async()=>{
-  assert.deepEqual(await readFile(join(scratch.path,'environment.json')),originalEnvironment);
-  assert.deepEqual(await readFile(join(scratch.path,'actql.config.json')),originalConfiguration);
+  assert.deepEqual(await readFile(join(project,'environment.json')),originalEnvironment);
+  assert.deepEqual(await readFile(join(project,'actql.config.json')),originalConfiguration);
   scratch.passed();
 });
 
 function check(file, format = 'json', options = [], global = [], configuration = 'actql.config.json') {
-  const args = ['--mode', 'local', '--config-root', scratch.path,
-    '--config-file', configuration, ...global, 'check', '--program-file', file,
-    '--format', format, '--json', ...options];
+  const selection=configuration==='actql.config.json'
+    ? (global.length===0?[]:['--mode','local',...global])
+    : ['--mode','local','--config-root',project,'--config-file',configuration,...global];
+  const args=[...selection,'check','--program-file',file,'--format',format,'--json',...options];
   return runNative(args);
 }
 
-function runNative(args) {
+function runNative(args,cwd=project) {
   const launcher = process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER;
-  const result = spawnSync(launcher ? process.execPath : executable,
-    launcher ? [launcher, ...args] : args,
-    {cwd:scratch.path,env:{PATH:emptyPath,LANG:'C'},
+  const result = spawnSync(process.execPath,[launcher,...args],
+    {cwd,env:{PATH:emptyPath,LANG:'C'},maxBuffer:65536,
       encoding: 'utf8', timeout: 15_000});
   assert.ifError(result.error);
   assert.equal(result.signal, null);
@@ -87,7 +67,7 @@ for (const [file, format] of [['values.json', 'json'], ['literal.sql', 'sql']]) 
     assert.equal(report.report.runnable.verdict,'yes');
     assert.equal(report.report.scope.kind,'bound_input');
     const input=report.report.inputs.find(value=>value.document_id===(format==='json'?'program':'source'));
-    assert.equal(input.byte_length,(await readFile(join(scratch.path,file))).length);
+    assert.equal(input.byte_length,(await readFile(join(project,file))).length);
     assert.match(input.revision,/^rev:[0-9a-f]{64}$/u);
     for(const key of ['run','verified','programDefinitionCid','parameterValuesCid'])
       assert.equal(Object.hasOwn(report,key),false,key);
@@ -137,13 +117,13 @@ test('Native Remote refuses Local original-delivery bindings before transport se
 });
 
 test('Native Local retains parameter values and distinguishes wrong type', async () => {
-  await writeFile(join(scratch.path, 'parameter.sql'), 'SELECT @message AS message\n');
-  await writeFile(join(scratch.path, 'declarations.json'), JSON.stringify({message: {type: 'string'}}));
+  await writeFile(join(project, 'parameter.sql'), 'SELECT @message AS message\n');
+  await writeFile(join(project, 'declarations.json'), JSON.stringify({message: {type: 'string'}}));
   const revisions = [];
   for (const [index, value] of ['e\u0301', 'é', '\r', '\n', '\r\n'].entries()) {
     const name = `parameters-${index}.json`;
     const original=Buffer.from(JSON.stringify({message:value}));
-    await writeFile(join(scratch.path,name),original);
+    await writeFile(join(project,name),original);
     const result = check('parameter.sql', 'sql', ['--parameter-declarations-file', 'declarations.json',
       '--parameters-file', name]);
     assert.equal(result.status, 0, result.stderr);
@@ -152,11 +132,11 @@ test('Native Local retains parameter values and distinguishes wrong type', async
     const input=outcome.report.inputs.find(value=>value.document_id==='parameters');
     assert.equal(input.byte_length,original.length);assert.match(input.revision,/^rev:[0-9a-f]{64}$/u);
     revisions.push(input.revision);
-    assert.deepEqual(await readFile(join(scratch.path,name)),original);
+    assert.deepEqual(await readFile(join(project,name)),original);
     assert.equal(result.stdout.includes('message'), false);
   }
   assert.equal(revisions.length,5); // Per-command HMAC revisions are opaque, not deterministic value CIDs.
-  await writeFile(join(scratch.path, 'wrong-type.json'), '{"message":null}');
+  await writeFile(join(project, 'wrong-type.json'), '{"message":null}');
   const wrong = check('parameter.sql', 'sql', ['--parameter-declarations-file', 'declarations.json',
     '--parameters-file', 'wrong-type.json']);
   assert.equal(wrong.status, 1);
@@ -166,10 +146,17 @@ test('Native Local retains parameter values and distinguishes wrong type', async
 });
 
 test('Native Local validates environment custody instead of trusting a declared CID', async () => {
-  const original = await readFile(join(scratch.path, 'actql.config.json'), 'utf8');
-  const configuration = JSON.parse(original);
+  // A detached legacy Environment declaration is negative input only. It is
+  // never used to create the accepted Product or replace its original runtime.
+  const configuration=JSON.parse(await readFile(join(fixtures,'actql.config.json'),'utf8'));
+  configuration.account_config='unselected-account.json';
+  configuration.native.local={account_id:'operator',principal:'operator',connection:'cli',
+    state_parent:project,state_name:'unselected-host',managed_root:join(project,'unselected-managed'),
+    sqlite_library:process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
+    signature_library:process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY,
+    submission_ttl_ms:60000,journal_record_limit:8,journal_snapshot_bytes:8388608};
   configuration.native.check_environment.evidence_bundle_cid = `sha256:${'0'.repeat(64)}`;
-  await writeFile(join(scratch.path, 'wrong-environment.json'), JSON.stringify(configuration));
+  await writeFile(join(project, 'wrong-environment.json'), JSON.stringify(configuration));
   const result = check('values.json', 'json', [], [], 'wrong-environment.json');
   assert.equal(result.status, 1);
   assert.equal(result.stdout, '');
@@ -177,7 +164,7 @@ test('Native Local validates environment custody instead of trusting a declared 
 });
 
 test('Native Local refuses duplicate configuration fields', async () => {
-  await writeFile(join(scratch.path, 'duplicate.json'),
+  await writeFile(join(project, 'duplicate.json'),
     '{"version":"actql-config/0.1","version":"actql-config/0.1","native":{}}');
   const result = check('values.json', 'json', [], [], 'duplicate.json');
   assert.equal(result.status, 1);
@@ -185,8 +172,7 @@ test('Native Local refuses duplicate configuration fields', async () => {
 });
 
 test('Native Local human preparation output does not claim Run acceptance', () => {
-  const result = runNative(['--mode', 'local', '--config-root', scratch.path,
-    '--config-file', 'actql.config.json', 'check', '--program-file', 'values.json', '--format', 'json']);
+  const result=runNative(['check','--program-file','values.json','--format','json']);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout,/^Local check \(no Run admitted\):\n/u);
   const outcome=JSON.parse(result.stdout.slice(result.stdout.indexOf('\n')+1));
@@ -207,24 +193,15 @@ for (const count of [101,1000]) {
       results:{rows:{from:'selected',fields:['id']}}}],
       results:{answer:{from:{stage:'main',result:'rows'}}}};
     const file=`authored-${count}.json`;
-    await writeFile(join(scratch.path,file),JSON.stringify(document));
-    const invoke=args=>runNative(['--mode','local','--config-root',scratch.path,
-      '--config-file','actql.config.json',...args]);
+    await writeFile(join(project,file),JSON.stringify(document));
     const success=result=>{assert.equal(result.status,0,result.stderr);return JSON.parse(result.stdout);};
-    const explanation=success(invoke(['explain','--program-file',file,'--format','json','--json']));
+    const explanation=success(runNative(['explain','--program-file',file,'--format','json','--json']));
     assert.equal(explanation.version,'actql-plan-view/0.1');
     assert.equal(explanation.provider_io,0);
-    const submission=success(invoke(['new-submission','--request-id',`authored-${count}`]));
-    const submissionFile=`submission-${count}.json`,refFile=`run-${count}.json`;
-    await writeFile(join(scratch.path,submissionFile),JSON.stringify(submission));
-    const published=success(invoke(['start','--program-file',file,'--submission-ref-file',
-      submissionFile,'--operation-attempt-id',`start-${count}`]));
-    assert.equal(published.kind,'local_run_published');
-    assert.deepEqual(published.resultNames,['answer']);
-    await writeFile(join(scratch.path,refFile),JSON.stringify(published.ref));
-    const delivered=invoke(['read','--submission-ref-file',submissionFile,'--ref-file',refFile,
-      '--result-name','answer','--purpose','inspection','--format','jsonl',
-      '--attempt-id',`read-${count}`,'--max-output-bytes','65536']);
+    const state=success(runNative(['run',file,'--format','json','--json']));
+    assert.equal(state.version,'actql-run-state/0.1');
+    assert.equal(state.status,'succeeded');assert.equal(typeof state.run_id,'string');
+    const delivered=runNative(['result',state.run_id,'--result','answer','--format','jsonl']);
     assert.equal(delivered.status,0,delivered.stderr);
     assert(Buffer.byteLength(delivered.stdout)<=65536);
     assert.deepEqual(delivered.stdout.trimEnd().split('\n').map(line=>JSON.parse(line)),
