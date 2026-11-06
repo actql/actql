@@ -4,6 +4,9 @@
 // controls and existing writer/collection inventory; their finite envelope is
 // charged once for this operation, not multiplied by Program tasks. Variable
 // sequence/AST/schema DATA already has request_program_plan_quote backing.
+// max_fields bounds each actual request/projection collection here. The
+// requirement's two borrowed schemas use their checked aggregate traversal
+// count; it creates no additional collection beyond these individual bounds.
 // Provider constructor controls remain trusted fixed Host overhead. No rows,
 // Provider read, execution capacity or successful admission is inferred here.
 fn request_local_query_construction_bytes() -> Int64? {
