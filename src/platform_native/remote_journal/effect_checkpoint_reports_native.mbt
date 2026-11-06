@@ -1,4 +1,23 @@
 ///|
+/// Scheduling DATA only. An empty report namespace needs no dispatch/material
+/// reconstruction. Presence never admits a report or authorizes its delivery.
+pub fn Journal::has_effect_checkpoint_reports(
+  self : Journal,
+) -> Result[Bool, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
+  match self.database.scan_after("site_effect_checkpoint_report", "") {
+    Ok(_) => Ok(true)
+    Err(@sqlite.NotFound) => Ok(false)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 /// Read the exact original report without refreshing its Run or review window.
 /// This is custody inspection, not a current permission to send or approve.
 pub fn Journal::effect_checkpoint_report(

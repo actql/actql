@@ -1,4 +1,11 @@
 ///|
+pub fn Journal::has_effect_checkpoint_reports(
+  _self : Journal,
+) -> Result[Bool, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::effect_checkpoint_report(
   _self : Journal,
   _request : @remote.DispatchRequest,
