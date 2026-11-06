@@ -3886,9 +3886,19 @@ fn query_checked_sequence(
     max_name_bytes=10000,
     expression_profiles=checked_expression_profile_admission(checked),
   ).unwrap()
+  // This fixture prepares the original acquisition, not any later checked
+  // Program projection. Retain its owned capture prefix on the same pipeline.
+  let capture_end = match prefix_end {
+    Some(_) => prefix_end
+    None =>
+      match @acquisition.query_acquisition_capture(query) {
+        @pipeline.Step(index) => Some(index)
+        _ => fail("Expected the original query capture step")
+      }
+  }
   @query.prepare_query_sequence(
     query,
-    query_generated(bound, prefix_end~),
+    query_generated(bound, prefix_end=capture_end),
     10000,
   ).unwrap()
 }
