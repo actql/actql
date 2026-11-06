@@ -121,11 +121,9 @@ test "preserving decoder owner retains the installed original structural invento
       bytes, nodes, depth,
     ).unwrap()
     let literal = @source.json_literal_construction_extent(bytes, nodes, depth).unwrap()
-    let all_keys = @shape.key_admission_construction_extent(nodes, nodes).unwrap()
-    let active_keys = @shape.key_admission_construction_extent(
-      Int::min(nodes, depth),
-      nodes,
-    ).unwrap()
+    // Source already owns the active key-map peak. The preserving parser adds
+    // only its decoded input String/wrapper; indexed admission adds the three
+    // separately retained endpoint families below, without replacing that map.
     let endpoints = [true, false].map(fn(objects) {
       let inventory = closed_values_source_inventories({
         input_bytes: bytes,
@@ -155,25 +153,19 @@ test "preserving decoder owner retains the installed original structural invento
     })
     assert_eq(
       original.record_headers,
-      literal.record_headers -
-      all_keys.record_headers +
+      literal.record_headers +
       Int64::max(endpoints[0].record_headers, endpoints[1].record_headers) +
-      active_keys.record_headers +
       1L,
     )
     assert_eq(
       original.reference_slots,
-      literal.reference_slots -
-      all_keys.reference_slots +
-      Int64::max(endpoints[0].reference_slots, endpoints[1].reference_slots) +
-      active_keys.reference_slots,
+      literal.reference_slots +
+      Int64::max(endpoints[0].reference_slots, endpoints[1].reference_slots),
     )
     assert_eq(
       original.scalar_words,
-      literal.scalar_words -
-      all_keys.scalar_words +
-      Int64::max(endpoints[0].scalar_words, endpoints[1].scalar_words) +
-      active_keys.scalar_words,
+      literal.scalar_words +
+      Int64::max(endpoints[0].scalar_words, endpoints[1].scalar_words),
     )
     assert_eq(
       original.owned_utf16_units,
