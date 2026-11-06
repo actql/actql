@@ -668,6 +668,13 @@ Object.assign(sourceEnvironment.host_policy_profile.capacity, {
   max_analytic_output_wire_bytes: 10000,
   max_analytic_partition_wire_bytes: 10000,
 });
+// The fixture's existing capacity is an explicit operator selection. Preserve
+// the remaining policy fields from this same installed Host base publication.
+const sourceBaseEnvironment = JSON.parse(await readFile(join(root, 'node_modules',
+  '@actql', 'local-node', 'spec', 'local-check-environment.json'), 'utf8'));
+const hostCapacityPolicy = sourceEnvironment.host_policy_profile.capacity;
+sourceEnvironment.host_policy_profile = {...sourceBaseEnvironment.host_policy_profile,
+  capacity: hostCapacityPolicy};
 delete sourceEnvironment.evidence_bundle_cid;
 sourceEnvironment.evidence_bundle_cid = machineCid(sourceEnvironment);
 const compileCapturedQuery = (...args) => queryFrontend.compileCapturedQueryJson(
@@ -993,6 +1000,9 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {connect, ClientError} from '@actql/node';
 import {connectInProcess} from '@actql/sdk/host-port';
+
+const hostCapacityPolicy = JSON.parse(JSON.parse(
+  readFileSync('source-profile.json', 'utf8')).checkEnvironmentWire).host_policy_profile.capacity;
 
 // Count actual prepared statements against the physical source. Both the
 // single-use and reused-CTE Programs use the same checked acquisition.
@@ -1604,7 +1614,7 @@ async function runAcquiredApplication(options, requestId) {
 // The default CI invocation continues to execute the full matrix.
 if (process.env.ACTQL_PROJECTION_ONLY === '1') {
   const local = await connect({mode: 'local', owner: 'local',
-    durability: 'durable'});
+    durability: 'durable', installation: {hostCapacityPolicy}});
   await checkCurrentGraph(local, 'projection-local');
   await checkOrderScopes(local, 'projection-local');
   local.close();
@@ -1621,7 +1631,7 @@ if (process.env.ACTQL_PROJECTION_ONLY === '1') {
   process.exit(0);
 }
 const {client: installedLocal, execution, rows} = await runApplication(
-  {mode: 'local', owner: 'local', durability: 'durable'},
+  {mode: 'local', owner: 'local', durability: 'durable', installation: {hostCapacityPolicy}},
   'packed-standard-values');
 assert.equal(execution.profile.durability, 'durable');
 assert.equal((await execution.status()).status, 'succeeded');
@@ -1686,7 +1696,7 @@ const pipeUnionLocal = await installedLocal.startSource(pipeUnionQueryDocument,
 assert.equal((await pipeUnionLocal.wait()).status, 'succeeded');
 assert.deepEqual(await pipeUnionLocal.result('answer').all(), expectedUnionRows);
 const acquiredLocal = await runAcquiredApplication(
-  {mode: 'local', owner: 'local', durability: 'durable'},
+  {mode: 'local', owner: 'local', durability: 'durable', installation: {hostCapacityPolicy}},
   'packed-acquired-local');
 const capturedQueryLocal = await acquiredLocal.client.startSource(capturedQueryDocument,
   {format: 'json', requestId: 'packed-captured-query-local'});
@@ -1972,7 +1982,7 @@ orderedAcquired.stages[2].steps.push({from: 'out',
 orderedAcquired.stages[2].results.r.from = 'sorted';
 const orderedDocument = JSON.stringify(orderedAcquired);
 const variantLocal = await connect({mode: 'local', owner: 'local',
-  durability: 'durable'});
+  durability: 'durable', installation: {hostCapacityPolicy}});
 const orderedLocal = await variantLocal.startSource(orderedDocument,
   {format: 'json', requestId: 'packed-acquired-ordered-local',
     parameters: {minimum: 1}});
@@ -2134,7 +2144,7 @@ const heldDispatch = new Promise(resolve => { releaseDispatch = resolve; });
 let failNextDispatch = false;
 const remoteHost = await openInstalledRemoteHttpHost({
   directory: join(root, 'remote-state'),
-  sourceProfilePath,
+  sourceProfilePath, hostCapacityPolicy,
   authenticate: header => header === 'Bearer packed-test-token'
     ? userInfo().username : undefined,
   beforeDispatch: async () => {
@@ -2206,8 +2216,11 @@ import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
+const hostCapacityPolicy = JSON.parse(JSON.parse(
+  readFileSync('source-profile.json', 'utf8')).checkEnvironmentWire).host_policy_profile.capacity;
 const host = await openInstalledRemoteHttpHost({
   directory: join(process.cwd(), 'restart-remote-state'),
+  hostCapacityPolicy,
   authenticate: header => header === 'Bearer packed-test-token'
     ? userInfo().username : undefined,
   beforeDispatch: process.env.ACTQL_HOLD_DISPATCH === '1'
@@ -2348,9 +2361,11 @@ await writeFile(join(root, 'restart.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {connect} from '@actql/node';
+const hostCapacityPolicy = JSON.parse(JSON.parse(
+  readFileSync('source-profile.json', 'utf8')).checkEnvironmentWire).host_policy_profile.capacity;
 globalThis.fetch = () => { throw new Error('NetworkOnLocalRestart'); };
 const client = await connect({mode: 'local', owner: 'local',
-  durability: 'durable'});
+  durability: 'durable', installation: {hostCapacityPolicy}});
 const ref = JSON.parse(readFileSync('run-ref.json', 'utf8'));
 const attached = await client.attach(ref);
 assert.equal((await attached.status()).status, 'succeeded');
