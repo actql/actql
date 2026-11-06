@@ -110,7 +110,7 @@ test('actual Native profile partition executes every original and both geometry 
     ordinary: {args: [...args, directory+'/ordinary_wbtest.mbt',
       directory+'/local_command_business_wbtest.mbt'], cases: 2},
     http: {args: [...args, http], cases: 1},
-    retained: {args: [...args,retained+'/retained_compute_wbtest.mbt'], cases: 1},
+    source: {args: [...args,retained], cases: 1},
     scoped: {args: [...args, directory+'/local_command_business_wbtest.mbt',
       directory+'/local_command_business_cleanup_wbtest.mbt'], cases: 2, tests: [
       {source: directory+'/local_command_business_wbtest.mbt', index: 0},
@@ -138,7 +138,7 @@ test('actual Native profile partition executes every original and both geometry 
   const transport = execute(selected.profiles.http);
   assert.match(transport, /HTTP original with its own peer profile/u);
   assert.doesNotMatch(transport, /ordinary profile original|both geometry configurations|physical profile original/u);
-  const retainedOutput=execute(selected.profiles.retained);
+  const retainedOutput=execute(selected.profiles.source);
   assert.match(retainedOutput,/retained Provider original with its own peers/u);
   assert.doesNotMatch(retainedOutput,/ordinary profile original|both geometry configurations|physical profile original|HTTP original/u);
   assert.doesNotMatch(ordinary,/retained Provider original/u);
@@ -178,7 +178,7 @@ test('actual Native package selection preserves full WB/BB/inline/doc outline an
   assert.deepEqual(profiled.profiles, {
     ordinary: {args: selected.args, cases: 4},
     http: {args: null, cases: 0},
-    retained: {args: null, cases: 0},
+    source: {args: null, cases: 0},
     scoped: {args: null, cases: 0, tests: []},
     physicalCases: 0, repeatedGeometryCases: 0, uniqueCases: 4,
   });

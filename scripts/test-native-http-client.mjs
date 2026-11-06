@@ -42,7 +42,7 @@ import {pinnedEngineContracts} from
 
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
 if (focus !== undefined &&
-    !['effect-control-replay', 'remote-client-poll', 'core-http', 'http-retirement', 'http-symbol-unload',
+    !['effect-control-replay', 'remote-client-poll', 'core-http', 'core-source', 'http-retirement', 'http-symbol-unload',
       'http-constructor-retirement', 'resident-review-regressions',
       'resident-review-provider', 'resident-review-checkpoint',
       'resident-review-write'].includes(focus)) {
@@ -130,7 +130,7 @@ const nativeTestDuckDBLibrary = process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(
 );
 // The full runner owns DuckDB prerequisites. The focused remote-client case
 // only uses libcurl and SQLite; it does not build or execute a DuckDB consumer.
-if (focus === undefined || focus.startsWith('resident-review-')) {
+if (focus === undefined || focus === 'core-source' || focus.startsWith('resident-review-')) {
   assert(existsSync(nativeTestDuckDBLibrary),
     `native DuckDB test library unavailable: ${nativeTestDuckDBLibrary}`);
 }
@@ -1022,7 +1022,7 @@ verification: try {
   }
   const nativeHttpOrigin = `https://${nativeHttpHost}:${address.port}`;
   let effectReviewOrigin;
-  if (focus === undefined || focus.startsWith('resident-review-')) {
+  if (focus === undefined || focus === 'core-source' || focus.startsWith('resident-review-')) {
     const review = nativeEffectReviewFixture('Bearer native-secret');
     // Review upload uses its original bearer Client, not the separate mTLS
     // transport peer. Keep its same secret/CA and existing server cleanup.
@@ -1040,7 +1040,7 @@ verification: try {
     cert: await readFile(join(root, 'server.crt')),
     root,
     allowLocalEffectRejection: true,
-    allowEffectCreate: focus === undefined || focus === 'resident-review-write' ||
+    allowEffectCreate: focus === undefined || focus === 'core-source' || focus === 'resident-review-write' ||
       focus === 'resident-review-regressions',
   });
   effectCheckpointServer = await startNativeEffectCheckpointServer({
@@ -1346,7 +1346,7 @@ verification: try {
   });
   const testEnvironment = {
     ...process.env,
-    ...(focus === undefined || focus === 'resident-review-write' ||
+    ...(focus === undefined || focus === 'core-source' || focus === 'resident-review-write' ||
         focus === 'resident-review-regressions'
       ? {ACTQL_TEST_NATIVE_EFFECT_CREATE_FIXTURE: '1'} : {}),
     ...(effectReviewOrigin ? {
@@ -1407,6 +1407,34 @@ verification: try {
     productCredentialEnvelope.signature,
   );
   await writeFile(join(root, 'credential-authority.pem'), credentialPublicKey);
+  if (focus === 'core-source') {
+    const args = JSON.parse(process.env.ACTQL_TEST_NATIVE_CORE_SOURCE_ARGS);
+    const expectedTests = Number(process.env.ACTQL_TEST_NATIVE_CORE_SOURCE_COUNT);
+    assert(Array.isArray(args) && args.every(value => typeof value === 'string'));
+    assert.deepEqual(args.filter(value => value.startsWith('src/')),
+      ['src/platform_native/remote_resident_source_compute_tests']);
+    assert(!args.some(value => ['--target','--filter','--index','--doc-index','-f','-i'].some(
+      option => value === option || value.startsWith(option+'='))),
+      'Core Source fixture requires the complete original package and Native target');
+    assert(Number.isSafeInteger(expectedTests) && expectedTests > 0,
+      'Original compiler-owned Source case count required');
+    const child = spawn(process.execPath, ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+      "process.exitCode=runFocusedTests('moon',['--target','native',...JSON.parse(process.argv[1])]," +
+      "{cwd:process.cwd(),timeout:3600000,expectedTests:Number(process.argv[2])});",
+      JSON.stringify(args), String(expectedTests)], {
+      cwd: new URL('../', import.meta.url), stdio: 'inherit',
+      // Same original Source-package environment as the full Native HTTP loop.
+      env: {...testEnvironment, ACTQL_TEST_NATIVE_STORE_ROOT: nativePackageStoreRoot(root),
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_LIBRARY: library,
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_CA: join(root, 'ca.crt'),
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET: join(bearerServers.directory, 'control'),
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_URL: bearerServers.origin},
+    });
+    const [code, signal] = await once(child, 'close');
+    assert.equal(code, 0, `Native Core Source fixture failed: ${code ?? signal}`);
+    break verification;
+  }
   if (focus?.startsWith('resident-review-')) {
     // Use the same peers, signed bundle and physical roots as the full CI
     // harness. Each original case runs once in its own process/Store namespace.

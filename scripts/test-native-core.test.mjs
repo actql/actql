@@ -660,7 +660,7 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
   }
 });
 
-function fixture(t, {scoped = false, http = false, retained = false} = {}) {
+function fixture(t, {scoped = false, http = false, sourcePeers = false} = {}) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-namespace-test-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const checkout = join(root, 'checkout');
@@ -724,11 +724,28 @@ console.log('ORIGINAL_HTTP_PROFILE_REQUIRED');
 process.exitCode = process.env.ACTQL_FIXTURE_HTTP_FAILED === '1' ? 9 : 0;
 `);
   }
-  if(retained) {
+  if(sourcePeers) {
     const directory=join(checkout,'src/platform_native/remote_resident_source_compute_tests');
     mkdirSync(directory,{recursive:true});
     for(const file of ['retained_compute_wbtest.mbt','ordinary_wbtest.mbt'])
       writeFileSync(join(directory,file),'Original compiler-input fixture\n');
+    // Explicit routing port; real Source/HTTP fixture execution is separate.
+    writeFileSync(join(checkout,'scripts/test-native-http-client.mjs'), `
+import assert from 'node:assert/strict';
+import {appendFileSync} from 'node:fs';
+assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS,'core-source');
+assert.equal(process.env.ACTQL_TEST_NATIVE_CORE_SOURCE_COUNT,'2');
+const args=JSON.parse(process.env.ACTQL_TEST_NATIVE_CORE_SOURCE_ARGS);
+assert.deepEqual(args,['--deny-warn','--release','--strip','-j','2','--no-parallelize',
+  'src/platform_native/remote_resident_source_compute_tests']);
+assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_URL,undefined);
+assert.equal(process.env.ACTQL_TEST_NATIVE_HTTP_BEARER_URL,undefined);
+assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH,'1');
+appendFileSync(process.env.ACTQL_FIXTURE_NATIVE_COMMANDS,JSON.stringify({
+  args:['test','--target','native',...args],path:process.env.PATH,profile:'source-peers'})+'\\n');
+console.log('ORIGINAL_SOURCE_PROFILE_REQUIRED');
+process.exitCode=process.env.ACTQL_FIXTURE_SOURCE_FAILED==='1'?9:0;
+`);
   }
   if (scoped) {
     mkdirSync(join(checkout, 'src/cmd/native_client'), {recursive: true});
@@ -785,7 +802,7 @@ if (process.argv[2] === 'generate-test-driver') {
 }
 assert.deepEqual(process.argv.slice(2, 5), ['test', '--target', 'native']);
 if (process.argv.includes('--dry-run')) {
-  if(process.env.ACTQL_FIXTURE_CORE_RETAINED==='1') {
+  if(process.env.ACTQL_FIXTURE_CORE_SOURCE==='1') {
     const source='src/platform_native/remote_resident_source_compute_tests';
     for(const [directory,files] of [['src/fixture-native',['main.mbt']],
       [source,['ordinary_wbtest.mbt','retained_compute_wbtest.mbt']]])
@@ -823,8 +840,7 @@ if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
       allocator:process.env.MOONBIT_ALLOCATOR,compiler:process.env.MOON_CC,
       backend:process.env.MOONBIT_NEW_NATIVE,profile:process.env.ACTQL_FIXTURE_PROFILE ?? 'ordinary',
       installedProcess:process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT,
-      sqliteComponent:process.env.ACTQL_TEST_SQLITE_COMPONENT,cryptoComponent:process.env.ACTQL_TEST_CRYPTO_COMPONENT,
-      retainedPeer:process.env.ACTQL_FIXTURE_RETAINED_PEER}) + '\\n');
+      sqliteComponent:process.env.ACTQL_TEST_SQLITE_COMPONENT,cryptoComponent:process.env.ACTQL_TEST_CRYPTO_COMPONENT}) + '\\n');
 }
 if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE_PROFILE)) {
   assert(process.argv.includes('--target-dir'));
@@ -949,7 +965,7 @@ assert.equal(verify(null, Buffer.from(
   cid + String.fromCharCode(0) + body),
   process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY,
   Buffer.from(process.env.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE, 'base64url')), true);
-const db = join(root, process.env.ACTQL_FIXTURE_RETAINED_PEER ? 'retained-compute.sqlite' : 'trusted-clock.sqlite');
+const db = join(root, 'trusted-clock.sqlite');
 assert.equal(existsSync(db), false, 'stale lower bound reused');
 writeFileSync(db, '1002');
 for (const suffix of ['-wal', '-shm']) writeFileSync(db + suffix, 'child');
@@ -967,20 +983,14 @@ assert.equal(process.argv[2], '--core-test-json');
 const args = JSON.parse(process.argv[3]);
 assert.equal(process.argv[4], '--core-test-count');
 assert(Number(process.argv[5]) > 0);
-const retained=process.argv[6]==='--resident-proposals';
-if(retained) {
-  assert.deepEqual(args.filter(arg=>arg.startsWith('src/')),
-    ['src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt']);
-  process.env.ACTQL_FIXTURE_RETAINED_PEER='1';
-}
-console.log(retained?'CORE_RETAINED_PEER_FIXTURE_PROVISIONED':'CORE_TARGET_FIXTURE_PROVISIONED');
+console.log('CORE_TARGET_FIXTURE_PROVISIONED');
 const result = spawnSync('moon', ['test', '--target', 'native', ...args], {stdio: 'inherit'});
 process.exit(result.status ?? 1);
 `);
   const env = {...process.env, PATH: `${bin}:${process.env.PATH}`,
     ...(scoped ? {ACTQL_FIXTURE_CORE_SCOPED: '1'} : {}),
     ...(http ? {ACTQL_FIXTURE_CORE_HTTP: '1'} : {}),
-    ...(retained ? {ACTQL_FIXTURE_CORE_RETAINED:'1'} : {}),
+    ...(sourcePeers ? {ACTQL_FIXTURE_CORE_SOURCE:'1'} : {}),
     HOME: root, RUNNER_TEMP: join(root, 'runner'), ACTQL_TEST_NATIVE_SQLITE_ROOT: parent,
     ACTQL_TEST_PRESERVE_SCRATCH: '',
     ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: parent,
@@ -1356,7 +1366,7 @@ test('full Native Core requires every HTTP case in its own peer profile and prop
     assert.ifError(result.error);
     assert.equal(result.signal, null);
     assert.equal(result.status, fail ? 9 : 0, result.stdout + result.stderr);
-    assert.match(result.stdout, /"ordinary":1,"http":1,"retained":0,"scoped":0/u);
+    assert.match(result.stdout, /"ordinary":1,"http":1,"source":0,"scoped":0/u);
     assert.match(result.stdout, /Native Core HTTP profile: 1 required cases/u);
     assert.match(result.stdout, /ORIGINAL_HTTP_PROFILE_REQUIRED/u);
     if (fail) assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
@@ -1365,62 +1375,53 @@ test('full Native Core requires every HTTP case in its own peer profile and prop
   }
 });
 
-test('full Native Core routes only original retained Compute to existing Provider peers',t=>{
-  const f=fixture(t,{retained:true}),commands=join(f.root,'native-commands.jsonl');
-  const flags=['--deny-warn','--release','--strip','-j','2','--no-parallelize'];
-  const result=spawnSync(process.execPath,['scripts/test-native-core.mjs',...flags],
-    {cwd:f.checkout,encoding:'utf8',timeout:10000,
-      env:{...f.env,ACTQL_FIXTURE_NATIVE_COMMANDS:commands}});
-  assert.equal(result.status,0,result.stdout+result.stderr);
-  const calls=readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse);
-  assert.equal(calls.length,4,'two original checkpoint producers plus ordinary and retained children');
-  const [ordinary,retained]=calls.slice(2);
-  assert.deepEqual(ordinary.args.filter(arg=>arg.startsWith('src/')),
-    ['src/fixture-native','src/platform_native/remote_resident_source_compute_tests/ordinary_wbtest.mbt']);
-  assert.deepEqual(retained.args,['test','--target','native',...flags,
-    'src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt']);
-  assert.equal(ordinary.retainedPeer,undefined);
-  assert.equal(retained.retainedPeer,'1');
-  assert.equal(retained.path,ordinary.path,'same selected compiler profile');
-  assert.equal(retained.installedProcess,undefined);
-  assert.match(result.stdout,/"ordinary":2,"http":0,"retained":1,"scoped":0/u);
-  assert.equal((result.stdout.match(/CORE_TARGET_FIXTURE_PROVISIONED/gu)??[]).length,1);
-  assert.equal((result.stdout.match(/CORE_RETAINED_PEER_FIXTURE_PROVISIONED/gu)??[]).length,1);
-  f.verifyExternal();
+test('full Native Core routes the complete Source package to its existing peer owner and preserves failure',t=>{
+  for(const fail of [false,true]) {
+    const f=fixture(t,{sourcePeers:true}),commands=join(f.root,'native-commands.jsonl');
+    const flags=['--deny-warn','--release','--strip','-j','2','--no-parallelize'];
+    const result=spawnSync(process.execPath,['scripts/test-native-core.mjs',...flags],
+      {cwd:f.checkout,encoding:'utf8',timeout:10000,
+        env:{...f.env,ACTQL_FIXTURE_NATIVE_COMMANDS:commands,ACTQL_FIXTURE_SOURCE_FAILED:fail?'1':'0'}});
+    assert.equal(result.status,fail?9:0,result.stdout+result.stderr);
+    const calls=readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse);
+    assert.equal(calls.length,4,'two original checkpoint producers plus ordinary and Source children');
+    const [ordinary,source]=calls.slice(2);
+    assert.deepEqual(ordinary.args.filter(arg=>arg.startsWith('src/')),['src/fixture-native']);
+    assert.deepEqual(source.args,['test','--target','native',...flags,
+      'src/platform_native/remote_resident_source_compute_tests']);
+    assert.equal(source.profile,'source-peers');
+    assert.equal(source.path,ordinary.path,'same selected compiler profile');
+    assert.match(result.stdout,/"ordinary":1,"http":0,"source":2,"scoped":0/u);
+    assert.equal((result.stdout.match(/CORE_TARGET_FIXTURE_PROVISIONED/gu)??[]).length,1);
+    assert.equal((result.stdout.match(/ORIGINAL_SOURCE_PROFILE_REQUIRED/gu)??[]).length,1);
+    f.verifyExternal();
+  }
 });
 
-test('retained Core peer entrance refuses foreign or partial selections and preserves zero writes',()=>{
-  const source=readFileSync(new URL('test-native-salesforce-effect-preview.mjs',import.meta.url),'utf8');
-  const start=source.indexOf('const residentMappedCreate = '),end=source.indexOf('\nconst scratch',start);
-  const file='src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt';
-  const core=['--deny-warn','--release','--strip','-j','2','--no-parallelize',file];
-  const selection=(args,mode='--resident-proposals')=>runInNewContext(source.slice(start,end)+
-    '\n({coreRetained,completeRetainedProposals});',
-    {assert,process:{argv:['node','fixture','--core-test-json',JSON.stringify(args),'--core-test-count','12',mode]}});
-  const selected=selection(core);assert.equal(selected.coreRetained,true);
-  assert.equal(selected.completeRetainedProposals,true);
-  for(const args of [[...core,'src/foreign'],[...core,'--index','0'],[...core,'--filter','one'],[...core,'--filter=one']])
-    assert.throws(()=>selection(args));
-  assert.throws(()=>selection(core,'--resident-preview'));
-  const loopStart=source.indexOf("  for (const suffix of ['HTTP_URL', 'HTTP_CA'");
-  const loopEnd=source.indexOf('  // The ordinary target fixture',loopStart);
-  assert(loopStart>=0 && loopEnd>loopStart);
-  for(const coreRetained of [false,true]) {
-    const testEnv={ACTQL_TEST_NATIVE_HTTP_URL:'original-peer',ACTQL_TEST_NATIVE_HTTP_CA:'original-ca'};
-    const parent={};
-    runInNewContext(source.slice(loopStart,loopEnd),{testEnv,process:{env:parent},coreArgs:core,coreRetained});
-    assert.equal(testEnv.ACTQL_TEST_NATIVE_HTTP_URL,coreRetained?'original-peer':undefined);
-    assert.equal(testEnv.ACTQL_TEST_NATIVE_HTTP_CA,coreRetained?'original-ca':undefined);
-    assert.equal(testEnv.ACTQL_TEST_NATIVE_SALESFORCE_HTTP_URL,'original-peer');
-    assert.deepEqual(parent,{});
-  }
+test('Core Source peer entrance retains complete package, Native target and nonzero count',()=>{
+  const source=readFileSync(new URL('test-native-http-client.mjs',import.meta.url),'utf8');
+  const start=source.indexOf("  if (focus === 'core-source') {"),end=source.indexOf('    const child = spawn(',start);
+  assert(start>=0 && end>start);
+  const body=source.slice(source.indexOf('    const args = ',start),end);
+  const core=['--deny-warn','--release','--strip','-j','2','--no-parallelize',
+    'src/platform_native/remote_resident_source_compute_tests'];
+  const check=(args,count)=>runInNewContext(body,{assert,process:{env:{
+    ACTQL_TEST_NATIVE_CORE_SOURCE_ARGS:JSON.stringify(args),ACTQL_TEST_NATIVE_CORE_SOURCE_COUNT:String(count)}}});
+  check(core,78);
+  for(const args of [[...core,'src/foreign'],[...core,'--index','0'],[...core,'--filter=one'],
+    [...core,'--target','js'],[...core.slice(0,-1),core.at(-1)+'/retained_compute_wbtest.mbt']])
+    assert.throws(()=>check(args,78));
+  for(const count of [0,-1,1.5,'unknown'])assert.throws(()=>check(core,count));
+});
 
-  const observation=/^    assert.deepEqual\(bearer.effectTargets\(\),.*$/mu.exec(source)?.[0];
-  assert(observation);
-  runInNewContext(observation,{assert:{deepEqual:(actual,expected)=>
-    assert.deepEqual(actual,JSON.parse(JSON.stringify(expected)))},bearer:{effectTargets:()=>({reads:2,writes:0})},
-    completeRetainedProposals:true,residentMappedCreate:false,residentEffectRuntimeCapture:false,
-    residentApprovedRow:false});
+test('focused retained proposal modes preserve independently authored reads and no writes',()=>{
+  const source=readFileSync(new URL('test-native-salesforce-effect-preview.mjs',import.meta.url),'utf8');
+  const observation=/^    assert.deepEqual\(bearer.effectTargets\(\),.*$/mu.exec(source)?.[0];assert(observation);
+  for(const [complete,runtime,reads] of [[true,false,2],[false,false,1],[false,true,0]])
+    runInNewContext(observation,{assert:{deepEqual:(actual,expected)=>
+      assert.deepEqual(actual,JSON.parse(JSON.stringify(expected)))},bearer:{effectTargets:()=>({reads,writes:0})},
+      completeRetainedProposals:complete,residentMappedCreate:false,residentEffectRuntimeCapture:runtime,
+      residentApprovedRow:false});
 });
 
 test('full Native Core requires both ordinary and selected profiles and propagates selected failure', t => {
@@ -1472,7 +1473,7 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     assert.deepEqual(selected.args.slice(0, 3), ['test', '--target', 'native']);
     const target = selected.args[selected.args.indexOf('--target-dir') + 1];
     assert(target.startsWith(join(f.checkout, '_build/native-core-scoped/profile-')));
-    assert.match(result.stdout, /"ordinary":2,"http":0,"retained":0,"scoped":3,"physical":2,"repeatedGeometry":1/u);
+    assert.match(result.stdout, /"ordinary":2,"http":0,"source":0,"scoped":3,"physical":2,"repeatedGeometry":1/u);
     assert.equal((result.stdout.match(/CORE_TARGET_FIXTURE_PROVISIONED/gu) ?? []).length, 1,
       'only ordinary Core executes the Salesforce target oracle');
     const namespace = /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1];

@@ -53,7 +53,7 @@ if (selection) console.log('Native test selection: ' + JSON.stringify({cases: se
   packages: selection.packages, prunedDrivers: selection.prunedDrivers,
   profiles: {ordinary: selection.profiles.ordinary.cases,
     http: selection.profiles.http.cases,
-    retained: selection.profiles.retained.cases,
+    source: selection.profiles.source.cases,
     scoped: selection.profiles.scoped.cases, physical: selection.profiles.physicalCases,
     repeatedGeometry: selection.profiles.repeatedGeometryCases}}));
 const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_client'))
@@ -153,15 +153,17 @@ if (full) {
     {cwd: root, stdio: 'inherit', env: environment}));
   };
   runProfile(selection.profiles.ordinary, {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler});
-  // Only these original cases consume the existing real bearer/Provider peers.
-  // Generic HTTP inputs must remain absent from the ordinary Core child.
-  if (selection.profiles.retained.args !== null) {
-    checkChild(spawnSync(process.execPath, ['scripts/test-native-salesforce-effect-preview.mjs',
-      '--core-test-json', JSON.stringify(selection.profiles.retained.args),
-      '--core-test-count', String(selection.profiles.retained.cases), '--resident-proposals'],
-    {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...testCompiler}}));
+  // The Source package uses the existing complete Source/HTTP fixture owner.
+  // Its peer environment must never activate other ordinary Core packages.
+  if (selection.profiles.source.args !== null) {
+    checkChild(spawnSync(process.execPath, ['scripts/test-native-http-client.mjs'], {
+      cwd: root, stdio: 'inherit', env: {...compilerEnvironment,
+        ACTQL_TEST_SCRATCH_ROOT: namespace, ACTQL_TEST_PRESERVE_SCRATCH: '1',
+        ACTQL_TEST_NATIVE_HTTP_FOCUS: 'core-source',
+        ACTQL_TEST_NATIVE_CORE_SOURCE_ARGS: JSON.stringify(selection.profiles.source.args),
+        ACTQL_TEST_NATIVE_CORE_SOURCE_COUNT: String(selection.profiles.source.cases)},
+    }));
   }
-
   if (selection.profiles.scoped.args !== null) {
     const scopedScratch = await createOwnedScratch({parent: join(root, '_build', 'native-core-scoped'),
       prefix: 'profile-', label: 'Native Core scoped compiler', preserve: true});

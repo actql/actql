@@ -31,19 +31,9 @@ assert(coreExpectedTests === undefined || (coreArgs !== undefined &&
   Number.isSafeInteger(coreExpectedTests) && coreExpectedTests > 0), 'Invalid Native core test count');
 assert(!directLocalClaimCustody || (!originalLocalReview && !residentProposals && coreArgs === undefined),
   'Direct Local claim custody requires its own finite fixture selection');
-const coreRetained = coreArgs !== undefined && residentProposals;
 if (coreArgs !== undefined) {
-  assert(Array.isArray(coreArgs) && coreArgs.every(arg => typeof arg === 'string'),
+  assert(Array.isArray(coreArgs) && coreArgs.every(arg => typeof arg === 'string') && !residentProposals,
     'Invalid Native core fixture invocation');
-  if (coreRetained) {
-    assert(!residentPreview && !residentEffectRuntimeCapture && !originalLocalReview &&
-      process.argv.includes('--resident-proposals'), 'Invalid retained Core peer selection');
-    assert.deepEqual(coreArgs.filter(arg => arg.startsWith('src/')),
-      ['src/platform_native/remote_resident_source_compute_tests/retained_compute_wbtest.mbt']);
-    assert(!coreArgs.some(arg => ['--filter','--index','--doc-index','-f','-i'].some(
-      option => arg === option || arg.startsWith(option+'='))),
-      'Retained Core peers require the complete original file');
-  }
 }
 // The complete file has two authored successful Provider observations: the
 // proposal case and Checkpoint custody. Its revoked-permission case sends none.
@@ -289,7 +279,7 @@ try {
     'CREDENTIAL_GRANT_BODY', 'CREDENTIAL_GRANT_CID', 'CREDENTIAL_SIGNATURE', 'CREDENTIAL_PUBLIC_KEY']) {
     const key = 'ACTQL_TEST_NATIVE_' + suffix;
     testEnv['ACTQL_TEST_NATIVE_SALESFORCE_' + suffix] = testEnv[key];
-    if (coreArgs !== undefined && !coreRetained) {
+    if (coreArgs !== undefined) {
       if (process.env[key] === undefined) delete testEnv[key];
       else testEnv[key] = process.env[key];
     }
