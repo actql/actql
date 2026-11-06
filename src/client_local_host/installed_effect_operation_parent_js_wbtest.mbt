@@ -482,7 +482,7 @@ test "unknown Effect capture grows its same control from completed original rows
 }
 
 ///|
-test "same acquired Unit pins both captured and computed original Result targets" {
+test "acquired Unit pins its computed original Result target" {
   unknown_effect_capture_controls(
     effect_operation_source_plan_fixture(same_unit_results=true),
     same_unit_results=true,
@@ -605,11 +605,14 @@ fn unknown_effect_capture_controls(
   @row_source_host.retain_row_capture_task(source, dag, 0).unwrap()
   let graph = @strategy.captured_dag_graph(dag)
   let output_live = Ref(true)
-  let completed_operations : Array[@local_driver.LocalManagedDispatchOperations[Int]] = []
+  let completed_operations : Array[
+    @local_driver.LocalManagedDispatchOperations[Int],
+  ] = []
   let mut available : Array[@local_driver.LocalManagedAvailableOutput[Int]] = [
     @local_driver.local_managed_captured_relation_input(),
   ]
-  let tasks = if same_unit_results { 2 } else { 1 }
+  let tasks = @strategy.graph_task_count(graph) - 1
+  assert_eq(tasks, if same_unit_results { 3 } else { 1 })
   for ordinal in 0..<tasks {
     let task = @strategy.next_captured_task(dag).unwrap()
     assert_eq(task, ordinal + 1)
@@ -657,7 +660,8 @@ fn unknown_effect_capture_controls(
       Err(Execution(Capture(_))) => fail("UnknownEffectOriginalComputeCapture")
       Err(Execution(Binding(_))) => fail("UnknownEffectOriginalComputeBinding")
       Err(Execution(Read(_))) => fail("UnknownEffectOriginalComputeRead")
-      Err(Execution(Compute(_))) => fail("UnknownEffectOriginalComputeCandidate")
+      Err(Execution(Compute(_))) =>
+        fail("UnknownEffectOriginalComputeCandidate")
       Err(Execution(Implementation(_))) =>
         fail("UnknownEffectOriginalComputeImplementation")
       Err(Configuration(CommonInputRows)) =>
@@ -697,12 +701,49 @@ fn unknown_effect_capture_controls(
     completed_operations.push(operations)
     available = [@local_driver.local_managed_relation_output(completed)]
   }
-  let inputs = match @strategy.pin_captured_effect_sources(
-    captured, if same_unit_results { 3 } else { 2 },
-  ) {
+  for task in 1..<=tasks {
+    assert_true(
+      @strategy.captured_task_completed(dag, task),
+      msg="original compute must be completed before pin",
+    )
+  }
+  if same_unit_results {
+    for index in 0..<@strategy.graph_result_count(graph) {
+      let task = @strategy.graph_result_task(graph, index).unwrap()
+      let occurrence = @strategy.graph_result_occurrence(graph, index).unwrap()
+      let pins = match
+        @strategy.pin_captured_any_result_output_set(
+          dag,
+          [(task, occurrence)],
+          2,
+        ) {
+        Ok(value) => value
+        Err(_) =>
+          fail("Original root Result unavailable at task " + task.to_string())
+      }
+      assert_true(@strategy.release_captured_any_result_output_set(pins))
+    }
+  }
+  let inputs = match @strategy.pin_captured_effect_sources(captured, 2) {
     Ok(value) => value
-    Err(ForeignCandidate) => fail("Effect original Result target was routed to a foreign task")
-    Err(_) => fail("Effect original Result pin failed")
+    Err(ForeignCandidate) =>
+      fail("Effect original Result target was routed to a foreign task")
+    Err(UnsupportedGraph) =>
+      fail("Effect original Result pin: UnsupportedGraph")
+    Err(ForeignCapture) => fail("Effect original Result pin: ForeignCapture")
+    Err(NotReady) => fail("Effect original Result pin: NotReady")
+    Err(Stopped) => fail("Effect original Result pin: Stopped")
+    Err(PreviewWorkLimit) =>
+      fail("Effect original Result pin: PreviewWorkLimit")
+    Err(MissingOutput) => fail("Effect original Result pin: MissingOutput")
+    Err(Capture(_)) => fail("Effect original Result pin: Capture")
+    Err(Binding(_)) => fail("Effect original Result pin: Binding")
+    Err(Read(_)) => fail("Effect original Result pin: Read")
+    Err(Compute(_)) => fail("Effect original Result pin: Compute")
+    Err(Implementation(_)) => fail("Effect original Result pin: Implementation")
+    Err(Physical(_)) => fail("Effect original Result pin: Physical")
+    Err(ActivationNotAuthorized) =>
+      fail("Effect original Result pin: ActivationNotAuthorized")
   }
   assert_eq(
     @strategy.captured_effect_inputs_row_inventory(inputs, plan.rows),
@@ -853,7 +894,7 @@ fn unknown_effect_capture_controls(
     (operations.close)()
   }
   @strategy.stop_captured_dag(dag)
-  for task in 1..=tasks {
+  for task in 1..<=tasks {
     @strategy.close_captured_task_output(dag, task)
   }
   @strategy.close_captured_task_output(dag, 0)
