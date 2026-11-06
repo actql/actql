@@ -1705,6 +1705,32 @@ jobs:
         run: |
           ulimit -S -s 65536
           node scripts/test-native-resident-site.mjs --effect-computation-only
+      # Retain the original failure-only evidence before the longer independent Native groups.
+      - name: Install debugger only for failed Linux Effect consumer diagnosis
+        id: failure-debugger
+        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        continue-on-error: true
+        timeout-minutes: 5
+        # The required Crypto step already refreshed these package indexes.
+        # Debugger availability must not block the original Native tests.
+        run: sudo apt-get install --yes --no-install-recommends gdb
+      - name: Diagnose only failed Linux Effect consumer functions
+        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        continue-on-error: true
+        timeout-minutes: 6
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-effect-function-state
+        run: |
+          ulimit -S -s 65536
+          node scripts/diagnose-native-resident-functions.mjs --output "${{ runner.temp }}/native-effect-functions/sanitized.json"
+      - name: Retain only sanitized Linux Effect function availability
+        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-effect-functions-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-effect-functions/sanitized.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Test Native Resident Site
         id: native-runtime-test
         if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
@@ -1745,16 +1771,17 @@ jobs:
         run: |
           ulimit -S -s 65536
           node scripts/test-native-resident-site.mjs --cancel-only
-      - name: Install debugger only for failed Linux Effect consumer diagnosis
-        id: failure-debugger
-        if: ${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}
+      # A failed Effect was already sampled before Site; otherwise preserve the original Site trigger.
+      - name: Install debugger only for failed Linux Effect consumer diagnosis (Site fallback)
+        id: site-failure-debugger
+        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
         continue-on-error: true
         timeout-minutes: 5
         # The required Crypto step already refreshed these package indexes.
         # Debugger availability must not block the original Native tests.
         run: sudo apt-get install --yes --no-install-recommends gdb
-      - name: Diagnose only failed Linux Effect consumer functions
-        if: ${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}
+      - name: Diagnose only failed Linux Effect consumer functions (Site fallback)
+        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
         continue-on-error: true
         timeout-minutes: 6
         env:
@@ -1762,8 +1789,8 @@ jobs:
         run: |
           ulimit -S -s 65536
           node scripts/diagnose-native-resident-functions.mjs --output "${{ runner.temp }}/native-effect-functions/sanitized.json"
-      - name: Retain only sanitized Linux Effect function availability
-        if: ${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}
+      - name: Retain only sanitized Linux Effect function availability (Site fallback)
+        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-effect-functions-${{ github.run_id }}-${{ github.run_attempt }}
