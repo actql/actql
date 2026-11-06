@@ -329,6 +329,10 @@ fn capture_fixture_work(
   selection : NativeRelationFileSelection,
 ) -> Unit raise {
   arena.enter_domain_retained_execution(execution).unwrap()
+  // Cleanup metadata never becomes an entry point into a currently entered Read.
+  assert_true(
+    arena.observe_domain_retained_execution_cleanup(execution) is Err(_),
+  )
   let ledger = arena.borrow_domain_retained_execution_ledger(execution).unwrap()
   let limits = capture_fixture_limits()
   let before = @resources.ledger_usage(ledger)
@@ -731,6 +735,9 @@ test "finite Native relation file preserves original capture and retires physica
     @arena.PendingRetainedExecution(_, _) =>
       fail("finite native file retained execution is partial")
   }
+  assert_true(
+    arena.observe_domain_retained_execution_cleanup(execution) is Ok(_),
+  )
   capture_fixture_report_inventory(arena, execution, "before source attempts")
   // A real prepared execution is not a current entered scope. Refusal occurs
   // before reservation or filesystem acquisition; the first entered usage
@@ -808,6 +815,10 @@ test "finite Native relation file preserves original capture and retires physica
       )
     }
   }
+  // A completed physical close cannot be observed as another current owner.
+  assert_true(
+    arena.observe_domain_retained_execution_cleanup(execution) is Err(_),
+  )
   arena.close_domain_after_owner_ack(domain).unwrap()
   arena.try_close().unwrap()
   assert_eq(capture_fixture_close(fd), 0)
