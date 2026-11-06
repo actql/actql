@@ -63,4 +63,4 @@ export const absExecutionFailures = [
   {name: 'demanded-operand', text: 'SELECT ABS(1 / 0) AS value', sourceReadSessionCount: 0},
   {name: 'failure-after-valid-row', text: 'SELECT id, ABS(1 / amount) AS value FROM records ORDER BY id',
     sourceRows: [{id: 1, amount: -2}, {id: 2, amount: 0}], sourceReadSessionCount: 1},
-].map(value => ({...value, name: 'abs-' + value.name, format: 'sql', resultNames: ['answer']}));
+].map(value => ({...value, name: 'abs-' + value.name, format: 'sql', resultNames: ['main']}));

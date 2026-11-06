@@ -27,7 +27,8 @@ export function auditSequenceTransport(report) {
     assert.ok(actual.ref && Object.keys(actual.ref).length > 0);
     assert.ok(actual.submissionRef && Object.keys(actual.submissionRef).length > 0);
     assert.deepEqual(actual.observedResults, successes[index].results);
-    rows += actual.observedResults.answer.rows.length;
+    const resultName = successes[index].format === 'json' ? 'answer' : 'main';
+    rows += actual.observedResults[resultName].rows.length;
     assert.equal(actual.beforeSubmit.acceptedRuns, index);
     assert.equal(actual.beforeRead.acceptedRuns, index + 1);
     for (const key of ['sourceIo', 'sourceReads', 'sourceReadSessions']) {
@@ -47,7 +48,8 @@ export function auditSequenceTransport(report) {
       {acceptedRuns: successes.length, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0});
     assert.deepEqual(actual.afterRefusal, actual.beforeSubmit);
   }
-  assert.equal(rows, successes.reduce((total, item) => total + item.results.answer.rows.length, 0));
+  assert.equal(rows, successes.reduce((total, item) =>
+    total + item.results[item.format === 'json' ? 'answer' : 'main'].rows.length, 0));
   return {mode: report.mode, actualNormal: successes.length, actualRefusal: refusals.length,
     actualNamedResults: successes.length, actualRows: rows, freshRereadNamedResults: successes.length, complete: true};
 }

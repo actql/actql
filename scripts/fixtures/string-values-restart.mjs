@@ -1,5 +1,6 @@
 import {decodeRetainedFixture} from './retained-fixture-values.mjs';
 import {observeRetainedGraphDispatch} from './retained-graph-observer.mjs';
+import {publicQueryResultOracles} from './public-query-input.mjs';
 // Fresh process, installed packages only: restore published Results, without
 // submitting source or invoking a compiler to recreate missing data.
 import assert from 'node:assert/strict';
@@ -36,8 +37,8 @@ async function readRetained(mode, options, directory) {
     const item = retained[mode];
     const execution = await client.attach(item.ref);
     assert.equal((await execution.status()).status, 'succeeded');
-    assert.deepEqual(await execution.result('answer').all(), item.expected);
-    assert.deepEqual((await execution.result('answer').describe()).columns, item.columns);
+    assert.deepEqual(await execution.result('main').all(), item.expected);
+    assert.deepEqual((await execution.result('main').describe()).columns, item.columns);
     assert.equal(accepted(directory), before, 'restoring Results creates no Run');
     console.log(`Exact strings retained after fresh ${mode} Host process`);
   } finally { await client.close(); }
@@ -87,7 +88,7 @@ async function readRetainedCohort(cohort, options) {
     for (const {source, ref, submissionRef} of cohort.samples) {
       const execution = await client.attach(ref);
       assert.equal((await execution.status()).status, 'succeeded');
-      const results = source.results ?? {answer: {rows: source.expected, columns: source.columns}};
+      const results = publicQueryResultOracles(source);
       for (const [name, oracle] of Object.entries(results)) {
         const actual = await execution.result(name).all();
         if (oracle.unordered) {
@@ -97,7 +98,7 @@ async function readRetainedCohort(cohort, options) {
           assert.deepEqual((await execution.result(name).describe()).columns, oracle.columns);
         }
       }
-      const {name, text, expected, columns, results: resultOracles, sourceRows,
+      const {name, text, expected, columns, results: resultOracles, resultName, sourceRows,
         sourceReadCount, sourceReadSessionCount, ...input} = source;
       const replayed = await client.startSource(text, {...input, submissionRef});
       assert.deepEqual(replayed.ref, ref);

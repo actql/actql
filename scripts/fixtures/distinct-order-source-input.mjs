@@ -133,9 +133,9 @@ distinctOrderSuccesses.push(
   }),
 );
 for (const [index, query] of [
-  'SELECT DISTINCT (payload).score AS score FROM objects AS payload ORDER BY payload.score',
-  'SELECT DISTINCT payload.score AS score FROM objects AS payload ORDER BY (payload).score',
-  'SELECT DISTINCT (payload).score + 1 AS score FROM objects AS payload ORDER BY payload.score + 1',
+  'SELECT DISTINCT (payload.payload).score AS score FROM objects AS payload ORDER BY payload.score',
+  'SELECT DISTINCT payload.score AS score FROM objects AS payload ORDER BY (payload.payload).score',
+  'SELECT DISTINCT (payload.payload).score + 1 AS score FROM objects AS payload ORDER BY payload.score + 1',
   'SELECT DISTINCT payload.score AS score FROM objects ORDER BY objects.id',
 ].entries()) {
   distinctOrderRefusals.push({...receiverCase('unselected-' + index, query),

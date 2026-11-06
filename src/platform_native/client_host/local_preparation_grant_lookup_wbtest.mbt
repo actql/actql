@@ -240,9 +240,17 @@ test "Native preparation lookup refuses foreign references and lost original cus
       is Err(ForeignInstallation),
     )
   }
+  // The foreign installation stays live beside the original and therefore
+  // owns a separate exclusive Adoption parent, with the same Account source.
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let parent = @filesystem.open_private_root(path).unwrap()
+  let state_name = "preparation-lookup-other-parent"
+  parent.create_directory(state_name).unwrap() |> ignore
+  parent.close().unwrap()
   let (foreign, _) = local_issuer_fixture(
     "preparation-lookup-other-host",
     account_body=local_preparation_lookup_account,
+    state_parent=Some(path + "/" + state_name),
   )
   assert_true(
     foreign.lookup_preparation_grant_operation(

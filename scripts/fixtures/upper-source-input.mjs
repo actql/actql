@@ -65,5 +65,5 @@ export const upperRefusals = [
 ].map(value => ({...value, name: 'upper-' + value.name, format: 'sql', expectedCode: 'ClientProgramInvalidInput'}));
 export const upperExecutionFailures = [{
   name: 'upper-demanded-operand', text: 'SELECT UPPER(CAST(1 / 0 AS STRING)) AS value',
-  format: 'sql', resultNames: ['answer'], sourceReadSessionCount: 0,
+  format: 'sql', resultNames: ['main'], sourceReadSessionCount: 0,
 }];

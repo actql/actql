@@ -88,7 +88,7 @@ export const havingObjectPropertyExecutionFailures = [
   {name: 'having-object-property-demanded-failure', format: 'sql',
     text: projection + 'HAVING assessment.score / (id - id) > 10 ORDER BY id',
     parameterDeclarations: declarations, parameters, sourceRows: rows, sourceReadSessionCount: 1,
-    resultNames: ['answer']},
+    resultNames: ['main']},
 ];
 
 // The existing normal and focused Host paths also cover clause-aware aggregate

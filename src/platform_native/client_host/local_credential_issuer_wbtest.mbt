@@ -10,6 +10,7 @@ fn local_issuer_fixture(
   name : String,
   account_body? : Bytes = local_issuer_fixture_account,
   issuer_wire? : String = local_issuer_fixture_wire,
+  state_parent? : String? = None,
 ) -> (NativeLocalHostConnection, String) {
   let root = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let parent = @filesystem.open_private_root(root).unwrap()
@@ -17,7 +18,7 @@ fn local_issuer_fixture(
   let writer = parent.create_writer(name + ".issuer.stage", 8192L).unwrap()
   writer.append(@utf8.encode(issuer_wire)).unwrap()
   writer.seal(file).unwrap() |> ignore
-  (policy_host_fixture(name, files=[file], account_body~), file)
+  (policy_host_fixture(name, files=[file], account_body~, state_parent~), file)
 }
 
 ///|
@@ -179,7 +180,16 @@ test "Native issuer binding refuses foreign selection principal connection inten
   let binding = host
     .acquire_credential_issuer(crypto, file, "operator", "cli", intent)
     .unwrap()
-  let (foreign, _) = local_issuer_fixture("local-issuer-other-host")
+  // Both live Hosts retain their own exclusive Adoption namespace.
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let parent = @filesystem.open_private_root(path).unwrap()
+  let state_name = "local-issuer-other-parent"
+  parent.create_directory(state_name).unwrap() |> ignore
+  parent.close().unwrap()
+  let (foreign, _) = local_issuer_fixture(
+    "local-issuer-other-host",
+    state_parent=Some(path + "/" + state_name),
+  )
   assert_true(
     binding.require_current(foreign, intent) is Err(SelectionMismatch),
   )

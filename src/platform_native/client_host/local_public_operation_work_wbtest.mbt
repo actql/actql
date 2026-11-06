@@ -354,13 +354,10 @@ test "operation retention refuses changed target bytes and preserves rollback an
     // This is an actual controlled mutation, not a trusted metadata getter.
     // Retire the same operation fact before replacing the selected target.
     journal.invalidate_operation_record()
+    // The existing Run-definition index requires valid JSON on writes.
+    // Keep the original row corrupt so its current check performs the refusal.
     match
-      host.database.compare_exchange(
-        "client_runs",
-        key,
-        before.revision,
-        b"changed target",
-      ) {
+      host.database.compare_exchange("client_runs", key, before.revision, b"{}") {
       Ok(_) => ()
       Err(issue) => return Err(Physical(issue))
     }

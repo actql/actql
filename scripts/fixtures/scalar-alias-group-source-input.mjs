@@ -61,7 +61,7 @@ export const scalarAliasGroupSuccesses = [
     + 'COUNT(*) + `CHAR_LENGTH`(texts.name) AS total FROM texts '
     + 'GROUP BY `CHAR_LENGTH`(name) ORDER BY width NULLS LAST'),
   success('pipe-key', 'FROM texts |> AGGREGATE COUNT(*) AS n GROUP BY CHAR_LENGTH(name) AS width '
-    + '|> SELECT width, n + width AS total |> ORDER BY width NULLS LAST |> RESULT answer'),
+    + '|> SELECT width, n + width AS total |> ORDER BY width NULLS LAST |> RESULT answer', {resultName: 'answer'}),
   success('typed-empty', sql, {sourceRows: [], expected: []}),
   success('ceiling-json-control', JSON.stringify(scalarAliasCeilingProgram), {...rounded,
     format: 'json', text: JSON.stringify(scalarAliasCeilingProgram)}),

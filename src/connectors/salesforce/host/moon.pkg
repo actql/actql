@@ -20,3 +20,8 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/run_publication" @publication,
 }
+
+import {
+  "moonbitlang/core/encoding/base64",
+  "moonbitlang/core/encoding/utf8",
+} for "wbtest"

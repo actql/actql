@@ -54,5 +54,5 @@ export const orderAggregateExpressionRefusals = [
 ].map((text, index) => ({name: 'order-aggregate-expression-refuse-' + index, format: 'sql', text}));
 export const orderAggregateExpressionExecutionFailures = [{
   name: 'order-aggregate-expression-demanded-division', format: 'sql',
-  text: 'SELECT id FROM records GROUP BY id ORDER BY COUNT(*) / 0', resultNames: ['answer'], sourceReadSessionCount: 1,
+  text: 'SELECT id FROM records GROUP BY id ORDER BY COUNT(*) / 0', resultNames: ['main'], sourceReadSessionCount: 1,
 }];

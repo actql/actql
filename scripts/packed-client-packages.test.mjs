@@ -1,8 +1,8 @@
 // Shared Client tarballs are used only for the exact checkout they were
 // packed from: every build input a pack reads, not only packages/.
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
-import {appendFile, copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from
+import {execFileSync, spawnSync} from 'node:child_process';
+import {appendFile, copyFile, cp, mkdir, mkdtemp, readFile, rename, rm, writeFile} from
   'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, relative, resolve} from 'node:path';
@@ -48,8 +48,54 @@ async function readOpeningImportRewriter(repository, path, installedHost) {
   const replacement = Function('relative', 'resolve', 'pathToFileURL', 'repository', 'path', 'support', 'installedHost',
     `return (${source.slice(callback.start, callback.end)});`)(
       relative, resolve, pathToFileURL, repository, path, support, installedHost);
-  return text => text.replace(pattern, replacement);
+  const rewrite = text => text.replace(pattern, replacement);
+  rewrite.support = support;
+  return rewrite;
 }
+
+test('packed read-opening stages its complete authored static helper closure', async () => {
+  const {parse} = await import('acorn');
+  const repository = fileURLToPath(new URL('../', import.meta.url));
+  const first = await readOpeningImportRewriter(repository,
+    'adapters/host-node/client-read-opening.fixture.mjs', '/installed-local-node');
+  for (const path of first.support.filter(path => path.endsWith('.mjs'))) {
+    const syntax = parse(await readFile(join(repository, path), 'utf8'),
+      {sourceType: 'module', ecmaVersion: 'latest'});
+    for (const declaration of syntax.body) {
+      const specifier = declaration.source?.value;
+      if (!specifier?.startsWith('.')) continue;
+      const target = relative(repository, resolve(repository, path, '..', specifier));
+      if (/(?:\.fixture|\.test|\.child)\.mjs$/u.test(target)) {
+        assert(first.support.includes(target), `Missing authored helper: ${path} -> ${target}`);
+      }
+    }
+  }
+  const path = 'adapters/host-node/funded-client-preparation.fixture.mjs';
+  const source = await readFile(join(repository, path), 'utf8');
+  const imported = source.split('\n').find(line => line.includes('sdk/internal/private-source-preparation.mjs'));
+  assert(imported);
+  const rewrite = await readOpeningImportRewriter(repository, path, '/installed-local-node');
+  assert.equal(rewrite(imported), "import {freezeInput} from '@actql/sdk/_internal/source-preparation';");
+  const manifest = JSON.parse(await readFile(join(repository, 'packages/sdk/package.json'), 'utf8'));
+  assert.equal(manifest.exports['./_internal/source-preparation'], './internal/private-source-preparation.mjs');
+});
+
+test('packed capacity group includes every existing policy and recovery entrance', async () => {
+  const {parse} = await import('acorn');
+  const source = await readFile(new URL('./test-packed-read-opening.mjs', import.meta.url), 'utf8');
+  const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
+  const declaration = syntax.body.filter(node => node.type === 'VariableDeclaration')
+    .flatMap(node => node.declarations).find(node => node.id.name === 'groups');
+  assert(declaration);
+  const groups = declaration.init.elements.map(node => Object.fromEntries(
+    node.properties.map(property => [property.key.name, property.value.value])));
+  // Two fixed configuration checks, Local/HTTPS installation for each of two
+  // authored policies, and two recovery cases on each original transport.
+  const capacityCases = 2 + 2 * 2 + 2 * 2;
+  assert.equal(groups.find(group => group.name === 'installed-capacity').count, capacityCases);
+  assert.equal(groups.reduce((count, group) => count + group.count, 0), 52);
+  assert.match(source, /publicRowPolicyAdmission: 2, publicHttpRowPolicyInstallation: 2/u);
+});
 
 test('packed read-opening imports the public installed wire entry without checkout fallback', async t => {
   const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -95,11 +141,84 @@ test('packed read-opening still refuses private unknown and foreign fixture impo
     '../../packages/client-wire/index.mjs/extra',
     '../../packages/client-wire/index.mjs?private',
     '../../packages/sdk/private.mjs',
+    '../../packages/node/private.mjs',
+    '../../packages/local-node/private.mjs',
     '../../packages/foreign/index.mjs',
     '../../../foreign/index.mjs',
   ]) {
     assert.throws(() => rewrite(`import {value} from '${path}';`), /Unpackaged fixture import:/u);
   }
+});
+
+test('packed row-limit fixture selects the installed public Node and HTTP Host entries', async t => {
+  const repository = fileURLToPath(new URL('../', import.meta.url));
+  const root = await mkdtemp(join(tmpdir(), 'actql-packed-read-node-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = 'adapters/host-node/client-values-row-limit.test.mjs';
+  const fixture = await readFile(join(repository, path), 'utf8');
+  const rewrite = await readOpeningImportRewriter(repository, path,
+    join(root, 'node_modules/@actql/local-node'));
+  for (const [file, entry] of [['node/index.mjs', '@actql/node'],
+    ['local-node/http-host.mjs', '@actql/local-node/http-host']]) {
+    const declarations = fixture.split('\n').filter(line =>
+      line.startsWith('import ') && line.includes(`../../packages/${file}`));
+    assert.equal(declarations.length, 1, 'Exercise the current authored import');
+    assert(rewrite(declarations[0]).endsWith(`from '${entry}';`));
+  }
+  for (const name of ['node', 'sdk']) await cp(join(repository, 'packages', name),
+    join(root, 'node_modules/@actql', name), {recursive: true});
+  const consumer = join(root, 'consumer.mjs');
+  await writeFile(consumer, rewrite(fixture.split('\n').find(line =>
+    line.includes("from '../../packages/node/index.mjs'"))) +
+    '\nexport {open};\nexport const entry = import.meta.resolve(\'@actql/node\');\n');
+  const loaded = await import(pathToFileURL(consumer));
+  assert.equal(typeof loaded.open, 'function');
+  assert.equal(loaded.entry, pathToFileURL(await fsPromises.realpath(
+    join(root, 'node_modules/@actql/node/index.mjs'))).href);
+  await rm(join(root, 'node_modules/@actql/node/index.mjs'));
+  assert.throws(() => execFileSync(process.execPath, [consumer], {
+    cwd: root, encoding: 'utf8', timeout: 10000, stdio: 'pipe',
+  }), error => error.status === 1 && /ERR_MODULE_NOT_FOUND/u.test(error.stderr));
+});
+
+test('packed missing-generated-asset probe enters its actual wire owner', async t => {
+  const {parse} = await import('acorn');
+  const root = await mkdtemp(join(tmpdir(), 'actql-packed-wire-asset-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const wire = join(root, 'node_modules/@actql/client-wire');
+  await cp(new URL('../packages/client-wire/', import.meta.url), wire, {recursive: true});
+  // Keep the actual lazy facade installed. Importing it alone need not load
+  // an unused wire module and therefore cannot qualify this missing-asset check.
+  for (const name of ['node', 'sdk']) await cp(new URL(`../packages/${name}/`, import.meta.url),
+    join(root, 'node_modules/@actql', name), {recursive: true});
+  const source = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const probes = [];
+  const visit = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id.name === 'negative' &&
+        node.init?.callee?.name === 'spawnSync') probes.push(node.init.arguments[1]);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  };
+  visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(probes.length, 1);
+  const args = probes[0].elements.map(element => element.value);
+  const run = () => spawnSync(process.execPath, args,
+    {cwd: root, encoding: 'utf8', timeout: 10000});
+  assert.equal(run().status, 0, 'Complete wire package loads');
+  const asset = join(wire, 'publication.generated.js');
+  await rename(asset, asset + '.omitted');
+  const negative = run();
+  assert.equal(negative.error, undefined);
+  assert.equal(negative.signal, null);
+  assert.equal(negative.status, 1);
+  assert.match(negative.stderr, /ERR_MODULE_NOT_FOUND/u);
+  assert.match(negative.stderr, /publication\.generated\.js/u);
+  const lazy = spawnSync(process.execPath, ['--input-type=module', '-e',
+    "await import('@actql/node')"], {cwd: root, encoding: 'utf8', timeout: 10000});
+  assert.equal(lazy.status, 0, lazy.stderr);
 });
 
 test('installed Explorer oracle accepts the complete read-only browser capabilities', async t => {

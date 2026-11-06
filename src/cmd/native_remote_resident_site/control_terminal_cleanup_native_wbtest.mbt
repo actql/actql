@@ -2,7 +2,12 @@
 fn control_terminal_fixture(
   name : String,
 ) -> (@http.Library, @http.Client, @slot.NativeExecutorSlot, String) raise {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(path) else {
+  // Cleanup-only cases need an actual loaded image, not a live peer URL.
+  let selected = match @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") {
+    Some(path) => Some(path)
+    None => @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY")
+  }
+  guard selected is Some(path) else {
     fail("selected controller cleanup requires the retained HTTP component")
     abort("missing HTTP component")
   }

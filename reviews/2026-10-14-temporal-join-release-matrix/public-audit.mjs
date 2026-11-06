@@ -27,7 +27,8 @@ export function auditTemporalJoinTransport(report) {
     assert.ok(actual.ref && Object.keys(actual.ref).length > 0);
     assert.ok(actual.submissionRef && Object.keys(actual.submissionRef).length > 0);
     assert.deepEqual(actual.observedResults, successes[index].results);
-    rows += actual.observedResults.answer.rows.length;
+    const resultName = successes[index].format === 'json' ? 'answer' : 'main';
+    rows += actual.observedResults[resultName].rows.length;
     assert.equal(actual.beforeSubmit.acceptedRuns, index);
     assert.equal(actual.beforeRead.acceptedRuns, index + 1);
     for (const key of ['sourceIo', 'sourceReads', 'sourceReadSessions']) {

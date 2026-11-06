@@ -16,9 +16,21 @@ static void *transport_argument;
 int curl_global_init(long flags) { (void)flags; initialized++; return 0; }
 void curl_global_cleanup(void) { cleaned++; }
 const char *curl_version(void) { return "owned-lifetime-fixture"; }
+#ifndef ACTQL_HTTP_OMIT_VERSION_INFO
 const info *curl_version_info(int age) {
-  (void)age; static const info value = {0, "fixture", 0, "fixture", 1 << 30}; return &value;
+  (void)age;
+#ifdef ACTQL_HTTP_UNKNOWN_VERSION_INFO
+  return NULL;
+#else
+  static const info value = {0, "fixture", 0, "fixture", (1 << 30)
+#ifdef ACTQL_HTTP_SSL_CAPABILITY
+    | (1 << 2)
+#endif
+  };
+  return &value;
+#endif
 }
+#endif
 void *curl_easy_init(void) { return malloc(1); }
 int curl_easy_setopt(void *easy, int option, ...) {
   (void)easy;

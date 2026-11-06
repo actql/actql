@@ -387,7 +387,10 @@ test "Native Run journal refuses lost issuance custody instead of inventing fres
   assert_true(journal.claim_physical_start(request, true) is Err(CustodyLost))
   assert_true(open_native_client_run_journal(database, 8) is Err(CustodyLost))
   assert_true(
-    initialize_native_client_run_journal(database) is Err(CustodyLost),
+    journal.transaction(() => {
+      initialize_native_client_run_journal_rows(database)
+    })
+    is Err(CustodyLost),
   )
   database.close_checked().unwrap()
 }

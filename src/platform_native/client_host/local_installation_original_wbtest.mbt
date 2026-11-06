@@ -4,6 +4,7 @@
 fn local_installation_fixture(
   name : String,
   existing? : Bool = false,
+  state_parent? : String? = None,
 ) -> (
   NativeLocalHostConnection,
   NativeLocalSelectedFile,
@@ -42,6 +43,7 @@ fn local_installation_fixture(
     existing~,
     files=[setting, provider],
     account_body=local_preparation_account(true, true),
+    state_parent~,
   )
   let setting = host.session.settings.files
     .iter()
@@ -305,8 +307,16 @@ test "Native installation original rejects altered bytes foreign Host and foreig
       is Err(CustodyLost),
     )
   }
+  // The foreign Host keeps its own exclusive Adoption parent while the
+  // original remains live; both retain the same Account source root.
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let parent = @filesystem.open_private_root(path).unwrap()
+  let state_name = "local-installation-foreign-parent"
+  parent.create_directory(state_name).unwrap() |> ignore
+  parent.close().unwrap()
   let (foreign, _, _, _) = local_installation_fixture(
     "local-installation-foreign",
+    state_parent=Some(path + "/" + state_name),
   )
   assert_true(
     read_local_installation_projection(foreign, file, packet)

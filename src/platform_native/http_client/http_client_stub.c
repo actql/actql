@@ -93,6 +93,7 @@ enum {
   ACTQL_CURLINFO_RESPONSE_CODE = 0x200002,
   ACTQL_CURL_ERROR_SIZE = 256,
   ACTQL_CURL_GLOBAL_ALL = 3,
+  ACTQL_CURL_VERSION_SSL = 1U << 2,
   ACTQL_CURL_VERSION_THREADSAFE = 1U << 30
 };
 
@@ -795,10 +796,14 @@ static void *actql_native_http_load_library_impl(
   } else {
     library->load_failed = false;
     library->init_owned = true;
-    library->tls_backend_pending = true;
     library->global_cleanup = (actql_curl_global_cleanup_fn)dlsym(library->dynamic_library, "curl_global_cleanup");
     actql_curl_version_info_fn version_info = (actql_curl_version_info_fn)dlsym(library->dynamic_library, "curl_version_info");
     const actql_curl_version_info *info = version_info ? version_info(0) : NULL;
+    // An acquired TLS original always owes its own release. Unknown capability
+    // or an SSL image without that original remains pending; a known no-SSL
+    // image has no TLS backend to retire after its actual global cleanup.
+    library->tls_backend_pending = library->tls_owned || !info ||
+      (info->features & ACTQL_CURL_VERSION_SSL) != 0;
     library->cleanup_threadsafe = info && (info->features & ACTQL_CURL_VERSION_THREADSAFE) != 0;
   }
   return library;

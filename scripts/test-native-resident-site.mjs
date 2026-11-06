@@ -2137,7 +2137,7 @@ try {
             [operation, '--attempt', savedAttempt, '--expect-dispatch', requestCid, ...maintenanceCommon] :
             [operation, '--attempt', savedAttempt, '--claimant', 'maintenance-must-not-execute', ...maintenanceCommon];
           const process = spawn(maintenanceExecutable, args, {cwd: root,
-            stdio: ['ignore', 'pipe', 'pipe']});
+            env: siteProcessEnvironment, stdio: ['ignore', 'pipe', 'pipe']});
           running.add(process);
           const closed = once(process, 'close');
           let stdout = '', stderr = '';

@@ -1,7 +1,7 @@
 ///|
 // The observer wraps the real Host's current port; no fake adoption, Account,
 // Store or retained Run can make material current. Names identify fresh roots.
-test "Publisher predicate material preserves all three scope and Account current fences" {
+test "Publisher predicate material preserves each scope and Account current fence" {
   let (host, request, definition, store) = local_publisher_fixture(
     "publisher-material-fences", true,
   )
@@ -21,8 +21,8 @@ test "Publisher predicate material preserves all three scope and Account current
     calls.val += 1
     host.current_adoption_material()
   }).unwrap()
-  assert_eq(calls.val, 2)
-  for _ in 0..<3 {
+  assert_eq(calls.val, 1)
+  for index in 0..<3 {
     assert_true(
       publisher.authority.current_with_material_for(
         host.journal,
@@ -30,10 +30,11 @@ test "Publisher predicate material preserves all three scope and Account current
         material,
       ),
     )
+    assert_eq(calls.val, 1 + (index + 1) * 2)
   }
-  // Each of the three calls independently checks scope before/after and
-  // Account before/after. Only repeated material binding is absent.
-  assert_eq(calls.val, 14)
+  // Each predicate enters the original current port for scope and Account.
+  // Their callback-free pure computations do not require duplicate checks.
+  assert_eq(calls.val, 7)
   assert_true(publisher.current())
   host.close().unwrap()
   assert_false(
@@ -43,7 +44,7 @@ test "Publisher predicate material preserves all three scope and Account current
       material,
     ),
   )
-  assert_eq(calls.val, 15)
+  assert_eq(calls.val, 8)
   assert_false(publisher.current())
   assert_true(store.close().unwrap())
 }
@@ -68,7 +69,7 @@ test "Publisher shared material refuses original custody lost in final Account c
   let removed = Ref(false)
   let material = @host.bind_client_local_adopted_host_material(host.database, () => {
     calls.val += 1
-    if calls.val == 6 {
+    if calls.val == 3 {
       let table = @utf8.encode("client_local_adoption")
       let key = @utf8.encode("adoption")
       removed.val = submitted_test_remove_record(
@@ -88,7 +89,7 @@ test "Publisher shared material refuses original custody lost in final Account c
       material,
     ),
   )
-  assert_eq(calls.val, 6)
+  assert_eq(calls.val, 3)
   assert_true(removed.val)
   assert_false(publisher.current())
   host.close().unwrap()
@@ -115,7 +116,7 @@ test "Publisher shared material cannot use another Host or foreign request scope
     calls.val += 1
     other.current_adoption_material()
   }).unwrap()
-  assert_eq(calls.val, 2)
+  assert_eq(calls.val, 1)
   assert_false(
     authority.current_with_material_for(original.journal, request, foreign),
   )
@@ -132,7 +133,7 @@ test "Publisher shared material cannot use another Host or foreign request scope
       foreign,
     ),
   )
-  assert_eq(calls.val, 2)
+  assert_eq(calls.val, 1)
   original.close().unwrap()
   other.close().unwrap()
 }
