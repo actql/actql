@@ -127,6 +127,12 @@ every field value. A lead conversion previews the lead, the account and
 contact it would create or merge into, and the status; an email previews the
 template, recipient and related record.
 
+Read-history metadata (`LastViewedDate` and `LastReferencedDate`) is not a
+business revision. Changes only to those standard nullable date-time values do
+not invalidate the target Preview. Their keys and presence, the exact physical
+response evidence, all other record fields and the write's conditional revision
+checks remain significant.
+
 **Reconciliation.** Every write is sent through the Composite or Bulk API 2.0
 under a job or request id the Connector generates and records against the
 Effect items before sending, and each record in the request carries a marker

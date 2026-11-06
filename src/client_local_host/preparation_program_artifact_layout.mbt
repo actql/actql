@@ -70,9 +70,9 @@ fn program_artifact_parse_layout(
 // the constructor returns. Sequential parser/writer scratch uses a maximum,
 // not the sum of every per-task parser limit. No codec maximum is multiplied
 // by task count and no fixed controller/wrapper census is introduced.
-fn program_artifact_construction_cost(
+fn program_artifact_construction_extents(
   value : @publication_host.ClientPureCompilationConstruction,
-) -> Int64? {
+) -> (Int64, Int64)? {
   let bounded = (geometry : (Int, Int, Int)) => {
     (
       Int::min(geometry.0, value.limits.max_wire_bytes),
@@ -264,9 +264,25 @@ fn program_artifact_construction_cost(
     owned_utf16_units: text,
     owned_wire_bytes: 0L,
   }
-  guard @execution.compose_preparation_representation([held, scratch, wire_text])
-    is Some(peak) else {
+  // The constructor's returned graph/value/wire ownership is separate from
+  // its nonescaping parser, ancestry-map, writer and local projection frames.
+  // Keep the small extent-return Some/tuple (2H/1R/2W) conservatively with
+  // retained metadata. No physical holding or consumed work is refunded.
+  let controls : @execution.PreparationRepresentationUnits = {
+    record_headers: 2L,
+    reference_slots: 1L,
+    scalar_words: 2L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  guard @execution.compose_preparation_representation([
+      held, wire_text, controls,
+    ])
+    is Some(retained) &&
+    @execution.preparation_representation_cost(retained) is Some(r) &&
+    @execution.preparation_representation_cost(scratch) is Some(e) &&
+    @execution.checked_preparation_add_product(r, e, 1L) is Some(_) else {
     return None
   }
-  @execution.preparation_representation_cost(peak)
+  Some((r, e))
 }
