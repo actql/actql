@@ -105,14 +105,17 @@ test "Native Local reconnect cannot create state or finish partial adoption" {
 }
 
 ///|
-fn local_settings_fixture(name : String) -> NativeLocalAdoptionSession {
+fn local_settings_fixture(
+  name : String,
+  state_parent? : String? = None,
+) -> NativeLocalAdoptionSession {
   let (path, account_name, parent, _) = local_selected_source(name)
   let writer = parent.create_writer(name + ".settings.stage", 65536L).unwrap()
   writer.append(local_settings_original).unwrap()
   writer.seal(name + ".settings.json").unwrap() |> ignore
   parent.create_directory(name + ".managed").unwrap() |> ignore
   begin_native_local_host_adoption(
-    path,
+    state_parent.unwrap_or(path),
     name + ".host",
     path,
     account_name,
