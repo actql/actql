@@ -906,7 +906,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     const response = responseExtent === undefined ? result : Promise.resolve(result).then(value=>{
       originalRecord();
       if(!Buffer.isBuffer(value?.body)&&!(value?.body instanceof Uint8Array))fail('InvalidInstalledEffectResponseBody');
-      const extent=responseExtent(value.body.byteLength);
+      const extent=responseExtent(value.body.byteLength, value.body);
       originalRecord();
       checked(Reflect.apply(beginInput,runtime,[token,extent]));
       originalRecord();return value;

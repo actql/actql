@@ -33,6 +33,7 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
   const targetFor = originalMethod(salesforceMoon, 'salesforceEffectTargetInputConstructionProfile');
   const controlBoundFor = originalMethod(moon, 'clientProgramInstalledEffectControlWireBound');
   const metadataFor = originalMethod(salesforceMoon, 'salesforceEffectMetadataInputConstructionProfile');
+  const currentMetadataFor = originalMethod(salesforceMoon, 'salesforceEffectCurrentMetadataConstructionProfile');
   const stageFor = originalMethod(moon, 'clientProgramInstalledEffectOperationStagedExtentPrepare');
   const compose = originalMethod(moon, 'clientProgramInstalledDescribedEffectInputRecipeCapacities');
   const extentFor = originalMethod(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
@@ -120,9 +121,10 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
       const capacities = quantities(initialProfile, warmCapture);
       const maximum = quantities(profile, maximumCapture, controlEntryBytes, -1);
       const fallback = quantities(initialProfile,warmCapture,0);
-      const responseExtent = bytes => {
+      const responseExtent = (bytes, originalBody) => {
         if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > metadataArguments[0]) fail();
-        const selected = quantities(targetFor(metadataFor(profile, ...metadataArguments, bytes), ...targetArguments, 0), warmCapture);
+        if (!(originalBody instanceof Uint8Array) || originalBody.byteLength !== bytes) fail();
+        const selected = quantities(targetFor(currentMetadataFor(profile, ...metadataArguments, originalBody), ...targetArguments, 0), warmCapture);
         return checked(extentFor(salesforceDescribeOperation, selected[7],
           BigInt(httpsCredentialDefaultRequestBytes) + httpsCredentialResponseWindowBytes(metadataArguments[0]), true));
       };

@@ -247,3 +247,45 @@ pub fn salesforce_effect_target_input_construction_profile(
     response_bytes,
   )
 }
+
+///|
+/// The same already-owned response supplies only next-constructor geometry.
+/// The original staged metadata extent backs this decode/preflight beforehand;
+/// unchanged parser, field and policy limits remain the later consumer's job.
+#export_name("salesforceEffectCurrentMetadataConstructionProfile")
+pub fn salesforce_effect_current_metadata_construction_profile(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ]?,
+  describe_bytes : Int,
+  describe_nodes : Int,
+  describe_depth : Int,
+  describe_fields : Int,
+  describe_names : Int,
+  observation_bytes : Int,
+  binding_units : Int,
+  resource_units : Int,
+  body : Bytes,
+) -> Array[
+  (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+]? {
+  let describe : @catalog.DescribeLimits = {
+    max_bytes: describe_bytes,
+    max_nodes: describe_nodes,
+    max_depth: describe_depth,
+    max_fields: describe_fields,
+    max_name_units: describe_names,
+  }
+  let geometry = @salesforce_host.named_describe_response_geometry(
+    body, describe,
+  )
+  @salesforce_host.effect_metadata_input_construction_profile(
+    original,
+    describe,
+    observation_bytes,
+    binding_units,
+    resource_units,
+    body.length(),
+    source_geometry=geometry,
+  )
+}

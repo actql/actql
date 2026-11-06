@@ -390,7 +390,7 @@ test('same original TLS response grows before decoding and keeps its failed chil
     };
     const child=f.create(async context=>{
       const response=await f.send(context);events.push('decode');return response;
-    },{responseExtent(bytes){assert.equal(bytes,11);events.push('input');return extent;}});
+    },{responseExtent(bytes,originalBody){assert.equal(bytes,11);assert(Buffer.isBuffer(originalBody));assert.equal(originalBody.toString(),'{"ok":true}');events.push('input');return extent;}});
     if(refused)await assert.rejects(child.prepare(),error=>error===failure);
     else assert.equal((await child.prepare()).body.toString(),'{"ok":true}');
     assert.deepEqual(events,refused?['input','grow']:['input','grow','decode']);

@@ -54660,7 +54660,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
-      "sha256": "1cf5f9c7f8859b50303a30357f7ea3c92aa45e5fd48db4047a674c97690cdb51",
+      "sha256": "61854a57491248e5c3fbd094679b078886e69286898429574d1e9e79a6081d63",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
@@ -54705,6 +54705,10 @@
         {
           "name": "client_program_installed_source_reader_policy",
           "declaration": "client_program_installed_source_reader_policy ( ) - > Array [ Int ]"
+        },
+        {
+          "name": "installed_salesforce_describe_source_geometry",
+          "declaration": "installed_salesforce_describe_source_geometry ( body : Bytes , limits : Array [ Int ] , ) - > @ source . JsonSourceGeometry ?"
         },
         {
           "name": "installed_salesforce_reader_capacity",
@@ -55217,7 +55221,8 @@
         },
         {
           "operations": [
-            "client_program_installed_salesforce_current_response_capacity"
+            "client_program_installed_salesforce_current_response_capacity",
+            "installed_salesforce_describe_source_geometry"
           ],
           "exports": [],
           "attributes": {
@@ -73156,7 +73161,11 @@
       "operations": [
         {
           "name": "named_describe_construction_capacity",
-          "declaration": "named_describe_construction_capacity ( describe : @ catalog . DescribeLimits , max_observation_bytes : Int , binding_units : Int , resource_units : Int , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "named_describe_construction_capacity ( describe : @ catalog . DescribeLimits , max_observation_bytes : Int , binding_units : Int , resource_units : Int , source_geometry ? : @ source . JsonSourceGeometry ?"
+        },
+        {
+          "name": "named_describe_response_geometry",
+          "declaration": "named_describe_response_geometry ( body : Bytes , limits : @ catalog . DescribeLimits , ) - > @ source . JsonSourceGeometry ?"
         },
         {
           "name": "native_read_construction_capacity",
@@ -73168,7 +73177,11 @@
         },
         {
           "name": "sf_read_describe_parse_inventory",
-          "declaration": "sf_read_describe_parse_inventory ( limits : @ catalog . DescribeLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+          "declaration": "sf_read_describe_parse_inventory ( limits : @ catalog . DescribeLimits , source_nodes ? : Int ?"
+        },
+        {
+          "name": "sf_read_describe_preflight_capacity",
+          "declaration": "sf_read_describe_preflight_capacity ( max_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "sf_read_metadata_construction_inventory",
@@ -73176,7 +73189,7 @@
         },
         {
           "name": "sf_read_observation_construction_inventory",
-          "declaration": "sf_read_observation_construction_inventory ( limits : @ catalog . DescribeLimits , max_observation_bytes : Int , binding_units : Int , resource_units : Int , ) - > @ execution . PreparationExecutionInventory ?"
+          "declaration": "sf_read_observation_construction_inventory ( limits : @ catalog . DescribeLimits , max_observation_bytes : Int , binding_units : Int , resource_units : Int , source_nodes ? : Int ?"
         },
         {
           "name": "sf_read_query_construction_inventory",
@@ -73188,8 +73201,10 @@
           "operations": [
             "<module>",
             "named_describe_construction_capacity",
+            "named_describe_response_geometry",
             "sf_read_collection_units",
             "sf_read_describe_parse_inventory",
+            "sf_read_describe_preflight_capacity",
             "sf_read_metadata_construction_inventory",
             "sf_read_observation_construction_inventory"
           ],
@@ -73235,6 +73250,10 @@
               {
                 "path": "src/connectors/salesforce/host/read_construction.mbt",
                 "anchor": "pub fn native_read_construction_capacity("
+              },
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "### Current Describe construction geometry"
               }
             ],
             "extension": [
@@ -73247,6 +73266,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_source_reader_bridge_wbtest.mbt",
                 "anchor": "test \"Salesforce native quote keeps original two metadata occurrences and same opaque composition\""
+              },
+              {
+                "path": "src/connectors/salesforce/host_node/effect_recipe_wbtest.mbt",
+                "anchor": "test \"current Effect metadata uses original Source geometry within the unchanged normal parent\""
               }
             ]
           }
@@ -73333,7 +73356,7 @@
           }
         }
       ],
-      "sha256": "81ecb05e177b7a83e559c2615dad9fe539269a0670f5d6fc3818c60f3603ebf0"
+      "sha256": "6882070b81e449196e99c61f52fb50ab5687dbdcdcfacfa15c26edd3629a2e4e"
     },
     {
       "module": "src/client_local_host/installed_effect_managed_run.mbt",
@@ -79211,7 +79234,7 @@
     },
     {
       "module": "src/connectors/salesforce/host_node/effect_construction_profile.mbt",
-      "sha256": "ba042b0ebd81367d4a11051760ff98c400f067f951cc430f52b940570bf08c1b",
+      "sha256": "46f55197659a0801878aa239adea76acad80476336e1e95d2be63d2e21a9066d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -79224,6 +79247,10 @@
         {
           "name": "salesforce_effect_construction_profile",
           "declaration": "salesforce_effect_construction_profile ( body_bytes : Int , body_nodes : Int , body_depth : Int , path_bytes : Int , target_bytes : Int , request_bytes : Int , target_response_bytes : Int , target_nodes : Int , target_depth : Int , identity_bytes : Int , response_bytes : Int , response_nodes : Int , response_depth : Int , describe_bytes : Int , describe_nodes : Int , describe_depth : Int , describe_fields : Int , describe_names : Int , observation_bytes : Int , binding_units : Int , fields : Int , field_name_units : Int , api_units : Int , resource_units : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+        },
+        {
+          "name": "salesforce_effect_current_metadata_construction_profile",
+          "declaration": "salesforce_effect_current_metadata_construction_profile ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , describe_bytes : Int , describe_nodes : Int , describe_depth : Int , describe_fields : Int , describe_names : Int , observation_bytes : Int , binding_units : Int , resource_units : Int , body : Bytes , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
         },
         {
           "name": "salesforce_effect_input_capture_construction_profile",
@@ -79244,6 +79271,7 @@
             "<module>",
             "salesforce_effect_capture_construction_profile",
             "salesforce_effect_construction_profile",
+            "salesforce_effect_current_metadata_construction_profile",
             "salesforce_effect_input_capture_construction_profile",
             "salesforce_effect_metadata_input_construction_profile",
             "salesforce_effect_target_input_construction_profile"
@@ -79293,6 +79321,10 @@
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "bounded cumulatively"
+              },
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "### Current Describe construction geometry"
               }
             ],
             "extension": [
@@ -79305,6 +79337,10 @@
               {
                 "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
                 "anchor": "test \"Salesforce capture"
+              },
+              {
+                "path": "src/connectors/salesforce/host_node/effect_recipe_wbtest.mbt",
+                "anchor": "test \"current Effect metadata uses original Source geometry within the unchanged normal parent\""
               }
             ]
           }
@@ -79420,7 +79456,7 @@
     },
     {
       "module": "src/connectors/salesforce/host/effect_capture_construction.mbt",
-      "sha256": "77311bd2d885a1c781137e18697a606b62c2cf938760db69843439897700e234",
+      "sha256": "064ff3e58913038502053905b8fc2abd57a1179fb05fa42d283623e6f2d621c7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -79436,7 +79472,7 @@
         },
         {
           "name": "effect_metadata_input_construction_profile",
-          "declaration": "effect_metadata_input_construction_profile ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , describe : @ catalog . DescribeLimits , observation_bytes : Int , binding_units : Int , resource_units : Int , response_bytes : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+          "declaration": "effect_metadata_input_construction_profile ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , describe : @ catalog . DescribeLimits , observation_bytes : Int , binding_units : Int , resource_units : Int , response_bytes : Int , source_geometry ? : @ source . JsonSourceGeometry ?"
         },
         {
           "name": "effect_target_input_construction_profile",
@@ -79502,6 +79538,10 @@
               {
                 "path": "docs/design/salesforce-write-capability.md",
                 "anchor": "bounded cumulatively"
+              },
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "### Current Describe construction geometry"
               }
             ],
             "extension": [
@@ -79514,6 +79554,10 @@
               {
                 "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
                 "anchor": "test \"Salesforce capture"
+              },
+              {
+                "path": "src/connectors/salesforce/host_node/effect_recipe_wbtest.mbt",
+                "anchor": "test \"current Effect metadata uses original Source geometry within the unchanged normal parent\""
               }
             ]
           }
@@ -79522,7 +79566,7 @@
     },
     {
       "module": "src/connectors/salesforce/host/effect_construction.mbt",
-      "sha256": "b17bb2fd8e7f88ff8bd397a2f4e9eb9da8e2821130ed0e58046ef9f3328a63d6",
+      "sha256": "c638e9a7bd1976bf435ba4b819367e171cbb466539a45ad123858a2a83fdd1f7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
