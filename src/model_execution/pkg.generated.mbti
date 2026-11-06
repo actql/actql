@@ -6,6 +6,7 @@ import {
   "actql/actql/canonical_json",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/run_publication",
@@ -229,6 +230,10 @@ pub fn observe_model_raw_capture(ModelPhysicalCall, @run_publication_host.Client
 pub fn openai_chat_projection_work(OpenAIChatProjection) -> Int
 
 pub fn original_completed_model_matches_parent(ModelExecution, @physical_resources.Ledger) -> Bool
+
+pub fn original_model_mock_installation_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn original_model_mock_installation_retained_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn original_model_mock_provider(ModelMockInstallation) -> Result[ModelProvider, ModelMockInstallationIssue]
 
