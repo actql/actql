@@ -1618,6 +1618,12 @@ jobs:
       - name: Test original Read slab activation custody on selected Linux x64
         timeout-minutes: 3
         run: python3 -B scripts/test_native_read_activation.py
+      - name: Test original prepared constructor cohorts on selected Linux x64
+        timeout-minutes: 3
+        run: python3 -B scripts/test_native_prepared_controls.py
+      - name: Test original working carrier custody on selected Linux x64
+        timeout-minutes: 3
+        run: python3 -B scripts/test_native_working_origin.py
       - name: Retain Linux x64 process-provider original controls
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -1626,6 +1632,8 @@ jobs:
           path: |
             _build/linux-x64-owned-process/
             _build/native-read-activation/
+            _build/native-prepared-controls/
+            _build/native-working-origin/
           if-no-files-found: warn
           retention-days: 14
       - name: Test original Native bootstrap inventory FFI and domain lifetime
