@@ -66,7 +66,12 @@ export const sourceGraphMemberSuccesses = [
     'WHERE a.payload.SCORE IS NULL |> SELECT a.id AS id, a.payload.SCORE AS score',
     [{id: 3, score: null}, {id: 4, score: null}]),
   sourceCase('typed-empty',
-    'WHERE a.payload.SCORE > 100 |> SELECT a.id AS id, a.payload.SCORE AS score', []),
+    // A strict comparison is TRUE only for a non-null receiver and member.
+    // The checked output stays non-null even when no authored row passes.
+    'WHERE a.payload.SCORE > 100 |> SELECT a.id AS id, a.payload.SCORE AS score', [],
+    {results: {matched: {rows: [], columns: [
+      {name: 'id', contract: number}, {name: 'score', contract: number},
+    ]}}}),
 ];
 export const sourceGraphMemberRefusals = [
   ['missing-member', 'SELECT a.payload.MISSING AS score'],
