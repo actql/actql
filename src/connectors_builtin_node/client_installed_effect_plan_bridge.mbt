@@ -406,6 +406,7 @@ pub fn client_program_installed_effect_managed_plan_prepare(
     ordered_body,
     selected_operations,
     provider_factory=installed_client_family_providers,
+    runtime_admission=true,
   )
 }
 
@@ -446,6 +447,7 @@ pub fn client_program_installed_effect_managed_plan_prepare_at_query_time(
     selected_operations,
     query_time=Some(query_time),
     provider_factory=installed_client_family_providers,
+    runtime_admission=true,
   )
 }
 
@@ -569,6 +571,7 @@ pub fn client_program_installed_effect_managed_provider_plan_prepare(
     selected_operations,
     source_providers=Some(providers),
     provider_factory=installed_client_family_providers,
+    runtime_admission=true,
   )
 }
 
@@ -611,6 +614,7 @@ pub fn client_program_installed_effect_managed_provider_plan_prepare_at_query_ti
     query_time=Some(query_time),
     source_providers=Some(providers),
     provider_factory=installed_client_family_providers,
+    runtime_admission=true,
   )
 }
 
@@ -774,6 +778,7 @@ pub fn client_program_installed_effect_content_managed_plan_prepare(
     },
     query_time~,
     provider_factory=installed_client_family_providers,
+    runtime_admission=true,
   )
 }
 
@@ -1007,6 +1012,7 @@ pub fn client_program_installed_effect_managed_source_plan_prepare(
       }
       providers
     },
+    runtime_admission=true,
   )
 }
 
