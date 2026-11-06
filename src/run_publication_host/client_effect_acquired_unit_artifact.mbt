@@ -26,10 +26,15 @@ pub fn issue_acquired_client_effect_unit_result_artifact(
       inputs,
       owner.graph,
     ) ||
-    !@strategy.captured_effect_local_unit_result_matches_source(
-      inputs,
-      result,
-      source.identity,
+    (
+      !@strategy.captured_effect_local_unit_result_matches_source(
+        inputs,
+        result,
+        source.identity,
+      ) &&
+      !client_effect_computed_result_matches_acquired_unit(
+        owner, source, result,
+      )
     ) {
     return Err(ForeignOwner)
   }
