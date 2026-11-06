@@ -26,6 +26,11 @@ import './native-core-test-selection.test.mjs';
 import './native-core-scoped-profile.test.mjs';
 import './native-core-scoped-fixture.test.mjs';
 import './native-core-relation-work-fixture.test.mjs';
+import './native-backed-region-close.test.mjs';
+import './native-journal-first-start.test.mjs';
+import './native-nonmodel-entry-fixture.test.mjs';
+import './native-original-relation-runtime-fixture.test.mjs';
+import './native-relation-entry-close-parity.test.mjs';
 import './native-process-region-fixture.test.mjs';
 
 test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
