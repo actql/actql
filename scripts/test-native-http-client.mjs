@@ -1084,6 +1084,11 @@ verification: try {
     );
   }
   const runCheckpointControlReplay = async environment => {
+    // Both replay cases borrow the existing Client/Slot cleanup fixture. Keep
+    // its fresh Slot directory under this invocation's original cleanup root.
+    const executorSlotRoot = await mkdtemp(join(root, 'checkpoint-executor-slot-'));
+    const selectedEnvironment = {...environment,
+      ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: executorSlotRoot};
     const selected = ['--target', 'native', '--jobs', '1',
       'src/cmd/native_remote_resident_site/effect_checkpoint_replay_wbtest.mbt'];
     // Prepare only this exact Native test input before its finite replay timer.
@@ -1092,7 +1097,7 @@ verification: try {
     const started = performance.now();
     console.error('Native Checkpoint control compile started');
     execFileSync(moon, ['test', ...selected, '--build-only'], {
-      cwd: new URL('../', import.meta.url), env: environment, stdio: 'inherit',
+      cwd: new URL('../', import.meta.url), env: selectedEnvironment, stdio: 'inherit',
       timeout: 600_000,
     });
     console.error(`Native Checkpoint control compile complete (${Math.round(performance.now() - started)}ms)`);
@@ -1100,7 +1105,7 @@ verification: try {
       "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
       "process.exitCode=runFocusedTests('moon',JSON.parse(process.argv[1])," +
       "{cwd:process.cwd(),timeout:90000});", JSON.stringify(selected)], {
-      cwd: new URL('../', import.meta.url), stdio: 'inherit', env: environment,
+      cwd: new URL('../', import.meta.url), stdio: 'inherit', env: selectedEnvironment,
     });
     const [code, signal] = await once(child, 'exit');
     if (code !== 0) {
