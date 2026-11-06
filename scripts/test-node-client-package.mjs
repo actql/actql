@@ -1000,6 +1000,7 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {connect, ClientError} from '@actql/node';
 import {connectInProcess} from '@actql/sdk/host-port';
+import {getSubmissionAttempt, getSubmissionInput, getSubmissionOutcome} from '@actql/sdk';
 
 const hostCapacityPolicy = JSON.parse(JSON.parse(
   readFileSync('source-profile.json', 'utf8')).checkEnvironmentWire).host_policy_profile.capacity;
@@ -1601,13 +1602,26 @@ async function runAcquiredApplication(options, requestId) {
   assert.equal(reader.state(), 'complete');
   assert.equal((await resultB.deliveryAttempt(reader.attemptId)).kind,
     'found');
-  assert.deepEqual((await client.lookupRequest(requestId)).ref,
-    execution.ref);
-  assert.deepEqual((await client.startSource(acquiredDocument, {format: 'json',
-    requestId, parameters: {minimum: 1}})).ref, execution.ref);
+  const originalSubmission = getSubmissionOutcome(execution);
+  assert.equal(originalSubmission.kind, 'ready');
+  const originalLookup = await client.lookupSubmission(originalSubmission.submissionRef);
+  assert.equal(originalLookup.kind, 'ready');
+  assert.deepEqual(originalLookup.admission.ref, execution.ref);
+  const replayed = await client.startSource(acquiredDocument, {format: 'json',
+    requestId, parameters: {minimum: 1}});
+  assert.deepEqual(replayed.ref, execution.ref);
+  assert.deepEqual(getSubmissionOutcome(replayed).submissionRef, originalSubmission.submissionRef);
   await assert.rejects(client.startSource(acquiredDocument, {format: 'json',
     requestId, parameters: {minimum: 2}}),
-  {code: 'ClientRequestIntentConflict'});
+  error => {
+    assert.equal(error.code, 'RequestConflict');
+    const attempt = getSubmissionAttempt(error);
+    assert.equal(attempt.kind, 'conflict');
+    assert.equal(attempt.reason, 'intent');
+    assert.equal(attempt.requestName, requestId);
+    assert.equal(getSubmissionOutcome(error), undefined);
+    return true;
+  });
   return {client, execution, b, c};
 }
 // Focused review acceptance still uses packed artifacts and both real Hosts.
@@ -1636,7 +1650,10 @@ const {client: installedLocal, execution, rows} = await runApplication(
 assert.equal(execution.profile.durability, 'durable');
 assert.equal((await execution.status()).status, 'succeeded');
 assert.deepEqual(rows, [{id: 1}, {id: 2}]);
-assert.equal((await execution.cancel()).kind, 'already_terminal');
+const terminalCancellation = await execution.cancel();
+assert.equal(terminalCancellation.kind, 'already_satisfied');
+assert.equal(terminalCancellation.cancellation.kind, 'already_terminal');
+assert.deepEqual(terminalCancellation.cancellation.ref, execution.ref);
 assert.equal((await execution.status()).control.physical_stop, 'confirmed');
 await assert.rejects(execution.result('answer').all({maxRows: 1}),
   {code: 'ResultRetainedLimit'});
@@ -1645,8 +1662,11 @@ assert.deepEqual(await Array.fromAsync(reader), [{id: 1}, {id: 2}]);
 assert.equal(reader.state(), 'complete');
 assert.equal((await execution.result('answer')
   .deliveryAttempt(reader.attemptId)).kind, 'found');
-assert.deepEqual((await installedLocal.lookupRequest(
-  'packed-standard-values')).ref, execution.ref);
+const valuesSubmission = getSubmissionOutcome(execution);
+assert.equal(valuesSubmission.kind, 'ready');
+const valuesLookup = await installedLocal.lookupSubmission(valuesSubmission.submissionRef);
+assert.equal(valuesLookup.kind, 'ready');
+assert.deepEqual(valuesLookup.admission.ref, execution.ref);
 assert.deepEqual((await installedLocal.attach(execution.ref)).ref,
   execution.ref);
 const valuesQueryLocal = await installedLocal.startSource(valuesQueryDocument,
@@ -1753,11 +1773,18 @@ const acquiredStarted = await acquiredLocal.client.start(
     parameters: {minimum: 1}});
 assert.equal((await acquiredStarted.wait()).status, 'succeeded');
 assert.deepEqual(await acquiredStarted.result('b').all(), acquiredLocal.b);
-assert.equal((await acquiredStarted.cancel()).kind, 'already_terminal');
+const acquiredTerminalCancellation = await acquiredStarted.cancel();
+assert.equal(acquiredTerminalCancellation.kind, 'already_satisfied');
+assert.equal(acquiredTerminalCancellation.cancellation.kind, 'already_terminal');
+assert.deepEqual(acquiredTerminalCancellation.cancellation.ref, acquiredStarted.ref);
 writeFileSync('acquired-local-ref.json',
   JSON.stringify(acquiredLocal.execution.ref));
+writeFileSync('acquired-local-submission-ref.json',
+  JSON.stringify(getSubmissionOutcome(acquiredLocal.execution).submissionRef), {mode: 0o600});
 acquiredLocal.client.close();
 writeFileSync('run-ref.json', JSON.stringify(execution.ref));
+writeFileSync('run-submission-ref.json',
+  JSON.stringify(getSubmissionOutcome(execution).submissionRef), {mode: 0o600});
 const nullable = JSON.parse(document);
 nullable.id = 'client-nullable-values';
 nullable.stages[0].steps[0].values.schema.id.nullable = true;
@@ -1787,14 +1814,24 @@ assert.equal(computedLocalState.status, 'succeeded',
 assert.deepEqual(await computedLocal.result('answer').all(), [{id: 2}]);
 await checkSegmentedProgram(installedLocal, 'local');
 await checkSegmentedResults(installedLocal, 'local');
-assert.deepEqual((await installedLocal.startSource(document, {format: 'json',
-  requestId: 'packed-standard-values'})).ref, execution.ref);
+const replayedValues = await installedLocal.startSource(document, {format: 'json',
+  requestId: 'packed-standard-values'});
+assert.deepEqual(replayedValues.ref, execution.ref);
+assert.deepEqual(getSubmissionOutcome(replayedValues).submissionRef, valuesSubmission.submissionRef);
 const conflictingProgram = JSON.parse(document);
 assert.equal(conflictingProgram.stages[0].steps[0].values.rows[1].id, 2);
 conflictingProgram.stages[0].steps[0].values.rows[1].id = 3;
 await assert.rejects(installedLocal.startSource(JSON.stringify(conflictingProgram),
   {format: 'json', requestId: 'packed-standard-values'}),
-  {code: 'ClientRequestIntentConflict'});
+  error => {
+    assert.equal(error.code, 'RequestConflict');
+    const attempt = getSubmissionAttempt(error);
+    assert.equal(attempt.kind, 'conflict');
+    assert.equal(attempt.reason, 'intent');
+    assert.equal(attempt.requestName, 'packed-standard-values');
+    assert.equal(getSubmissionOutcome(error), undefined);
+    return true;
+  });
 installedLocal.close();
 assert.equal(calls.length, connected.length);
 globalThis.fetch = originalFetch;
@@ -2034,14 +2071,18 @@ assert.deepEqual(await computedRemote.result('answer').all(), [{id: 2}]);
 assert.equal((await remoteExecution.status()).status, 'succeeded');
 assert.deepEqual((await installedRemote.attach(remoteExecution.ref)).ref,
   remoteExecution.ref);
-assert.deepEqual((await installedRemote.lookupRequest(
-  'packed-remote-values')).ref, remoteExecution.ref);
+const remoteSubmission = getSubmissionOutcome(remoteExecution);
+assert.equal(remoteSubmission.kind, 'ready');
+const remoteLookup = await installedRemote.lookupSubmission(remoteSubmission.submissionRef);
+assert.equal(remoteLookup.kind, 'ready');
+assert.deepEqual(remoteLookup.admission.ref, remoteExecution.ref);
 await assert.rejects(remoteExecution.result('answer').all({maxRows: 1}),
   {code: 'ResultRetainedLimit'});
 let remoteReplyLost = false;
+let remoteLostSubmissionRef;
 globalThis.fetch = async (url, options) => {
   const reply = await originalFetch(url, options);
-  if (!remoteReplyLost && new URL(url).pathname.endsWith('/submit')) {
+  if (!remoteReplyLost && new URL(url).pathname === '/actql/client/0.1/submit-named-intent') {
     remoteReplyLost = true;
     await reply.arrayBuffer();
     throw new Error('RemoteAcceptanceReplyLost');
@@ -2050,23 +2091,27 @@ globalThis.fetch = async (url, options) => {
 };
 try {
   await assert.rejects(installedRemote.startSource(document, {format: 'json',
-    requestId: 'packed-remote-lost-ack'}), error =>
-    error.code === 'SubmissionUnknown' &&
-    error.requestId === 'packed-remote-lost-ack');
+    requestId: 'packed-remote-lost-ack'}), error => {
+    assert.equal(error.code, 'SubmissionUnknown');
+    assert.equal(error.requestId, 'packed-remote-lost-ack');
+    remoteLostSubmissionRef = getSubmissionInput(error).submissionRef;
+    assert(remoteLostSubmissionRef);
+    return true;
+  });
 } finally { globalThis.fetch = originalFetch; }
 assert.equal(remoteReplyLost, true);
-const recoveredRemote = await installedRemote.lookupRequest(
-  'packed-remote-lost-ack');
-assert.equal(recoveredRemote.kind, 'found');
-const resumedRemote = await installedRemote.startSource(document, {format: 'json',
-  requestId: 'packed-remote-lost-ack'});
-assert.deepEqual(resumedRemote.ref, recoveredRemote.ref);
+const recoveredRemote = await installedRemote.lookupSubmission(remoteLostSubmissionRef);
+assert.equal(recoveredRemote.kind, 'ready');
+assert.deepEqual(recoveredRemote.submissionRef, remoteLostSubmissionRef);
+const resumedRemote = await installedRemote.attach(recoveredRemote.admission.ref);
+assert.deepEqual(resumedRemote.ref, recoveredRemote.admission.ref);
 assert.equal((await resumedRemote.wait()).status, 'succeeded');
 assert.deepEqual(await resumedRemote.result('answer').all(), rows);
 let acquiredReplyLost = false;
+let acquiredLostSubmissionRef;
 globalThis.fetch = async (url, options) => {
   const reply = await originalFetch(url, options);
-  if (!acquiredReplyLost && new URL(url).pathname.endsWith('/submit')) {
+  if (!acquiredReplyLost && new URL(url).pathname === '/actql/client/0.1/submit-named-intent') {
     acquiredReplyLost = true;
     await reply.arrayBuffer();
     throw new Error('AcquiredAcceptanceReplyLost');
@@ -2076,18 +2121,20 @@ globalThis.fetch = async (url, options) => {
 try {
   await assert.rejects(installedRemote.startSource(acquiredDocument,
     {format: 'json', requestId: 'packed-acquired-lost-ack',
-      parameters: {minimum: 1}}), error =>
-    error.code === 'SubmissionUnknown' &&
-    error.requestId === 'packed-acquired-lost-ack');
+      parameters: {minimum: 1}}), error => {
+    assert.equal(error.code, 'SubmissionUnknown');
+    assert.equal(error.requestId, 'packed-acquired-lost-ack');
+    acquiredLostSubmissionRef = getSubmissionInput(error).submissionRef;
+    assert(acquiredLostSubmissionRef);
+    return true;
+  });
 } finally { globalThis.fetch = originalFetch; }
 assert.equal(acquiredReplyLost, true);
-const foundAcquired = await installedRemote.lookupRequest(
-  'packed-acquired-lost-ack');
-assert.equal(foundAcquired.kind, 'found');
-const recoveredAcquired = await installedRemote.startSource(acquiredDocument,
-  {format: 'json', requestId: 'packed-acquired-lost-ack',
-    parameters: {minimum: 1}});
-assert.deepEqual(recoveredAcquired.ref, foundAcquired.ref);
+const foundAcquired = await installedRemote.lookupSubmission(acquiredLostSubmissionRef);
+assert.equal(foundAcquired.kind, 'ready');
+assert.deepEqual(foundAcquired.submissionRef, acquiredLostSubmissionRef);
+const recoveredAcquired = await installedRemote.attach(foundAcquired.admission.ref);
+assert.deepEqual(recoveredAcquired.ref, foundAcquired.admission.ref);
 assert.equal((await recoveredAcquired.wait()).status, 'succeeded');
 assert.deepEqual(await recoveredAcquired.result('b').all(),
   acquiredLocal.b);
@@ -2242,6 +2289,7 @@ await writeFile(join(root, 'reserve-remote.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {connect} from '@actql/node';
+import {getSubmissionOutcome} from '@actql/sdk';
 const client = await connect({mode: 'remote',
   endpoint: process.env.ACTQL_TEST_REMOTE_ENDPOINT,
   token: 'packed-test-token', durability: 'durable'});
@@ -2255,11 +2303,15 @@ for (let attempt = 0; attempt < 100; attempt++) {
 }
 assert.equal((await execution.status()).status, 'running');
 writeFileSync('restart-remote-ref.json', JSON.stringify(execution.ref));
+writeFileSync('restart-remote-submission-ref.json',
+  JSON.stringify(getSubmissionOutcome(execution).submissionRef), {mode: 0o600});
 const acquired = await client.startSource(acquiredDocument, {format: 'json',
   requestId: 'packed-acquired-restart-before-start',
   parameters: {minimum: 1}});
 assert.equal((await acquired.status()).status, 'running');
 writeFileSync('restart-acquired-ref.json', JSON.stringify(acquired.ref));
+writeFileSync('restart-acquired-submission-ref.json',
+  JSON.stringify(getSubmissionOutcome(acquired).submissionRef), {mode: 0o600});
 const cancelled = await client.startSource(document, {format: 'json',
   requestId: 'packed-cancel-before-restart'});
 assert.equal((await cancelled.cancel()).kind, 'accepted');
@@ -2270,12 +2322,14 @@ await writeFile(join(root, 'resume-remote.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {connect} from '@actql/node';
+import {getSubmissionOutcome} from '@actql/sdk';
 const client = await connect({mode: 'remote',
   endpoint: process.env.ACTQL_TEST_REMOTE_ENDPOINT,
   token: 'packed-test-token', durability: 'durable'});
 const document = readFileSync('values.json', 'utf8');
 const acquiredDocument = readFileSync('source-program.json', 'utf8');
 const ref = JSON.parse(readFileSync('restart-remote-ref.json', 'utf8'));
+const submissionRef = JSON.parse(readFileSync('restart-remote-submission-ref.json', 'utf8'));
 const attached = await client.attach(ref);
 assert.equal((await attached.status()).status, 'running');
 const cancelledRef = JSON.parse(readFileSync('cancelled-remote-ref.json', 'utf8'));
@@ -2297,10 +2351,13 @@ const repeated = await client.startSource(document, {format: 'json',
   requestId: 'packed-restart-before-physical-start'});
 assert.deepEqual(repeated.ref, ref);
 assert.equal((await repeated.status()).status, 'succeeded');
-assert.deepEqual((await client.lookupRequest(
-  'packed-restart-before-physical-start')).ref, ref);
+assert.deepEqual(getSubmissionOutcome(repeated).submissionRef, submissionRef);
+const originalLookup = await client.lookupSubmission(submissionRef);
+assert.equal(originalLookup.kind, 'ready');
+assert.deepEqual(originalLookup.admission.ref, ref);
 const acquiredRef = JSON.parse(readFileSync('restart-acquired-ref.json',
   'utf8'));
+const acquiredSubmissionRef = JSON.parse(readFileSync('restart-acquired-submission-ref.json', 'utf8'));
 const acquiredAttached = await client.attach(acquiredRef);
 assert.equal((await acquiredAttached.status()).status, 'running');
 const acquiredResumed = await client.startSource(acquiredDocument,
@@ -2310,8 +2367,10 @@ assert.deepEqual(acquiredResumed.ref, acquiredRef);
 assert.equal((await acquiredResumed.wait()).status, 'succeeded');
 assert.deepEqual((await acquiredResumed.result('b').all())
   .map(row => row.id).sort(), [2, 3, 3]);
-assert.deepEqual((await client.lookupRequest(
-  'packed-acquired-restart-before-start')).ref, acquiredRef);
+assert.deepEqual(getSubmissionOutcome(acquiredResumed).submissionRef, acquiredSubmissionRef);
+const acquiredLookup = await client.lookupSubmission(acquiredSubmissionRef);
+assert.equal(acquiredLookup.kind, 'ready');
+assert.deepEqual(acquiredLookup.admission.ref, acquiredRef);
 client.close();
 `);
 async function startRestartHost(hold) {
@@ -2361,29 +2420,35 @@ await writeFile(join(root, 'restart.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {connect} from '@actql/node';
+import {getSubmissionOutcome} from '@actql/sdk';
 const hostCapacityPolicy = JSON.parse(JSON.parse(
   readFileSync('source-profile.json', 'utf8')).checkEnvironmentWire).host_policy_profile.capacity;
 globalThis.fetch = () => { throw new Error('NetworkOnLocalRestart'); };
 const client = await connect({mode: 'local', owner: 'local',
   durability: 'durable', installation: {hostCapacityPolicy}});
 const ref = JSON.parse(readFileSync('run-ref.json', 'utf8'));
+const submissionRef = JSON.parse(readFileSync('run-submission-ref.json', 'utf8'));
 const attached = await client.attach(ref);
 assert.equal((await attached.status()).status, 'succeeded');
 assert.deepEqual(await attached.result('answer').all(),
   [{id: 1}, {id: 2}]);
-assert.deepEqual((await client.lookupRequest('packed-standard-values')).ref,
-  ref);
+const originalLookup = await client.lookupSubmission(submissionRef);
+assert.equal(originalLookup.kind, 'ready');
+assert.deepEqual(originalLookup.admission.ref, ref);
 const repeated = await client.startSource(readFileSync('values.json', 'utf8'),
   {format: 'json', requestId: 'packed-standard-values'});
 assert.deepEqual(repeated.ref, ref);
+assert.deepEqual(getSubmissionOutcome(repeated).submissionRef, submissionRef);
 const acquiredRef = JSON.parse(readFileSync('acquired-local-ref.json',
   'utf8'));
+const acquiredSubmissionRef = JSON.parse(readFileSync('acquired-local-submission-ref.json', 'utf8'));
 const acquiredAttached = await client.attach(acquiredRef);
 assert.equal((await acquiredAttached.status()).status, 'succeeded');
 assert.deepEqual((await acquiredAttached.result('b').all())
   .map(row => row.id).sort(), [2, 3, 3]);
-assert.deepEqual((await client.lookupRequest('packed-acquired-local')).ref,
-  acquiredRef);
+const acquiredLookup = await client.lookupSubmission(acquiredSubmissionRef);
+assert.equal(acquiredLookup.kind, 'ready');
+assert.deepEqual(acquiredLookup.admission.ref, acquiredRef);
 client.close();
 `);
 run(process.execPath, ['restart.mjs'], root);

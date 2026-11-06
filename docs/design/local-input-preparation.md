@@ -5949,11 +5949,33 @@ canonical execution-capacity constructor. Its execution dimension therefore
 covers its retention dimension through later dispatch composition.
 
 A preparation-owned source-free managed consumer retains a completed output
-through the managed dispatch protocol. Its private configuration omits Local's
-separate row-file exporter, which that consumer never constructs. Existing
-materializing callers retain the exporter policy and its backing. Result
-metadata, independent copies, imported inputs, Native output files and Store
-publication keep their separate existing owners and before-call reservations.
+through the managed dispatch protocol. The original `retained_output` selection
+still determines whether Local's separate row-file exporter and its full
+simultaneous backing are present. The ordinary default leaves that exporter
+unselected; an explicit retained-file installation keeps it through the same
+prepared module and bound driver. Result metadata, independent copies, imported
+inputs, Native output files and Store publication keep their separate existing
+owners and before-call reservations.
+
+
+### Persisted Model publication and retained output
+
+A completed Local task may retain its accepted Model output and the same
+provider cleanup owner after its temporary scratch has retired. Persisting the
+Model capture does not release that output or acknowledge the whole Model's
+physical cleanup. Before Preview, the acquired Effect continuation retires
+only its stored-publication aliases and original publication-capacity borrow.
+The complete Model child stays on the existing computation custody until the
+original execution closes its output. That custody then performs the first
+actual child close and retries only the same pending cleanup responsibility.
+
+Both single and plural Model callers preserve this distinction. A pending
+publication retirement still refuses continuation; a retained Model child is
+not marked released merely because its publication data retired. Stop and
+currentness checks remain at their existing boundaries, and independent
+Content and Journal owners retain their own lifetimes. Outer cleanup retains
+the first actual thrown value, including `undefined` or `null`, while still
+attempting independent cleanup duties.
 
 ### Native initialization selected for a Request
 

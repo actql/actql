@@ -2035,3 +2035,50 @@ test "Request module codec retains the selected checked profile without another 
   )
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "explicit retained output keeps its original exporter beside the default managed consumer" {
+  let (parent, input, prepared) = request_program_body_fixture()
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = request_program_module_contracts()
+  let factory : (@execution.ExecutionCapacity) -> Array[@local.ManagedProvider] = _ => {
+    []
+  }
+  let managed = prepare_installed_managed_source_free_with_contracts(
+    prepared,
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    retained_output=false,
+    provider_factory=factory,
+  ).unwrap()
+  let retained = prepare_installed_managed_source_free_with_contracts(
+    prepared,
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    retained_output=true,
+    provider_factory=factory,
+  ).unwrap()
+  let managed_configuration = managed.configuration.unwrap()
+  let retained_configuration = retained.configuration.unwrap()
+  assert_false(managed_configuration.retained_output)
+  assert_true(retained_configuration.retained_output)
+  let ordinary = @local_driver.local_dispatch_preparation_task_capacity(
+    managed_configuration.dispatch,
+    0,
+  ).unwrap()
+  let explicit = @local_driver.local_dispatch_preparation_task_capacity(
+    retained_configuration.dispatch,
+    0,
+  ).unwrap()
+  // The original row-file exporter coexists only for the explicit caller.
+  // Comparing the actual selected module envelope detects a dropped policy;
+  // output rows alone cannot show that the file-producing route was selected.
+  assert_true(explicit.execution_bytes > ordinary.execution_bytes)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(parent.input is None)
+  ignore(input)
+}

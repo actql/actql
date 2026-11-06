@@ -18,13 +18,28 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 
 test('holder terminal facade runs after the existing prepared Remote Site CI gate', () => {
   const workflow = parse(readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8'));
-  const steps = Object.values(workflow.jobs).flatMap(job => job.steps ?? []);
-  const selected = steps.filter(step => step.name === 'Test durable Remote Site dispatch admission');
-  assert.equal(selected.length, 1);
-  assert.deepEqual(selected[0].run.split(' && '), ['npm run check:remote-site-runtime',
+  const steps = workflow.jobs.host.steps;
+  const named = name => {
+    const selected = steps.filter(step => step.name === name);
+    assert.equal(selected.length, 1, name);
+    return selected[0];
+  };
+  const prepared = steps.filter(step => step.id === 'remote-site-preparation');
+  assert.equal(prepared.length, 1);
+  const gate = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
+    .scripts['check:remote-site-runtime'].split(' && ');
+  assert.equal(gate.length, 4);
+  assert.equal(gate[1], 'node scripts/build-runtime-packages.mjs coordinator-core');
+  assert.deepEqual(prepared[0].run.trim().split('\n'), gate.slice(0, 2));
+  const consumers = [named('Test durable Remote Site dispatch admission'),
+    named('Test packed Remote coordinator'), named('Test original holder terminal facade')];
+  assert.deepEqual(consumers.map(step => step.run), [...gate.slice(2),
     'node --test packages/coordinator-core/holder-terminal.test.mjs']);
-  const gate = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts['check:remote-site-runtime'];
-  assert(gate.includes('node scripts/build-runtime-packages.mjs coordinator-core'));
+  for (const step of consumers) {
+    assert(steps.indexOf(prepared[0]) < steps.indexOf(step));
+    assert.equal(step.if, "${{ !cancelled() && steps.remote-site-preparation.outcome == 'success' }}");
+    assert.equal(step['continue-on-error'], undefined);
+  }
 });
 
 // Independent command inventory: runtime preparation keeps its build, type,

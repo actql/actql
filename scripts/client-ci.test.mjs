@@ -14,6 +14,7 @@ import {types as nodeTypes} from 'node:util';
 import './two-source-optional-effect.test.mjs';
 import './composition-release-input.test.mjs';
 import './table-ctas-result-controls.test.mjs';
+import './packed-original-submission-callers.test.mjs';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
@@ -1386,4 +1387,125 @@ test('packed Query Source Hosts and reopens retain the published fixture policy'
     selectInstalledLocalMaterializationEnvironment(moon, baseWire.trimEnd()),
     selectInstalledLocalMaterializationEnvironment(moon, baseWire.trimEnd()), publishedWire),
   error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
+});
+
+// Actual SDK admission with explicit Host wire replies, not installed execution
+// or physical-stop acceptance. The callers are extracted from the packed scripts.
+test('packed terminal cancellation keeps the SDK attempt and original terminal fact separate', async t => {
+  const {connectInProcess} = await import('../packages/sdk/host-port.mjs');
+  const source = readFileSync(new URL('./test-node-client-package.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const writer = tree.body.map(node => node.expression?.argument).find(node =>
+    node?.callee?.name === 'writeFile' && node.arguments[0]?.arguments?.some(
+      value => value.value === 'smoke.mjs'));
+  assert(writer);
+  assert.equal(writer.arguments[1].expressions.length, 0);
+  const actor = writer.arguments[1].quasis[0].value.cooked;
+  const segments = [
+    ['execution', "assert.deepEqual(rows, [{id: 1}, {id: 2}]);",
+      "await assert.rejects(execution.result('answer').all({maxRows: 1}),"],
+    ['acquiredStarted', "assert.deepEqual(await acquiredStarted.result('b').all(), acquiredLocal.b);",
+      "writeFileSync('acquired-local-ref.json',"],
+  ];
+  for (const [name, before, after] of segments) {
+    const start = actor.indexOf(before), end = actor.indexOf(after, start);
+    assert(start >= 0 && end > start);
+    const check = new Function('assert', name, 'return (async () => {' +
+      actor.slice(start + before.length, end) + '})();');
+    async function fixture({physicalStop = 'confirmed', foreign = false} = {}) {
+      const calls = [], ref = {namespaceId: 'packed-terminal',
+        authorityScopeCid: 'sha256:' + 'a'.repeat(64), runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
+      const client = await connectInProcess({mode: 'local', owner: 'local'}, {perform(operation, body) {
+        if (operation === 'connect') return {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+          durability: 'durable', scopeRef: 'packed-terminal', capabilities: [], limits: {
+            maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
+            maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
+        if (operation === 'close') return;
+        calls.push(operation);
+        if (operation === 'attach') return {ref, durability: 'durable', revision: 1};
+        assert.deepEqual(body.ref, ref);
+        if (operation === 'status') return {version: 'actql-run-state/0.1', run_id: 'terminal', revision: 41,
+          status: 'succeeded', updated_at: '2026-10-09T00:00:00.000Z', next_action: {kind: 'none'},
+          result_available: false, result_availability: {answer: {state: 'unavailable', reason: 'not_published',
+            observed_at: '2026-10-09T00:00:00.000Z'}},
+          control: {revision: 19, cancellation_requested: false, physical_stop: physicalStop}};
+        assert.equal(operation, 'cancel');
+        return {kind: 'already_satisfied', attemptRef: body.attemptRef,
+          cancellation: {kind: 'already_terminal', ref: foreign ? {...ref, runDefinitionCid: 'sha256:' + 'c'.repeat(64)} : ref,
+            cancelRef: {...ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision}, revision: 19}};
+      }});
+      t.after(() => client.close());
+      return {run: await client.attach(ref), calls};
+    }
+    const original = await fixture();
+    await check(assert, original.run);
+    assert.deepEqual(original.calls, ['attach', 'status', 'cancel', ...(name === 'execution' ? ['status'] : [])]);
+    const foreign = await fixture({foreign: true});
+    await assert.rejects(check(assert, foreign.run), {code: 'CancellationUnknown'});
+    assert.equal(foreign.calls.filter(value => value === 'cancel').length, 1);
+    if (name === 'execution') {
+      const pending = await fixture({physicalStop: 'unknown'});
+      await assert.rejects(check(assert, pending.run), {code: 'ERR_ASSERTION'});
+      assert.equal(pending.calls.filter(value => value === 'cancel').length, 1,
+        'a terminal cancellation fact cannot replace the separate physical-stop observation');
+    }
+  }
+});
+
+test('packed expired recovery supplies its original unresolved lookup before SDK submission', async t => {
+  const {connectInProcess} = await import('../packages/sdk/host-port.mjs');
+  const {getSubmissionOutcome} = await import('../packages/sdk/index.mjs');
+  const {submissionEpoch} = await import('../packages/sdk/submission-fixture.mjs');
+  const source = readFileSync(new URL('./test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const writer = tree.body.map(node => node.expression?.argument).find(node =>
+    node?.callee?.name === 'writeFile' && node.arguments[0]?.arguments?.some(value => value.value === 'client.mjs'));
+  assert(writer);
+  assert.equal(writer.arguments[1].expressions.length, 0);
+  const actor = writer.arguments[1].quasis[0].value.cooked;
+  const body = parseJavaScript(actor, {ecmaVersion: 'latest', sourceType: 'module'});
+  const steps = body.body.flatMap(node => node.declarations ?? []).find(node => node.id.name === 'steps');
+  const method = steps.init.properties.find(node => node.key.name === 'recoveredAgain');
+  const recoveredAgain = new Function('as', 'assert', 'requestId', 'text', 'process',
+    'return ({' + actor.slice(method.start, method.end) + '}).recoveredAgain;');
+  const calls = [], requestId = 'expired-original', text = '{"original":"historical input"}';
+  const ref = {namespaceId: 'packed-recovery', authorityScopeCid: submissionEpoch.authorityScopeCid,
+    runDefinitionCid: 'sha256:' + 'd'.repeat(64)};
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {perform(operation, packet) {
+    if (operation === 'connect') return {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+      durability: 'durable', scopeRef: 'packed-recovery', capabilities: ['aql-document'], submissionEpoch,
+      limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
+        maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
+    if (operation === 'close') return;
+    calls.push(operation);
+    if (operation === 'lookup-request') return {kind: 'found', requestId, ref,
+      durability: 'durable', lookupExpiresAt: '2099-01-01'};
+    if (operation === 'attach') {assert.deepEqual(packet.ref, ref); return {ref, durability: 'durable', revision: 1};}
+    if (operation === 'wait') return {version: 'actql-run-state/0.1', run_id: 'expired', revision: 1,
+      status: 'failed', updated_at: '2026-10-09T00:00:00.000Z', next_action: {kind: 'none'},
+      result_available: false, result_availability: {answer: {state: 'unavailable', reason: 'not_published',
+        observed_at: '2026-10-09T00:00:00.000Z'}}};
+    assert.equal(operation, 'submit-named-intent');
+    return {kind: 'observed', requestName: packet.requestName, intentCid: packet.intentCid,
+      attemptRef: packet.attemptRef, outcome: {kind: 'preparation_failed', submissionRef: packet.submissionRef,
+        intentCid: packet.intentCid, problem: {code: 'ACTQL_E_DELEGATION_UNAVAILABLE', classification: 'operation_failed'}}};
+  }});
+  t.after(() => client.close());
+  let originalLookup, submittedOptions;
+  const owner = {async lookupRequest(id) {assert.equal(id, requestId); return originalLookup = await client.lookupRequest(id);},
+    attach: reference => client.attach(reference), startSource(value, options) {
+      assert.equal(value, text); submittedOptions = options; return client.startSource(value, options);
+    }};
+  await recoveredAgain(async token => {assert.equal(token, 'owner-token'); return owner;},
+    assert, requestId, text, {env: {EXPECT_STATUS: 'failed'}})();
+  assert.equal(submittedOptions.unresolvedHistory, originalLookup);
+  assert.deepEqual(calls, ['lookup-request', 'attach', 'wait'], 'historical recovery never submits another intent');
+  await assert.rejects(client.startSource(text, {format: 'json', requestId: 'ordinary-new-name'}), error => {
+    assert.equal(error.code, 'SubmissionPreparationFailed');
+    assert.deepEqual(getSubmissionOutcome(error).problem,
+      {code: 'ACTQL_E_DELEGATION_UNAVAILABLE', classification: 'operation_failed'});
+    return true;
+  });
+  assert.equal(calls.filter(value => value === 'submit-named-intent').length, 1,
+    'ordinary requestId-only first binding keeps its separate legitimate Host operation');
 });
