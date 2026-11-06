@@ -38,10 +38,8 @@ after(async()=>{
   scratch.passed();
 });
 
-function check(file, format = 'json', options = [], global = [], configuration = 'actql.config.json') {
-  const selection=configuration==='actql.config.json'
-    ? (global.length===0?[]:['--mode','local',...global])
-    : ['--mode','local','--config-root',project,'--config-file',configuration,...global];
+function check(file, format = 'json', options = [], global = []) {
+  const selection=global.length===0?[]:['--mode','local',...global];
   const args=[...selection,'check','--program-file',file,'--format',format,'--json',...options];
   return runNative(args);
 }
@@ -74,14 +72,19 @@ for (const [file, format] of [['values.json', 'json'], ['literal.sql', 'sql']]) 
   });
 }
 
-test('Native Local rejects wrong text form without a JSON fallback', () => {
+test('Native Local rejects wrong text form without a JSON fallback', async () => {
   const result = check('values.json', 'aql-text');
   assert.equal(result.status, 1);
   const outcome=JSON.parse(result.stdout);
   assert.equal(outcome.version,'actql-check-outcome/0.1');
   assert.equal(outcome.outcome,'completed');
   assert.equal(outcome.report.verdict,'invalid');
-  assert.equal(outcome.report.inputs.find(input=>input.document_id==='source').format,'aql');
+  const source=outcome.report.inputs.find(input=>input.document_id==='source');
+  assert.equal(source.kind,'text');
+  assert.equal(source.byte_length,(await readFile(join(project,'values.json'))).length);
+  assert.match(source.revision,/^rev:[0-9a-f]{64}$/u);
+  assert.equal(outcome.report.inputs.some(input=>input.document_id==='program'),false);
+  assert(outcome.report.reasons.some(reason=>reason.code==='query_syntax_invalid'));
 });
 
 test('Native Local never switches to a Remote endpoint', () => {
@@ -145,30 +148,34 @@ test('Native Local retains parameter values and distinguishes wrong type', async
   assert(invalid.report.reasons.some(reason=>reason.code==='supplied_value_type_mismatch'));
 });
 
-test('Native Local validates environment custody instead of trusting a declared CID', async () => {
-  // A detached legacy Environment declaration is negative input only. It is
-  // never used to create the accepted Product or replace its original runtime.
-  const configuration=JSON.parse(await readFile(join(fixtures,'actql.config.json'),'utf8'));
-  configuration.account_config='unselected-account.json';
-  configuration.native.local={account_id:'operator',principal:'operator',connection:'cli',
-    state_parent:project,state_name:'unselected-host',managed_root:join(project,'unselected-managed'),
-    sqlite_library:process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
-    signature_library:process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY,
-    submission_ttl_ms:60000,journal_record_limit:8,journal_snapshot_bytes:8388608};
-  configuration.native.check_environment.evidence_bundle_cid = `sha256:${'0'.repeat(64)}`;
-  await writeFile(join(project, 'wrong-environment.json'), JSON.stringify(configuration));
-  const result = check('values.json', 'json', [], [], 'wrong-environment.json');
+test('Native Local rejects legacy Environment overrides before Product startup', async () => {
+  // Public Project configuration cannot replace the Product's Environment.
+  // Exact wire/CID mismatch admission is covered at the typed Native boundary
+  // in local_command_configuration_wbtest.mbt, not by this schema rejection.
+  const rejected=join(scratch.path,'legacy-environment-project');
+  await mkdir(rejected);
+  const configuration=Buffer.from(JSON.stringify({version:'actql-config/0.1',
+    state_dir:'./uncreated-state',native:{check_environment:{file:'absent-environment.json',
+      evidence_bundle_cid:`sha256:${'0'.repeat(64)}`}}}));
+  const path=join(rejected,'actql.config.json');
+  await writeFile(path,configuration);
+  const result=runNative(['--mode','local','--config',path,'check',
+    '--program-file','absent-program.json','--format','json','--json'],rejected);
   assert.equal(result.status, 1);
   assert.equal(result.stdout, '');
-  assert.match(result.stderr, /InvalidLocalCheckEnvironment/u);
+  assert.match(result.stderr, /InvalidProjectConfiguration/u);
+  assert.deepEqual(await readFile(path),configuration);
+  assert.deepEqual(await readdir(rejected),['actql.config.json']);
 });
 
 test('Native Local refuses duplicate configuration fields', async () => {
   await writeFile(join(project, 'duplicate.json'),
     '{"version":"actql-config/0.1","version":"actql-config/0.1","native":{}}');
-  const result = check('values.json', 'json', [], [], 'duplicate.json');
+  const result=runNative(['--mode','local','--config',join(project,'duplicate.json'),
+    'check','--program-file','values.json','--format','json','--json']);
   assert.equal(result.status, 1);
   assert.equal(result.stdout, '');
+  assert.match(result.stderr,/InvalidProjectConfiguration/u);
 });
 
 test('Native Local human preparation output does not claim Run acceptance', () => {

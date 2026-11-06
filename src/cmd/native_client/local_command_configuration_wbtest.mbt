@@ -42,6 +42,18 @@ test "Native fresh preparation retains strict typed Environment admission" {
       ClientStop(issue) => issue
     }
     assert_eq(failure, "InvalidLocalCheckEnvironment")
+    // A valid original wire with a well-formed foreign CID must also refuse.
+    let mismatched = try {
+      ignore(
+        local_command_check_environment(
+          operation, child, explain_update_environment_wire, "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        ),
+      )
+      "unexpected success"
+    } catch {
+      ClientStop(issue) => issue
+    }
+    assert_eq(mismatched, "InvalidLocalCheckEnvironment")
     let admitted = local_command_check_environment(
       operation, child, explain_update_environment_wire, "sha256:dde2a4ab7160672ec8f2fc7fc49e1b9e0ebd7992b7a60851d57e5a9ea161694b",
     ).unwrap()

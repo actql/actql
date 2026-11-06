@@ -24,6 +24,12 @@ test('the packed external Compute declaration supplies its original binding vali
     connectors: [{name: 'external_numeric', module: 'fixture/external_numeric', directory: 'src'}]});
   const generated = generateComputeAssembly(buildInputs.computeEntries, {buildInputs});
   assert.match(generated.source, /\.validate_binding\(installed, driver, registry\)/u);
+  // The packed builder copies this shared helper into its foreign runtime and
+  // merges the scenario imports. Keep the helper's actual typed dependency.
+  const sharedFixture=readFileSync(join(root,'src/node_host_conformance/fixture.generated.mbt'),'utf8');
+  assert.match(sharedFixture,/@pipeline\.Step\(index\)/u);
+  assert.match(readFileSync(join(external,'compute-host/src/scenario/moon.pkg'),'utf8'),
+    /"actql\/actql\/pipeline_typing"\s+@pipeline\s*,/u);
 });
 
 test('explicit composition never reads an unselected broken connector manifest', () => {
