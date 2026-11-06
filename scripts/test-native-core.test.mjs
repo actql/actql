@@ -1,6 +1,7 @@
 import './native-http-library-lifetime.test.mjs';
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
+import {EventEmitter, once} from 'node:events';
 import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync,
   readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -1475,6 +1476,43 @@ test('full Native Core routes the complete Source package to its existing peer o
     assert.equal((result.stdout.match(/ORIGINAL_SOURCE_PROFILE_REQUIRED/gu)??[]).length,1);
     f.verifyExternal();
   }
+});
+
+test('Checkpoint replay retains its private Slot root across original compilation and execution', async t=>{
+  const source=readFileSync(new URL('test-native-http-client.mjs',import.meta.url),'utf8');
+  const start=source.indexOf('  const runCheckpointControlReplay = async environment => {'),
+    end=source.indexOf("  if (focus === 'core-http') {",start);
+  assert(start>=0 && end>start);
+  const root=realpathSync(mkdtempSync(join(tmpdir(),'actql-checkpoint-replay-')));
+  t.after(()=>rmSync(root,{recursive:true,force:true}));
+  const original={ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT:'/foreign/inherited-slot',ORIGINAL:'same-input'};
+  const environments=[];let children=0;
+  const primary=new Error('original compile refusal');let refuse=false;
+  const replay=runInNewContext(source.slice(start,end)
+    .replaceAll("new URL('../', import.meta.url)",'repositoryURL')+'runCheckpointControlReplay;',{
+      root,moon:'original-moon',join,once,repositoryURL:new URL('../',import.meta.url),
+      process:{execPath:'original-node'},performance:{now:()=>0},console:{error(){}},
+      mkdtemp:async prefix=>mkdtempSync(prefix),
+      execFileSync(command,args,options){
+        assert.equal(command,'original-moon');assert.equal(args.at(-1),'--build-only');
+        assert.equal(dirname(options.env.ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT),root);
+        assert(existsSync(options.env.ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT));
+        assert.equal(options.env.ORIGINAL,'same-input');environments.push(options.env);
+        if(refuse)throw primary;
+      },
+      spawn(command,args,options){
+        assert.equal(command,'original-node');
+        assert.equal(options.env,environments.at(-1),'one original environment for both children');
+        assert.deepEqual(JSON.parse(args.at(-1)),['--target','native','--jobs','1',
+          'src/cmd/native_remote_resident_site/effect_checkpoint_replay_wbtest.mbt']);
+        children++;const child=new EventEmitter();queueMicrotask(()=>child.emit('exit',0,null));return child;
+      },
+    });
+  await replay(original);await replay(original);
+  assert.notEqual(environments[0].ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT,environments[1].ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT);
+  assert.equal(original.ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT,'/foreign/inherited-slot');
+  refuse=true;await assert.rejects(replay(original),error=>error===primary);
+  assert.equal(children,2,'failed compilation must not start the test child');
 });
 
 test('Core Source peer entrance retains complete package, Native target and nonzero count',()=>{
