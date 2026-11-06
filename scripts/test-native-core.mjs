@@ -55,7 +55,8 @@ if (selection) console.log('Native test selection: ' + JSON.stringify({cases: se
 const projectConfiguration = full || args.some(arg => arg.includes('cmd/native_client'))
   ? nativeProjectConfigurationFixture(namespace)
   : {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: undefined};
-const privateHost = full || args.some(arg => arg.includes('platform_native/filesystem'))
+const privateHost = full || args.some(arg =>
+  arg.includes('platform_native/filesystem') || arg.includes('platform_native/client_host'))
   ? nativePrivateHostFixture(namespace) : {};
 const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/client_host'))
   // Match optimization, debug and warning modes before the original producers

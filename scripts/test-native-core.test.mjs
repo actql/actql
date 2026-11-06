@@ -848,7 +848,7 @@ if (process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT) {
     ? process.env.DYLD_INSERT_LIBRARIES : process.env.LD_PRELOAD;
   assert.equal(existsSync(injected), true);
 }
-if (process.argv.some(arg => arg.includes('platform_native/filesystem'))) {
+if (process.argv.some(arg => arg.includes('platform_native/filesystem') || arg.includes('platform_native/client_host'))) {
   assert.equal(process.env.ACTQL_TEST_NATIVE_PRIVATE_ROOT, join(root, 'private-host-root'));
   assert.equal(process.env.ACTQL_TEST_NATIVE_BROAD_ROOT, join(root, 'broad-host-root'));
   assert.equal(statSync(process.env.ACTQL_TEST_NATIVE_PRIVATE_ROOT).mode & 0o777, 0o700);
@@ -977,22 +977,26 @@ test('selected Native tests do not activate the unrelated target fixture', t => 
   const result = run(f);
   assert.equal(result.status, 0, result.stderr);
   assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+  assert.doesNotMatch(result.stdout, /PRIVATE_HOST_FIXTURE_PROVISIONED/u);
   assert.match(result.stdout, /child stopped/u);
   f.verifyExternal();
 });
 
-test('selected Native filesystem provisions owned private-root counterexamples', t => {
-  const f = fixture(t);
-  const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
-    '--deny-warn', 'src/platform_native/filesystem/private_root_wbtest.mbt'],
-  {cwd: f.checkout, encoding: 'utf8', env: {...f.env,
-    ACTQL_TEST_NATIVE_PRIVATE_ROOT: f.parent}});
-  const path = /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1];
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /PRIVATE_HOST_FIXTURE_PROVISIONED/u);
-  assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
-  assert.ok(path && !existsSync(path));
-  f.verifyExternal();
+test('selected Native filesystem and client Host provision owned private-root counterexamples', t => {
+  for (const source of ['src/platform_native/filesystem/private_root_wbtest.mbt',
+    'src/platform_native/client_host/local_adoption_open_custody_wbtest.mbt']) {
+    const f = fixture(t);
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
+      '--deny-warn', source],
+    {cwd: f.checkout, encoding: 'utf8', env: {...f.env,
+      ACTQL_TEST_NATIVE_PRIVATE_ROOT: f.parent}});
+    const path = /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1];
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /PRIVATE_HOST_FIXTURE_PROVISIONED/u);
+    assert.doesNotMatch(result.stdout, /CORE_TARGET_FIXTURE_PROVISIONED/u);
+    assert.ok(path && !existsSync(path));
+    f.verifyExternal();
+  }
 });
 
 test('Core retained-file fixture never adopts a caller-owned root', t => {
