@@ -638,13 +638,47 @@ for (const [name, sql] of [
   assert.notEqual(query, '', name);
   await writeFile(join(root, `join-${name}.json`), query);
 }
-const capturedQuery = queryFrontend.compileCapturedQueryJson(
+const sourceCatalog = await readFile(join(repository,
+  'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
+const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
+  'fn query_amount_nullable_catalog')).match(
+  /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
+assert.ok(catalog);
+const sourceEnvironment = JSON.parse(JSON.parse(catalog[1]));
+const sourceSelector = {source_ref: 'connector://crm/main/r#v',
+  source_contract_cid:
+    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+  source_view_contract_cid:
+    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
+  read_mode: 'snapshot'};
+sourceEnvironment.schema_snapshots = [{...sourceSelector,
+  output_carrier: 'relation',
+  carrier_schema_contract_cid:
+    'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4',
+  source_data_policy_cid:
+    'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
+  data_classification: 'unknown'}];
+sourceEnvironment.connector_capabilities = [{...sourceSelector,
+  capability_contract_cids: [
+    'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a'],
+}];
+Object.assign(sourceEnvironment.host_policy_profile.capacity, {
+  max_analytic_frame_memberships: 10000,
+  max_analytic_input_wire_bytes: 10000,
+  max_analytic_output_wire_bytes: 10000,
+  max_analytic_partition_wire_bytes: 10000,
+});
+delete sourceEnvironment.evidence_bundle_cid;
+sourceEnvironment.evidence_bundle_cid = machineCid(sourceEnvironment);
+const compileCapturedQuery = (...args) => queryFrontend.compileCapturedQueryJson(
+  ...args, canonicalText(sourceEnvironment), sourceEnvironment.evidence_bundle_cid);
+const capturedQuery = compileCapturedQuery(
   'SELECT id FROM records WHERE id > 1', 'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
   JSON.stringify(['id', 'amount']), 'fixture.captured_query');
 assert.notEqual(capturedQuery, '');
 await writeFile(join(root, 'captured-query.json'), capturedQuery);
-const capturedCteQuery = queryFrontend.compileCapturedQueryJson(
+const capturedCteQuery = compileCapturedQuery(
   'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) '
     + 'SELECT id FROM chosen',
   'records', 'remote',
@@ -652,7 +686,7 @@ const capturedCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.captured_cte');
 assert.notEqual(capturedCteQuery, '');
 await writeFile(join(root, 'captured-cte-query.json'), capturedCteQuery);
-const capturedSubquery = queryFrontend.compileCapturedQueryJson(
+const capturedSubquery = compileCapturedQuery(
   'SELECT outer_rows.id FROM '
     + '(SELECT DISTINCT inner_rows.id FROM '
     + '(SELECT id FROM records WHERE id > 1) AS inner_rows '
@@ -662,7 +696,7 @@ const capturedSubquery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.captured_subquery');
 assert.notEqual(capturedSubquery, '');
 await writeFile(join(root, 'captured-subquery.json'), capturedSubquery);
-const reusedCteQuery = queryFrontend.compileCapturedQueryJson(
+const reusedCteQuery = compileCapturedQuery(
   'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) '
     + 'SELECT l.id AS left_id, r.id AS right_id '
     + 'FROM chosen AS l JOIN chosen AS r ON l.id = r.id',
@@ -671,7 +705,7 @@ const reusedCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.reused_cte');
 assert.notEqual(reusedCteQuery, '');
 await writeFile(join(root, 'reused-cte-query.json'), reusedCteQuery);
-const usingCteQuery = queryFrontend.compileCapturedQueryJson(
+const usingCteQuery = compileCapturedQuery(
   'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) '
     + 'SELECT id FROM chosen AS l JOIN chosen AS r USING (id)',
   'records', 'remote',
@@ -679,7 +713,7 @@ const usingCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.using_cte');
 assert.notEqual(usingCteQuery, '');
 await writeFile(join(root, 'using-cte-query.json'), usingCteQuery);
-const fullUsingCteQuery = queryFrontend.compileCapturedQueryJson(
+const fullUsingCteQuery = compileCapturedQuery(
   'WITH acquired AS (SELECT id FROM records WHERE id > 1), '
     + 'chosen AS (SELECT DISTINCT id FROM acquired), '
     + 'left_part AS (SELECT id FROM chosen WHERE id = 2), '
@@ -691,7 +725,7 @@ const fullUsingCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.full_using_cte');
 assert.notEqual(fullUsingCteQuery, '');
 await writeFile(join(root, 'full-using-cte-query.json'), fullUsingCteQuery);
-const chainedCteQuery = queryFrontend.compileCapturedQueryJson(
+const chainedCteQuery = compileCapturedQuery(
   'WITH first AS (SELECT id, amount FROM records WHERE id > 1), '
     + 'second AS (SELECT id FROM first WHERE amount >= 20) '
     + 'SELECT id FROM second',
@@ -700,7 +734,7 @@ const chainedCteQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.chained_cte');
 assert.notEqual(chainedCteQuery, '');
 await writeFile(join(root, 'chained-cte-query.json'), chainedCteQuery);
-const capturedCteJoinBody = queryFrontend.compileCapturedQueryJson(
+const capturedCteJoinBody = compileCapturedQuery(
   'WITH acquired AS (SELECT id, amount FROM records WHERE id > 1), '
     + 'chosen AS (SELECT id FROM acquired WHERE id = 3), '
     + 'matched AS (SELECT l.id AS id, l.amount AS amount '
@@ -712,7 +746,7 @@ const capturedCteJoinBody = queryFrontend.compileCapturedQueryJson(
 assert.notEqual(capturedCteJoinBody, '');
 await writeFile(join(root, 'captured-cte-join-body.json'),
   capturedCteJoinBody);
-const capturedComputedCteJoinBody = queryFrontend.compileCapturedQueryJson(
+const capturedComputedCteJoinBody = compileCapturedQuery(
   'WITH acquired AS (SELECT id FROM records WHERE id > 1), '
     + 'copy AS (SELECT id FROM acquired), '
     + 'matched AS (SELECT l.id + r.id AS total FROM acquired AS l '
@@ -724,7 +758,7 @@ const capturedComputedCteJoinBody = queryFrontend.compileCapturedQueryJson(
 assert.notEqual(capturedComputedCteJoinBody, '');
 await writeFile(join(root, 'captured-computed-cte-join-body.json'),
   capturedComputedCteJoinBody);
-const capturedSetQuery = queryFrontend.compileCapturedQueryJson(
+const capturedSetQuery = compileCapturedQuery(
   'SELECT id FROM records WHERE id > 1 UNION ALL '
     + 'SELECT id FROM records WHERE id > 1',
   'records', 'remote',
@@ -732,7 +766,7 @@ const capturedSetQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.captured_set_query');
 assert.notEqual(capturedSetQuery, '');
 await writeFile(join(root, 'captured-set-query.json'), capturedSetQuery);
-const capturedPipeSetQuery = queryFrontend.compileCapturedQueryJson(
+const capturedPipeSetQuery = compileCapturedQuery(
   'FROM records |> WHERE id > 1 |> SELECT id |> UNION ALL '
     + '(SELECT id FROM records WHERE id > 1)',
   'records', 'remote',
@@ -754,21 +788,21 @@ for (const [name, sql] of [
     'SELECT id FROM records WHERE id > 1 EXCEPT DISTINCT '
       + 'SELECT id FROM records WHERE id > 1'],
 ]) {
-  const program = queryFrontend.compileCapturedQueryJson(sql,
+  const program = compileCapturedQuery(sql,
     'records', 'remote',
     JSON.stringify({connector: 'crm/main', resource: 'r'}),
     JSON.stringify(['id', 'amount']), 'fixture.' + name);
   assert.notEqual(program, '', name);
   await writeFile(join(root, name + '.json'), program);
 }
-const distinctQuery = queryFrontend.compileCapturedQueryJson(
+const distinctQuery = compileCapturedQuery(
   'SELECT DISTINCT id FROM records WHERE id > 1 ORDER BY id',
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
   JSON.stringify(['id', 'amount']), 'fixture.distinct_query');
 assert.notEqual(distinctQuery, '');
 await writeFile(join(root, 'distinct-query.json'), distinctQuery);
-const distinctExpressionQuery = queryFrontend.compileCapturedQueryJson(
+const distinctExpressionQuery = compileCapturedQuery(
   'SELECT DISTINCT id + 1 AS next FROM records WHERE id > 0 '
     + 'ORDER BY id + 1',
   'records', 'remote',
@@ -777,13 +811,13 @@ const distinctExpressionQuery = queryFrontend.compileCapturedQueryJson(
 assert.notEqual(distinctExpressionQuery, '');
 await writeFile(join(root, 'distinct-expression-query.json'),
   distinctExpressionQuery);
-const groupedQuery = queryFrontend.compileCapturedQueryJson(
+const groupedQuery = compileCapturedQuery(
   'SELECT id, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY id HAVING n > 1 ORDER BY id',
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
   JSON.stringify(['id', 'amount']), 'fixture.grouped_query');
 assert.notEqual(groupedQuery, '');
-const pipeGroupedQuery = queryFrontend.compileCapturedQueryJson(
+const pipeGroupedQuery = compileCapturedQuery(
   'FROM records |> WHERE id > 0 |> AGGREGATE COUNT(*) AS n GROUP BY id |> WHERE n > 1 |> SELECT id, n |> ORDER BY id',
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
@@ -791,7 +825,7 @@ const pipeGroupedQuery = queryFrontend.compileCapturedQueryJson(
 assert.deepEqual(JSON.parse(groupedQuery), groupedQueryCases[0].expected);
 assert.deepEqual(JSON.parse(pipeGroupedQuery), groupedQueryCases[1].expected);
 await writeFile(join(root, 'grouped-query.json'), groupedQuery);
-const aliasGroupedQuery = queryFrontend.compileCapturedQueryJson(
+const aliasGroupedQuery = compileCapturedQuery(
   'SELECT amount AS id, COUNT(*) AS n FROM records WHERE id > 0 '
     + 'GROUP BY id HAVING n > 1',
   'records', 'remote',
@@ -799,7 +833,7 @@ const aliasGroupedQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.alias_grouped_query');
 assert.notEqual(aliasGroupedQuery, '');
 await writeFile(join(root, 'alias-grouped-query.json'), aliasGroupedQuery);
-const computedGroupedQuery = queryFrontend.compileCapturedQueryJson(
+const computedGroupedQuery = compileCapturedQuery(
   'SELECT amount + 1 AS bucket, COUNT(*) AS n '
     + 'FROM records WHERE id > 0 GROUP BY bucket',
   'records', 'remote',
@@ -808,7 +842,7 @@ const computedGroupedQuery = queryFrontend.compileCapturedQueryJson(
 assert.notEqual(computedGroupedQuery, '');
 await writeFile(join(root, 'computed-grouped-query.json'),
   computedGroupedQuery);
-const analyticQuery = queryFrontend.compileCapturedQueryJson(
+const analyticQuery = compileCapturedQuery(
   'SELECT id, RANK() OVER (ORDER BY id) AS ranking FROM records WHERE id > 0',
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
@@ -873,14 +907,14 @@ const analyticCases = [
       {old_id: 2, id: 20, pos: 2}]],
 ];
 for (const [name, sql] of analyticCases) {
-  const query = queryFrontend.compileCapturedQueryJson(sql,
+  const query = compileCapturedQuery(sql,
     'records', 'remote',
     JSON.stringify({connector: 'crm/main', resource: 'r'}),
     JSON.stringify(['id', 'amount']), `fixture.analytic_${name}`);
   assert.notEqual(query, '', name);
   await writeFile(join(root, `analytic-${name}.json`), query);
 }
-const pipeRowNumber = queryFrontend.compileCapturedQueryJson(
+const pipeRowNumber = compileCapturedQuery(
   'FROM records |> WHERE id < 3 '
     + '|> SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS pos',
   'records', 'remote',
@@ -892,14 +926,14 @@ await writeFile(join(root, 'analytic-pipe-row-number.json'), pipeRowNumber);
 analyticCases.push(['pipe-row-number', '', [{id: 1, pos: 1}, {id: 2, pos: 2}]]);
 await writeFile(join(root, 'analytic-cases.json'),
   JSON.stringify(analyticCases.map(([name, , expected]) => [name, expected])));
-const extendedQuery = queryFrontend.compileCapturedQueryJson(
+const extendedQuery = compileCapturedQuery(
   'FROM records |> WHERE id > 0 |> EXTEND amount + 1 AS adjusted |> SELECT id, adjusted',
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
   JSON.stringify(['id', 'amount']), 'fixture.extended_query');
 assert.notEqual(extendedQuery, '');
 await writeFile(join(root, 'extended-query.json'), extendedQuery);
-const pipeSetQuery = queryFrontend.compileCapturedQueryJson(
+const pipeSetQuery = compileCapturedQuery(
   'FROM records AS before |> WHERE id > 0 '
     + '|> SET id = amount, amount = id '
     + '|> SELECT before.id AS old_id, before.amount AS old_amount, id, amount',
@@ -908,7 +942,7 @@ const pipeSetQuery = queryFrontend.compileCapturedQueryJson(
   JSON.stringify(['id', 'amount']), 'fixture.pipe_set_query');
 assert.notEqual(pipeSetQuery, '');
 await writeFile(join(root, 'pipe-set-query.json'), pipeSetQuery);
-const pipeSetGroupedQuery = queryFrontend.compileCapturedQueryJson(
+const pipeSetGroupedQuery = compileCapturedQuery(
   'FROM records |> WHERE amount > 0 |> SET id = amount '
     + '|> AGGREGATE COUNT(*) AS n GROUP BY id |> SELECT id, n '
     + '|> ORDER BY id',
@@ -922,38 +956,6 @@ await writeFile(join(root, 'segmented-join-program.json'), await readFile(
   join(repository, 'adapters/host-node/fixtures/segmented-join-program.json')));
 await writeFile(join(root, 'segmented-results-program.json'), await readFile(
   join(repository, 'adapters/host-node/fixtures/segmented-results-program.json')));
-const sourceCatalog = await readFile(join(repository,
-  'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
-const catalog = sourceCatalog.slice(sourceCatalog.indexOf(
-  'fn query_amount_nullable_catalog')).match(
-  /query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/u);
-assert.ok(catalog);
-const sourceEnvironment = JSON.parse(JSON.parse(catalog[1]));
-const sourceSelector = {source_ref: 'connector://crm/main/r#v',
-  source_contract_cid:
-    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
-  source_view_contract_cid:
-    'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3',
-  read_mode: 'snapshot'};
-sourceEnvironment.schema_snapshots = [{...sourceSelector,
-  output_carrier: 'relation',
-  carrier_schema_contract_cid:
-    'sha256:2fe8005dbfa26b68a2e50a3fc86a54b14f4d845275acfd3770b09ba7d4316bc4',
-  source_data_policy_cid:
-    'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf',
-  data_classification: 'unknown'}];
-sourceEnvironment.connector_capabilities = [{...sourceSelector,
-  capability_contract_cids: [
-    'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a'],
-}];
-Object.assign(sourceEnvironment.host_policy_profile.capacity, {
-  max_analytic_frame_memberships: 10000,
-  max_analytic_input_wire_bytes: 10000,
-  max_analytic_output_wire_bytes: 10000,
-  max_analytic_partition_wire_bytes: 10000,
-});
-delete sourceEnvironment.evidence_bundle_cid;
-sourceEnvironment.evidence_bundle_cid = machineCid(sourceEnvironment);
 const databasePath = join(root, 'records.duckdb');
 const {DuckDBInstance} = createRequire(join(root, 'node_modules', '@actql',
   'local-node', 'package.json'))('@duckdb/node-api');

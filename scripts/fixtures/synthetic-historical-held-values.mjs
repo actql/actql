@@ -29,7 +29,7 @@ export const heldValuesExpected = Object.freeze([{id: 1}, {id: 2}]);
 
 export async function writeSyntheticHistoricalHeldValues({directory, document,
   requestId, authorization, runtimeRootUrl, now = Date.now(), mode = 'local', append = false,
-  effectEnvironmentWire, expressionContractUrl = new URL(
+  effectEnvironmentWire, hostCapacityPolicy, expressionContractUrl = new URL(
     'spec/contracts/actql-expressions.json', runtimeRootUrl)}) {
   const program = JSON.parse(document);
   const originalStage = program.stages?.[0];
@@ -58,7 +58,11 @@ export async function writeSyntheticHistoricalHeldValues({directory, document,
   const contextCid = cid({host: 'actql-local-host', principal: principalId, account_id: account.account_id});
   // This existing Host identity uses its original ordered JSON preimage, not
   // sorted artifact encoding or a realpath rewrite of the selected root.
-  const authorityScopeCid = hash(JSON.stringify({version: 'actql-local-owner-scope/0.1', root, principalId}));
+  const effectiveHostCapacityPolicy = hostCapacityPolicy === undefined ? undefined : {
+    max_graph_construction_edges: 1000, max_graph_construction_input_rows: 1000,
+    max_graph_construction_nodes: 1000, ...hostCapacityPolicy};
+  const authorityScopeCid = hash(JSON.stringify({version: 'actql-local-owner-scope/0.1', root, principalId,
+    ...(effectiveHostCapacityPolicy === undefined ? {} : {hostCapacityPolicyCid: cid(effectiveHostCapacityPolicy)})}));
   const logicalRequestScopeCid = cid({authority_scope_cid: authorityScopeCid,
     caller_request_id: requestId, version: 'actql-logical-request/0.1'});
   // Independently authored finite semantic preimages for this Values input.
@@ -151,10 +155,14 @@ export async function writeSyntheticHistoricalHeldValues({directory, document,
     // Ordinary Local materialization selects these declared 512MiB/256-byte
     // row and 64KiB Model windows. An independently published Remote Effect
     // keeps its generic policy identity instead of borrowing that profile.
-    ...(effectEnvironmentWire === undefined ? {
+    ...(effectEnvironmentWire === undefined ? effectiveHostCapacityPolicy ?? {
       max_relation_output_rows: 536870912 / 256,
       max_artifact_rows: 536870912 / 256,
       max_model_request_bytes_per_item: 65536} : {})};
+  if (hostCapacityPolicy !== undefined) {
+    assert.deepEqual(environmentBody.host_policy_profile.capacity, effectiveHostCapacityPolicy,
+      'The authored historical scope uses the SAME explicit installed Host policy');
+  }
   const binding = {authorization_context_cid: cid({principal: principalId,
     account_id: account.account_id, configuration_cid: configurationCid, source_configuration_cid: null}),
   environment_binding_cid: cid({version: 'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,

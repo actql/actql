@@ -3,9 +3,17 @@ import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {groupedQueryCases} from './fixtures/grouped-query-programs.mjs';
-import {compileCapturedQueryJson, compileQueryJson,
+import {canonicalText} from './check-canonical-json.mjs';
+import {compileCapturedQueryJson as compileCapturedQueryWithCatalogJson, compileQueryJson,
   compileValuesQueryJson} from
   '../_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js';
+
+const sourceEnvironment = JSON.parse(await readFile(new URL(
+  '../adapters/host-node/fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
+const sourceEnvironmentWire = canonicalText(sourceEnvironment);
+const sourceEnvironmentCid = sourceEnvironment.evidence_bundle_cid;
+const compileCapturedQueryJson = (...args) => compileCapturedQueryWithCatalogJson(
+  ...args, sourceEnvironmentWire, sourceEnvironmentCid);
 
 const fixture = name => fileURLToPath(new URL(
   `../spec/frontend/fixtures/${name}`, import.meta.url));
@@ -165,5 +173,36 @@ test('real-source CTE JOIN preserves one normal acquisition and shared producer'
     assert.equal(computation.steps.filter(step => step.from === 'orders').length, 1);
     assert.equal(join.from, producer.as);
     assert.equal(join.join.with, producer.as);
+  }
+});
+
+test('captured CTE and subquery compilation retains the original fixture Catalog', () => {
+  const declaration = {connector: 'crm/main', resource: 'r'};
+  const args = ['records', 'remote', JSON.stringify(declaration),
+    JSON.stringify(['id', 'amount']), 'fixture.catalog_capture'];
+  const queries = [
+    'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) SELECT id FROM chosen',
+    'SELECT outer_rows.id FROM (SELECT DISTINCT inner_rows.id FROM '
+      + '(SELECT id FROM records WHERE id > 1) AS inner_rows '
+      + 'ORDER BY id LIMIT 2) AS outer_rows',
+    'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) '
+      + 'SELECT l.id AS left_id, r.id AS right_id '
+      + 'FROM chosen AS l JOIN chosen AS r ON l.id = r.id',
+  ];
+  for (const query of queries) {
+    const wire = compileCapturedQueryJson(query, ...args);
+    assert.notEqual(wire, '', query);
+    const program = JSON.parse(wire);
+    assert.equal(program.stages.length, 2);
+    assert.deepEqual(program.stages[0].inputs.remote, declaration);
+    assert.deepEqual(program.stages[1].inputs.remote,
+      {result: {stage: 'capture', result: 'source'}});
+    assert.equal(compileCapturedQueryWithCatalogJson(query, ...args,
+      sourceEnvironmentWire, 'sha256:' + '0'.repeat(64)), '');
+    assert.equal(compileCapturedQueryWithCatalogJson(query, ...args,
+      '{}', sourceEnvironmentCid), '');
+    assert.equal(compileCapturedQueryJson(query, ...[
+      ...args.slice(0, 2), JSON.stringify({connector: 'foreign', resource: 'r'}), ...args.slice(3),
+    ]), '');
   }
 });

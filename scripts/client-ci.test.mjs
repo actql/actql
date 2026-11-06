@@ -2,6 +2,7 @@
 // acceptance commands, not a replacement acceptance oracle.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -1063,4 +1064,138 @@ test('synthetic held Salesforce fixture retains distinct Host observation and Ru
     [entries[0], {...entries[1], operation: {any_of: ['read']}}]]) {
     assert.throws(() => check({entries: invalid}), {code: 'ERR_ASSERTION'});
   }
+});
+
+test('packed Checkpoint Source publication shares its explicit installed Host policy', async () => {
+  const source = readFileSync(new URL('./test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declarations = new Map();
+  let publication, hostTemplate;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
+        ['base', 'sourceBaseEnvironment', 'hostCapacityPolicy'].includes(node.declarations[0].id?.name)) {
+      const name = node.declarations[0].id.name;
+      assert.equal(declarations.has(name), false);
+      declarations.set(name, node);
+    }
+    if (node.type === 'AssignmentExpression' && node.left.type === 'MemberExpression' &&
+        node.left.object.name === 'environment' && node.left.property.name === 'host_policy_profile') {
+      assert.equal(publication, undefined); publication = node;
+    }
+    if (node.type === 'TemplateLiteral' && node.quasis[0].value.cooked.includes('const installation = {')) {
+      assert.equal(hostTemplate, undefined); hostTemplate = node;
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  })(tree);
+  assert(publication && hostTemplate);
+  const wire = readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8');
+  const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
+  const baseName = declarations.has('sourceBaseEnvironment') ? 'sourceBaseEnvironment' : 'base';
+  const bindings = [baseName, ...(declarations.has('hostCapacityPolicy') ? ['hostCapacityPolicy'] : [])].map(name => {
+    const declaration = declarations.get(name);
+    assert(declaration, `Missing shared installed policy binding: ${name}`);
+    return source.slice(declaration.start, declaration.end);
+  }).join('\n');
+  const prepare = new AsyncFunction('root', 'readFile', 'join', bindings +
+    `\nreturn {sourceBaseEnvironment: ${baseName}, hostCapacityPolicy: typeof hostCapacityPolicy === 'undefined' ? undefined : hostCapacityPolicy};`);
+  const selected = await prepare('/app', async (path, encoding) => {
+    assert.equal(path, '/app/node_modules/@actql/local-node/spec/local-check-environment.json');
+    assert.equal(encoding, 'utf8'); return wire;
+  }, join);
+  const published = JSON.parse(readFileSync(new URL('../adapters/host-node/fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
+  new Function('environment', baseName,
+    source.slice(publication.start, publication.end))(published, selected.sourceBaseEnvironment);
+  delete published.evidence_bundle_cid;
+  published.evidence_bundle_cid = contentCid(published);
+  const generated = new Function('hostCapacityPolicy', 'return (' +
+    source.slice(hostTemplate.start, hostTemplate.end) + ');')(selected.hostCapacityPolicy);
+  const generatedTree = parseJavaScript(generated, {ecmaVersion: 'latest', sourceType: 'module'});
+  const installation = generatedTree.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations[0].id.name === 'installation').declarations[0].init;
+  const options = new Function('process', 'configuration', 'tokens', 'decide', 'mark', 'readFileSync',
+    'return (' + generated.slice(installation.start, installation.end) + ');')(
+    {env: {STATE: '/state', ACQUIRED: '1'}, cwd: () => '/app'}, undefined, new Map(), undefined, () => {}, () => 'fixture-key');
+  const originalPolicy = Object.freeze({});
+  const moon = {
+    clientLocalResourcePolicyOriginal: () => originalPolicy,
+    clientLocalResourcePolicyRowCeiling(value) {assert.equal(value, originalPolicy); return 2097152;},
+    clientLocalResourcePolicyModelRequestByteCeiling(value) {assert.equal(value, originalPolicy); return 65536n;},
+    clientProgramCheckEnvironment: () => ({}),
+  };
+  const actualHost = selectInstalledLocalMaterializationEnvironment(moon, wire.trimEnd(), options.hostCapacityPolicy);
+  const composed = composeInstalledCheckEnvironment(moon, actualHost, actualHost, canonicalText(published));
+  assert.deepEqual(JSON.parse(composed).host_policy_profile, published.host_policy_profile);
+  assert.deepEqual(options.hostCapacityPolicy, selected.sourceBaseEnvironment.host_policy_profile.capacity);
+  const defaultHost = selectInstalledLocalMaterializationEnvironment(moon, wire.trimEnd());
+  assert.throws(() => composeInstalledCheckEnvironment(moon, defaultHost, defaultHost, canonicalText(published)),
+    error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
+  const foreign = structuredClone(published);
+  foreign.host_policy_profile.capacity.max_artifact_rows += 1;
+  delete foreign.evidence_bundle_cid; foreign.evidence_bundle_cid = contentCid(foreign);
+  assert.throws(() => composeInstalledCheckEnvironment(moon, actualHost, actualHost, canonicalText(foreign)),
+    error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
+});
+
+test('historical Checkpoint identities retain the same explicit Host policy', () => {
+  const wrapper = readFileSync(new URL('./test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
+  assert.match(wrapper, /hostCapacityPolicy: installation\.hostCapacityPolicy,/);
+  const hash = bytes => 'sha256:' + createHash('sha256').update(bytes).digest('hex');
+  const originalRoot = '/original-selected-root', principalId = 'fixture-owner';
+  const raw = JSON.parse(readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8'))
+    .host_policy_profile.capacity;
+  const expression = (source, name) => {
+    const found = [];
+    (function visit(node) {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'VariableDeclarator' && node.id?.name === name) found.push(node.init);
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(visit);
+        else if (value && typeof value === 'object') visit(value);
+      }
+    })(parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+    assert.equal(found.length, 1, name);
+    return source.slice(found[0].start, found[0].end);
+  };
+  for (const name of ['values', 'query']) {
+    const source = readFileSync(new URL(`./fixtures/synthetic-historical-held-${name}.mjs`, import.meta.url), 'utf8');
+    const selected = new Function('hostCapacityPolicy',
+      `return (${expression(source, 'effectiveHostCapacityPolicy')});`);
+    const scope = new Function('root', 'principalId', 'effectiveHostCapacityPolicy', 'hash', 'cid',
+      `return (${expression(source, 'authorityScopeCid')});`);
+    const original = hash(JSON.stringify({version: 'actql-local-owner-scope/0.1', root: originalRoot, principalId}));
+    assert.equal(scope(originalRoot, principalId, selected(undefined), hash, contentCid), original);
+    const expected = {max_graph_construction_edges: 1000, max_graph_construction_input_rows: 1000,
+      max_graph_construction_nodes: 1000, ...raw};
+    assert.deepEqual(selected(raw), expected);
+    const scoped = scope(originalRoot, principalId, selected(raw), hash, contentCid);
+    assert.equal(scoped, hash(JSON.stringify({version: 'actql-local-owner-scope/0.1',
+      root: originalRoot, principalId, hostCapacityPolicyCid: contentCid(expected)})));
+    assert.notEqual(scoped, original);
+    assert.notEqual(scope(originalRoot, principalId,
+      selected({...raw, max_artifact_rows: raw.max_artifact_rows + 1}), hash, contentCid), scoped);
+  }
+  const values = readFileSync(new URL('./fixtures/synthetic-historical-held-values.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(values, {ecmaVersion: 'latest', sourceType: 'module'});
+  const assignments = [];
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'AssignmentExpression' && node.left.property?.name === 'capacity' &&
+        node.left.object.property?.name === 'host_policy_profile' &&
+        node.left.object.object?.name === 'environmentBody') assignments.push(node.right);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  })(tree);
+  assert.equal(assignments.length, 1);
+  const normalized = {max_graph_construction_edges: 1000, max_graph_construction_input_rows: 1000,
+    max_graph_construction_nodes: 1000, ...raw};
+  const bindingCapacity = new Function('environmentBody', 'effectEnvironmentWire', 'effectiveHostCapacityPolicy',
+    `return (${values.slice(assignments[0].start, assignments[0].end)});`)(
+    {host_policy_profile: {capacity: raw}}, undefined, normalized);
+  assert.deepEqual(bindingCapacity, normalized);
 });
