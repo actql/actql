@@ -131,18 +131,29 @@ issues admission, identity, cancellation or cleanup authority. The caller retain
 the original wires and obtains actual Resource backing before construction.
 Successful synchronous Source Environment construction retains its actual output
 strings and record; unreachable parser and canonicalization workspace can then
-leave the peak. A throw after admission keeps that admitted peak as failure debt
+leave the peak. Native declaration and provider Effect assembly call this SAME
+constructor, preserving the exact exported members, Environment wire and CID.
+Provider Effect then reserves the existing Mapping carrier quantity before
+constructing those independent records and arrays. No successful wrapper return
+can discard a failed Environment's debt. Generic configuration JSON keeps its
+complete existing envelope: caller identity/snapshot work after JSON.parse has
+not acquired a separate constructor lifetime merely because parsing returned. A throw after admission keeps that admitted peak as failure debt
 on the same material, including during sibling reconciliation. A refused reserve
 adds no ungranted debt. Pure failed workspace does not invent pending physical
 work or prevent eventual retirement after all real children acknowledge close.
-Effect and Table phases retain their peaks until their later consumers have their
-own backing. Native producers separately describe actual escaped outputs and
+Other Effect and Table constructor phases retain their peaks until their later
+consumers have their own backing. Native producers separately describe actual escaped outputs and
 construction workspace; connector authors do not manage release or retention.
 
 The actual installed-bound-construction tests compose generated selection,
 Resource, common constructors and physical cleanup. External provider I/O alone
 is substituted. These initializer tests do not establish normal packaged
 Run/Result/Saved acceptance or the coverage of every external provider operation.
+`installed-native-environment-retention.actual.test.mjs` also checks both native
+callers against the same complete Environment wire/CID and actual typed reserve
+and reconcile Results. The failure-debt control derives its unchanged-parent
+probe from the actual completed prefix and independent constructor delta, rather
+than a historical empirical offset that includes unrelated sibling workspaces.
 
 ## Original binding retirement acknowledgement
 

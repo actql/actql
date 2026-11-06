@@ -184,7 +184,7 @@ export async function publishSalesforceGeneration({site, path, connectorId,
 // connector and target Resources and must be bound to the Site as installed
 // now.
 export function restoreSalesforceGeneration({site, generation, connectorId,
-  resources}) {
+  resources, construction}) {
   if (typeof site?.restoreDeclaration !== 'function') {
     fail('InvalidSalesforcePublication');
   }
@@ -208,7 +208,7 @@ export function restoreSalesforceGeneration({site, generation, connectorId,
   const restored = site.restoreDeclaration({connectorId,
     resources: targets, evidence: generation.evidence,
     observationCid: generation.observation_cid,
-    catalogCid: generation.catalog_cid});
+    catalogCid: generation.catalog_cid, construction});
   return Object.freeze({
     resourceStates: Object.freeze(generation.resource_states.map(
       state => Object.freeze({...state}))), declared: restored});

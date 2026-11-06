@@ -127,6 +127,7 @@ pub fn Journal::effect_ledger_custody(Self, @remote_site_protocol.DispatchReques
 pub fn Journal::effect_ledger_response(Self, @remote_site_protocol.DispatchRequest, @effect_application.EffectLedgerEntry) -> Result[NativeEffectSavedResponse?, NativeRemoteJournalIssue]
 pub fn Journal::ensure_output_report_capacity(Self, @remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::force_loss(Self, @remote_site_protocol.DispatchRecord, Bool) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::has_effect_checkpoint_reports(Self) -> Result[Bool, NativeRemoteJournalIssue]
 pub fn Journal::observation(Self, @remote_site_protocol.DispatchRequest) -> Result[RecoveredSiteDispatch, NativeRemoteJournalIssue]
 pub fn Journal::output_report(Self, String) -> Result[(@remote_site_protocol.RemoteOutputReportCustody, @remote_site_protocol.RemoteOutputReportReply?), NativeRemoteJournalIssue]
 pub fn Journal::output_report_after(Self, String) -> Result[(String, @remote_site_protocol.RemoteOutputReportCustody, @remote_site_protocol.RemoteOutputReportReply?)?, NativeRemoteJournalIssue]

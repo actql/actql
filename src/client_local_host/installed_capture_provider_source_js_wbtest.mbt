@@ -90,6 +90,7 @@ fn pure_provider_capture_fixture(
   transport_execution? : Int64 = 2048L,
   original_declaration? : @row_source_host.RowDeclaration? = None,
   original_environment? : @checked.CheckEnvironment? = None,
+  runtime_admission? : Bool = false,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   ClientInstalledManagedRun,
@@ -168,10 +169,43 @@ fn pure_provider_capture_fixture(
     None,
     retained_output=true,
     provider_factory=_ => [],
+    runtime_admission~,
   ).unwrap()
   complete_request_capture_preparation(parent, input, plan).unwrap()
   let run = begin_request_capture_managed_run(parent, request).unwrap()
   (parent, run, plan, declaration)
+}
+
+///|
+test "runtime capture keeps the original finite parent and refuses capacity before new work" {
+  let (parent, owner, plan, declaration) = pure_provider_capture_fixture(
+    runtime_admission=true,
+  )
+  assert_true(
+    physical_equal(require_installed_managed_run(owner).unwrap(), parent.ledger),
+  )
+  let limits = @resources.ledger_limits(parent.ledger)
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    @resources.reserve_capacity(parent.ledger, limits.retained_bytes + 1L, 0L)
+    is Err(@resources.RetentionLimit),
+  )
+  assert_eq(@resources.ledger_limits(parent.ledger), limits)
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  let (read, _, acquisition, capacity) = begin_installed_managed_capture_source_read(
+    owner,
+    plan.prepared,
+    plan.request,
+    declaration,
+    0,
+  ).unwrap()
+  assert_true(
+    physical_equal(acquisition, plan.captures[0].acquisition.unwrap()),
+  )
+  assert_true(physical_equal(capacity, plan.captures[0]))
+  retire_installed_source_read(read).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
 ///|

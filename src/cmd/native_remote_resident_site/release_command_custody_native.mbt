@@ -34,16 +34,19 @@ fn open_release_command_store(
 /// Keep a ready observation reader through its checked close, before Library
 /// or command Read retirement. A failed close cannot be dropped or converted
 /// into a remote status/release acknowledgment.
-fn retain_control_replay_journal_close(original : @journal.Journal) -> Unit {
+fn retain_control_replay_journal_close(
+  original : @journal.Journal,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
+) -> Unit {
   let retained = Ref(Some(ReplayJournalHandle(original)))
-  install_partial_holder_cleanup_signal()
+  install_partial_holder_cleanup_signal(report_progress~)
   ignore(
     retain_holder_cleanup_lifetime(
       retained,
       retry_control_replay_journal_cleanup,
       () => CleanupInputEnded,
-      wait_holder_cleanup_lifetime_signal,
-      (_, _) => report("journal-reader-cleanup-pending", []),
+      () => wait_holder_cleanup_lifetime_signal_with_report(report_progress~),
+      (_, _) => report_progress("journal-reader-cleanup-pending", []),
     ),
   )
 }

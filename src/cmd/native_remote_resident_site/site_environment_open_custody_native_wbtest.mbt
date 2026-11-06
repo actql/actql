@@ -51,6 +51,8 @@ test "failed Site preparation returns inherited Slot only after original cleanup
 
 ///|
 test "invalid original Site selection refuses before executable Library or Store reads" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   // All physical paths are deliberately unavailable. The actual caller must
   // return the original Site refusal before executable identity or dlopen.
   for (generation, operations) in [("-1", "4"), ("4", "0")] {
@@ -81,6 +83,7 @@ test "invalid original Site selection refuses before executable Library or Store
         matches,
         "original-process",
         capture_resident_initial_control(),
+        report_progress=observe_progress,
       ) {
       Err(original) => original
       Ok(_) => {
@@ -97,6 +100,7 @@ test "invalid original Site selection refuses before executable Library or Store
     // No acquired process holding is invented by this pre-I/O refusal.
     assert_true(retry_site_environment_open_custody(original))
   }
+  assert_eq(progress_events, [])
 }
 
 ///|

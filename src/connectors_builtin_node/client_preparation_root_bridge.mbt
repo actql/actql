@@ -1309,6 +1309,7 @@ pub fn client_program_installed_managed_capture_plan_prepare(
     retained_output~,
     provider_factory=installed_client_family_providers,
     query_time~,
+    runtime_admission=true,
   )
 }
 

@@ -2323,7 +2323,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-      "sha256": "f34866322a76f0192c54c0c75da987c4d78a6586f77819cb304ad69973123bf4",
+      "sha256": "dfaa700be221ae7119a849d2d3abb8be671dee2fe89759299ea7e6c7a7a5c47a",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Effect installation/publication/Mapping and target-read inventory; Common row Effect governs the Set",
@@ -2812,13 +2812,13 @@
             "restoreGeneration/mappings/mappings",
             "restoreGeneration/mappings/mappings/mappings",
             "restoreGeneration/mappings/mappings/mappings#2",
-            "restoreGeneration/provider/init:project/init:project",
-            "restoreGeneration/provider/provider",
             "salesforceEffectTargetReadInventory",
             "salesforceEffectTargetReadInventory/salesforceEffectTargetReadInventory",
             "salesforceEffectUnit",
             "salesforceEffectUnit/units/units",
-            "text/text"
+            "text/text",
+            "restoreGeneration/provider/init:project/init:project",
+            "restoreGeneration/provider/provider"
           ],
           "exports": [
             "INSTALLED_SALESFORCE_EFFECT_VERSION",
@@ -3024,7 +3024,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
-      "sha256": "5e4523d0a443f5a0eb1bc066b29f4778af942458e1a7065dc7d103802c3c41c7",
+      "sha256": "da3d62be59a2d7aabd9ff68d15a68a128de4b769e7293de49cab23c3736b7299",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing published Salesforce source installation; provider protocol stays Salesforce and RowRun remains the capture owner",
@@ -3228,25 +3228,7 @@
           "async": true
         },
         {
-          "name": "loadInstalledSalesforceSource/capacity/capacity",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "loadInstalledSalesforceSource/init:project/init:project",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSource/init:project/init:project/init:project",
-          "parameters": [
-            "evidence",
-            "expectedRun"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSalesforceSource/loaded/loaded",
           "parameters": [],
           "async": false
         },
@@ -3255,6 +3237,29 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/loadInstalledSalesforceSource#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/observed/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/observed/init:project/init:project/init:project",
+          "parameters": [
+            "evidence",
+            "expectedRun"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/observed/observed",
+          "parameters": [],
           "async": false
         },
         {
@@ -3349,10 +3354,7 @@
             "installedSalesforceSourceIdentityParts",
             "installedSalesforceSourceIdentityParts/readers/readers",
             "loadInstalledSalesforceSource",
-            "loadInstalledSalesforceSource/capacity/capacity",
             "loadInstalledSalesforceSource/init:project/init:project",
-            "loadInstalledSalesforceSource/init:project/init:project/init:project",
-            "loadInstalledSalesforceSource/loaded/loaded",
             "openSite",
             "publishInstalledSalesforceSource",
             "queryRuntime",
@@ -3367,7 +3369,11 @@
             "installedSalesforceAdapter/resourceUnits/resourceUnits",
             "loadInstalledSalesforceSource/loadInstalledSalesforceSource",
             "installedSalesforceAdapter/capacityArguments/capacityArguments",
-            "installedSalesforceAdapter/capacityArguments/capacityArguments#2"
+            "installedSalesforceAdapter/capacityArguments/capacityArguments#2",
+            "loadInstalledSalesforceSource/loadInstalledSalesforceSource#2",
+            "loadInstalledSalesforceSource/observed/init:project/init:project",
+            "loadInstalledSalesforceSource/observed/init:project/init:project/init:project",
+            "loadInstalledSalesforceSource/observed/observed"
           ],
           "exports": [
             "INSTALLED_SALESFORCE_SOURCE_VERSION",
