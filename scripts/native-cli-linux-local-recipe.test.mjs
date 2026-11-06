@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, symlinkSync, existsSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, writeFileSync, readFileSync, realpathSync, rmSync, symlinkSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
@@ -16,7 +16,7 @@ const canonical = value => value && typeof value === 'object' && !Array.isArray(
 // Synthetic receipts, headers and inspector responses test DATA assembly only.
 // They are deliberately not compiled components or installed runtime evidence.
 function fixture(t) {
-  const root = mkdtempSync(join(tmpdir(), 'actql-linux-recipe-'));
+  const root = mkdtempSync(join(realpathSync(tmpdir()), 'actql-linux-recipe-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const sourceRoot = join(root, 'source'), sqliteDirectory = join(root, 'sqlite'), cryptoDirectory = join(root, 'crypto');
   const put = (path, bytes) => { mkdirSync(join(path, '..'), {recursive: true}); writeFileSync(path, bytes); return identity(bytes); };

@@ -397,8 +397,9 @@ test('installed init silences only private query timings and preserves adoption 
   assert.ifError(result.error); assert.equal(result.status, 0);
   const observed = JSON.parse(result.stdout);
   assert.equal(observed.timings, '1');
-  assert.deepEqual(observed.args, ['--mode', 'local', '--config', join(f.cwd, 'project/actql.config.json'),
-    '--state-dir', join(f.cwd, 'project/.actql'), 'adopt', '--initialize-signing']);
+  const canonicalProject = await realpath(join(f.cwd, 'project'));
+  assert.deepEqual(observed.args, ['--mode', 'local', '--config', join(canonicalProject, 'actql.config.json'),
+    '--state-dir', join(canonicalProject, '.actql'), 'adopt', '--initialize-signing']);
   assert.match(result.stderr, /^ACTQL_NATIVE_LAUNCHER_TIMINGS /u);
   assert.doesNotMatch(result.stderr, /query timing diagnostics/u);
   assert.deepEqual(await readdir(join(f.cwd, 'project')), ['actql.config.json', 'connectors.json', 'model-tasks.json']);
