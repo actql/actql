@@ -1125,6 +1125,30 @@ invalid selection, failed or cancelled required jobs, and unexpected skips
 cannot satisfy the final `check`. Inspect the jobs actually executed; a narrow
 PR run does not establish a full integration or release checkpoint.
 
+The Native HTTP and Remote Query harnesses select their existing owned files
+through the Query packages' transitive imports and literal FFI includes. Separate
+CLI/conformance packages do not widen this closure. Unknown imported environment
+readers, unresolved FFI inputs and changed required cases retain full fallback;
+Core remains unfiltered. A repository regression requires the normal subset to
+work, alongside the refusal tests. Selection and fallback reasons appear in the
+job summary. The focused fixed-request lane similarly checks actual Git fixture
+pins, not just synthetic fixtures; changed shared inputs require re-review.
+
+Linux and macOS Native consumers share only their job's verified preparation.
+Each consumer has a separate scratch root, runs sequentially after successful
+preparation even when another consumer fails, and retains its failure. Packed
+Client consumers use the same rule after the original artifact download. A
+cancelled job or failed preparation never starts these consumers. This collects
+independent failures without treating them as success or introducing parallel
+Store/port ownership. The final required checks are unchanged.
+
+Native preparation logs each command/component interval as
+`ACTQL_NATIVE_CI_PHASE`. The HTTP package loop separately logs build-only and
+execution intervals using the same compiler inputs and fixture environment.
+Execution includes Moon's incremental freshness check; it is not a pure test-CPU
+measurement. Compare these intervals with Actions job start/queue observations;
+case counts alone do not predict wall-time savings.
+
 ### Full integration and release evidence
 
 Every main push selects full runtime coverage, including all three Core

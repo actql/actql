@@ -33,6 +33,16 @@ const moonHome=realpathSync(process.env.MOON_HOME);
 const clang=realpathSync(process.platform==='darwin'?run('xcrun',['--find','clang']).trim()
   :run('sh',['-c','command -v clang']).trim());
 const sdk=process.platform==='darwin'?realpathSync(run('xcrun',['--show-sdk-path']).trim()):null;
+function timedPreparation(phase, prepare) {
+  const started=performance.now();let succeeded=false;
+  try { const value=prepare();succeeded=true;return value; }
+  finally {
+    const milliseconds=Math.round(performance.now()-started);
+    console.error('ACTQL_NATIVE_CI_PHASE '+JSON.stringify({phase,milliseconds,succeeded}));
+    if(process.env.GITHUB_STEP_SUMMARY)appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+      `- Native ${phase}: ${milliseconds} ms (${succeeded?'success':'failed'}).\n`);
+  }
+}
 mkdirSync(destination,{mode:0o700});
 const entries={};
 for(const [name,prepare,selected] of [
@@ -41,14 +51,16 @@ for(const [name,prepare,selected] of [
 ]) {
   if(!selected)continue;
   const directory=join(destination,name);
-  prepare(repository,directory,{moonHome,
-    seconds:name==='native_remote_resident_site'?residentSeconds:seconds,preparation:null});
+  timedPreparation(name,()=>prepare(repository,directory,{moonHome,
+    seconds:name==='native_remote_resident_site'?residentSeconds:seconds,preparation:null}));
   entries[name]=originalDescriptor(join(directory,'build.json'));
 }
 const components=join(destination,'components');
-prepareNativeRuntimeBundleLibraries(repository,components,{moonHome,seconds,preparation:null});
+timedPreparation('runtime_libraries',()=>
+  prepareNativeRuntimeBundleLibraries(repository,components,{moonHome,seconds,preparation:null}));
 const httpReceipt=selection==='bundle'?undefined:
-  prepareNativeResidentHttpComponent(repository,join(destination,'http'),{seconds});
+  timedPreparation('http_component',()=>
+    prepareNativeResidentHttpComponent(repository,join(destination,'http'),{seconds}));
 assert.equal(run('git',['rev-parse','HEAD']).trim(),source);
 assert.equal(run('git',['status','--porcelain']),'');
 writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target,moon_home:moonHome,

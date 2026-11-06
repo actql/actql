@@ -849,8 +849,8 @@ jobs:
       - name: Test actual bound connector initialization and cleanup
         # Reuse the ordinary Local build above; external provider I/O is loopback-only.
         run: node --test adapters/host-node/installed-bound-construction.actual.test.mjs adapters/host-node/installed-bound-construction-failures.actual.test.mjs adapters/host-node/installed-source-construction-geometry.test.mjs
-      - name: Test packed Local runtime assets
-        run: npm run check:local-node-assets
+      - name: Test Local runtime source and external connector builds
+        run: npm run check:local-node-source-assets
   # Share only clean-checkout tarballs and their source/digest manifest.
   # Consumers retain fresh installs and private target/native build outputs.
   client-packages:
@@ -1009,13 +1009,22 @@ jobs:
         with:
           python: 'true'
       - name: Download the exact Client package artifact
+        id: client-inputs
         uses: ./.github/actions/download-client-packages
         with:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/actql-client-packages
+      - name: Test packed Local runtime assets
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        run: node scripts/test-packed-local-node-assets.mjs
+      - name: Test packed Sheets
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        run: node scripts/test-packed-sheets.mjs
       - name: Test packed Embedded Local Checkpoint and Named Result
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: npm run check:packed-embedded-checkpoint
       - name: Test packed single INFER capture and replay
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-infer
         run: node scripts/test-packed-single-infer.mjs
       - name: Retain packed single INFER evidence
@@ -1025,6 +1034,7 @@ jobs:
           directory: ${{ steps.packed-infer.outputs.evidence-directory }}
           name: packed-single-infer-${{ github.sha }}
       - name: Test packed named INFER evaluation with traces off and unsampled
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-infer-evaluation
         run: node scripts/test-packed-infer-evaluation.mjs
       - name: Retain packed INFER evaluation evidence
@@ -1034,6 +1044,7 @@ jobs:
           directory: ${{ steps.packed-infer-evaluation.outputs.evidence-directory }}
           name: packed-infer-evaluation-${{ github.sha }}
       - name: Test packed acquired INFER capture and replay
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-acquired-infer
         run: node scripts/test-packed-acquired-infer.mjs
       - name: Retain packed acquired INFER evidence
@@ -1043,6 +1054,7 @@ jobs:
           directory: ${{ steps.packed-acquired-infer.outputs.evidence-directory }}
           name: packed-acquired-infer-${{ github.sha }}
       - name: Test raw public SQL and Pipe through packed Local and HTTP
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-query
         run: |
           node --test scripts/packed-query-evidence.test.mjs
@@ -1054,6 +1066,7 @@ jobs:
           directory: ${{ steps.packed-query.outputs.evidence-directory }}
           name: packed-public-query-${{ github.sha }}
       - name: Test committed Result descriptions through packed Local and HTTP
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         # The description path reads retained metadata, including empty Results.
         # It must be exercised from installed packages on both transports.
         run: node scripts/test-packed-result-description.mjs
@@ -1065,6 +1078,7 @@ jobs:
           directory: ${{ steps.packed-result-description.outputs.evidence-directory }}
           name: packed-result-description-${{ github.sha }}
       - name: Test packed Source JOIN INFER Effect approval and process recovery
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         # One installation of this job's exact tarballs covers ordinary Source
         # and composed Programs on Local/HTTPS; flags only narrow local probes.
         run: node scripts/test-packed-salesforce-source.mjs
@@ -1168,6 +1182,7 @@ jobs:
       # 4 sequential producers retain 900s each plus 30s caller allowance.
       # The enclosing window also retains metadata and cleanup time.
       - name: Prepare exact-source scoped Native commands and components once
+        id: native-preparation
         timeout-minutes: 65
         run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900
       - name: Retain scoped Native preparation source and compiler receipts
@@ -1182,16 +1197,95 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
       - name: Test Node-free native storage publication and control
-        id: native-runtime-test
+        id: native-http
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-http
         run: |
-          # Match the existing Linux Native compiler stack prerequisite.
-          # All original cases and product resource budgets remain unchanged.
           ulimit -S -s 65536
-          npm run check:native-http-client
+          node scripts/test-native-http-client.mjs
+      - name: Test Native Salesforce Effect preview
+        id: native-preview
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-preview
+        run: |
+          ulimit -S -s 65536
+          node scripts/test-native-salesforce-effect-preview.mjs
+      - name: Test Native runtime bundle CLI
+        id: native-bundle-cli
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-bundle-cli
+        run: |
+          ulimit -S -s 65536
+          node scripts/test-native-runtime-bundle-cli.mjs
+      - name: Test Native publication Store lock
+        id: native-publication-lock
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-publication-lock
+        run: |
+          ulimit -S -s 65536
+          node scripts/test-native-publication-store-lock.mjs
+      - name: Test Native remote runtime
+        id: native-remote
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-remote
+        run: |
+          ulimit -S -s 65536
+          node scripts/test-native-remote-runtime.mjs
+      - name: Test Native Resident Effect computation
+        id: native-effect
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-effect
+        run: |
+          ulimit -S -s 65536
+          node scripts/test-native-resident-site.mjs --effect-computation-only
+      - name: Test Native Resident Site
+        id: native-runtime-test
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-runtime-test
+        run: |
+          ulimit -S -s 65536
+          node scripts/test-native-resident-site.mjs
+      - name: Test Native Resident Source
+        id: native-source
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-source
+        run: |
+          ulimit -S -s 65536
+          node scripts/test-native-resident-site.mjs --source-only
+      - name: Test Native observation replay
+        id: native-observation
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-observation
+        run: |
+          ulimit -S -s 65536
+          node scripts/test-native-resident-site.mjs --observation-replay-only
+      - name: Test Native release recovery
+        id: native-release
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-release
+        run: |
+          ulimit -S -s 65536
+          node scripts/test-native-resident-site.mjs --release-recovery-only
+      - name: Test Native cancellation
+        id: native-cancel
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-cancel
+        run: |
+          ulimit -S -s 65536
+          node scripts/test-native-resident-site.mjs --cancel-only
       - name: Diagnose only failed Linux Effect consumer functions
-        if: ${{ failure() && steps.native-runtime-test.outcome == 'failure' }}
+        if: ${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}
         continue-on-error: true
         timeout-minutes: 6
         env:
@@ -1200,7 +1294,7 @@ jobs:
           ulimit -S -s 65536
           node scripts/diagnose-native-resident-functions.mjs --output "${{ runner.temp }}/native-effect-functions/sanitized.json"
       - name: Retain only sanitized Linux Effect function availability
-        if: ${{ failure() && steps.native-runtime-test.outcome == 'failure' }}
+        if: ${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-effect-functions-${{ github.run_id }}-${{ github.run_attempt }}
@@ -1208,6 +1302,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
       - name: Test public packed Run materials against native resident Site
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
         id: packed-materials
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-resident-materials
@@ -1219,11 +1314,13 @@ jobs:
           directory: ${{ steps.packed-materials.outputs.evidence-directory }}
           name: packed-resident-materials-${{ github.sha }}
       - name: Test packed exact dispatch recovery against native resident Site
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
         id: packed-redelivery
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-resident-redelivery
         run: node scripts/test-packed-resident-materials.mjs --redelivery-only
       - name: Test packed Output report custody and ACK crash boundaries
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
         id: packed-output-report
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-output-report
@@ -1241,6 +1338,7 @@ jobs:
           directory: ${{ steps.packed-redelivery.outputs.evidence-directory }}
           name: packed-resident-redelivery-${{ github.sha }}
       - name: Verify registered Native retained product path
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
         run: |
           moon build --target js --release
           moon build src/cmd/native_retained_case_probe --target native --release
@@ -1395,6 +1493,7 @@ jobs:
       # Only it receives 1200s; the other 3 producers retain 900s each.
       # Keep each 30s caller allowance plus metadata and cleanup time.
       - name: Prepare exact-source scoped Native commands and components once
+        id: native-preparation
         timeout-minutes: 70
         run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900 --resident-seconds 1200
       - name: Retain scoped Native preparation source and compiler receipts
@@ -1409,12 +1508,90 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
       - name: Verify native macOS arm64 profile
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
         run: |
           test "$(uname -m)" = arm64
           moon version --all
-          npm run check:native-retained-task-file
-          ACTQL_TEST_SCRATCH_ROOT="$RUNNER_TEMP/actql-native" \
-            npm run check:native-http-client
+      - name: Test native macOS retained task file ownership
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        run: npm run check:native-retained-task-file
+      - name: Test Node-free native storage publication and control
+        id: native-http
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-http
+        run: |
+          node scripts/test-native-http-client.mjs
+      - name: Test Native Salesforce Effect preview
+        id: native-preview
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-preview
+        run: |
+          node scripts/test-native-salesforce-effect-preview.mjs
+      - name: Test Native runtime bundle CLI
+        id: native-bundle-cli
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-bundle-cli
+        run: |
+          node scripts/test-native-runtime-bundle-cli.mjs
+      - name: Test Native publication Store lock
+        id: native-publication-lock
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-publication-lock
+        run: |
+          node scripts/test-native-publication-store-lock.mjs
+      - name: Test Native remote runtime
+        id: native-remote
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-remote
+        run: |
+          node scripts/test-native-remote-runtime.mjs
+      - name: Test Native Resident Effect computation
+        id: native-effect
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-effect
+        run: |
+          node scripts/test-native-resident-site.mjs --effect-computation-only
+      - name: Test Native Resident Site
+        id: native-runtime-test
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-runtime-test
+        run: |
+          node scripts/test-native-resident-site.mjs
+      - name: Test Native Resident Source
+        id: native-source
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-source
+        run: |
+          node scripts/test-native-resident-site.mjs --source-only
+      - name: Test Native observation replay
+        id: native-observation
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-observation
+        run: |
+          node scripts/test-native-resident-site.mjs --observation-replay-only
+      - name: Test Native release recovery
+        id: native-release
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-release
+        run: |
+          node scripts/test-native-resident-site.mjs --release-recovery-only
+      - name: Test Native cancellation
+        id: native-cancel
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-cancel
+        run: |
+          node scripts/test-native-resident-site.mjs --cancel-only
   python-wheels:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}
@@ -1493,6 +1670,7 @@ jobs:
       # 2 sequential producers retain 900s each plus 30s caller allowance.
       # The enclosing window also retains metadata and cleanup time.
       - name: Prepare exact-source scoped Native commands and components once
+        id: native-preparation
         timeout-minutes: 35
         run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries bundle --seconds 900
       - name: Retain scoped Native preparation source and compiler receipts

@@ -626,6 +626,8 @@ test('each Client group retains its acceptance commands exactly once', () => {
     'npm run check:distribution-client',
   ]);
   assert.deepEqual(runs('client-packed'), [
+    'node scripts/test-packed-local-node-assets.mjs',
+    'node scripts/test-packed-sheets.mjs',
     'npm run check:packed-embedded-checkpoint',
     'node scripts/test-packed-single-infer.mjs',
     'node scripts/test-packed-infer-evaluation.mjs',
@@ -654,7 +656,9 @@ done`,
     assert.equal(jobs[name]['timeout-minutes'], 30);
     assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
     for (const step of jobs[name].steps.filter(step => step.run)) {
-      assert.equal(step.if, undefined, 'all acceptance commands remain unconditional');
+      assert.equal(step.if, name === 'client-packed' && step.name.startsWith('Test ')
+        ? "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}" : undefined,
+      'independent packed cases require the original successful download, not a previous case');
       assert.equal(step['continue-on-error'], undefined);
     }
   }
@@ -662,6 +666,25 @@ done`,
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert(!manifest.scripts['check:local-node-assets'].includes('test-packed-salesforce-source'),
     'the packed composition acceptance moves from Host into the artifact consumer exactly once');
+});
+
+test('ordinary Local assets reuse tarballs while cold and external builds stay source-backed', () => {
+  const {scripts} = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const source = scripts['check:local-node-source-assets'];
+  for (const file of ['test-packed-installed-connectors.mjs', 'test-packed-external-connector.mjs',
+    'test-packed-external-installed.mjs']) assert(source.includes(file), file);
+  assert(!source.includes('test-packed-local-node-assets.mjs'));
+  assert.equal(scripts['check:local-node-assets'],
+    'npm run check:local-node-source-assets && node scripts/test-packed-local-node-assets.mjs');
+  assert.equal(scripts['postcheck:local-node-assets'], 'node scripts/test-packed-sheets.mjs');
+  assert(jobs.host.steps.some(step => step.run === 'npm run check:local-node-source-assets'));
+  assert(!jobs.host.steps.some(step => step.run === 'npm run check:local-node-assets'));
+  assert(!jobs.host.needs.includes('client-packages'), 'source checks keep their independent start');
+  for (const file of ['test-packed-local-node-assets.mjs', 'test-packed-sheets.mjs']) {
+    const body = readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert(body.includes('packedClientPackage'));
+    assert(!body.includes('delete environment.ACTQL_PACKED_CLIENT_PACKAGES'));
+  }
 });
 
 test('one producer uploads only manifest and tarballs; consumers select its immutable artifact ID', () => {

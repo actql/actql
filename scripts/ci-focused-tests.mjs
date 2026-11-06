@@ -13,10 +13,13 @@ export const stableFocusedFiles = Object.freeze([
   'src/query_integration/fixed_compute_candidates_wbtest.mbt',
   'src/query_integration/fixed_join_request_wbtest.mbt',
 ]);
-// Reviewed at b18632b6: source-only checked requests, mock acquisition,
+// Re-reviewed at d24256e: source-only checked requests, mock acquisition,
 // Local execution and DuckDB SQL preparation, without a database connection.
 // Explicit fixture contract: changes require a review, never silently inherit
-// eligibility from the filename. These pins are source classification, NOT
+// eligibility from the filename. Shared changes retain in-memory canonical
+// contract bodies, typed JSON literals and the explicit multi-target manifest;
+// the fixed family still uses no provider/database/environment fixture.
+// These pins are source classification, NOT
 // cached test/proof results. Unknown fixture revisions fall back to full.
 export const focusedFixtureObjects = Object.freeze({
   'src/query_integration/duckdb_compute_attempt_wbtest.mbt': '79903f4dc9e38d9ef0ac69e338860087cf44f354',
@@ -24,14 +27,14 @@ export const focusedFixtureObjects = Object.freeze({
   'src/query_integration/duckdb_native_query_wbtest.mbt': 'b32cbe013055b19be26c3db899181a95c0ea487e',
   'src/query_integration/engine_fixtures_wbtest.mbt': 'bd46554cf744ceefac430def17b0838852962721',
   'src/query_integration/managed_zero_input_request_wbtest.mbt': 'd34b2433e06929baa87f38d47c195b0432ab198b',
-  'src/query_integration/moon.pkg': '2e6b65c232ada7395f4751dd1168c0f2ede3711f',
-  'src/query_integration/pinned_engine_contracts_wbtest.mbt': '8523d648b3093ca4c715350c74f94546168eca39',
+  'src/query_integration/moon.pkg': '8256272d7a05441725b9d506d7fd6ec795a68222',
+  'src/query_integration/pinned_engine_contracts_wbtest.mbt': 'cb157fdf90ca9c0b5c54c529eab850858f91ef41',
   'src/query_integration/query_capture_wbtest.mbt': '4075ab85106806651f9f625575506310d1ce0586',
   'src/query_integration/query_catalog_fixture_wbtest.mbt': 'cbbc97ea6f6bbb4ae75b98a2ac16f153b9fb0655',
-  'src/query_integration/query_evidence_bodies_wbtest.mbt': '9a8a77418e581935bbbaccfa52e8959ab0788025',
+  'src/query_integration/query_evidence_bodies_wbtest.mbt': '1636d8352dc037b9d433b2e4a6e063ce9a71e3f0',
   'src/query_integration/query_guards_wbtest.mbt': '6043c24abc394d9eccd159415a1c736f942fcb3d',
   'src/query_integration/query_issuer_wbtest.mbt': '06f7dad70324dd01879c13f9ff234ec56eb0fec5',
-  'src/query_integration/query_material_wbtest.mbt': '0a4012b33c5367f73026cbf287eb16e73de3cfd5',
+  'src/query_integration/query_material_wbtest.mbt': '06b9f70be63a31efcaf50a1c80303c155cd62a85',
   'src/query_integration/query_program_catalog_wbtest.mbt': '651d6c5020e701eb2a8917a1f3d121920fd273c1',
   'src/query_integration/query_program_wbtest.mbt': '97e1554dcffce1a57b831ff429684361f2e70377',
   'src/query_integration/query_retention_wbtest.mbt': '928c05e1908af98b98adcdc684f6b127aa712220',
