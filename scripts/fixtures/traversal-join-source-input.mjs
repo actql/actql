@@ -69,4 +69,4 @@ export const traversalJoinRefusals = [
 ].map(([name, text]) => ({name: 'traversal-join-' + name, format: 'aql-text', text}));
 export const traversalJoinExecutionFailures = [{name: 'traversal-join-explicit-bound-exceeded',
   format: 'aql-text', text: source + seeds + 'FROM g |> ' + call('nodes') + tail('depth', 1),
-  resultNames: ['answer'], sourceReadSessionCount: 0}];
+  resultNames: ['main'], sourceReadSessionCount: 0}];

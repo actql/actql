@@ -155,7 +155,7 @@ export const aggregatePropertyOrderRefusals = [
 export const aggregatePropertyOrderExecutionFailures = [{
   name: 'aggregate-property-order-demanded-argument-failure', format: 'aql-text',
   text: data + "SELECT STRING_AGG(IF(id / (id - id) = 0, name, name), '|' ORDER BY payload.score, id) AS names FROM objects",
-  parameterDeclarations, parameters, sourceReadSessionCount: 1, resultNames: ['answer'],
+  parameterDeclarations, parameters, sourceReadSessionCount: 1, resultNames: ['main'],
 }];
 aggregatePropertyOrderSuccesses.push(...aggregateOrderParameterSuccesses);
 aggregatePropertyOrderRefusals.push(...aggregateOrderParameterRefusals);

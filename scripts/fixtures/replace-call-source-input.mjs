@@ -72,4 +72,4 @@ export const replaceCallRefusals = [
   ...([3, 5].includes(index) ? {expectedCode: 'ClientProgramImplementationLimit'} : {})}));
 export const replaceCallExecutionFailures = [{name: 'replace-call-demanded-failure', format: 'sql',
   text: "SELECT REPLACE(CAST(1 / 0 AS STRING), 'x', 'y') AS value",
-  resultNames: ['answer'], sourceReadSessionCount: 0}];
+  resultNames: ['main'], sourceReadSessionCount: 0}];

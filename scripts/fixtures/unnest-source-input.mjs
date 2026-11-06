@@ -96,7 +96,7 @@ export const unnestSuccesses = [
     [], columns, {parameters: {items: null}}),
   success('scalar-star-data-binding',
     'WITH expanded AS (FROM UNNEST(@items) element WITH OFFSET position |> SELECT *) FROM expanded |> ORDER BY position |> RESULT answer',
-    rows, columns, {format: 'aql-text'}),
+    rows, columns, {format: 'aql-text', resultName: 'answer'}),
   success('pipe-duplicates-and-null',
     'FROM UNNEST(@items) AS element WITH OFFSET AS position |> SELECT element, position |> ORDER BY position',
     rows, columns, {format: 'aql-text'}),
@@ -199,7 +199,7 @@ unnestSuccesses.push(
     [{current: 12, original: 2, position: 0}, {current: null, original: null, position: 1}, {current: 12, original: 2, position: 2}],
     [column('current', true), column('original', true), column('position')], {format: 'aql-text'}),
   structSuccess('data-binding', 'WITH expanded AS (FROM UNNEST(@items) element WITH OFFSET position |> SELECT *) FROM expanded |> ORDER BY position |> RESULT answer',
-    structRows, structColumns, {format: 'aql-text'}),
+    structRows, structColumns, {format: 'aql-text', resultName: 'answer'}),
 );
 for (const [name, text] of [
   ['dropped-receiver', 'FROM UNNEST(@items) element |> SELECT id |> WHERE element.label IS NULL'],

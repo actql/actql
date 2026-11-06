@@ -149,5 +149,5 @@ export const analyticPartitionExpressionRefusals = [
 export const analyticPartitionExpressionExecutionFailures = [{
   name: 'analytic-partition-expression-demanded-failure', format: 'sql',
   hostProfile: 'analytic-order', text: sql('IF(id > 0, 1 / 0 > 0, amount > 25)'),
-  sourceRows, resultNames: ['answer'], sourceReadSessionCount: 1,
+  sourceRows, resultNames: ['main'], sourceReadSessionCount: 1,
 }];

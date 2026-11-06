@@ -119,7 +119,7 @@ export const computedObjectPropertyRefusals = [
 export const computedObjectPropertyExecutionFailures = [{
   name: 'computed-object-property-demanded-receiver-failure', format: 'sql',
   text: 'SELECT id, (CASE WHEN id / (id - id) = 0 THEN @p1 ELSE @p2 END).score AS score FROM records',
-  ...suppliedParameters(['p1', 'p2']), resultNames: ['answer'], sourceReadSessionCount: 1,
+  ...suppliedParameters(['p1', 'p2']), resultNames: ['main'], sourceReadSessionCount: 1,
 }];
 
 // Independent original-source column control; parentheses do not create a row

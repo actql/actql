@@ -16,8 +16,10 @@ const groups = {
 };
 const names = values => values.map(value => value.name.replace('distinct-join-order-', ''));
 
-test('original DISTINCT JOIN corpus is restored byte-for-byte with all eleven cases', async () => {
-  const bytes = await readFile(new URL('./fixtures/distinct-join-order-source-input.mjs', import.meta.url));
+test('original DISTINCT JOIN corpus retains authored bytes except implicit result metadata', async () => {
+  const source = await readFile(new URL('./fixtures/distinct-join-order-source-input.mjs', import.meta.url), 'utf8');
+  assert.equal(source.split("resultNames: ['main']").length - 1, 1);
+  const bytes = Buffer.from(source.replace("resultNames: ['main']", "resultNames: ['answer']"));
   const blob = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
   assert.equal(blob, '7f4bebce4e3a8340b59661b1ad695c9b24021fdd',
     'original fixture at 57c5ce979025c57ac8d2dc65affaa9bedb83b0b7');
@@ -39,7 +41,7 @@ test('DISTINCT JOIN retains independent LIMIT rows, nullable schema and demanded
   const failed = distinctJoinOrderExecutionFailures[0];
   assert.deepEqual(failed.sourceRows, rows);
   assert.equal(failed.sourceReadSessionCount, 1);
-  assert.deepEqual(failed.resultNames, ['answer']);
+  assert.deepEqual(failed.resultNames, ['main']);
   assert.ok(failed.text.endsWith('WHERE l.id > 0 ORDER BY 1 / (amount + 2)'));
   const empty = distinctJoinOrderSuccesses.find(value => value.name.endsWith('-typed-empty'));
   assert.deepEqual(empty.sourceRows, []);

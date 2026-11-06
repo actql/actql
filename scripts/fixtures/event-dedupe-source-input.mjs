@@ -57,5 +57,5 @@ const tied={name:'top-tie',by:['bucket'],order:[{occurred_ms:'asc'}],sourceBy:'[
 const tiedRows=input.map(row=>({...row,occurred_ms:row.event_id===1?10:row.occurred_ms}));
 export const eventDedupeSourceExecutionFailures=[
   {name:'event-dedupe-json-top-tie',format:'json',text:JSON.stringify(control(tied,tiedRows)),resultNames:['answer'],sourceReadCount:0},
-  {name:'event-dedupe-text-top-tie',format:'aql-text',text:source(tied,rowsText.replace('20 AS occurred_ms','10 AS occurred_ms')),resultNames:['answer'],sourceReadCount:0},
+  {name:'event-dedupe-text-top-tie',format:'aql-text',text:source(tied,rowsText.replace('20 AS occurred_ms','10 AS occurred_ms')),resultNames:['main'],sourceReadCount:0},
 ];

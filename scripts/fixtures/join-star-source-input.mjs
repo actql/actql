@@ -66,7 +66,7 @@ export const joinStarExecutionFailures = [
     text: JSON.stringify(exceededValuesJoin), resultNames: ['answer'], sourceReadSessionCount: 0},
   {name: 'join-star-values-ceiling-source-exceeded', format: 'sql',
     text: valuesJoinCeilingSql.replace('MAX_OUTPUT_ROWS 5', 'MAX_OUTPUT_ROWS 1'),
-    resultNames: ['answer'], sourceReadSessionCount: 0},
+    resultNames: ['main'], sourceReadSessionCount: 0},
 ];
 const sql = 'SELECT * FROM records AS l JOIN (SELECT 2 AS k) AS r '
   + 'ON l.id = r.k MAX_OUTPUT_ROWS 10 ORDER BY id';

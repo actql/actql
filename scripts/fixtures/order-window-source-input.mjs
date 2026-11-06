@@ -122,7 +122,7 @@ orderWindowSuccesses.push(
   privateSuccess('case-star-column', upperPrivate),
   privateSuccess('scalar-window', lowerPrivate, privateSql.replace(') DESC', ') + 1 DESC')),
   privateSuccess('data-binding', lowerPrivate,
-    'WITH combined AS (' + privateSql + ') FROM combined |> SELECT * |> RESULT answer', {format: 'aql-text'}),
+    'WITH combined AS (' + privateSql + ') FROM combined |> SELECT * |> RESULT answer', {format: 'aql-text', resultName: 'answer'}),
   privateSuccess('nullable-column', lowerPrivate, privateSql, {
     parameters: {items: [{id: 2, [lowerPrivate]: 10}, {id: 1, [lowerPrivate]: null}]},
     expected: [{[lowerPrivate]: 10, id: 2}, {[lowerPrivate]: 10, id: 2},

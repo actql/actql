@@ -94,7 +94,7 @@ export const joinedUnnestStarSuccesses = [
     format: 'json', parameterDeclarations: undefined, sourceReadCount: 1, sourceReadSessionCount: 1,
     sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}],
   }),
-  success('acquired-data', acquired, {sourceReadCount: 1, sourceReadSessionCount: 1,
+  success('acquired-data', acquired, {resultName: 'answer', sourceReadCount: 1, sourceReadSessionCount: 1,
     sourceRows: [{id: 2, amount: null}, {id: 1, amount: 10}]}),
   success('value-receiver-json-control', JSON.stringify(joinedStarValueReceiverProgram), {
     ...objectColumn, format: 'json', parameterDeclarations: undefined,

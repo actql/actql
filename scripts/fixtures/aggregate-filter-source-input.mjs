@@ -67,4 +67,4 @@ export const aggregateFilterRefusals = [
   'FROM records |> AS old |> AS current |> AGGREGATE COUNT(* WHERE old.amount > 0) AS n',
 ].map((text, index) => ({name: 'aggregate-filter-refuse-' + index, format: 'aql-text', text}));
 export const aggregateFilterExecutionFailures = [{name: 'aggregate-filter-demanded-argument', format: 'sql',
-  text: 'SELECT SUM(1 / 0 WHERE TRUE) AS total', resultNames: ['answer'], sourceReadSessionCount: 0}];
+  text: 'SELECT SUM(1 / 0 WHERE TRUE) AS total', resultNames: ['main'], sourceReadSessionCount: 0}];

@@ -104,7 +104,7 @@ export const unnestJoinSuccesses = [
   }),
   success('object-sql', objectSql, {...objectCase, format: 'sql'}),
   success('object-pipe', objectPipe, objectCase),
-  success('data', 'WITH joined AS (' + objectPipe + ') FROM joined |> RESULT answer', objectCase),
+  success('data', 'WITH joined AS (' + objectPipe + ') FROM joined |> RESULT answer', {...objectCase, resultName: 'answer'}),
   success('whole-object', objectPipe.replace('SELECT e.*,', 'SELECT e AS original, e.*,'), {
     ...objectCase, columns: [{name: 'original',
       contract: {...object, additional_properties: false}}, ...objectColumns],

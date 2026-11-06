@@ -90,5 +90,5 @@ export const graphRelationJoinRefusals = [
 export const graphRelationJoinExecutionFailures = [{
   name: 'graph-relation-join-explicit-bound-exceeded', format: 'aql-text',
   text: source + "FROM g |> degree(direction: 'out')" + tail('degree', 1),
-  resultNames: ['answer'], sourceReadSessionCount: 0,
+  resultNames: ['main'], sourceReadSessionCount: 0,
 }];
