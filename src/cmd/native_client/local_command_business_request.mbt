@@ -140,6 +140,17 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
   }
   business.request_intent = Some(intent)
   self.with_business_request(capture, () => {
+    if business.request_intake_units > 0L {
+      // construct_business_intent returned before this entry. Keep the same
+      // typed output and retire only its completed transport/construction peak.
+      command_preparation_result(
+        @local_values.finish_request_native_intake_wire(parent, input, intent).map_err(issue => {
+            CommandRequestPreparation(issue)
+          },
+        ),
+        stage=Some("request-intake-return"),
+      )
+    }
     let (publication, _) = local_command_project_publication(environment)
     match
       @local_host.prepare_native_client_submitted_request_input(
