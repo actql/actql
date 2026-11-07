@@ -5,6 +5,7 @@ priv struct LocalProjectConfiguration {
   metadata : @run_host.ClientProjectConfiguration
   directory : String
   source_free_bindings : @run_host.ClientSourceFreeProjectBindings?
+  mock_declarations : LocalProjectMockDeclarations?
   state_directory : String
   profile : String?
 }
@@ -73,6 +74,7 @@ fn local_project_select_loaded(
     metadata,
     directory,
     source_free_bindings: None,
+    mock_declarations: None,
     state_directory,
     profile: match optional(matches, "profile") {
       Some(value) => Some(value)
@@ -337,7 +339,28 @@ fn local_project_read_execution_bindings(
     local_project_execution_operation(operation) else {
     return Ok(selected)
   }
-  // Unsupported mock/profile/lock installation refuses before other input IO.
+  // Intake the exact public Mock documents independently of installation.
+  // The later execution gate remains closed until the real same-Request
+  // Source/Model/Effect assembler exists; these DATA cannot select live mode.
+  let metadata = project.metadata
+  if project.profile == Some("mock") &&
+    metadata.lock_file() is None &&
+    metadata.connectors_file() is Some(_) &&
+    metadata.model_tasks_file() is Some(_) &&
+    metadata.mock_catalog_file() is Some(_) &&
+    metadata.mock_data_file() is Some(_) &&
+    metadata.mock_answer_count() > 0 {
+    return match
+      local_project_read_mock_declarations(
+        project,
+        local_project_mock_task_limits(),
+      ) {
+      Ok(original) =>
+        Ok(Some({ ..project, mock_declarations: Some(original), }))
+      Err(original) => Err(original)
+    }
+  }
+  // Other unsupported profiles still refuse before declaration IO.
   local_project_require_supported_profile(project, operation)
   let connectors = match
     local_project_read_declaration(project, project.metadata.connectors_file()) {
@@ -408,6 +431,12 @@ fn execute_native_project_selection(
     Ok(value) => value
     Err(original) => return Err(original)
   }
+  // No nominal profile cycle may survive the original command's Read.
+  // This also runs when the still-unavailable runtime assembler refuses.
+  defer (if selected is Some(project) &&
+    project.mock_declarations is Some(original) {
+    original.retire()
+  })
   local_project_apply_selection(matches, selected)
   Ok(execute(matches))
 }

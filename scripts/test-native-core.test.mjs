@@ -840,6 +840,11 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false, relation
     'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
   }
+  // Keep the public authored template import real in the copied wrapper
+  // checkout; no second handwritten Mock project fixture is maintained here.
+  mkdirSync(join(checkout, 'packages/native-cli/lib'), {recursive: true});
+  copyFileSync(new URL('../packages/native-cli/lib/project-template.mjs', import.meta.url),
+    join(checkout, 'packages/native-cli/lib/project-template.mjs'));
   // This fixture observes wrapper routing. The original ten process/channel
   // cases exercise the physical C/Rust leaf with the real preparation helper.
   writeFileSync(join(checkout, 'scripts/native-process-region-fixture.mjs'), `
