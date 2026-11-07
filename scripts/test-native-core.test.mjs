@@ -25,6 +25,7 @@ import './native-core-c-compiler.test.mjs';
 import './native-core-test-selection.test.mjs';
 import './native-core-scoped-profile.test.mjs';
 import './native-core-scoped-fixture.test.mjs';
+import './native-core-relation-work-fixture.test.mjs';
 import './native-process-region-fixture.test.mjs';
 
 test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
@@ -717,7 +718,7 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
   }
 });
 
-function fixture(t, {scoped = false, http = false, sourcePeers = false} = {}) {
+function fixture(t, {scoped = false, http = false, sourcePeers = false, relationWork = false} = {}) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-namespace-test-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const checkout = join(root, 'checkout');
@@ -860,6 +861,39 @@ export function prepareNativeRuntimeBundleLibraries(root, destination, options) 
 }
 `);
   }
+  if (relationWork) {
+    assert(scoped);
+    const path = 'src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt';
+    mkdirSync(dirname(join(checkout, path)), {recursive: true});
+    writeFileSync(join(checkout, path), 'Original compiler-input fixture\n');
+    // Explicit routing port, not a runtime manifest, producer receipt, or
+    // physical Work acceptance. Real assembly has independent refusal tests.
+    writeFileSync(join(checkout, 'scripts/native-core-relation-work-fixture.mjs'), `
+import assert from 'node:assert/strict';
+import {closeSync, ftruncateSync, mkdirSync, openSync} from 'node:fs';
+import {join} from 'node:path';
+export async function prepareNativeCoreRelationRuntime(repository, destination, components, {env}) {
+  assert(destination.startsWith(join(repository, '_build/native-core-scoped/')));
+  assert(components.sqliteLibrary.endsWith('/sqlite-component.dylib'));
+  assert(components.cryptoLibrary.endsWith('/crypto-component.dylib'));
+  assert.equal(env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT, undefined);
+  mkdirSync(destination, {mode: 0o700});
+  console.log('CURRENT_RELATION_COMPONENT_INPUTS_REQUIRED');
+  return {destination};
+}
+export async function nativeRelationOriginalWorkFixture(namespace, prepared) {
+  const input = join(namespace, 'relation-original'); mkdirSync(input, {mode: 0o700});
+  const fd = openSync(join(input, 'backing'), 'wx', 0o600);
+  try { ftruncateSync(fd, 768 * 1024 ** 2); } finally { closeSync(fd); }
+  return {ACTQL_TEST_RELATION_ORIGINAL_ROOT: input,
+    ACTQL_TEST_RELATION_RUNTIME_ROOT: prepared.destination,
+    ACTQL_TEST_RELATION_RUNTIME_SOURCE: 'a'.repeat(40),
+    ACTQL_TEST_RELATION_RUNTIME_DIGEST: 'b'.repeat(64),
+    ACTQL_TEST_RELATION_RUNTIME_PLATFORM: 'darwin-arm64',
+    ACTQL_TEST_RELATION_ORIGINAL_MODE: 'positive'};
+}
+`);
+  }
   writeFileSync(moon, `#!${process.execPath}
 const assert = require('node:assert/strict');
 const {writeFileSync, existsSync, statSync, readlinkSync} = require('node:fs');
@@ -909,6 +943,11 @@ if (process.argv.includes('--dry-run')) {
       '--output-metadata _build/native/release/test/platform_native/row_source/info.json ' +
       'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt ' +
       '--target native --pkg-name fixture/row_source --driver-kind whitebox');
+    if (process.env.ACTQL_FIXTURE_CORE_RELATION_WORK === '1') console.log('moon generate-test-driver ' +
+      '--output-driver _build/native/release/test/platform_native/relation_file_work_tests/driver.mbt ' +
+      '--output-metadata _build/native/release/test/platform_native/relation_file_work_tests/info.json ' +
+      'src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt ' +
+      '--target native --pkg-name fixture/relation_file_work_tests --driver-kind blackbox');
     process.exit(0);
   }
   for (const name of process.argv.includes('src/fixture-native') ? ['fixture-native',
@@ -925,6 +964,8 @@ if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
     JSON.stringify({args:process.argv.slice(2),path:process.env.PATH,
       allocator:process.env.MOONBIT_ALLOCATOR,compiler:process.env.MOON_CC,
       backend:process.env.MOONBIT_NEW_NATIVE,profile:process.env.ACTQL_FIXTURE_PROFILE ?? 'ordinary',
+      relationRoot:process.env.ACTQL_TEST_RELATION_ORIGINAL_ROOT,
+      relationRuntime:process.env.ACTQL_TEST_RELATION_RUNTIME_ROOT,
       installedProcess:process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT,
       sqliteComponent:process.env.ACTQL_TEST_SQLITE_COMPONENT,cryptoComponent:process.env.ACTQL_TEST_CRYPTO_COMPONENT}) + '\\n');
 }
@@ -932,6 +973,21 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
   assert(process.argv.includes('--target-dir'));
   assert(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT);
   assert(process.env.ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE);
+  if (process.argv.includes('src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt')) {
+    assert.equal(process.env.ACTQL_FIXTURE_PROFILE, 'scoped-review-values');
+    const relation = process.env.ACTQL_TEST_RELATION_ORIGINAL_ROOT;
+    assert.equal(statSync(relation).mode & 0o777, 0o700);
+    assert.equal(statSync(join(relation, 'backing')).size, 768 * 1024 ** 2);
+    assert.equal(statSync(join(relation, 'backing')).mode & 0o777, 0o600);
+    assert.equal(process.env.ACTQL_TEST_RELATION_RUNTIME_SOURCE, 'a'.repeat(40));
+    assert.equal(process.env.ACTQL_TEST_RELATION_RUNTIME_DIGEST, 'b'.repeat(64));
+    assert.equal(process.env.ACTQL_TEST_RELATION_RUNTIME_PLATFORM, 'darwin-arm64');
+    assert.equal(process.env.ACTQL_TEST_RELATION_ORIGINAL_MODE, 'positive');
+    assert.equal(process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT, undefined);
+    if (process.env.ACTQL_FIXTURE_RELATION_ZERO === '1') console.log('Total tests: 0, passed: 0, failed: 0.');
+    else console.log('Total tests: 1, passed: 1, failed: 0.');
+    process.exit(0);
+  }
   assert.equal(statSync(process.env.ACTQL_TEST_INSTALLED_PROCESS_ROOT).mode & 0o777, 0o700);
   if (process.argv.includes('src/platform_native/row_source/capture_physical_scoped_wbtest.mbt')) {
     assert.equal(process.env.ACTQL_TEST_SQLITE_COMPONENT, undefined);
@@ -1119,6 +1175,7 @@ process.exit(result.status ?? 1);
 `);
   const env = {...process.env, PATH: `${bin}:${process.env.PATH}`,
     ...(scoped ? {ACTQL_FIXTURE_CORE_SCOPED: '1'} : {}),
+    ...(relationWork ? {ACTQL_FIXTURE_CORE_RELATION_WORK: '1'} : {}),
     ...(http ? {ACTQL_FIXTURE_CORE_HTTP: '1'} : {}),
     ...(sourcePeers ? {ACTQL_FIXTURE_CORE_SOURCE:'1'} : {}),
     HOME: root, RUNNER_TEMP: join(root, 'runner'), ACTQL_TEST_NATIVE_SQLITE_ROOT: parent,
@@ -1811,5 +1868,44 @@ test('Core Native prepares existing scoped producer dependencies before expensiv
   for (const target of ['js', 'wasm', 'native']) {
     assert.equal(runInNewContext(dependencies.if.slice(3, -2), {matrix: {target}}, {timeout: 100}),
       target === 'native');
+  }
+});
+
+test('full Native Core provisions exact current relation Work inputs and rejects zero selected execution', t => {
+  for (const zero of [false, true]) {
+    const f = fixture(t, {scoped: true, relationWork: true});
+    const commands = join(f.root, 'relation-commands.jsonl');
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
+      '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'], {
+      cwd: f.checkout, encoding: 'utf8', timeout: 20000,
+      env: {...f.env, ACTQL_FIXTURE_NATIVE_COMMANDS: commands,
+        ACTQL_FIXTURE_RELATION_ZERO: zero ? '1' : '0',
+        ACTQL_TEST_RELATION_ORIGINAL_ROOT: f.parent,
+        ACTQL_TEST_RELATION_RUNTIME_ROOT: f.parent,
+        ACTQL_TEST_RELATION_ORIGINAL_MODE: 'wrong-resource'},
+    });
+    assert.ifError(result.error); assert.equal(result.signal, null);
+    assert.equal(result.status === 0, !zero, result.stdout + result.stderr);
+    const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
+    const physical = calls.slice(3);
+    assert.equal(physical.length, 5);
+    const selected = physical.find(call => call.args.includes(
+      'src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt'));
+    assert(selected);
+    assert.equal(selected.profile, 'scoped-review-values');
+    assert.equal(selected.args[selected.args.indexOf('--index') + 1], '0');
+    assert.equal(selected.installedProcess, undefined);
+    assert.notEqual(selected.relationRoot, f.parent);
+    assert.notEqual(selected.relationRuntime, f.parent);
+    for (const call of calls.slice(2).filter(call => call !== selected)) {
+      assert.equal(call.relationRoot, undefined);
+      assert.equal(call.relationRuntime, undefined);
+    }
+    assert.deepEqual(physical.map(call => call.profile), ['runtime-values', 'runtime-values',
+      'scoped-review-values', 'scoped-review-values', 'scoped-review-values']);
+    assert.equal((result.stdout.match(/CURRENT_RELATION_COMPONENT_INPUTS_REQUIRED/gu) ?? []).length, 1);
+    assert.match(result.stdout, /"scoped":5,"physical":4,"repeatedGeometry":1/u);
+    assert.equal(existsSync(selected.relationRoot), zero, 'failure preserves originals; no reset or reuse');
+    f.verifyExternal();
   }
 });

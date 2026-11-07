@@ -154,6 +154,17 @@ pub fn client_compiled_run_infers(
 }
 
 ///|
+/// Observe the compiler-retained Model component list without copying it.
+/// This is a shape check, not admission, permission or a selected component.
+pub fn client_compiled_run_has_infers(value : ClientCompiledRun) -> Bool {
+  match value.compilation {
+    Values(_) => false
+    Tasks(compilation) => !compilation.infers.is_empty()
+    Effects(allowed) => !allowed.compilation.compiled.infers.is_empty()
+  }
+}
+
+///|
 pub fn client_compiled_run_has_infer(
   value : ClientCompiledRun,
   plan : ClientInferPlanGraph,

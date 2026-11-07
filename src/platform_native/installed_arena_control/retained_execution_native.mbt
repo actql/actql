@@ -427,6 +427,64 @@ pub fn InstalledArenaHost::enter_domain_retained_execution_cleanup(
 ///|
 /// Consumers first retire their own retained outputs/Store and managed aliases.
 /// C-context ACK is independent of the original report, parent loan and FD.
+// New-entry-only projection of the existing close prefix, not another cleanup
+// authority. The legacy full close remains byte-exact and allocation-neutral;
+// the source parity regression locks this prefix to that original owner.
+fn InstalledArenaHost::retire_retained_execution_context(
+  self : InstalledArenaHost,
+  record : InstalledArenaRetainedExecution,
+) -> Result[Unit, InstalledArenaRetainedExecutionIssue] {
+  match self.original_retained_execution(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if record.closed {
+    return Ok(())
+  }
+  record.closing = true
+  record.ready = false
+  if record.active {
+    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+  }
+  if !record.owns_read {
+    record.closed = true
+    return Ok(())
+  }
+  let domain = record.domain
+  let original = domain.domain.unwrap()
+  if record.frame is Some(frame) {
+    match @resources.stop_imported_child_ledger(frame) {
+      Err(issue) => return Err(Child(issue))
+      Ok(_) => ()
+    }
+  }
+  if !record.physical_retired {
+    // Snapshot replacement must allocate in the existing outer control, never
+    // in this child or a sibling Read. Logical stop supplies no physical ACK.
+    if retained_execution_control_scope_clear_ffi() != 1 {
+      return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+    }
+    if record.frame is Some(frame) {
+      match @resources.relocate_imported_child_cleanup_usage(frame) {
+        Err(issue) => return Err(Child(issue))
+        Ok(_) => ()
+      }
+    }
+    let close = domain.backing.close_backed_read_context(self, original, domain)
+    match
+      domain.backing.require_backed_read_context_retired(self, original, domain) {
+      Err(_) =>
+        return match close {
+          Err(issue) => Err(Domain(issue))
+          Ok(_) => Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+        }
+      Ok(_) => record.physical_retired = true
+    }
+  }
+  Ok(())
+}
+
+///|
 pub fn InstalledArenaHost::close_domain_retained_execution(
   self : InstalledArenaHost,
   record : InstalledArenaRetainedExecution,

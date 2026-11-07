@@ -32572,7 +32572,7 @@
     },
     {
       "module": "src/client_local_host/captured_ledger.mbt",
-      "sha256": "5188053ebf48a204b563882b1e9535eead84b9d4d3163fd65c1606a7b2d04c30",
+      "sha256": "b9cb0b96b355837669d812dd7cb7900b73f8b409427511c8b8ff8aaa398a4e9f",
       "exports": [],
       "operations": [
         {
@@ -32768,6 +32768,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Captured suffix capacity"
               }
             ],
             "ownership": [
@@ -32798,6 +32802,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Captured suffix capacity"
               }
             ],
             "extension": [
@@ -32818,6 +32826,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "src/client_local_host/captured_requirements_capacity_wbtest.mbt",
+                "anchor": "test \"captured simultaneous quote selects original step occurrences after the Source offset\""
               }
             ]
           }
@@ -65735,7 +65747,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "1b292c18634af284f271d5dfdba6e181bec865dfdeb80caa7cdd1a4e1a90f158",
+      "sha256": "4cfc1a1a96e1fe2906a5a19744aa00bcf8403851701de12cb2a632cfcd94b2a7",
       "exports": [],
       "operations": [
         {
@@ -66162,6 +66174,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Verifier reentry and Source port lifetime"
               }
             ],
             "failure": [
@@ -66212,6 +66228,10 @@
               {
                 "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
                 "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
+              },
+              {
+                "path": "src/client_local_host/captured_source_reentry_wbtest.mbt",
+                "anchor": "test \"captured binding rechecks DAG Source port after original verifier callback\""
               }
             ]
           }
