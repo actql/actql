@@ -227,6 +227,23 @@ pub fn check_installed_whole_source_capacity(
 }
 
 ///|
+/// Borrowed immutable correspondence only. The read entrance still checks
+/// its same current parent and expected physical Ledger before starting work.
+pub fn installed_whole_source_read_capacity_matches(
+  read : ClientInstalledSourceRead,
+  value : ClientInstalledWholeSourceCapacity,
+  acquisition : @row_source_host.RowInputAcquisition,
+  provider : @execution.ExecutionCapacity,
+) -> Bool {
+  read.original is Some(original) &&
+  physical_equal(original, read) &&
+  read.ledger is Some(_) &&
+  read.whole_input is Some(selected) &&
+  physical_equal(selected, value) &&
+  check_installed_whole_source_capacity(value, acquisition, provider)
+}
+
+///|
 /// Closed immutable variant selection, not current authority or capacity.
 pub fn installed_managed_source_input_kind(
   owner : ClientInstalledManagedRun,
@@ -418,6 +435,7 @@ pub fn start_installed_whole_source_read_rows(
   original_stop : (@row_source_host.RowAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
+  expected_ledger? : @resources.Ledger? = None,
 ) -> Result[@row_source_host.RowRun, ClientInstalledSourceReadIssue] {
   let ledger = match require_installed_source_read_current(read) {
     Ok(value) => value
@@ -425,6 +443,9 @@ pub fn start_installed_whole_source_read_rows(
   }
   guard read.whole_input is Some(selected) &&
     physical_equal(selected.acquisition, acquisition) else {
+    return Err(ForeignOriginal)
+  }
+  if expected_ledger is Some(original) && !physical_equal(original, ledger) {
     return Err(ForeignOriginal)
   }
   if read.started {

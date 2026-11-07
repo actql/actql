@@ -6127,3 +6127,19 @@ another complete byte buffer solely to obtain its length. The Request's existing
 constructor peak and retained-intent quote include that additional scalar.
 This count is not capacity, current authority, a complete Journal inventory or a
 COMMIT acknowledgement; the original count/byte quota and transaction still apply.
+
+A transferred preparation retirement keeps its original callback while any
+borrower, reservation or cleanup failure remains. Only an actual `Ok(true)`
+from that same owner replaces the callback with a fixed completed operation.
+The Run may still retain its separate physical cleanup duty, but no longer
+roots the closed capacity/reservation in a retired Native payload. This does
+not issue a stop, report, FD, parent-return or physical acknowledgement.
+
+Logical Request identity and lightweight Run controls outlive a Native payload.
+Their constructors run in the original outer caller lifetime; the Request owns
+copies of its two validated fixed-length checked CIDs, not aliases into that
+payload. The same Request is constructed once, with unchanged canonical
+identity and permission rules. Source payload access and child cleanup remain
+inside the original entered Read; original parent retirement and accounting
+snapshots remain separate. This lifetime ordering does not supply the normal
+Host's required constructor/control backing by itself.

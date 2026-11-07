@@ -100,6 +100,26 @@ test "one original Request Plan captures whole unfiltered Source and leaves auth
   assert_true(physical_equal(original, source.original))
   assert_true(physical_equal(acquisition, source.acquisition))
   let stopped = Ref(false)
+  // A foreign physical caller cannot consume this original read's start slot.
+  // This unaccounted Ledger is negative DATA, never an installed supplier.
+  let foreign = @resources.create_ledger(
+    @resources.ledger_limits(parent.ledger),
+  ).unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    start_installed_whole_source_read_rows(
+      read,
+      acquisition,
+      "wrong-physical-original",
+      _ => true,
+      4096L,
+      4096L,
+      expected_ledger=Some(foreign),
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  // The existing caller still uses its unchanged default signature.
   let run = start_installed_whole_source_read_rows(
     read,
     acquisition,
@@ -160,6 +180,10 @@ test "one original Request Plan captures whole unfiltered Source and leaves auth
     }
   }
   assert_true(retired)
+  assert_true(check_installed_source_read_current(read) is Err(Retired))
+  let after = @resources.ledger_usage(parent.ledger)
+  retire_installed_source_read(read).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger), after)
   retire_installed_managed_run(owner).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
