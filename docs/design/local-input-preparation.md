@@ -3101,6 +3101,14 @@ without resetting an independent standard document cap. Explicit-limit APIs,
 YAML document parsing and Native callers retain their original separate input
 selection; this connection does not establish ordinary acceptance for them.
 
+The Source constructor quote consumes that same observed field/container
+shape. One key's canonical normalization workspace follows the longest raw
+quoted UTF16 spelling, while cumulative returned-key backing follows the
+original total quoted spelling through the existing canonical output rule.
+Including value quotes is conservative; neither whole-document-sized key
+workspace nor ASCII eligibility replaces the original observation. Explicit
+generic constructor bounds remain separate and unchanged.
+
 After the parser returns, actual immutable index geometry feeds the existing
 Source/index dependency recipe. The same Program phase is retained before its
 reconciliation/current callback, and only returned parse scratch is released.

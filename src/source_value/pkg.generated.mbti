@@ -31,6 +31,8 @@ pub fn json_literal_construction_extent(Int, Int, Int) -> JsonLiteralConstructio
 
 pub fn json_shaped_construction_extent(Int, Int, Int, Int, Int, Int, Int, Int, normalize_keys~ : Bool) -> JsonLiteralConstructionExtent?
 
+pub fn json_source_geometry_construction_extent(JsonSourceGeometry, Int, Int) -> JsonLiteralConstructionExtent?
+
 pub fn json_source_grammar_construction_extent(Int, Int, Int) -> JsonLiteralConstructionExtent?
 
 pub fn json_source_preflight_control_extent() -> JsonSourcePreflightControlExtent

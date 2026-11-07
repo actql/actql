@@ -189,10 +189,89 @@ pub fn json_source_grammar_construction_extent(
     is Some(grammar) else {
     return None
   }
-  Some({
+  Some(json_source_grammar_controls(grammar))
+}
+
+///|
+/// SAME original preflight geometry before the first grammar transition.
+/// Text bytes do not substitute for nodes, fields, containers or the largest
+/// normalized key. Quoted raw UTF16 bounds decoded key input even with Unicode
+/// and escapes; including value quotes is a conservative cumulative envelope,
+/// not an ASCII eligibility assertion or another text/count traversal.
+pub fn json_source_geometry_construction_extent(
+  geometry : JsonSourceGeometry,
+  max_nodes : Int,
+  max_depth : Int,
+) -> JsonConstructionExtent? {
+  if geometry.input_bytes < 0 ||
+    geometry.fields < 0 ||
+    geometry.objects < 0 ||
+    geometry.arrays < 0 ||
+    geometry.quoted_tokens < 0 ||
+    geometry.quoted_raw_utf16_units < 0 ||
+    geometry.longest_quoted_raw_utf16 < 0 ||
+    geometry.longest_quoted_raw_utf16 > geometry.quoted_raw_utf16_units ||
+    max_nodes < 1 ||
+    max_depth < 1 {
+    return None
+  }
+  let fields = Int::min(geometry.fields, max_nodes)
+  let containers = Int64::min(
+    geometry.objects.to_int64() + geometry.arrays.to_int64(),
+    max_nodes.to_int64(),
+  ).to_int()
+  guard json_shaped_construction_extent(
+      Int::max(1, geometry.input_bytes),
+      max_nodes,
+      max_depth,
+      fields,
+      containers,
+      Int::min(geometry.objects, containers),
+      fields,
+      Int::min(geometry.quoted_tokens, max_nodes),
+      normalize_keys=false,
+    )
+    is Some(common) &&
+    @canonical.nfc_lf_construction_scratch_extent(
+      geometry.longest_quoted_raw_utf16,
+    )
+    is Some(normalization) &&
+    @canonical.nfc_lf_retained_output_units(
+      geometry.quoted_raw_utf16_units.to_int64(),
+    )
+    is Some(output) &&
+    @counts.checked_nonnegative_add_product(
+      common.owned_utf16_units,
+      normalization.owned_utf16_units,
+      1L,
+    )
+    is Some(text) &&
+    @counts.checked_nonnegative_add_product(text, output, 1L) is Some(text) else {
+    return None
+  }
+  // Key normalization is sequential. Its one workspace and cumulative output
+  // keep the canonical Owner's exact expansion rule. Returned key headers are
+  // counted alongside the original decoded text, without one workspace for
+  // every field or a whole-document-sized key buffer.
+  let grammar : JsonConstructionExtent = {
+    record_headers: common.record_headers +
+    normalization.record_headers +
+    fields.to_int64(),
+    reference_slots: common.reference_slots + normalization.reference_slots,
+    scalar_words: common.scalar_words + normalization.scalar_words,
+    owned_utf16_units: text,
+  }
+  Some(json_source_grammar_controls(grammar))
+}
+
+///|
+fn json_source_grammar_controls(
+  grammar : JsonConstructionExtent,
+) -> JsonConstructionExtent {
+  {
     record_headers: grammar.record_headers + 6L,
     reference_slots: grammar.reference_slots + 4L,
     scalar_words: grammar.scalar_words + 37L,
     owned_utf16_units: grammar.owned_utf16_units,
-  })
+  }
 }
