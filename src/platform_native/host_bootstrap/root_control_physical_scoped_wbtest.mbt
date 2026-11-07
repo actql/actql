@@ -83,10 +83,36 @@ test "Request control scope recognizes only the exact enclosing root and live ch
   let original = { identity: 903, }
   let foreign_original = { identity: 904, }
   let child = { identity: 905, }
-  let host = test_host(original)
-  let foreign = test_host(foreign_original)
   let page = test_page_bytes_ffi()
-  let allocation = host.allocate(original, 24L * page).unwrap()
+  let region_pages = 24L
+  // with_backed_read_bookkeeping's existing 64-request block coexists with
+  // this child region, the one physical control context, and its returned
+  // Unit-Ok record, still live while the preceding cohort finishes. The C
+  // root quote prices one page per request plus one context page. This is
+  // complete fixture demand, not a product limit or an observed high-water.
+  let bookkeeping_requests = 64L
+  let context_pages = 1L
+  let carried_result_pages = 1L
+  let payload_bytes = (
+      region_pages + bookkeeping_requests + context_pages + carried_result_pages
+    ) *
+    page
+  // Include the original provider's control table before acquiring the Root.
+  // Verify the selected pinned ABI's rounded table covers the final extent;
+  // no runtime allocation observation is used to choose this capacity.
+  let control_bytes = command_backing_control_necessary_bytes(payload_bytes).unwrap()
+  let bytes = payload_bytes + control_bytes
+  assert_eq(command_backing_control_necessary_bytes(bytes), Some(control_bytes))
+  let supplier = test_supplier(original, bytes)
+  let host = match supplier.acquire(original).unwrap() {
+    Acquired(value) => {
+      value.claim(original, supplier.source, supplier.recipe, 1L).unwrap()
+      value
+    }
+    Pending(_, _) => fail("root-control fixture acquisition unavailable")
+  }
+  let foreign = test_host(foreign_original)
+  let allocation = host.allocate(original, region_pages * page).unwrap()
   let region : NativeBackedExecutionRegion[
     BootstrapTestOriginal,
     BootstrapTestOriginal,
@@ -102,7 +128,7 @@ test "Request control scope recognizes only the exact enclosing root and live ch
       child,
       {
         offset: 0L,
-        length: 24L * page,
+        length: region_pages * page,
         payload_offset: page,
         payload_length: 16L * page,
       },
@@ -130,33 +156,39 @@ test "Request control scope recognizes only the exact enclosing root and live ch
   host.prepare_backed_read_context(original, domain, child).unwrap()
   assert_eq(request_control_scope_ffi(host.backing, domain.physical), 1)
   host.enter_borrow_scope(original, scope).unwrap()
-  host
-  .prepare_root_control(original, scope, {
+  let scalar_construction : NativeControlConstruction = {
     maximum_managed_request: managed_value_layout_ffi(0) + 33L,
     allocation_requests: 1L,
-  })
-  .unwrap()
+  }
+  host.prepare_root_control(original, scope, scalar_construction).unwrap()
   assert_eq(request_control_scope_ffi(host.backing, domain.physical), 0)
   assert_true(host.enter_root_control(original, scope))
   let own = request_control_scope_ffi(host.backing, domain.physical)
   let wrong = request_control_scope_ffi(foreign.backing, domain.physical)
   let nested_child = enter_read_context_ffi(domain.physical)
   host.leave_root_control(original).unwrap()
+  // Finish the scalar observation cohort before the existing read-bookkeeping
+  // helper funds its own Result constructors on this same original control.
+  assert_eq(host.finish_root_control_cohort(original, scope), Ok(()))
   assert_eq(own, 1)
   assert_eq(wrong, 0)
   assert_true(nested_child != 0)
   assert_false(domain.live_child_attempted)
   host.leave_borrow_scope(original, scope).unwrap()
-  host.enter_backed_read_context(original, domain, child).unwrap()
+  assert_eq(host.enter_backed_read_context(original, domain, child), Ok(()))
   let child_active = request_control_scope_ffi(host.backing, domain.physical)
   host.leave_backed_read_context(original, domain, child).unwrap()
   assert_eq(child_active, 0)
   host.close_backed_read_context(original, domain, child).unwrap()
   host.close_backed_domain(original, domain, child).unwrap()
   host.enter_borrow_scope(original, scope).unwrap()
+  // Public read bookkeeping finished its cohort. Prepare the same scalar
+  // observation demand again before entering the stale-child probe.
+  host.extend_root_control(original, scope, scalar_construction).unwrap()
   assert_true(host.enter_root_control(original, scope))
   let stale = request_control_scope_ffi(host.backing, domain.physical)
   host.leave_root_control(original).unwrap()
+  host.finish_root_control_cohort(original, scope).unwrap()
   host.leave_borrow_scope(original, scope).unwrap()
   assert_eq(stale, 0)
   host.close_backed_view(original, view, child).unwrap()
