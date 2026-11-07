@@ -450,12 +450,30 @@ test('Native numeric operator retains low defaults and authors an explicit finit
     {file: 'environment.json', evidence_bundle_cid: identity});
   assert.equal(configuration.native.local.sqlite_library, inputs.libraries.sqlite);
   assert.equal(configuration.native.local.signature_library, inputs.libraries.crypto);
-  assert(configuration.native.local.installation_files.includes('runtime.json'));
+  assert.deepEqual(configuration.native.local.installation_files,
+    ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json', 'profile.json']);
+  assert.equal(configuration.native.local.run_policy_profile_file, 'profile.json');
   assert.equal(await readFile(join(project, 'runtime.json'), 'utf8'), inputs.runtimeWire);
   const run = JSON.parse(await readFile(join(project, 'run.json'), 'utf8')).native.run;
   const retention = JSON.parse(run.retention_policy_wire);
   const {effective_retention_policy_cid: retentionCid, ...retentionBody} = retention;
   verifyIdentity(retentionBody, retentionCid);
+  const profileWire = await readFile(join(project, 'profile.json'), 'utf8');
+  const profile = JSON.parse(profileWire);
+  assert.deepEqual(profile, {
+    version: 'actql-local-run-policy-profile/0.1',
+    available_for_ms: 86400000, delete_after_ms: 172800000,
+    metadata_after_ms: 604800000, read_for_ms: 86400000,
+    effective_data_policy_cid: run.source_free.result_policy_cid,
+    retention_contract_cid: retention.retention_contract_cid,
+    metadata_retention_policy_cid: retention.metadata_retention_policy_cid,
+    clock_contract_cid: retention.clock_contract_cid,
+  });
+  const read = JSON.parse(await readFile(join(project, 'read.json'), 'utf8')).native.result_read;
+  verifyIdentity(profile, read.run_policy_profile_cid);
+  assert.equal(Object.hasOwn(read, 'expires_at'), false);
+  assert.deepEqual([read.run_file, read.retention_file, read.store_file],
+    ['run.json', 'retention.json', 'store.json']);
   assert.equal(run.source_free.registry, inputs.assets.registry);
   assert.equal(run.source_free.values, inputs.assets.values);
   assert.equal(run.result_payload_bytes, 16777216);

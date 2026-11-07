@@ -112,6 +112,14 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
     metadata_retention_policy_cid: dependencies[1].cid, metadata_delete_by: '2099-01-03T00:00:00.000Z',
     clock_contract_cid: dependencies[2].cid};
   retention.effective_retention_policy_cid = cid(retention);
+  // Select the existing finite profile from these same dependency originals.
+  // The Native Owner admits it and binds first acceptance; this DATA assembly
+  // does not issue a Run policy or reinterpret the absolute retention original.
+  const profile = {version: 'actql-local-run-policy-profile/0.1',
+    available_for_ms: 86400000, delete_after_ms: 172800000,
+    metadata_after_ms: 604800000, read_for_ms: 86400000,
+    effective_data_policy_cid: policyCid, retention_contract_cid: dependencies[0].cid,
+    metadata_retention_policy_cid: dependencies[1].cid, clock_contract_cid: dependencies[2].cid};
   const principal = 'numeric-operator', connection = 'cli';
   const permission = (entry_id, resource, operations) => ({entry_id, outcome: 'allow',
     principal: {any_of: [principal]}, connection: {any_of: [connection]},
@@ -135,16 +143,18 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
     'read.json': {version: 'actql-config/0.1', native: {result_read: {
       enabled: true, principal, connection, result_names: ['answer0'], formats: ['jsonl'],
       purpose: 'cli-read', sink: 'stdout', data_policy_cids: [policyCid], max_bytes: 16777216,
-      max_uses: 1, expires_at: '2099-01-01T00:00:00.000Z',
+      max_uses: 1, run_policy_profile_cid: cid(profile),
+      run_file: 'run.json', retention_file: 'retention.json', store_file: 'store.json',
     }}},
     'retention.json': dependencies,
+    'profile.json': profile,
     'operator.json': {version: 'actql-config/0.1', account_config: 'account.json', native: {
       check_environment: {file: 'environment.json', evidence_bundle_cid: environment.evidence_bundle_cid},
       local: {account_id: principal, principal, connection, state_parent: project, state_name: 'host',
         managed_root: project, sqlite_library: libraries.sqlite, signature_library: libraries.crypto,
         submission_ttl_ms: 86400000, journal_record_limit: 8, journal_snapshot_bytes: 8388608,
-        installation_files: ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json'],
-        run_file: 'run.json', read_file: 'read.json'},
+        installation_files: ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json', 'profile.json'],
+        run_file: 'run.json', read_file: 'read.json', run_policy_profile_file: 'profile.json'},
     }},
   };
   await mkdir(project, {mode: 0o700});
