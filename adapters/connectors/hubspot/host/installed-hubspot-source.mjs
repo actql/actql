@@ -7,9 +7,10 @@ import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 
-import {openHttpsCredentialBinding, closeHttpsCredentialBinding} from
-  '../../../site-node/https-credential-resource.mjs';
-import {readHubSpotObjects, HUBSPOT_PROPERTIES_READ_OPERATION,
+import {invocationScopeFields} from '../../../host-common/owned-invocation-context.mjs';
+import {installedJsonSourceReaderLimitNames} from '../../../host-node/installed-credential-source-reader.mjs';
+import {prepareHubSpotManagedSequence} from '../site/hubspot-managed-sequence.mjs';
+import {HUBSPOT_PROPERTIES_READ_OPERATION,
   HUBSPOT_OBJECT_LIST_OPERATION} from '../site/hubspot-object-read.mjs';
 import {HUBSPOT_ACCOUNT_DETAILS_OPERATION} from '../site/hubspot-account-read.mjs';
 
@@ -196,7 +197,8 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
   runtimeBundleCid, resolveSecret, installation, construction}) {
   if (construction === undefined || typeof construction.prepareNativeInput !== 'function' ||
       typeof construction.prepareDeclaration !== 'function' || typeof construction.openRowSite !== 'function' ||
-      typeof construction.createRowSource !== 'function' || construction.configurationReader === undefined) {
+      typeof construction.createRowSource !== 'function' || typeof construction.sourceReaderImplementation !== 'function' ||
+      typeof construction.createSourceReader !== 'function' || construction.configurationReader === undefined) {
     fail('HubSpotSourceConstructionUnavailable');
   }
   const {installed, siteProfile, metadata, objects, catalogs, declared} =
@@ -215,75 +217,85 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
   };
   if (siteProfile.caPath !== undefined && typeof readers.readOriginalBytes !== 'function') fail('HubSpotSourceConstructionUnavailable');
   const ca = siteProfile.caPath === undefined ? undefined : await readers.readOriginalBytes(siteProfile.caPath);
+  const totalBytes = BigInt(limits.maxRequests) * BigInt(limits.maxResponseBytes);
+  const targetUnits = 1024 + 6 * (siteProfile.apiOrigin.length + installed.portalId.length +
+    limits.maxNameUnits + limits.maxCursorUnits);
+  if (totalBytes > 2147483647n || !positive(targetUnits)) fail('HubSpotManagedAggregateUnavailable');
+  const readerLimits = Object.freeze({maxResponseBytes: limits.maxResponseBytes,
+    maxTotalResponseBytes: Number(totalBytes), maxNodes: limits.maxNodes, maxDepth: limits.maxDepth,
+    maxRows: limits.perPage, maxTotalRows: limits.maxRows, maxPages: limits.maxRequests, pageSize: limits.perPage,
+    maxCursorBytes: limits.maxCursorUnits, maxIdentityBytes: limits.maxResponseBytes, maxTargetBytes: targetUnits,
+    maxValueNodes: limits.maxValueNodes, maxValueTextBytes: limits.maxValueTextBytes,
+    maxRowsWireBytes: limits.maxRowsWireBytes, maxRowsWireNodes: limits.maxRowsWireNodes,
+    maxRowsWireDepth: limits.maxRowsWireDepth, maxSecretBytes: limits.maxSecretBytes});
+  const quote = Object.getOwnPropertyDescriptor(moon, 'clientProgramHubSpotSourceReaderCapacity');
+  if (!quote || !Object.hasOwn(quote, 'value') || typeof quote.value !== 'function') fail('HubSpotManagedCapacityUnavailable');
+  const readerBounds = Object.freeze(installedJsonSourceReaderLimitNames.map(name => readerLimits[name]));
+  const protocolBounds = Object.freeze(limitKeys.slice(0, 16).map(name => limits[name]));
+  const columnCount = Math.max(...declared.views.map(view => view.fields.length));
+  const capacityFor = bodies => {
+    const capacity = Reflect.apply(quote.value, moon,
+      [readerBounds, columnCount, limits.maxSecretBytes, protocolBounds, targetUnits, bodies]);
+    if (capacity === undefined || capacity === null) fail('HubSpotManagedCapacityUnavailable');
+    return capacity;
+  };
+  const implementation = construction.sourceReaderImplementation({limits: readerLimits, columnCount,
+    readSequenceConstruction: Object.freeze({capacity: capacityFor([]), originalLimits: limits,
+      sequence: Object.freeze({operation: HUBSPOT_OBJECT_LIST_OPERATION, maxUses: limits.maxPages,
+        children: Object.freeze([
+          Object.freeze({operation: HUBSPOT_ACCOUNT_DETAILS_OPERATION,
+            resource: installed.metadataResources.account, maxUses: limits.maxRequests}),
+          Object.freeze({operation: HUBSPOT_PROPERTIES_READ_OPERATION,
+            resource: installed.metadataResources.properties, maxUses: limits.maxRequests}),
+        ])})})});
   const {site, authorization} = await construction.openRowSite({
     profile: Object.freeze({...siteProfile, resourceOrigin: siteProfile.apiOrigin}),
     accountConfiguration: installed.accountConfigurationWire, connection, ca, admitsApprovalTarget,
+    runAcquisitionLimits: implementation.runAcquisitionLimits,
     responseHeaders: installation?.responseHeaders ?? [], resolveSecret: resolveSecret ?? (async () => {
       const secret = process.env[siteProfile.tokenEnvironment];
       if (!text(secret)) fail('RemoteCredentialSecretUnavailable');
       return secret;
     })});
-  {
-    return await construction.createRowSource({readOperation: HUBSPOT_OBJECT_LIST_OPERATION,
-      physicalTarget: target, bindingCid: installedHubSpotSiteBinding({
-        contextCid: authorization.context.contextCid, runtimeBundleCid, metadata, site: siteProfile}),
-      limits: {maxPages: limits.maxRequests, maxPageBytes: limits.maxResponseBytes,
-        maxPageRows: limits.perPage, maxCaptureRows: limits.maxRows},
-      readPages: async options => {
-        const {resource, rowRun: frame} = options;
-        const catalog = catalogs.get(resource);
-        if (catalog === undefined || !frame?.run || !frame.acquisition) fail('ForeignHubSpotReadPreparation');
-        const current = async operation => {
-          options.signal?.throwIfAborted();
-          const data = await options.verifyRead();
-          if (operation === HUBSPOT_OBJECT_LIST_OPERATION) return data;
-          const metadataResource = operation === HUBSPOT_ACCOUNT_DETAILS_OPERATION
-            ? installed.metadataResources.account : operation === HUBSPOT_PROPERTIES_READ_OPERATION
-            ? installed.metadataResources.properties : fail('ForeignHubSpotReadOperation');
-          // Metadata access has its own actual Account read decision. The data
-          // read's approval and identity observation cannot supply this grant.
-          const decision = await authorization.authorize('acquisition',
-            {connection, resource: metadataResource, operation: 'read'},
-            {subjectCid: cid({binding: target(resource, options.columns), operation}), signal: options.signal});
-          await options.verifyRead();
+  const providerReader = construction.createSourceReader({implementation, prepareReadSequence(input) {
+    const catalog = catalogs.get(input.resource), objectType = objects.get(input.resource)?.objectType;
+    if (catalog === undefined || input.responseBorrow === undefined || input.originalAuthorization === undefined) {
+      fail('ForeignHubSpotReadPreparation');
+    }
+    const scope = invocationScopeFields(input.originalAuthorization.scope, site.credential.control);
+    const grants = new Map();
+    const authorizeMetadata = async (operation, index, signal) => {
+      const resource = operation === HUBSPOT_ACCOUNT_DETAILS_OPERATION ? installed.metadataResources.account
+        : operation === HUBSPOT_PROPERTIES_READ_OPERATION ? installed.metadataResources.properties
+        : fail('ForeignHubSpotReadOperation');
+      let original = grants.get(operation);
+      if (original === undefined) {
+        const verifyCurrent = async () => {
+          signal.throwIfAborted();
+          const decision = await authorization.authorize('acquisition', {connection, resource, operation: 'read'},
+            {subjectCid: cid({binding: target(input.resource, input.columns), operation}), signal});
+          signal.throwIfAborted();
           if (decision?.action !== 'dispatch') fail('HubSpotMetadataReadDenied');
           return decision;
         };
-        const grants = new Map();
-        const authorize = async ({operation, index}) => {
-          const decision = await current(operation);
-          if (operation === HUBSPOT_OBJECT_LIST_OPERATION) return await options.authorizationFor(index);
-          if (!grants.has(operation)) grants.set(operation, site.issueReadGrant({operation, decision,
-            resource: operation === HUBSPOT_ACCOUNT_DETAILS_OPERATION
-              ? installed.metadataResources.account : installed.metadataResources.properties,
-            runInvocationCid: frame.runInvocationCid, dispatchRequestCid: frame.dispatchRequestCid,
-            maxUses: limits.maxRequests}));
-          return {...grants.get(operation), useId: `${frame.requestId}-metadata-${index}`};
-        };
-        const initial = await authorize({operation: HUBSPOT_ACCOUNT_DETAILS_OPERATION, index: 0});
-        let binding, processing = true, originalFailure;
-        const borrowed = checked(moon.clientProgramRowSourceBorrowResponses(frame.run, frame.acquisition));
-        try {
-          binding = openHttpsCredentialBinding({...site.credential, scope: initial.scope,
-            maxSecretBytes: limits.maxSecretBytes});
-          checked(moon.clientProgramRowSourceBindResponseCleanup(borrowed, () =>
-            closeHttpsCredentialBinding(binding) === 'closed' && !processing));
-          await readHubSpotObjects({moon: provider, originalPortalId: installed.portalId,
-            originalCatalog: catalog, objectType: objects.get(resource).objectType,
-            properties: options.columns.filter(name => name !== 'id'), initialAuthorization: initial,
-            credential: {...site.credential, binding}, authorizationFor: authorize,
-            limits, current, chargeResponse: options.chargePage,
-            consumeObservation: options.consumeObservation, consumePage: options.consumePage,
-            signal: options.signal, callResource: site.callResource});
-        } catch (cause) {
-          originalFailure = cause;
-          throw cause;
-        } finally {
-          processing = false;
-          if (binding !== undefined && closeHttpsCredentialBinding(binding) !== 'closed' && originalFailure === undefined) {
-            fail('HubSpotReadCleanupPending');
-          }
-        }
-      }});
-  }
+        const decision = await verifyCurrent();
+        const grant = site.issueReadGrant({operation, decision, resource,
+          runInvocationCid: scope.runInvocationCid, dispatchRequestCid: scope.dispatchRequestCid,
+          maxUses: limits.maxRequests});
+        original = Object.freeze({grant, verifyCurrent});grants.set(operation, original);
+      } else await original.verifyCurrent();
+      return Object.freeze({originalAuthorization: original.grant,
+        authorization: Object.freeze({...original.grant, useId: `${scope.runInvocationCid}-metadata-${index}`}),
+        verifyCurrent: original.verifyCurrent});
+    };
+    return prepareHubSpotManagedSequence({moon: provider, originalPortalId: installed.portalId,
+      originalCatalog: catalog, objectType, properties: input.columns.filter(name => name !== 'id'), limits,
+      authorizeMetadata, responseCapacity: capacityFor});
+  }});
+  if (providerReader.capacity !== implementation.capacity) fail('HubSpotManagedImplementationMismatch');
+  return await construction.createRowSource({readOperation: HUBSPOT_OBJECT_LIST_OPERATION,
+    physicalTarget: target, providerReader, bindingCid: installedHubSpotSiteBinding({
+      contextCid: authorization.context.contextCid, runtimeBundleCid, metadata, site: siteProfile}),
+    limits: {maxPages: limits.maxRequests, maxPageBytes: limits.maxResponseBytes,
+      maxPageRows: limits.perPage, maxCaptureRows: limits.maxRows}});
 }

@@ -108,6 +108,7 @@ export const installedConnectors = Object.freeze([
       Object.freeze({path: "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs", href: new URL("../connectors/hubspot/host/installed-hubspot-effect.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/hubspot/host/installed-hubspot-source.mjs", href: new URL("../connectors/hubspot/host/installed-hubspot-source.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-account-read.mjs", href: new URL("../connectors/hubspot/site/hubspot-account-read.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-managed-sequence.mjs", href: new URL("../connectors/hubspot/site/hubspot-managed-sequence.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-object-read.mjs", href: new URL("../connectors/hubspot/site/hubspot-object-read.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-record-write.mjs", href: new URL("../connectors/hubspot/site/hubspot-record-write.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/hubspot/site/hubspot-target-read.mjs", href: new URL("../connectors/hubspot/site/hubspot-target-read.mjs", import.meta.url).href}),

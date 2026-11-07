@@ -74,3 +74,30 @@ pub fn client_program_hubspot_object_construction_capacity(
     max_schema_depth,
   )
 }
+
+///|
+/// Same Common capacity issuer; provider Catalogs remain in their own runtime.
+#export_name("clientProgramHubSpotSourceReaderCapacity")
+pub fn client_program_hubspot_source_reader_capacity(
+  reader : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  protocol : Array[Int],
+  target_units : Int,
+  received : Array[Int],
+) -> @execution.ExecutionCapacity? {
+  let native = @hubspot_catalog.source_read_construction_capacity(
+    protocol, target_units, received,
+  )
+  let mut total = 0L
+  for bytes in received {
+    total = total + bytes.to_int64()
+  }
+  @client_local_host.installed_native_source_reader_capacity(
+    reader,
+    columns,
+    secret_bytes,
+    native,
+    received=Some((total, received.length())),
+  )
+}

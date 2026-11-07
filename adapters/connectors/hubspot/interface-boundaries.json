@@ -593,7 +593,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "c237ba4789b30a4522cfa96a991f1116af06f9250fe71aaed946b4ab24b93945",
+      "sha256": "ede9fe545eaa88495fe910dd57691564ed58b91825686ff15b2274dcc3c0e0f7",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -770,43 +770,65 @@
           "async": false
         },
         {
+          "name": "loadInstalledHubSpotSource/capacityFor/capacityFor",
+          "parameters": [
+            "bodies"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/columnCount/columnCount",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
           "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
           "parameters": [],
           "async": true
         },
         {
-          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/authorize/authorize",
-          "parameters": [
-            "operation",
-            "index"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/current/current",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
+          "name": "loadInstalledHubSpotSource/protocolBounds/protocolBounds",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
+          "name": "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
           "parameters": [
-            "options"
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeMetadata/authorizeMetadata",
+          "parameters": [
+            "operation",
+            "index",
+            "signal"
           ],
           "async": true
+        },
+        {
+          "name": "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeMetadata/authorizeMetadata/verifyCurrent/verifyCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/init:prepareReadSequence",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/readerBounds/readerBounds",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "loadInstalledHubSpotSource/target/target",
@@ -909,12 +931,15 @@
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/view/view",
+            "loadInstalledHubSpotSource/capacityFor/capacityFor",
+            "loadInstalledHubSpotSource/columnCount/columnCount",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
-            "loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
-            "loadInstalledHubSpotSource/loadInstalledHubSpotSource/authorize/authorize",
-            "loadInstalledHubSpotSource/loadInstalledHubSpotSource/current/current",
-            "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource",
-            "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
+            "loadInstalledHubSpotSource/protocolBounds/protocolBounds",
+            "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
+            "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeMetadata/authorizeMetadata",
+            "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeMetadata/authorizeMetadata/verifyCurrent/verifyCurrent",
+            "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/init:prepareReadSequence",
+            "loadInstalledHubSpotSource/readerBounds/readerBounds",
             "loadInstalledHubSpotSource/target/target",
             "metadataBodyBytes",
             "positive/positive",
@@ -1006,10 +1031,12 @@
       ],
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-credential-source-reader.mjs",
         "../../../host-node/source-profile-json.mjs",
-        "../../../site-node/https-credential-resource.mjs",
         "../site/hubspot-account-read.mjs",
+        "../site/hubspot-managed-sequence.mjs",
         "../site/hubspot-object-read.mjs",
         "node:crypto",
         "node:fs/promises",
@@ -3609,6 +3636,274 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/connectors/hubspot/site/hubspot-managed-sequence.mjs",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing HubSpot typed protocol under the same generic Reader/RowRun and original Account/Credential owners",
+      "sha256": "e7fc0b3917dac9c984fc8ea0589aed39cb9e21fda1b402e48fea72c14d808b11",
+      "exports": [
+        "prepareHubSpotManagedSequence"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence",
+          "parameters": [
+            "moon",
+            "originalPortalId",
+            "originalCatalog",
+            "objectType",
+            "properties",
+            "limits",
+            "authorizeMetadata",
+            "responseCapacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/init:read/init:read",
+          "parameters": [
+            "context"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/init:read/init:read/init:read",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/init:read/init:read/page/page",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/init:read/init:read/receive/receive",
+          "parameters": [
+            "operation",
+            "path",
+            "query",
+            "project"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/init:read/init:read/receive/receive/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/init:read/init:read/receive/receive/init:prepare/init:prepare/init:project/init:project",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/init:read/init:read/recheckProperties/recheckProperties",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/init:read/init:read/recheckProperties/recheckProperties/recheckProperties",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/init:responseCapacity/init:responseCapacity",
+          "parameters": [
+            "bytes",
+            "body",
+            "path",
+            "receivedBytes",
+            "responseCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/init:responseCapacity/init:responseCapacity/init:responseCapacity",
+          "parameters": [
+            "total",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/prepareHubSpotManagedSequence",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/prepareHubSpotManagedSequence#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/prepareHubSpotManagedSequence#3",
+          "parameters": [
+            "n",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareHubSpotManagedSequence/request/request",
+          "parameters": [
+            "path",
+            "query"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment/segment",
+          "parameters": [
+            "unit"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs",
+        "./hubspot-account-read.mjs",
+        "./hubspot-object-read.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "prepareHubSpotManagedSequence",
+            "prepareHubSpotManagedSequence/current/current",
+            "prepareHubSpotManagedSequence/init:read/init:read",
+            "prepareHubSpotManagedSequence/init:read/init:read/init:read",
+            "prepareHubSpotManagedSequence/init:read/init:read/page/page",
+            "prepareHubSpotManagedSequence/init:read/init:read/receive/receive",
+            "prepareHubSpotManagedSequence/init:read/init:read/receive/receive/init:prepare/init:prepare",
+            "prepareHubSpotManagedSequence/init:read/init:read/receive/receive/init:prepare/init:prepare/init:project/init:project",
+            "prepareHubSpotManagedSequence/init:read/init:read/recheckProperties/recheckProperties",
+            "prepareHubSpotManagedSequence/init:read/init:read/recheckProperties/recheckProperties/recheckProperties",
+            "prepareHubSpotManagedSequence/init:responseCapacity/init:responseCapacity",
+            "prepareHubSpotManagedSequence/init:responseCapacity/init:responseCapacity/init:responseCapacity",
+            "prepareHubSpotManagedSequence/init:retire/init:retire",
+            "prepareHubSpotManagedSequence/prepareHubSpotManagedSequence",
+            "prepareHubSpotManagedSequence/prepareHubSpotManagedSequence#2",
+            "prepareHubSpotManagedSequence/prepareHubSpotManagedSequence#3",
+            "prepareHubSpotManagedSequence/provider/provider",
+            "prepareHubSpotManagedSequence/request/request",
+            "segment/segment",
+            "segment/segment/segment"
+          ],
+          "exports": [
+            "prepareHubSpotManagedSequence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

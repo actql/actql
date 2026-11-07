@@ -120,6 +120,8 @@ pub fn require_property_write(PropertyCatalog, String) -> Result[Unit, PropertyI
 
 pub fn require_unique_property(PropertyCatalog, String) -> Result[Unit, PropertyIssue]
 
+pub fn source_read_construction_capacity(Array[Int], Int, Array[Int]) -> @execution_relation.ExecutionCapacity?
+
 pub fn write_body_properties_json(WriteBody) -> String
 
 pub fn write_body_property_names(WriteBody) -> Array[String]

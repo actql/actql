@@ -79,3 +79,25 @@ same provider-runtime Catalogs and Common declaration, and opens no Site or
 authorization. Native-only explicit-port component cases check this material
 correspondence and failure ordering; they do not establish whole-initialization
 Ledger funding or a normal installed Effect flow.
+
+
+## Managed Source protocol
+
+The standard HubSpot loader registers its original `providerReader` through
+`sourceReaderImplementation` and `createSourceReader` before creating the Row
+Source. The same Plan selects that reader; the old physical `readPages` port is
+not a fallback for a missing managed constructor. Account identity, initial and
+final property Catalog checks and complete page projection remain provider
+rules. Metadata resources require their own fresh Account decisions and
+original grants; a data grant cannot authorize either metadata resource.
+
+The generic Reader owns physical response custody, charge-before-decode,
+current/cancellation fences and cleanup-bound RowRun retirement. The private
+Common quantity composes that reader's original inventory with the bounded
+HubSpot sequence. Each charged body adds its actual byte extent before any
+native projection, including complete earlier/failed prefixes. Row output and
+writer bounds stay independent; no limit, permission or Ledger is issued by
+these quantities. Duplicate ids/cursors, page/request/row limits and the final
+Catalog recheck remain mandatory before successful completion. Protocol tests
+with explicit Reader ports prove provider rules only; actual normal distribution,
+approval, UPDATE, Saved and physical cleanup require their respective consumers.
