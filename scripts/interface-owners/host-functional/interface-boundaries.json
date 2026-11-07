@@ -127610,7 +127610,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "e59c81c82eeceafc63c983f42cce210d54a11079446e48652af6b12a66eda680",
+      "sha256": "0b607891445d996589a755eb2aaa72325c282b34b638cef0b918a1379e04d8b3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -128294,6 +128294,11 @@
           "async": false
         },
         {
+          "name": "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput/init:prepareNativeInput",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings",
           "parameters": [
             "declared",
@@ -128412,7 +128417,9 @@
         },
         {
           "name": "createInstalledSourceContext/validateNativeInputContext/validateNativeInputContext",
-          "parameters": [],
+          "parameters": [
+            "prepared"
+          ],
           "async": false
         },
         {
@@ -130039,6 +130046,7 @@
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime#2",
+            "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput/init:prepareNativeInput",
             "createInstalledSourceContext/retainNativeInput/retainNativeInput",
             "createInstalledSourceContext/validateNativeInputContext/validateNativeInputContext",
             "installedSourceConfigurationReader/reader/init:prepareNativeInput/init:prepareNativeInput",
@@ -130109,6 +130117,10 @@
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-mapping-parent.fixture.mjs",
+                "anchor": "test('HubSpot real initial parent funds Native Mapping"
               }
             ]
           }

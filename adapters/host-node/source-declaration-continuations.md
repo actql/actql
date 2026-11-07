@@ -22,6 +22,11 @@ capacity/project pair. Its strict `readUtf8` retains the existing bounded file
 and decode custody. Native declaration preparation returns its already-owned
 export as `wire`, so consumers do not serialize the declaration again.
 
+An Effect's native Mapping projection needs its already-produced declaration
+CID. The context therefore admits native input after that exact declaration,
+until any Mapping, Command or provider-driver attempt begins. This does not
+open Source post-declaration input or a published Environment-only holder.
+
 ## Identity
 
 Borrowing requires the same original material, service, installation entry,
@@ -49,6 +54,12 @@ refuse. Metadata projection attempts are recorded by exact projection identity
 before callbacks. Promise-returning constructors retain their unsettled cleanup
 obligation and cannot be mistaken for synchronous completion. Reading an
 optional operation never invokes an inherited getter.
+
+Post-declaration native input pins the original prepared tuple before entering
+the shared input owner. Every reserve, projection and retained-only completion
+fence requires that same tuple and the still-unstarted Effect phase. A callback
+cannot replace the tuple, finalize its Mapping or begin a driver and continue
+the old projection. Exact projection attempts remain once-only.
 
 ## Failure
 
@@ -87,3 +98,9 @@ checks UPDATE dispatch, metadata before connection creation, foreign receivers,
 reservation refusal, reentry, unsettled constructors and the borrowed original
 export under the existing owner. These are Host
 component tests, not normal-package README or live provider acceptance.
+
+`hubspot-mapping-parent.test.mjs` uses the real Common initialization parent,
+Ledger, declaration and Native Mapping producer. It checks the completed
+Mapping Environment, real quantity refusal before projection, foreign/copied
+originals, Source/retired refusal and reentry/attempt spending. It does not open
+a Site or Client and supplies no physical cleanup or provider-send evidence.

@@ -702,9 +702,14 @@ function createInstalledSourceContext(original, material, installation, connecto
   material.contexts.push(scope); material.constructors++;
   const inputProjections = new WeakSet();
   const nativeInputOriginals = new WeakSet();
-  const validateNativeInputContext = () => {
-    if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
-        material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+  const validateNativeInputContext = prepared => {
+    if (!scope.active || scope.prepared !== prepared || scope.source !== undefined ||
+        material.phase !== 'working' || prepared !== undefined &&
+        (scope.role !== 'effect' || prepared.declaration === undefined ||
+          prepared.mappings !== undefined || prepared.commands !== undefined ||
+          scope.mappingsAttempted || scope.commandAttempted || scope.providerAttempted)) {
+      fail('ForeignInstalledSourceInitialization');
+    }
   };
   const retainNativeInput = value => nativeInputOriginals.add(value);
   function prepareSourceEnvironment(declared, mappings = []) {
@@ -940,8 +945,12 @@ function createInstalledSourceContext(original, material, installation, connecto
     },
     prepareNativeInput(projection) {
       if (this !== context) fail('ForeignInstalledSourceInitialization');
+      // Mapping constructors need the original declaration CID. Pin this
+      // same tuple across every reservation and projection fence; Source and
+      // already-started Mapping/Command/driver paths remain closed.
+      const prepared = scope.prepared;
       return prepareSourceNativeInput(original, material, projection, inputProjections,
-        validateNativeInputContext, retainNativeInput);
+        () => validateNativeInputContext(prepared), retainNativeInput);
     },
     prepareProviderEffect(site, provider, mappingOriginals) {
       if (this !== context || scope.role !== 'effect' || !scope.active || scope.prepared !== undefined ||
