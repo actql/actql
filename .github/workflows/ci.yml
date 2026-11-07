@@ -204,7 +204,7 @@ jobs:
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/test-native-core.test.mjs scripts/native-query-coverage.test.mjs scripts/native-resident-phase-watchdog.test.mjs scripts/native-resident-function-diagnostic.test.mjs
+        run: node --test scripts/test-native-core.test.mjs scripts/native-query-coverage.test.mjs scripts/native-resident-phase-watchdog.test.mjs scripts/native-resident-function-diagnostic.test.mjs scripts/observation-ack-loss-proxy.test.mjs
       - name: Test preflight admission and latest-revision guard
         run: node --test scripts/ci-preflight.test.mjs
       - name: Test focused owning-family selection and zero-test guards
@@ -1706,6 +1706,12 @@ jobs:
       - name: Test original Read slab activation custody on selected Linux x64
         timeout-minutes: 3
         run: python3 -B scripts/test_native_read_activation.py
+      - name: Test original prepared constructor cohorts on selected Linux x64
+        timeout-minutes: 3
+        run: python3 -B scripts/test_native_prepared_controls.py
+      - name: Test original working carrier custody on selected Linux x64
+        timeout-minutes: 3
+        run: python3 -B scripts/test_native_working_origin.py
       - name: Retain Linux x64 process-provider original controls
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -1714,6 +1720,8 @@ jobs:
           path: |
             _build/linux-x64-owned-process/
             _build/native-read-activation/
+            _build/native-prepared-controls/
+            _build/native-working-origin/
           if-no-files-found: warn
           retention-days: 14
       - name: Test original Native bootstrap inventory FFI and domain lifetime

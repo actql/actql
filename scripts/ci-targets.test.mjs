@@ -416,8 +416,30 @@ test('ordinary Read activation regressions run on the selected Native toolchain'
     'Retain Linux x64 process-provider original controls');
   assert.equal(retained.if, 'always()');
   assert.deepEqual(retained.with.path.trim().split('\n'),
-    ['_build/linux-x64-owned-process/', '_build/native-read-activation/']);
+    ['_build/linux-x64-owned-process/', '_build/native-read-activation/',
+      '_build/native-prepared-controls/', '_build/native-working-origin/']);
 });
+
+for (const [name, driver, output] of [
+  ['prepared constructor cohorts', 'test_native_prepared_controls.py', '_build/native-prepared-controls/'],
+  ['working carrier custody', 'test_native_working_origin.py', '_build/native-working-origin/'],
+]) {
+  test(`original ${name} execute on selected Native toolchain and retain failed diagnostics`, () => {
+    const steps = jobs.native.steps;
+    const setup = steps.findIndex(step => step.uses === './.github/actions/setup-toolchain');
+    const read = steps.findIndex(step => step.run === 'python3 -B scripts/test_native_read_activation.py');
+    const index = steps.findIndex(step => step.run === `python3 -B scripts/${driver}`);
+    assert.ok(setup >= 0 && setup < read && read < index);
+    assert.equal(steps[index]['timeout-minutes'], 3);
+    assert.equal(steps[index].if, undefined);
+    assert.equal(steps[index]['continue-on-error'], undefined);
+    assert.equal(steps[index].env, undefined, 'inherit selected compiler and MoonBit');
+    const retained = steps.find(step => step.name ===
+      'Retain Linux x64 process-provider original controls');
+    assert.equal(retained.if, 'always()');
+    assert.ok(retained.with.path.trim().split('\n').includes(output));
+  });
+}
 
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
   assert.equal(jobs['session-evidence']['timeout-minutes'], 60);

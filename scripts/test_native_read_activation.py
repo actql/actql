@@ -102,6 +102,9 @@ class ReadActivationCustody(unittest.TestCase):
     def test_ordinary_activation_failure_lost_ack_and_partial_cleanup(self):
         self.execute('read-activation', 3)
 
+    def test_large_managed_and_file_activation_failure_custody(self):
+        self.execute('read-raw-activation', 6)
+
     def test_existing_subpage_provenance_and_failed_retirement(self):
         self.execute('managed-subpage', 4)
 

@@ -819,6 +819,10 @@ process.exitCode=process.env.ACTQL_FIXTURE_SOURCE_FAILED==='1'?9:0;
       'local_command_business_cleanup_wbtest.mbt']) {
       writeFileSync(join(checkout, 'src/cmd/native_client', name), 'Original compiler-input fixture\n');
     }
+    mkdirSync(join(checkout, 'src/platform_native/host_bootstrap'), {recursive: true});
+    for (const name of ['root_control_unavailable_wbtest.mbt', 'root_control_physical_scoped_wbtest.mbt']) {
+      writeFileSync(join(checkout, 'src/platform_native/host_bootstrap', name), 'Original compiler-input fixture\n');
+    }
     mkdirSync(join(checkout, 'src/platform_native/installed_arena_control'), {recursive: true});
     writeFileSync(join(checkout,
       'src/platform_native/installed_arena_control/original_read_consumer_scoped_wbtest.mbt'),
@@ -866,7 +870,8 @@ if (process.argv[2] === 'generate-test-driver') {
   require('node:fs').mkdirSync(require('node:path').dirname(metadata), {recursive:true});
   const tests = Object.fromEntries(args.filter(value => value.startsWith('src/') && value.endsWith('.mbt'))
     .map(value => [require('node:path').basename(value), value.startsWith('src/fixture-empty/') ? [] :
-      [{index:0,name:'original fixture case',attrs:[],line_number:1}]]));
+      Array.from({length: value.endsWith('/root_control_physical_scoped_wbtest.mbt') ? 3 : 1},
+        (_, index) => ({index,name:'original fixture case '+index,attrs:[],line_number:index+1}))]));
   writeFileSync(metadata, JSON.stringify({tests}));
   process.exit(0);
 }
@@ -888,6 +893,12 @@ if (process.argv.includes('--dry-run')) {
       ['ordinary_wbtest.mbt','local_command_business_wbtest.mbt','local_command_business_cleanup_wbtest.mbt']
         .map(name => 'src/cmd/native_client/' + name).join(' ') +
       ' --target native --pkg-name fixture/native_client --driver-kind whitebox');
+    console.log('moon generate-test-driver ' +
+      '--output-driver _build/native/release/test/platform_native/host_bootstrap/driver.mbt ' +
+      '--output-metadata _build/native/release/test/platform_native/host_bootstrap/info.json ' +
+      ['root_control_unavailable_wbtest.mbt', 'root_control_physical_scoped_wbtest.mbt']
+        .map(name => 'src/platform_native/host_bootstrap/' + name).join(' ') +
+      ' --target native --pkg-name fixture/host_bootstrap --driver-kind whitebox');
     console.log('moon generate-test-driver ' +
       '--output-driver _build/native/release/test/platform_native/installed_arena_control/driver.mbt ' +
       '--output-metadata _build/native/release/test/platform_native/installed_arena_control/info.json ' +
@@ -1663,7 +1674,7 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     assert.equal(result.signal, null);
     assert.equal(result.status, fail ? 7 : 0, result.stdout + result.stderr);
     const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
-    assert.equal(calls.length, fail ? 4 : 7,
+    assert.equal(calls.length, fail ? 4 : 10,
       'two original checkpoint producers, ordinary Core and every selected case until failure');
     const [ordinary, ...selectedCases] = calls.slice(2);
     const selected = selectedCases[0];
@@ -1677,20 +1688,24 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     assert.deepEqual(ordinary.args.filter(value => value.startsWith('src/')), [
       'src/cmd/native_client/ordinary_wbtest.mbt',
       'src/cmd/native_client/local_command_business_wbtest.mbt',
+      'src/platform_native/host_bootstrap/root_control_unavailable_wbtest.mbt',
     ]);
     assert.deepEqual(selectedCases.flatMap(value => value.args.filter(arg => arg.startsWith('src/'))),
       ['src/cmd/native_client/local_command_business_wbtest.mbt',
         ...(!fail ? ['src/cmd/native_client/local_command_business_cleanup_wbtest.mbt',
+          ...Array(3).fill('src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt'),
           'src/platform_native/installed_arena_control/original_read_consumer_scoped_wbtest.mbt',
           'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt'] : [])]);
     assert.equal(new Set(selectedCases.map(value => value.installedProcess)).size, selectedCases.length,
       'every physical case owns a fresh original backing namespace');
     for (const value of selectedCases) {
-      assert.equal(value.args[value.args.indexOf('--index') + 1], '0');
+      const rootControlIndex = selectedCases.filter(candidate => candidate.args.includes(
+        'src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt')).indexOf(value);
+      assert.equal(value.args[value.args.indexOf('--index') + 1], String(Math.max(0, rootControlIndex)));
     }
     if (!fail) {
       assert.deepEqual(selectedCases.map(value => value.profile),
-        ['runtime-values', 'runtime-values', 'scoped-review-values', 'scoped-review-values']);
+        ['runtime-values', 'runtime-values', ...Array(5).fill('scoped-review-values')]);
       const targets = selectedCases.map(value => value.args[value.args.indexOf('--target-dir') + 1]);
       assert.equal(targets[0], targets[1], 'reuse the same compiled software within a profile');
       assert.notEqual(targets[0], targets[2], 'distinct allocator profiles require distinct targets');
@@ -1701,7 +1716,7 @@ test('full Native Core requires both ordinary and selected profiles and propagat
     assert.deepEqual(selected.args.slice(0, 3), ['test', '--target', 'native']);
     const target = selected.args[selected.args.indexOf('--target-dir') + 1];
     assert(target.startsWith(join(f.checkout, '_build/native-core-scoped/profile-')));
-    assert.match(result.stdout, /"ordinary":2,"http":0,"source":0,"scoped":4,"physical":3,"repeatedGeometry":1/u);
+    assert.match(result.stdout, /"ordinary":3,"http":0,"source":0,"scoped":7,"physical":6,"repeatedGeometry":1/u);
     assert.equal((result.stdout.match(/CORE_TARGET_FIXTURE_PROVISIONED/gu) ?? []).length, 1,
       'only ordinary Core executes the Salesforce target oracle');
     const namespace = /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1];

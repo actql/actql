@@ -34,7 +34,7 @@ import {openSqliteCoordinatorDispatchJournal} from
 import {createRemoteSiteCoordinator} from
   '../adapters/host-node/remote-site-coordinator.mjs';
 import {allowAllAuthorization} from '../adapters/host-node/authorization-fixture.mjs';
-import {observationAckLossProxy} from './fixtures/observation-ack-loss-proxy.mjs';
+import {cancellationAckMatches, observationAckLossProxy} from './fixtures/observation-ack-loss-proxy.mjs';
 import {prepareMaintenanceTestExecutable} from './fixtures/native-maintenance-executable.mjs';
 import {signRemoteRuntimeBundle} from
   '../adapters/site-node/remote-bundle-signature.mjs';
@@ -1133,12 +1133,11 @@ try {
           key: await readFile(join(root, 'server.key')),
           cert: await readFile(join(root, 'server.crt')),
           ca: await readFile(join(root, 'ca.crt')),
-          loseAck: body => {
-            const value = JSON.parse(body);
-            return !lostReply && value.dispatch_request_cid === siteControl.identity(dispatch) &&
-              value.version === 'actql-remote-dispatch-status/0.1' &&
-              value.state[0] === (mode === 'running-lost-reply' ? 2 : 5);
-          }, allowDispatch: () => true, onAckLost: () => { lostReply = true; },
+          loseAck: body => cancellationAckMatches(body, {
+            dispatchRequestCid: siteControl.identity(dispatch),
+            executionState: mode === 'running-lost-reply' ? 2 : 5,
+            cancelOffers, lostReply,
+          }), allowDispatch: () => true, onAckLost: () => { lostReply = true; },
           transformReply: (_body, upstream) => {
             if (upstream.status === 200) {
               const envelope = upstream.body.toString('utf8');
@@ -1192,7 +1191,8 @@ try {
       }
       if (mode === 'lost-reply' || mode === 'running-lost-reply') {
         await waitFor(() => lostReply, 'cancellation observation ACK lost');
-        await waitFor(() => site.lines.some(line => line.kind === 'cancel-unreported'),
+        await waitFor(() => site.lines.some(line => line.kind === 'cancel-unreported' &&
+          line.request_cid === siteControl.identity(dispatch)),
           'Site reports unconfirmed cancellation reply');
       }
       if (mode === 'unseen-restart' || mode === 'lost-reply') {

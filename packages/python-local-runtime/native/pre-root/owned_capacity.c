@@ -71,7 +71,7 @@ struct owned_domain_growth {
     uint64_t serial;
     size_t expected_parent, expected_domain;
     size_t parent_bytes, parent_controls, domain_bytes, domain_controls;
-    unsigned state;
+    unsigned state, outcome;
 };
 
 struct actql_owned_capacity {
