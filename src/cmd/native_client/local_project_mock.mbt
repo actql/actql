@@ -7,6 +7,8 @@ priv struct LocalProjectMockDeclarations {
   profile : @run_host.ClientProjectProfileSelection
   mut model_profile : @compiler_environment.ModelMockProfile?
   models : Array[LocalProjectMockModelOriginal]
+  sources : Array[LocalProjectMockSourceDeclaration]
+  mut sources_started : Bool
   mut model_started : Bool
   mut model_environment : (@checked.CheckEnvironment, @checked.CheckEnvironment)?
   mut model_failure : LocalProjectMockModelIssue?
@@ -207,6 +209,8 @@ fn local_project_read_mock_declarations(
     profile,
     model_profile: None,
     models: [],
+    sources: [],
+    sources_started: false,
     model_started: false,
     model_environment: None,
     model_failure: None,
@@ -256,6 +260,7 @@ priv enum LocalProjectMockModelIssue {
   ForeignOriginal
   AlreadyPreparing
   Environment
+  Source(@row_host.RowHostIssue)
   Task(@compiler_environment.ModelTaskIssue)
   Answers(@model.ModelMockAnswerIssue)
   Installation(@model.ModelMockInstallationIssue)
