@@ -222,6 +222,7 @@ fn start_keyed_row_acquisition_owned(
     physical: None,
     page_charge: None,
     response_borrowed: false,
+    input_progress: None,
     residual: None,
   })
 }

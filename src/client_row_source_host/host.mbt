@@ -454,6 +454,7 @@ struct RowRun {
   mut physical : RowPhysical?
   mut page_charge : RowPageCharge?
   mut response_borrowed : Bool
+  input_progress : RowInputProgress?
   mut residual : RowCaptureResidual?
 }
 
@@ -543,6 +544,7 @@ pub fn start_row_acquisition(
     physical: None,
     page_charge: None,
     response_borrowed: false,
+    input_progress: None,
     residual: None,
   })
 }
@@ -842,7 +844,19 @@ pub fn accept_charged_row_run_page(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match accept_row_source_page(read, bytes) {
+  let parsed = if run.configuration is InputConfiguration(_) &&
+    run.physical is Some(_) {
+    match prepare_row_input_page(run, read, bytes) {
+      Ok(value) => Some(value)
+      Err(issue) => {
+        abort_row_run(run)
+        return Err(issue)
+      }
+    }
+  } else {
+    None
+  }
+  match accept_row_source_page(read, bytes, parsed~) {
     Ok(count) => Ok(count)
     Err(issue) => {
       abort_row_run(run)
@@ -985,6 +999,7 @@ pub fn finish_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
 
 ///|
 pub fn abort_row_run(run : RowRun) -> Unit {
+  cancel_row_input_progress(run)
   if run.residual is Some(residual) {
     @local.cancel_managed_provider(
       @local.guarded_relation_execution(residual.execution),
@@ -1307,7 +1322,31 @@ pub fn accept_charged_row_run_values(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match accept_row_source_values(read, columns, rows) {
+  // Keep the existing page/column rejection before inspecting payload values.
+  let indices = match row_source_value_indices(read, columns, rows) {
+    Ok(value) => value
+    Err(issue) => {
+      abort_row_run(run)
+      return Err(Source(issue))
+    }
+  }
+  for row in rows {
+    if row.length() != columns.length() {
+      cancel_row_source_read(read) |> ignore
+      abort_row_run(run)
+      return Err(Source(InvalidPage))
+    }
+  }
+  if run.configuration is InputConfiguration(_) && run.physical is Some(_) {
+    match fund_row_input_values(run, read, rows) {
+      Ok(_) => ()
+      Err(issue) => {
+        abort_row_run(run)
+        return Err(issue)
+      }
+    }
+  }
+  match append_row_source_values(read, columns, rows, indices) {
     Ok(count) => Ok(count)
     Err(issue) => {
       abort_row_run(run)

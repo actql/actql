@@ -64,7 +64,9 @@ fn whole_row_environment(
 }
 
 ///|
-fn whole_row_selection() -> (
+fn whole_row_selection(
+  input_limits? : @row_host.RowInputLimits? = None,
+) -> (
   PreparedClientProgram,
   @acquisition.SourceAcquisition,
   @row_host.RowInputAcquisition,
@@ -91,27 +93,31 @@ fn whole_row_selection() -> (
     sequence,
     whole_source_capture_contracts(),
     declaration,
-    {
-      max_rows: 128,
-      page: {
-        max_bytes: 20000,
-        max_nodes: 10000,
-        max_depth: 20,
-        max_rows: 128,
-      },
-      retention: {
-        max_nodes: 10000,
-        max_text_bytes: 10000,
-        max_depth: 20,
-        max_work: 1000000,
-      },
-      wire: {
-        max_columns: 1,
-        max_order_work: 10000,
-        max_bytes: 20000,
-        max_nodes: 10000,
-        max_depth: 20,
-      },
+    match input_limits {
+      Some(value) => value
+      None =>
+        {
+          max_rows: 128,
+          page: {
+            max_bytes: 20000,
+            max_nodes: 10000,
+            max_depth: 20,
+            max_rows: 128,
+          },
+          retention: {
+            max_nodes: 10000,
+            max_text_bytes: 10000,
+            max_depth: 20,
+            max_work: 1000000,
+          },
+          wire: {
+            max_columns: 1,
+            max_order_work: 10000,
+            max_bytes: 20000,
+            max_nodes: 10000,
+            max_depth: 20,
+          },
+        }
     },
   ).unwrap()
   assert_eq(
@@ -126,17 +132,22 @@ fn whole_row_run(
   selected : @row_host.RowInputAcquisition,
   settled : Ref[Bool],
   stopped : Ref[Bool],
-) -> (@row_host.RowRun, @resources.Ledger) {
+) -> (@row_host.RowRun, @resources.Ledger) raise {
   let provider = @execution.execution_capacity(1024L, 2048L)
   let capacity = @row_host.row_input_acquisition_capacity(selected, provider).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(capacity) < 16777216L,
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(capacity) + 20000L < 33554432L,
+  )
   let ledger = @resources.create_ledger({
     planning_work: 100,
     attempts: 1,
     holdings: 1,
     transfer_bytes: 20000L,
-    retained_bytes: @execution.execution_capacity_retained_bytes(capacity),
-    execution_bytes: @execution.execution_capacity_execution_bytes(capacity) +
-    20000L,
+    retained_bytes: 16777216L,
+    execution_bytes: 33554432L,
   }).unwrap()
   let run = @row_host.start_accounted_row_input_acquisition(
     selected,
