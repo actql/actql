@@ -12,7 +12,8 @@ pub(all) struct NativeRelationFileSelection {
 }
 
 ///|
-/// A bounded physical component envelope, not a normal installed CLI profile.
+/// Selected physical decoder bounds. Independent diagnostics enforce their
+/// finite component envelope; a managed caller funds its actual selected profile.
 pub(all) struct NativeRelationFileLimits {
   page : @rows.RowPageLimits
   max_work : Int
@@ -75,7 +76,7 @@ struct NativeRelationFileCapture {
   limits : NativeRelationFileLimits
   mut declaration : @rows.RowDeclaration?
   mut acquisition : NativeRelationFileAcquisition?
-  mut contract : @contract.Contract?
+  mut prepared_contract : @rows.RelationDocumentPreparedContract?
   mut run : @rows.RowRun?
   mut responses : @rows.RowRunResponseBorrow?
   mut root : @files.Root?
@@ -242,6 +243,20 @@ pub fn native_relation_file_input_valid(
   value : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
 ) -> Bool {
+  // The independent component keeps its original finite fixture envelope.
+  // An admitted managed Source instead funds its selected profile below.
+  file_capture_selected_input_valid(value, limits) &&
+  limits.page.max_bytes <= 65536
+}
+
+///|
+// Same physical implementation shape. A managed original must quote/fund the
+// actual supplied byte ceiling before allocation; component maxima are not a
+// second normal Source policy. All other implemented protocol bounds remain.
+fn file_capture_selected_input_valid(
+  value : NativeRelationFileSelection,
+  limits : NativeRelationFileLimits,
+) -> Bool {
   file_capture_text(value.directory, 4096) &&
   file_capture_text(value.name, 64) &&
   !value.name.contains("/") &&
@@ -261,7 +276,6 @@ pub fn native_relation_file_input_valid(
       path.all(item => file_capture_text(item, 4096))
   }) &&
   limits.page.max_bytes > 0 &&
-  limits.page.max_bytes <= 65536 &&
   limits.page.max_nodes > 0 &&
   limits.page.max_nodes <= 8192 &&
   limits.page.max_depth > 0 &&
@@ -362,10 +376,19 @@ pub fn prepare_native_managed_relation_file_input_capture(
   nonce : String,
   selection : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
+  prepared_provider? : NativeRelationFilePreparedProvider? = None,
 ) -> Result[NativeRelationFileCapture, NativeRelationFileFailure] {
+  if prepared_provider is Some(original) &&
+    (
+      !physical_equal(original.declaration, declaration) ||
+      !physical_equal(original.capacity, provider) ||
+      !file_capture_provider_matches(original, selection, limits)
+    ) {
+    return Err({ issue: ForeignOriginal, owner: None, })
+  }
   let acquisition = @local.installed_whole_source_acquisition(selected)
   if !file_capture_text(nonce, 128) ||
-    !native_relation_file_input_valid(selection, limits) ||
+    !file_capture_selected_input_valid(selection, limits) ||
     @rows.row_input_acquisition_is_listing(acquisition) {
     return Err({ issue: InvalidInput, owner: None, })
   }
@@ -388,6 +411,7 @@ pub fn prepare_native_managed_relation_file_input_capture(
     nonce,
     selection,
     limits,
+    prepared_provider~,
   )
 }
 
@@ -401,12 +425,14 @@ fn prepare_native_relation_file_capture_original(
   nonce : String,
   selection : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
+  prepared_provider? : NativeRelationFilePreparedProvider? = None,
 ) -> Result[NativeRelationFileCapture, NativeRelationFileFailure] {
   let ledger = match arena.borrow_domain_retained_execution_ledger(execution) {
     Ok(value) => value
     Err(issue) => return Err({ issue: Execution(issue), owner: None, })
   }
-  let metadata_bytes = match file_capture_metadata_capacity(selection, limits) {
+  let metadata_bytes = match
+    file_capture_metadata_capacity(selection, limits, prepared_provider~) {
     Some(value) => value
     None => return Err({ issue: Capacity, owner: None, })
   }
@@ -430,7 +456,9 @@ fn prepare_native_relation_file_capture_original(
     limits,
     declaration: Some(declaration),
     acquisition: Some(original),
-    contract: None,
+    prepared_contract: prepared_provider.map(original => {
+      original.prepared_contract
+    }),
     run: None,
     responses: None,
     root: None,
@@ -457,20 +485,23 @@ fn prepare_native_relation_file_capture_original(
       view.resource == selected.resource else {
       raise FileCaptureStop(ForeignOriginal)
     }
-    let contract = file_require(
-      @rows.relation_document_projection_contract(
-        declaration,
-        selected.resource,
-        selected.primary_identity,
-        limits.page,
-      ).map_err(issue => Mapping(issue)),
-    )
-    owner.contract = Some(contract)
-    let capacity = file_capture_provider_capacity(
-      selected,
-      limits,
-      owner.contract.unwrap(),
-    ).unwrap_or_else(() => raise FileCaptureStop(Capacity))
+    let capacity = match prepared_provider {
+      Some(original) => original.capacity
+      None => {
+        let contract = file_require(
+          @rows.relation_document_projection_contract(
+            declaration,
+            selected.resource,
+            selected.primary_identity,
+            limits.page,
+          ).map_err(issue => Mapping(issue)),
+        )
+        let capacity = file_capture_provider_capacity(
+          selected, limits, contract,
+        ).unwrap_or_else(() => raise FileCaptureStop(Capacity))
+        capacity
+      }
+    }
     let run = match original {
       FileQueryAcquisition(acquisition) =>
         file_require(
@@ -695,6 +726,7 @@ fn NativeRelationFileCapture::admit_response(
       selected.key_path,
       selected.primary_identity,
       [],
+      prepared_contract=self.prepared_contract,
     ).map_err(issue => Document(issue)),
   )
   self.target = Some(target)
@@ -864,7 +896,7 @@ pub fn NativeRelationFileCapture::close(
     self.result = None
     self.charge = None
     self.responses = None
-    self.contract = None
+    self.prepared_contract = None
     self.declaration = None
     self.acquisition = None
     self.selection = None

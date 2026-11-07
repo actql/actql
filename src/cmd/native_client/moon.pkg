@@ -38,6 +38,7 @@ import {
   "actql/actql/check_environment" @compiler_environment,
   "actql/actql/model_execution" @model,
   "actql/actql/client_row_source_host" @row_host,
+  "actql/actql/platform_native/row_source" @row_file,
   "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/decode_core" @decode,
   "actql/actql/parameter_binding" @parameters,

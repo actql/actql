@@ -214,6 +214,8 @@ pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChu
 
 pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]
 
+pub fn prepare_relation_document_contract(RowDeclaration, String, String, RowPageLimits) -> Result[RelationDocumentPreparedContract, RowMappingIssue]
+
 pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
 pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]
@@ -230,7 +232,7 @@ pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> R
 
 pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]
 
-pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String]) -> Result[RelationTargetDocument, RowSourceIssue]
+pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]
 
 pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]
 
@@ -241,6 +243,8 @@ pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[Stri
 pub fn relation_document_construction_inventory(RowPageLimits, Array[RelationDocumentProjectionConstruction]) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn relation_document_mapping_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn relation_document_prepared_contract(RelationDocumentPreparedContract) -> @value_contract.Contract
 
 pub fn relation_document_projection_construction_inventory(RelationDocumentProjectionConstruction, RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?
 
@@ -452,6 +456,8 @@ pub struct MockTargetRow {
 pub struct RelationDocument {
   // private fields
 }
+
+type RelationDocumentPreparedContract
 
 pub(all) struct RelationDocumentProjectionConstruction {
   original : @value_contract.Contract

@@ -304,6 +304,21 @@ fn capture_fixture_prepared(
         Execution(_) => "original execution unavailable"
         Resource(_) => "metadata reservation refused"
         Row(_) => "original Row acquisition refused"
+        ForeignOriginal => "foreign original file selection"
+        InvalidInput => "invalid selected physical input"
+        ManagedRead(@local.Resource(@resources.RetentionLimit)) =>
+          "same managed read retention refused"
+        ManagedRead(@local.Resource(@resources.ExecutionLimit)) =>
+          "same managed read execution refused"
+        ManagedRead(
+          @local.Acquisition(@rows.Physical(@resources.RetentionLimit))
+        ) => "same managed Row provider retention refused"
+        ManagedRead(
+          @local.Acquisition(@rows.Physical(@resources.ExecutionLimit))
+        ) => "same managed Row provider execution refused"
+        ManagedRead(@local.ForeignOriginal) =>
+          "same managed read correspondence refused"
+        ManagedRead(_) => "same managed read original refused"
         _ => "native file preparation refused"
       }
       // This reports only the original component's explicit cleanup result.
@@ -1225,6 +1240,9 @@ fn managed_capture_fixture_work(
   environment : @checked.CheckEnvironment,
   contracts : @local.ClientInstalledSequenceContracts,
   manifests : @publication_host.ClientCompilationManifests,
+  file_limits : NativeRelationFileLimits,
+  expected_transfer : Int64,
+  prepared_provider : NativeRelationFilePreparedProvider?,
 ) -> @local.ClientInstalledManagedRun raise {
   let parent = @local.begin_backed_request_preparation(
     initial,
@@ -1357,7 +1375,6 @@ fn managed_capture_fixture_work(
     is @sourceviews.WholeInputRoute(original) else {
     fail("whole Source original missing")
   }
-  let file_limits = capture_fixture_limits()
   let selected = @local.prepare_installed_whole_source_capacity(
     prepared,
     original,
@@ -1386,8 +1403,8 @@ fn managed_capture_fixture_work(
     prepared,
     request,
     selected,
-    8192L,
-    8192L,
+    file_limits.page.max_bytes.to_int64(),
+    file_limits.page.max_bytes.to_int64(),
     contracts,
     capture_fixture_values,
     Some(capture_fixture_fragment),
@@ -1423,7 +1440,9 @@ fn managed_capture_fixture_work(
   // adoption closes its preparation-only inventory. The external fixture
   // selected the original immutable provider quote before entering this Read.
   let inventory = native_relation_file_caller_preparation_inventory(
-    selection, file_limits,
+    selection,
+    file_limits,
+    prepared_provider~,
   ).managed_capture_stage("Native constructor inventory")
   let bytes = @execution.preparation_representation_cost(inventory).managed_capture_stage(
     "Native constructor cost",
@@ -1466,20 +1485,36 @@ fn managed_capture_fixture_work(
   let before = unchanged.transferred_bytes
   let capture_owner = capture_fixture_prepared(
     prepare_native_managed_relation_file_input_capture(
-      arena, physical, declaration, read, selected, provider, "native-managed-original",
-      selection, file_limits,
+      arena,
+      physical,
+      declaration,
+      read,
+      selected,
+      provider,
+      "native-managed-original",
+      selection,
+      file_limits,
+      prepared_provider~,
     ),
     "same Plan file prepare",
   )
   let mut completed = false
-  for _ in 0..<10000 {
+  // One original transport chunk per advance, then the existing bounded
+  // parser/capture progression. Derive only the transport portion from this
+  // authored fixture's exact byte count and selected chunk size.
+  let transport_steps = (expected_transfer / file_limits.chunk_bytes.to_int64() +
+  1L).to_int()
+  for _ in 0..<(transport_steps + 10000) {
     if capture_owner.advance(32).managed_capture_stage("original stage 255") {
       completed = true
       break
     }
   }
   assert_true(completed)
-  assert_eq(@resources.ledger_usage(ledger).transferred_bytes - before, 62L)
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes - before,
+    expected_transfer,
+  )
   let capture = capture_owner
     .capture()
     .managed_capture_stage("original stage 262")
@@ -1583,7 +1618,10 @@ fn managed_capture_fixture_work(
 }
 
 ///|
-test "Native whole Source reader consumes the same Request Plan and physical Ledger" {
+fn managed_capture_fixture_case(
+  file_limits : NativeRelationFileLimits,
+  expected_transfer : Int64,
+) -> Unit raise {
   let selection : NativeRelationFileSelection = {
     directory: @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").managed_capture_stage(
       "original stage 333",
@@ -1598,11 +1636,22 @@ test "Native whole Source reader consumes the same Request Plan and physical Led
   // child, like the external directory and input bytes. This is not normal
   // Host first-entry backing or a runtime permission claim.
   let declaration = capture_fixture_declaration()
-  let provider = native_relation_file_provider_capacity(
-    declaration,
-    selection,
-    capture_fixture_limits(),
-  ).managed_capture_stage("external fixture original provider")
+  let prepared_provider = if expected_transfer > 65536L {
+    Some(
+      prepare_native_relation_file_provider(declaration, selection, file_limits).managed_capture_stage(
+        "original preflight provider once before Run",
+      ),
+    )
+  } else {
+    None
+  }
+  let provider = match prepared_provider {
+    Some(original) => original.capacity()
+    None =>
+      native_relation_file_provider_capacity(
+        declaration, selection, file_limits,
+      ).managed_capture_stage("external fixture original provider")
+  }
   // Installation contracts and the published environment are retained inputs,
   // prepared once outside the Run's physical payload, as in the normal caller.
   let (wire, cid) = capture_fixture_environment(declaration)
@@ -1634,7 +1683,7 @@ test "Native whole Source reader consumes the same Request Plan and physical Led
   .managed_capture_stage("original stage 340")
   let owner = managed_capture_fixture_work(
     arena, physical, initial, input, selection, declaration, provider, environment,
-    contracts, manifests,
+    contracts, manifests, file_limits, expected_transfer, prepared_provider,
   )
   match arena.close_domain_retained_execution(physical) {
     Ok(_) => ()
@@ -1677,4 +1726,28 @@ test "Native whole Source reader consumes the same Request Plan and physical Led
   .close_domain_after_owner_ack(domain)
   .managed_capture_stage("original stage 347")
   arena.try_close().managed_capture_stage("original stage 348")
+}
+
+///|
+test "Native whole Source reader consumes the same Request Plan and physical Ledger" {
+  managed_capture_fixture_case(capture_fixture_limits(), 62L)
+}
+
+///|
+test "Native managed Source funds the selected Mock byte profile beyond component envelope" {
+  let limits = {
+    ..capture_fixture_limits(),
+    page: { ..capture_fixture_limits().page, max_bytes: 1048576, },
+  }
+  let selection : NativeRelationFileSelection = {
+    directory: @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap(),
+    name: "row-source-input",
+    resource: "records",
+    items_path: ["items"],
+    key_path: None,
+    primary_identity: "id",
+  }
+  // The independent legacy diagnostic is still bounded by its own envelope.
+  assert_false(native_relation_file_input_valid(selection, limits))
+  managed_capture_fixture_case(limits, 70062L)
 }

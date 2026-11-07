@@ -32,11 +32,20 @@
 fn file_capture_metadata_capacity(
   selection : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
+  prepared_provider? : NativeRelationFilePreparedProvider? = None,
 ) -> Int64? {
-  guard @rows.relation_document_mapping_construction_inventory(limits.page)
-    is Some(mapping) &&
-    @execution.preparation_representation_cost(mapping) is Some(mapped) &&
-    @execution.checked_preparation_add_product(
+  let mapped = match prepared_provider {
+    Some(_) => 0L
+    None => {
+      guard @rows.relation_document_mapping_construction_inventory(limits.page)
+        is Some(mapping) &&
+        @execution.preparation_representation_cost(mapping) is Some(bytes) else {
+        return None
+      }
+      bytes
+    }
+  }
+  guard @execution.checked_preparation_add_product(
       selection.items_path.length().to_int64(),
       selection.key_path.map(path => path.length().to_int64()).unwrap_or(0L),
       1L,
@@ -97,7 +106,22 @@ fn file_capture_metadata_capacity(
     is Some(controls) else {
     return None
   }
-  @execution.checked_preparation_add_product(mapped, controls, 1L)
+  let prepared_control = if prepared_provider is Some(_) {
+    // The retained prepared-contract Option uses the existing holder slot.
+    // Its initializer's one temporary mapping closure is additional here.
+    @execution.preparation_representation_cost({
+      record_headers: 1L,
+      reference_slots: 1L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
+  } else {
+    0L
+  }
+  @execution.checked_preparation_add_product(mapped, controls, 1L).bind(total => {
+    @execution.checked_preparation_add_product(total, prepared_control, 1L)
+  })
 }
 
 ///|
@@ -193,16 +217,31 @@ fn file_capture_provider_capacity(
   selection : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
   contract : @contract.Contract,
+  prepared_contract? : @rows.RelationDocumentPreparedContract? = None,
 ) -> @execution.ExecutionCapacity? {
-  guard @rows.relation_document_construction_inventory(limits.page, [
-      {
-        original: contract,
-        items_path_depth: selection.items_path.length(),
-        key_path_depth: selection.key_path.map(path => path.length()),
-        writable_fields: 0,
-      },
-    ])
-    is Some(document) &&
+  let projection : @rows.RelationDocumentProjectionConstruction = {
+    original: contract,
+    items_path_depth: selection.items_path.length(),
+    key_path_depth: selection.key_path.map(path => path.length()),
+    writable_fields: 0,
+  }
+  let document = match prepared_contract {
+    None =>
+      @rows.relation_document_construction_inventory(limits.page, [projection])
+    Some(_) => {
+      guard @rows.relation_document_raw_construction_inventory(limits.page)
+        is Some(raw) &&
+        @rows.relation_document_projection_construction_inventory(
+          projection,
+          limits.page,
+        )
+        is Some(projected) else {
+        return None
+      }
+      @execution.compose_preparation_representation([raw, projected])
+    }
+  }
+  guard document is Some(document) &&
     @execution.preparation_representation_cost(document) is Some(document_bytes) &&
     @files.native_filesystem_read_layout() is Some(layout) &&
     file_capture_transport_capacity(selection, limits, layout)
@@ -223,7 +262,7 @@ pub fn native_relation_file_provider_capacity(
   selection : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
 ) -> Result[@execution.ExecutionCapacity, NativeRelationFileIssue] {
-  if !native_relation_file_input_valid(selection, limits) {
+  if !file_capture_selected_input_valid(selection, limits) {
     return Err(InvalidInput)
   }
   let contract = match
