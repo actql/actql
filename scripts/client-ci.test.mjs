@@ -663,6 +663,28 @@ test('packed Effect target reads keep distinct approval phases and independent p
   assert.ok(script.includes("'effect-target-read-approval.expected.json'"));
 });
 
+test('Client preparation exposes runtime adapters and wire freshness as separate timed steps', () => {
+  const original = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    .scripts['check:distribution-client'].split(' && ').slice(0, 4);
+  const ids = ['distribution-runtime', 'distribution-adapters',
+    'distribution-publication-wire-check', 'distribution-preparation'];
+  for (const name of ['client-distribution', 'client-distribution-callers', 'client-distribution-mutations']) {
+    const steps = ids.map(id => jobs[name].steps.find(step => step.id === id));
+    assert(steps.every(Boolean), name);
+    assert.deepEqual(steps.map(step => step.run), original);
+    for (const step of steps) {
+      assert.deepEqual(step.env, {TMPDIR: '${{ github.workspace }}/_build'});
+      assert.equal(step.if, undefined, 'default success prevents a later preparation stage from bypassing failure');
+      assert.equal(step['continue-on-error'], undefined);
+    }
+    assert(steps.slice(2).every(step => /Check .*wire freshness/u.test(step.name)));
+    const positions = steps.map(step => jobs[name].steps.indexOf(step));
+    assert(positions.every((value, index) => index === 0 || value === positions[index - 1] + 1));
+    assert(jobs[name].steps.filter(step => step.name?.startsWith('Test ')).every(step =>
+      step.if === "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}"));
+  }
+});
+
 test('source-response custody has one same-environment normal Client owner', () => {
   const file = 'adapters/host-common/source-response-custody.test.mjs';
   assert(!runs('client-distribution').some(command => command.split(/\s+/u).includes(file)));
@@ -710,7 +732,7 @@ test('each Client group retains its acceptance commands exactly once', () => {
     .scripts['check:distribution-client'].split(' && ');
   assert.equal(original.length, 53, 'the existing full local gate remains unchanged');
   const prepared = ['npm ci --prefix packages/provider-ai-sdk --ignore-scripts',
-    original.slice(0, 4).join('\n')];
+    ...original.slice(0, 4)];
   // The full local command still executes these source-only contracts. Hosted
   // CI executes them once in lint, without package/runtime preparation.
   const earlyContracts = new Set(['packages/client-wire/cancel-identity.test.mjs',
