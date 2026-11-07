@@ -200,8 +200,20 @@ test "live capture reserves and returns actual SAME adopted Effect Ledger withou
   assert_true(
     recovery.ledger is Some(original) && physical_equal(original, ledger),
   )
+  // No Store read means no decoded output. Keep the original empty retirement
+  // path; once a read starts, only the same admitted plaintext permits finish.
+  complete_installed_effect_capture_recovery(recovery).unwrap()
   reserve_installed_effect_capture_recovery(recovery, 128).unwrap()
+  assert_true(
+    complete_installed_effect_capture_recovery(recovery) is Err(ForeignOriginal),
+  )
+  reserve_installed_effect_capture_decoded(recovery, "{\"x\":0}").unwrap()
   let held = @resources.ledger_usage(ledger)
+  assert_true(
+    reserve_installed_effect_capture_decoded(recovery, "[]")
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(ledger), held)
   assert_true(held.reserved_retention_bytes > before.reserved_retention_bytes)
   assert_eq(held.attempts, before.attempts)
   reserve_installed_effect_capture_recovery(recovery, 128).unwrap()
@@ -219,11 +231,12 @@ test "live capture reserves and returns actual SAME adopted Effect Ledger withou
     10000,
     1000,
     64,
+    nodes=Some(4),
   ).unwrap()
   let scratch = @execution.execution_capacity_execution_bytes(full) -
     @execution.execution_capacity_retained_bytes(full)
   let container = @execution.execution_capacity_inventory_bytes([
-    { unit: ValueNodeSlots, count: 128L, copies: 1, },
+    { unit: ValueNodeSlots, count: 120L, copies: 1, },
   ]).unwrap()
   let buffers = @execution.execution_capacity_inventory_bytes([
     { unit: CanonicalWireBytes, count: 128L, copies: 4, },
@@ -318,6 +331,10 @@ test "live capture completion preserves original peak on current and foreign Led
     run, prepared, request, definition, 10000, 1000, 64,
   ).unwrap()
   reserve_installed_effect_capture_recovery(recovery, 128).unwrap()
+  assert_true(
+    complete_installed_effect_capture_recovery(recovery) is Err(ForeignOriginal),
+  )
+  reserve_installed_effect_capture_decoded(recovery, "{\"x\":0}").unwrap()
   let held = @resources.ledger_usage(ledger)
   let (other_input, other_initial, foreign_ledger, other_capacity) = effect_preparation_test_capacity(
     plan, quote,
@@ -339,4 +356,104 @@ test "live capture completion preserves original peak on current and foreign Led
   retire_installed_effect_capture_recovery(recovery).unwrap()
   retire_installed_managed_run(run).unwrap()
   retire_installed_managed_run(other).unwrap()
+}
+
+///|
+test "capture geometry distinguishes long String bytes from tree slots without parsing or changing text backing" {
+  let plain = "{\"x\":\"" + "a".repeat(100000) + "\"}"
+  assert_eq(effect_capture_wire_nodes(plain), Some(4))
+  let nested = "{\"x\":\"[0,0,0]\"}"
+  assert_eq(effect_capture_wire_nodes(nested), Some(8))
+  let physical = request_effect_capture_recovery_capacity(
+    558032,
+    1000,
+    1000000,
+    100000,
+    64,
+    nodes=Some(0),
+  ).unwrap()
+  let decoded = request_effect_capture_recovery_capacity(
+    558032,
+    1000,
+    1000000,
+    100000,
+    64,
+    nodes=Some(4),
+  ).unwrap()
+  let legacy = request_effect_capture_recovery_capacity(
+    558032, 1000, 1000000, 100000, 64,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_execution_bytes(physical) <
+    @execution.execution_capacity_execution_bytes(decoded),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(decoded) <
+    @execution.execution_capacity_retained_bytes(legacy),
+  )
+}
+
+///|
+test "capture reservation uses unchanged 512MiB ledger and rejects true excess" {
+  let ledger = @resources.create_ledger({
+    planning_work: 1000000,
+    attempts: 1,
+    holdings: 10,
+    transfer_bytes: 0L,
+    retained_bytes: 536870912L,
+    execution_bytes: 536870912L,
+  }).unwrap()
+  // Another original's live outputs must remain paid; do not reset the Ledger
+  // or credit them to the capture being opened beside them.
+  let prior = @resources.reserve_capacity(ledger, 104857600L, 104857600L).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let old = request_effect_capture_recovery_capacity(
+    558032, 1000, 1000000, 100000, 64,
+  ).unwrap()
+  assert_true(
+    @resources.reserve_capacity(
+      ledger,
+      @execution.execution_capacity_retained_bytes(old),
+      @execution.execution_capacity_execution_bytes(old),
+    )
+    is Err(RetentionLimit),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  let measured = request_effect_capture_recovery_capacity(
+    558032,
+    1000,
+    1000000,
+    100000,
+    64,
+    nodes=Some(4),
+  ).unwrap()
+  let original = @resources.reserve_capacity(
+    ledger,
+    @execution.execution_capacity_retained_bytes(measured),
+    @execution.execution_capacity_execution_bytes(measured),
+  ).unwrap()
+  let held = @resources.ledger_usage(ledger)
+  let excess = request_effect_capture_recovery_capacity(
+    558032,
+    1000,
+    1000000,
+    100000,
+    64,
+    nodes=Some(1000000),
+  ).unwrap()
+  assert_true(
+    @resources.reserve_capacity(
+      ledger,
+      @execution.execution_capacity_retained_bytes(excess),
+      @execution.execution_capacity_execution_bytes(excess),
+    )
+    is Err(RetentionLimit),
+  )
+  assert_eq(@resources.ledger_usage(ledger), held)
+  @resources.settle_capacity(ledger, original).unwrap()
+  @resources.settle_capacity(ledger, prior).unwrap()
+  let finished = @resources.ledger_usage(ledger)
+  assert_eq(finished.reserved_retention_bytes, 0L)
+  assert_eq(finished.reserved_execution_bytes, 0L)
+  assert_eq(finished.attempts, 0)
 }

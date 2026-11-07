@@ -3322,6 +3322,8 @@ pub fn client_program_reserve_captured_content_workspace(@physical_resources.Led
 
 pub fn client_program_reserve_infer_evidence_copy(Int) -> Result[(@physical_resources.Ledger, @physical_resources.Reservation), @physical_resources.LedgerIssue]
 
+pub fn client_program_reserve_installed_effect_capture_decoded(@client_local_host.ClientInstalledEffectCaptureRecovery, String) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_reserve_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery, Int) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_reserve_installed_source_construction(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, (ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)], ClientLocalPreparationInputOriginal, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]

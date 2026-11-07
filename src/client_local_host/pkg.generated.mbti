@@ -1028,6 +1028,8 @@ pub fn[I] request_source_input_parts(ClientRequestPreparation[I], I) -> Result[(
 
 pub fn[I] request_submitted_intent_original(ClientRequestPreparation[I], I) -> @run_publication_host.ClientSubmittedIntent?
 
+pub fn reserve_installed_effect_capture_decoded(ClientInstalledEffectCaptureRecovery, String) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn reserve_installed_effect_capture_recovery(ClientInstalledEffectCaptureRecovery, Int) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn[I, S] reserve_installed_source_construction(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]

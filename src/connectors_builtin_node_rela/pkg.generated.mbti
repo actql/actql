@@ -1958,6 +1958,8 @@ pub fn client_program_requires_query_time(@run_publication_host.PreparedClientPr
 
 pub fn client_program_requires_task_compilation(@run_publication_host.PreparedClientProgram) -> Bool
 
+pub fn client_program_reserve_installed_effect_capture_decoded(@client_local_host.ClientInstalledEffectCaptureRecovery, String) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_reserve_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery, Int) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_reserve_request_effect_capture_recovery(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
