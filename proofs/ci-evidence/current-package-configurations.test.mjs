@@ -66,18 +66,27 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
       }
     }
     if (path === 'src/platform_native/publication_store/moon.pkg') {
-      assert.equal(entry.revision, '5f2e0ecdeeaea9fb011c514806ef4dee80b03dad');
+      assert.equal(entry.revision, 'f519f34b2d45d5365c1af3b1d42ad92524514716');
+      const introduced = gitTree(root, '5f2e0ecdeeaea9fb011c514806ef4dee80b03dad').read(path).toString();
+      const local = '  "actql/actql/client_local_host" @local,\n';
+      assert.equal(body.split(local).length, 2);
+      assert.equal(body.replace(local, ''), introduced,
+        'the genuine reviewed union adds only the same-parent Local capture-validation dependency');
+      assert.deepEqual(packageImports(body).imports,
+        ['actql/actql/client_local_host', ...packageImports(introduced).imports].sort());
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(introduced))), null,
+        'the prior Store configuration cannot qualify the current literal import');
       const prior = tree.read(path).toString();
       const selectors = ['    "captured_content_custody_native.mbt": [ "native" ],\n',
         '    "captured_content_custody_native_wbtest.mbt": [ "native" ],\n',
         '    "captured_content_custody_unsupported.mbt": [ "not", "native" ],\n'];
-      let reconstructed = body;
+      let reconstructed = introduced;
       for (const selector of selectors) {
-        assert.equal(body.split(selector).length, 2);
+        assert.equal(introduced.split(selector).length, 2);
         reconstructed = reconstructed.replace(selector, '');
       }
       assert.equal(reconstructed, prior, 'only the three reviewed Native custody selectors changed');
-      assert.deepEqual(packageImports(body).imports, packageImports(prior).imports);
+      assert.deepEqual(packageImports(introduced).imports, packageImports(prior).imports);
       assert.equal(currentTree.read(path).toString(), body);
       assert.equal(currentPackageConfigurationReviewFor(request(path, hash(prior))), null);
       const selected = packageSourceInputs({tree: currentTree, packages: ['src/platform_native/publication_store'], target: 'js'});
