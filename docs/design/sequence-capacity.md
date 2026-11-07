@@ -160,3 +160,23 @@ Tests cover Relation/Events and overlap modes, independent maxima, repeated
 candidates, exact/short budgets, policy/field substitution, incorrect subjects,
 enforcement, missing scopes, unsupported sources, and preservation of guards
 and pending obligations.
+
+## Bounded scalar text-to-number geometry
+
+The existing selected binding-row proof also recognizes Number CAST of an
+original Text field's two-argument SUBSTRING with an admitted numeric literal
+position. Other nested operations and dynamic positions retain the generic
+profile. This is an implementation quote; all original typed operand, logical
+live/value/work and physical traversal checks remain unchanged.
+
+The scalar path keeps the existing row/binding root inventory. The slice
+constructor admits its output bytes before allocating its builder. CAST charges
+that original root before `source_value.parse_json`; successful numeric text is
+ASCII and Parser borrows it. The slice and normalized-number spelling builders
+run in succession. The quote conservatively retains two complete builder-part,
+header, reference and scalar sets per live byte, four UTF16 units and four wire
+bytes, plus fixed continuation/Parser/Node/span/root carriers. It uses the
+existing shared representation policy and checked fold. It does not equate each
+logical byte with a separately owned arbitrary value-tree node. The provider's
+full physical traversal, operation workspace, input/output DATA and failure
+cleanup remain independently charged.

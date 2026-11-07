@@ -78,7 +78,7 @@ export const aggregatePropertyOrderSuccesses = [
   success('parenthesized-receiver', "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM objects"),
   success('parenthesized-qualified-receiver', "FROM objects AS before |> AGGREGATE STRING_AGG(name, '|' ORDER BY ((before.payload)).`score` NULLS LAST, id) AS names"),
   success('parenthesized-range-collision', ', colliding AS (SELECT id, name, payload, other, other.score AS score FROM objects) '
-    + "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM colliding AS payload"),
+    + "SELECT STRING_AGG(name, '|' ORDER BY (payload.payload).score NULLS LAST, id) AS names FROM colliding AS payload"),
   success('parenthesized-receiver-empty', "SELECT STRING_AGG(name, '|' ORDER BY (payload).score NULLS LAST, id) AS names FROM objects", {
     sourceRows: [], expected: [{names: null}],
   }),
@@ -88,7 +88,7 @@ export const aggregatePropertyOrderSuccesses = [
     expected: [{names: 'b|b|a|c', reverse: 'c|a|b|b'}], columns: [column('names'), column('reverse')],
   }),
   success('current-and-snapshot', 'FROM objects AS before |> SET payload = other '
-    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score, id) AS current, "
+    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score, id) AS `current`, "
     + "STRING_AGG(name, '|' ORDER BY before.payload.score NULLS LAST, id) AS previous", {
     expected: [{current: 'a|c|b|b', previous: 'b|b|a|c'}], columns: [column('current'), column('previous')],
   }),
@@ -155,7 +155,7 @@ export const aggregatePropertyOrderRefusals = [
 export const aggregatePropertyOrderExecutionFailures = [{
   name: 'aggregate-property-order-demanded-argument-failure', format: 'aql-text',
   text: data + "SELECT STRING_AGG(IF(id / (id - id) = 0, name, name), '|' ORDER BY payload.score, id) AS names FROM objects",
-  parameterDeclarations, parameters, sourceReadSessionCount: 1, resultNames: ['answer'],
+  parameterDeclarations, parameters, sourceReadSessionCount: 1, resultNames: ['main'],
 }];
 aggregatePropertyOrderSuccesses.push(...aggregateOrderParameterSuccesses);
 aggregatePropertyOrderRefusals.push(...aggregateOrderParameterRefusals);

@@ -141,10 +141,13 @@ fn prepare_local_query_requirement_owned(
       ordered_body,
       query_time~,
     )
-    is Some(sequence) else {
+    is Some((sequence, query)) else {
     return Err(Sequences)
   }
-  let limits = installed_local_query_material_limits()
+  let limits = match installed_local_query_requirement_limits(query) {
+    Ok(value) => value
+    Err(issue) => return Err(Requirement(@publication_host.Requirement(issue)))
+  }
   let guards : @planning.QueryLogicalGuards = {
     max_rows: 100,
     max_value_bytes: 10000,
@@ -167,4 +170,45 @@ fn prepare_local_query_requirement_owned(
         value, sequence, stage, source_index, guards, limits,
       ).map_err(issue => Requirement(issue))
   }
+}
+
+///|
+// The same checked acquisition borrows two schemas. The installed collection
+// bound of 100 still bounds each schema and the actual request-field array.
+// QueryRequirement consumes their sum as a traversal inventory: a 71-field
+// input captured unchanged traverses 142 fields without a larger collection.
+// No checker/acquisition is repeated here and no wire/node/work/row policy or
+// constructor array bound grows. Query/schema originals remain borrowed.
+fn installed_local_query_requirement_limits(
+  query : @sourceviews.QueryAcquisition,
+) -> Result[@planning.QueryMaterialLimits, @planning.QueryRequirementIssue] {
+  let limits = installed_local_query_material_limits()
+  let pipeline = @sourceviews.query_acquisition_pipeline(query)
+  guard @pipeline.schema_at(
+      pipeline,
+      @sourceviews.query_acquisition_input(query),
+    )
+    is Some(input) &&
+    @pipeline.schema_at(pipeline, @sourceviews.query_acquisition_capture(query))
+    is Some(output) &&
+    @sourceviews.pipeline_request_at(
+      @sourceviews.query_acquisition_owner(query),
+      @sourceviews.query_acquisition_source_index(query),
+    )
+    is Some(@sourceviews.Direct(_, request)) else {
+    return Err(InvalidQuery)
+  }
+  let input_count = @schema.field_count(input)
+  let output_count = @schema.field_count(output)
+  if input_count > limits.max_fields ||
+    output_count > limits.max_fields ||
+    @sourceviews.parameterized_request_field_count(request) > limits.max_fields {
+    return Err(FieldLimit)
+  }
+  // Both counts already fit the installed bound of 100, so this sum cannot
+  // overflow. It only quotes two original immutable schema traversals.
+  Ok({
+    ..limits,
+    max_fields: Int::max(limits.max_fields, input_count + output_count),
+  })
 }

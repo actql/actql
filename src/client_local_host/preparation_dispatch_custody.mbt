@@ -56,9 +56,9 @@ pub fn installed_managed_preparation_usage_isolated(
   }
   match retirement {
     PurePreparation(original) =>
-      @resources.node_preparation_usage_isolated(original.admission, ledger)
+      @resources.prepared_run_usage_isolated(original.admission, ledger)
     EffectPlanPreparation(original) =>
-      @resources.node_preparation_usage_isolated(original.admission, ledger)
+      @resources.prepared_run_usage_isolated(original.admission, ledger)
   }
 }
 

@@ -1,11 +1,11 @@
 {
-  "scope": "Fixed capture-constructor projector plus original eight-scalar accessor; conservative cumulative constructors, not represented capture buffers or VM frames.",
+  "scope": "Fixed quotation-constructor controls only, not the input-sized DATA described by returned inventories or opaque VM/GC/allocator backing. Every brace/pattern/bracket in the pinned helper bodies is conservatively counted, including nonallocating branches and pure delegates; only actual helper invocations multiply those bodies.",
   "bound_rules": {
-    "record": "1header +11refs+11words (largest actual returned facts record11fields)",
+    "record": "1header+11refs+11words; conservative maximum11-field facts record, also majorizes smaller records, tuples and fixed Text closure controls",
     "Some": "1header+1ref+2words (tag plus possible scalar payload)",
     "Array": "2headers+43refs+2words; max literal17items, capacity<=8+2*17 plus wrapperref"
   },
-  "loop_proof": "One7-item sum; two cost projections; cost_add35(sum)+10(cost)=45. Four append-capacity calls weighted31 each (overcounts nonallocating doubling loop). No allocating input-sized projector loops. Original plan accessor8-scalar tuple +Some included once.",
+  "loop_proof": "One7-item compose; two tariff projections;45 execution arithmetic delegates. Writer expands one frame, two collections, two maps and one extent addition:2*11+2*6+3=37 further shared arithmetic calls,82 total. Four append invocations; their integer doubling loop has no allocating body. Compose loop allocates only through its separately multiplied arithmetic helper. Original plan accessor and eight-scalar tuple included once.",
   "items": [
     {
       "path": "src/run_publication/captured_run_construction_plan.mbt",
@@ -24,38 +24,38 @@
       "record_sites": 13,
       "some_sites": 8,
       "array_sites": 1,
-      "source_sha256": "cb406ef44e3a2b98de8ab76a068bcad37d7ab4d415f11e06ec41c013072cafc5",
-      "body_sha256": "64a506aa0cb8ee0983c3876c992a8d6a70ca8f9264cd16e405fb8dd766077205"
+      "source_sha256": "0bf00591c38b42ed88e65e25ee4c27f31f781e44cff8853734f3236d99fe2e9f",
+      "body_sha256": "327663e70f9c28294e3a69e04da573961bf9530b86d0c80e365eb8c6fc9bd691"
     },
     {
       "path": "src/encode_core/hash_writer_construction_inventory.mbt",
       "function": "hash_writer_live_key_inventory",
       "multiplicity": 1,
-      "record_sites": 3,
+      "record_sites": 4,
       "some_sites": 1,
       "array_sites": 0,
-      "source_sha256": "d46ee5ffa331a22ec9c47e3afa9aeb1723ebb6b19f02d9d28864d0ba77171340",
-      "body_sha256": "6facb36a76745535aeb73874ba7cc9406436ff4af483900cba28a464db8fb52a"
+      "source_sha256": "c035e253b78281edbea894b3f89d9560167807ee72c2ecca11da1ebb1847d228",
+      "body_sha256": "b86124aa4fb22ba8594c8ac768a0ea080d4bf0f45e9c72d71037e4eb2cfb471f"
     },
     {
       "path": "src/client_local_host/preparation_closed_values_compiler_layout.mbt",
       "function": "closed_values_append_capacity",
-      "multiplicity": 124,
+      "multiplicity": 4,
       "record_sites": 4,
       "some_sites": 2,
       "array_sites": 0,
-      "source_sha256": "ba8b73b5bc4192e2dfbcff901375edf1b3dec75c78f6a55eff3f4c5448e05139",
+      "source_sha256": "fb8b41c8ed220089f0a32a025ff96f95f14faa827f869d830945831a7741d13a",
       "body_sha256": "d222c4291c3fc3df6965f7a6861023e224d0815f96c083464ecd40fb066f242f"
     },
     {
-      "path": "src/client_local_host/preparation_closed_values_compiler_layout.mbt",
-      "function": "closed_values_sum_layouts",
-      "multiplicity": 7,
+      "path": "src/execution_relation/preparation_representation.mbt",
+      "function": "compose_preparation_representation",
+      "multiplicity": 1,
       "record_sites": 9,
       "some_sites": 7,
       "array_sites": 0,
-      "source_sha256": "ba8b73b5bc4192e2dfbcff901375edf1b3dec75c78f6a55eff3f4c5448e05139",
-      "body_sha256": "49e72d4160c436a3eb9f3ab5b92a66237951bc16e684fd4e277d188ff5d39325"
+      "source_sha256": "bd3a97c315b5f4812c8ad8b095811d7464228c93ee6137aeac923496eda50106",
+      "body_sha256": "734988bf6d2171e99d905ebd251e2017ececab87217ade8a3fdf42d662af4d63"
     },
     {
       "path": "src/execution_relation/preparation_representation.mbt",
@@ -64,23 +64,73 @@
       "record_sites": 5,
       "some_sites": 4,
       "array_sites": 0,
-      "source_sha256": "7809659d13002f683782bf0059b615ae4970989ffdc410fafae31ba910dcb415",
+      "source_sha256": "bd3a97c315b5f4812c8ad8b095811d7464228c93ee6137aeac923496eda50106",
       "body_sha256": "4f093e52c0babbce295194a97e4ee9665f07226aa4308b925473bee0d9762408"
     },
     {
       "path": "src/execution_relation/preparation_representation.mbt",
       "function": "checked_preparation_add_product",
       "multiplicity": 45,
+      "record_sites": 1,
+      "some_sites": 0,
+      "array_sites": 0,
+      "source_sha256": "bd3a97c315b5f4812c8ad8b095811d7464228c93ee6137aeac923496eda50106",
+      "body_sha256": "fca6276aac1151c1af408421d439d67d14482f1a160e24ffba98346490167013"
+    },
+    {
+      "path": "src/encode_core/writer_frame_construction.mbt",
+      "function": "writer_frame_construction_extent",
+      "multiplicity": 1,
+      "record_sites": 2,
+      "some_sites": 0,
+      "array_sites": 0,
+      "source_sha256": "83b11a0ff70e2b8d10c38f652819fcec7ad057e311023ec299f41df4d2aefdd5",
+      "body_sha256": "febafd3c93ffa7f2c886fe710a8f4f289e5284b46a7054e96e57cab20816a192"
+    },
+    {
+      "path": "src/decode_shape/collection_construction.mbt",
+      "function": "collection_construction_extent",
+      "multiplicity": 2,
+      "record_sites": 3,
+      "some_sites": 13,
+      "array_sites": 0,
+      "source_sha256": "3d8bbab28fc76a974086cfaa95074b0244afa8c3ee7f71d7ce22b45893e6034a",
+      "body_sha256": "881bc793684abc8a86e447655cf0ad6237a2778ff61956b2f4b4e18bac1e556c"
+    },
+    {
+      "path": "src/decode_shape/map_construction.mbt",
+      "function": "map_construction_extent",
+      "multiplicity": 2,
+      "record_sites": 3,
+      "some_sites": 7,
+      "array_sites": 0,
+      "source_sha256": "336d3f678423b3f0782094c9d7c314ab516465ec68321045848e9b44b878dc15",
+      "body_sha256": "ecb313b13be96c14c88ac419d585761d19587ce18df947d33e3fde6f7e6252e3"
+    },
+    {
+      "path": "src/decode_shape/collection_construction.mbt",
+      "function": "add_collection_construction_extents",
+      "multiplicity": 1,
+      "record_sites": 3,
+      "some_sites": 4,
+      "array_sites": 0,
+      "source_sha256": "3d8bbab28fc76a974086cfaa95074b0244afa8c3ee7f71d7ce22b45893e6034a",
+      "body_sha256": "ae57ae1719e87fd33dbf4f0081e12af930ab6212273379561840f9eec3831c13"
+    },
+    {
+      "path": "src/capacity_arithmetic/preparation_counts.mbt",
+      "function": "checked_nonnegative_add_product",
+      "multiplicity": 82,
       "record_sites": 3,
       "some_sites": 1,
       "array_sites": 0,
-      "source_sha256": "7809659d13002f683782bf0059b615ae4970989ffdc410fafae31ba910dcb415",
-      "body_sha256": "52affc5ce905781c335ad554019ac09c319b64c66c5922279c699fe0d137c39f"
+      "source_sha256": "9f589075ee2f9edeaee21e1494f3dda92f5154d353eceaf897888607bba4104e",
+      "body_sha256": "67c67521aa8847efe6882f98480c362dec14b655a7fc779a37812aeaeab8e203"
     }
   ],
   "weighted_sites": {
-    "record": 722,
-    "some": 361,
+    "record": 362,
+    "some": 160,
     "array": 1
   },
   "units": {
@@ -90,5 +140,19 @@
     "owned_utf16_units": 0,
     "owned_wire_bytes": 0
   },
-  "logical_bytes": 153456
+  "logical_bytes": 153456,
+  "fixed_sites": {
+    "record": 0,
+    "some": 0,
+    "array": 0
+  },
+  "census_units": {
+    "record_headers": 524,
+    "reference_slots": 4185,
+    "scalar_words": 4304,
+    "owned_utf16_units": 0,
+    "owned_wire_bytes": 0
+  },
+  "census_logical_bytes": 76296,
+  "allowance_note": "The unchanged units vector is the original decomposition of the fixed byte allowance, not separate H/R/W limits. The current finite census is priced by the same v1 tariff and must fit its unchanged logical_bytes ceiling. No allowance is inferred from executing a projector."
 }

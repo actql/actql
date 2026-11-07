@@ -9,6 +9,8 @@ priv struct StoredSubmissionProjection {
   mut saved_result : StoredSavedResultRead?
   mut saved_snapshot : @host.ClientSavedSubmissionSnapshot?
   mut append_plan : @host.ClientSubmittedJournalAppendPlan?
+  mut failure_preparation : Int?
+  mut failure_plan : (@host.ClientJournalPhysicalRow, Bytes)?
   mut invoked : Bool
   mut produced : Bool
   mut output_closed : Bool
@@ -47,7 +49,8 @@ pub fn reserve_submission_projection(
       kind != 5 &&
       kind != 6 &&
       kind != 7 &&
-      kind != 8
+      kind != 8 &&
+      kind != 9
     ) ||
     physical_ticket <= 0 ||
     value.next_handle == 2147483647 ||
@@ -65,7 +68,7 @@ pub fn reserve_submission_projection(
   let slot = match
     @buffers.reserve_output_buffer(
       value.pool,
-      if kind >= 3 && kind <= 8 {
+      if kind >= 3 && kind <= 9 {
         1048576
       } else {
         4096
@@ -89,6 +92,8 @@ pub fn reserve_submission_projection(
     saved_result: None,
     saved_snapshot: None,
     append_plan: None,
+    failure_preparation: None,
+    failure_plan: None,
     invoked: false,
     produced: false,
     output_closed: false,
@@ -104,6 +109,9 @@ pub fn produce_submission_projection(nonce : Int64, handle : Int) -> Int {
     value.submissions.get(handle) is Some(record) &&
     value.run_configurations.get(record.configuration) is Some(configuration) else {
     return -2
+  }
+  if record.kind == 9 {
+    return produce_submission_preparation_failure(value, record, configuration)
   }
   if record.kind == 3 {
     return produce_submission_append(value, record, configuration)

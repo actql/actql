@@ -75,6 +75,85 @@ def read_nfc_quick_check(path: pathlib.Path) -> tuple[set[int], set[int]]:
     return no, maybe
 
 
+def read_canonical_tables(
+    unicode_lines: list[str], exclusions: set[int],
+) -> tuple[dict[int, int], dict[int, list[int]], list[tuple[int, int, int]]]:
+    """Select the same canonical mappings and runtime composition pairs."""
+    ccc: dict[int, int] = {}
+    decompositions: dict[int, list[int]] = {}
+    compositions: list[tuple[int, int, int]] = []
+    for raw in unicode_lines:
+        fields = raw.split(";")
+        cp = int(fields[0], 16)
+        combining = int(fields[3])
+        if not 0 <= combining <= 255:
+            raise ValueError("canonical combining class must be in 0..255")
+        if combining:
+            ccc[cp] = combining
+        decomposition = fields[5]
+        if decomposition and not decomposition.startswith("<"):
+            seq = [int(part, 16) for part in decomposition.split()]
+            decompositions[cp] = seq
+    for cp, seq in decompositions.items():
+        # Full_Composition_Exclusion also excludes canonical decompositions
+        # whose first element is not a starter (for example U+0344).
+        if len(seq) == 2 and cp not in exclusions and ccc.get(seq[0], 0) == 0:
+            compositions.append((seq[0], seq[1], cp))
+
+    return ccc, decompositions, compositions
+
+
+def canonical_decomposition_bounds(
+    decompositions: dict[int, list[int]], compositions: list[tuple[int, int, int]],
+) -> tuple[int, int]:
+    """Derive scalar and UTF-16 expansion from the actual recursive tables.
+
+    Hangul is algorithmic; ordering preserves units, composition and LF folding
+    cannot increase them. Do not turn a scalar bound into twice as many UTF-16
+    units: BMP input can map to supplementary output, so count both exactly.
+    """
+    def width(cp: int) -> int:
+        if not 0 <= cp <= 0x10FFFF or 0xD800 <= cp <= 0xDFFF:
+            raise ValueError("canonical mapping must contain Unicode scalars")
+        return 1 if cp <= 0xFFFF else 2
+
+    active: set[int] = set()
+    memo: dict[int, tuple[int, int]] = {}
+
+    def expand(cp: int) -> tuple[int, int]:
+        units = width(cp)
+        if cp in active:
+            raise ValueError("cyclic canonical decomposition")
+        if cp in memo:
+            return memo[cp]
+        if 0xAC00 <= cp < 0xD7A4:
+            count = 2 if (cp - 0xAC00) % 28 == 0 else 3
+            return count, count
+        if cp not in decompositions:
+            return 1, units
+        seq = decompositions[cp]
+        if not seq:
+            raise ValueError("empty canonical decomposition")
+        active.add(cp)
+        parts = [expand(child) for child in seq]
+        result = sum(part[0] for part in parts), sum(part[1] for part in parts)
+        active.remove(cp)
+        memo[cp] = result
+        return result
+
+    # Include Hangul and every unchanged scalar, even with an empty table.
+    max_scalars, max_utf16 = 3, 3
+    for cp in decompositions:
+        count, units = expand(cp)
+        input_units = width(cp)
+        max_scalars = max(max_scalars, count)
+        max_utf16 = max(max_utf16, (units + input_units - 1) // input_units)
+    for first, second, result in compositions:
+        if width(result) > width(first) + width(second):
+            raise ValueError("composition increases UTF-16 units")
+    return max_scalars, max_utf16
+
+
 def wrap(values: list[str], width: int = 96) -> str:
     lines: list[str] = []
     current = "  "
@@ -204,27 +283,9 @@ def main() -> int:
         return 1
 
     exclusions = read_exclusions(exclusions_file)
-    ccc: dict[int, int] = {}
-    decompositions: dict[int, list[int]] = {}
-    compositions: list[tuple[int, int, int]] = []
     unicode_lines = unicode_data.read_text(encoding="utf-8").splitlines()
-    for raw in unicode_lines:
-        fields = raw.split(";")
-        cp = int(fields[0], 16)
-        combining = int(fields[3])
-        if not 0 <= combining <= 255:
-            raise ValueError("canonical combining class must be in 0..255")
-        if combining:
-            ccc[cp] = combining
-        decomposition = fields[5]
-        if decomposition and not decomposition.startswith("<"):
-            seq = [int(part, 16) for part in decomposition.split()]
-            decompositions[cp] = seq
-    for cp, seq in decompositions.items():
-        # Full_Composition_Exclusion also excludes canonical decompositions
-        # whose first element is not a starter (for example U+0344).
-        if len(seq) == 2 and cp not in exclusions and ccc.get(seq[0], 0) == 0:
-            compositions.append((seq[0], seq[1], cp))
+    ccc, decompositions, compositions = read_canonical_tables(unicode_lines, exclusions)
+    scalar_expansion, utf16_expansion = canonical_decomposition_bounds(decompositions, compositions)
 
     decomp_keys = sorted(decompositions)
     decomp_offsets = [0]
@@ -255,6 +316,14 @@ def main() -> int:
 // UnicodeData.txt sha256: {sources["UnicodeData.txt"]}
 // CompositionExclusions.txt sha256: {sources["CompositionExclusions.txt"]}
 // NormalizationTest.txt sha256: {sources["NormalizationTest.txt"]}
+
+// Recursive canonical mappings plus algorithmic Hangul, counted in their
+// actual scalar and UTF-16 units. Ordering/composition/LF do not increase them.
+///|
+let canonical_decomposition_max_scalar_expansion : Int64 = {scalar_expansion}L
+
+///|
+let canonical_decomposition_max_utf16_expansion : Int64 = {utf16_expansion}L
 
 ///|
 let canonical_decomposition_keys : FixedArray[Int] = [

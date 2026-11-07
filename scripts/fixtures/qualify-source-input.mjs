@@ -281,4 +281,4 @@ export const qualifyRefusals = [
 export const qualifyExecutionFailures = [{name: 'qualify-demanded-error', format: 'aql-text',
   text: 'SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS n FROM records WHERE id > 0 '
     + 'QUALIFY 1 / (id - 1) > 0 AND n > 0 ORDER BY n',
-  resultNames: ['answer'], sourceReadSessionCount: 1}];
+  resultNames: ['main'], sourceReadSessionCount: 1}];

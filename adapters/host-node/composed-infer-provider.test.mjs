@@ -210,3 +210,20 @@ test('Request component constructor forwards its already backed original prefix 
   assert.throws(() => component.bindOriginal({selected, retainOperation() {}}),
     {message: 'ComposedInferAlreadyBound'});
 });
+
+test('a generated Model provider selects its purpose before binding the same late Content generation', () => {
+  const selected = Object.freeze({occurrence: {}, graph: {}}), provider = {};
+  let factories = 0, generations = 0;
+  const moon = {clientProgramGeneratedInferLocalProvider(...args) {
+    assert.strictEqual(args[0], selected.occurrence); assert.equal(args.length, 5);
+    factories++; return provider;
+  }, clientProgramComposedInferLocalProvider() {assert.fail('no ordinary prefix provider');}};
+  const component = openNodeComposedInferProvider({moon, selected, deferred: true, deferredGeneratedInput: true});
+  assert.strictEqual(component.provider, provider);
+  const context = {selected, retainOperation() {}};
+  assert.throws(() => component.bindOriginal(context), {message: 'InvalidComposedInferOriginalContext'});
+  const generation = Object.freeze({generation() {generations++; return {};}});
+  assert.strictEqual(component.bindOriginal({...context, generatedInput: generation}), component);
+  assert.throws(() => component.bindOriginal({...context, generatedInput: generation}), {message: 'ComposedInferAlreadyBound'});
+  assert.deepEqual([factories, generations], [1, 0]);
+});

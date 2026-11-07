@@ -9,7 +9,7 @@ import {admitCompletedNativeLocalProvider} from './native-cli-completed-provider
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const source = 'a'.repeat(40);
 
-async function fixture(t, inCheckoutToolchain = false) {
+async function fixture(t, inCheckoutToolchain = false, platform = 'darwin-arm64') {
   const root = await mkdtemp(join(tmpdir(), 'actql-completed-provider-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const repository = join(root, 'source'), moon = inCheckoutToolchain
@@ -27,7 +27,18 @@ async function fixture(t, inCheckoutToolchain = false) {
   };
   // Synthetic build metadata only. No compiler, binary, Host or component is
   // executed, and this fixture cannot establish ordinary package qualification.
-  const recipe = {patch: {sha256: 'b'.repeat(64)}, required_defines: ['SELECTED'], outputs: {allocator: 'c'.repeat(64)}};
+  const recipe = {target: 'aarch64-apple-darwin', patch: {sha256: 'b'.repeat(64)},
+    required_defines: ['SELECTED'], outputs: {allocator: 'c'.repeat(64)},
+    inputs: [
+      {root: 'moonbit', path: 'lib/libmoonbitrun.o', output: 'libmoonbitrun.o'},
+      {root: 'moonbit', path: 'lib/libbacktrace.a', output: 'libbacktrace.a'},
+    ],
+    source_targets: {'x86_64-unknown-linux-gnu': {
+      required_defines: ['SELECTED', '_GNU_SOURCE', 'ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN', 'ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY'],
+      required_source_parameters: ['ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS'],
+      binary_inputs: {'lib/libmoonbitrun.o': {bytes: 5, sha256: 'd'.repeat(64)},
+        'lib/libbacktrace.a': {bytes: 7, sha256: 'e'.repeat(64)}},
+    }}};
   const recipePath = join(repository, 'packages/python-local-runtime/native/pre-root/scoped-read-source.json');
   const inputs = [];
   for (const path of [join(repository, 'toolchain.json'), join(repository, 'moon.mod'),
@@ -41,11 +52,25 @@ async function fixture(t, inCheckoutToolchain = false) {
   const generated = await original(join(build, 'native_client.c'), 'synthetic-generated-C');
   const command = ['selected-clang', '-o', binary.path, generated.path];
   const step = {original: command.slice(1), selected: command, receipt: join(provider, 'cc-0.json')};
-  const receipt = {source, entry: 'src/cmd/native_client', target: 'darwin-arm64',
+  const receipt = {source, entry: 'src/cmd/native_client', target: platform === 'darwin-arm64' ? platform : 'linux-x64',
     plan_only: false, moon_build_exit: 0, providers: 1, core_modules: 1,
     commands_completed: 1, completed_c_steps: 1, executable: binary, generated_c: generated,
-    allocator: {recipe_sha256: sha(Buffer.from(JSON.stringify(recipe))),
+    allocator: {target: recipe.target, recipe_sha256: sha(Buffer.from(JSON.stringify(recipe))),
       patch_sha256: recipe.patch.sha256, required_defines: recipe.required_defines, outputs: recipe.outputs}};
+  if (platform === 'linux-x64-gnu') {
+    const selected = recipe.source_targets['x86_64-unknown-linux-gnu'];
+    Object.assign(receipt.allocator, {target: 'x86_64-unknown-linux-gnu',
+      required_defines: selected.required_defines, required_source_parameters: selected.required_source_parameters,
+      outputs: {...recipe.outputs, 'libmoonbitrun.o': selected.binary_inputs['lib/libmoonbitrun.o'],
+        'libbacktrace.a': selected.binary_inputs['lib/libbacktrace.a']}});
+    const control = {kind: 'private-native-client-stock-file-control', target: 'linux-x64', stockFileControlBytes: 4096};
+    const controlRecipe = await original(join(repository, 'src/cmd/native_client/stock_file_control.linux-x64.json'), JSON.stringify(control));
+    const controlHeader = await original(join(provider, 'local-stock-file-control.h'),
+      '/* Local command fixed File records; not arena capacity. */\n#define ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES 4096\n');
+    inputs.push(controlRecipe, controlHeader);
+    receipt.local_stock_file_control = {source, recipe: controlRecipe, header: controlHeader,
+      selected: control, recipeSha256: controlRecipe.sha256, permission: false, physicalAcquired: false};
+  }
   const generation = [join(moon, 'bin/moon'), 'build', '--target', 'native', '--release',
     '--target-dir', join(provider, 'emission'), '-j', '1', 'src/cmd/native_client', '--verbose'];
   await json(join(provider, 'build.json'), receipt);
@@ -55,8 +80,26 @@ async function fixture(t, inCheckoutToolchain = false) {
   await json(join(provider, 'inputs.json'), inputs);
   await json(join(provider, 'moon-build-command.json'), generation);
   return {root, repository, moon, artifact, provider, receipt, generated, binary, inputs, step, generation, json,
-    admit: () => admitCompletedNativeLocalProvider(artifact, source, repository, moon)};
+    admit: () => admitCompletedNativeLocalProvider(artifact, source, repository, moon, {platform})};
 }
+
+test('completed Linux Local provider retains its exact selected allocator and finite File record inputs', async t => {
+  const f = await fixture(t, false, 'linux-x64-gnu');
+  assert.equal((await f.admit()).receipt.target, 'linux-x64');
+  await assert.rejects(admitCompletedNativeLocalProvider(f.artifact, source, f.repository, f.moon), /target differs/u);
+  for (const change of [
+    value => {value.target = 'darwin-arm64';},
+    value => {value.allocator.target = 'aarch64-apple-darwin';},
+    value => {value.allocator.outputs['libmoonbitrun.o'].sha256 = '0'.repeat(64);},
+    value => {value.allocator.required_source_parameters = [];},
+    value => {value.local_stock_file_control.selected.stockFileControlBytes = 8192;},
+    value => {value.local_stock_file_control.source = 'b'.repeat(40);},
+  ]) {
+    const receipt = structuredClone(f.receipt); change(receipt);
+    await f.json(join(f.provider, 'build.json'), receipt);
+    await assert.rejects(f.admit());
+  }
+});
 
 test('completed Local provider keeps exact source, bytes and actual generation without executing tools', async t => {
   const f = await fixture(t);

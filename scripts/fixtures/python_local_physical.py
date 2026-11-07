@@ -48,6 +48,7 @@ class PhysicalFixture:
                 ('publisher_finish', [i32], self.publisher_finish),
                 ('journal_current', [i32], self.journal_refuse),
                 ('journal_current_operation', [i32], self.journal_refuse),
+                ('journal_schema', [i32], self.journal_refuse),
                 ('journal_begin', [i32, i32, i32, i32], self.journal_refuse),
                 ('journal_query_byte', [i32, i32, i32], self.journal_refuse),
                 ('journal_query', [i32], self.journal_refuse),
@@ -72,6 +73,9 @@ class PhysicalFixture:
                 self.linker.define_func('actql_host', name, wasmtime.FuncType(
                     [scalar[p]() for p in params.split()], [scalar[result]()]),
                     self.execution_child_unavailable)
+            self.linker.define_func('actql_host', 'platform_vm_observation',
+                wasmtime.FuncType([wasmtime.ValType.i64(), i32], [wasmtime.ValType.i64()]),
+                self.platform_vm_observation, access_caller=True)
             self.instance = self.linker.instantiate(self.store, self.module)
             self.exports = self.instance.exports(self.store)
             if self.exports['actql_host_abi_version'](self.store) != LOCAL_CORE_ABI:
@@ -87,6 +91,10 @@ class PhysicalFixture:
         return self.exports['actql_buffer_' + name](self.store, self.nonce, *args)
 
     def execution_child_unavailable(self, *args):
+        return -42
+
+    def platform_vm_observation(self, caller, nonce, ordinal):
+        # Raw diagnostic fixtures never promote scalar limits to this original.
         return -42
 
     def read(self, ticket, index):

@@ -29,6 +29,15 @@ fn native_mapped_create_checkpoint_roundtrip(
     max_nodes: 10000,
     max_depth: 64,
   }
+  // Match the existing nominal retention fixture's explicit test charges.
+  // Unit widths exercise custody, not an adopted Native allocation profile.
+  let computation_capacity : @resident.ResidentEffectComputationCapacity = {
+    contract_bytes: 1048576L,
+    control_bytes: 4096L,
+    workspace_bytes: 65536L,
+    max_utf16_units: 1048576,
+    layout: original_computation_fixture_layout(),
+  }
   let created_at = "2026-10-10T00:00:00.000Z"
   let expires_at = "2026-10-11T00:00:00.000Z"
   let checkpoint_id = "native-original-mapped-create"
@@ -59,7 +68,14 @@ fn native_mapped_create_checkpoint_roundtrip(
   })
   assert_true(
     work.persist_and_retain_report(
-      store, crypto, key, checkpoint_id, created_at, expires_at, limits,
+      store,
+      crypto,
+      key,
+      checkpoint_id,
+      created_at,
+      expires_at,
+      limits,
+      computation_capacity=Some(computation_capacity),
     )
     is Err(Retention(Checkpoint(Store(Closed)))),
   )
@@ -74,7 +90,14 @@ fn native_mapped_create_checkpoint_roundtrip(
   let persist = () => {
     work
     .persist_and_retain_report(
-      store, crypto, key, checkpoint_id, created_at, expires_at, limits,
+      store,
+      crypto,
+      key,
+      checkpoint_id,
+      created_at,
+      expires_at,
+      limits,
+      computation_capacity=Some(computation_capacity),
     )
     .unwrap()
   }

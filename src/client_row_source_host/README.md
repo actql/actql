@@ -60,6 +60,13 @@ erase the observer. Failed stop keeps the same reservation and cleanup debt.
 Only confirmed physical retirement permits the reader's aliases to disappear
 and the original Owner to release its root.
 
+The [response stream accounting contract](response-stream-interface.md) describes
+spending that same attempt before I/O and extending one original page ticket
+with actual received chunks. Partial-prefix cancellation does not refund them.
+The [Common evidence custody contract](../query_planning/evidence-custody-interface.md)
+separates successful-capture cancellation, issuer revocation and retirement of
+closed custody while preserving immutable observation DATA.
+
 ### Original provider declaration projection
 
 `project_row_declaration` is a typed metadata port for an existing Common
@@ -102,6 +109,18 @@ confirmed retirement allows original close to settle the same reservation.
 After successful settlement the closed RowRun detaches that observer and
 provider declaration; repeated close cannot re-enter the retired reader.
 No numeric profile or transport implementation follows from this primitive.
+
+An installed native decoder may grow this SAME reservation through
+`grow_row_run_response_capacity` after its original response is charged and
+before projection. The selected native quote owns all prior outputs plus the
+current constructor, bounded by the largest actually retained response. Growth
+never changes parser limits, attempts, transfer or quantity history. The exact
+borrow, bound original cleanup observer and unconsumed page ticket remain
+required. A repeated identical peak quote does not repeat Resource current;
+real growth has one fenced original current boundary. Refusal retains the same
+response/cleanup debt and cannot begin decoding. The response phase and its
+constructor correspondence are described in
+`adapters/host-node/managed-source-reader.md`.
 
 The existing `ClientInstalledCaptureCapacity` Owner's
 `installed_provider_row_capture_capacity` projects these same checked sums

@@ -16,6 +16,7 @@ import {
 }
 
 options(
+  link: { "native": { "cc": "./scripts/native-sqlite-link-driver.sh" } },
   targets: {
     "guarded_write_native_wbtest.mbt": [ "native" ],
     "remote_use_retention_native_wbtest.mbt": [ "native" ],

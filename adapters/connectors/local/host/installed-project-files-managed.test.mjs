@@ -73,7 +73,7 @@ async function fixture({pendingClose = false, currentAfterRead = true, closeGate
     () => assert.fail('No Native constructor selected'), mime);
   profile = await install({moon, preparation: {originalsForRuntime: () => bundle}, sourceManaged,
     baseEnvironmentWire: '{}', authorizationFor: async () => ({context: {contextCid}, assertAccountCurrent() {}}),
-    prepareManagedRun(owner, intent, originalProfile, invocation) {
+    prepareManagedRun({preparedProgram: owner, requestIdentity: intent, sourceProfile: originalProfile, prepareInvocation: invocation}) {
       assert.strictEqual(owner, prepared); assert.strictEqual(intent, request);
       assert.strictEqual(originalProfile, profile); assert.strictEqual(invocation, expectedInvocation); calls.push('same-host-parent'); return managed;
     }});
@@ -86,19 +86,19 @@ async function fixture({pendingClose = false, currentAfterRead = true, closeGate
 
 test('ordinary Local Files delegates to the same Host Run without creating another Root or admission', async () => {
   const f = await fixture();
-  f.profile.prepareManagedRun(f.prepared, f.request);
+  f.profile.prepareManagedRun({preparedProgram: f.prepared, requestIdentity: f.request});
   assert.deepEqual(f.calls, ['same-host-parent']);
 });
 
 test('Local Files returns its same retained Host Run to the original submission caller', async () => {
   const f = await fixture();
-  assert.strictEqual(f.profile.prepareManagedRun(f.prepared, f.request), f.managed);
-  assert.strictEqual(f.profile.prepareManagedRun(f.prepared, f.request), f.managed);
+  assert.strictEqual(f.profile.prepareManagedRun({preparedProgram: f.prepared, requestIdentity: f.request}), f.managed);
+  assert.strictEqual(f.profile.prepareManagedRun({preparedProgram: f.prepared, requestIdentity: f.request}), f.managed);
   assert.deepEqual(f.calls, ['same-host-parent', 'same-host-parent']);
 });
 
 test('Local planned read keeps the same Core tuple and closes only its original external child', async () => {
-  const f = await fixture(); f.profile.prepareManagedRun(f.prepared, f.request);
+  const f = await fixture(); f.profile.prepareManagedRun({preparedProgram: f.prepared, requestIdentity: f.request});
   const original = {};
   assert.strictEqual(f.prepareRead(original), original);
   assert.throws(() => f.prepareRead(original), {code: 'LocalFilesSourcePreparationMismatch'});
@@ -109,7 +109,7 @@ test('Local planned read keeps the same Core tuple and closes only its original 
 });
 
 test('Local planned read keeps pending cleanup and never acknowledges or reopens its consumed occurrence', async () => {
-  const f = await fixture({pendingClose: true}); f.profile.prepareManagedRun(f.prepared, f.request);
+  const f = await fixture({pendingClose: true}); f.profile.prepareManagedRun({preparedProgram: f.prepared, requestIdentity: f.request});
   const original = f.prepareRead();
   await assert.rejects(f.options.closeSourceRead(original), {code: 'LocalFileCleanupPending'});
   assert.throws(() => f.prepareRead(), {code: 'LocalFilesSourcePreparationMismatch'});
@@ -121,7 +121,7 @@ test('Local planned read keeps pending cleanup and never acknowledges or reopens
 });
 
 test('Local partial read retains original cleanup before a post-acquisition current refusal', async () => {
-  const f = await fixture({currentAfterRead: false}); f.profile.prepareManagedRun(f.prepared, f.request);
+  const f = await fixture({currentAfterRead: false}); f.profile.prepareManagedRun({preparedProgram: f.prepared, requestIdentity: f.request});
   assert.throws(() => f.prepareRead(), /OriginalProjectSourceChanged/u);
   await f.profile.close();
   assert.deepEqual(f.calls, ['same-host-parent', 'same-native-parent', 'same-raw-close', 'core-read-retire']);
@@ -130,7 +130,7 @@ test('Local partial read retains original cleanup before a post-acquisition curr
 test('Local concurrent closes await the same original external cleanup without releasing twice', async () => {
   let release;
   const closeGate = new Promise(resolve => {release = resolve;});
-  const f = await fixture({closeGate}); f.profile.prepareManagedRun(f.prepared, f.request);
+  const f = await fixture({closeGate}); f.profile.prepareManagedRun({preparedProgram: f.prepared, requestIdentity: f.request});
   const original = f.prepareRead();
   const first = f.options.closeSourceRead(original), second = f.options.closeSourceRead(original);
   release();
@@ -349,7 +349,7 @@ test('Local installation forwards the captured actual Host method and original r
   const profile = {}, prepared = {}, request = {}, parent = {}, record = {}, installation = {};
   let supplied, calls = 0;
   const host = {prepareManagedSourceRun(...args) {
-    assert.strictEqual(this, host); assert.deepEqual(args, [runtime, prepared, request, profile]);
+    assert.strictEqual(this, host); assert.deepEqual(args, [runtime, prepared, request, profile, undefined]);
     assert.strictEqual(record.managedSourceProfile, profile);
     assert.strictEqual(installation.managedSourceProfile, profile); calls++; return parent;
   }};
@@ -364,7 +364,7 @@ test('Local installation forwards the captured actual Host method and original r
     () => assert.fail('No failed initialization'), operationError);
   assert.strictEqual(await install(runtime, '{}', () => {}), profile);
   host.prepareManagedSourceRun = () => assert.fail('No later method lookup');
-  assert.strictEqual(supplied(prepared, request, profile), parent);
+  assert.strictEqual(supplied({preparedProgram: prepared, requestIdentity: request, sourceProfile: profile}), parent);
   assert.equal(calls, 1);
   assert.throws(() => install({}, '{}', () => {}), {code: 'ForeignInstalledProjectSourcePreparation'});
 });
@@ -383,7 +383,7 @@ test('Local duplicate installation retains the actual returned profile for origi
 
 test('timed original Local wrapper forwards the same Host invocation constructor without invoking it',async()=>{
   const original=()=>assert.fail('Local must not invoke the Host constructor');
-  const f=await fixture({expectedInvocation:original});f.profile.prepareManagedRun(f.prepared,f.request,original);
+  const f=await fixture({expectedInvocation:original});f.profile.prepareManagedRun({preparedProgram:f.prepared,requestIdentity:f.request,prepareInvocation:original});
   assert.deepEqual(f.calls,['same-host-parent']);await f.profile.close();
 });
 

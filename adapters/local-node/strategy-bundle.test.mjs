@@ -595,6 +595,7 @@ test('bounded Local yields while finalizing a completed kernel', async () => {
     advance_finalization(quantum) {
       events.push(['finalize', quantum]);
       finalizationSteps++;
+      if (finalizationSteps === 1) setImmediate(() => controller.abort());
       return ok({complete: false, progress: BigInt(finalizationSteps), work: 1n});
     },
     request_cancel() {
@@ -630,7 +631,6 @@ test('bounded Local yields while finalizing a completed kernel', async () => {
   }, setup, checked);
   const prepared = await entry.prepareNext(new Map());
   const controller = new AbortController();
-  setTimeout(() => controller.abort(), 0);
   const failure = await entry.runPrepared(prepared, controller.signal)
     .then(() => assert.fail('cancelled finalization completed'), error => error);
   assert.equal(failure.name, 'AbortError');
@@ -818,6 +818,7 @@ test('standard Host runs Local with mixed memory and provider inputs',
         storage_bytes: 16,
         close() {},
         cleanup_refresh: () => true,
+        cleanup_local_continuation: () => -1n,
       };
       const local = localStrategyContribution({
         ...portableRuntime,

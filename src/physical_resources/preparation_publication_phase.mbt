@@ -8,7 +8,12 @@ pub fn[P] reserve_preparation_publication_phase(
   retained_peak : Int64,
   execution_peak : Int64,
 ) -> Result[Unit, PreparationCapacityIssue] {
-  (holder.reserve_publication_original)(body, retained_peak, execution_peak)
+  (holder.reserve_phase_original)(
+    body,
+    retained_peak,
+    execution_peak,
+    Publication,
+  )
 }
 
 ///|

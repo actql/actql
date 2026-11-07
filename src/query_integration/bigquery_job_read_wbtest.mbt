@@ -127,7 +127,7 @@ test "BigQuery same original Job POST once then status and exact cursor pages ca
   assert_true(@bigquery_read.job_read_complete(value))
   assert_true(@bigquery_read.next_job_request(value) is Ok(None))
   assert_eq(@bigquery_read.result_read_usage(read), (2, 2L))
-  let captured = @bigquery_read.capture_result_read(read).unwrap()
+  let captured = bigquery_capture_result(read).unwrap()
   assert_true(@row_host.row_capture_source(captured) is Ok(_))
   assert_eq(
     @resources.ledger_usage(ledger).transferred_bytes,

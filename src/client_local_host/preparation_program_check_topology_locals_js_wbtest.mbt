@@ -25,12 +25,14 @@ test "original reconciled-input constructor retains one returned work receipt on
   )
   assert_eq(@stage_results.local_program_read_owned_work(read), Some(2L))
   assert_eq(owner.topology_observed_work, 2L)
-  // The returned quotation frame12416 covers this first constructor too.
+  // The returned quotation frame341H146R738W covers this constructor too.
+  // Original delta-binding controls add four scalar words to the prior frame.
+  assert_eq(16L * 341L + 8L * 146L + 8L * 738L, 12528L)
   // After return only live state8H11R4W +original Usage1H3W remains288.
-  assert_eq(owner.source_body_quote, Some((12496L, 288L)))
+  assert_eq(owner.source_body_quote, Some((12528L, 288L)))
   assert_eq(
     @resources.preparation_capacity_working_extents(parent.capacity, input),
-    Ok((before.0 + 12496L, before.1 + 12496L)),
+    Ok((before.0 + 12528L, before.1 + 12528L)),
   )
   let work = owner.topology_work.unwrap()
   assert_eq(
@@ -173,7 +175,7 @@ test "reconciled-input one-short admission does not claim work or advance the or
         limits.retained_bytes -
         usage.held_bytes -
         usage.reserved_retention_bytes -
-        12496L +
+        12528L +
         1L
       } else {
         0L
@@ -181,7 +183,7 @@ test "reconciled-input one-short admission does not claim work or advance the or
       if retention {
         0L
       } else {
-        limits.execution_bytes - usage.reserved_execution_bytes - 12496L + 1L
+        limits.execution_bytes - usage.reserved_execution_bytes - 12528L + 1L
       },
     ).unwrap()
     let refused = advance_program_check_source_topology(owner)
@@ -200,7 +202,7 @@ test "reconciled-input one-short admission does not claim work or advance the or
     assert_eq(@stage_results.local_program_read_phase(read), LocalInputs)
     @resources.settle_capacity(parent.ledger, blocker).unwrap()
     assert_eq(advance_program_check_source_topology(owner).unwrap(), Imports)
-    assert_eq(owner.source_body_quote.unwrap(), (12496L, 288L))
+    assert_eq(owner.source_body_quote.unwrap(), (12528L, 288L))
     clear_program_check_preparation(owner).unwrap()
     abort_request_preparation_after_cleanup(parent).unwrap()
   }
@@ -383,7 +385,7 @@ test "256-input registration grows only missing backing and retains its original
     let prior = @stage_results.local_program_read_owned_work(read).unwrap()
     inspect_program_check_source_topology(owner).unwrap()
     let quote = owner.source_body_quote.unwrap()
-    let additional = quote.0 - 12496L
+    let additional = quote.0 - 12528L
     assert_true(additional > 0L)
     let usage = @resources.ledger_usage(parent.ledger)
     let limits = @resources.ledger_limits(parent.ledger)

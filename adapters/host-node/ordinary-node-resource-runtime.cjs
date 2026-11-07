@@ -75,7 +75,10 @@ function retainedPorts(original, state) {
     status(operation) {
       if (operation === 2) {
         const usage = state.usage;
-        if (!state.admitted || state.stopped || usage === undefined || usage.some(value => value !== 0n) ||
+        // Preserve the original report, including charged uncertain-transfer
+        // history at index zero. Only actual live resources block this stop.
+        if (!state.admitted || state.stopped || usage === undefined ||
+            usage.some((value, index) => index !== 0 && value !== 0n) ||
             state.childrenPending()) return -42;
         state.stopped = true; releasePreparation(); return 0;
       }

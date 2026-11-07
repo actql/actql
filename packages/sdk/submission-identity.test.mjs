@@ -290,7 +290,7 @@ test('SDK submitted outcome needs no verification clone after admission', async 
   });
   let failure;
   try {await client.start({}, {submissionRef});} catch (error) {failure = error;}
-  assert.equal(failure?.code, 'SubmissionNotAccepted');
+  assert.equal(failure?.code, 'SubmissionNotAccepted', '[check-mutation:request-held-admission]');
   assert.deepEqual(getSubmissionInput(failure).submissionRef, submissionRef);
   assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
 });

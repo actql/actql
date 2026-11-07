@@ -2358,9 +2358,18 @@ fn client_program_acquisition_prefix(program : @checked.CheckedProgram) -> Int {
   for index in 0..<@checked.source_execution_count(program) {
     let check = @checked.source_execution_at(program, index).unwrap()
     let subject = @checked.source_execution_subject(check)
-    if subject.stage < 0 || subject.stage > 1 {
+    if subject.stage < 0 {
       return 1
     }
+    if subject.stage > 1 {
+      // Downstream keyed lookup consumes the genuine computed prefix. It is
+      // not an independent acquisition task, and does not erase the two
+      // original initial Direct tasks. The checked DAG validates its exact
+      // request original and graph edges before accepting this profile.
+      guard subject.request is @acquisition.Keyed(_, _) else { return 1 }
+      continue
+    }
+    guard subject.request is @acquisition.Direct(_, _) else { return 1 }
     if @checked.source_execution_kind(check) is @checked.HostCombination {
       acquisitions[subject.stage] += 1
     }

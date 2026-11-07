@@ -226,6 +226,64 @@ test "Model module constructor reserves before factory and retains same module t
 }
 
 ///|
+// The component remains an explicit constructor port. Real Request capacity
+// and original lowering are exercised here; ordinary physical IO is separate.
+test "source-free Model component enters its one module after original input and capacity are retained" {
+  let (
+    parent,
+    input,
+    _,
+    compilation,
+    compiled,
+    definition,
+    request,
+    contracts,
+    holder,
+    _,
+  ) = request_model_module_fixture(false)
+  let capacity = parent.program_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let calls = Ref(0)
+  let backed = Ref(false)
+  let input_prefix : Ref[@execution.GeneratedSequence?] = Ref(None)
+  let original = prepare_request_model_source_free_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    contracts,
+    true,
+    1,
+    _ => [],
+    component_factory=Some((extent, prefix, _) => {
+      calls.val += 1
+      input_prefix.val = Some(prefix)
+      let during = @resources.preparation_capacity_working_extents(
+        capacity, input,
+      )
+      backed.val = parent.phase == Selecting &&
+        during is Ok((r, e)) &&
+        r > before.0 &&
+        e > before.1
+      @local.managed_provider(_ => false, _ => Some(extent), (_, _, _, _, _) => {
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  assert_eq(calls.val, 1)
+  assert_true(backed.val && input_prefix.val is Some(_))
+  assert_true(
+    parent.program_source_free is Some(same) && physical_equal(same, original),
+  )
+  assert_true(physical_equal(parent.program_capacity.unwrap(), capacity))
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
 test "Model module current refusal enters no factory and preserves original failed Request custody" {
   let armed = Ref(false)
   let (

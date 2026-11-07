@@ -34,10 +34,11 @@ export function actionsReader({repository, token, fetchImpl = fetch}) {
 
 export function fullCheckpointJobs(gateJobs) {
   assert(Array.isArray(gateJobs) && gateJobs.includes('preflight') && gateJobs.includes('core'), 'Invalid gate policy');
+  // Main metrics and the health monitor are push-only, not proof-reuse inputs.
   // The focused-only profile is an alternative to full execution, not a
   // missing full-family obligation. Manual macOS opt-in is checked separately;
   // do not generalize these exceptions to arbitrary skipped or missing jobs.
-  return ['check', ...gateJobs.filter(name => name !== 'focused-tests')
+  return ['check', ...gateJobs.filter(name => !['focused-tests', 'main-performance', 'health-quick'].includes(name))
     .flatMap(name => name === 'core' ? ['core (js)', 'core (wasm)', 'core (native)'] : [name])];
 }
 

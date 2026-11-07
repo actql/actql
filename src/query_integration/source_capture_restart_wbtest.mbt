@@ -388,3 +388,214 @@ test "durable source bridge keeps original observation binding and charged DAG c
     @client_local_host.close_accounted_client_source_capture(restored),
   )
 }
+
+///|
+test "accounted source restore keeps configured Model quantities and original failed reservation history" {
+  let binding = "run-a/task-0/input-0/attempt-1/native/table-a/generation-1"
+  let (exported, _) = source_restart_export(@mock.NativeQuery, binding)
+  let (requirement, _) = source_restart_requirement()
+  let capacity = @client_local_host.installed_pending_duckdb_capture_capacity(
+    pending_capture_capacity(requirement),
+  )
+  let quantities = @client_local_host.installed_capture_capacity_values(
+    capacity,
+  )
+  let ledger = @resources.create_ledger({
+    planning_work: 10000,
+    attempts: 10,
+    holdings: 10,
+    transfer_bytes: 1000000L,
+    retained_bytes: quantities[0],
+    execution_bytes: quantities[1],
+  }).unwrap()
+  let model_limits : @resources.QuantityAmounts = {
+    tokens: 2L,
+    cost_units: 3L,
+    duration_ms: 5L,
+  }
+  @resources.configure_quantities(ledger, model_limits).unwrap()
+  // An independent original Model reservation already owns all configured
+  // quantities. Restoring Source custody consumes none and cannot reset it.
+  let model = @resources.reserve_attempt(
+    ledger,
+    0L,
+    0L,
+    0L,
+    quantities=Some(model_limits),
+  ).unwrap()
+  let model_before = @resources.quantity_usage(ledger)
+  let limits_before = @resources.ledger_admission_limits(ledger)
+  let descriptor = @client_local_host.client_source_capture_export_descriptor(
+    exported,
+  )
+  let restore = fn(wire : String) {
+    @client_local_host.restore_accounted_client_source_capture(
+      requirement,
+      @client_local_host.client_source_capture_export_requirement(exported),
+      binding,
+      binding,
+      wire,
+      @client_local_host.client_source_capture_export_rows(exported),
+      ledger,
+      capacity,
+      () => true,
+    )
+  }
+  let restored = source_restart_ok(restore(descriptor))
+  assert_true(
+    @client_local_host.accounted_client_source_capture_source(restored)
+    is Some(_),
+  )
+  assert_eq(@resources.quantity_usage(ledger), model_before)
+  assert_eq(@resources.ledger_admission_limits(ledger), limits_before)
+  let actual_held = @resources.ledger_usage(ledger).held_bytes
+  assert_true(actual_held > 0L && actual_held < quantities[0])
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 1)
+  assert_true(
+    @client_local_host.close_accounted_client_source_capture(restored),
+  )
+  assert_false(
+    @client_local_host.accounted_client_source_capture_cleanup_pending(restored),
+  )
+  let mut after_close = @resources.ledger_usage(ledger)
+  assert_eq(after_close.held_bytes, 0L)
+  assert_eq(after_close.reserved_execution_bytes, 0L)
+  // Failed decoding settles only its own reservation. Keep every actual
+  // cumulative counter, including the earlier successful capture's peak.
+  assert_true(restore("{}") is Err(InvalidDescriptor))
+  assert_eq(@resources.ledger_usage(ledger), after_close)
+  assert_eq(@resources.quantity_usage(ledger), model_before)
+  // A live original capacity token exhausts each physical byte dimension.
+  // Refusal cannot alter the blocker, history, or Model quantities.
+  for (retained, execution) in [(quantities[0], 0L), (0L, quantities[1])] {
+    let blocker = @resources.reserve_capacity(ledger, retained, execution).unwrap()
+    let before = @resources.ledger_usage(ledger)
+    if retained > 0L {
+      assert_true(restore(descriptor) is Err(Physical(RetentionLimit)))
+    } else {
+      assert_true(restore(descriptor) is Err(Physical(ExecutionLimit)))
+    }
+    assert_eq(@resources.ledger_usage(ledger), before)
+    assert_eq(@resources.quantity_usage(ledger), model_before)
+    @resources.settle_capacity(ledger, blocker).unwrap()
+    // This real larger blocker advances the cumulative peak; releasing it
+    // cannot rewrite that observation to the earlier smaller capture peak.
+    after_close = {
+      ..after_close,
+      peak_retention_bytes: before.peak_retention_bytes,
+    }
+    assert_eq(@resources.ledger_usage(ledger), after_close)
+  }
+  // Source neutrality grants no additional Model capacity on this Ledger.
+  assert_true(
+    @resources.reserve_attempt(
+      ledger,
+      0L,
+      0L,
+      0L,
+      quantities=Some({ tokens: 1L, cost_units: 0L, duration_ms: 0L, }),
+    )
+    is Err(TokenLimit),
+  )
+  assert_eq(@resources.ledger_usage(ledger), after_close)
+  assert_eq(@resources.quantity_usage(ledger), model_before)
+  assert_true(
+    @resources.quantity_configuration_matches(ledger, Some(model_limits)),
+  )
+  @resources.settle_reservation(ledger, model).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "small accounted Source restoration funds receiving construction without physical acquisition budget" {
+  let binding = "same-run/source-0/original-attempt/current-generation"
+  let (exported, _) = source_restart_export(@mock.NativeQuery, binding)
+  let (requirement, query) = source_restart_requirement()
+  let capacity = @client_local_host.installed_pending_duckdb_capture_capacity(
+    pending_capture_capacity(requirement),
+  )
+  let physical = @client_local_host.installed_capture_capacity_values(capacity)
+  let ledger = @resources.create_ledger({
+    planning_work: 0,
+    attempts: 2,
+    holdings: 2,
+    transfer_bytes: 0L,
+    retained_bytes: 4194304L,
+    execution_bytes: 8388608L,
+  }).unwrap()
+  // This is the unchanged original native/broad declaration, not a lower
+  // physical-query profile. Only completed-custody reconstruction is selected.
+  assert_true(physical[1] > 8388608L)
+  let limits = @resources.ledger_admission_limits(ledger)
+  let restored = source_restart_ok(
+    @client_local_host.restore_accounted_client_source_capture(
+      requirement,
+      @client_local_host.client_source_capture_export_requirement(exported),
+      binding,
+      @client_local_host.client_source_capture_export_binding(exported),
+      @client_local_host.client_source_capture_export_descriptor(exported),
+      @client_local_host.client_source_capture_export_rows(exported),
+      ledger,
+      capacity,
+      () => true,
+    ),
+  )
+  let source = @client_local_host.accounted_client_source_capture_source(
+    restored,
+  ).unwrap()
+  assert_true(@query.captured_source_matches_query(source, query))
+  assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  assert_eq(@resources.ledger_admission_limits(ledger), limits)
+  assert_true(
+    @client_local_host.close_accounted_client_source_capture(restored),
+  )
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+}
+
+///|
+test "accounted Source reconstruction refuses overbudget and revoked originals before returning a capture" {
+  let binding = "same-run/source-0/original-attempt/current-generation"
+  let (exported, _) = source_restart_export(@mock.NativeQuery, binding)
+  let (requirement, _) = source_restart_requirement()
+  let capacity = @client_local_host.installed_pending_duckdb_capture_capacity(
+    pending_capture_capacity(requirement),
+  )
+  let restore = fn(ledger : @resources.Ledger, available : () -> Bool) {
+    @client_local_host.restore_accounted_client_source_capture(
+      requirement,
+      @client_local_host.client_source_capture_export_requirement(exported),
+      binding,
+      binding,
+      @client_local_host.client_source_capture_export_descriptor(exported),
+      @client_local_host.client_source_capture_export_rows(exported),
+      ledger,
+      capacity,
+      available,
+    )
+  }
+  let small = @resources.create_ledger({
+    planning_work: 0,
+    attempts: 2,
+    holdings: 2,
+    transfer_bytes: 0L,
+    retained_bytes: 4194304L,
+    execution_bytes: 0L,
+  }).unwrap()
+  let before = @resources.ledger_usage(small)
+  assert_true(restore(small, () => true) is Err(Physical(ExecutionLimit)))
+  assert_eq(@resources.ledger_usage(small), before)
+  let ledger = @resources.create_ledger({
+    planning_work: 0,
+    attempts: 2,
+    holdings: 2,
+    transfer_bytes: 0L,
+    retained_bytes: 4194304L,
+    execution_bytes: 8388608L,
+  }).unwrap()
+  assert_true(restore(ledger, () => false) is Err(CustodyUnavailable))
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+}

@@ -7,8 +7,8 @@ import {appendFile, lstat, mkdir, readFile, readdir, writeFile} from 'node:fs/pr
 import {arch, cpus, platform, release, totalmem} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {assessLatency, operationTargets} from './operation-performance.mjs';
-import {nodeBenchmarkInstrumentation, nodeOperationProtocol, verifyNodeBenchmarkPackages} from './benchmark-node-operations.mjs';
+import {assessLatency, recordOperationMeasurements, operationTargets} from './operation-performance.mjs';
+import {nodeBenchmarkFailure, nodeBenchmarkInstrumentation, nodeOperationProtocol, verifyNodeBenchmarkPackages} from './benchmark-node-operations.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const integer = n => Number.isSafeInteger(n) && n >= 0;
@@ -26,7 +26,7 @@ async function sample(config) {
     phaseScope:'Public spans only; activation/preparation remain inside submit, execution/publication inside wait/all-rows, not exclusive internal work'};
   const begin=name=>{const span={name,clock:'child-monotonic',parent:['product-import','public-open','first-close'].includes(name)?'public-lifecycle':'first-new-query',startNs:Number(process.hrtime.bigint()),endNs:null,completed:false};row.phaseSpans.push(span);return span;};
   const end=span=>{span.endNs=Number(process.hrtime.bigint());span.completed=true;};
-  let client, failure;
+  let client, failed = false;
   try {
     const importing=begin('product-import');
     const {open} = await import(pathToFileURL(join(config.consumer, 'node_modules/@actql/node/index.mjs')).href);
@@ -51,8 +51,8 @@ async function sample(config) {
     process.send({event:'first-result',pid:process.pid,operation:config.operation,stateId:config.stateId});
     row.actualSha256 = hash(Buffer.from(JSON.stringify(expected)));
   } catch (error) {
-    failure = error;
-    row.firstFailure = {name: error.name, code: error.code ?? null, message: error.message};
+    failed = true;
+    row.firstFailure = nodeBenchmarkFailure(error);
   } finally {
     if (client) {
       const closing=begin('first-close');
@@ -60,8 +60,8 @@ async function sample(config) {
       if (row.publicTiming) row.publicTiming.closeStartNs = Number(closeStart);
       try { await client.close(); row.cleanup.closed = true;end(closing); }
       catch (error) {
-        failure ??= error;
-        row.cleanup.failure = {name: error.name, code: error.code ?? null, message: error.message};
+        failed = true;
+        row.cleanup.failure = nodeBenchmarkFailure(error);
       }
       row.cleanup.wallNs = Number(process.hrtime.bigint() - closeStart);
       if (row.publicTiming) row.publicTiming.closeEndNs = Number(process.hrtime.bigint());
@@ -73,7 +73,7 @@ async function sample(config) {
     row.peakRssBytes = process.resourceUsage().maxRSS * 1024;
     row.rssScope = 'actual child process high-water RSS; not allocation or other-process memory';
     if (row.publicTiming) row.publicTiming.endNs = Number(started) + row.operationWallNs;
-    row.completed = row.verified = !failure && row.cleanup.closed;
+    row.completed = row.verified = !failed && row.cleanup.closed;
     await new Promise((resolve, reject) => process.send(row, error => error ? reject(error) : resolve()));
     process.disconnect();
   }
@@ -140,7 +140,7 @@ async function runChild(config, output, name) {
 export async function runNodeProcessBenchmark({manifestPath, consumer, output, controlsPath,
   operation, mode = 'diagnostic'}) {
   assert(['cold-existing', 'first-init'].includes(operation));
-  assert(['diagnostic', 'final'].includes(mode));
+  assert(['diagnostic', 'final', 'record-only'].includes(mode));
   consumer = resolve(consumer); output = resolve(output);
   const manifestBytes = await readFile(manifestPath), manifest = JSON.parse(manifestBytes);
   const controls = JSON.parse(await readFile(controlsPath));
@@ -168,7 +168,7 @@ export async function runNodeProcessBenchmark({manifestPath, consumer, output, c
     phaseQualification:'Public boundary clocks; internal activation/prepare/compile/execution/commit remain unresolved and must not be inferred from enclosing spans',
     qualification: 'Selected process operation only; no OS page-cache eviction or other release gate is inferred.'};
   const save = () => writeFile(join(output, 'measurements.json'), JSON.stringify(report, null, 2) + '\n', {mode: 0o600});
-  let originalRun, seed, primary;
+  let originalRun, seed, primary, hasPrimary = false;
   const state = join(output, 'existing-state'), pids = new Set();
   try {
     if (operation === 'cold-existing') {
@@ -189,7 +189,7 @@ export async function runNodeProcessBenchmark({manifestPath, consumer, output, c
       series.samples.push(row);
       await appendFile(join(output, 'samples.jsonl'), JSON.stringify({operation, ...row}) + '\n', {mode: 0o600});
       await save();
-      if (!result.verified || result.wallNs > operationTargets[operation].p95Ms * 1e6 * 10) {
+      if (!result.verified || (mode !== 'record-only' && result.wallNs > operationTargets[operation].p95Ms * 1e6 * 10)) {
         series.stoppedEarly = true;
         series.stopReason = result.verified ? 'Slow diagnostic; final distribution not measured' : 'Public functional failure';
         if (!result.verified) report.firstFailure = {operation, message: result.error};
@@ -201,17 +201,27 @@ export async function runNodeProcessBenchmark({manifestPath, consumer, output, c
       expectedSha256: hash(Buffer.from(JSON.stringify(expected))),
       ...(series.samples.length && series.samples.every(row => row.verified)
         ? {actualSha256: hash(Buffer.from(JSON.stringify(expected)))} : {})});
-  } catch (error) { primary = error; report.firstFailure = {operation, name: error.name, message: error.message}; }
+  } catch (error) {
+    hasPrimary = true; primary = error;
+    report.firstFailure = {operation, ...nodeBenchmarkFailure(error)};
+  }
   finally {
     report.cleanup.allChildrenExited = true; // runChild resolves only after actual close/exit.
     report.cleanup.allOriginalClientsClosed = (!seed || seed.childObservation?.cleanup?.closed === true) &&
       series.samples.every(row => row.childObservation?.cleanup?.closed === true);
     try { assert.deepEqual(await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer), before); report.installedPayloadsUnchanged = true; }
-    catch (error) { primary ??= error; report.packageFailure = error.message; }
-    report.assessments = [assessLatency(series)];
+    catch (error) {
+      if (!hasPrimary) {hasPrimary = true; primary = error;}
+      report.packageFailure = nodeBenchmarkFailure(error).message;
+    }
+    report.assessments = mode === 'record-only' ? [] : [assessLatency(series)];
+    if (mode === 'record-only' && !report.firstFailure && !hasPrimary &&
+        report.cleanup.allChildrenExited && report.cleanup.allOriginalClientsClosed) {
+      report.measurements = [recordOperationMeasurements(series)];
+    }
     await save();
   }
-  if (primary) throw primary;
+  if (hasPrimary) throw primary;
   return report;
 }
 
@@ -232,7 +242,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       const report = await runNodeProcessBenchmark(options);
       console.log(JSON.stringify({sourceSha: report.sourceSha, operation: options.operation,
         assessments: report.assessments, fullAcceptance: false}));
-      process.exitCode = report.firstFailure || report.assessments.some(row => row.status !== 'passed') ? 1 : 0;
+      process.exitCode = report.firstFailure || !report.cleanup.allChildrenExited ||
+        !report.cleanup.allOriginalClientsClosed || report.assessments.some(row => row.status !== 'passed') ? 1 : 0;
     }
-  } catch (error) { console.error(error.message); process.exitCode = 2; }
+  } catch (error) { console.error(nodeBenchmarkFailure(error).message); process.exitCode = 2; }
 }

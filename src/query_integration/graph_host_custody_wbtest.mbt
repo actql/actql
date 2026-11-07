@@ -812,6 +812,16 @@ fn retry_graph_host_match_cleanup(
   attempts : Ref[Int],
 ) -> Unit raise {
   let pending = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  // This is the closed MATCH task's original admitted holding, not an amount
+  // inferred from the aggregate change. Its provider withheld full retention
+  // retirement until this third successful cleanup. The VALUES output below
+  // has its own still-live original holding and immutable backing.
+  let retired_task_bytes = operations.storage_bytes
+  let live_output_bytes = @execution.managed_completed_output_storage_bytes(
+    output,
+  ).unwrap()
+  assert_true(retired_task_bytes > 0L && live_output_bytes > 0L)
+  assert_true(pending.held_bytes >= retired_task_bytes)
   let work = (operations.cumulative_provider_work)().unwrap()
   (operations.cleanup_refresh)() |> ignore
   assert_eq(attempts.val, 3)
@@ -819,7 +829,12 @@ fn retry_graph_host_match_cleanup(
   assert_true(
     cleaned.reserved_execution_bytes < pending.reserved_execution_bytes,
   )
-  assert_eq(cleaned.held_bytes, pending.held_bytes)
+  assert_eq(cleaned.held_bytes, pending.held_bytes - retired_task_bytes)
+  assert_true(cleaned.held_bytes >= live_output_bytes)
+  assert_eq(
+    @execution.managed_completed_output_storage_bytes(output),
+    Some(live_output_bytes),
+  )
   assert_eq(cleaned.reserved_retention_bytes, pending.reserved_retention_bytes)
   assert_eq(cleaned.transferred_bytes, pending.transferred_bytes)
   assert_eq((operations.cumulative_provider_work)(), Ok(work))

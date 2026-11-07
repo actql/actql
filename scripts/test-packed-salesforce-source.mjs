@@ -238,7 +238,11 @@ try {
     resources: ['Test_Record__c', 'Other_Record__c'],
     accountConfigurationWire: canonicalJson({
       version: 'actql-execution-account-config/0.1',
-      account_id: 'packed-account', entries: [{entry_id: 'records-read',
+      account_id: 'packed-account', entries: [{entry_id: 'host-read',
+        outcome: 'allow', exclusions: [],
+        principal: {any_of: [userInfo().username]}, connection: {all: true},
+        resource: {any_of: ['result/records', 'run']},
+        operation: {any_of: ['read']}}, {entry_id: 'records-read',
         outcome: 'allow', exclusions: [], principal: {all: true},
         connection: {any_of: [`salesforce:${orgId}`]},
         resource: {any_of: ['Other_Record__c', 'Test_Record__c']},
@@ -346,6 +350,10 @@ try {
         connection: {any_of: [`salesforce:${orgId}`]},
         resource: {any_of: ['Other_Record__c', 'Test_Record__c']},
         operation: {any_of: ['effect']}},
+      {entry_id: 'host-read', outcome: 'allow', exclusions: [],
+        principal: {any_of: [userInfo().username]}, connection: {all: true},
+        resource: {any_of: ['result/answer', 'result/classified', 'result/records', 'result/updates', 'run']},
+        operation: {any_of: ['read']}},
       {entry_id: 'host-run', outcome: 'allow', exclusions: [],
         principal: {all: true}, connection: {all: true},
         resource: {all: true}, operation: {any_of: ['write']}},
@@ -455,20 +463,22 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
     'graph-node-infer-effect-duplicate-key.program.template.json',
     'graph-node-infer-effect-null-property.program.template.json',
     'installed-infer-fixture.mjs', 'model-provider-binding-fixture.mjs',
-    'two-source-public-query.mjs',
+    'packed-infer-preparation-diagnostic.mjs', 'two-source-public-query.mjs',
     'public-query-input.mjs', ...optionalEffectFixtureFiles]) {
     await writeFile(join(root, name), await readFile(join(repository,
       'scripts/fixtures', name)));
   }
-  await writeFile(join(root, 'base-environment.json'), await readFile(
-    join(repository, 'spec/local-check-environment.json')));
+  const hostBaseEnvironmentWire = await readFile(
+    join(repository, 'spec/local-check-environment.json'), 'utf8');
+  const hostBaseEnvironment = JSON.parse(hostBaseEnvironmentWire);
+  await writeFile(join(root, 'base-environment.json'), hostBaseEnvironmentWire);
   if (composed) {
     const fixture = await loadTwoSourceFixtures(join(repository,
       'adapters/host-node/fixtures/two-source'));
     fixture.rows = {...databaseRows, equal_content: databaseRows.left};
     for (const name of ['left', 'right']) {
       fixture.environments[name] = await publicFixtureEnvironment(
-        fixture.environments[name]);
+        fixture.environments[name], hostBaseEnvironment.host_policy_profile);
     }
     const duckdb = createRequire(join(root,
       'node_modules/@actql/local-node/package.json'))('@duckdb/node-api');
@@ -511,7 +521,8 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
       const paired = await loadTwoSourceFixtures(join(repository,
         'adapters/host-node/fixtures/two-source'));
       for (const name of ['left', 'right']) {
-        paired.environments[name] = await publicFixtureEnvironment(paired.environments[name]);
+        paired.environments[name] = await publicFixtureEnvironment(
+          paired.environments[name], hostBaseEnvironment.host_policy_profile);
       }
       const sources = await installTwoSourceFixtures({root: join(root,
         'optional-effect-sources'), fixture: paired, duckdb});
@@ -560,6 +571,7 @@ import {resolve} from 'node:path';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {observeTwoSourceProvider} from './two-source-public-query.mjs';
+import {inferPreparationFailureData} from './packed-infer-preparation-diagnostic.mjs';
 import {userInfo} from 'node:os';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {connect} from '@actql/node';
@@ -610,7 +622,18 @@ const pendingScratch = process.argv[2] === 'rce-submit-pending';
 let scratchReleased = !pendingScratch;
 let temporaryReleaseConfirmed = false;
 const resumeFailures = [];
+let inferPreparationFailureObserved = false;
 authorization.observe = (name, detail) => {
+  // The packed command uploader retains stderr, not arbitrary scratch files.
+  // Keep the same bounded Model DATA projection as the standalone consumer;
+  // no Error, Run reference, input or current/acceptance decision is exported.
+  if (name === 'infer_preparation_rejected' && !inferPreparationFailureObserved) {
+    const data = inferPreparationFailureData(detail);
+    if (data !== undefined) {
+      inferPreparationFailureObserved = true;
+      console.error(JSON.stringify({event: name, ...data}));
+    }
+  }
   if (name === 'effect_resume_failed' || name === 'source_resume_failed') {
     resumeFailures.push({name, code: detail.code, detail: detail.detail, cause: detail.cause});
     if (resumeFailures.length > 16) resumeFailures.shift();
@@ -618,6 +641,15 @@ authorization.observe = (name, detail) => {
   if (name === 'effect_start_failed' || name === 'effect_settlement_failed') {
     appendFileSync('composition-custody.jsonl', JSON.stringify({name, ...detail,
       pendingScratch}) + '\\n');
+  }
+  if (name === 'model_resume_failed' || name === 'model_recovery_failed') {
+    // Cold Model failures have their own existing Host events. Retain only
+    // their bounded code label, never the original Run/scope or Error object.
+    const code = Object.getOwnPropertyDescriptor(detail ?? {}, 'code')?.value;
+    const failure = {name};
+    if (typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,95}$/.test(code)) failure.code = code;
+    resumeFailures.push(failure);
+    if (resumeFailures.length > 16) resumeFailures.shift();
   }
   if (optionalKind && name === 'acquisition_completed') {
     appendFileSync('optional-effect-selections.jsonl', JSON.stringify({ref: detail.ref,
@@ -662,9 +694,15 @@ if (composed) {
     const model = await modelConfiguration(JSON.parse(readFileSync(
       'base-environment.json', 'utf8')));
     installation.modelInstallation = model.installation;
+    const installedCore = await import(new URL(
+      './node_modules/@actql/local-node/adapters/host-common/runtime-core.mjs', import.meta.url));
+    const runtimeSource = readFileSync(new URL(
+      './node_modules/@actql/local-node/adapters/host-node/infer-operation.mjs', import.meta.url));
     installation.registerModelProviders = moon => registerCompositionModel(
       moon, model.taskCid, score => appendFileSync('model-calls.jsonl',
-        JSON.stringify({score}) + '\\n'), {cleanup: () => scratchReleased});
+        JSON.stringify({score}) + '\\n'), {cleanup: () => scratchReleased,
+          installation: model.installation, runtimeSource,
+          publicationControl: installedCore.runtimeCore(moon).publicationControl});
   }
 }
 let remoteHost;

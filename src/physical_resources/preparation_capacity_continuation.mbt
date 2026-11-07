@@ -60,6 +60,7 @@ pub fn[I, P, Q] continue_preparation_capacity(
     borrowers: 0,
     max_borrowers: owner.max_borrowers,
     retirement_claimed: false,
+    inventory_growth_active: false,
     active_phase_work: None,
     last_work_phase: owner.last_work_phase,
   }

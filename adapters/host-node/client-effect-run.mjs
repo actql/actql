@@ -102,7 +102,9 @@ export function installNodeClientEffectRun({moon,
         contentPolicy.cid, contentPolicy.wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth);
     } else outcome = infer === undefined
       ? moon.clientProgramCompileLocalEffects(prepared)
-      : moon.clientProgramCompileLocalEffectsWithInfer(prepared, infer);
+      : Array.isArray(infer)
+        ? moon.clientProgramCompileLocalEffectsWithInfers(prepared, infer)
+        : moon.clientProgramCompileLocalEffectsWithInfer(prepared, infer);
     if (moon.clientProgramEffectCompilationIssueCode(outcome) ===
         'unsupported_program') throw unsupported();
     compilation = checked(outcome);
@@ -124,6 +126,56 @@ export function installNodeClientEffectRun({moon,
     checkSupported(prepared) { compile(prepared); },
     capturePreparedOriginal(prepared) {
       return updateTargetOriginals?.capturePrepared(prepared, compile(prepared));
+    },
+    // Restore ONLY the existing resource preparation for an already retained
+    // Run. No start claim, execution Owner, new Definition, query-time sample
+    // or business authorization is issued here. Canceled/unknown Runs still
+    // need their same resources for original observation and cleanup.
+    async restoreRetainedPreparation({prepared, identity, namespaceId, ref, originalSubmittedIntent}) {
+      const retained = journal.resolveDefinition(identity, {namespaceId}, moon, control);
+      if (typeof prepareDefinition !== 'function' ||
+          retained?.ref.runDefinitionCid !== ref?.runDefinitionCid ||
+          retained.runDefinition?.identity !== ref.runDefinitionCid ||
+          originalSubmittedIntent?.intent === undefined ||
+          typeof originalSubmittedIntent.assertCurrent !== 'function') throw denied();
+      const evidence = retained.runAdmissionEvidence;
+      if (evidence === undefined || updateTargetOriginals === undefined ||
+          !moon.clientSubmittedIntentEffectCompatible(originalSubmittedIntent.intent, prepared)) throw denied();
+      originalSubmittedIntent.assertCurrent();
+      const compilation = compile(prepared);
+      let restored;
+      if (evidence.updateTargetRunOriginal !== undefined) {
+        restored = updateTargetOriginals.restoreRun(evidence.updateTargetRunOriginal,
+          retained.runDefinition, identity, compilation);
+      } else {
+        if (typeof evidence.effectOriginalRunWire !== 'string') throw denied();
+        restored = updateTargetOriginals.restoreEffectMaterials(evidence.effectOriginalRunWire,
+          retained.runDefinition, identity, compilation);
+      }
+      if (restored.prepared !== prepared || restored.compilation !== compilation ||
+          moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(restored.allowed)) !== evidence.prepared ||
+          moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(restored.allowed)) !== evidence.authorization) throw denied();
+      const {allowed, definition} = restored;
+      const queryTime = restoreQueryTime(queryTimeRequired(prepared), prepared, allowed, definition, identity);
+      const modelCompiled = inferPlanFor?.(prepared) === undefined ? undefined :
+        control.adoptCheckedClientEffectInferRun(allowed, retained.runDefinition, evidence.resultPolicyOriginal, limits);
+      const facts = Object.freeze({ref: retained.ref, prepared, identity, compilation,
+        allowed, definition, runDefinition: retained.runDefinition,
+        queryTimePreparation: queryTime.queryTimePreparation,
+        queryTime: queryTime.queryTime, modelCompiled, resultPolicyOriginal: evidence.resultPolicyOriginal,
+        ...restored, originalSubmittedIntent});
+      // Reuse the same actual normal constructor/adoption callback, with its
+      // original eight-field tuple. Its existing Host bag owns partial failure.
+      const selected = prepareDefinition?.(facts);
+      const then = selected?.then;
+      if (typeof then === 'function') {
+        try {await new Promise((resolve, reject) => Reflect.apply(then, selected, [resolve, reject]));}
+        catch { /* Join the original invalid borrow before refusing it. */ }
+        throw new TypeError('AsyncClientEffectDefinitionPreparation');
+      }
+      originalSubmittedIntent.assertCurrent();
+      restored.assertUpdateSelectionCurrent?.();
+      return facts;
     },
     // Record the public state of a started Run whose complete admitted Effect
     // Set has unknown outcomes. The owner names exactly those Effects; the
@@ -222,7 +274,9 @@ export function installNodeClientEffectRun({moon,
           // do not retain a second serialized copy. Other requested stops need
           // the same original materials before acceptance, not current config
           // reconstruction when their first Effect is resumed after restart.
-          const effectOriginalRunWire = !requestedStop || updateTargetRunOriginal !== undefined
+          // Ordinary approval also resumes in another process without an
+          // explicit commit stop. Its original must survive that same boundary.
+          const effectOriginalRunWire = updateTargetRunOriginal !== undefined
             ? undefined : updateTargetOriginals?.captureEffectMaterials({allowed, definition, identity});
           if (requestedStop && updateTargetRunOriginal === undefined && effectOriginalRunWire === undefined) {
             throw Object.assign(new Error('RequestedEffectStopOriginalUnavailable'),
@@ -434,13 +488,40 @@ export function installNodeClientEffectRun({moon,
       if (!moon.clientProgramEffectRunStartCurrent(allowed, definition, now())) {
         throw expired(retained.ref);
       }
-      const facts = {ref: retained.ref, identity, owner, prepared, compilation,
+      const modelCompiled = prepareDefinition === undefined || inferPlanFor?.(prepared) === undefined ? undefined :
+        control.adoptCheckedClientEffectInferRun(allowed, retained.runDefinition, evidence.resultPolicyOriginal, limits);
+      const facts = Object.freeze({ref: retained.ref, identity, owner, prepared, compilation,
         ...queryTime,
         ...original,
         allowed, definition, runDefinition: retained.runDefinition,
+        queryTimePreparation: queryTime.queryTimePreparation, modelCompiled,
         originalSubmittedIntent,
-        resultPolicyOriginal: evidence.resultPolicyOriginal};
-      const preparedExecution = prepareExecution?.(Object.freeze(facts));
+        resultPolicyOriginal: evidence.resultPolicyOriginal});
+      // A cold lookup did not enter the new-Run issuer above. Restore its
+      // SAME normal definition/resource constructor before opening execution;
+      // the original Request parent owns partial failure, not a new admission.
+      const originalPreparation = prepareDefinition?.(facts);
+      const preparationThen = originalPreparation?.then;
+      if (typeof preparationThen === 'function') {
+        try {
+          await new Promise((resolve, reject) => Reflect.apply(
+            preparationThen, originalPreparation, [() => resolve(), reject]));
+        } catch { /* Join the same invalid borrow before refusing it. */ }
+        throw new TypeError('AsyncClientEffectDefinitionPreparation');
+      }
+      if (prepareDefinition !== undefined) {
+        // The synchronous constructor may reenter cancellation/retirement.
+        // Re-read this original Journal boundary before any execution opens.
+        const current = journal.resolveDefinition(identity, {namespaceId}, moon, control);
+        if (current?.ref.runDefinitionCid !== handle.ref.runDefinitionCid ||
+            current.runDefinition?.identity !== retained.runDefinition.identity ||
+            current.physicalStartReserved !== true || current.preDispatchFailureConfirmed ||
+            current.cancellationRequested || current.observedTerminalOutcome !== null) throw denied();
+        originalSubmittedIntent?.assertCurrent();
+        original.assertUpdateSelectionCurrent?.();
+        if (!moon.clientProgramEffectRunStartCurrent(allowed, definition, now())) throw expired(retained.ref);
+      }
+      const preparedExecution = prepareExecution?.(facts);
       if (typeof preparedExecution?.then === 'function') {
         void Promise.resolve(preparedExecution).catch(() => {});
         throw new TypeError('AsyncClientEffectPreparation');

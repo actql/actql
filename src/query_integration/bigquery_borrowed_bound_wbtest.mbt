@@ -27,6 +27,17 @@ test "BigQuery borrowed Int64 metadata bound cannot reserve or widen the origina
   assert_eq(@bigquery_read.accept_query_page(read, None, body).unwrap(), 2)
   assert_true(@bigquery_read.result_read_complete(read))
   assert_true(
+    @bigquery_read.begin_result_capture(read) is Err(@bigquery_read.BorrowedRun),
+  )
+  assert_true(
+    @bigquery_read.advance_result_capture(read, 1)
+    is Err(@bigquery_read.BorrowedRun),
+  )
+  assert_true(
+    @bigquery_read.advance_result_capture_cleanup(read, 1)
+    is Err(@bigquery_read.BorrowedRun),
+  )
+  assert_true(
     @bigquery_read.capture_result_read(read) is Err(@bigquery_read.BorrowedRun),
   )
   let before_cleanup = @resources.ledger_usage(ledger)
@@ -38,7 +49,7 @@ test "BigQuery borrowed Int64 metadata bound cannot reserve or widen the origina
   stopped.val = true
   @bigquery_read.retire_borrowed_read(read).unwrap()
   @row_host.finish_row_run(run).unwrap()
-  assert_true(@row_host.capture_row_run(run) is Ok(_))
+  assert_true(query_capture_original_row_run(run) is Ok(_))
   @row_host.close_accounted_row_run(run).unwrap()
   let after = @resources.ledger_usage(ledger)
   assert_eq(after.transferred_bytes, body.length().to_int64())

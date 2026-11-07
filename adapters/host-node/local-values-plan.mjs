@@ -476,7 +476,7 @@ export function acquiredEffectPublicationPlan({acquired, captured,
 // input retention carries each original policy; derived publication carries
 // the checked combined policy with exactly the same custody/time bounds.
 export function acquiredMultiEffectPublicationPlan({acquired, sources,
-  captureStartedAt, captureCompletedAt, issuedModel, modelEvidence = []}) {
+  captureStartedAt, captureCompletedAt, issuedModel, modelEvidence = [], keyedSource}) {
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
@@ -494,15 +494,22 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
       {authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt},
       limits) : control.checkedClientEffectInferInvocation(prepared,
         compilation, runDefinition, issuedModel);
-  const sourceEvidence = sources.map(source => control.admitRunEvidence(
-    'source_evidence', source.sourceEvidenceWire, limits));
+  const sourceEvidence = sources.map(source => source.sourceEvidence === undefined
+    ? control.admitRunEvidence('source_evidence', source.sourceEvidenceWire, limits)
+    : source.sourceEvidence);
+  if (keyedSource !== undefined) {
+    if (issuedModel === undefined || keyedSource.source === undefined ||
+        typeof keyedSource.logicalRelationCid !== 'string') throw new TypeError('IncompleteAcquiredEffectSources');
+    sourceEvidence.push(keyedSource.source);
+  }
   const run = JSON.parse(runDefinition.wire);
   const {plan, retention, retentionDependencies} = buildLocalPublicationPlan({
     control, admission, runDefinition, invocation, observation,
     compiledPlanCid: compiledPlan.identity,
     programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
-    inputRelationCids: sources.map(({captured}) =>
+    inputRelationCids: [...sources.map(({captured}) =>
       moon.clientProgramCapturedSourceLogicalCid(captured.identity)),
+      ...(keyedSource === undefined ? [] : [keyedSource.logicalRelationCid])],
     sourceEvidence, modelEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid, createdAt: run.created_at, now,
     resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
@@ -552,12 +559,12 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
 // The original Model issuer has already adopted the real capture into the
 // original Effect Run. Its live binding remains held by capture custody.
 export function acquiredInferEffectPublicationPlan({acquired, sources,
-  compiled, operation, issuance, modelEvidence, captureStartedAt, captureCompletedAt}) {
+  compiled, operation, issuance, modelEvidence, captureStartedAt, captureCompletedAt, keyedSource}) {
   const issued = operation.bindIssuedInvocation(acquired.control, {
     compiled, runDefinition: acquired.runDefinition, issued: issuance});
   try {
     const plan = acquiredMultiEffectPublicationPlan({acquired, sources,
-      captureStartedAt, captureCompletedAt, issuedModel: issued, modelEvidence});
+      captureStartedAt, captureCompletedAt, issuedModel: issued, modelEvidence, keyedSource});
     const contentGenerations = operation.contentGenerations?.();
     const completePlan = contentGenerations === undefined ? plan : Object.freeze({...plan,
       receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations}),
@@ -640,20 +647,52 @@ export function inferTaskRunAdmission(options) {
 
 // Reuse the admitted original Run and its compiler-owned graph. This is not
 // fresh authorization, a new expiry, a replacement execution or a new Ledger.
+// Select metadata from this restored compiler's existing opaque inventory.
+// Coordinates identify the checked occurrence, never a new execution owner.
+export function selectRestoredInferOccurrence({moon, control, preparedProgram, restored, occurrence}) {
+  control.checkRestoredClientInferRunOwner(restored, preparedProgram);
+  if (!Array.isArray(restored.graph)) {
+    const original = control.checkedClientCompiledInferOriginal(
+      restored.compiled, preparedProgram, restored.runDefinition);
+    if (original.graph !== restored.graph) throw new TypeError('ForeignInstalledInferOriginalGraph');
+    return original;
+  }
+  const originals = control.checkedClientCompiledInferOriginals(
+    restored.compiled, preparedProgram, restored.runDefinition);
+  if (originals.length !== restored.graph.length || occurrence === undefined ||
+      originals.some((original, index) => original.graph !== restored.graph[index])) {
+    throw new TypeError('ForeignInstalledInferOriginalGraph');
+  }
+  const coordinates = moon.clientProgramInferOccurrenceCoordinates(occurrence);
+  const selected = originals.filter(original => {
+    const boundary = moon.clientProgramInferPlanBoundary(original.graph);
+    return runtimeField(boundary, 0) === runtimeField(coordinates, 0) &&
+      runtimeField(boundary, 1) === runtimeField(coordinates, 1);
+  });
+  if (selected.length !== 1) throw new TypeError('ForeignInstalledInferOriginalOccurrence');
+  return selected[0];
+}
+
 export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {
   control.checkRestoredClientInferRunOwner(restored, preparedProgram);
   if (restored.compiled.kind !== 'infer') {
     throw new TypeError('ForeignInstalledInferOriginalRun');
   }
   const {compiled, runDefinition} = restored;
-  const original = control.checkedClientCompiledInferOriginal(compiled, preparedProgram, runDefinition);
-  if (original.graph !== restored.graph) throw new TypeError('ForeignInstalledInferOriginalGraph');
+  const originals = Array.isArray(restored.graph)
+    ? control.checkedClientCompiledInferOriginals(compiled, preparedProgram, runDefinition)
+    : [control.checkedClientCompiledInferOriginal(compiled, preparedProgram, runDefinition)];
+  const graphs = Array.isArray(restored.graph) ? restored.graph : [restored.graph];
+  if (originals.length !== graphs.length ||
+      originals.some((original, index) => original.graph !== graphs[index])) {
+    throw new TypeError('ForeignInstalledInferOriginalGraph');
+  }
   const queryInvocation=prepareQueryInvocation(control,preparedProgram,requestIdentity,
     JSON.parse(runDefinition.wire));
   const queryTime=bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition);
   return Object.freeze({...compiled, compiled, runDefinition,
     ...queryTime,
-    createdAt: JSON.parse(runDefinition.wire).created_at, inferGraph: original.graph});
+    createdAt: JSON.parse(runDefinition.wire).created_at, inferGraph: restored.graph});
 }
 
 // Select the original checked Content occurrence, not a second parsed Program
@@ -668,7 +707,12 @@ export function serializationTaskRunAdmission(options) {
 // installed ceilings and original checked occurrence. Only root ownership differs.
 export function selectInstalledSerializationGraph(options, component = false) {
   const {moon, control, preparedProgram} = options;
-  const occurrences = moon.clientProgramSerializationOccurrences(preparedProgram);
+  const effectful = options.effectful === true;
+  if (effectful && (!component || typeof options.prepareSerializationGraph !== 'function')) {
+    throw new TypeError('InstalledContentComponentUnsupported');
+  }
+  const occurrences = (effectful ? moon.clientProgramEffectSerializationOccurrences
+    : moon.clientProgramSerializationOccurrences)(preparedProgram);
   if (!Array.isArray(occurrences) || occurrences.length !== 1) {
     throw new TypeError('InstalledContentComponentUnsupported');
   }

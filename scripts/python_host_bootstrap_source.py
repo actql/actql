@@ -27,8 +27,10 @@ INPUTS = (
     'src/platform_native/host_bootstrap/process_region.h',
     'src/platform_native/host_bootstrap/bootstrap_wbtest.mbt',
     'src/platform_native/host_bootstrap/fd_supplier_wbtest.mbt',
+    'src/platform_native/host_bootstrap/in_process_domain_wbtest.mbt',
     'packages/python-local-runtime/native/pre-root/owned_capacity.c',
     'packages/python-local-runtime/native/pre-root/owned_capacity.h',
+    'packages/python-local-runtime/native/pre-root/owned_inventory.inc',
     'packages/python-local-runtime/native/pre-root/owned_region.h',
     'packages/python-local-runtime/native/pre-root/owned_region.inc',
     'packages/python-local-runtime/native/pre-root/owned_domain_borrow.h',
@@ -39,6 +41,9 @@ INPUTS = (
     'src/platform_native/host_bootstrap/read_cleanup_observation_native.mbt',
     'src/platform_native/host_bootstrap/extent_work_native.mbt',
     'src/platform_native/host_bootstrap/domain_inventory_native.mbt',
+    'src/platform_native/host_bootstrap/backing_growth_native.mbt',
+    'src/platform_native/host_bootstrap/backing_growth_wbtest.mbt',
+    'packages/python-local-runtime/native/pre-root/owned_domain_growth.inc',
 )
 MANIFEST = 'packages/python-local-runtime/native/pre-root/host-bootstrap-source.json'
 

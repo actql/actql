@@ -93,6 +93,7 @@ pub struct Execution {
   mut advancing : Bool
   mut reclaimed : Bool
   mut local_component_bound : Bool
+  priv entry_work : Int64
   mut work : Int64
   mut child_work : Int64
   mut output_uses : Int
@@ -299,7 +300,13 @@ pub fn start_original_generated(
   // still belong to start_generated; do not duplicate their input execution.
   start_generated(prepared, compiled, generation, plan, provider, limits).map(active => {
     retain_original_model_preparation(
-      active, compiled, definition, consumer, model_retained_bytes, model_execution_bytes,
+      active,
+      compiled,
+      definition,
+      consumer,
+      model_retained_bytes,
+      model_execution_bytes,
+      shared_mock=true,
     )
     active
   })
@@ -351,7 +358,13 @@ pub fn start_original_generated_inputs(
   }
   start_generated_inputs(compiled, generation, plan, inputs, provider, limits).map(active => {
       retain_original_model_preparation(
-        active, compiled, definition, consumer, model_retained_bytes, model_execution_bytes,
+        active,
+        compiled,
+        definition,
+        consumer,
+        model_retained_bytes,
+        model_execution_bytes,
+        shared_mock=true,
       )
       active
     },
@@ -693,6 +706,19 @@ fn start_occurrence(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  // The same completed keyed producer has already debited this work. Retain
+  // its cumulative history before constructing the remaining input, while
+  // each later child/component reports only its newly performed work.
+  let entry_work = composed_sources
+    .bind(sources => {
+      @publication_host.client_infer_composed_keyed_lookup(sources, occurrence).bind(lookup => {
+          @publication_host.client_composed_keyed_lookup_prefix_work(
+            lookup, occurrence,
+          )
+        },
+      )
+    })
+    .unwrap_or(0L)
   let input = match start_input(limits) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
@@ -724,8 +750,9 @@ fn start_occurrence(
     cancelled: false,
     advancing: false,
     reclaimed: false,
-    work: 0L,
-    child_work: 0L,
+    entry_work,
+    work: entry_work,
+    child_work: entry_work,
     output_uses: 0,
     run_binding: None,
     original_preparation: None,
@@ -794,6 +821,11 @@ pub fn start_composed(
             value, occurrence,
           )
         }),
+        captured=sources.bind(value => {
+          @publication_host.client_infer_composed_direct_source(
+            value, occurrence,
+          )
+        }),
       )
     },
     composed_sources=sources,
@@ -843,6 +875,13 @@ pub fn advance_root(active : Execution, quantum : Int) -> Result[Poll, Issue] {
 }
 
 ///|
+fn execution_input_unadvanced(active : Execution) -> Bool {
+  active.phase is Input &&
+  active.work == active.entry_work &&
+  active.child_work == active.entry_work
+}
+
+///|
 fn account(active : Execution, child_work : Int64) -> Bool {
   if child_work < active.child_work ||
     child_work - active.child_work > 9223372036854775807L - active.work {
@@ -865,7 +904,7 @@ pub fn bind_compute_suffix(
     !active.advancing &&
     !active.cancelled &&
     active.phase is Input &&
-    active.work == 0L &&
+    execution_input_unadvanced(active) &&
     active.suffix_sequence is None &&
     physical_equal(
       @publication_host.client_infer_occurrence_preparation(active.occurrence),
@@ -914,6 +953,7 @@ fn stopped(active : Execution) -> Poll {
 ///|
 fn begin_model(active : Execution) -> Poll {
   guard active.rows is Some(rows) else { return fail(active, InvalidAdvance) }
+  let mut model_limits = active.limits.model
   let started = match active.source {
     Physical(provider) =>
       if active.original_preparation is Some(original) {
@@ -921,6 +961,28 @@ fn begin_model(active : Execution) -> Poll {
           active.plan is Some(plan) &&
           active.call_scope is Some(scope) else {
           return fail(active, InvalidAdvance)
+        }
+        if original.read is Claimed(consumer) {
+          let quoted = match
+            @publication_host.client_model_read_consumer_model_limits(
+              consumer,
+              bound.compiled,
+              bound.definition,
+              plan,
+            ) {
+            Err(issue) =>
+              return fail(
+                active,
+                OriginalCapacity(@publication_host.Read(issue)),
+              )
+            Ok(value) => value
+          }
+          if quoted is Some(ledger) {
+            // Reuse the same installed Plan allowance. Logical item/work and
+            // request bounds stay on the checked Model limits; the existing
+            // Model startup still checks its contract and parent capacity.
+            model_limits = { ..model_limits, ledger, }
+          }
         }
         // The seal is retained before attempting startup. A refused start must
         // not lose its unconsumed original capacity or input cleanup custody.
@@ -946,7 +1008,7 @@ fn begin_model(active : Execution) -> Poll {
                 scope,
                 rows,
                 provider,
-                active.limits.model,
+                model_limits,
                 original.retained_bytes,
                 original.execution_bytes,
               )
@@ -973,7 +1035,7 @@ fn begin_model(active : Execution) -> Poll {
           rows,
           provider,
           active.fixed_request_cid,
-          active.limits.model,
+          model_limits,
           scope,
           dispatch_admission=active.dispatch_admission,
           durable_calls=active.durable_calls,

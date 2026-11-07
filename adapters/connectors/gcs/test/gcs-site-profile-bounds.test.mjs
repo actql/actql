@@ -25,9 +25,14 @@ async function fixture(t) {
       maxListingBytes: 32768, maxDurationMs: 10000, maxPathBytes: 1024,
       maxPageBytes: 8192, maxPageItems: 9, maxRequestBytes: 4096, maxContentBytes: 4096}};
   let coreCalls = 0, secretCalls = 0;
-  const reachedCore = Object.freeze(new Error('ReachedExistingCoreDeclaration'));
-  const options = {root: scratch.path, principalId: 'fixture',
-    moon: new Proxy({}, {get() { coreCalls++; throw reachedCore; }}),
+  const reachedCore = Object.freeze(new Error('ReachedBoundDeclarationBoundary'));
+  // Reader/domain boundary only, not a Host construction or lifecycle proof.
+  // Actual Common/Resource composition has separate installed-bound tests.
+  const unavailable = () => assert.fail('Reader test must stop before Site construction');
+  const construction = {configurationReader: {readJson: readSourceProfileJson},
+    prepareDerivedDeclaredCommands() {coreCalls++; throw reachedCore;},
+    prepareReadTargetWithMappings: unavailable, openRowSite: unavailable, createRowSource: unavailable};
+  const options = {root: scratch.path, principalId: 'fixture', construction,
     resolveSecret() { secretCalls++; assert.fail('UnexpectedCredentialOperation'); }};
   const open = fs.open;
   const state = {bytes: 0, reads: 0, opens: 0, closes: 0, allowClose: true, handle: undefined};

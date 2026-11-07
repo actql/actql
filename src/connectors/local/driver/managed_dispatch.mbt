@@ -564,13 +564,18 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     @local.local_import_retention_capacity(imports) is Some(per_input) else {
     return Err(Configuration(InvalidLimits))
   }
-  // Native supplied reads are already admitted by their original Source.
-  // They do not construct the wire importer below, so use the same import
-  // occurrence count as the retained dispatch Plan's producer-edge inventory.
+  // Match the actual binding pass below. Supplied reads and already accessible
+  // ordinary captures borrow their original storage; only missing copies and
+  // managed producer bridges allocate an importer on this same task.
   let mut count = 0L
   for input in relation_inputs {
-    if !(input is SuppliedRelationInput(_)) {
-      count += 1L
+    match input {
+      OrdinaryRelationInput(read) =>
+        if !@execution.producer_read_has_cell_access(read) {
+          count += 1L
+        }
+      ManagedRelationInput(_) => count += 1L
+      SuppliedRelationInput(_) => ()
     }
   }
   if per_input > 0L && count > 9223372036854775807L / per_input {
@@ -730,21 +735,16 @@ pub fn[T] start_local_managed_dispatch(
   // the task's scratch reservation until the installed provider actually
   // releases its owned state. Cache the existing owner's cumulative work
   // before dropping its last driver reference, without inventing cleanup work.
+  let provider_completion_retained = Ref(false)
   let release_provider_scratch = fn() {
-    match provider_execution.val {
-      None => true
-      Some(active) => {
-        if !@local.managed_provider_stopped(active) ||
-          !@local.cleanup_managed_provider(active).unwrap_or(false) {
-          return false
-        }
-        final_provider_work.val = @local.managed_provider_cumulative_work(
-          active,
-        )
-        provider_execution.val = None
-        true
-      }
-    }
+    release_local_managed_provider_scratch(
+      provider_execution,
+      provider_completion_retained,
+      live.val &&
+      settled.val &&
+      (ordinary.val is Some(_) || carrier.val is Some(_)),
+      final_provider_work,
+    )
   }
   let retired_carriers : Array[@carrier_runtime.Material] = []
   let snapshot_attempted = Ref(false)
@@ -765,6 +765,7 @@ pub fn[T] start_local_managed_dispatch(
   ).filter(requirement => requirement.need is @execution.EstablishedBy(_))
   let finalization_started = Ref(false)
   let finalization_ready = Ref(false)
+  let finalization_metadata_grown = Ref(false)
   let finalization_cancelled = Ref(false)
   let finalization_row = Ref(0)
   let finalization_receipt_steps = Ref(0L)
@@ -871,7 +872,7 @@ pub fn[T] start_local_managed_dispatch(
     if !(disposed.val ||
       (settled.val && (finalization_ready.val || carrier.val is Some(_)))) ||
       scratch_uses.val != 0 ||
-      provider_execution.val is Some(_) ||
+      (provider_execution.val is Some(_) && !provider_completion_retained.val) ||
       relation_snapshot_cancel.val is Some(_) ||
       (!live.val && input_stop.phase != Stopped) {
       return
@@ -979,7 +980,7 @@ pub fn[T] start_local_managed_dispatch(
               (settled.val && carrier.val is Some(_))
             ) &&
             scratch_uses.val == 0 &&
-            provider_execution.val is None &&
+            (provider_execution.val is None || provider_completion_retained.val) &&
             (live.val || input_stop.phase == Stopped) &&
             scratch_retirement.phase == Retired &&
             (
@@ -1017,6 +1018,7 @@ pub fn[T] start_local_managed_dispatch(
                 old_carriers_released = false
               }
             }
+            provider_execution.val is None &&
             relation_released &&
             carrier_released &&
             old_carriers_released &&
@@ -1497,6 +1499,7 @@ pub fn[T] start_local_managed_dispatch(
         available() else {
         return Err(Configuration(InvalidLimits))
       }
+
       let values = match
         @execution.prepare_managed_output_values(
           @connector.managed_fixed_compute_request_owner(request),
@@ -1670,6 +1673,43 @@ pub fn[T] start_local_managed_dispatch(
             }
             (@execution.LogicalRelation, @execution.NamedResult, Some(result)) => {
               if finalization_result_preparation.val is None {
+                // Only a Named Result constructs these row indices. Other
+                // task identities do not reserve an unused Result workspace.
+                if !finalization_metadata_grown.val {
+                  if setup.metadata.result_rows_reserved is Some(initial) {
+                    let rows = @execution.completed_row_count(output)
+                    if rows < 0 || rows > setup.imports.max_rows {
+                      return Err(Configuration(InvalidLimits))
+                    }
+                    let extra_rows = Int::max(0, rows - initial)
+                    // Result projection and stable ordering own two index arrays. This is
+                    // their existing logical cursor-root allowance, not measured heap/RSS.
+                    guard @execution.execution_capacity_inventory_add(
+                        setup.capacity.scratch_bytes,
+                        CursorRootSlots,
+                        extra_rows.to_int64(),
+                        2,
+                      )
+                      is Some(scratch) else {
+                      return Err(Configuration(InvalidLimits))
+                    }
+                    if extra_rows > 0 {
+                      match
+                        @strategy.grow_task_execution_workspace(
+                          setup.run,
+                          execution,
+                          scratch,
+                        ) {
+                        Ok(_) => ()
+                        Err(issue) => return Err(Execution(Physical(issue)))
+                      }
+                      if !live.val || disposed.val || !available() {
+                        return Err(Execution(Stopped))
+                      }
+                    }
+                  }
+                  finalization_metadata_grown.val = true
+                }
                 let preparation = match
                   @execution.start_completed_result_relation_export(
                     output,
@@ -2701,15 +2741,23 @@ pub fn[T] start_local_managed_dispatch(
     // -1 means no authorized local continuation, not a stop/release witness.
     // Provider, borrowed input, snapshot and active-reader waits retain custody.
     cleanup_local_continuation: fn() {
-      if !disposed.val ||
-        live.val ||
+      // Completed Relation material owns its independent receipt/index. Its
+      // stopped provider can retire temporary roots before that live output
+      // closes; this cursor is not an output or physical cleanup ACK.
+      let completed_relation = live.val &&
+        settled.val &&
+        finalization_ready.val &&
+        finalization_completed.val is Some(_) &&
+        retained.val is Some(_) &&
+        ordinary.val is Some(_)
+      if ((!disposed.val || live.val) && !completed_relation) ||
         scratch_uses.val != 0 ||
-        provider_execution.val is Some(_) ||
+        (provider_execution.val is Some(_) && !provider_completion_retained.val) ||
         relation_snapshot_cancel.val is Some(_) ||
-        input_stop.phase != Stopped ||
+        (!completed_relation && input_stop.phase != Stopped) ||
         carrier.val is Some(_) ||
         !retired_carriers.is_empty() ||
-        retained.val is Some(_) ||
+        (retained.val is Some(_) && !completed_relation) ||
         snapshot_storage_released.val is Some(_) {
         return -1L
       }

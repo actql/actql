@@ -8,6 +8,7 @@ priv struct StoredOriginalMetadata {
   mut invoked : Bool
   mut produced : Bool
   mut output_closed : Bool
+  mut project : StoredProjectConfiguration?
 }
 
 ///|
@@ -140,7 +141,7 @@ pub fn reserve_original_metadata(
     return -5
   }
   if kind < 1 ||
-    kind > 4 ||
+    kind > 5 ||
     physical_ticket <= 0 ||
     value.next_handle == 2147483647 ||
     value.copies.values().any(pair => pair.1 == physical_ticket) ||
@@ -172,6 +173,7 @@ pub fn reserve_original_metadata(
     invoked: false,
     produced: false,
     output_closed: false,
+    project: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -208,6 +210,7 @@ pub fn produce_original_metadata(nonce : Int64, handle : Int) -> Int {
     2 => ["initialization", "device", "inode", "size"]
     3 => ["initialization", "configuration_custody", "device", "inode"]
     4 => ["files", "managed_root"]
+    5 => ["configuration", "profile"]
     _ => return -3
   }
   guard input_cursor(value, borrow.slot) is Some(cursor) &&
@@ -246,6 +249,14 @@ pub fn produce_original_metadata(nonce : Int64, handle : Int) -> Int {
       }
     }
     4 => original_configuration_selection_body(object).unwrap_or_else(() => b"")
+    5 => {
+      guard prepare_original_project_configuration(object) is Some(project) else {
+        return -31
+      }
+      // Retain before the fallible encoding/copy, including on failure.
+      record.project = Some(project)
+      original_project_configuration_body(project).unwrap_or_else(() => b"")
+    }
     _ => return -3
   }
   if body.is_empty() {
@@ -304,6 +315,12 @@ pub fn close_original_metadata(nonce : Int64, handle : Int) -> Int {
     Err(_) => 0
   }
   if result == 0 {
+    if record.project is Some(project) {
+      match @host.retire_client_project_profile(project.selection) {
+        Ok(_) => record.project = None
+        Err(_) => return -31
+      }
+    }
     value.original_metadata.remove(handle) |> ignore
     value.copies.remove(handle) |> ignore
   }

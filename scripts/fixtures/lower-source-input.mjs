@@ -71,5 +71,5 @@ export const lowerRefusals = [
 ].map(value => ({...value, name: 'lower-' + value.name, format: 'sql', expectedCode: 'ClientProgramInvalidInput'}));
 export const lowerExecutionFailures = [{
   name: 'lower-demanded-operand', text: 'SELECT LOWER(CAST(1 / 0 AS STRING)) AS value',
-  format: 'sql', resultNames: ['answer'], sourceReadSessionCount: 0,
+  format: 'sql', resultNames: ['main'], sourceReadSessionCount: 0,
 }];

@@ -3459,7 +3459,7 @@
     },
     {
       "module": "src/check_environment/model_mock_execution.mbt",
-      "sha256": "898e021a826726e08f293bb3344b898b87b594b3fb3416230b5e9fdc85c284ed",
+      "sha256": "545dca8859f46d8046df740ce4634d1e56f1952114b605b83c9e3fd12b7d960e",
       "exports": [],
       "operations": [
         {
@@ -3489,6 +3489,10 @@
         {
           "name": "model_mock_retry_wire",
           "declaration": "model_mock_retry_wire ( ) - > String"
+        },
+        {
+          "name": "read_original_mock_model_dependencies",
+          "declaration": "read_original_mock_model_dependencies ( profile : ModelMockProfile , normalized : NormalizedPublicModelTask , execution : ModelExecutionContract , prompt : Bytes ? , retry : Bytes ? , backoff : Bytes ? , limits : Limits , max_work : Int , ) - > Result [ SingleAttemptModelDependencies , ModelDependencyIssue ]"
         }
       ],
       "role": "common-semantics",
@@ -3504,7 +3508,8 @@
             "model_mock_execution_matches",
             "model_mock_execution_materials",
             "model_mock_execution_profile_wire",
-            "model_mock_retry_wire"
+            "model_mock_retry_wire",
+            "read_original_mock_model_dependencies"
           ],
           "exports": [],
           "attributes": {
@@ -3516,6 +3521,10 @@
               {
                 "path": "src/check_environment/model_mock_execution.mbt",
                 "anchor": "fn model_mock_execution_profile_wire() -> String {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The same live `OriginalMock` installation selects the dependency reader"
               }
             ],
             "inputsOutputs": [
@@ -3526,6 +3535,10 @@
               {
                 "path": "src/check_environment/model_mock_execution.mbt",
                 "anchor": "pub fn model_mock_execution_materials("
+              },
+              {
+                "path": "src/check_environment/model_dependencies.mbt",
+                "anchor": "fn read_model_dependencies_selected("
               }
             ],
             "identity": [
@@ -3536,6 +3549,10 @@
               {
                 "path": "src/model_execution/mock_installation.mbt",
                 "anchor": "fn original_mock_scope_matches("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn read_original_model_mock_dependencies("
               }
             ],
             "ownership": [
@@ -3602,6 +3619,10 @@
               {
                 "path": "src/model_execution/mock_selection_wbtest.mbt",
                 "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              },
+              {
+                "path": "src/model_execution/mock_provider_admission_wbtest.mbt",
+                "anchor": "test \"original Mock Content dependencies retain opaque input and strict physical media admission\" {"
               }
             ]
           }
@@ -4078,7 +4099,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_model_mock_installation_bridge.mbt",
-      "sha256": "a8ae68ca262eef774944cd1e44093cedf0830719844b542b744df7cd41cc92f9",
+      "sha256": "5c6084bb234af2482ab5265b07d3b7f86f9aff0fb2250395680cfe694c3ce4c6",
       "exports": [],
       "operations": [
         {
@@ -4110,6 +4131,10 @@
           "declaration": "client_program_original_mock_provider ( original : @ model . ModelMockInstallation , ) - > Result [ @ model . ModelProvider , @ model . ModelMockInstallationIssue ]"
         },
         {
+          "name": "client_program_read_original_mock_model_dependencies",
+          "declaration": "client_program_read_original_mock_model_dependencies ( original : @ model . ModelMockInstallation , execution : @ check_environment . ModelExecutionContract , prompt : String ? , retry : String ? , backoff : String ? , ) - > Result [ @ check_environment . SingleAttemptModelDependencies , @ check_environment . ModelDependencyIssue , ]"
+        },
+        {
           "name": "client_program_retire_mock_profile",
           "declaration": "client_program_retire_mock_profile ( original : @ check_environment . ModelMockProfile , ) - > Bool"
         },
@@ -4133,7 +4158,8 @@
             "client_program_normalize_mock_task",
             "client_program_original_mock_provider",
             "client_program_retire_mock_profile",
-            "client_program_retire_original_mock"
+            "client_program_retire_original_mock",
+            "client_program_read_original_mock_model_dependencies"
           ],
           "exports": [],
           "attributes": {
@@ -4145,6 +4171,10 @@
               {
                 "path": "src/connectors_builtin_node/client_model_mock_installation_bridge.mbt",
                 "anchor": "pub fn client_program_install_mock_profile("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The same live `OriginalMock` installation selects the dependency reader"
               }
             ],
             "inputsOutputs": [
@@ -4159,6 +4189,10 @@
               {
                 "path": "src/model_execution/provider_admission.mbt",
                 "anchor": "pub fn admit_original_model_mock_provider("
+              },
+              {
+                "path": "src/check_environment/model_dependencies.mbt",
+                "anchor": "fn read_model_dependencies_selected("
               }
             ],
             "identity": [
@@ -4173,6 +4207,10 @@
               {
                 "path": "src/check_environment/public_model_task_mock.mbt",
                 "anchor": "pub fn normalized_public_mock_model_task_matches_prompt("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn read_original_model_mock_dependencies("
               }
             ],
             "ownership": [
@@ -4251,6 +4289,10 @@
               {
                 "path": "src/model_execution/mock_provider_admission_wbtest.mbt",
                 "anchor": "test \"original Mock admits its owned normalized prompt without a Host callback\" {"
+              },
+              {
+                "path": "src/model_execution/mock_provider_admission_wbtest.mbt",
+                "anchor": "test \"original Mock Content dependencies retain opaque input and strict physical media admission\" {"
               }
             ]
           }
@@ -4508,7 +4550,7 @@
     },
     {
       "module": "src/model_execution/mock_installation.mbt",
-      "sha256": "ca621cd4de4d0de0b1d05c22debdde62e42bf378280f68f0b6e2ec93273eb018",
+      "sha256": "f11c4e6362f5fdb31885a6b3ae44ac164ada63409d2bbe3de5054eca8013183b",
       "exports": [],
       "operations": [
         {
@@ -4522,6 +4564,10 @@
         {
           "name": "ModelMockInstallation::require_original",
           "declaration": "ModelMockInstallation : : require_original ( self : Self , ) - > Result [ Unit , ModelMockInstallationIssue ]"
+        },
+        {
+          "name": "original_mock_accepts_opaque_references",
+          "declaration": "original_mock_accepts_opaque_references ( provider : ModelProvider , task : @ environment . ModelTaskContract , ) - > Bool"
         },
         {
           "name": "original_mock_provider_matches",
@@ -4540,6 +4586,10 @@
           "declaration": "original_model_mock_provider ( original : ModelMockInstallation , ) - > Result [ ModelProvider , ModelMockInstallationIssue ]"
         },
         {
+          "name": "read_original_model_mock_dependencies",
+          "declaration": "read_original_model_mock_dependencies ( original : ModelMockInstallation , execution : @ environment . ModelExecutionContract , prompt : Bytes ? , retry : Bytes ? , backoff : Bytes ? , limits : @ environment . Limits , max_work : Int , ) - > Result [ @ environment . SingleAttemptModelDependencies , @ environment . ModelDependencyIssue , ]"
+        },
+        {
           "name": "retire_original_model_mock",
           "declaration": "retire_original_model_mock ( original : ModelMockInstallation , ) - > Result [ Bool , ModelMockInstallationIssue ]"
         },
@@ -4555,13 +4605,15 @@
         {
           "operations": [
             "<module>",
+            "ModelMockInstallation::require_original",
             "install_original_model_mock",
             "invoke_original_mock",
-            "ModelMockInstallation::require_original",
+            "original_mock_accepts_opaque_references",
             "original_mock_provider_matches",
             "original_mock_request_values_current",
             "original_mock_scope_matches",
             "original_model_mock_provider",
+            "read_original_model_mock_dependencies",
             "retire_original_model_mock",
             "select_mock_answer"
           ],
@@ -4575,6 +4627,10 @@
               {
                 "path": "src/model_execution/mock_installation.mbt",
                 "anchor": "pub fn install_original_model_mock("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The same live `OriginalMock` installation selects the dependency reader"
               }
             ],
             "inputsOutputs": [
@@ -4585,6 +4641,10 @@
               {
                 "path": "src/check_environment/model_mock_execution.mbt",
                 "anchor": "pub fn model_mock_execution_materials("
+              },
+              {
+                "path": "src/check_environment/model_dependencies.mbt",
+                "anchor": "fn read_model_dependencies_selected("
               }
             ],
             "identity": [
@@ -4595,6 +4655,10 @@
               {
                 "path": "src/model_execution/mock_installation.mbt",
                 "anchor": "fn original_mock_scope_matches("
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn read_original_model_mock_dependencies("
               }
             ],
             "ownership": [
@@ -4661,6 +4725,14 @@
               {
                 "path": "src/model_execution/mock_selection_wbtest.mbt",
                 "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              },
+              {
+                "path": "src/model_execution/mock_provider_admission_wbtest.mbt",
+                "anchor": "test \"original Mock Content dependencies retain opaque input and strict physical media admission\" {"
+              },
+              {
+                "path": "src/model_execution/mock_provider_admission_wbtest.mbt",
+                "anchor": "test \"original Mock Content dependencies retain opaque input and strict physical media admission\""
               }
             ]
           }
@@ -5036,7 +5108,7 @@
     },
     {
       "module": "src/run_publication_host/client_infer_call_scope.mbt",
-      "sha256": "11f4d2c1971fbba7276f4dd1c936f2e07b6a16c8d00697ff2004b47fc98e0d4f",
+      "sha256": "2a960409697f5ccfee898bb84d0a6f9c00afabb793690f2be968a7f2e71cb99c",
       "exports": [],
       "operations": [
         {
@@ -5084,8 +5156,24 @@
           "declaration": "client_infer_saved_call_scope_matches_occurrence ( value : ClientInferSavedCallScope , occurrence : ClientInferOccurrence , plan : ClientInferPlanGraph , ) - > Bool"
         },
         {
+          "name": "client_infer_saved_call_scope_matches_originals",
+          "declaration": "client_infer_saved_call_scope_matches_originals ( value : ClientInferSavedCallScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : ClientInferOccurrence , plan : ClientInferPlanGraph , ) - > Bool"
+        },
+        {
           "name": "client_infer_saved_call_scope_matches_run",
           "declaration": "client_infer_saved_call_scope_matches_run ( value : ClientInferSavedCallScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Bool"
+        },
+        {
+          "name": "client_infer_saved_source_originals",
+          "declaration": "client_infer_saved_source_originals ( value : ClientInferSavedCallScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : ClientInferOccurrence , plan : ClientInferPlanGraph , ) - > Result [ Array [ ( @ publication . RunEvidenceValue , @ publication . RunEvidenceValue ) ] , ClientInferCallScopeIssue , ]"
+        },
+        {
+          "name": "infer_saved_call_scope_occurrence_originals",
+          "declaration": "infer_saved_call_scope_occurrence_originals ( value : ClientInferSavedCallScope , occurrence : ClientInferOccurrence , plan : ClientInferPlanGraph , ) - > Bool"
+        },
+        {
+          "name": "infer_saved_call_scope_run_originals",
+          "declaration": "infer_saved_call_scope_run_originals ( value : ClientInferSavedCallScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Bool"
         },
         {
           "name": "infer_scope_evidence",
@@ -5138,7 +5226,10 @@
             "client_infer_call_scope_source_observations",
             "client_infer_call_scope_unit_id",
             "client_infer_saved_call_scope_matches_occurrence",
+            "client_infer_saved_call_scope_matches_originals",
             "client_infer_saved_call_scope_matches_run",
+            "infer_saved_call_scope_occurrence_originals",
+            "infer_saved_call_scope_run_originals",
             "infer_scope_evidence",
             "infer_scope_expected_sources",
             "infer_scope_string",
@@ -5244,6 +5335,82 @@
               {
                 "path": "src/model_execution/mock_selection_wbtest.mbt",
                 "anchor": "test \"mock exact single Text overrides never convert numeric or composite keys\" {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_infer_saved_source_originals"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The cold JS caller drives the same restored operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Publication projects the original Source leaves"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The private control unwraps the actual compiled and Definition tokens"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The existing computation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Construction reentry remains pending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "False or throwing retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "existing stop, reverse output close and retention refresh engine"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "must still fund the simultaneous constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('failed restored Host constructor keeps the original pin"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('restored composed provider drives its same original operation"
+              },
+              {
+                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
+                "anchor": "captured consumer retirement retains original Result pins through same retry"
               }
             ]
           }

@@ -155,7 +155,7 @@ test "same parent funds both Local groups quotation and bodies without replaying
     @context.clear_source_registration(read)
     @resources.abort_preparation_capacity_after_cleanup(parent.capacity, input).unwrap()
     |> ignore
-    @resources.cleanup_node_preparation_admission(parent.initial).unwrap()
+    preparation_initial_cleanup(parent.initial).unwrap()
   }
 }
 

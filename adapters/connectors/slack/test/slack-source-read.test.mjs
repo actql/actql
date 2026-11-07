@@ -4,6 +4,7 @@ import {pathToFileURL} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {types as nodeTypes} from 'node:util';
 import {parse} from 'acorn';
+import {loadInstalledSlackSource} from '../host/installed-slack-source.mjs';
 import {prepareSlackSourceReadSequence} from '../site/slack-source-read.mjs';
 import {createInstalledHostServices,retainInstalledHostServiceInstallation} from '../../../host-node/installed-host-services.mjs';
 import {installedJsonSourceReaderProfileLimitNames} from '../../../host-node/installed-credential-source-reader.mjs';
@@ -110,23 +111,22 @@ test('managed Slack keeps a pending response borrower and the original messages 
   assert.equal(bounded.requests.length,2);assert.equal(bounded.sequence.retire(),true);
 });
 
-test('original Source service retains the complete Slack recipe once and refuses selection drift',()=>{
-  const installation=Object.freeze({registration:'slack'}),capacity={},calls=[];
+test('generic Source service retains the complete original Slack construction without dispatch or a second quote',async()=>{
+  const f=await sourceConstruction(),installation=Object.freeze({registration:'not-a-dispatch-key'});
   const moon={clientProgramInstalledSourceReaderPolicy:()=>[65536,100000,100],
     clientProgramInstalledJsonSourceReaderProfile:()=>({$tag:1,_0:installedJsonSourceReaderProfileLimitNames.map(()=>100000)}),
-    clientProgramInstalledJsonSourceReaderCapacity(){assert.fail('ordinary JSON pages do not fund the original Slack prefix');},
-    clientProgramInstalledSlackSourceReaderCapacity(...args){assert.equal(this,moon);calls.push(args);return capacity;}};
+    clientProgramInstalledJsonSourceReaderCapacity(){assert.fail('Generic pages must not replace the original complete recipe');}};
   const services=createInstalledHostServices({root:'/UNOPENED',principalId:'component',moon,assertCurrent(){}});
   retainInstalledHostServiceInstallation(services,installation,'sha256:'+'a'.repeat(64));
   services.sourceReaderImplementationProfile({installation,metadataResponses:1,originUnits:20});
-  const selectedLimits={...limits,maxDeclarationBytes:4096,maxDeclarationNodes:1000,maxSecretBytes:128,maxCaBytes:16384};
-  const selected=services.sourceReaderImplementation({installation,columnCount:11,limits:selectedLimits});
-  assert.equal(selected.capacity,capacity);
-  assert.deepEqual(calls,[[[8192,65536,512,16,10,20,9,10,128,128,1024,100,4096,8192,200,8],11,128,8]]);
-  assert.equal(services.sourceReaderImplementation({installation,columnCount:11,limits:{...selectedLimits}}),selected);
-  assert.throws(()=>services.sourceReaderImplementation({installation,columnCount:11,
-    limits:{...selectedLimits,maxCaBytes:16385}}),{code:'InstalledSourceReaderSelectionChanged'});
-  assert.equal(calls.length,1);
+  const selection={installation,columnCount:11,limits:f.input.limits,readSequenceConstruction:f.input.readSequenceConstruction};
+  const selected=services.sourceReaderImplementation(selection);
+  assert.equal(selected.capacity,f.capacity);assert.equal(f.quotes.length,1);
+  assert.equal(services.sourceReaderImplementation({...selection,limits:{...f.input.limits}}),selected);
+  assert.throws(()=>services.sourceReaderImplementation({...selection,
+    readSequenceConstruction:Object.freeze({...f.input.readSequenceConstruction,
+      originalLimits:Object.freeze({...f.selectedLimits,maxCaBytes:16385})})}),{code:'InstalledSourceReaderSelectionChanged'});
+  assert.equal(f.quotes.length,1);
 });
 
 test('actual Slack RowRun grants keep identity channels history and replies separately bounded before reentry',async()=>{
@@ -167,4 +167,46 @@ test('actual Slack RowRun grants keep identity channels history and replies sepa
   await assert.rejects(authorize('slack:messages:history',7,{}),{code:'InvalidInstalledSourceReadChild'});
   assert.deepEqual(events.map(value=>[value.operation,value.maxUses]),[
     ['slack:workspace:identity',2],['slack:channels:list',1],['slack:messages:replies',2]]);
+});
+
+
+async function sourceConstruction(){
+  const capacity={},installation={},quotes=[],stop=new Error('Original implementation boundary');let input;
+  const selectedLimits=Object.freeze({...limits,maxDeclarationBytes:4096,maxDeclarationNodes:1000,maxSecretBytes:128,maxCaBytes:16384});
+  const profile={version:'actql-installed-slack-source/0.1',connectorId:'original-slack',workspaceId:'T-original',
+    siteProfilePath:'/UNOPENED/site.json',accountConfigurationWire:'{}',limits:selectedLimits};
+  const site={version:'actql-installed-slack-site/0.1',apiOrigin:'https://slack.invalid',
+    credentialAuthorityId:'authority',credentialKeyId:'key',credentialPrivateKeyPath:'/UNOPENED/key',
+    environment:'fixture',journalRoot:'/UNOPENED/journal',namespaceId:'fixture',siteGeneration:1,siteKey:'slack'};
+  const sourceInitialization=Object.freeze({prepareDeclaration(){assert.fail('No declaration beyond implementation boundary');}});
+  const moon={clientProgramInstalledSlackSourceReaderCapacity(...args){assert.equal(this,moon);quotes.push(args);return capacity;}};
+  const services={sourceReaderImplementationProfile(){assert.equal(this,services);
+    return Object.fromEntries(installedJsonSourceReaderProfileLimitNames.map(name=>[name,100000]));},
+    sourceReaderImplementation(value){assert.equal(this,services);input=value;throw stop;},
+    openRowSite(){assert.fail('No physical Site in this Source constructor scope');},
+    createSourceReader(){assert.fail('No reader beyond implementation boundary');}};
+  const declarationProvider=Object.fromEntries(['slackUserListSchemaWire','slackUserListRelationFactsWire',
+    'slackChannelListSchemaWire','slackChannelListRelationFactsWire','slackMessageSchemaWire','slackMessageRelationFactsWire',
+    'slackUserListColumnNames','slackChannelListColumnNames','slackMessageColumnNames'].map(name=>[name,function(){
+    assert.equal(this,declarationProvider);assert(name.endsWith('ColumnNames'));
+    return Array(name==='slackMessageColumnNames'?11:name==='slackUserListColumnNames'?8:10).fill('original');}]));
+  const configurationReader={readJson(path){assert.equal(this,configurationReader);assert.equal(path,profile.siteProfilePath);return site;},
+    readText(){assert.fail('No CA selected');}};
+  await assert.rejects(loadInstalledSlackSource(profile,{moon,providerMoon:declarationProvider,installation,sourceInitialization,
+    installationServices:services,configurationReader,resolveSecret(){assert.fail('No secret in constructor scope');}}),cause=>cause===stop);
+  return{capacity,quotes,input,selectedLimits};
+}
+
+test('Slack Source hands its complete original capacity and all operation occurrences to the generic service',async()=>{
+  const f=await sourceConstruction();
+  assert.deepEqual(f.quotes,[[[8192,65536,512,16,10,20,9,10,128,128,1024,100,4096,8192,200,8],11,128,8]]);
+  assert.equal(f.input.readSequenceConstruction.capacity,f.capacity);
+  assert.deepEqual(f.input.readSequenceConstruction.originalLimits,f.selectedLimits);
+  assert.equal(f.input.readSequenceConstruction.maxRequestBytes,2);
+  assert.deepEqual(f.input.readSequenceConstruction.sequences,{
+    users:{operation:'slack:users:list',maxUses:8,children:[{operation:'slack:workspace:identity',maxUses:1}]},
+    channels:{operation:'slack:channels:list',maxUses:8,children:[{operation:'slack:workspace:identity',maxUses:1}]},
+    messages:{operation:'slack:messages:history',maxUses:8,children:[
+      {operation:'slack:workspace:identity',maxUses:8},{operation:'slack:channels:list',maxUses:8},{operation:'slack:messages:replies',maxUses:8}]},
+  });
 });

@@ -3130,8 +3130,11 @@ pub fn client_program_restore_infer_prepared_call(
   record : @publication.RunEvidenceValue,
   proof : @model.ModelAttemptRecords,
   bundle : @publication.ModelCaptureBundleRead?,
+  attachment_admission : @publication.RunEvidenceValue?,
 ) -> Result[Unit, @model.ModelExecutionIssue] {
-  @model.restore_prepared_model_call(prepared, slot, record, proof, bundle)
+  @model.restore_prepared_model_call(
+    prepared, slot, record, proof, bundle, attachment_admission,
+  )
 }
 
 ///|

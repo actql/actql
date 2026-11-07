@@ -17,7 +17,7 @@ static void receive(int fd, char expected) {
 }
 int main(void) {
     size_t page = (size_t)sysconf(_SC_PAGESIZE), bytes = 64 * page;
-    char path[] = "/private/tmp/actql-domain-borrow-XXXXXX";
+    char path[] = "/tmp/actql-domain-borrow-XXXXXX";
     int fd = mkstemp(path);
     if (fd < 0 || unlink(path) || fchmod(fd, 0600) || ftruncate(fd, (off_t)bytes)) return 2;
     unsigned char recipe[32] = {29};

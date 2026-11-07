@@ -8,6 +8,9 @@ import test from 'node:test';
 import * as moon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as fixtureMoon from '../../../../_build/js/release/build/connectors/gcs/fixtures/original_reference_node/original_reference_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {createInstalledLoaderParent} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
+import {createInstalledConnectorTable} from '../../../host-node/installed-connectors.mjs';
+import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
 import {loadInstalledSource} from '../../../host-node/installed-source.mjs';
 import {installRowSourceAuthorization, openRowSourceCredentialSite} from '../../../host-node/installed-row-source.mjs';
 import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
@@ -44,18 +47,23 @@ async function fixture(t) {
       maxListingBytes: 32768, maxDurationMs: 10000, maxPathBytes: 1024,
       maxPageBytes: 8192, maxPageItems: 9, maxRequestBytes: 4096, maxContentBytes: 4096}};
   let secrets = 0;
-  const loaded = [];
+  const parents = new Map();
   const options = {root: scratch.path, principalId: userInfo().username, moon, runtimeUrl,
     baseEnvironmentWire, resolveSecret() { secrets++; assert.fail('No credential or GCS I/O'); }};
   const open = async (name, changes = {}, overrides = {}) => {
     const path = join(scratch.path, name);
     await writeFile(path, JSON.stringify({...profile, ...changes}));
-    const source = await loadInstalledSource(path, {...options, ...overrides});
-    loaded.push(source);
-    return source;
+    const runtime = overrides.moon ?? moon;
+    let parent = parents.get(runtime);
+    if (parent === undefined) {
+      parent = createInstalledLoaderParent({root: scratch.path, principalId: options.principalId, moon: runtime});
+      parents.set(runtime, parent); // retain the same owner before open can fail
+      parent.open();
+    }
+    return parent.load(loadInstalledSource, path, {...options, ...overrides});
   };
   t.after(async () => {
-    for (const source of loaded) await source.close();
+    for (const parent of parents.values()) await parent.close();
     assert.equal(secrets, 0);
     scratch.passed();
   });
@@ -144,14 +152,20 @@ test('the same credential Site invalidates reference currentness before failed c
 });
 
 test('only an explicitly source-only legacy installation can omit the collection provider', async t => {
-  const {profile, options, scratch} = await fixture(t);
+  const {open, profile, options, scratch} = await fixture(t);
   const missing = {...profile, siteProfilePath: join(scratch.path, 'must-not-be-read.json')};
-  await assert.rejects(loadInstalledGcsSource(missing, {...options,
+  // Domain precondition only: these methods must never run. Ordinary
+  // construction/Resource/cleanup is exercised through the actual table below.
+  const unreachable = () => assert.fail('Provider absence must precede construction');
+  const construction = {prepareDerivedDeclaredCommands: unreachable,
+    prepareReadTargetWithMappings: unreachable, openRowSite: unreachable,
+    createRowSource: unreachable, configurationReader: {readJson: unreachable}};
+  await assert.rejects(loadInstalledGcsSource(missing, {...options, construction,
     installation: {providerBundle: 'connectors/gcs/host_node'}}),
   {code: 'GcsCollectionProviderUnavailable'});
-  const legacy = await loadInstalledGcsSource(profile, {...options,
-    runtimeBundleCid: `sha256:${'8'.repeat(64)}`,
-    installation: {registration: 'gcs', revision: 'gcs/0.1', responseHeaders: []}});
+  const selected = installedConnectors.find(entry => entry.registration === 'gcs');
+  const sourceOnly = createInstalledConnectorTable([{...selected, providerBundle: undefined}]);
+  const legacy = await open('source-only.json', {}, {connectorTable: sourceOnly});
   t.after(() => legacy.close());
   assert.equal(legacy.issueOriginalCollectionReference, undefined);
   assert.equal(legacy.publishedStoreTargets, undefined);

@@ -3,8 +3,57 @@ import {mkdtemp, mkdir, opendir, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {admitHostRootFormat} from './host-root-format.mjs';
+
+// Exercise the actual publication prefix with the real Journal, Account and
+// filesystem owners. The deliberately absent runtime stops this component
+// before Core/Result construction; it is not ordinary publication acceptance.
+async function publicationPrefix(parent, root) {
+  const source = await readFile(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const body = source.match(/^async function preparePublicationRoot\(root, principalId\) \{[\s\S]*?^\}/mu)?.[0];
+  assert.ok(body);
+  const runtimeUrl = pathToFileURL(join(parent, 'absent-runtime.mjs'));
+  const modulePath = join(parent, 'publication-prefix.mjs');
+  const imports = [
+    ['prepareOrdinaryHostJournal', './ordinary-host-journal.mjs'],
+    ['originalInitialControlClose, retainInstalledHostInitializationFailure', './installed-host-cleanup.mjs'],
+    ['prepareOrdinaryLocalAccount', './ordinary-local-account.mjs'],
+  ].map(([names, path]) => `import {${names}} from ${JSON.stringify(new URL(path, import.meta.url).href)};`);
+  await writeFile(modulePath, `${imports.join('\n')}\nconst runtimeUrl = new URL(${JSON.stringify(runtimeUrl.href)});\n${body}\nexport {preparePublicationRoot};\n`);
+  const module = await import(pathToFileURL(modulePath).href);
+  await assert.rejects(module.preparePublicationRoot(root, 'publication-principal'), error => {
+    assert.equal(error.primaryFailure?.code, 'ERR_MODULE_NOT_FOUND');
+    assert.equal(error.primaryFailure?.url, runtimeUrl.href);
+    assert.equal(error.cleanupPending, false);
+    assert.equal(error.cleanupHandle.status().pending, false);
+    return true;
+  });
+}
+
+test('publication prefix retains the fresh original Account intent before runtime loading', async () => {
+  const parent = await mkdtemp(join(tmpdir(), 'actql-publication-account-prefix-'));
+  const root = join(parent, 'host');
+  try {
+    await publicationPrefix(parent, root);
+    const intent = JSON.parse(await readFile(join(root, 'account-initialization.json'), 'utf8'));
+    assert.equal(intent.version, 'actql-local-account-initialization/0.1');
+    assert.equal(intent.principal, 'publication-principal');
+    assert.deepEqual(Object.keys(intent).sort(), ['account_id', 'principal', 'record_id', 'version']);
+    await assert.rejects(readFile(join(root, 'account', 'account.json')), {code: 'ENOENT'});
+  } finally { await rm(parent, {recursive: true, force: true}); }
+});
+
+test('publication prefix never backfills an Account intent on an existing root', async () => {
+  const parent = await mkdtemp(join(tmpdir(), 'actql-publication-current-prefix-'));
+  const root = join(parent, 'host');
+  try {
+    assert.equal(await admitHostRootFormat(root), 'new');
+    await publicationPrefix(parent, root);
+    await assert.rejects(readFile(join(root, 'account-initialization.json')), {code: 'ENOENT'});
+  } finally { await rm(parent, {recursive: true, force: true}); }
+});
 
 test('new and current Host roots use one exact marker', async () => {
   const parent = await mkdtemp(join(tmpdir(), 'actql-host-format-'));

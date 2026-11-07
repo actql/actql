@@ -6,7 +6,23 @@ priv struct ClientInstalledComputePreparation {
   capacity_plan : ClientLocalCapacityPlan
   configuration : ClientPreparedLocalConfiguration
   limits : @resources.LedgerLimits
+  // Preserve the already computed tail envelope before capture peaks are
+  // folded into limits. Later phase composition must not reconstruct a Plan
+  // or try to recover this value by subtracting from an unrelated maximum.
+  tail_execution_bytes : Int64
 }
+
+///|
+// Additional resident scalar of the same transient constructor record. The
+// original Request backs it before that record is built, on both entrances.
+let installed_compute_tail_inventory_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 1L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
 
 ///|
 fn prepare_installed_compute_preparation(
@@ -20,6 +36,7 @@ fn prepare_installed_compute_preparation(
   provider_factory : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledComputePreparation, ClientInstalledManagedRunIssue] {
   let graph = installed_managed_owner_graph(owner)
   let (compute_sequences, capacity_plan, local_capacity) = match source_free {
@@ -69,6 +86,10 @@ fn prepare_installed_compute_preparation(
           capacity_plan=Some(configuration),
           retained_inputs=Some(inputs),
           max_rows~,
+          // Preparation-owned Runs reserve each actual provider/import/output
+          // on their original finite Ledger. A whole-Run maximum is only an
+          // estimate; legacy quote callers keep their strict inventory.
+          runtime_admission~,
         )
         is Some(capacity) else {
         return Err(Unsupported)
@@ -130,5 +151,6 @@ fn prepare_installed_compute_preparation(
     capacity_plan,
     configuration,
     limits: compute_limits,
+    tail_execution_bytes: actual_local_capacity.limits.execution_bytes,
   })
 }

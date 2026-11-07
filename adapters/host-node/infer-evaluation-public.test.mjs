@@ -100,6 +100,9 @@ for (const [transport, observationMode] of [['local', 'disabled'], ['https', 'di
         assert.equal(telemetry.configuration().signals.traces.sampleRate, 0);
       }
       const installation = {...(telemetry === undefined ? {} : {observation: telemetry.connection}), directory: join(root, candidate.id, 'host'),
+        // Publish and run under this same finite authored policy. The Local
+        // default row profile is a different Check Environment identity.
+        hostCapacityPolicy: base.host_policy_profile.capacity,
         authorization: {leaseMs: 1000, reviewReaders: [owner],
           hostKey: {keyId: 'evidence-fixture-host', privateKey},
           reviewers: [{keyId: 'evidence-fixture-reviewer', reviewerId: 'evidence-fixture-reviewer',

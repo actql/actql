@@ -11,6 +11,7 @@ priv struct ImportedChildLedgerOrigin {
   mut report : (Int64, LedgerUsage) -> Int
   mut stop : (Int64) -> Int
   fixed_capacities : Bool
+  mut working : (PlatformVMWorkingCapacity, Int64, Int64)?
   // The back-reference rejects copies without another Resource Owner.
   mut ledger : Ledger?
   mut stopping : Bool
@@ -81,6 +82,7 @@ fn prepare_imported_child_port(
       report,
       stop,
       fixed_capacities,
+      working: None,
       ledger: None,
       stopping: false,
       unavailable: false,
@@ -220,7 +222,14 @@ fn imported_child_seed_capacity(
     observed_quantities: (false, false, false),
     completed_output: None,
   }
-  { ledger, reservation, capacity: bytes, allocated: 0L, closing: false, }
+  {
+    ledger,
+    reservation,
+    capacity: bytes,
+    allocated: 0L,
+    closing: false,
+    growth: None,
+  }
 }
 
 ///|

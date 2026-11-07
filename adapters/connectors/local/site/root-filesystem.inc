@@ -419,16 +419,36 @@ observed:;
   return result;
 }
 #include "root-file-writer.inc"
+/* Inert implementation DATA from this same image, not a Resource or allowance.
+ * Each retained path descriptor owns one real allocation, including its name
+ * arrays. Fixed N-API/call-stack overhead is not a second per-wrapper quote. */
+static napi_value local_fs_write_construction_profile(napi_env env, napi_callback_info info) {
+  size_t count = 0; void *data = NULL; napi_value result;
+  if (napi_get_cb_info(env, info, &count, NULL, NULL, &data) != napi_ok || count != 0 || !data ||
+      napi_create_object(env, &result) != napi_ok) return NULL;
+  const char *names[] = {"nativeOriginalBytes", "maxRootBytes", "maxNameBytes", "maxDepth", "writeQuantumBytes"};
+  const int64_t values[] = {sizeof(local_fs_original), LOCAL_ROOT_BYTES, LOCAL_NAME_BYTES,
+    LOCAL_DEPTH, LOCAL_READ_BYTES};
+  for (size_t index = 0; index < sizeof(values) / sizeof(values[0]); index++) {
+    napi_value value;
+    if (napi_create_int64(env, values[index], &value) != napi_ok ||
+        napi_set_named_property(env, result, names[index], value) != napi_ok) return NULL;
+  }
+  if (napi_object_freeze(env, result) != napi_ok) return NULL;
+  return result;
+}
 static bool initialize_local_files(napi_env env, napi_value exports) {
   local_fs_owner *owner = calloc(1, sizeof(*owner));
   if (!owner) {unavailable(env, "LocalFileAllocationFailed"); return false;}
   owner->tag.lower = (uint64_t)(uintptr_t)owner; owner->tag.upper = UINT64_C(0x414354514c46494c);
   const char *names[] = {"openFileRoot", "openFileDirectory", "openRootFile", "fileRootCurrent",
     "fileRootStat", "fileRootNext", "fileRootRead", "fileRootClose", "fileRootEntryKind",
-    "openRootFileWriter", "fileRootWrite", "fileRootPublish", "openStoreOwnerLease", "storeOwnerLeaseReceipt"};
+    "openRootFileWriter", "fileRootWrite", "fileRootPublish", "openStoreOwnerLease", "storeOwnerLeaseReceipt",
+    "localFileWriteConstructionProfile"};
   napi_callback callbacks[] = {local_fs_open_root, local_fs_open_directory, local_fs_open_file,
     local_fs_check, local_fs_stat, local_fs_next, local_fs_read, local_fs_close, local_fs_entry_kind,
-    local_fs_open_writer, local_fs_write, local_fs_publish, local_fs_open_lease, local_fs_lease_receipt};
+    local_fs_open_writer, local_fs_write, local_fs_publish, local_fs_open_lease, local_fs_lease_receipt,
+    local_fs_write_construction_profile};
   for (size_t index = 0; index < sizeof(callbacks) / sizeof(callbacks[0]); index++) {
     napi_value function;
     if (napi_create_function(env, names[index], NAPI_AUTO_LENGTH, callbacks[index], owner, &function) != napi_ok ||

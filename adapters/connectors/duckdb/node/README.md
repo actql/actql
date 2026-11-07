@@ -887,6 +887,9 @@ metadata and column chunks. SQL bytes have a separate bound. These figures are
 not native IPC traffic, canonical value bytes, logical work, allocator capacity
 or process RSS. Row/cell/byte budgets are cumulative across commands in a session.
 Optional positive `maxChunkRows` and `maxChunkBytes` bound converted batch delivery.
+Native and Broad Source Hosts also apply their selected receiver's existing
+row/byte window before both capacity quotation and Session entry. Tighter
+explicit batch bounds remain selected; cumulative policy limits are unchanged.
 The former slices SDK column vectors without first constructing a whole chunk's
 converted values. The latter counts each batch's row-count/column framing and
 encoded cells; schema metadata is charged separately to the session. An oversized

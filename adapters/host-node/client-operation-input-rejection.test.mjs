@@ -6,7 +6,6 @@ import {tmpdir} from 'node:os';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as sdk from '../../packages/sdk/index.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {openReadOpeningFixture, connectOpeningHost} from './client-read-opening.fixture.mjs';
 
 const program = (steps, parameter, result = {from: 'seed', fields: ['id']}) => ({version: 'actql/0.1', id: 'operation-input-rejection',
@@ -36,13 +35,12 @@ for (const entrance of ['local', 'https']) {
       execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048', '-keyout', 'host.key',
         '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
         '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: scratch.path, stdio: 'ignore'});
-      const fixture = await openReadOpeningFixture(scratch.path);
       const wire = await readFile(new URL('../../packages/sdk/fixtures/values.environment.json', import.meta.url), 'utf8');
       const environment = moon.clientProgramCheckEnvironment(wire.trimEnd(),
         'sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904',
         false, true, true, false, true, false, false);
       assert.ok(environment);
-      fixture.services.prepareSubmit = installNodeClientProgramPreparation({moon, environment});
+      const fixture = await openReadOpeningFixture(scratch.path, undefined, {environment});
       const host = await connectOpeningHost(fixture, entrance, scratch.path);
       try {
         let error;

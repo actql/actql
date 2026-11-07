@@ -148,3 +148,40 @@ test "resumable decode rejects duplicates and budget exhaustion before exposing 
     assert_true(admission.work.is_empty())
   }
 }
+
+///|
+test "key admission maps follow active ancestors rather than completed siblings" {
+  let siblings = node(
+    @source.Array([
+      node(@source.Object([entry("a", node(@source.Number(1.0)))])),
+      node(@source.Object([entry("b", node(@source.Number(2.0)))])),
+      node(@source.Object([entry("c", node(@source.Number(3.0)))])),
+    ]),
+  )
+  let admission = start_admission(siblings, budget()).unwrap()
+  let mut peak = 0
+  while true {
+    let mut live = 0
+    for frame in admission.work {
+      if frame is ObjectNext(_, _, _, _, _) {
+        live += 1
+      }
+    }
+    peak = Int::max(peak, live)
+    match advance_admission(admission, 1).unwrap() {
+      AdmissionContinue(..) => ()
+      AdmissionComplete(cursor, ..) => {
+        assert_eq(admission_usage(cursor).nodes, 7)
+        assert_eq(peak, 1)
+        assert_true(admission.work.is_empty())
+        break
+      }
+      AdmissionFailed(_, ..) => fail("Original sibling admission changed")
+    }
+  }
+  let shallow = admission_construction_inventory(7, 3, 3, 1, 2).unwrap()
+  let active = @shape.key_admission_construction_extent(2, 3).unwrap()
+  assert_eq(shallow.keys.record_headers, active.record_headers)
+  assert_eq(shallow.keys.reference_slots, active.reference_slots)
+  assert_eq(shallow.keys.scalar_words, active.scalar_words)
+}

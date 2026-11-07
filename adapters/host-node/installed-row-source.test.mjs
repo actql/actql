@@ -53,6 +53,8 @@ test('ordinary row binding is issued by the original preparation owner and reche
     values: JSON.stringify(aoa.execution_contracts['REL.values']),
     fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+  preparation.registry = checked(moon.clientPrepareInstalledSequenceContracts(
+    preparation.registry, preparation.values, preparation.fragment, preparation.ordered));
   const prepared = await adapter.prepare(preparation);
   assert.deepEqual(adapter.ordinaryRecoveryBinding(prepared), expectedBinding);
   assert.equal(Object.isFrozen(adapter.ordinaryRecoveryBinding(prepared)), true);
@@ -170,8 +172,12 @@ test('checked row capture admits its exact ceiling and refuses one more',
       read('spec/contracts/actql-query-acquisition.json'),
       read('spec/contracts/actql-query-process-evidence.json'),
     ]);
+    const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(registry,
+      JSON.stringify(aoa.execution_contracts['REL.values']),
+      JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+      JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
     const required = moon.clientProgramPrepareLocalQueryRequirement(
-      prepared, 0, 0, registry,
+      prepared, 0, 0, installedContracts,
       JSON.stringify(aoa.execution_contracts['REL.values']),
       JSON.stringify(aoa.execution_contracts[
         'ACTQL.expression_fragment/0.1']),
@@ -211,7 +217,7 @@ test('checked row capture admits its exact ceiling and refuses one more',
       document.replace('capture-limit', 'foreign-capture'), 'json', checkedEnvironment);
     assert.ok(foreignProgram);
     const foreignRequirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
-      foreignProgram, 0, 0, registry,
+      foreignProgram, 0, 0, installedContracts,
       JSON.stringify(aoa.execution_contracts['REL.values']),
       JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
       JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
@@ -284,6 +290,10 @@ test('row acquisition exposes the actual bound Request without normalizing selec
       read('spec/contracts/actql-query-acquisition.json'),
       read('spec/contracts/actql-query-process-evidence.json'),
     ]);
+    const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(registry,
+      JSON.stringify(aoa.execution_contracts['REL.values']),
+      JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+      JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
     for (const selector of [
       {paths: ['é.pdf', 'e\u0301.pdf'], glob: null},
       {paths: [], glob: null},
@@ -303,7 +313,7 @@ test('row acquisition exposes the actual bound Request without normalizing selec
       const prepared = moon.clientProgramPreparationReady(preparation);
       assert.ok(prepared, inspect(moon.clientProgramPreparationIssue(preparation), {depth: 12}));
       const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
-        prepared, 0, 0, registry, JSON.stringify(aoa.execution_contracts['REL.values']),
+        prepared, 0, 0, installedContracts, JSON.stringify(aoa.execution_contracts['REL.values']),
         JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
         JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
       const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(

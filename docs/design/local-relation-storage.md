@@ -23,6 +23,15 @@ occurrences. Conversion must include source and destination overlap; a composed
 selection must retain and charge the backing storage until its final owner is gone.
 Reusing admitted input does not reuse a spent invocation budget.
 
+A successful output may outlive its provider's temporary workspace. Once the
+original Model capture is persisted, its publication aliases and Model borrow
+can retire while the independent Content owner and journal continuation remain.
+The same Local execution can then advance bounded scratch retirement and reconcile
+only witnessed temporary execution storage. This preserves the completed output,
+its original holding and all consumed work and transfer. The scratch refresh
+returns no output-close or physical-release acknowledgement; a pending provider,
+reader or nonprogressing continuation keeps its original reservation.
+
 The storage decision is conservative: lower construction counts alone are not a
 sufficient reason to replace rows. The bounded workloads use shared row-index
 algorithms already, and admission, row-major expression execution and conversion

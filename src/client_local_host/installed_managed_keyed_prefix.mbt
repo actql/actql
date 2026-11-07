@@ -58,7 +58,7 @@ pub fn start_installed_managed_keyed_serialization_prefix(
       }
       let preparation = PreparationContentManaged(admission, original)
       let reservation = match
-        @resources.reserve_node_managed_run_attempt(
+        @resources.reserve_prepared_run_attempt(
           admission,
           prepared,
           ledger,

@@ -582,6 +582,10 @@ pub fn completed_result_key_validation_matches(CompletedResultKeyValidation, Com
 
 pub fn completed_row_count(CompletedOutput) -> Int
 
+pub fn completed_segment_inputs_construction_inventory(Int) -> PreparationRepresentationUnits?
+
+pub fn completed_segment_inputs_output(CompletedSegmentInputs, GeneratedSequence, Array[(Int, Int, ProducerRead)]) -> CompletedOutput?
+
 pub fn completed_source_input_matches_read(CompletedOutput, SuppliedRelationRead) -> Bool
 
 pub fn completed_table_input_export_preparation_matches_owner(CompletedTableInputRelationExportPreparation, ManagedTableInputOccurrence, CompletedOutput) -> Bool
@@ -760,6 +764,8 @@ pub fn fixed_supplied_relation_read(SuppliedRelationRead) -> FixedRelationRead
 
 pub fn generated_asof_search_ceiling(GeneratedSequence, Int) -> Int64?
 
+pub fn generated_bounded_sequence_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits) -> ExecutionCapacity?
+
 pub fn generated_calendar_output_ceiling(GeneratedSequence, Int) -> Int64?
 
 pub fn generated_completion_preparation(GeneratedSequence) -> CompletionPreparation
@@ -867,6 +873,8 @@ pub fn[T] managed_completed_reference(ManagedCompletedOutput[T]) -> ManagedCompl
 pub fn managed_completed_reference_available(ManagedCompletionReference) -> Bool
 
 pub fn[T] managed_completed_reference_matches(ManagedCompletionReference, ManagedCompletedOutput[T]) -> Bool
+
+pub fn managed_completed_reference_row_count(ManagedCompletionReference) -> Int?
 
 pub fn managed_completed_reference_same(ManagedCompletionReference, ManagedCompletionReference) -> Bool
 
@@ -1053,6 +1061,8 @@ pub fn pivot_execution_supported(@lowering_relation.PreparedPivot) -> Bool
 pub fn pivot_execution_supported_with_numeric(@lowering_relation.PreparedPivot) -> Bool
 
 pub fn predicate_expression_remaining(PredicateExpressionExecution) -> Int
+
+pub fn preparation_array_representation(Int64, Int64, Bool) -> PreparationRepresentationUnits?
 
 pub fn preparation_execution_capacity(PreparationExecutionInventory) -> ExecutionCapacity?
 
@@ -1297,6 +1307,8 @@ pub fn[T] retain_admitted_output_representation(AdmittedOutputStreamReceipt, T, 
 pub fn[T] retain_admitted_output_stream(AdmittedOutputStreamReceipt, T, () -> Bool) -> RetainedOutputHandle[T]
 
 pub fn retain_completed_segment_input(CompletedOutput, ProducerRead) -> CompletedOutput?
+
+pub fn retain_completed_segment_inputs(CompletedOutput, GeneratedSequence, Array[(Int, Int, ProducerRead)], Int) -> CompletedSegmentInputs?
 
 pub fn retain_completion_evidence(CompletedOutput, Int, Int) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
 
@@ -1988,6 +2000,8 @@ pub(all) struct CompletedResultViewLimits {
   max_order_work : Int
   max_workspace_entries : Int
 }
+
+type CompletedSegmentInputs
 
 type CompletedSequence
 

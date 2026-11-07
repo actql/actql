@@ -102,12 +102,28 @@ test('timed original downstream Task admission reuses first Run and never issues
 
 test('timed original downstream Values publication preserves first Run and full publication duties',()=>{
   const f=timedOriginalFixture(),original=f.build(),publicationOriginal={},seen=[];
-  const globals={checkedOriginalQueryInvocation:f.functions.checkedOriginalQueryInvocation,prepareQueryInvocation:()=>assert.fail('second time preparation'),bindQueryInvocation:()=>assert.fail('second bind'),instant:()=>assert.fail('second header'),randomUUID:()=>assert.fail('second Run'),policyCid:()=> 'policy',valuesExecutionContextCid:()=> 'context',limits:{},checkedLocalOutputLimits:(moon,p,v)=>{assert.equal(p,f.prepared);assert.equal(v,publicationOriginal);return {maxRows:10};},localPublicationPlan:value=>{seen.push('publication');return Object.freeze(value);},valuesAdmissions:new WeakMap(),retainOriginalPlan:(plan,compiled,p)=>{assert.equal(compiled,f.compilation);assert.equal(p,f.prepared);seen.push('retain');return plan;}};
+  const originalPlans=new WeakMap(),originalPlanLimits={},runPlanOriginal={};
+  const retention=ast.body.find(x=>x.type==='FunctionDeclaration'&&x.id.name==='retainOriginalPlan');
+  const retainOriginalPlan=Function('originalPlans','originalPlanLimits',
+    'return ('+source.slice(retention.start,retention.end)+');')(originalPlans,originalPlanLimits);
+  f.control.captureOriginalClientRunPlan=(compiled,prepared,definition,limits)=>{
+    assert.equal(compiled,f.compilation);assert.equal(prepared,f.prepared);
+    assert.equal(definition,f.definition);assert.equal(limits,originalPlanLimits);
+    seen.push('retain');return runPlanOriginal;
+  };
+  const globals={checkedOriginalQueryInvocation:f.functions.checkedOriginalQueryInvocation,prepareQueryInvocation:()=>assert.fail('second time preparation'),bindQueryInvocation:()=>assert.fail('second bind'),instant:()=>assert.fail('second header'),randomUUID:()=>assert.fail('second Run'),policyCid:()=> 'policy',valuesExecutionContextCid:()=> 'context',limits:{},checkedLocalOutputLimits:(moon,p,v)=>{assert.equal(p,f.prepared);assert.equal(v,publicationOriginal);return {maxRows:10};},localPublicationPlan:value=>{seen.push('publication');return Object.freeze(value);},valuesAdmissions:new WeakMap(),retainOriginalPlan};
   const n=ast.body.find(x=>x.type==='ExportNamedDeclaration'&&x.declaration?.id?.name==='sourceFreeValuesPlan').declaration;
   const make=Function(...Object.keys(globals),'return ('+source.slice(n.start,n.end)+');')(...Object.values(globals));
   f.control.issueCheckedClientCompiledInvocation=(c,d)=>{assert.equal(c,f.compilation);assert.equal(d,f.definition);seen.push('issue-publication');return {observation:{},invocation:{}};};
   const before=f.calls.slice(),value=make({...f.options,moon:{clientProgramDefinitionCid:()=> 'program',clientProgramResultCount:()=>1},publicationOriginal,publicationPreparation:{},invocationOriginal:original,now:()=>assert.fail('second clock')});
-  assert.equal(value.runDefinition,f.definition);assert.equal(value.queryTimePreparation,f.time);assert.deepEqual(f.calls,before);assert.deepEqual(seen,['issue-publication','publication','retain']);
+  assert.equal(value.runDefinition,f.definition);
+  const retained=originalPlans.get(value);
+  assert.equal(retained.queryTimePreparation,f.time);assert.equal(retained.queryTime,f.context);
+  assert.equal(retained.original,runPlanOriginal);
+  assert.equal(retained.executionOwner.program,f.prepared);assert.equal(retained.executionOwner.compiled,f.compilation);
+  assert(Object.isFrozen(retained));assert(Object.isFrozen(retained.executionOwner));
+  assert.equal(Object.hasOwn(value,'queryTimePreparation'),false);assert.equal(Object.hasOwn(value,'queryTime'),false);
+  assert.deepEqual(f.calls,before);assert.deepEqual(seen,['issue-publication','publication','retain']);
 });
 
 

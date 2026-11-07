@@ -1,0 +1,605 @@
+{
+  "qualification": "Reviewed source/semantic correspondence only; not installed transport, funding, conditional replacement or normal workflow acceptance",
+  "declarations": [
+    {
+      "module": "src/client_row_source_host/relation_document_target.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "e69f4c13874c0697ceb00b80988796ec35ffbf072923060b52ea72b7372988e2",
+      "role": "common-semantics",
+      "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
+      "exports": [],
+      "operations": [
+        {
+          "name": "accept_charged_relation_document",
+          "declaration": "accept_charged_relation_document ( run : RowRun , charge : RowPageCharge , acquisition : RowAcquisition , document : RelationTargetDocument , max_work : Int , ) - > Result [ Int , RowHostIssue ]"
+        },
+        {
+          "name": "admit_relation_document",
+          "declaration": "admit_relation_document ( bytes : Bytes , limits : RowPageLimits , max_work : Int , ) - > Result [ RelationDocument , RowSourceIssue ]"
+        },
+        {
+          "name": "admit_relation_target_document",
+          "declaration": "admit_relation_target_document ( declaration : RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] ? , primary_identity : String , writable_fields : Array [ String ] , bytes : Bytes , limits : RowPageLimits , max_work : Int , ) - > Result [ RelationTargetDocument , RowSourceIssue ]"
+        },
+        {
+          "name": "discard_relation_document_original",
+          "declaration": "discard_relation_document_original ( document : RelationDocument ) - > Bool"
+        },
+        {
+          "name": "discard_relation_target_document_original",
+          "declaration": "discard_relation_target_document_original ( document : RelationTargetDocument , ) - > Bool"
+        },
+        {
+          "name": "emit_relation_document_value",
+          "declaration": "emit_relation_document_value ( value : @ admitted . Value , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_relation_target_row",
+          "declaration": "emit_relation_target_row ( document : RelationTargetDocument , index : Int , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "observe_relation_target",
+          "declaration": "observe_relation_target ( document : RelationTargetDocument , declaration : RowDeclaration , identity : String , ) - > Result [ RelationTargetRow , RowSourceIssue ]"
+        },
+        {
+          "name": "prepare_relation_target_update",
+          "declaration": "prepare_relation_target_update ( document : RelationTargetDocument , row : RelationTargetRow , expected_version : String , value_wire : String , max_work : Int , ) - > Result [ Bytes , RowSourceIssue ]"
+        },
+        {
+          "name": "project_relation_target_document",
+          "declaration": "project_relation_target_document ( backing : RelationDocument , declaration : RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] ? , primary_identity : String , writable_fields : Array [ String ] , ) - > Result [ RelationTargetDocument , RowSourceIssue ]"
+        },
+        {
+          "name": "relation_document_field",
+          "declaration": "relation_document_field ( object : @ decode . ObjectView , name : String , ) - > @ decode . Cursor raise RelationDocumentStop"
+        },
+        {
+          "name": "relation_document_integer",
+          "declaration": "relation_document_integer ( cell : @ decode . Cursor , bytes : Bytes , limits : @ admitted . Limits , ) - > @ decode . Cursor raise RelationDocumentStop"
+        },
+        {
+          "name": "relation_document_original",
+          "declaration": "relation_document_original ( document : RelationDocument ) - > Bool"
+        },
+        {
+          "name": "relation_document_path",
+          "declaration": "relation_document_path ( root : @ decode . Cursor , path : Array [ String ] , ) - > @ decode . Cursor raise RelationDocumentStop"
+        },
+        {
+          "name": "relation_document_usage",
+          "declaration": "relation_document_usage ( document : RelationDocument , ) - > RelationDocumentUsage ?"
+        },
+        {
+          "name": "relation_document_value",
+          "declaration": "relation_document_value ( contract : @ contract . Contract , cursor : @ decode . Cursor , bytes : Bytes , limits : @ admitted . Limits , work : Ref [ Int ] , ) - > @ admitted . CheckedValue raise RelationDocumentStop"
+        },
+        {
+          "name": "relation_document_work",
+          "declaration": "relation_document_work ( work : Ref [ Int ] , amount : Int , ) - > Unit raise RelationDocumentStop"
+        },
+        {
+          "name": "relation_target_before",
+          "declaration": "relation_target_before ( row : RelationTargetRow ) - > String ?"
+        },
+        {
+          "name": "relation_target_original",
+          "declaration": "relation_target_original ( document : RelationTargetDocument ) - > Bool"
+        },
+        {
+          "name": "relation_target_row_count",
+          "declaration": "relation_target_row_count ( document : RelationTargetDocument ) - > Int ?"
+        },
+        {
+          "name": "relation_target_row_identity",
+          "declaration": "relation_target_row_identity ( document : RelationTargetDocument , index : Int , ) - > String ?"
+        },
+        {
+          "name": "relation_target_row_original",
+          "declaration": "relation_target_row_original ( row : RelationTargetRow ) - > Bool"
+        },
+        {
+          "name": "relation_target_text",
+          "declaration": "relation_target_text ( row : RelationTargetRow , field : String ) - > String ?"
+        },
+        {
+          "name": "relation_target_text_bytes",
+          "declaration": "relation_target_text_bytes ( row : RelationTargetRow , field : String , ) - > Bytes ?"
+        },
+        {
+          "name": "relation_target_version",
+          "declaration": "relation_target_version ( row : RelationTargetRow ) - > String ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "accept_charged_relation_document",
+            "admit_relation_document",
+            "admit_relation_target_document",
+            "emit_relation_document_value",
+            "emit_relation_target_row",
+            "observe_relation_target",
+            "prepare_relation_target_update",
+            "project_relation_target_document",
+            "relation_document_field",
+            "relation_document_integer",
+            "relation_document_original",
+            "relation_document_path",
+            "relation_document_usage",
+            "relation_document_value",
+            "relation_document_work",
+            "relation_target_before",
+            "relation_target_original",
+            "relation_target_row_count",
+            "relation_target_row_identity",
+            "relation_target_row_original",
+            "relation_target_text",
+            "relation_target_text_bytes",
+            "relation_target_version"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "discard_relation_document_original",
+            "discard_relation_target_document_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Responsibility: `discard_relation_document_original` and"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "pub fn discard_relation_document_original(document : RelationDocument) -> Bool {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Inputs and outputs: each function takes its original opaque document and"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Identity: discard requires `Some(original)` physically equal to the supplied"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "physical_equal(document, original) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Ownership: callers discard only their private construction originals, normally"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Synchronization: both operations are synchronous and callback-free. Child"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "pub fn discard_relation_target_document_original("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Failure: false makes no mutation. After discard, existing getters return None"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Cancellation: discarding DATA issues no abort, physical stop, closed-file"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Resources: no child list, callback, counter, allocation credit or capacity"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_construction.mbt",
+                "anchor": "// Document/self Option, work Ref, Bytes header, makei closure, limits,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Extension: this pair covers separately constructed raw and target documents."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation_document_discard_wbtest.mbt",
+                "anchor": "relation original discard severs only self marks and preserves retained immutable DATA"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_discard_wbtest.mbt",
+                "anchor": "copied relation carriers cannot discard or revive their original DATA"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_discard_wbtest.mbt",
+                "anchor": "relation child discard remains available after parent original invalidation"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_discard_wbtest.mbt",
+                "anchor": "discarding one relation projection leaves shared original and sibling unchanged"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_relation_document_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "87f954d791984e7faeafad31301efce244c0ae5dd72e3b0de037b96375f27a9a",
+      "role": "generated-binding",
+      "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_relation_accept_charged_document",
+          "declaration": "client_program_relation_accept_charged_document ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , acquisition : @ client_row_source_host . RowAcquisition , document : @ client_row_source_host . RelationTargetDocument , max_work : Int , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_relation_admit_document",
+          "declaration": "client_program_relation_admit_document ( bytes : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_work : Int , ) - > Result [ @ client_row_source_host . RelationDocument , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
+          "name": "client_program_relation_admit_target_document",
+          "declaration": "client_program_relation_admit_target_document ( declaration : @ client_row_source_host . RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] , primary_identity : String , writable_fields : Array [ String ] , bytes : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_work : Int , ) - > Result [ @ client_row_source_host . RelationTargetDocument , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
+          "name": "client_program_relation_document_usage",
+          "declaration": "client_program_relation_document_usage ( original : @ client_row_source_host . RelationDocument , ) - > Array [ Int64 ] ?"
+        },
+        {
+          "name": "client_program_relation_observe_target",
+          "declaration": "client_program_relation_observe_target ( document : @ client_row_source_host . RelationTargetDocument , declaration : @ client_row_source_host . RowDeclaration , identity : String , ) - > Result [ @ client_row_source_host . RelationTargetRow , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
+          "name": "client_program_relation_prepare_target_update",
+          "declaration": "client_program_relation_prepare_target_update ( document : @ client_row_source_host . RelationTargetDocument , row : @ client_row_source_host . RelationTargetRow , expected_version : String , value_wire : String , max_work : Int , ) - > Result [ Bytes , @ client_row_source_host . RowSourceIssue ]"
+        },
+        {
+          "name": "client_program_relation_project_target_document",
+          "declaration": "client_program_relation_project_target_document ( original : @ client_row_source_host . RelationDocument , declaration : @ client_row_source_host . RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] , primary_identity : String , writable_fields : Array [ String ] , ) - > Result [ @ client_row_source_host . RelationTargetDocument , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
+          "name": "client_program_relation_target_before",
+          "declaration": "client_program_relation_target_before ( row : @ client_row_source_host . RelationTargetRow , ) - > String ?"
+        },
+        {
+          "name": "client_program_relation_target_row_count",
+          "declaration": "client_program_relation_target_row_count ( document : @ client_row_source_host . RelationTargetDocument , ) - > Int ?"
+        },
+        {
+          "name": "client_program_relation_target_row_identity",
+          "declaration": "client_program_relation_target_row_identity ( document : @ client_row_source_host . RelationTargetDocument , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_program_relation_target_text",
+          "declaration": "client_program_relation_target_text ( row : @ client_row_source_host . RelationTargetRow , field : String , ) - > String ?"
+        },
+        {
+          "name": "client_program_relation_target_text_bytes",
+          "declaration": "client_program_relation_target_text_bytes ( row : @ client_row_source_host . RelationTargetRow , field : String , ) - > Bytes ?"
+        },
+        {
+          "name": "client_program_relation_target_version",
+          "declaration": "client_program_relation_target_version ( row : @ client_row_source_host . RelationTargetRow , ) - > String ?"
+        },
+        {
+          "name": "client_program_relation_update_mapping",
+          "declaration": "client_program_relation_update_mapping ( declaration : @ client_row_source_host . RowDeclaration , resource : String , primary_identity : String , writable_fields : Array [ String ] , permission : String , approval : String , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_relation_accept_charged_document",
+            "client_program_relation_admit_document",
+            "client_program_relation_admit_target_document",
+            "client_program_relation_document_usage",
+            "client_program_relation_observe_target",
+            "client_program_relation_prepare_target_update",
+            "client_program_relation_project_target_document",
+            "client_program_relation_target_before",
+            "client_program_relation_target_row_count",
+            "client_program_relation_target_row_identity",
+            "client_program_relation_target_text",
+            "client_program_relation_target_text_bytes",
+            "client_program_relation_target_version",
+            "client_program_relation_update_mapping"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_relation_document_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "c8cc95711ab11c49f60512f3e7b5c5a8f5fcd6898dc858b5b0eb6b0d6a235499",
+      "role": "generated-binding",
+      "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_relation_accept_charged_document",
+          "declaration": "client_program_relation_accept_charged_document ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , acquisition : @ client_row_source_host . RowAcquisition , document : @ client_row_source_host . RelationTargetDocument , max_work : Int , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_relation_admit_document",
+          "declaration": "client_program_relation_admit_document ( bytes : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_work : Int , ) - > Result [ @ client_row_source_host . RelationDocument , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
+          "name": "client_program_relation_admit_target_document",
+          "declaration": "client_program_relation_admit_target_document ( declaration : @ client_row_source_host . RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] , primary_identity : String , writable_fields : Array [ String ] , bytes : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_work : Int , ) - > Result [ @ client_row_source_host . RelationTargetDocument , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
+          "name": "client_program_relation_document_usage",
+          "declaration": "client_program_relation_document_usage ( original : @ client_row_source_host . RelationDocument , ) - > Array [ Int64 ] ?"
+        },
+        {
+          "name": "client_program_relation_observe_target",
+          "declaration": "client_program_relation_observe_target ( document : @ client_row_source_host . RelationTargetDocument , declaration : @ client_row_source_host . RowDeclaration , identity : String , ) - > Result [ @ client_row_source_host . RelationTargetRow , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
+          "name": "client_program_relation_prepare_target_update",
+          "declaration": "client_program_relation_prepare_target_update ( document : @ client_row_source_host . RelationTargetDocument , row : @ client_row_source_host . RelationTargetRow , expected_version : String , value_wire : String , max_work : Int , ) - > Result [ Bytes , @ client_row_source_host . RowSourceIssue ]"
+        },
+        {
+          "name": "client_program_relation_project_target_document",
+          "declaration": "client_program_relation_project_target_document ( original : @ client_row_source_host . RelationDocument , declaration : @ client_row_source_host . RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] , primary_identity : String , writable_fields : Array [ String ] , ) - > Result [ @ client_row_source_host . RelationTargetDocument , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
+          "name": "client_program_relation_target_before",
+          "declaration": "client_program_relation_target_before ( row : @ client_row_source_host . RelationTargetRow , ) - > String ?"
+        },
+        {
+          "name": "client_program_relation_target_row_count",
+          "declaration": "client_program_relation_target_row_count ( document : @ client_row_source_host . RelationTargetDocument , ) - > Int ?"
+        },
+        {
+          "name": "client_program_relation_target_row_identity",
+          "declaration": "client_program_relation_target_row_identity ( document : @ client_row_source_host . RelationTargetDocument , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_program_relation_target_text",
+          "declaration": "client_program_relation_target_text ( row : @ client_row_source_host . RelationTargetRow , field : String , ) - > String ?"
+        },
+        {
+          "name": "client_program_relation_target_text_bytes",
+          "declaration": "client_program_relation_target_text_bytes ( row : @ client_row_source_host . RelationTargetRow , field : String , ) - > Bytes ?"
+        },
+        {
+          "name": "client_program_relation_target_version",
+          "declaration": "client_program_relation_target_version ( row : @ client_row_source_host . RelationTargetRow , ) - > String ?"
+        },
+        {
+          "name": "client_program_relation_update_mapping",
+          "declaration": "client_program_relation_update_mapping ( declaration : @ client_row_source_host . RowDeclaration , resource : String , primary_identity : String , writable_fields : Array [ String ] , permission : String , approval : String , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_relation_accept_charged_document",
+            "client_program_relation_admit_document",
+            "client_program_relation_admit_target_document",
+            "client_program_relation_document_usage",
+            "client_program_relation_observe_target",
+            "client_program_relation_prepare_target_update",
+            "client_program_relation_project_target_document",
+            "client_program_relation_target_before",
+            "client_program_relation_target_row_count",
+            "client_program_relation_target_row_identity",
+            "client_program_relation_target_text",
+            "client_program_relation_target_text_bytes",
+            "client_program_relation_target_version",
+            "client_program_relation_update_mapping"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

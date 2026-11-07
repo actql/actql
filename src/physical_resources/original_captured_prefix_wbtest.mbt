@@ -109,3 +109,62 @@ test "original keyed assembly prerequisite keeps the exact captured child and sp
   assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
   assert_false(original_ledger_captured_preparation_available(identity))
 }
+
+///|
+test "captured prefix borrows live original Source backing but never pending or foreign tokens" {
+  let ledger = read_capacity_fixture(30L, 30L)
+  let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+  let identity = begin_original_ledger_inventory(ledger, bootstrap, 4, 2, 0).unwrap()
+  let source = reserve_attempt(ledger, 0L, 4L, 5L).unwrap()
+  let holding = retain_allocation(ledger, source, 1L).unwrap()
+  let before = ledger_usage(ledger)
+  assert_true(reservation_open(source))
+  assert_true(original_captured_prefix_available(ledger, source, holding))
+  assert_eq(ledger_usage(ledger), before)
+  let (foreign, _, foreign_source, foreign_holding) = original_captured_prefix_fixture(
+    1L,
+  )
+  assert_false(
+    original_captured_prefix_available(ledger, foreign_source, holding),
+  )
+  assert_false(
+    original_captured_prefix_available(ledger, source, foreign_holding),
+  )
+  let prefix = reserve_attempt(ledger, 0L, 2L, 3L).unwrap()
+  assert_false(original_captured_prefix_available(ledger, source, holding))
+  assert_true(
+    original_captured_prefix_reservation_available(
+      ledger, source, holding, prefix,
+    ),
+  )
+  let combined = ledger_usage(ledger)
+  assert_eq(
+    combined.reserved_retention_bytes,
+    before.reserved_retention_bytes + 2L,
+  )
+  assert_eq(
+    combined.reserved_execution_bytes,
+    before.reserved_execution_bytes + 3L,
+  )
+  assert_false(
+    original_captured_prefix_reservation_available(
+      ledger, source, holding, foreign_source,
+    ),
+  )
+  mark_cleanup_pending(ledger, source).unwrap()
+  assert_false(
+    original_captured_prefix_reservation_available(
+      ledger, source, holding, prefix,
+    ),
+  )
+  assert_eq(ledger_usage(ledger), combined)
+  settle_reservation(ledger, prefix).unwrap()
+  // Spending and retiring the dependent cannot refill the first opportunity.
+  assert_false(original_captured_prefix_available(ledger, source, holding))
+  release_allocation(ledger, holding).unwrap()
+  settle_reservation(ledger, source).unwrap()
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
+  release_allocation(foreign, foreign_holding).unwrap()
+  assert_true(finish_original_ledger_inventory(foreign, true).unwrap())
+  assert_false(original_ledger_preparation_available(identity))
+}

@@ -3,10 +3,24 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {hash} from './inventory.mjs';
 import {providerConstructionBound, retainedProviderConstructionBound, inspectProviderConstruction} from './capacity/parent-control/provider-construction.mjs';
 import {adoptedConstructionReview, beforeAdoptedConstructionSource, retainedConstructionRead} from './capacity/parent-control/provider-construction-adopted-review.mjs';
+import {adoptedConstructionFixtureRead, retainedConstructionFixtureRead}
+  from './fixtures/retained-construction-source.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const read = path => readFileSync(new URL(`../../${path}`, import.meta.url));
+test('retained constructor fixtures bind every provider to its original source identity', () => {
+  const original = JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/provider-construction.json'));
+  assert.equal(original.providers.length, 11);
+  for (const provider of original.providers) {
+    assert.equal(hash(retainedConstructionFixtureRead(provider.path)), provider.sourceDigest, provider.name);
+  }
+  for (const name of ['selected_relation_provider', 'append_provider', 'values_provider']) {
+    const provider = original.providers.find(provider => provider.name === name);
+    assert.notEqual(hash(read(provider.path)), provider.sourceDigest, 'Current Source must not replace retained fixture input');
+  }
+});
 test('current five-field candidate component derives 2432 without promoting historical observations', () => {
   const current = providerConstructionBound(read);
   assert.equal(current.recordBytes, 48);
@@ -16,18 +30,19 @@ test('current five-field candidate component derives 2432 without promoting hist
   assert.equal(current.completeConstructorByteCorrespondence, false);
   assert.equal(current.completeParentUpper, false);
   assert.equal(current.completePipelineUpper, false);
-  const retained = retainedProviderConstructionBound(retainedConstructionRead(read));
+  const retained = retainedProviderConstructionBound(retainedConstructionFixtureRead);
   assert.equal(retained.recordBytes, 40);
   assert.equal(retained.bytes, 2344);
   assert.equal(retained.layoutRevision, 'retained-four-field');
 });
-test('adopted deltas reconstruct all three authenticated complete prior sources', () => {
+test('archived adopted deltas reconstruct all three authenticated complete prior sources', () => {
   for (const entry of adoptedConstructionReview.sources) {
     const expected = execFileSync('git', ['--no-replace-objects', 'show',
       `${adoptedConstructionReview.previousRevision}:${entry.path}`], {cwd: root}).toString();
-    assert.equal(beforeAdoptedConstructionSource(read(entry.path).toString(), entry.path), expected);
+    const source = adoptedConstructionFixtureRead(entry.path).toString();
+    assert.equal(beforeAdoptedConstructionSource(source, entry.path), expected);
     assert.throws(() => beforeAdoptedConstructionSource(expected, entry.path), /Unreviewed adopted/);
-    assert.throws(() => beforeAdoptedConstructionSource(read(entry.path).toString() + '\n', entry.path), /Unreviewed adopted/);
+    assert.throws(() => beforeAdoptedConstructionSource(source + '\n', entry.path), /Unreviewed adopted/);
   }
 });
 for (const [name, path, from, to] of [
@@ -35,11 +50,23 @@ for (const [name, path, from, to] of [
   ['bound Infer tuple in a candidate', 'src/connectors/local/managed_provider.mbt', 'infer_relation_prefix: None,', 'infer_relation_prefix: Some((prefix, 0, execution, measurement)),'],
   ['dropped immutable query-time original', 'src/execution_relation/generated_sequence.mbt', 'query_time : @publication.QueryEvaluationTime?', 'query_time : Int'],
   ['unreviewed constructor allocation', 'src/connectors/local/selected_relation_provider.mbt', 'fn selected_relation_provider(', 'fn selected_relation_provider(\n  extra : String,'],
+  ['changed same-original refinement', 'src/execution_relation/generated_sequence.mbt',
+    '!physical_equal(original.contracts, candidate.contracts)', 'false'],
 ]) test(`current source correspondence rejects ${name}`, () => {
   const source = read(path).toString();
   assert(source.includes(from));
   const changed = source.replace(from, to);
-  assert.throws(() => providerConstructionBound(p => p === path ? changed : read(p)), /Unreviewed adopted/);
+  assert.throws(() => providerConstructionBound(p => p === path ? changed : read(p)), /Unreviewed current constructor source/);
+});
+
+test('current census refuses unknown changes in every complete constructor source', () => {
+  const profile = JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/provider-construction-current.json'));
+  const paths = new Set([...profile.providers.map(p => p.path), ...Object.keys(profile.sourcePremises)]);
+  assert.equal(paths.size, 13);
+  for (const path of paths) {
+    assert.throws(() => providerConstructionBound(p => p === path ?
+      Buffer.concat([read(path), Buffer.from('\n')]) : read(p)), /Unreviewed current constructor source/);
+  }
 });
 
 test('current observation admission rejects retained layout and component overflow', () => {
@@ -50,9 +77,15 @@ test('current observation admission rejects retained layout and component overfl
   assert.equal(inspectProviderConstruction([fact], read, 'native').recipe.bytes, 2432);
   assert.throws(() => inspectProviderConstruction([{...fact, indexedBytes: 2433}], read, 'native'),
     /exceeds source-derived envelope/);
-  assert.throws(() => inspectProviderConstruction([fact], retainedConstructionRead(read), 'native',
+  assert.throws(() => inspectProviderConstruction([fact], retainedConstructionFixtureRead, 'native',
     {retained: true}), /Retained four-field source cannot authenticate current/);
   for (const providerRecordFields of [undefined, 4, 6])
     assert.throws(() => inspectProviderConstruction([{...fact, providerRecordFields}], read, 'native'),
       /cannot authenticate retained four-field/);
+});
+
+test('current source does not acquire retained observation qualification', () => {
+  const generated = 'src/execution_relation/generated_sequence.mbt';
+  assert.throws(() => retainedConstructionRead(read)(generated), /Unreviewed adopted constructor source/);
+  assert.throws(() => retainedProviderConstructionBound(read), /Unreviewed provider constructor/);
 });

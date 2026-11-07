@@ -6,7 +6,7 @@ import {connectionFailure} from './connection-options.mjs';
 import {ClientError, fail, ownedClientFailure, readRefusalCodes} from './errors.mjs';
 import {retainCancellationExplanation} from './run-observation.mjs';
 import {submissionNotSent, submissionUnknown} from './submission-observation.mjs';
-import {captureSourcePreparation} from './private-source-preparation.mjs';
+import {captureSourcePreparation, sourcePreparationPort} from './private-source-preparation.mjs';
 
 // Return the import promise itself so only the existing loopback branch yields.
 export const loadLoopbackTransport = () => import('#loopback-http');
@@ -15,7 +15,10 @@ const isSubmission = operation => operation === 'submit-intent' ||
   operation === 'submit-named-intent' || operation === 'restart-intent';
 
 export function createTransport(selected, port, isClosed, directLoopback) {
-  const capturedSourcePreparation = captureSourcePreparation(port);
+  // A structural wire port is not selection of the builtin Local provider.
+  // Any selected binding, including an inherited one, still uses strict capture.
+  const capturedSourcePreparation = port !== undefined && sourcePreparationPort in port
+    ? captureSourcePreparation(port) : undefined;
   // Query capture and Result consumption must retain this same callback pair.
   // Check the connection lifetime before entering either original Host method.
   const sourcePreparation = capturedSourcePreparation === undefined ? undefined

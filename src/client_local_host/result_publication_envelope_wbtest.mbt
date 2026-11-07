@@ -62,7 +62,11 @@ test "result envelope derives row workspace and rejects representation overflow"
     assert_eq(envelope.order_terms, 6)
     assert_eq(envelope.workspace_entries, workspace)
   }
-  for rows in [-1, 0, 2147483647] {
+  assert_eq(
+    client_local_result_envelope(graph, 2147483647).unwrap().workspace_entries,
+    2147483647,
+  )
+  for rows in [-1, 0] {
     assert_true(client_local_result_envelope(graph, rows) is None)
   }
 }

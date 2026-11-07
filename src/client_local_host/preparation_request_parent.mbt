@@ -20,6 +20,7 @@ priv enum ClientRequestPreparationPhase {
   EffectBodyReady
   EffectBodyFailed
   EffectCaptureRecovery
+  ModelRecovery
   ProgramPlanQuoted
   ProgramPlanReserved
   ModelPlanReserved
@@ -43,6 +44,13 @@ priv enum ClientRequestDomainCompilationInputs {
     @publication_host.ClientRequestIdentity,
     @publication.PublicationContract
   )
+  // A saved Model continuation keeps its Journal-selected pair while the
+  // existing Request reservation funds reconstruction. It cannot compile a
+  // new Program, admit another Run or replace the saved physical call scope.
+  RequestModelRecovery(
+    @publication_host.ClientRequestIdentity,
+    @publication.PublicationContract
+  )
   RequestModelCompilation(
     @publication_host.ClientCompilationManifests,
     @publication_host.ClientPureCompilationLimits,
@@ -53,6 +61,21 @@ priv enum ClientRequestDomainCompilationInputs {
   // it. Reuse this same four-reference slot, then transfer it to that compiler.
   // Same resident four-reference slot while the backed Graph constructor
   // retains its original mappings/lowering through a failed issuer/current.
+  // The SAME resident compiler-input slot may retain the full ordered
+  // original graph vector. Its actual Array constructor is backed before
+  // allocation; no second compiler/parent or ownership cache is introduced.
+  RequestModelsCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    Array[@publication_host.ClientInferPlanGraph]
+  )
+  RequestModelGraphs(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    Array[@publication_host.ClientInferPlanGraph]
+  )
   RequestModelGraphConstruction(
     @publication_host.ClientCompilationManifests,
     @publication_host.ClientPureCompilationLimits,
@@ -90,14 +113,16 @@ priv enum ClientRequestDomainCompilationInputs {
 /// body type is selected. Unit is never completed or interpreted as a body.
 /// This record owns no second Ledger, byte allowance, parser or serializer.
 struct ClientRequestPreparation[I] {
-  initial : @resources.NodePreparationAdmission[I]
+  initial : ClientPreparationInitial[I]
   ledger : @resources.Ledger
   capacity : @resources.PreparationCapacity[I, Unit]
   mut input : I?
   mut snapshot_base : (Int64, Int64)?
   mut snapshot_units : Int64
   mut snapshot_values : Int64
+  snapshot_key_units : Ref[Int]
   mut submitted_intent : @publication_host.ClientSubmittedIntent?
+  mut source_input : ClientRequestSourceInput?
   mut intent_base : (Int64, Int64)?
   mut intent_attempted : Bool
   mut intent_peak_live : Bool
@@ -134,7 +159,7 @@ struct ClientRequestPreparation[I] {
   // coexist in the distinct existing domain/body slots below.
   mut program_domain_quote : (Int64, Int64)?
   mut program_artifact_geometry : @publication_host.ClientPureCompilationConstruction?
-  mut program_artifact_quote : (Int64, Int64)?
+  mut program_artifact_quote : (Int64, Int64, Int64)?
   mut program_invocation_quote : (Int64, Int64)?
   mut program_artifact_work : @resources.PreparationPhaseWork64?
   mut program_artifact_work_charged : Bool
@@ -154,6 +179,7 @@ struct ClientRequestPreparation[I] {
   mut program_compilation : @publication_host.ClientRunCompilation?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
+  mut program_model_direct : @publication_host.ClientDirectAcquisitionOccurrences?
   mut program_model : ClientInstalledManagedModelPlan?
   mut program_content : ClientInstalledContentPreparation
   mut program_content_request : @publication_host.ClientRequestIdentity?
@@ -182,6 +208,7 @@ pub(all) enum ClientRequestPreparationIssue {
   ProgramCheck(ClientProgramCheckPreparationIssue)
   Parameters(@local_preparation.LocalProgramInputIssue)
   Intent(@publication_host.ClientSubmittedIntentIssue)
+  SourceInput(ClientRequestSourceInputIssue)
   Work(@resources.PreparationWorkIssue)
   ParameterDeclarations(@parameters.Issue)
   ParameterSource(@stages.Issue)
@@ -197,16 +224,23 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 
 ///|
 // One conservative fixed Host/Request control envelope, expressed through the
-// existing common representation tariff. Preserve the original upper bound:
-// 10,368 logical bytes plus the existing separate 4,096-byte installed group.
+// existing common representation tariff. Preserve the original 10,368-byte
+// envelope plus one Source-context reference slot and two growth-fence words.
+// Default Request input selection adds its four nested immutable limit records
+// and Result wrapper (5H/7R/10W) before the native Source constructor grow:
+// Cache one extra scalar word for that same artifact quote's retired scratch,
+// so a declined grow reuses the original split without interpreting it again:
+// One observed-input ParseLimits record/Some (2H/1R/3W) also precedes its
+// constructor grow. Its original key-extent observation Ref/Some and field
+// (2H/2R/1W) share this fixed control group:10,736 bytes plus4,096 installed.
 // This is intentionally independent of JS closure, carrier and array spelling.
 // Input/AST/wire/row/operation storage, selected domain construction and live
 // child overlap remain separately charged before their actual constructors.
 // The fixed envelope is immutable DATA, not a reservation, phase or RSS bound.
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
-  record_headers: 220L,
-  reference_slots: 401L,
-  scalar_words: 455L,
+  record_headers: 229L,
+  reference_slots: 412L,
+  scalar_words: 472L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -230,6 +264,21 @@ pub fn client_request_preparation_control_capacity(
   // the exclusive read-only capture-recovery quote/reader controls, or the
   // pre-compiler Content Graph measurement/selection call frame. This is
   // installed coarse control overhead, not variable wire/body admission.
+  // The same group covers later Run growth entry. Its original owner fences
+  // recursion before payload construction, so only one refused nested entry
+  // overlaps. The fixed carriers are backed NOW, not by a later resize.
+  let growth = @resources.preparation_inventory_growth_entry_construction()
+  guard @execution.preparation_representation_cost({
+      record_headers: growth.record_headers,
+      reference_slots: growth.reference_slots,
+      scalar_words: growth.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(entry) &&
+    entry <= 4096L else {
+    return None
+  }
   if retained > limits.retained_bytes {
     return None
   }
@@ -242,22 +291,38 @@ pub fn[I] begin_request_preparation(
   input : I,
   policy : ClientLocalResourcePolicy,
 ) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue] {
+  begin_request_preparation_original(NodeRequestInitial(initial), input, policy)
+}
+
+///|
+fn[I] begin_request_preparation_original(
+  initial : ClientPreparationInitial[I],
+  input : I,
+  policy : ClientLocalResourcePolicy,
+) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue] {
   guard client_local_preparation_initial_limits(policy) is Some(expected) &&
     client_request_preparation_control_capacity(policy)
     is Some((retained, execution)) else {
     return Err(Policy)
   }
-  match @resources.check_node_preparation_input(initial, input) {
+  match preparation_initial_input(initial, input) {
     Err(issue) => return Err(Initial(issue))
     Ok(_) => ()
   }
-  let ledger = match @resources.start_node_preparation_admission(initial) {
+  let ledger = match preparation_initial_start(initial, input) {
     Err(issue) => return Err(Initial(issue))
     Ok(value) => value
   }
-  // Actual sealed initial envelope may cover additional installed domains.
-  // It must contain the Local baseline; no caller-supplied limit is admitted.
-  if !installed_effect_limits_fit(expected, @resources.ledger_limits(ledger)) {
+  let available = @resources.ledger_limits(ledger)
+  let fits = match initial {
+    // Preserve the existing Node supplier's full sealed installation envelope.
+    NodeRequestInitial(_) => installed_effect_limits_fit(expected, available)
+    // This nominal scoped child supplies actual backing, not the policy's
+    // unused maxima. Keep its original grant within that policy ceiling;
+    // every fixed/variable constructor still reserves its full actual quote.
+    BackedRequestInitial(_) => installed_effect_limits_fit(available, expected)
+  }
+  if !fits {
     return Err(Policy)
   }
   let capacity : @resources.PreparationCapacity[I, Unit] = match
@@ -280,7 +345,9 @@ pub fn[I] begin_request_preparation(
     snapshot_base: None,
     snapshot_units: 0L,
     snapshot_values: 0L,
+    snapshot_key_units: Ref(-1),
     submitted_intent: None,
+    source_input: None,
     intent_base: None,
     intent_attempted: false,
     intent_peak_live: false,
@@ -317,6 +384,7 @@ pub fn[I] begin_request_preparation(
     program_compilation: None,
     program_source_free: None,
     program_captured: None,
+    program_model_direct: None,
     program_model: None,
     program_content: NoContent,
     program_content_request: None,
@@ -469,7 +537,7 @@ fn[I] prepare_request_check_preparation_owned(
       owner.query_syntax is Some(query) &&
       query.lowering is Some(lowering) &&
       physical_equal(lowering.environment, environment) &&
-      lowering.output is Some((_, catalog, _)) else {
+      lowering.output is Some(Ok((_, catalog, _))) else {
       return Err(ForeignOriginal)
     }
     let catalog = match source_catalog {
@@ -590,6 +658,10 @@ pub fn[I] abort_request_preparation_after_cleanup(
     owner.phase = previous
   }
   clear_request_parameter_source(owner)
+  match finish_request_query_refusal_binding_work(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   // Registered controllers have relinquished only their own aliases.
   // This caller is explicitly after its borrowed arguments/returned frames.
   if owner.intent_work is Some(work) {
@@ -605,7 +677,9 @@ pub fn[I] abort_request_preparation_after_cleanup(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  clear_request_source_input(owner)
   owner.submitted_intent = None
+  owner.snapshot_key_units.val = -1
   owner.intent_base = None
   owner.intent_peak_live = false
   owner.held_program = None
@@ -628,6 +702,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_domain_compilation_inputs = None
   owner.program_source_free = None
   owner.program_captured = None
+  owner.program_model_direct = None
   owner.program_model = None
   owner.program_content = NoContent
   owner.program_content_request = None
@@ -667,7 +742,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
     Ok(false) => return Err(WrongPhase)
     Ok(true) => owner.input = None
   }
-  match @resources.cleanup_node_preparation_admission(owner.initial) {
+  match preparation_initial_cleanup(owner.initial) {
     Err(issue) => Err(Initial(issue))
     Ok(_) => {
       owner.program_capacity = None
@@ -686,4 +761,20 @@ pub fn[I] request_preparation_accounting(
   owner : ClientRequestPreparation[I],
 ) -> (Int64, Int64, Int64, Int64, Int64, Int64) {
   @resources.preparation_capacity_accounting(owner.capacity)
+}
+
+///|
+/// The same Request owner on a fresh legitimately backed child of the actual
+/// installed parent. Fixed VM capacities and the enclosing Host stay owned by
+/// that parent; Node's pristine-child/census law is unchanged.
+pub fn[I] begin_backed_request_preparation(
+  initial : @resources.BackedPreparationAdmission[I],
+  input : I,
+  policy : ClientLocalResourcePolicy,
+) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue] {
+  begin_request_preparation_original(
+    BackedRequestInitial(initial),
+    input,
+    policy,
+  )
 }

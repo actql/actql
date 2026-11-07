@@ -23,6 +23,7 @@ import {createNodeHostEntry,
 import {installStrategyContributions} from
   '../../../../connectors-builtin/strategy.generated.mjs';
 import {runInstalledStrategy} from '../../../../host-common/strategy.mjs';
+import {retainFirstAndLatestCleanupError} from '../../../../host-common/managed-failure.mjs';
 import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
 import {duckdbStrategyContribution} from '../strategy-bundle.mjs';
 import {localStrategyContribution} from
@@ -3172,9 +3173,12 @@ async function exerciseStrategyGraph(
       consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
     },
   };
-  const rankingPublicationFixture = fixture.strategyFixtureVecaCreate(
+  // This success fixture keeps every output and its publication evidence.
+  // Select the existing accounted profile before capture, retaining all other
+  // graph limits rather than weakening the actual capacity quote or cleanup.
+  const rankingPublicationFixture = fixture.strategyFixtureAccounted(fixture.strategyFixtureVecaCreate(
     ...args, JSON.stringify(rankingPublicationProgram), orderedContract,
-  );
+  ));
   const rankingCapture = await runNativeHostQuery(
     grant,
     fixture.strategyFixtureAcquisition(rankingPublicationFixture),
@@ -3215,7 +3219,11 @@ async function exerciseStrategyGraph(
       {store: rankingPublicationStore, plan},
       {local: rankingRetained.configuration},
       new AbortController().signal,
-    );
+    ).catch(cause => {
+      // Preserve the original execution/cleanup carrier as the cause while
+      // making this selected fixture's first typed failure visible in CI.
+      throw new Error(inspect(cause.primaryFailure ?? cause.cause, {depth: 5}), {cause});
+    });
     assert.equal(rankingPublicationOwner.status, 'published');
     assert.equal(rankingPublicationOwner.publication.publication.state,
       'succeeded');
@@ -3397,7 +3405,9 @@ async function exerciseStrategyGraph(
                   rankingAdvanced = true;
                   if (!cancellationScheduled) {
                     cancellationScheduled = true;
-                    setTimeout(() => scoredAbort.abort(), 0);
+                    // Abort while this original operation is still observed
+                    // incomplete; a later timer can run after it has finished.
+                    scoredAbort.abort();
                   }
                 }
                 return value;
@@ -3636,9 +3646,11 @@ async function exerciseStrategyGraph(
     ['nearest-query-vectors-filter', nearestWithVectors(false, true)],
     ['nearest-both-vectors-filter', nearestWithVectors(true, true)],
   ]) {
-    const nearestPublicationFixture = fixture.strategyFixtureVecaCreate(
+    // Like ranking publication, each successful nearest variant retains the
+    // original three Result occurrences and their full publication evidence.
+    const nearestPublicationFixture = fixture.strategyFixtureAccounted(fixture.strategyFixtureVecaCreate(
       ...args, JSON.stringify(program), orderedContract,
-    );
+    ));
     const nearestCapture = await runNativeHostQuery(
       grant,
       fixture.strategyFixtureAcquisition(nearestPublicationFixture),
@@ -4323,7 +4335,9 @@ async function exerciseStrategyGraph(
                   advanced = true;
                   if (cancelling && !scheduled) {
                     scheduled = true;
-                    setTimeout(() => cancellation.abort(), 0);
+                    // Deliver after this incomplete advance returns, before
+                    // another advance can finish the tiny pooling fixture.
+                    queueMicrotask(() => cancellation.abort());
                   }
                 }
                 return value;
@@ -4905,7 +4919,7 @@ async function exerciseStrategyGraph(
     constructionProgress:80,constructionStarts:[1],
     managedStarts:1,cancelTask:2,completedTasks:[1],
     step:{from:'g',degree:{direction:'both'},as:'out'},
-    fields:['node','degree'],
+    fields:['node_id','degree'],
   }, {
     name: 'current-degree-selected-in-flight',
     selectedStructural:true,
@@ -4914,7 +4928,7 @@ async function exerciseStrategyGraph(
     cancelOnManagedStart:2,managedStarts:2,cancelTask:3,
     completedTasks:[1,2],
     step:{from:'g',degree:{direction:'both'},as:'out'},
-    fields:['node','degree'],
+    fields:['node_id','degree'],
   }, {
     name: 'current-components-strong-fused-in-flight',
     retainedOutput:true,rows:40,advanceQuantum:1,
@@ -6498,7 +6512,9 @@ async function exerciseStrategyGraph(
                         cancellationCase.minimumCompletedRows ?? 0)) {
                     sawOperationWork = true;
                     cancellationScheduled = true;
-                    setTimeout(() => graphCancellation.abort(), 0);
+                    // This named task is still incomplete here. Deliver its
+                    // cancellation before a later managed task can start.
+                    graphCancellation.abort();
                   } else if (constructionStarts.includes(start) &&
                       observation !== undefined &&
                       !constructionComplete) {
@@ -6515,7 +6531,9 @@ async function exerciseStrategyGraph(
                       observation.work > 0n && !cancellationScheduled) {
                     sawOperationWork = true;
                     cancellationScheduled = true;
-                    setTimeout(() => graphCancellation.abort(), 0);
+                    // Cancel this observed incomplete original operation before
+                    // a timer can allow the next managed task to start.
+                    graphCancellation.abort();
                   }
                   return result;
                 };
@@ -9051,7 +9069,8 @@ async function exerciseStrategyGraph(
                     }
                     if (!crossJoinCancellationScheduled) {
                       crossJoinCancellationScheduled = true;
-                      setTimeout(() => crossJoinCancellation.abort(), 0);
+                      // Queue before the driver's matching host-yield callback.
+                      setImmediate(() => crossJoinCancellation.abort());
                     }
                   }
                   return result;
@@ -9185,7 +9204,9 @@ async function exerciseStrategyGraph(
                 if (cancel && start === 2 && observation.complete === false &&
                     observation.progress > 0n && !scheduled) {
                   scheduled = true;
-                  setTimeout(() => controller.abort(), 0);
+                  // Keep the abort inside the observed incomplete sort, before
+                  // its output lease can be constructed by a later advance.
+                  controller.abort();
                 }
                 return result;
               };
@@ -9255,8 +9276,10 @@ async function exerciseStrategyGraph(
     first: {from: {stage: 'consumer_a', result: 'r'}},
     second: {from: {stage: 'consumer_b', result: 'r'}},
   };
-  const retainedValuesFixture = fixture.strategyFixtureCreate(
-    ...args, JSON.stringify(retainedValuesProgram));
+  // This successful publication retains all three original Result occurrences
+  // and their evidence, beyond the strict 32 MB refusal fixture's allowance.
+  const retainedValuesFixture = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(retainedValuesProgram)));
   const retainedValuesCapture = await runNativeHostQuery(
     grant,
     fixture.strategyFixtureAcquisition(retainedValuesFixture),
@@ -10392,6 +10415,9 @@ async function exerciseStrategyGraph(
       throw new Error(`${name}: fixture preparation failed: ${String(error)}`,
         {cause: error});
     }
+    // Every success in this corpus retains the producer and two consumers,
+    // plus their complete publication evidence, under the accounted profile.
+    binaryFixture = fixture.strategyFixtureAccounted(binaryFixture);
     assert.equal(fixture.strategyFixtureTaskStepCount(binaryFixture, producerTask),
       program.stages.find(stage => stage.id === producerStage).steps.length,
       `${name}: the producer must remain one physical task`);
@@ -10673,13 +10699,15 @@ async function exerciseStrategyGraph(
       program.stages.find(stage => stage.id === 'cross_right').steps[0]
         .values.rows = Array.from({length: 30}, (_, index) => ({id: index + 30}));
     }
-    const binaryFixture = sequence
+    // Reach the injected fault with the complete retained-output evidence budget.
+    // The separate quota-boundary corpus keeps its original admission limits.
+    const binaryFixture = fixture.strategyFixtureAccounted(sequence
       ? fixture.strategyFixtureTeaSequenceCreate(...args, JSON.stringify(program))
       : temporal
       ? fixture.strategyFixtureTeaCreate(...args, JSON.stringify(program))
       : numericGroup
       ? fixture.strategyFixtureNumericCreate(...args, JSON.stringify(program))
-      : fixture.strategyFixtureCreate(...args, JSON.stringify(program));
+      : fixture.strategyFixtureCreate(...args, JSON.stringify(program)));
     const binaryCapture = await runNativeHostQuery(grant,
       fixture.strategyFixtureAcquisition(binaryFixture), suppliedLimits);
     const directory = await mkdtemp(join(tmpdir(),
@@ -10690,6 +10718,8 @@ async function exerciseStrategyGraph(
       maxFrameBytes: 1024 * 1024,
     });
     let leases = 0, failedAppends = 0, failedFinalizations = 0;
+    let failedCleanups = 0;
+    const cleanupFailure = new Error('InjectedRetainedCleanupPending');
     let failurePublicationStore;
     let permitCleanup = mode !== 'finalize-failure' &&
       mode !== 'compute-cleanup-failure';
@@ -10735,7 +10765,8 @@ async function exerciseStrategyGraph(
         },
         async cleanup() {
           if (failThisOutput && !permitCleanup) {
-            throw new Error('InjectedRetainedCleanupPending');
+            failedCleanups++;
+            throw cleanupFailure;
           }
           await writer?.cleanupHandle?.retry?.();
         },
@@ -10791,7 +10822,9 @@ async function exerciseStrategyGraph(
                   if (cancelling && !scheduled && (mode === 'cancel' || nestCancel
                     ? sawWork : sawLaterWork)) {
                     scheduled = true;
-                    setTimeout(() => cancellation.abort(), 0);
+                    // Abort at the observed incomplete step, before a later
+                    // output lease can begin during a timer turn.
+                    cancellation.abort();
                   }
                 }
                 return result;
@@ -10875,14 +10908,14 @@ async function exerciseStrategyGraph(
         assert.equal(arithmeticFailure(execution.failure.cause), true);
         if (mode === 'compute-cleanup-failure') {
           await assert.rejects(async () => execution.close(),
-            /InjectedRetainedCleanupPending/);
+            error => assertCarrierRetainedCleanupFailure(error, {cleanupFailure}));
           failedCloseObserved = true;
           assert.equal(execution.cleanupPending(), true,
             'failed close must retain the mixed input cleanup owner');
-          await assert.rejects(execution.cleanup(), error =>
-            error instanceof AggregateError &&
-            error.errors.some(cause =>
-              cause.message === 'InjectedRetainedCleanupPending'));
+          const failuresBeforeRetry = failedCleanups;
+          assert.equal(await execution.cleanup(), false);
+          assert(failedCleanups > failuresBeforeRetry,
+            'pending cleanup must retry the original retained output');
           assert.equal(execution.cleanupPending(), true);
           assert(execution.usage().reservedExecutionBytes > 0n ||
             execution.usage().heldBytes > 0n);
@@ -10958,8 +10991,8 @@ async function exerciseStrategyGraph(
     [{id: 1}, {id: 2}], [{id: 3}]);
   const crossBoundary = retainedBoundaryProgram('cross_join',
     [{id: 1}, {id: 2}], [{tag: 'a'}, {tag: 'b'}]);
-  const rejectedChain = structuredClone(appendBoundary);
-  rejectedChain.stages.find(stage => stage.id === 'crossed').steps = [
+  const independentBranch = structuredClone(appendBoundary);
+  independentBranch.stages.find(stage => stage.id === 'crossed').steps = [
     {from: 'l', append: {with: 'r'}, as: 'appended'},
     {from: 'l', filter: 'true', as: 'out'},
   ];
@@ -10985,10 +11018,15 @@ async function exerciseStrategyGraph(
         {id: 2, tag: 'a'}, {id: 2, tag: 'b'}]},
     {name: 'cross-work-short', program: crossBoundary, work: 51, space: 12},
     {name: 'cross-space-short', program: crossBoundary, work: 52, space: 11},
-    {name: 'unsupported-chain', program: rejectedChain, work: 100000, space: 10000},
+    // The selected Relation provider admits an unconsumed pure branch before
+    // the terminal step and retains every selected child's cleanup owner.
+    {name: 'independent-branch', program: independentBranch, work: 100000,
+      space: 10000, expected: [{id: 1}, {id: 2}]},
   ]) {
-    const binaryFixture = fixture.strategyFixtureCreate(...args,
-      JSON.stringify(program));
+    // Retained evidence admission is separate from the exact kernel work and
+    // workspace ceilings selected below, including every one-short refusal.
+    const binaryFixture = fixture.strategyFixtureAccounted(
+      fixture.strategyFixtureCreate(...args, JSON.stringify(program)));
     const capture = await runNativeHostQuery(grant,
       fixture.strategyFixtureAcquisition(binaryFixture), suppliedLimits);
     const directory = await mkdtemp(join(tmpdir(), `actql-retained-${name}-`));
@@ -11036,10 +11074,7 @@ async function exerciseStrategyGraph(
       if (expected) {
         assert.equal(fixture.strategyFixtureCid(binaryFixture, 3), hash(expected), name);
         assert.equal(leases, 3, name);
-      } else if (name === 'unsupported-chain') {
-        assert.equal(dispatches, 0, 'unsupported Program must fail before any Compute');
-        assert.equal(leases, 0, name);
-        assert.equal(execution.completed.length, 0, name);
+        assert.equal(dispatches, 3, name);
       } else {
         assert.deepEqual(execution.completed.map(item => item.task), [1, 2], name);
         assert.equal(leases, 2, name);
@@ -11244,8 +11279,9 @@ async function exerciseStrategyGraph(
   nestPolicyProgram.results = {
     producer: {from: {stage: 'nested', result: 'r'}},
   };
-  const nestPolicyFixture = fixture.strategyFixtureCreate(
-    ...args, JSON.stringify(nestPolicyProgram));
+  // Fund retained evidence independently of the authored one-item Nest limit.
+  const nestPolicyFixture = fixture.strategyFixtureAccounted(
+    fixture.strategyFixtureCreate(...args, JSON.stringify(nestPolicyProgram)));
   const nestPolicyCapture = await runNativeHostQuery(grant,
     fixture.strategyFixtureAcquisition(nestPolicyFixture), suppliedLimits);
   const nestPolicyDirectory = await mkdtemp(join(
@@ -11313,8 +11349,9 @@ async function exerciseStrategyGraph(
     await nestPolicyStore.cleanup();
     await rm(nestPolicyDirectory, {recursive: true, force: true});
   }
-  const cancelledValuesFixture = fixture.strategyFixtureCreate(
-    ...args, JSON.stringify(retainedValuesProgram));
+  // Reach actual Values work before observing cancellation of retained output.
+  const cancelledValuesFixture = fixture.strategyFixtureAccounted(
+    fixture.strategyFixtureCreate(...args, JSON.stringify(retainedValuesProgram)));
   const cancelledValuesCapture = await runNativeHostQuery(
     grant,
     fixture.strategyFixtureAcquisition(cancelledValuesFixture),
@@ -11368,7 +11405,8 @@ async function exerciseStrategyGraph(
                 if (!valuesWorkObserved && !observation.complete &&
                     observation.progress > 0n) {
                   valuesWorkObserved = true;
-                  setTimeout(() => valuesCancel.abort(), 0);
+                  // Deliver cancellation before the next output lease starts.
+                  valuesCancel.abort();
                 }
               }
               return result;
@@ -11413,8 +11451,9 @@ async function exerciseStrategyGraph(
     await cancelledValuesStore.cleanup();
     await rm(cancelledValuesDirectory, {recursive: true, force: true});
   }
-  const failedValuesFixture = fixture.strategyFixtureCreate(
-    ...args, JSON.stringify(retainedValuesProgram));
+  // This is the same retained Values input; reach the injected Store append.
+  const failedValuesFixture = fixture.strategyFixtureAccounted(
+    fixture.strategyFixtureCreate(...args, JSON.stringify(retainedValuesProgram)));
   const failedValuesCapture = await runNativeHostQuery(
     grant,
     fixture.strategyFixtureAcquisition(failedValuesFixture),
@@ -11794,7 +11833,8 @@ async function exerciseStrategyGraph(
                       progressAfterStart += poll.progress;
                       if (!scheduled) {
                         scheduled = true;
-                        setTimeout(() => cancellation.abort(), 0);
+                        // Observe cancellation while this row step is pending.
+                        cancellation.abort();
                       }
                     }
                   }
@@ -12255,7 +12295,8 @@ async function exerciseStrategyGraph(
                         longSelectedTakeWork >= 10n) &&
                       !valuesWorkObserved) {
                     valuesWorkObserved = true;
-                    setTimeout(() => valuesCancellation.abort(), 0);
+                    // Keep cancellation at the observed pending chain step.
+                    valuesCancellation.abort();
                   }
                   return result;
                 };
@@ -12587,6 +12628,7 @@ async function exerciseStrategyGraph(
       const f = fixture.strategyFixtureJoinCreate(...args, JSON.stringify(joined));
       const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
       let execution;
+      let fanInHadPrimary = false, fanInPrimary;
       try {
         assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
         await replaceRows('INSERT INTO records VALUES (99,99)');
@@ -12602,12 +12644,71 @@ async function exerciseStrategyGraph(
         if (placement === 'duckdb') freshTransfer = execution.usage().transferredBytes;
         if (placement === 'resident') assert(execution.usage().transferredBytes < freshTransfer,
           'actual shared import and intermediate reuse reduce bytes, not merely estimated cost');
-        capture.close();
         fixture.strategyFixtureCloseOutput(f, 1);
         fixture.strategyFixtureCloseOutput(f, 2);
         fixture.strategyFixtureCloseOutput(f, 3);
         assert.equal(fixture.strategyFixtureCid(f, 4), hash([{ n: 4 }]));
-      } finally { execution?.close(); capture.close(); }
+      } catch (cause) {
+        fanInHadPrimary = true;
+        fanInPrimary = cause;
+        throw cause;
+      } finally {
+        const child = execution, input = capture;
+        let rejectedChild, rejectionCaptured = false;
+        let closeStarted = false, childCleaned = false, rejectionCleaned = false;
+        let inputClosed = false, complete = false;
+        let flight, reported;
+        const cleanupErrors = [];
+        const cleanupHandle = Object.freeze({
+          status: () => Object.freeze({pending: !complete}),
+          retry() {
+            if (flight) return flight;
+            // Publish before invoking an original owner's borrowed callback.
+            flight = Promise.resolve().then(async () => {
+              if (!rejectionCaptured) {
+                rejectedChild = fanInHadPrimary ? fanInPrimary?.cleanupHandle : undefined;
+                rejectionCaptured = true;
+              }
+              if (child && !childCleaned) {
+                if (!closeStarted) {
+                  closeStarted = true;
+                  await child.close();
+                }
+                assert.equal(await child.cleanup(), true);
+                assert.equal(child.cleanupPending(), false);
+                childCleaned = true;
+              }
+              if (rejectedChild && !rejectionCleaned) {
+                if (rejectedChild.status().pending) await rejectedChild.retry();
+                assert.equal(rejectedChild.status().pending, false);
+                rejectionCleaned = true;
+              }
+              if (!inputClosed) {
+                // A failed acquisition close retains this same retryable owner.
+                input.close();
+                inputClosed = true;
+              }
+              complete = true;
+              if (reported) reported.cleanupPending = false;
+              return cleanupHandle.status();
+            }).catch(cause => {
+              retainFirstAndLatestCleanupError(cleanupErrors, cause);
+              throw cause;
+            }).finally(() => {flight = undefined;});
+            return flight;
+          },
+        });
+        try { await cleanupHandle.retry(); }
+        catch (cause) {
+          reported = Object.assign(new Error('CapturedFanInCleanupPending',
+            {cause: fanInHadPrimary ? fanInPrimary : cause}), {
+            primaryFailure: fanInHadPrimary ? fanInPrimary : cause,
+            cleanupErrors, cleanupPending: true, cleanupHandle,
+          });
+          throw reported;
+        }
+      }
+      assert.equal(await execution.cleanup(), true);
       assert.equal(execution.usage().heldBytes, 0n);
       assert.equal(execution.usage().reservedExecutionBytes, 0n);
       assert.equal(execution.cleanupPending(), false);
@@ -12729,9 +12830,10 @@ async function exerciseStrategyGraph(
     for (const field of [0, 1, 2, 4, 5]) {
       assert.equal(fixture.strategyFixtureUsage(failed, field), 0n);
     }
-    // The chosen attempt was frozen before even a source-open failure, and
-    // releasing unused capacity never refunds that bounded attempt record.
-    assert.equal(fixture.strategyFixtureUsage(failed, 3), 1n);
+    // Authorization and pre-abort return an unused attempt reservation.
+    // Entering the physical session consumes it even if transfer then fails;
+    // cleanup must not refund that actual start.
+    assert.equal(fixture.strategyFixtureUsage(failed, 3), mode === 'transfer' ? 1n : 0n);
   }
   const accountedFixture = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
   const retainedRootDirectory = await mkdtemp(join(root, '_build/duckdb-fixtures/retained-root-'));
@@ -12749,6 +12851,7 @@ async function exerciseStrategyGraph(
     assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
     const fixedStream = checked(retainedBridge.nativeRetainedStrategyHostOpen(setupOnly, ledgerOnly,
       'fixed-stream', () => true, 100000n, 134217728n, 100000n, 4096, () => true));
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
     // The lower retention reservation never exposes a switchable receiver.
     assert.throws(() => checked(retainedBridge.nativeHostStreamPrepare(fixedStream, 4096)));
     // Even confirmed native stop cannot turn a missing sealed body into a
@@ -12764,7 +12867,8 @@ async function exerciseStrategyGraph(
     retainedBridge.nativeHostClose(fixedStream);
     checked(retainedBridge.nativeHostPhysicalSettle(fixedStream, true));
     for (const field of [0, 1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(preparedOnly, field), 0n);
-    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 1n);
+    // This admission-only probe never entered a physical session.
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
     for (const adopt of [false, true]) {
       const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
       const captured = await runRetainedStrategyNativeHostQuery(grant,
@@ -14421,8 +14525,8 @@ async function exerciseStrategyGraph(
       bridge.computeHostManagedPrepare(managedLedgerRun, managedProfile, () => true));
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5),
       baseRetention + 100000n + indexBytes);
-    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 3), 1n,
-      'metadata capacity must not create another physical attempt');
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 3), 0n,
+      'metadata preparation must not start a physical attempt');
     port = Object.freeze({
       importCount: () => bridge.computeHostImportCount(managedLedgerRun),
       rowCount: index => Number(accepted(bridge.computeHostCount(managedLedgerRun, index, false))),
@@ -14467,8 +14571,18 @@ async function exerciseStrategyGraph(
         storedFields, storedColumns, chunk.rowCount, managedRows));
       managedRows += chunk.rowCount;
     };
+    let managedNativeSettled;
     managedLedgerResult = await runFixedCompute(port, suppliedLimits,
-      {maxRows: 100, maxCells: 1000}, consume);
+      {maxRows: 100, maxCells: 1000}, consume, undefined, Object.freeze({
+        started() { accepted(bridge.computeHostPhysicalStart(managedLedgerRun)); },
+        chargeTransfer(bytes) {
+          accepted(bridge.computeHostPhysicalCharge(managedLedgerRun, BigInt(bytes)));
+        },
+        settled(confirmed) { managedNativeSettled = confirmed; },
+      }));
+    assert.equal(managedNativeSettled, true);
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 3), 1n,
+      'the actual driver consumes the original attempt exactly once');
     accepted(bridge.managedOutputFinish(managedLedgerOutput));
     assert.equal(accepted(bridge.managedOutputMeasurementIndexCells(managedLedgerOutput)), 6);
     assert.throws(() => accepted(
@@ -14486,7 +14600,7 @@ async function exerciseStrategyGraph(
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5),
       baseRetention + 100000n - managedBodyBytes,
       'exact body bytes move from the admitted file ceiling into a holding');
-    accepted(bridge.computeHostPhysicalSettle(managedLedgerRun, true));
+    accepted(bridge.computeHostPhysicalSettle(managedLedgerRun, managedNativeSettled));
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), indexBytes + managedBodyBytes,
       'native settlement must not release a live managed body or its index');
     accepted(bridge.managedOutputVerifyCompute(managedLedgerOutput));
@@ -15502,3 +15616,117 @@ async function exerciseStrategyGraph(
     } finally { capture.close(); for (const output of outputs) output.close(); }
   }
 }
+
+
+async function withAttemptAccountingSource(body) {
+  const fixture = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
+  const runtime = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
+  const catalogs = await readFile(join(root,
+    'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
+  const catalog = catalogs.slice(catalogs.indexOf('fn query_amount_nullable_catalog'))
+    .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/);
+  assert(catalog);
+  const args = [JSON.parse(catalog[1]), catalog[2], ...await pinnedEngineContracts(root),
+    await readFile(join(root, 'spec/contracts/actql-query-acquisition.json'), 'utf8'),
+    await readFile(join(root, 'spec/contracts/actql-query-process-evidence.json'), 'utf8'),
+    await readFile(join(root, 'spec/contracts/actql-query-two-receipt.json'), 'utf8')];
+  const stage = (id, producer, filter) => ({id,
+    inputs: {x: {result: {stage: producer, result: 'r'}}},
+    steps: [{filter}, {select: ['id'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['id']}}});
+  const program = JSON.stringify({version: 'actql/0.1', id: 'p',
+    params: {minimum: {type: 'number', nullable: false}},
+    stages: [{id: 'a', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+      steps: [{filter: 'id > $minimum', as: 'filtered'},
+        {select: ['id'], as: 'captured'}],
+      results: {r: {from: 'captured', fields: ['id']}}},
+    stage('compute_a', 'a', 'id > 2'), stage('compute_b', 'a', 'id > 0'),
+    stage('compute_c', 'compute_a', 'id < 9')],
+    results: {b: {from: {stage: 'compute_b', result: 'r'}},
+      c: {from: {stage: 'compute_c', result: 'r'}}}});
+  const base = join(root, '_build/duckdb-fixtures');
+  await mkdir(base, {recursive: true});
+  const directory = await mkdtemp(join(base, 'attempt-accounting-'));
+  const path = join(directory, 'source.duckdb');
+  const database = await DuckDBInstance.create(path);
+  const connection = await database.connect();
+  try {
+    await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+    await connection.run('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+  } finally { connection.closeSync(); database.closeSync(); }
+  let passed = false;
+  try {
+    const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
+    await body({fixture, runtime, args, program, grant});
+    passed = true;
+  } finally {
+    if (passed) await rm(directory, {recursive: true, force: true});
+  }
+}
+
+test('DuckDB Compute actual resource-start attempt accounting', async t => {
+  for (const mode of ['pre-abort', 'preparation', 'transfer', 'success']) {
+    await t.test(`Compute actual resource-start attempt accounting: ${mode}`, () =>
+      withAttemptAccountingSource(async ({fixture, runtime, args, program, grant}) => {
+        const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+        const capture = await runStrategyNativeHostQuery(grant,
+          fixture.strategyFixtureAcquisition(f), fixture.strategyFixtureLedger(f), limits);
+        assert.equal(fixture.strategyFixtureAttach(f,
+          capture.openDAG(fixture.strategyFixtureGraph(f))), true);
+        const dispatch = fixture.strategyFixtureDispatch(f);
+        const before = fixture.strategyFixtureUsage(f, 3);
+        let result, after;
+        try {
+          const setup = fixture.strategyFixtureCompute(f, 1);
+          const abort = new AbortController();
+          if (mode === 'pre-abort') abort.abort();
+          const transport = mode === 'preparation' ? {...limits, maxCells: 2000000}
+            : mode === 'transfer' ? {...limits, maxTransportBytes: 1} : limits;
+          const execute = () => runStrategyHostCompute(setup, transport,
+            {maxRows: 100, maxCells: 1000}, abort.signal);
+          if (mode === 'success') {
+            result = await execute();
+            assert.equal(fixture.strategyFixtureCid(f, 1), hash([{id: 3}, {id: 3}]));
+          } else await assert.rejects(execute);
+          after = fixture.strategyFixtureUsage(f, 3);
+        } finally {
+          result?.close();
+          runtime.strategyHostStop(dispatch);
+          runtime.strategyHostCloseOutputs(dispatch);
+          capture.close();
+        }
+        assert.equal(after - before, mode === 'transfer' || mode === 'success' ? 1n : 0n);
+        assert.equal(fixture.strategyFixtureUsage(f, 3), after, 'cleanup never refunds an actual start');
+        for (const field of [1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(f, field), 0n);
+      }));
+  }
+});
+
+test('DuckDB Broad actual resource-start attempt accounting', async t => {
+  for (const mode of ['unauthorized', 'pre-abort', 'transfer', 'success']) {
+    await t.test(`Broad actual resource-start attempt accounting: ${mode}`, () =>
+      withAttemptAccountingSource(async ({fixture, runtime, args, program, grant}) => {
+        assert.equal(typeof runtime.clientBroadResidualPrepare, 'function');
+        const budget = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+        const original = fixture.issuedBroadCreate(...args.slice(0, -1), 100, () => true);
+        const setup = fixture.issuedBroadConfiguration(original);
+        fixture.issuedBroadClose(original);
+        const abort = new AbortController();
+        if (mode === 'pre-abort') abort.abort();
+        let capture, after;
+        try {
+          const execute = () => runBroadHostQuery(mode === 'unauthorized' ? {} : grant,
+            setup, mode === 'transfer' ? {...limits, maxTransportBytes: 0} : limits,
+            abort.signal, runtime, fixture.strategyFixtureLedger(budget));
+          if (mode === 'success') capture = await execute();
+          else await assert.rejects(execute);
+          after = fixture.strategyFixtureUsage(budget, 3);
+        } finally { capture?.close(); }
+        assert.equal(after, mode === 'transfer' || mode === 'success' ? 1n : 0n);
+        assert.equal(fixture.strategyFixtureUsage(budget, 3), after, 'cleanup never refunds an actual start');
+        for (const field of [1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(budget, field), 0n);
+      }));
+  }
+});

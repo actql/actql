@@ -122,13 +122,13 @@ test('attempt lookup distinguishes absent evidence from a Store failure',
 
 for (const answer of ['found', 'absent']) {
   for (const revocation of ['deny', 'unavailable']) {
-    test(`attempt lookup observes ${revocation} on the next public operation after trusted ${answer} lookup`,
+    test(`attempt lookup withholds ${answer} when its mutable authority becomes ${revocation}`,
       async () => {
         let release, started, allowed = true;
         const entered = new Promise(resolve => { started = resolve; });
         const gate = new Promise(resolve => { release = resolve; });
         const authorized = [];
-        let lookedUp;
+        let lookedUp, lookups = 0;
         const installed = service({
           async authorize(facts) {
             authorized.push(facts);
@@ -138,6 +138,7 @@ for (const answer of ['found', 'absent']) {
             return allowed;
           },
           async lookup(facts) {
+            lookups++;
             lookedUp = facts;
             started();
             await gate;
@@ -151,16 +152,19 @@ for (const answer of ['found', 'absent']) {
         submitted.attemptId = 'other';
         allowed = false;
         release();
-        assert.deepEqual(await pending, answer === 'found' ? receipt : {kind: 'not_found'});
-        assert.equal(authorized.length, 1,
-          'the trusted Store await consumes the already admitted permission');
+        await assert.rejects(pending, {code: 'ResultAccessDenied'});
+        assert.equal(authorized.length, 2,
+          'consume the same Owner after its authority changed, not a new validation frame');
         assert.strictEqual(authorized[0], lookedUp);
+        assert.strictEqual(authorized[1], lookedUp);
+        assert.equal(lookups, 1);
         assert.deepEqual(lookedUp, request());
         await assert.rejects(inspectAuthorizedDeliveryAttempt(installed, request()),
           {code: 'ResultAccessDenied'});
-        assert.equal(authorized.length, 2);
-        assert.notStrictEqual(authorized[1], lookedUp,
+        assert.equal(authorized.length, 3);
+        assert.notStrictEqual(authorized[2], lookedUp,
           'a new public operation has its own current observation');
+        assert.equal(lookups, 1, 'the separately denied operation performs no Store lookup');
       });
   }
 }

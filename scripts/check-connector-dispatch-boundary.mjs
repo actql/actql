@@ -57,6 +57,7 @@ const measurementChecks = new Map([
 ]);
 
 export function connectorDispatchViolations(source, connectorNames, relativePath = '') {
+  const registrationNames = new Set(connectorNames);
   const names = new Set([...connectorNames, 'native']);
   const variants = new Set(['Local', 'DuckDB', 'Native', ...connectorNames.map(name =>
     name.split(/[_-]/).map(part => part[0].toUpperCase() + part.slice(1)).join(''))]);
@@ -82,7 +83,7 @@ export function connectorDispatchViolations(source, connectorNames, relativePath
     const literal = /^["'`]/.test(token);
     if ((literal && names.has(literalValue(token).toLowerCase())) ||
         (!literal && variants.has(token)) ||
-        (!literal && names.has(token) && (tokens[index + 1]?.[0] === ':' || tokens[index - 1]?.[0] === '@'))) {
+        (!literal && registrationNames.has(token) && (tokens[index + 1]?.[0] === ':' || tokens[index - 1]?.[0] === '@'))) {
       violations.push({line: source.slice(0, match.index).split('\n').length, token});
     }
   }

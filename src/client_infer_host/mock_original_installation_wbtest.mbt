@@ -9,6 +9,8 @@ fn original_mock_fixture(
   shared_sibling? : Ref[@resources.CapacityReservation?]? = None,
   purpose_ledger? : @resources.LedgerLimits? = None,
   expected_purpose_issue? : @resources.LedgerIssue? = None,
+  restored_input? : Bool = false,
+  restored_custody? : () -> Bool = () => true,
 ) -> (
   Execution,
   @model.ModelMockInstallation,
@@ -161,7 +163,58 @@ fn original_mock_fixture(
       (compiled, definition, ledger, read)
     }
   }
-  let attempted = if shared_parent is Some(_) {
+  let attempted = if restored_input {
+    // The original input and its identity scan issue the snapshot. Restore
+    // under this same compiled Run/Plan before entering the real Mock; caller
+    // rows and a claimed saved-scope Boolean never issue this input.
+    let (input, _, scope) = original_input_capacity_fixture(
+      prepared_program, plan,
+    )
+    let output = @input.client_infer_completed_input(input).unwrap()
+    let binding = @publication_host.client_infer_plan_graph_request_cid(plan)
+    let exported = @input.export_client_infer_retained_input(output, binding).unwrap()
+    let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
+      prepared_program,
+    ).unwrap()
+    let saved = @publication_host.read_client_infer_saved_call_scope(
+      compiled,
+      definition,
+      occurrence,
+      plan,
+      @publication_host.client_infer_call_scope_snapshot(scope).unwrap(),
+      "sha256:" + "a".repeat(64),
+      restored_custody,
+    ).unwrap()
+    let prefix = @input.prepare_client_composed_infer_prefix(
+      prepared_program,
+      occurrence,
+      infer_fixture_installed_contracts(),
+      infer_fixture_values,
+    ).unwrap()
+    assert_true(@input.cleanup_client_infer_input(input).unwrap())
+    let consumer = @publication_host.claim_client_model_read_preparation(
+      read, compiled, definition, plan, 7L, 5L,
+    ).unwrap()
+    start_original_restored_composed(
+      occurrence,
+      plan,
+      prefix,
+      provider,
+      binding,
+      @input.client_infer_retained_input_export_descriptor(exported),
+      @input.client_infer_retained_input_export_rows(exported),
+      restored_custody,
+      saved,
+      original_limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+    )
+  } else if shared_parent is Some(_) {
     let consumer = @publication_host.claim_client_model_read_preparation(
       read, compiled, definition, plan, 7L, 5L,
     ).unwrap()

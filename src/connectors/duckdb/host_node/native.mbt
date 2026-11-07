@@ -487,12 +487,31 @@ pub fn native_host_issue_source_evidence(
   effective_data_policy_cid : String,
   observed_at : String,
 ) -> String raise NodeHostFailure {
+  @publication.run_evidence_value_json(
+    native_host_issue_source_evidence_original(
+      capture, context, identity, logical_input, authority_scope_cid, effective_data_policy_cid,
+      observed_at,
+    ),
+  )
+}
+
+///|
+#export_name("nativeHostIssueSourceEvidenceOriginal")
+pub fn native_host_issue_source_evidence_original(
+  capture : @acquisition_host.NativeHostSourceCapture,
+  context : @acquisition_host.NativeSourceEvidenceContext,
+  identity : @query.CapturedSourceRelationIdentity,
+  logical_input : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  effective_data_policy_cid : String,
+  observed_at : String,
+) -> @publication.RunEvidenceValue raise NodeHostFailure {
   match
     @acquisition_host.issue_native_host_source_evidence(
       capture, context, identity, logical_input, authority_scope_cid, effective_data_policy_cid,
       observed_at,
     ) {
-    Ok(value) => @publication.run_evidence_value_json(value)
+    Ok(value) => value
     Err(issue) => raise SourceEvidence(issue)
   }
 }

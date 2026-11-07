@@ -145,11 +145,11 @@
   "provider_source_inputs": [
     {
       "source": "owned_capacity.c",
-      "sha256": "74d077db123fbb1ecb49ab9e8e5e08ecfdbdcf567e5360963aac16317749b24a"
+      "sha256": "5b721be99bb8902767c4c80605459508045ddf08c4841a73ea4c11bb014bbd1f"
     },
     {
       "source": "owned_capacity.h",
-      "sha256": "0eff61d19679bbee232e6fc5089a24d3ab17a8f1ff46fb6ac49eb5a5ec1b6308"
+      "sha256": "a338f46d2317ad4a35584e65b7545c7fbc452e0fca55f2e8738cffa2f6505eec"
     },
     {
       "source": "owned_image.c",
@@ -157,11 +157,11 @@
     },
     {
       "source": "owned_region.h",
-      "sha256": "a9046c1ab6ba8c480dcb2f848e6e6d487ee4f86b9c0e46007da9d95f7eff13dc"
+      "sha256": "2d6cc4cbd7a356d7b864deae2bb10493dc90aec91372197c98a6e6fa7258b294"
     },
     {
       "source": "owned_region.inc",
-      "sha256": "aebd7984b3c8ec28ecc4507684a3bd11d438e4d05fcbe2151daf6085cc36d6fe"
+      "sha256": "b01307a3f9dc717161107aa357525486f403ef10b904bc0542406d313c964d58"
     },
     {
       "source": "owned_domain_borrow.h",
@@ -172,16 +172,20 @@
       "sha256": "e3914075758a265d18c3a6b075053d2fe31a3f35ee8cc8aee0548493ab814373"
     },
     {
+      "source": "owned_domain_growth.inc",
+      "sha256": "64da9823085f699fd982382749b5b433b514e8829480deee8f277f7af2f08af7"
+    },
+    {
       "source": "owned_thread.h",
       "sha256": "9cc6dfb81529954e07267e0ae0c14f89cc8a2648252b6ac498bf0f0ed6b37bdd"
     },
     {
       "source": "owned_thread.inc",
-      "sha256": "2e676c3e5eae7a0b9bd5291ce5d2f92be44cf798bf9c1ed86d7c0ab14a440423"
+      "sha256": "77b12a17b88ce0a671f0b3caef673c93e5e2ad0bc404f890a7bdffdc001651b3"
     },
     {
       "source": "owned_rust_heap.inc",
-      "sha256": "a7855eb64efc00369690e0177a2ff7e5dc8690ecf34ee5ec7de0ca4e5a12e938"
+      "sha256": "33327174bf97fa79e34f6a7c8d3a5a5db1aa37877d8e55965a9ca4921e584fcf"
     }
   ],
   "native_provider_link": {

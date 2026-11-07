@@ -7,6 +7,90 @@ import { minimalRepository, runDriver, successful } from './fixtures/execution-d
 const targets = ['js', 'wasm', 'native'];
 const fixture = 'src/query_integration/relation_pipeline_batch_wbtest.mbt';
 
+test('executor writes compact canonical receipts without changing observation or digest identity', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+const executor = createExecutor(undefined, {targets: ['js'], jobs: 1});
+executor.execute([makeCase()], registry, 'js');
+const recorded = executions[0];
+const bytes = readFileSync(join(root, recorded.path));
+assert.deepEqual(bytes, Buffer.from(JSON.stringify(recorded.receipt) + '\n'));
+assert.deepEqual(JSON.parse(bytes), recorded.receipt);
+assert.equal(digest(JSON.stringify(JSON.parse(bytes))), recorded.digest);
+assert.equal(recorded.receipt.cases.length, 1);
+assert.equal(calls().length, 1);
+executor.close();
+`));
+});
+
+test('an internal toolchain directory alias retains actual file and resolved-path identity', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+const release = join(root, '.fake-moon/lib/core/_build/js/release');
+for (const name of ['build', 'same-bytes']) {
+  mkdirSync(join(release, name), {recursive: true});
+  writeFileSync(join(release, name, 'current.core'), 'original compiled input\n');
+}
+const alias = join(release, 'bundle');
+symlinkSync('build', alias);
+const executor = createExecutor(undefined, {targets: ['js'], jobs: 1});
+executor.execute([makeCase()], registry, 'js');
+assert.equal(calls().length, 1);
+unlinkSync(alias);
+symlinkSync('same-bytes', alias);
+assert.throws(() => executor.execute([makeCase()], registry, 'js'), /Execution toolchain changed/);
+assert.equal(calls().length, 1, 'a changed resolved input is refused before another process');
+executor.close();
+`));
+});
+
+test('an empty internal toolchain directory alias retains its canonical target', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+const core = join(root, '.fake-moon/lib/core');
+for (const name of ['empty', 'other-empty']) mkdirSync(join(core, name));
+const alias = join(core, 'empty-alias');
+symlinkSync('empty', alias);
+const executor = createExecutor(undefined, {targets: ['js'], jobs: 1});
+executor.execute([makeCase()], registry, 'js');
+unlinkSync(alias);
+symlinkSync('other-empty', alias);
+assert.throws(() => executor.execute([makeCase()], registry, 'js'), /Execution toolchain changed/);
+assert.equal(calls().length, 1);
+executor.close();
+`));
+});
+
+for (const [name, target, expected] of [
+  ['external directory', '../../../vendor/native/include', /External or directory-linked Moon toolchain input/],
+  ['ancestor cycle', '..', /Cyclic Moon toolchain directory input/],
+]) {
+  test(`a toolchain directory alias refuses ${name} before execution`, t => {
+    successful(runDriver(minimalRepository(t), String.raw`
+symlinkSync(${JSON.stringify(target)}, join(root, '.fake-moon/lib/core/refused'));
+assert.throws(() => createExecutor(undefined, {targets: ['js'], jobs: 1}), ${expected});
+assert.equal(calls().length, 0);
+`));
+  });
+}
+
+test('an explicit positive compiler job cap reaches the process and exact compiled boundary once', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+for (const jobs of [0, -1, 1.5, Infinity, NaN, '1', null])
+  assert.throws(() => createExecutor(undefined, {targets: ['js'], jobs}), /Invalid execution jobs/);
+assert.equal(calls().length, 0);
+const executor = createExecutor(undefined, {targets: ['js'], jobs: 1});
+executor.execute([makeCase()], registry, 'js');
+const receipt = executions[0].receipt;
+assert.deepEqual(receipt.command, ['moon', 'test', 'src/query_integration/relation_pipeline_batch_wbtest.mbt',
+  '--target', 'js', '--jobs', '1', '--deny-warn']);
+assert.deepEqual(receipt.boundary.command, receipt.command);
+assert.deepEqual(calls()[0].args, receipt.command.slice(1));
+assert.equal(receipt.buildIdentity, digest(JSON.stringify(receipt.boundary)));
+assert.equal(calls()[0].buildIdentity, receipt.buildIdentity);
+assert.equal(calls().length, 1);
+assert.equal(executions.length, 1);
+executor.close();
+`));
+});
+
 test('real executor records fresh inputs and observations while unchanged builds stay fixed on three targets', t => {
   const root = minimalRepository(t);
   const result = runDriver(root, String.raw`

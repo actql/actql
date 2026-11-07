@@ -13,13 +13,20 @@ const save = async (directory, name, value) => {
   await writeFile(join(directory, name), JSON.stringify(value, null, 2) + '\n', {flag: 'wx'});
 };
 
+// These are the existing system tool locations on the selected CI profiles.
+// A missing or failed tool is still an unsuccessful observation, never FD0.
+export function scopedStateFdCommand(platform) {
+  return platform === 'linux' ? '/usr/bin/lsof' : '/usr/sbin/lsof';
+}
+
 export function observeOwnScopedStateFds(roots) {
   assert(Array.isArray(roots) && roots.length > 0);
+  const command = scopedStateFdCommand(process.platform);
   const observations = roots.map(root => {
     const args = ['-nP', '-a', '-p', String(process.pid), '+D', root, '-F', 'pfn'];
-    const result = spawnSync('/usr/sbin/lsof', args, {encoding: 'utf8', maxBuffer: 1024 * 1024});
+    const result = spawnSync(command, args, {encoding: 'utf8', maxBuffer: 1024 * 1024});
     const exactEmpty = result.status === 1 && result.stdout === '' && result.stderr === '' && !result.error;
-    return {root, pid: process.pid, command: '/usr/sbin/lsof', args,
+    return {root, pid: process.pid, command, args,
       exitCode: result.status, stdout: result.stdout, stderr: result.stderr,
       ...(result.error ? {error: scalarFailure(result.error)} : {}), exactEmpty};
   });

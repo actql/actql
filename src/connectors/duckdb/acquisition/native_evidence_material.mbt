@@ -10,7 +10,7 @@ fn native_output_identity(
   )
   {
     contract_cid: @planning.query_requirement_contracts(
-      measurement.attempt.preparation.requirement,
+      measurement.preparation.requirement,
     ).1,
     rows_cid: cid,
     row_count: rows,

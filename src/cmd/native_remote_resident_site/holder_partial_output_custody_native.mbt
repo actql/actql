@@ -305,9 +305,11 @@ fn retain_partial_holder_output_setup(
 }
 
 ///|
-fn install_partial_holder_cleanup_signal() -> Unit {
+fn install_partial_holder_cleanup_signal(
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
+) -> Unit {
   while !@slot.install_native_termination_request() {
-    report("setup-cleanup-pending", [("step", "signal-install")])
+    report_progress("setup-cleanup-pending", [("step", "signal-install")])
     ignore(park_holder_cleanup_unconfirmed_ffi())
   }
 }
@@ -332,19 +334,20 @@ fn retain_partial_output_recovery_setup(
   recovery : StoppedReleaseRecovery,
   slot : @slot.NativeExecutorSlot,
   failure : String,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Unit {
   let original = partial_output_recovery_cleanup(
     resources, recovery, slot, failure,
   )
-  install_partial_holder_cleanup_signal()
+  install_partial_holder_cleanup_signal(report_progress~)
   ignore(
     retain_holder_cleanup_lifetime(
       original,
       retry_partial_output_recovery_cleanup,
       () => CleanupInputEnded,
-      wait_holder_cleanup_lifetime_signal,
+      () => wait_holder_cleanup_lifetime_signal_with_report(report_progress~),
       (owner, control_ended) => {
-        report("output-recovery-setup-cleanup-pending", [
+        report_progress("output-recovery-setup-cleanup-pending", [
           ("reason", owner.failure),
           ("step", owner.step.val.to_string()),
           ("control_ended", control_ended.to_string()),
@@ -383,7 +386,8 @@ fn retry_partial_output_recovery_cleanup(
     match step {
       0 =>
         match owner.recovery.physical_cleanup {
-          Some(retry) if !owner.recovery.physical_cleanup_done => retry()
+          Some(_) if !owner.recovery.physical_cleanup_done =>
+            retry_stopped_holder_cleanup_callback(owner.recovery)
           _ => true
         }
       1 => {
@@ -391,12 +395,32 @@ fn retry_partial_output_recovery_cleanup(
           guard journal.close_checked() is Ok(_) else { return false }
           owner.recovery.transfer_journal = None
         }
+        guard retry_partial_holder_output_resources(
+          owner.recovery.input_cleanup_resources,
+        ) else {
+          return false
+        }
         retry_partial_holder_output_resources(owner.resources)
       }
-      2 => owner.recovery.journal.close_checked() is Ok(_)
-      3 => owner.recovery.bundles.close_checked() is Ok(_)
+      2 =>
+        if owner.recovery.terminal_close is RecoveryTerminalOpen {
+          owner.recovery.journal.close_checked() is Ok(_)
+        } else {
+          retry_stopped_recovery_terminal_handles(owner.recovery)
+        }
+      3 => {
+        if !owner.recovery.bundle_closed {
+          guard owner.recovery.bundles.close_checked() is Ok(_) else {
+            return false
+          }
+          owner.recovery.bundle_closed = true
+        }
+        true
+      }
       _ =>
-        if owner.slot_close_unknown {
+        if owner.recovery.terminal_close is RecoveryTerminalClosed {
+          true
+        } else if owner.slot_close_unknown {
           false
         } else {
           let closed = owner.slot.close()

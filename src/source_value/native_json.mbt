@@ -20,15 +20,16 @@ priv enum NativeJsonFrame[T] {
     FixedArray[String],
     Array[Field],
     @shape.KeyAdmission,
-    Ref[String?]
+    Ref[(String, Span)?]
   )
 }
 
 ///|
 // Count the native JSON representation without constructing another wire.
 // Normalization belongs to the original source owner after this measurement.
-fn native_json_string_bytes(text : String) -> Int64? {
+fn native_json_string_shape(text : String) -> (Int64, Int64)? {
   let mut bytes = 2L
+  let mut columns = 2L
   let mut index = 0
   while index < text.length() {
     let unit = text[index].to_int()
@@ -39,28 +40,32 @@ fn native_json_string_bytes(text : String) -> Int64? {
         return None
       }
       bytes += 4L
+      columns += 1L
       index += 2
       continue
     }
     if unit >= 0xdc00 && unit <= 0xdfff {
       return None
     }
-    bytes += if unit == 0x22 ||
+    if unit == 0x22 ||
       unit == 0x5c ||
       unit == 8 ||
       unit == 9 ||
       unit == 10 ||
       unit == 12 ||
       unit == 13 {
-      2L
+      bytes += 2L
+      columns += 2L
     } else if unit < 0x20 {
-      6L
+      bytes += 6L
+      columns += 6L
     } else {
-      utf8_width(unit).to_int64()
+      bytes += utf8_width(unit).to_int64()
+      columns += 1L
     }
     index += 1
   }
-  Some(bytes)
+  Some((bytes, columns))
 }
 
 ///|
@@ -68,7 +73,11 @@ fn native_json_string_bytes(text : String) -> Int64? {
 /// value. There is no whole-input JSON.stringify/parse, recursive JS walker or invented
 /// MoonBit representation. The original source owner retains key laws and
 /// measures nodes/depth/bytes while constructing; editable DATA is not proof.
-/// Native objects have no authored text coordinates: spans are synthetic.
+/// Native objects have no authored text coordinates. When normalized keys
+/// are selected, key spans retain only their scalar position in this same
+/// detached value's compact JSON representation. They supply no location
+/// without the separately retained matching representation; Node spans remain
+/// unavailable.
 pub fn[T] admit_captured_json(
   input : T,
   reader : JsonDataReader[T],
@@ -76,7 +85,11 @@ pub fn[T] admit_captured_json(
   program_keys? : Bool = false,
   normalize_keys? : Bool = false,
   source_path? : String = "<snapshot>",
+  max_key_units_out? : Ref[Int]? = None,
 ) -> Result[ParsedSource, ParseError] {
+  if max_key_units_out is Some(observed) {
+    observed.val = 0
+  }
   if !valid_limits(limits) {
     return Err(input_error(InvalidLimits, source_path, Unavailable))
   }
@@ -96,6 +109,8 @@ pub fn[T] admit_captured_json(
   let mut nodes = 0
   let mut deepest = 0
   let mut bytes = 0L
+  let mut key_offset = 0L
+  let mut key_column = 1L
   fn failure(issue : ParseIssue) -> Result[ParsedSource, ParseError] {
     Err({ issue, source_path, location: Unavailable, path: Some(path.copy()), })
   }
@@ -115,11 +130,15 @@ pub fn[T] admit_captured_json(
       let value : Value = match kind {
         0 => {
           bytes += 4L
+          key_offset += 4L
+          key_column += 4L
           Null
         }
         1 => {
           let value = (reader.boolean)(current)
           bytes += if value { 4L } else { 5L }
+          key_offset += if value { 4L } else { 5L }
+          key_column += if value { 4L } else { 5L }
           Bool(value)
         }
         2 => {
@@ -140,18 +159,24 @@ pub fn[T] admit_captured_json(
             return failure(InvalidNumber)
           }
           bytes += parsed.usage.input_bytes.to_int64()
+          key_offset += parsed.usage.input_bytes.to_int64()
+          key_column += parsed.usage.input_bytes.to_int64()
           Number(value)
         }
         3 => {
           let text = (reader.text)(current)
-          guard native_json_string_bytes(text) is Some(size) else {
+          guard native_json_string_shape(text) is Some((size, columns)) else {
             return failure(InvalidUnicodeEscape)
           }
           bytes += size
+          key_offset += size
+          key_column += columns
           String(text)
         }
         4 => {
           bytes += 2L
+          key_offset += 1L
+          key_column += 1L
           let count = (reader.length)(current)
           if count < 0 || count > limits.max_nodes - nodes {
             return failure(NodeLimit)
@@ -165,6 +190,8 @@ pub fn[T] admit_captured_json(
         }
         5 => {
           bytes += 2L
+          key_offset += 1L
+          key_column += 1L
           let keys = (reader.keys)(current)
           if keys.length() > limits.max_nodes - nodes {
             return failure(NodeLimit)
@@ -203,10 +230,10 @@ pub fn[T] admit_captured_json(
       match frames[frames.length() - 1] {
         NativeArray(_, _, items) => items.push(node)
         NativeObject(_, _, fields, _, pending_key) => {
-          guard pending_key.val is Some(key) else {
+          guard pending_key.val is Some((key, key_span)) else {
             return failure(UnexpectedToken)
           }
-          fields.push({ key, key_span: span, value: node, })
+          fields.push({ key, key_span, value: node, })
         }
       }
       ignore(path.pop())
@@ -216,19 +243,30 @@ pub fn[T] admit_captured_json(
       NativeArray(original, count, items) =>
         if items.length() == count {
           ignore(frames.pop())
+          key_offset += 1L
+          key_column += 1L
           completed = Some({ value: Array(items), span, })
         } else {
           let index = items.length()
+          if index > 0 {
+            key_offset += 1L
+            key_column += 1L
+          }
           path.push(Index(index))
           current = (reader.field)(original, index.to_string())
         }
       NativeObject(original, keys, fields, seen, pending_key) =>
         if fields.length() == keys.length() {
           ignore(frames.pop())
+          key_offset += 1L
+          key_column += 1L
           completed = Some({ value: Object(fields), span, })
         } else {
           let raw = keys[fields.length()]
-          guard native_json_string_bytes(raw) is Some(size) else {
+          if max_key_units_out is Some(observed) {
+            observed.val = Int::max(observed.val, raw.length())
+          }
+          guard native_json_string_shape(raw) is Some((size, columns)) else {
             return failure(InvalidUnicodeEscape)
           }
           bytes += size + 1L
@@ -251,7 +289,29 @@ pub fn[T] admit_captured_json(
           if !@shape.admit_key(seen, key) {
             return failure(DuplicateKey(key))
           }
-          pending_key.val = Some(key)
+          if fields.length() > 0 {
+            key_offset += 1L
+            key_column += 1L
+          }
+          let start = key_offset
+          let start_column = key_column
+          key_offset += size
+          key_column += columns
+          let key_span = if normalize_keys {
+            {
+              ..span,
+              start_byte: start.to_int(),
+              end_byte: key_offset.to_int(),
+              start_column: start_column.to_int(),
+              end_column: key_column.to_int(),
+              source_path: "<captured-json>",
+            }
+          } else {
+            span
+          }
+          key_offset += 1L // The same member's colon.
+          key_column += 1L
+          pending_key.val = Some((key, key_span))
           current = (reader.field)(original, raw)
         }
     }

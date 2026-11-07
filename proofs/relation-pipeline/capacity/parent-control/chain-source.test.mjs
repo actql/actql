@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {checkChainCensus} from './bounds.mjs';
 import {checkChainSource} from './chain-source.mjs';
 import {currentOverlay} from './current-overlay.mjs';
+import {parentStartupLayout} from '../backing/parent-layout.mjs';
 const source=readFileSync(new URL('../../../../src/connectors/local/selected_relation_provider.mbt',import.meta.url),'utf8');
 const read=p=>readFileSync(new URL('../../../../'+p,import.meta.url));
 test('current aggregated state and both retained preparation cursors are independently typed',()=>{
@@ -53,7 +54,7 @@ test('advance captures the audited Int prefix, not its callback-local Boolean',(
   assert.equal(constructor.split(declaration).length,2,
     'Prefix mutation must reach the unique parent initializer, not the capacity function');
   const changed=source.slice(0,start)+constructor.replace(declaration,'let reclaimed_prefix = count');
-  assert.throws(()=>checkChainSource(changed),/Changed audited prefix capture/);
+  assert.throws(()=>checkChainSource(changed),/Changed reviewed reclaimed-prefix call count/);
 });
 test('the observer remains outside original callbacks and uses real state return',()=>{
   const overlay=currentOverlay(read);
@@ -97,6 +98,22 @@ test('current provider census retains the original optional Infer prefix recipe'
     /Unreviewed parent\/edge field or type ManagedProvider/);
 });
 
+test('Native observer parent layout agrees with the typed execution census', () => {
+  const fields=checkChainCensus(read).sourceFields
+    .find(entry=>entry.struct==='ManagedProviderExecution').fields;
+  assert.deepEqual(fields.at(-1),{name:'retained_completion',type:'(() -> Bool)?'});
+  const reader=readFileSync(new URL('./current-reader.c',import.meta.url),'utf8');
+  const shape=reader.match(/current_shape\(parent\);assert\(s\[0\]==(\d+) && s\[1\]==(\d+)\)/);
+  assert(shape,'Missing exact parent layout refusal');
+  assert.equal(Number(shape[1]),(parentStartupLayout().blocks.owner-8)/4);
+  assert.equal(Number(shape[2]),fields.length);
+  const references=reader.match(/for\(int i=0;i<(\d+);i\+\+\)assert\(s\[2\+i\]/);
+  assert(references,'Missing complete indexed pointer-layout refusal');
+  assert.equal(Number(references[1]),fields.length);
+  assert(reader.includes(`assert(current_pointer(parent,${(fields.length-1)*8})==NULL);`),
+    'A live retained-completion callback cannot be omitted from the census');
+});
+
 test('current generated recipe borrows one original query-time identity', () => {
   const census = checkChainCensus(read);
   const state = census.sourceFields.find(entry => entry.struct === 'GeneratedSequence');
@@ -121,4 +138,44 @@ test('current metadata cursor does not regain obsolete per-operation scalar caps
     assert.throws(() => checkChainCensus(p => p === path ? changed : read(p)),
       /Unreviewed parent\/edge field or type RelationChainInputPreparation/);
   }
+});
+
+// This is caller/source correspondence; the Native diagnostic owns execution.
+test('current Native census transfers original completion through the selected four-argument cursor', () => {
+  const overlay = currentOverlay(read);
+  const fixture = overlay['src/connectors/local/current_chain_capacity_wbtest.mbt'];
+  const call = fixture.match(/let transferred_preparation = start_relation_chain_inputs\(([\s\S]*?)\)\.unwrap\(\)/u);
+  assert(call, 'The census must retain its original transferred-preparation call');
+  assert.equal(call[1].replace(/\s+/gu, ' ').trim(),
+    'sequence, 1, [managed_provider_relation_input(read)], completed,');
+  const preparation = read('src/connectors/local/relation_chain_input_preparation.mbt').toString();
+  assert.match(preparation, /fn start_relation_chain_inputs\(\s*sequence : @execution\.GeneratedSequence,\s*position : Int,\s*inputs : Array\[ManagedProviderInput\],\s*completed : Array\[@execution\.CompletedOutput\?\],\s*\)/u);
+  assert(preparation.includes('@execution.bound_producer_read_demand(cursor.owner, bound)'));
+  assert(preparation.includes('@execution.producer_read_demand_entries(demand)'));
+  assert(preparation.includes('@execution.producer_read_demand_name_bytes(demand)'));
+  assert(fixture.includes('physical_equal(state.completed[0].unwrap(), output)'));
+  assert(fixture.includes('cancel_relation_chain_inputs(transferred_preparation)'));
+  assert(fixture.includes('@execution.producer_read_available(final_read)'));
+});
+
+// Machine-code admission must recognize this same reviewed query, not any
+// equal-named helper with an unreviewed body, arity or new mutable owner.
+test('current reclaimed-prefix helper retains reviewed body and original sequence arity',()=>{
+  checkChainSource(source);
+  const start=source.indexOf('fn relation_chain_reclaimed_prefix(');
+  const end=source.indexOf('\n///|',start);
+  const original=source.slice(start,end);
+  for(const [before,after] of [
+    ['sequence : @execution.GeneratedSequence,','sequence : @execution.GeneratedSequence, extra : Int,'],
+    ['return index','return index + 1'],
+    [') -> Int {',') -> Int {\n  let new_owner = Ref(0)'],
+  ]) {
+    const changed=original.replace(before,after);assert.notEqual(changed,original);
+    assert.throws(()=>checkChainSource(source.slice(0,start)+changed+source.slice(end)),/reviewed reclaimed-prefix/);
+  }
+  const call='let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)';
+  const parent=source.indexOf('fn bounded_relation_chain_execution_state(');
+  assert(parent>=0);
+  const duplicate=source.slice(0,parent)+source.slice(parent).replace(call,call+'\n  let duplicate = relation_chain_reclaimed_prefix(sequence)');
+  assert.throws(()=>checkChainSource(duplicate),/reviewed reclaimed-prefix call count/);
 });

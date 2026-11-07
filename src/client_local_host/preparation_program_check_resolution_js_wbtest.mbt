@@ -168,7 +168,7 @@ test "same parent funds original Source selection once without repeating collect
     @context.clear_source_registration(read)
     @resources.abort_preparation_capacity_after_cleanup(parent.capacity, input).unwrap()
     |> ignore
-    @resources.cleanup_node_preparation_admission(parent.initial).unwrap()
+    preparation_initial_cleanup(parent.initial).unwrap()
   }
 }
 

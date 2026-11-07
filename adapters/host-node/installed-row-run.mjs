@@ -4,6 +4,7 @@
 import {runtimeField, runtimeIsOk} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
+import {types as nodeTypes} from 'node:util';
 
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 
@@ -48,7 +49,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       : originalRead === undefined ? 'clientProgramRowSourceStartProviderAccounted'
       : 'clientProgramInstalledSourceReadStartProviderRows',
       wholeInput ? 'clientProgramWholeSourceBorrowResponses' : 'clientProgramRowSourceBorrowResponses',
-      'clientProgramRowSourceBindResponseCleanup']
+      'clientProgramRowSourceBindResponseCleanup',
+      ...(!wholeInput ? ['clientProgramRowSourceRetireResponseWorkspace'] : [])]
       .some(name => typeof moon[name] !== 'function')) fail('InstalledProviderSourceUnavailable');
   }
   if (reportCapacity !== undefined) {
@@ -102,7 +104,32 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   let reader, readerRead, readerStop, readerObserve, readerRetry;
   let readerStopPending = false, readerStopFailure;
   const readerRetired = () => {
-    if (readerObserve === undefined || readerReadPending || readerStopPending) return false;
+    if (readerReadPending || readerStopPending) return false;
+    if (readerObserve === undefined) {
+      // A refusing factory/getter may have supplied only its early original
+      // preparation. Reuse the existing reader/retire slots; its own method
+      // closes any partial child and retires managed aliases, not this RowRun.
+      if (reader === undefined || readerRetry === undefined) return false;
+      const original = reader, retire = readerRetry;
+      let synchronous = true;
+      readerStopPending = true;
+      try {
+        const retired = Reflect.apply(retire, original, []);
+        if (nodeTypes.isPromise(retired)) {
+          // Invalid async retirement is never an ACK. Keep this same flight
+          // before permitting another attempt, and handle its rejection.
+          synchronous = false; readerStopPending = retired;
+          Promise.prototype.then.call(retired,
+            () => {if (readerStopPending === retired) readerStopPending = false;},
+            cause => {if (readerStopPending === retired) {
+              readerStopFailure = cause; readerStopPending = false;
+            }});
+          return false;
+        }
+        return reader === original && readerRetry === retire &&
+          readerObserve === undefined && readerRead === undefined && retired === true;
+      } finally {if (synchronous) readerStopPending = false;}
+    }
     // This is the same trusted reader's observation, not a packet Bool, the
     // read Promise's settlement, or the credential Site's close result.
     return Reflect.apply(readerObserve, reader, [])?.cleanupConfirmed === true;
@@ -137,6 +164,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     closed = true;
     sourceEvidenceOriginal = sourceEvidenceCapture = undefined;
     reader = readerRead = readerStop = readerObserve = readerRetry = undefined;
+    readerPrepared = false;
     if (!keyed) {
       // Only after external ACK and Core capture/read retirement. A closed
       // cleanup handle keeps terminal state, not the original native owner.
@@ -158,22 +186,66 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     readerPrepared = true;
     const borrow = checked(wholeInput ? moon.clientProgramWholeSourceBorrowResponses(run, acquisition)
       : moon.clientProgramRowSourceBorrowResponses(run, acquisition));
+    // Replace the existing one-shot preparation flag with its SAME original
+    // borrow; no extra retained carrier or second reader owner is introduced.
+    readerPrepared = borrow;
     checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, readerRetired));
-    reader = Reflect.apply(prepare, receiver, [options]);
-    if (typeof reader?.then === 'function') {
+    const grow = moon.clientProgramRowSourceGrowResponseCapacity;
+    const growConstruction = moon.clientProgramRowSourceGrowResponseConstructionCapacity;
+    const reserveResponseCapacity = typeof grow !== 'function' ? undefined
+      : (capacity, phase) => {
+        if (closed || !readerReadPending || readerStopRequested) fail('InstalledSourceClosed');
+        signal?.throwIfAborted();
+        // IPC announces bytes before a received page exists. It must reserve
+        // against this SAME original before Buffer/JSON construction; only the
+        // existing one-argument path consumes a live page's charged entrance.
+        const selected = phase === undefined ? grow
+          : phase === 'announced-body' ? growConstruction : undefined;
+        if (typeof selected !== 'function') fail('InstalledSourceResponseConstructionUnavailable');
+        checked(Reflect.apply(selected, moon, [borrow, capacity]));
+        // The original Resource callback already checked currentness. Reentry
+        // still cannot use a closed reader after that same checked mutation.
+        if (closed || !readerReadPending || readerStopRequested) fail('InstalledSourceClosed');
+        signal?.throwIfAborted();
+      };
+    // Keep the original options object and every original callback receiver.
+    // The separate private constructor argument supplies only this SAME
+    // RowRun's growth function and SAME bound response borrow, never a copied
+    // selection, reconstructed input or another issuer.
+    const retainPreparation = original => {
+      if (closed || reader !== undefined) fail('InstalledSourcePreparationAlreadyRetained');
+      // Retain the original before descriptor validation can fail or reenter.
+      reader = original;
+      if (original === null || typeof original !== 'object' || nodeTypes.isProxy(original)) {
+        fail('InvalidInstalledSourcePreparation');
+      }
+      const retire = Object.getOwnPropertyDescriptor(original, 'retire');
+      if (!retire || !Object.hasOwn(retire, 'value') || typeof retire.value !== 'function' ||
+          nodeTypes.isProxy(retire.value) || nodeTypes.isAsyncFunction(retire.value)) {
+        fail('InvalidInstalledSourcePreparation');
+      }
+      readerRetry = retire.value;
+    };
+    const preparedReader = Reflect.apply(prepare, receiver,
+      [options, retainPreparation, reserveResponseCapacity, borrow]);
+    // Suppliers without the early port keep their old conservative custody.
+    // An early original must survive every fallible returned-method getter.
+    if (reader === undefined) reader = preparedReader;
+    if (typeof preparedReader?.then === 'function') {
       // Preparation must be synchronous and I/O-free. An accidental async
       // factory is never adopted later, but its rejection must still be handled.
-      Promise.resolve(reader).catch(error => { readerStopFailure = error; });
+      Promise.resolve(preparedReader).catch(error => { readerStopFailure = error; });
       fail('InvalidInstalledSourceReader');
     }
-    readerRead = reader?.read;
-    readerStop = reader?.requestStop;
-    readerObserve = reader?.observe;
-    readerRetry = reader?.retry;
-    if ([readerRead, readerStop, readerObserve].some(method => typeof method !== 'function')) {
+    const read = preparedReader?.read, stop = preparedReader?.requestStop;
+    const observe = preparedReader?.observe, retry = preparedReader?.retry;
+    if ([read, stop, observe].some(method => typeof method !== 'function')) {
       fail('InvalidInstalledSourceReader');
     }
-    if (readerRetry !== undefined && typeof readerRetry !== 'function') fail('InvalidInstalledSourceReader');
+    if (retry !== undefined && typeof retry !== 'function') fail('InvalidInstalledSourceReader');
+    if (closed || readerStopRequested) fail('InstalledSourceClosed');
+    reader = preparedReader;
+    readerRead = read; readerStop = stop; readerObserve = observe; readerRetry = retry;
     // Methods and receiver are captured once before the first physical read.
     readerReadPending = true;
     try {
@@ -225,6 +297,18 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     retainedRelationOutput, currentRead, signal, captureOnly = false}) {
     if (keyed) fail('InstalledSourceProgramMismatch');
     const captured = await capture({currentRead, signal});
+    if (providerCapacity !== undefined && !wholeInput) {
+      // This SAME reader must actually retire its response/decode workspace
+      // before Source/Compute/Effect consumers may use that phase allowance.
+      // Keep its observer and receiver for final Row cleanup, including a
+      // pending/throwing retirement; stopping alone never returns bytes.
+      stopReader();
+      // Core invokes the SAME bound observer once for this cut. Do not first
+      // observe it here and then repeat that external observation in Core.
+      checked(moon.clientProgramRowSourceRetireResponseWorkspace(readerPrepared));
+      signal?.throwIfAborted();
+      if (closed) fail('InstalledSourceClosed');
+    }
     const source = () => checked(
       moon.clientProgramRowSourceCaptureSource(captured));
     const capturedSource = source();
@@ -281,7 +365,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         source();
         return captured;
       }} : {}),
-      ...(!wholeInput && !effectful ? {originalRowCapture() {
+      ...(!wholeInput ? {originalRowCapture() {
         if (this !== captureAccess || closed) fail('ForeignInstalledSourceCapture');
         // This is the SAME accounted capture retained above, not a second
         // capture, permission, Source observation or cleanup acknowledgement.

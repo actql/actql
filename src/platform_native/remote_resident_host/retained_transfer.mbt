@@ -451,6 +451,7 @@ pub fn ResidentRetainedTransfer::reclaim(
   self : ResidentRetainedTransfer,
 ) -> Result[Bool, ResidentRetainedTransferIssue] {
   if self.reclaimed {
+    self.retire_closed_consumer_link()
     return Ok(false)
   }
   self.cleanup_started = true
@@ -510,5 +511,6 @@ pub fn ResidentRetainedTransfer::reclaim(
     self.holding = None
   }
   self.reclaimed = true
+  self.retire_closed_consumer_link()
   Ok(true)
 }

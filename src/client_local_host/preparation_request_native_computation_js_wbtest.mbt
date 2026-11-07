@@ -248,7 +248,7 @@ test "normal Query driver retains native SQL AQL originals through one compiler 
       Pure,
     )
     let syntax = parent.query_syntax.unwrap()
-    let original = syntax.lowering.unwrap().output.unwrap()
+    let original = syntax.lowering.unwrap().output.unwrap().unwrap()
     assert_true(
       physical_equal(parent.held_program.unwrap(), original.0.program.unwrap()),
     )
@@ -325,8 +325,20 @@ test "normal Query driver retains native SQL AQL originals through one compiler 
     assert_eq(output.rows().unwrap(), ["{\"label\":\"日本語😀\"}"])
     assert_true(output.close())
     assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+    assert_eq(
+      installed_managed_run_accounting(run).unwrap(),
+      installed_managed_run_accounting_values(parent.ledger),
+    )
     @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+    // The original input has returned. Observe the last live SAME Ledger;
+    // successful final retirement must not invent or reset any field.
+    let final_accounting = installed_managed_run_accounting(run).unwrap()
     retire_installed_managed_run(run).unwrap()
+    assert_eq(
+      installed_managed_run_accounting_values(parent.ledger),
+      final_accounting,
+    )
+    assert_true(installed_managed_run_accounting(run) is Err(Retired))
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
 }

@@ -189,7 +189,7 @@ test "completed check handoff retains original Program and backing while the par
   assert_true(
     @resources.abort_preparation_capacity_after_cleanup(parent.capacity, input).unwrap(),
   )
-  @resources.cleanup_node_preparation_admission(parent.initial).unwrap()
+  preparation_initial_cleanup(parent.initial).unwrap()
 }
 
 ///|

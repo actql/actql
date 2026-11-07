@@ -1,8 +1,20 @@
 ///|
 fn control_terminal_fixture(
   name : String,
+  cleanup_only? : Bool = false,
 ) -> (@http.Library, @http.Client, @slot.NativeExecutorSlot, String) raise {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") is Some(path) else {
+  // Cleanup-only cases need an actual loaded image, not a live peer URL.
+  let selected = if cleanup_only {
+    // This non-network case owns an ABI-only image with confirmed lifetime
+    // cleanup. A system TLS image may correctly retain unknown TLS debt.
+    @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY")
+  } else {
+    match @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIBRARY") {
+      Some(path) => Some(path)
+      None => @env.get_env_var("ACTQL_TEST_NATIVE_HTTP_LIFETIME_LIBRARY")
+    }
+  }
+  guard selected is Some(path) else {
     fail("selected controller cleanup requires the retained HTTP component")
     abort("missing HTTP component")
   }
@@ -34,13 +46,20 @@ test "controller terminal retains the confirmed original Client and Slot close o
     "terminal-confirmed",
   )
   let progress = Ref(ControlClientPending)
-  assert_true(retry_control_terminal_handles((client, slot), progress))
-  assert_true(progress.val is ControlHandlesRetired)
+  let slot_progress = Ref(ControlSlotPending)
+  assert_true(
+    retry_control_terminal_handles((client, slot), progress, slot_progress),
+  )
+  assert_true(
+    progress.val is ControlHandlesRetired(same) && physical_equal(same, slot),
+  )
   assert_true(client.response_limit() is Err(Closed))
   let independent = @slot.open_native_executor_slot(path).unwrap()
   assert_true(independent.try_acquire().unwrap())
   // Recorded completion must not reclose the consumed original descriptor.
-  assert_true(retry_control_terminal_handles((client, slot), progress))
+  assert_true(
+    retry_control_terminal_handles((client, slot), progress, slot_progress),
+  )
   assert_eq(independent.verify_current_hold(), Ok(()))
   assert_true(independent.close())
   library.close_checked().unwrap()
@@ -58,10 +77,15 @@ test "controller terminal keeps an unobserved consumed Slot pending without clos
   let independent = @slot.open_native_executor_slot(path).unwrap()
   assert_true(independent.try_acquire().unwrap())
   let progress = Ref(ControlClientPending)
-  assert_false(retry_control_terminal_handles((client, slot), progress))
+  let slot_progress = Ref(ControlSlotPending)
+  assert_false(
+    retry_control_terminal_handles((client, slot), progress, slot_progress),
+  )
   assert_true(progress.val is ControlSlotUnknown)
   assert_true(client.response_limit() is Err(Closed))
-  assert_false(retry_control_terminal_handles((client, slot), progress))
+  assert_false(
+    retry_control_terminal_handles((client, slot), progress, slot_progress),
+  )
   assert_eq(independent.verify_current_hold(), Ok(()))
   assert_true(independent.close())
   // Returning this Library reference is separate from the unresolved Slot.

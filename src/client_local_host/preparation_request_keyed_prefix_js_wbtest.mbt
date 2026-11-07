@@ -44,7 +44,7 @@ fn request_keyed_prefix_fixture(
     run,
     original.prepared,
     original.request,
-    original.original.declaration,
+    original.original.3,
     selected.direct_stage,
   ).unwrap()
   let ledger = prepare_installed_managed_run_ledger(

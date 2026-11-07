@@ -6,7 +6,12 @@ struct RequestKeyedConstructorFixture {
   parent : ClientRequestPreparation[Array[Int]]
   input : Array[Int]
   prepared : @publication_host.PreparedClientProgram
-  original : SplitKeyedContentLimitsFixture
+  original : (
+    SplitKeyedContentLimitsFixture,
+    String,
+    @checked.CheckEnvironment,
+    @row_source_host.RowDeclaration,
+  )
   holder : @resources.PreparationBodyBorrow[
     @publication_host.PreparedClientProgram,
   ]
@@ -90,8 +95,8 @@ fn request_keyed_constructor(
     fixture.input,
     fixture.request,
     fixture.keyed,
-    fixture.original.declaration,
-    fixture.original.declaration,
+    fixture.original.3,
+    fixture.original.3,
     original_keyed_child_limits(),
     protocol,
     original_row_evidence_contract_fixture,
@@ -205,7 +210,7 @@ test "keyed Content constructs one Query and retains its actual prefix on the sa
     run,
     fixture.prepared,
     fixture.request,
-    fixture.original.declaration,
+    fixture.original.3,
     selected.direct_stage,
   ).unwrap()
   assert_true(physical_equal(direct, selected.direct))

@@ -104,14 +104,14 @@ export const unnestJoinSuccesses = [
   }),
   success('object-sql', objectSql, {...objectCase, format: 'sql'}),
   success('object-pipe', objectPipe, objectCase),
-  success('data', 'WITH joined AS (' + objectPipe + ') FROM joined |> RESULT answer', objectCase),
+  success('data', 'WITH joined AS (' + objectPipe + ') FROM joined |> RESULT answer', {...objectCase, resultName: 'answer'}),
   success('whole-object', objectPipe.replace('SELECT e.*,', 'SELECT e AS original, e.*,'), {
     ...objectCase, columns: [{name: 'original',
       contract: {...object, additional_properties: false}}, ...objectColumns],
     expected: objectExpected.map(row => ({original: {code: 2, label: 'b'}, ...row})),
   }),
   success('immutable-range', objectPipe.replace('|> JOIN', '|> SELECT code, label, position |> AS e |> SET code = 99 |> JOIN')
-    .replace('SELECT e.*,', 'SELECT code AS current, e.code AS original, e.label,'), {
+    .replace('SELECT e.*,', 'SELECT code AS `current`, e.code AS original, e.label,'), {
     ...objectCase, columns: [{name: 'current', contract: number}, {name: 'original', contract: nullableNumber},
       objectColumns[1], objectColumns[2], objectColumns[3]],
     expected: [{current: 99, original: 2, label: 'b', position: 0, key: 2},

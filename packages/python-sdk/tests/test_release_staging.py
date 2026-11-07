@@ -15,6 +15,7 @@ import zipfile
 
 from image_fixture import ENGINE, IMAGE, RUNTIME_HASH
 from actql_sdk._local_distribution import inspect_local_components, LocalInstallationError
+from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -73,7 +74,7 @@ class ReleaseStagingTests(unittest.TestCase):
         root = self.directory / 'original-artifact'
         root.mkdir()
         body = {'source_sha': SOURCE, 'package_version': SOURCE_VERSION, 'platform': 'darwin-arm64',
-                'core_abi': 78, 'wasmtime_version': '38.0.0', 'duckdb_version': 'v1.4.3', 'notices': {}}
+                'core_abi': LOCAL_CORE_ABI, 'wasmtime_version': '38.0.0', 'duckdb_version': 'v1.4.3', 'notices': {}}
         for name, key in [('client_host_wasm.wasm', 'module'), ('libduckdb.dylib', 'duckdb')]:
             value = ('Independent inert fixture ' + name).encode()
             (root / name).write_bytes(value)
@@ -92,7 +93,7 @@ class ReleaseStagingTests(unittest.TestCase):
         (root / 'client_host_wasm.cwasm').write_bytes(IMAGE)
         engine = json.dumps(ENGINE, sort_keys=True, separators=(',', ':')).encode()
         body['compiled_image'] = {'source_sha': SOURCE, 'package_version': SOURCE_VERSION,
-            'module_sha256': body['module']['sha256'], 'core_abi': 78, 'wasmtime_version': '38.0.0',
+            'module_sha256': body['module']['sha256'], 'core_abi': LOCAL_CORE_ABI, 'wasmtime_version': '38.0.0',
             'runtime_library_sha256': RUNTIME_HASH, 'provider_library_sha256': None,
             'platform': 'darwin-arm64', 'engine_body': ENGINE, 'engine_sha256': digest(engine),
             'file': 'client_host_wasm.cwasm', 'bytes': len(IMAGE), 'sha256': digest(IMAGE),

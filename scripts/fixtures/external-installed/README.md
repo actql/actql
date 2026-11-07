@@ -25,23 +25,51 @@ manifests through the existing generator. Its Node distribution preserves
 `@actql/local-node` as the common owner, so the external adapters' imports of
 `@actql/local-node/connector-installation` refer to that same Host package.
 
+The installed loader supplies the original bound `construction` to each
+adapter. Both fixtures use it for accounted configuration reads, authored
+declaration/Mapping preparation, Site acquisition and final adapter creation.
+The same Host owner retains these originals and any failed prefix; an adapter
+cannot replace that association by calling an independent public constructor.
+
 ## Provider boundary
 
-The independently linked providers exchange only byte arrays, strings and
-integers. Provider exports never accept a common runtime opaque handle. The
-injected `moon` owns declarations, Mappings, acquisition, capture, credentials,
-Effect claims and recovery. `providerMoon` owns only the following pure ABI:
+The independently linked business request and observation functions exchange
+only byte arrays, strings and integers. Provider exports never accept a common
+runtime opaque handle. The Effect installation also forwards the existing
+standard CREATE native construction-profile DATA unchanged into the typed
+common composer; JavaScript does not peel or recreate its Option/tuple layout.
+These quantities carry no declaration, Run, permission or cleanup
+acknowledgement. The injected `moon` owns declarations, Mappings, acquisition,
+capture, credentials, Effect claims and recovery.
+
+The consumer's explicit HTTPS port uses Node Readable and Writable lifecycle
+events, including observed binary reads and request close after response close.
+It exercises the original Credential receiver without opening a socket or
+supplying a physical socket cleanup acknowledgement.
+
+`providerMoon` owns only the following pure ABI:
 
 - Read: `externalReadRequestJson(page)` constructs one of two fixed paths.
   `externalReadPageJson(bytes, page)` projects `items` to declared rows and
   admits only `next: 1` from the first page or `next: null`. Each page permits
   at most two rows, 4,096 bytes, 32 nodes and depth four. The common acquisition
   independently caps the run at two pages and four captured rows.
+  The bound constructor retains the standard managed page reader and its
+  implementation capacity before Source admission. Shared reader custody owns
+  Credential binding, current checks, byte charging and cleanup; the external
+  module supplies only synchronous request and page projections.
 - Effect: `externalEffectRequestJson(key, note)` constructs the exact bounded
   create body. `externalEffectObservationJson(status, bytes, key)` admits only
   a matching typed 201 success or the declared 400 refusal. All other replies
   remain unclassified. Response parsing is capped at 4,096 bytes, 16 nodes and
   depth three. The Node adapter gives the common ledger the exact request CID.
+  The adapter uses the existing standard CREATE constructor and preserves that
+  same native request/projector and request CID. Its native HTTP limits and
+  JSON construction geometry feed the common capture, request, Credential/HTTP
+  and saved-control recipe. The same bound `prepareEffectDriverConstruction`
+  retains initialization; shared fixed/operation overhead remains common,
+  while the provider supplies only its data bounds and variable driver demand.
+  No independent Ledger or hand-written successful demand replaces the Plan.
 
 The Effect package's `catalog-views.json` supplies the finite resource schema
 required by the common Mapping declaration API. This is catalog metadata,
@@ -95,3 +123,10 @@ The fixture helper exposes its transport, profile and Program builders for
 focused diagnostics. It reports facts from executed assertions; its presence
 alone is not test evidence. Builds and runtime acceptance must run through the
 repository's bounded serial verification gate.
+
+The focused loader component in `scripts/local-node-external-package-inputs.test.mjs`
+uses the actual standard driver, recipe composer and Effect Plan connection with
+explicit Core ports. It qualifies original-method forwarding, request identity
+and Source-level recipe selection. The new provider metadata's compiled ABI,
+physical backing and ordinary Effect consumer still require matching artifacts
+and execution; this Source component does not establish those results.

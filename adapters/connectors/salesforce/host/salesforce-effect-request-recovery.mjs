@@ -203,6 +203,10 @@ export function recoverCapturedSalesforceSingleRequests({
       resourceOrigin: profile.resourceOrigin,
       claims: recorded.members[memberIndex].claims});
   });
+  // No Catalog decoder or member-profile frame remains active. Drop this
+  // duplicate JS Preview forest before the native identity constructor; only
+  // the original wire and the retained Catalog/projection outputs continue.
+  previewBody = undefined;
   const result = recoverPreparedSalesforceSingleRequests({moon, previewWire,
     runIdentityCid, authoringContextCid, members,
     previewLimits, bodyLimits, requestLimits, maxMembers, maxRows,

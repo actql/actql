@@ -20,9 +20,12 @@ are internal handles rather than persistent semantic identities.
 
 Every classified source stage and keyed join is covered in order under the combined work limit;
 the result owns its membership arrays and retains the source capacity context.
-It accepts no alternative caller-supplied capacity closure. Runtime obligations
-remain attached to their original proof owners; membership neither executes
-them nor creates source authority or a runnable Plan.
+It accepts no alternative caller-supplied capacity closure. Automatic selection
+retains an optional real membership for each original checked join. Absence
+retains that join and its exact left target as a runtime admission obligation;
+it is not zero, a Host ceiling or an invented proof. Supplied malformed or
+foreign evidence still fails. Membership neither executes an obligation nor
+creates source authority or a runnable Plan.
 
 Lookup capacity resolution consumes `KeyedRowBounds` and the selected lookup
 policy from the same Check Environment. For a left row bound N, it retains N
@@ -31,10 +34,21 @@ or K = 1 without batching, and computes ceil(N/K) batches. Logical requests are
 batches times the per-request page bound; attempts multiply requests by the
 Host attempt ceiling. Complete response rows are N times the per-key row bound,
 independent of the join's output cap. Decoded response extent is logical requests
-times the per-page decoded byte bound and must fit the decoded Host ceiling.
-These computations use the existing safe-integer capacity representation and
-reject unrepresentable products rather than rounding or clipping. A large
-declared batch capability is clamped before integer conversion.
+times the per-page decoded byte bound. These are planning estimates, not actual
+usage or dispatch permission. Genuine zero produces zero requests without
+division by zero. Safe-integer overflow leaves the aggregate estimate unavailable
+rather than rounding, clipping or rejecting the acquisition. A known estimate
+exceeding the decoded Host ceiling remains available for planning and selects
+runtime admission; it does not prove actual usage exceeds the ceiling. A large
+declared batch capability is clamped before conversion. Unknown estimates
+retain the same exact checked join and policy.
+
+Every path admits actual resources on the same runtime Ledger before allocation
+or provider access and enforces per-request and cumulative policy limits. The
+completed original left Relation supplies its existing row count; no pre-count
+scan, reread, recompile or replacement owner is required. Actual allocation
+overflow and unavailable reservations fail with normal owned cleanup. An
+actually empty left Relation opens no provider request.
 
 `check_source_capacity` applies this resolution to the source-policy connection
 for every classified stage under one cumulative work limit. It retains the
@@ -52,8 +66,8 @@ closed batching body and `preserves_per_key_semantics: true`; this declaration
 is not evidence that a backend has executed per-key semantics correctly.
 Absence is distinct from malformed presence. The declared positive integral
 `max_keys_per_request` is preserved without inventing a safe-integer ceiling;
-acquisition resolution must bound the selected batch size by the proven left
-row count before conversion to the barrier's bounded integer domain.
+acquisition resolution bounds a planning batch by a known left estimate, or a
+runtime batch by the actual completed left count, before integer conversion.
 This admission does not infer a batch wire layout from type shapes, coerce a
 single-key request into a batch, or issue a provider request.
 
@@ -280,21 +294,23 @@ does not yet establish the actual left producer's row bound, Host transport
 envelope or response validation; these must join the same ownership closure
 before executable acquisition can be claimed.
 
-`check_keyed_row_bounds` requires a positive row bound for the exact left target
-of every checked keyed join, in checked-join order. It accepts only opaque
-`capacity_program_step.TargetRows` values, not numeric assertions. Equal counts
-on another target or an independently checked pipeline are rejected. The result
-copies the supplied array and retains the original row proof and keyed facts.
-Traversal work is charged per bound occurrence in addition to correspondence
-checks; reusing a bound does not make its logical validation cost disappear.
+`check_keyed_row_estimates` validates each optional estimate for the exact left
+target of every checked keyed join, in checked-join order. Supplied estimates
+must be opaque `capacity_program_step.TargetRows`, including genuine zero, not
+numeric assertions. Equal counts on another target or independently checked
+pipeline are rejected. Absence creates an explicit `RuntimeAdmission` retaining
+the original checked join. `check_keyed_row_bounds` keeps its compatibility
+signature for all-known callers. Both retain original proof/facts ownership.
+Traversal work is charged per real bound occurrence; repeated targets reuse
+their already selected optional result.
 
 `pipeline_check_context.check_source_row_bounds` covers every classified stage
 and retains the exact `SourceRequestContexts`. It includes preceding request
 work and all left-target traversal work in one budget, with no partial result
-on late failure. These are source acquisition prerequisites, not a substitute
-for the existing whole-producer capacity/application closure. Host request,
-attempt, transport, decoded-body and duration envelopes remain separate from
-this positive logical row bound.
+on late failure. Static proof conversion and signatures are produced only for
+real memberships. Runtime requirements retain the same Unit operation, checked
+join and left target without a synthetic signature. Host request, attempt,
+transport, decoded-body and duration envelopes remain separate obligations.
 
 ## Keyed join role binding
 
@@ -531,3 +547,21 @@ ones, so omission is not confused with a scanned request having no Binding use.
 Each lookup returns the owned request inventory; stage/input indices are local
 coordinates, not persistent identities. This is a missing-admission inventory,
 not a Host validator or a replacement for the issuer/authorization boundary.
+
+## Runtime keyed storage
+
+Optional lookup counts remain estimates, including when their aggregate maximum
+exceeds the Run budget. The completed original left read supplies the actual
+assembly length. Its row containers and the next processing workspace are
+admitted before construction; each retained canonical key and row-pointer array
+grows that same reservation. Immutable response cells keep their original child
+holdings rather than becoming a second unaccounted payload copy.
+
+The installing Host selects the finite Run policy independently of this initial
+demand. Later requests and retained responses spend the same attempts, transfer,
+time and byte allowances. A small initial quote does not shrink the Run policy,
+and a large optional estimate does not reserve every possible key at startup.
+Captured Content likewise starts with an empty inventory and grows its original
+workspace before adding or restoring actual entries. Cleanup retains failed
+children and their original debit; it never refunds cumulative work or declares
+an unconfirmed physical stop complete.

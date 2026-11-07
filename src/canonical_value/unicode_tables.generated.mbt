@@ -5,6 +5,14 @@
 // CompositionExclusions.txt sha256: 89e83cf9cc8bef6c1f8bf77e42cf6f0341dfa42e66261f4dbe9b492e7a23c8ee
 // NormalizationTest.txt sha256: d811971453e7075e1ad56fb1b301eece5aa80757b81f6156e74a1bfb3ae5ceb1
 
+// Recursive canonical mappings plus algorithmic Hangul, counted in their
+// actual scalar and UTF-16 units. Ordering/composition/LF do not increase them.
+///|
+let canonical_decomposition_max_scalar_expansion : Int64 = 4L
+
+///|
+let canonical_decomposition_max_utf16_expansion : Int64 = 4L
+
 ///|
 let canonical_decomposition_keys : FixedArray[Int] = [
   0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf,

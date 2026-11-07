@@ -1,0 +1,767 @@
+{
+  "qualification": "Reviewed source-level staged declared-model construction and exact original-owner correspondence; component and selected-runtime declaration diagnostics are not installed actual-package or cross-target acceptance",
+  "declarations": [
+    {
+      "module": "adapters/local-node/declared-project-catalog.mjs",
+      "sha256": "0b3cedad927e403199b29dc6ea39392f85491659626d40e13da7f7390f321f30",
+      "exports": [
+        "inspectDeclaredProjectCatalog",
+        "loadDeclaredProjectCatalog"
+      ],
+      "operations": [
+        {
+          "name": "capturedCatalogOptions",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed",
+          "parameters": [
+            "value",
+            "required",
+            "optional"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed/closed",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed/closed#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "freeze/freeze",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectDeclaredProjectCatalog",
+          "parameters": [
+            "moon",
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "list/list",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadDeclaredProjectCatalog",
+          "parameters": [
+            "moon",
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "names/names",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "object/object",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "path/path",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog",
+          "parameters": [
+            "moon",
+            "directory",
+            "catalogFile",
+            "dataFile",
+            "connections",
+            "connectionOriginal",
+            "assertCurrent",
+            "openFile",
+            "installationInventory"
+          ],
+          "async": true
+        },
+        {
+          "name": "projectDeclaredCatalog/admit/admit",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts/content/content",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts/facts",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts/facts#2",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts/factViews/factViews",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts/listing/listing",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/finalInput/finalInput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/finalInput/finalInput#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/inputStage/inputStage",
+          "parameters": [
+            "member",
+            "geometry",
+            "project",
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/inputStage/inputStage/projection/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/mappingInput/mappingInput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings",
+          "parameters": [
+            "spec"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings/mappings",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/mappingInput/mappingInput/writesJson/writesJson",
+          "parameters": [
+            "spec"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/mappingInput/mappingInput#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/original/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/overrideCount/overrideCount",
+          "parameters": [
+            "count",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/overrideInputs/overrideInputs",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/overrideInputs/overrideInputs/overrideInputs",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/overrideInputs/overrideInputs#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/parsed/parsed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/parsed/parsed#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#10",
+          "parameters": [
+            "spec"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#2",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#3",
+          "parameters": [
+            "sum",
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#8",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#9",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/restoreInput/restoreInput",
+          "parameters": [
+            "member",
+            "connectorId",
+            "registration",
+            "revision",
+            "input",
+            "final"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/restoreInput/restoreInput/project/project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/restoreInput/restoreInput/projection/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput#2",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput#3",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput#4",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput#5",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput#6",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput#7",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/selected/selected",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/selected/selected/queryAliases/queryAliases",
+          "parameters": [
+            "alias"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/selected/selected/selected",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/selected/selected/selected#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/selected/selected/selected#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/selected/selected#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/source/source",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/source/source/source",
+          "parameters": [
+            "spec"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/source/source/source/source",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/source/source/writes/writes",
+          "parameters": [
+            "spec",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/source/source#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "wire/wire",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/runtime-result.mjs",
+        "../host-node/declared-project-catalog-construction.mjs",
+        "../host-node/source-profile-json.mjs",
+        "./declared-file-installation.mjs",
+        "node:crypto",
+        "node:path",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "connector-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing declared-model installation, Common declaration/Mapping semantics and installed Source material; pure metadata projection is retained by the same original initializer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capturedCatalogOptions",
+            "cid/cid",
+            "closed/closed",
+            "closed/closed/closed",
+            "closed/closed/closed#2",
+            "fail/fail",
+            "freeze/freeze",
+            "inspectDeclaredProjectCatalog",
+            "invalid/invalid",
+            "list/list",
+            "loadDeclaredProjectCatalog",
+            "names/names",
+            "object/object",
+            "path/path",
+            "projectDeclaredCatalog",
+            "projectDeclaredCatalog/admit/admit",
+            "projectDeclaredCatalog/call/call",
+            "projectDeclaredCatalog/facts/facts",
+            "projectDeclaredCatalog/facts/facts#2",
+            "projectDeclaredCatalog/facts/facts/content/content",
+            "projectDeclaredCatalog/facts/facts/factViews/factViews",
+            "projectDeclaredCatalog/facts/facts/facts",
+            "projectDeclaredCatalog/facts/facts/facts#2",
+            "projectDeclaredCatalog/facts/facts/listing/listing",
+            "projectDeclaredCatalog/finalInput/finalInput",
+            "projectDeclaredCatalog/finalInput/finalInput#2",
+            "projectDeclaredCatalog/inputStage/inputStage",
+            "projectDeclaredCatalog/inputStage/inputStage/projection/init:capacity/init:capacity",
+            "projectDeclaredCatalog/mappingInput/mappingInput",
+            "projectDeclaredCatalog/mappingInput/mappingInput#2",
+            "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings",
+            "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings/mappings",
+            "projectDeclaredCatalog/mappingInput/mappingInput/writesJson/writesJson",
+            "projectDeclaredCatalog/methods/methods",
+            "projectDeclaredCatalog/original/init:capacity/init:capacity",
+            "projectDeclaredCatalog/overrideCount/overrideCount",
+            "projectDeclaredCatalog/overrideInputs/overrideInputs",
+            "projectDeclaredCatalog/overrideInputs/overrideInputs#2",
+            "projectDeclaredCatalog/overrideInputs/overrideInputs/overrideInputs",
+            "projectDeclaredCatalog/parsed/parsed",
+            "projectDeclaredCatalog/parsed/parsed#2",
+            "projectDeclaredCatalog/projectDeclaredCatalog",
+            "projectDeclaredCatalog/projectDeclaredCatalog#10",
+            "projectDeclaredCatalog/projectDeclaredCatalog#2",
+            "projectDeclaredCatalog/projectDeclaredCatalog#3",
+            "projectDeclaredCatalog/projectDeclaredCatalog#4",
+            "projectDeclaredCatalog/projectDeclaredCatalog#5",
+            "projectDeclaredCatalog/projectDeclaredCatalog#6",
+            "projectDeclaredCatalog/projectDeclaredCatalog#7",
+            "projectDeclaredCatalog/projectDeclaredCatalog#8",
+            "projectDeclaredCatalog/projectDeclaredCatalog#9",
+            "projectDeclaredCatalog/restoreInput/restoreInput",
+            "projectDeclaredCatalog/restoreInput/restoreInput/project/project",
+            "projectDeclaredCatalog/restoreInput/restoreInput/projection/init:capacity/init:capacity",
+            "projectDeclaredCatalog/savedInput/savedInput",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput#2",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput#3",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput#4",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput#5",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput#6",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput#7",
+            "projectDeclaredCatalog/selected/selected",
+            "projectDeclaredCatalog/selected/selected#2",
+            "projectDeclaredCatalog/selected/selected/queryAliases/queryAliases",
+            "projectDeclaredCatalog/selected/selected/selected",
+            "projectDeclaredCatalog/selected/selected/selected#2",
+            "projectDeclaredCatalog/selected/selected/selected#3",
+            "projectDeclaredCatalog/source/source",
+            "projectDeclaredCatalog/source/source#2",
+            "projectDeclaredCatalog/source/source/source",
+            "projectDeclaredCatalog/source/source/source/source",
+            "projectDeclaredCatalog/source/source/writes/writes",
+            "text/text",
+            "wire/wire"
+          ],
+          "exports": [
+            "inspectDeclaredProjectCatalog",
+            "loadDeclaredProjectCatalog"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "export async function loadDeclaredProjectCatalog"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "sourceMember, sourcePrepared, effectMember, effectPrepared,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "provider = call('clientProjectConnectionsConnector', connections, selected);"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "scopeCid: cid({connection, connector: provider, dataPath, catalog: originalWire})"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "return metadata ? installationInventory.prepareMetadataInput(projection)"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "effectMember.prepareBorrowedDeclaration(sourceMember);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "const sourceMember = installationInventory === undefined ? undefined"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "if (fileBindings.length) {"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "const sourcePrepared = restoreInput(sourceMember, connectorId, registration, revision, finalInput, true);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "if (quantity == null) fail('InstalledSourceDeclarationCapacityUnavailable');"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "if (connectionIndex < 0 || typeof entryWire !== 'string' ||"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "assertCurrent();"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "await Promise.allSettled([...flights]);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "const {retained, workspace} = geometry();"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "const quantity = call('clientProgramRelationRestoreConstructionCapacity',"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "mappingOriginals = effectPrepared.mappings;"
+              },
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
+                "anchor": "export function declaredProjectCatalogMappingInputsConstructionGeometry"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.mjs",
+                "anchor": "const connectorId = connection, registration = 'declared_file', revision = registration + '/0.1';"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/declared-project-catalog.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component catalog stages actual connection members before constructors and exports each declaration once'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "for (const index of [1, 2, 3, 4])"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component catalog missing native quote refuses without restore or export fallback'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component catalog Entry quantity refusal precedes its first JavaScript parse'"
+              },
+              {
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "anchor": "test('actual file declarations preserve separate physical strings and logical keyed Content views'"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

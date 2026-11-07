@@ -119,7 +119,7 @@ export const computedObjectPropertyRefusals = [
 export const computedObjectPropertyExecutionFailures = [{
   name: 'computed-object-property-demanded-receiver-failure', format: 'sql',
   text: 'SELECT id, (CASE WHEN id / (id - id) = 0 THEN @p1 ELSE @p2 END).score AS score FROM records',
-  ...suppliedParameters(['p1', 'p2']), resultNames: ['answer'], sourceReadSessionCount: 1,
+  ...suppliedParameters(['p1', 'p2']), resultNames: ['main'], sourceReadSessionCount: 1,
 }];
 
 // Independent original-source column control; parentheses do not create a row
@@ -153,7 +153,7 @@ export const parenthesizedSourceRangeSuccesses = [
   rangeSuccess('empty', sourceRangeSql, {sourceRows: [], expected: []}),
   success('parenthesized-range-nested', 'SELECT id, ((o)).payload.score AS score FROM objects o ORDER BY id',
     {expected: [{id: 1, score: 20}, {id: 2, score: 10}, {id: 2, score: 10}, {id: 3, score: null}, {id: 4, score: null}]}),
-  success('parenthesized-value-range-collision', 'SELECT id, (payload).score AS score FROM objects payload ORDER BY id',
+  success('parenthesized-value-range-collision', 'SELECT id, (payload.payload).score AS score FROM objects payload ORDER BY id',
     {expected: [{id: 1, score: 20}, {id: 2, score: 10}, {id: 2, score: 10}, {id: 3, score: null}, {id: 4, score: null}]}),
 ];
 export const parenthesizedSourceRangeRefusals = [

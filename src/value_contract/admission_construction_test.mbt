@@ -53,9 +53,9 @@ test "shared read construction independent primitive vector and full Int geometr
   assert_eq(v.scratch, {
     record_headers: 340L,
     reference_slots: 589L,
-    scalar_words: 1185L,
+    scalar_words: 1121L,
   })
-  assert_eq(v.scratch_utf16_units, 322L)
+  assert_eq(v.scratch_utf16_units, 162L)
   assert_true(
     @value_contract.read_construction_inventory({
       ..geometry,

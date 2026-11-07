@@ -2387,6 +2387,102 @@ bounded raw bytes and physical generations. Native delegates only the ordered
 record encoding, retaining its original nonce, crypto errors, IO and current
 checks. No original is repaired or reissued during restoration.
 
+### Project and profile metadata
+
+The same metadata family admits project configuration and profile selection
+through `admit_client_project_configuration` and `select_client_project_profile`.
+The retained input contains the original configuration wire or explicit absence
+and the original profile override or absence. Core retains that same nominal
+selection before fallible encoding; the eight-field locator projection is DATA,
+not an installed Source, Model registration, permission or funding promise.
+Python preserves the explicit `mock_catalog` locator and ordered task/answer
+locators and performs no profile rewrite. The catalog locator uses the same
+original file acquisition and retirement as the other project inputs.
+
+The existing Core lock and bounded input/output loans cover this preparation.
+A failed parse, copy or cleanup retains the same child; it is not prepared again.
+Output cleanup and input-stop acknowledgement precede selection retirement.
+Retiring the selection drops managed references and does not prove physical
+Host, Store, Run or capacity cleanup. Profile installation must consume the same
+retained original and still supply actual configuration/currentness and complete
+constructor/continuation backing. It cannot recover that original from equal
+serialized locator DATA. The intake has no authority or asynchronous callbacks.
+
+The project metadata whitebox cases cover absence, original overrides, ordering,
+foreign equality and retirement; Python loan cases cover immutable projection,
+copy refusal and failed cleanup. They do not establish an installed Mock run.
+
+### Named Local project preparation
+
+The named sync and async Local `connect` entries capture the optional profile
+and call the same private installed-factory assembly as `open`. `open` retains
+its explicit Store-only selection, including Saved-first clients. Remote
+construction and explicit signers retain their existing paths. A project is
+neither an endpoint nor a source of signer, Account, permission or capacity.
+
+The factory acquires the same installed Core before project IO. The Host then
+retains the physical project child, exact configuration input, Core metadata
+child and nominal profile selection before fallible preparation or Store
+initialization. Referenced inputs use the same configuration directory and
+original locator order; multiple roles selecting one exact path retain the same
+physical member. Explicit `installation` wins; otherwise the original Core
+`state_dir` is relative to the selected configuration, including discovery in a
+parent directory. Merely copying locator DATA cannot install a profile.
+
+The existing Host lock and cleanup sequence own these loans. Metadata retires
+before its Core input, and the physical project child retires after its consumers
+and installation and before the Core. Constructor failure returns that same Host
+without re-reading inputs or initializing another Store. Uncertain physical close
+retains its child through the original acknowledgement; coroutine cancellation
+does not acknowledge it or cancel a Run. Project workspace and separate Core
+input/output reservations cover the simultaneous constructor and retained files.
+
+Fresh preparation observes the same physical group and retained Core selection.
+The selected profile still needs its actual published or Mock environment and
+executable owners. It cannot execute against the source-free bootstrap merely
+because intake succeeded. Saved Run lookup/restoration continues through its
+separate original-material path, without submitted preparation or profile
+replacement. The physical worker binds the same narrowed original Run and
+method before asynchronous work, independently of the requesting coroutine.
+
+Component cases cover actual project/File/Store custody with explicit semantic
+Core ports and public sync/async factory forwarding with an explicit Host port.
+Their scope is distinct from an installed Mock/Effect/approval execution or
+external ABI/distribution qualification. Existing typed consumers and canonical
+interface declarations cover the same public profile option and private callers.
+
+### Original project file inputs
+
+`OriginalLocalProjectFiles` supplies bounded read-only physical input to the
+same configuration preparation. It reserves its Core workspace before opening
+directories or files. Its limits cover simultaneous raw, destination, text,
+path and descriptor holding; the subsequent Core input and metadata loans are
+separate. It does not parse project JSON, select a profile, install a provider,
+issue authority or start a Run.
+
+Project directories are ordinary read-only directories, distinct from the
+private, exclusively owned Store roots used by `LocalFileRoot`. Reads retain
+the same open parent and regular-file descriptors, original named generation,
+size and timestamps. Bounded nonblocking acquisition refuses symbolic links and
+nonregular files. A whole-group current check precedes returning retained bytes.
+The nearest `actql.config.json` is selected only after observing its bytes;
+each nearer acknowledged absence remains part of that original group. A new
+nearer file, replacement, changed generation or unreadable input cannot become
+an empty/default configuration or trigger parent fallback.
+
+The installed caller owns this child and serializes it with the same Core lock.
+Failed acquisition retains its original descriptors and workspace, and the
+failed input cannot be read again. Cleanup uses the existing descriptor-uncertainty
+rule: an uncertain close is observed, never repeated on a potentially recycled
+descriptor. The original Core workspace acknowledges physical descriptor cleanup
+before the retained bytes and references are dropped. A trapped reservation
+keeps its original ticket until the same Core completes global cleanup; even
+then, any still-held descriptor prevents a fabricated acknowledgement. This
+cleanup does not cancel a Run, acknowledge Store durability or remove named
+files. Actual POSIX discovery, generation, bounds and failed-close cases cover
+this port with explicit Core workspace ports; they do not qualify installed
+profile execution or the external Wasm ABI.
+
 One output reservation retains its original input borrow. Output cleanup must
 succeed before that borrow returns; failed cleanup retains the same handle.
 `LocalHostFiles` pins exact saved descriptors and the original Store generation,
@@ -3162,6 +3258,17 @@ modules must match the existing exact generated ABI contract.
 
 ### Saved Run observations and Result reads
 
+A saved payload response retains its same original Saved-read carrier. After
+its payload, first workspace and clock have actually returned, response close
+retires that carrier through its existing child-first cleanup, including the
+original allocation-area descriptor. A pending return keeps the same response
+and carrier; it does not repeat already acknowledged child closes or reacquire
+an area. Cleanup association checks the same nominal carrier even when partial
+construction has already entered closing; it does not require an active
+permission or enable another read. Client close remains the owner of partial
+acquisitions that never reached a response. No file, stored receipt, Run or reserved disk capacity is
+deleted or replayed by this retirement.
+
 The private saved-Result acquisition returns its already bounded and checked
 metadata together with the same retained Core output. Its immediate caller
 uses that original parsed DATA instead of reparsing the output inside another
@@ -3322,3 +3429,257 @@ full checks. This supplies no active custody transport or lifetime optimization,
 capacity, permission, current-row proof or physical acknowledgment. ABI78 and
 its full public Core validators remain unchanged; no private combined-export,
 ABI82 behavior or runtime timing equivalence is implied.
+
+### Accepted preparation failure
+
+Local submission retains the unchecked original intent in `preparing` before
+invoking its original parser and Checker. The preparation handle retains its
+typed outcome separately from plan counts. A known preparation failure does not
+turn a negative count, trap, failed current check or uncertain transaction into
+a semantic refusal. It also cannot undo the earlier submission acceptance.
+
+The same failed preparation and accepted intent select a bounded canonical
+`preparation_failed` row candidate. The Host revalidates that original candidate
+inside the existing fenced Store CAS, then independently reads the same
+submission reference before returning `SubmissionPreparationFailed`. No Run or
+dispatch is issued. COMMIT uncertainty preserves the original loans and remains
+Unknown; this path never retries the write, parser or Checker. Repeated lookup
+or submission of the same retained terminal observes that outcome rather than
+preparing it again. A distinct submission continues through normal admission.
+
+The optional physical problem fields are absent from older preparing/ready
+rows, whose canonical bytes remain unchanged. Native readers retain the same
+failure as terminal DATA and refuse fresh execution from that reference.
+
+### Published Source preparation originals
+
+An issued submitted preparation may retain the original published Source
+computation beside its original submitted intent. Its environment retains the
+same publication wire that was admitted with that environment. The existing
+Source constructor selects Pure or Effect from the original authored program;
+the Wasm preparation does not lower that program again or infer its kind from
+counts. Access requires the same intent and environment originals and the
+retained publication, rather than equal serialized substitutes.
+
+For Pure, a checked view exposes the same existing prepared program and durable
+document through the existing submitted-preparation carrier. Effect has no such
+Pure view. Its graph supplies preparation counts only; those counts and the
+ready outcome issue no Run, permission, physical target or executable restore.
+The existing Run and material constructors must separately consume the original
+Effect computation with their complete parent and lifetime checks.
+
+The issued preparation retains a typed Source failure without reparsing on
+subsequent observation. Failure projection reads that retained issue, while
+changed original references refuse access. The preparation's existing input
+borrow and environment dependency remain held until the same close operation
+returns them. Source-free, structured-program and saved-material restoration
+paths preserve their existing constructors and checks. This adds no Wasm
+export, signature or ABI version; the changed implementation still requires a
+genuinely matching module before a Host may consume it.
+
+### Published Source request binding
+
+A published Source's submitted carrier retains both the original input intent
+and its exact prepared input. Existing Local Run constructors accept that
+optional carrier only with the same prepared-input reference. They derive the
+request through the existing canonical request function using the retained
+intent CID. Omission preserves the legacy source-free input domain and all
+existing request preimages. This carrier is not a new authorization or issuer.
+
+The SDK caller uses that same request for lookup before Policy, compilation or
+Run issuance, and forwards the same carrier into the existing Run constructor.
+The Source/submitted views must retain the same original intent and checked
+Pure program; equal replacement views refuse before that handoff. The existing
+current, Account, submission, epoch and interruption checks remain in place.
+
+For a saved SDK Run in this input domain, the original saved Submission and
+canonical material decoder supply the retained submitted carrier. Restoration
+recomputes only the request identity from those saved originals and compares
+it with the retained request, complete expected Definition CID, context and
+policy. It keeps the codec's original execution program and compilation; it
+does not prepare authored input, issue a replacement Run or refresh authority.
+Legacy saved requests retain their omitted-carrier path. This binding does not
+make an Effect computation a Pure Run or enable physical work, approval or
+continuation through an incomplete Effect Host.
+
+### Adjacent payload preparation observations
+
+After original read evidence and first delivery are durably acknowledged, the
+normal live and Saved callers prepare the existing payload codecs and read the
+same Core-issued Result/binding ordinals within one existing Store read frame.
+The selected reader must remain the same nominal fact from that complete
+inventory. No descriptor opens inside this fixed preparation, and neither a
+write nor a read grant is combined with it.
+
+The original frame still performs its complete File/current/Account and fact
+checks around all three Core calls. Failure, changed originals or the final
+physical fence returns no selected fact; the same original input/output loans
+remain available for cleanup. No currentness or Allow result is cached. The
+standalone codec and ordinal methods retain their original independent frames
+for callers that deliberately select them separately. Payload binding and
+physical snapshot validation continue through their two original Core methods.
+
+
+### Original Source carrier during Run restoration
+
+The original request input domain selects the retained submitted carrier for
+both SDK and non-SDK restoration. A Source-bearing request must keep the same
+carrier bound to its original prepared input, even when only the codec-bound
+carrier remains and a live Source view is absent. Selecting an SDK profile is
+not a prerequisite for preserving that request identity. The legacy source-free
+input domain retains its existing absence of this optional carrier.
+
+The actual restore caller passes this original unchanged to the existing
+bounded materials restoration. That codec's compiled Owner, expected complete
+Definition CID, current authorization, context and policy checks still apply.
+Restoration neither prepares the submitted Source again nor issues another
+request, Run, dispatch, lifetime or physical acknowledgment.
+
+### Original platform Store and Memory
+
+The ordinary platform runtime retains the same `LocalCore`, Wasmtime Store,
+Instance, export table and Memory after instantiation and ABI validation. Its
+private observation records those original objects, the original process and
+Store context before fallible memory-type inspection. It does not select a
+native holding or create another lifecycle Owner. The current Memory byte
+length is observation DATA; neither its maximum nor a logical Resource limit
+issues a Request allocation, parent admission or a physical-stop receipt.
+
+Ordinary Core entry and return, bulk-copy entry and unsupported execution-child
+callbacks check that same original. The callback also checks its real Caller
+Store and exported Memory, with the original nonce as correlation only. Growth
+of the same Memory is permitted within the existing selected bound; a cached
+address is not used as a fixed arena. Replacing or losing the original during
+an entered call refuses its return and preserves the existing closing fence.
+Unsupported child imports continue to refuse rather than granting from this
+observation. Complete Request constructor, input, output and failed-child
+backing still belongs to its original Resource admission.
+
+Core cleanup retains the same instance and observation if Store close fails.
+Metadata is cleared only after that same Store closes successfully. A logical
+pool close or a metadata observation is not the physical acknowledgement. The
+existing native-holding observer and imported-child profile remain separate.
+
+### Platform VM capacity and input-pool binding
+
+Private scalar ABI 86 adds the fixed `platform_vm_observation` import and the
+`open_platform` entry. The observation checks the same captured Store, Instance,
+Memory and real Caller. Its state and immutable selected maximum are DATA;
+ordinary initialization binds them to its existing Root and VM reservation
+before opening the platform input pool. The public Client supplies neither this
+port nor a callback, address, capacity original or allocation domain. Diagnostic
+scalar opening and the existing original native/imported-child entrance remain
+separate. An absent platform original refuses; it does not fall back to either.
+
+The opaque `PlatformVMCapacity` is a view of that same Resource reservation,
+not another allocator or lifecycle Owner. Equal limits on a different Root,
+reservation or copied view do not match. Closing and lost observations fence
+new claims on that original; a later observation does not clear the fence.
+The non-Wasm fixed port remains unavailable.
+
+#### Demand-sized working claims
+
+`PlatformVMWorkingCapacity` is an original view of one shared allocation on
+that same VM reservation. Its supplier must already back the entry/controller
+prefix before calling the constructor. The retained and execution extents are
+the complete simultaneous demand, not the unused policy ceilings. Growth checks
+the same live VM original and the original Resource mutation fence, then updates
+the same allocation atomically. A failed grow leaves its previous extents and
+sibling/input allocations unchanged. Earlier retained and execution peaks stay
+charged until cleanup; a smaller later quote does not release them.
+
+Construction and exported-body users retain the existing `SharedBorrow` before
+use. Closing forbids new growth and borrowers, but cannot release an allocation
+with outstanding borrowers. Only their original after-use returns permit the
+enclosing owner to finish cleanup of this suballocation. That operation does
+not return the whole VM reservation or acknowledge physical Store destruction.
+Other shared allocations retain their existing fixed-size behavior; only the
+closed original VM working-claim implementation changes its own byte extent.
+
+This view does not issue an imported child, a Request admission, a resource
+policy, a read/send grant or a Run. The installing Host must connect its actual
+original preparation admission, controller/constructor/output overlap and
+failure retirement to these claims. Equal byte counts alone cannot replace that
+connection. Node and mapped/native backing retain their own existing contracts.
+
+#### Staged platform input construction
+
+Platform input sealing owns its decoded input tree before a Request can borrow
+it. The transfer's two wire copies alone do not cover that tree. The original
+Buffer slot therefore retains a separate demand-sized working claim on the
+same VM capacity. The existing Source preflight-control inventory and actual
+wire length fund UTF-8 decoding and initial scalar preflight. The preflight's
+observed node/depth geometry then selects the existing preserving-parser
+construction inventory before grammar/tree allocation. Long scalar text is
+not treated as one node per character, and the unused configured node/depth
+limits are not allocated in advance.
+
+The same Source cursor transfers once from preflight to grammar. The selected
+data-key mode preserves original Unicode and keys; the default scalar, imported
+and Native input paths keep their existing decoder. Original bounded polls
+report their work on the same Root, without changing policy, engine, fuel or
+VM geometry. This does not qualify the later Request/Plan work admission.
+
+The Buffer slot retains its working claim and any failed/interrupted cursor
+before those constructors can trap. A started failed parser is not replaced
+by another seal on the same handle. Existing borrowers and the original input
+cleanup must finish before the slot cuts its parser/tree aliases and returns
+that suballocation. Returning a Buffer borrow does not itself retire the tree.
+Parser capacity refusal, input error and physical cleanup pending keep their
+existing distinct Host codes. Neither successful sealing nor cleanup grants
+Source checking, Run execution or physical Store retirement.
+
+#### Original Request admission and demand growth
+
+The fixed platform preparation connection uses the existing backed region,
+execution delegation, read use, live projection and `BackedPreparationAdmission`.
+It does not create another admission framework or Root. Its caller already
+funds the complete entry prefix, including region, origin, callback and receipt
+controls. The region snapshots those original entry extents once. Only one
+exclusive child can use this working claim; its extent describes current
+allocation coordinates, not a mapped address or a promise to allocate policy
+ceilings. Mapped and Native regions keep their existing fixed-window rules.
+
+The existing delegation still reserves and reports the same nonbyte quotas on
+the parent. Its existing logical byte projection avoids charging VM backing a
+second time. Full child byte usage remains bounded and retained separately.
+For a platform region, every canonical reservation or byte resize first claims
+the entry prefix plus the child's complete retained/scratch coexistence from
+the same VM. That fixed private Resource cut invokes no external callback
+between validating demand and committing the ledger mutation. If physical
+coexistence is insufficient, the old usage, serial and allocation remain
+unchanged. Other imported origins have no platform binding and keep their
+existing mutation path.
+
+Reports cannot grow this claim or substitute for backing before construction.
+Closing forbids new admission while existing covered disposal remains possible.
+Original construction and body borrowers must retire before the child becomes
+quiescent. The same enclosing owner then supplies its actual runtime/reader
+retirement to the existing after-owner-ACK boundary, returns the read borrow,
+settles the original delegation and closes its region. Only then can it finish
+cleanup of the working suballocation. Neither logical quiescence nor a successful
+report acknowledges physical Store destruction or returns the VM reservation.
+The ordinary Host must retain this complete original chain before entering the
+shared Request driver; numeric limits or a detached prepared value do not
+replace that connection.
+
+A platform input pool claims its actual mutable/immutable wire overlap from the
+same existing VM capacity rather than reserving another whole execution pool.
+Its separately supplied external-copy allowance remains separately charged on
+the same Root. Pool limits are bounds, not allocations of their unused maximum.
+The existing borrower, original stop, cleanup and shared-allocation release
+sequence remains mandatory. Closing the pool settles only its own suballocations;
+it does not return the VM reservation or retire the physical Store. The enclosing
+Instance may mark that reservation closing for cleanup; the original Root/Store
+retains its charge until existing physical retirement. The fixed memory maximum and
+ordinary platform/no-native-provider profile are unchanged.
+
+This connection does not by itself fund Request syntax, checking, compilation,
+Plan, output, failed-child or retained Run overlap. Preparation input admission
+checks the same original VM, but complete Request demand must still be claimed
+before those constructors run. Neither this membership view nor remaining-byte
+DATA supplies that missing Request admission. Source and component checks must
+not be promoted to installed-image, durable approval, Saved or normal acceptance.
+The diagnostic ABI cases use real Wasmtime VM/Root/buffers with explicit
+physical-reader stop and cleanup ports; those ports are not a provider's live
+reader or physical-stop proof.

@@ -119,10 +119,39 @@ for (const binding of namedBindings) for (const path of [binding.owner, ...bindi
   if (!consumers.includes(path)) consumers.push(path);
 }
 const texts = new Map(consumers.map(path => [path, readFileSync(path, 'utf8')]));
+// Retained compatibility preimages are independent fixtures. Refreshing the
+// current admission owner must not rewrite their wires or expected identities.
+const retainedFixtures = [{
+  path: 'src/run_publication_host/client_local_normalization_wbtest.mbt',
+  name: 'Local Environment fixture preserves original identity and member-order refusals',
+}];
+const retainedBlocks = new Map();
+for (const [index, fixture] of retainedFixtures.entries()) {
+  const text = texts.get(fixture.path);
+  const marker = `///|\ntest "${fixture.name}" {`;
+  assert.equal(text.split(marker).length, 2, 'unique retained compatibility fixture');
+  const start = text.indexOf(marker), end = text.indexOf('\n///|', start + marker.length);
+  assert(end > start, 'bounded retained compatibility fixture');
+  const slot = `// Retained compatibility fixture ${index}; restored verbatim below.`;
+  assert(!text.includes(slot), 'retained fixture placeholder collision');
+  retainedBlocks.set(fixture.path, {slot, body: text.slice(start, end)});
+  texts.set(fixture.path, text.slice(0, start) + slot + text.slice(end));
+}
 const replacements = new Map();
 function refresh(environment, original) {
   const {evidence_bundle_cid: before, ...body} = environment;
   assert.equal(machineCid(body), before, 'complete original environment preimage');
+  // The same authored two-Source environment serves both this Core fixture
+  // and its public JSON publication. Keep the current Host policy identical;
+  // a historical CID must never select two different current bodies.
+  if (original === 'sha256:8dddb2a590629efb451ee5c579798da0ec64a674980601b49a97ff6a79140505' ||
+      original === 'sha256:806cd2ad9e32c71ac2a5879c896385a55d9ce388e7b782cb79209d93e556c771') {
+    const policy = JSON.parse(readFileSync('spec/local-check-environment.json', 'utf8'))
+      .host_policy_profile.text_time_evaluation;
+    if (body.host_policy_profile.text_time_evaluation === undefined) {
+      body.host_policy_profile.text_time_evaluation = policy;
+    } else assert.deepEqual(body.host_policy_profile.text_time_evaluation, policy);
+  }
   for (const capability of body.connector_capabilities) {
     capability.capability_contract_cids = capability.capability_contract_cids.map(pin => {
       assert(pins.has(pin), 'review unrecognized query capability instead of guessing its role');
@@ -185,6 +214,11 @@ for (const [path, original] of texts) {
     const current = JSON.parse(texts.get('adapters/host-node/fixtures/two-source/two-source.environment.json')).evidence_bundle_cid;
     text = text.replace(/const currentCid = '[^']+';/, `const currentCid = '${current}';`);
   } else for (const [before, after] of replacements) text = text.replaceAll(before, after);
+  const retained = retainedBlocks.get(path);
+  if (retained) {
+    assert.equal(text.split(retained.slot).length, 2, 'retained fixture remains separate');
+    text = text.replace(retained.slot, retained.body);
+  }
   if (process.argv.includes('--write')) writeFileSync(path, text);
   else assert.equal(readFileSync(path, 'utf8'), text, path + ': stale current query admission fixture');
 }

@@ -618,7 +618,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             stored.evidence.model_capture_bundle.cid));
           try { operation.restoreCall(preparedCallSet, slot.ordinal, leaf('model_slot_capture'),
             moon.clientProgramInferAttemptRecords(leaf('model_call_attempt'), leaf('model_attempt_accounting'),
-              leaf('model_attempt_outcome'), leaf('model_dispatch_authority')), bundle); }
+              leaf('model_attempt_outcome'), leaf('model_dispatch_authority')), bundle,
+            stored.bodies.model_attachment_admission === undefined ? undefined : leaf('model_attachment_admission')); }
           finally { moon.clientProgramReleaseInferCaptureBundle(bundle); }
         }
       }

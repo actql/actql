@@ -38,6 +38,17 @@ fn observed_state_host_fixture(
 }
 
 ///|
+// A Store belongs to this case's existing owned namespace. A global Store
+// fixture would also enable unrelated optional cases in the full Core child.
+fn observed_state_store_fixture(name : String) -> String {
+  let base = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let parent = @filesystem.open_private_root(base).unwrap()
+  parent.create_directory(name).unwrap() |> ignore
+  parent.close().unwrap()
+  base + "/" + name
+}
+
+///|
 // Original real Values/SQLite/Store fixture. No old Run, fake Store or Provider.
 test "typed Local Host terminal fence accepts actual state and refuses purpose or original loss" {
   let host_name = "values-state-observation"
@@ -133,7 +144,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   let library = @sqlite.load_library(
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
   ).unwrap()
-  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root = observed_state_store_fixture(host_name + ".store")
   let store_authority = "sha256:" + "c".repeat(64)
   let store = @publication_store.open_store(
     library, root, store_authority, 65536L, 8L, 131072L,
@@ -987,12 +998,10 @@ test "typed Local Host requires independent RunRead even with current Publisher"
   )
   host.journal.bind_run(request, prepared, compiled, definition, true).unwrap()
   |> ignore
-  let base = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
-  @filesystem.open_private_root(base).unwrap().create_directory(name).unwrap()
-  |> ignore
+  let root = observed_state_store_fixture(name + ".store")
   let store = @publication_store.open_store(
     local_journal_test_library(),
-    base + "/" + name,
+    root,
     "sha256:" + "c".repeat(64),
     65536L,
     8L,

@@ -30,9 +30,13 @@ fn local_client_source_publication_case(
     .unwrap()
   // This is an independently authored test-owned initial row, not production
   // bootstrap or a repair of an adopted Host. No Submission receipt is faked.
+  database.begin_immediate().unwrap()
+  database.install_client_run_definition_schema(8L).unwrap()
   database.insert("client_run_custody", "issued", b"0").unwrap() |> ignore
   database.insert("client_cancel_custody", "issued", b"0").unwrap() |> ignore
   database.insert("client_submitted_intent_custody", "issued", b"0").unwrap()
+  |> ignore
+  database.insert("client_submitted_intent_usage", "retained", b"0:0").unwrap()
   |> ignore
   database
   .insert(
@@ -40,6 +44,7 @@ fn local_client_source_publication_case(
   )
   .unwrap()
   |> ignore
+  database.commit().unwrap()
   let mut journal = @client.open_native_client_run_journal(database, 8).unwrap()
   let crypto = @signature.load_library(
     @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
@@ -237,7 +242,9 @@ fn local_client_source_publication_case(
         },
       )
       is Err(
-        @client.Normalization(@host.Inventory(@checked.CompletionObserved))
+        @client.Normalization(
+          @host.CommonInventory(@checked.CompletionObserved)
+        )
       ),
     )
     // No dispatch/start claim may be persisted by a rejected original audit.

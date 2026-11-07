@@ -83,6 +83,14 @@
     {
       "path": "actql/actql/calendar_profile",
       "alias": "calendar_profile"
+    },
+    {
+      "path": "actql/actql/connectors/gcs/catalog",
+      "alias": "gcs_catalog"
+    },
+    {
+      "path": "actql/actql/connectors/hubspot/catalog",
+      "alias": "hubspot_catalog"
     }
   ]
 }

@@ -212,6 +212,60 @@ test "live capture reserves and returns actual SAME adopted Effect Ledger withou
   )
   assert_eq(@resources.ledger_usage(ledger), held)
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  let material = recovery.material.unwrap()
+  let full = request_effect_capture_recovery_capacity(
+    128,
+    @publication.publication_contract_json(definition).length(),
+    10000,
+    1000,
+    64,
+  ).unwrap()
+  let scratch = @execution.execution_capacity_execution_bytes(full) -
+    @execution.execution_capacity_retained_bytes(full)
+  let container = @execution.execution_capacity_inventory_bytes([
+    { unit: ValueNodeSlots, count: 128L, copies: 1, },
+  ]).unwrap()
+  let buffers = @execution.execution_capacity_inventory_bytes([
+    { unit: CanonicalWireBytes, count: 128L, copies: 4, },
+  ]).unwrap()
+  assert_true(scratch > 0L)
+  complete_installed_effect_capture_recovery(recovery).unwrap()
+  let completed = {
+    ..held,
+    reserved_retention_bytes: held.reserved_retention_bytes -
+    container -
+    buffers,
+    reserved_execution_bytes: held.reserved_execution_bytes -
+    scratch -
+    container -
+    buffers,
+  }
+  assert_eq(@resources.ledger_usage(ledger), completed)
+  assert_true(physical_equal(recovery.material.unwrap(), material))
+  complete_installed_effect_capture_recovery(recovery).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), completed)
+  // The original retained output still prevents parent retirement. A later
+  // SAME-extent read must fund its full workspace on the SAME original first.
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  let free = @resources.ledger_limits(ledger).execution_bytes -
+    completed.reserved_execution_bytes
+  let pressure = @resources.reserve_capacity(
+    ledger,
+    0L,
+    free - scratch - container - buffers + 1L,
+  ).unwrap()
+  let pressured = @resources.ledger_usage(ledger)
+  assert_true(
+    reserve_installed_effect_capture_recovery(recovery, 128)
+    is Err(Ledger(ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), pressured)
+  assert_true(physical_equal(recovery.material.unwrap(), material))
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  reserve_installed_effect_capture_recovery(recovery, 128).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), held)
+  complete_installed_effect_capture_recovery(recovery).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), completed)
   // Same Host has now retired its actual read/schema children, no Bool ACK
   // or new permission parameter can select another original here.
   retire_installed_effect_capture_recovery(recovery).unwrap()
@@ -231,4 +285,58 @@ test "live capture reserves and returns actual SAME adopted Effect Ledger withou
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+}
+
+///|
+extern "js" fn capture_recovery_current_refusal() -> Unit =
+  #| () => { throw new Error('OriginalRecoveryCurrentRefused'); }
+
+///|
+test "live capture completion preserves original peak on current and foreign Ledger refusal" {
+  let (prepared, request, definition) = capture_recovery_originals()
+  let contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] += 4000000L
+  quote[5] += 4000000L
+  let armed = Ref(false)
+  let (input, initial, _, capacity) = effect_preparation_test_capacity(
+    plan,
+    quote,
+    current=() => if armed.val { capture_recovery_current_refusal() },
+  )
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  let ledger = run.ledger.unwrap()
+  let recovery = prepare_installed_effect_capture_recovery(
+    run, prepared, request, definition, 10000, 1000, 64,
+  ).unwrap()
+  reserve_installed_effect_capture_recovery(recovery, 128).unwrap()
+  let held = @resources.ledger_usage(ledger)
+  let (other_input, other_initial, foreign_ledger, other_capacity) = effect_preparation_test_capacity(
+    plan, quote,
+  )
+  let other = begin_preparation_owned_installed_effect_managed_run(
+    other_initial, other_input, other_capacity, prepared, request, plan,
+  ).unwrap()
+  let foreign_before = @resources.ledger_usage(foreign_ledger)
+  let foreign = { ..recovery, ledger: Some(foreign_ledger), }
+  assert_true(complete_installed_effect_capture_recovery(foreign) is Err(_))
+  assert_eq(@resources.ledger_usage(ledger), held)
+  assert_eq(@resources.ledger_usage(foreign_ledger), foreign_before)
+  armed.val = true
+  assert_true(complete_installed_effect_capture_recovery(recovery) is Err(_))
+  assert_eq(@resources.ledger_usage(ledger), held)
+  armed.val = false
+  // Failed currentness keeps the original full peak until actual cleanup;
+  // it never acknowledges output release or permits another read.
+  retire_installed_effect_capture_recovery(recovery).unwrap()
+  retire_installed_managed_run(run).unwrap()
+  retire_installed_managed_run(other).unwrap()
 }

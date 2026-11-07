@@ -1,6 +1,6 @@
 ///|
 test "Native material retains typed rows only from the original admitted session" {
-  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let parent = @filesystem.open_root(root_path).unwrap()
   let name = "material-typed-" + @env.now().to_string()
   parent.create_directory(name).unwrap() |> ignore

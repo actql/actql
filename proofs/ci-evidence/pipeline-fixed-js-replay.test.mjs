@@ -7,8 +7,8 @@ import {gunzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
 import {hash, gitTree} from './inputs.mjs';
-import {pipelineFixedJsSourcePaths, checkLocalImageDefinition, localIsolatedRunArguments, isolatedCoreBuildMetadata} from './isolation.mjs';
-import {checkIsolatedInputs, imageRuntime} from './isolated-runtime.mjs';
+import {checkLocalImageDefinition, localIsolatedRunArguments, isolatedCoreBuildMetadata} from './isolation.mjs';
+import {checkIsolatedInputs} from './isolated-runtime.mjs';
 import {checkIsolatedExecutionResult} from './isolated-execution.mjs';
 import {fixedJsScientificObservation, fixedJsExecutions} from '../relation-pipeline/fixed-js-replay.mjs';
 import {inspectMutationPart} from '../relation-pipeline/mutation-parts.mjs';
@@ -26,8 +26,9 @@ function readOriginal(name, digest, limit) {
 }
 const original = readOriginal('2026-10-08-local-isolated-pipeline-fixed-js-b7a692658.json.gz', '4c1fa01de96ea6379f0177d1a619dce68ac368611edf6e929d7ca76a064b528b', 16*1024*1024);
 const normal = readOriginal('2026-10-08-pipeline-fixed-js-normal-b7a692658.json.gz', '002b8069785baeb3b2c2ccce69adbc555205485cc18cbe4bd9dd8c542488c232', 8*1024*1024);
-const tree = gitTree(root, revision); tree.prefetch(pipelineFixedJsSourcePaths(tree));
+const tree = gitTree(root, revision);
 const consumer = await historicalPipelineFixture(root, revision);
+tree.prefetch(consumer.pipelineFixedJsSourcePaths(tree));
 const source = consumer.snapshotFromGit(tree, 'pipeline-fixed-js');
 const context = {source, revision, readSource: path => tree.read(path)};
 function consume(record) {
@@ -93,7 +94,7 @@ test('local fixed evidence cannot replace a full three-target part or Session/Ac
 for(const path of isolatedCoreBuildMetadata)test(`actual fixed runtime rejects reintroduced installed-core build metadata ${path}`,()=>{
   const copy=structuredClone(original);
   copy.prepared.manifest.root.entries.push({path:`runtime/moonbit/${path}`,kind:'file',mode:0o644,bytes:1,digest:'a'.repeat(64)});
-  copy.prepared.runtime=imageRuntime(copy.prepared.manifest,{local:true,profile:'pipeline-fixed-js'});
-  assert.throws(()=>checkIsolatedInputs({runtime:copy.prepared.runtime,manifest:copy.prepared.manifest,
+  copy.prepared.runtime=consumer.imageRuntime(copy.prepared.manifest,{local:true,profile:'pipeline-fixed-js'});
+  assert.throws(()=>consumer.checkIsolatedInputs({runtime:copy.prepared.runtime,manifest:copy.prepared.manifest,
     tree,local:true,profile:'pipeline-fixed-js'}),/core build metadata must be absent/u);
 });

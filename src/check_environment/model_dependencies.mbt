@@ -216,6 +216,33 @@ pub fn read_single_attempt_model_dependencies(
   max_work : Int,
   media? : Array[(String, Bytes)] = [],
 ) -> Result[SingleAttemptModelDependencies, ModelDependencyIssue] {
+  read_model_dependencies_selected(
+    execution,
+    prompt,
+    retry,
+    backoff,
+    limits,
+    max_work,
+    media,
+    None,
+  )
+}
+
+///|
+fn read_model_dependencies_selected(
+  execution : ModelExecutionContract,
+  prompt : Bytes?,
+  retry : Bytes?,
+  backoff : Bytes?,
+  limits : Limits,
+  max_work : Int,
+  media : Array[(String, Bytes)],
+  original_mock : (ModelMockProfile, NormalizedPublicModelTask)?,
+) -> Result[SingleAttemptModelDependencies, ModelDependencyIssue] {
+  if original_mock is Some((profile, normalized)) &&
+    !model_mock_execution_matches(profile, normalized, execution) {
+    return Err(Body(ModelPrompt, { kind: ReferenceMismatch, source: None, }))
+  }
   let task = model_execution_task(execution)
   let mut remaining_bytes = limits.max_bytes
   let mut remaining_nodes = limits.max_nodes
@@ -284,15 +311,17 @@ pub fn read_single_attempt_model_dependencies(
   if media.length() != media_dependencies.length() {
     return Err(Body(ModelPrompt, { kind: InvalidBody, source: None, }))
   }
-  match
-    validate_model_media_roles(
-      model_task_input(task),
-      media_dependencies,
-      limits,
-      remaining_work,
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(remaining) => remaining_work = remaining
+  if original_mock is None {
+    match
+      validate_model_media_roles(
+        model_task_input(task),
+        media_dependencies,
+        limits,
+        remaining_work,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(remaining) => remaining_work = remaining
+    }
   }
   // Validate every body before reporting a supported-profile limitation.
   for value in admitted {

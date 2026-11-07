@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {selectInstalledSerializationGraph} from './local-values-plan.mjs';
 
 // Actual private caller bodies with explicit Request/current ports. No
 // Common, Resource admission, Account, Store or physical ACK is simulated.
@@ -122,4 +123,101 @@ test('acquired Content Graph forwards same Request without borrowing an external
   assert.throws(() => construct(prepared, options, true, {parent, input, contracts}),
     /Request acquired Content Graph constructor unavailable/);
   assert.equal(calls, 1);
+});
+
+test('Effect Content uses the captured original Effect borrower before and after its same Request constructor', () => {
+  const prepared = {}, request = {}, input = {}, parent = {}, holder = {}, graph = {}, admission = {};
+  let reads = 0, calls = 0;
+  const moon = {clientProgramPreparationBorrowRead() {assert.fail('Effect cannot borrow a pure Program');}};
+  const state = {parent, prepared, holder, compilationKind: 'effectful',
+    context: {runtime: moon}, effectBorrowMethods: {
+      clientProgramEffectPreparationInputRead(original) {
+        assert.equal(this, moon); assert.equal(original, holder); reads++; return prepared;
+      },
+    }};
+  const prepare = extract('./ordinary-source-managed.mjs', 'prepareContentGraph', {
+    current() {}, producerForRequest(value) {assert.equal(value, request); return {receipt: input, preparation: state};},
+    originals: {installation: {sequenceContractOriginal: {moon, admission}}},
+    fail(code) {throw Object.assign(new Error(code), {code});},
+  });
+  assert.equal(prepare(prepared, request, (...actual) => {
+    assert.deepEqual(actual, [parent, input, admission, true]);
+    assert.equal(state.preparing, true); calls++; return graph;
+  }), graph);
+  assert.equal(reads, 2); assert.equal(calls, 1); assert.equal(state.contentGraph, graph);
+});
+
+test('Effect Content forwards its original Model occurrence through both native Request constructors', () => {
+  for (const acquired of [false, true]) {
+    const parent = {}, input = {}, contracts = {}, prepared = {}, occurrence = {}, graph = {};
+    const options = {task: 0, step: 1, maxRows: 3, maxBytes: 128,
+      resultDataPolicy: {kind: 'data_policy', cid: 'policy-cid', wire: 'policy-wire'}};
+    const serializationPlanTokens = new WeakMap(); let calls = 0;
+    const moon = {clientProgramSerializationPlanGraphWire(value) {assert.equal(value, graph); return 'same-graph';}};
+    const name = acquired ? 'clientProgramPrepareRequestModelAcquiredSerializationGraph'
+      : 'clientProgramPrepareRequestModelSerializationGraph';
+    moon[name] = function (...actual) {
+      assert.equal(this, moon); calls++;
+      assert.deepEqual(actual, [parent, input, occurrence, 0, 1,
+        ...(acquired ? [] : ['policy-cid', 'policy-wire']), 3, 128, false, contracts]);
+      return graph;
+    };
+    const construct = extract('../host-common/runtime-core.mjs', acquired
+      ? 'prepareAcquiredSerializationGraph' : 'prepareSerializationGraph',
+    {moon, serializationPlanTokens, compiledRunResult: value => value}, true);
+    const selected = construct(prepared, options, true, {parent, input, contracts, modelOccurrence: occurrence});
+    assert.equal(serializationPlanTokens.get(selected), graph); assert.equal(calls, 1);
+    delete moon[name];
+    assert.throws(() => construct(prepared, options, true,
+      {parent, input, contracts, modelOccurrence: occurrence}), /constructor unavailable/);
+    assert.equal(calls, 1);
+  }
+});
+
+test('Effect serialization selection requires the funded intermediate path and exact Effect occurrence', () => {
+  const prepared = {}, selected = {}, policy = {}; let calls = 0;
+  const moon = {
+    clientProgramSerializationOccurrences() {assert.fail('Effect cannot use the pure occurrence reader');},
+    clientProgramEffectSerializationOccurrences(value) {assert.equal(value, prepared); return [{_0: 0, _1: 1}];},
+  };
+  const options = {moon, preparedProgram: prepared, effectful: true, resultDataPolicy: policy,
+    prepareSerializationGraph(original, intermediate) {
+      assert.equal(intermediate, true); assert.equal(original.task, 0); assert.equal(original.step, 1);
+      assert.equal(original.resultDataPolicy, policy); calls++; return selected;
+    }};
+  assert.equal(selectInstalledSerializationGraph(options, true), selected);
+  assert.throws(() => selectInstalledSerializationGraph(options), /Unsupported/);
+  assert.throws(() => selectInstalledSerializationGraph({...options, prepareSerializationGraph: undefined}, true), /Unsupported/);
+  assert.equal(calls, 1);
+});
+
+test('ordinary Effect Content selects its own acquisition counter and forwards the same Model occurrence', () => {
+  for (const acquisitions of [0, 1]) {
+    const prepared = {}, request = {}, parent = {}, input = {}, contracts = {}, options = {}, occurrence = {}, result = {};
+    const originals = {}; let calls = 0;
+    const runtime = {
+      clientProgramAcquisitionCount() {assert.fail('Effect cannot use the pure acquisition counter');},
+      clientProgramEffectAcquisitionCount(value) {assert.equal(this, runtime); assert.equal(value, prepared); return acquisitions;},
+    };
+    const manager = {prepareContentGraph(value, original, construct) {
+      assert.equal(value, prepared); assert.equal(original, request);
+      return construct(parent, input, contracts, true);
+    }};
+    const control = {};
+    control[acquisitions === 0 ? 'prepareCheckedClientRequestSerializationGraph'
+      : 'prepareCheckedClientRequestAcquiredSerializationGraph'] = (...actual) => {
+      assert.deepEqual(actual, [parent, input, contracts, prepared, options, true, occurrence]); calls++; return result;
+    };
+    const prepare = extract('./embedded-local.mjs', 'prepareManagedContentGraph', {
+      sourceManaged: manager, computeManaged: undefined, moon: runtime, originals,
+      assertSourceManagedInstallationCurrent(actual, original) {assert.equal(actual, manager); assert.equal(original, originals);},
+      assertManagedComputeInstallationCurrent() {assert.fail('different installation');},
+      originalSourceManagedHostRequest(original, value) {assert.equal(original, originals); assert.equal(value, prepared); return request;},
+      runtimeCore(actual) {assert.equal(actual, runtime); return {publicationControl: control};},
+      clientOperationError(code) {return Object.assign(new Error(code), {code});},
+    });
+    assert.equal(prepare(runtime, prepared, options, true, occurrence), result);
+    assert.throws(() => prepare(runtime, prepared, options, true), {code: 'ForeignInstalledSourceProducer'});
+    assert.equal(calls, 1);
+  }
 });

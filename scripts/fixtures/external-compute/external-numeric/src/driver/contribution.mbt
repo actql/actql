@@ -33,6 +33,19 @@ pub fn registration(
 }
 
 ///|
+pub fn validate_binding(
+  installed : Contribution,
+  driver : @host.DispatchDriver,
+  registry : @connector.CapabilityRegistry,
+) -> Result[Unit, @strategy.RunIssue] {
+  @reference.validate_numeric_contribution_binding(
+    installed.numeric,
+    driver,
+    registry,
+  )
+}
+
+///|
 pub fn[E] contribution(
   installed : Contribution,
   dispatch_issue : (@strategy.RunIssue) -> E,

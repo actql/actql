@@ -184,3 +184,101 @@ test "observation metadata consumes original row capacity without enlarging it" 
     is Err(CapacityExceeded),
   )
 }
+
+///|
+test "accepted preparation failure decodes without Run and preserves original identity" {
+  // Independent extension of the fixed original row. No product encoder
+  // supplies the expected phase or problem, and no physical ACK is inferred.
+  let body = saved_submission_preparing.replace(
+    old="\"phase\":\"preparing\",\"reference\":",
+    new="\"phase\":\"preparation_failed\",\"preparation_problem_classification\":\"invalid_input\",\"preparation_problem_code\":\"ClientProgramInvalidInput\",\"reference\":",
+  )
+  assert_true(decode_client_submitted_journal_row(@utf8.encode(body)) is Ok(_))
+}
+
+///|
+test "accepted failure row roundtrip retains the problem and old absence retains exact bytes" {
+  let before = decode_client_submitted_journal_row(
+    @utf8.encode(saved_submission_preparing),
+  ).unwrap()
+  let reference = client_submission_reference_record_wire(before.reference)
+  assert_eq(
+    client_submitted_intent_journal_row_body(reference, before.intent).unwrap(),
+    @utf8.encode(saved_submission_preparing),
+  )
+  let expected = saved_submission_preparing.replace(
+    old="\"phase\":\"preparing\",\"reference\":",
+    new="\"phase\":\"preparation_failed\",\"preparation_problem_classification\":\"invalid_input\",\"preparation_problem_code\":\"ClientProgramInvalidInput\",\"reference\":",
+  )
+  let encoded = client_submitted_intent_journal_row_body(
+    reference,
+    before.intent,
+    preparation_problem=Some(("ClientProgramInvalidInput", "invalid_input")),
+  ).unwrap()
+  assert_eq(encoded, @utf8.encode(expected))
+  let read = decode_client_submitted_journal_row(encoded).unwrap()
+  assert_eq(
+    read.preparation_problem,
+    Some(("ClientProgramInvalidInput", "invalid_input")),
+  )
+  assert_eq(
+    client_submitted_intent_cid(read.intent),
+    saved_submission_intent_cid,
+  )
+  assert_true(read.run_admission is None)
+  assert_true(read.run_state_original is None)
+  assert_true(read.run_state_observation is None)
+  assert_false(
+    client_submitted_intent_transition("preparation_failed", "ready"),
+  )
+  assert_false(client_submitted_intent_transition("preparing", "not_accepted"))
+}
+
+///|
+test "accepted failure rejects mixed admission missing fields and unbounded problem" {
+  let ready = decode_client_submitted_journal_row(
+    @utf8.encode(saved_submission_ready),
+  ).unwrap()
+  let reference = client_submission_reference_record_wire(ready.reference)
+  assert_true(
+    client_submitted_intent_journal_row_body(
+      reference,
+      ready.intent,
+      run_admission=ready.run_admission,
+      preparation_problem=Some(("ClientProgramInvalidInput", "invalid_input")),
+    )
+    is Err(Encoding),
+  )
+  for
+    problem in [
+      ("", "invalid_input"),
+      ("x".repeat(257), "operation_failed"),
+      ("x\n", "invalid_input"),
+      ("x", "ready"),
+    ] {
+    assert_true(
+      client_submitted_intent_journal_row_body(
+        reference,
+        ready.intent,
+        preparation_problem=Some(problem),
+      )
+      is Err(Encoding),
+    )
+  }
+  for
+    fields in [
+      "\"preparation_problem_code\":\"ClientProgramInvalidInput\",", "\"preparation_problem_classification\":\"invalid_input\",",
+      "\"preparation_problem_code\":null,\"preparation_problem_classification\":\"invalid_input\",",
+      "\"preparation_problem_code\":\"x\",\"preparation_problem_code\":\"y\",\"preparation_problem_classification\":\"invalid_input\",",
+      "\"preparation_problem_code\":\"x\",\"preparation_problem_classification\":\"ready\",",
+    ] {
+    let body = saved_submission_preparing.replace(
+      old="\"reference\":",
+      new=fields + "\"reference\":",
+    )
+    assert_true(
+      decode_client_submitted_journal_row(@utf8.encode(body))
+      is Err(CustodyLost),
+    )
+  }
+}

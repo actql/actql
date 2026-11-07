@@ -245,6 +245,24 @@ test('mutation input identity follows the physically staged package cohort and r
   }
 });
 
+test('the ordinary mutation CJS dependency is keyed by exact bytes, presence and mode', () => {
+  const selected = catalog.actions.find(value => value.id === 'mutations-js');
+  const files = new Map(base);
+  for (const path of mutationSnapshotExtras) if (!files.has(path)) files.set(path,'independent input');
+  files.set('proofs/bounded-session/mutations.mjs','original mutation executor');
+  files.set('src/connectors/local/moon.pkg','');
+  files.set('src/query_integration/moon.pkg','');
+  const path = 'adapters/host-node/ordinary-node-resource-runtime.cjs';
+  const original = inventory(files,'a'.repeat(40),selected);
+  assert.equal(original.unresolved.length,0);
+  assert(original.inputs.files.some(entry => entry.path === path && entry.digest === hash(files.get(path))));
+  for (const change of [copy => copy.set(path,'changed original CJS'),copy => copy.delete(path)]) {
+    const changed = new Map(files);change(changed);
+    assert.equal(compareInputs(original,inventory(changed,'b'.repeat(40),selected)).eligible,false);
+  }
+  assert.equal(compareInputs(original,inventory(files,'b'.repeat(40),selected,{[path]:'100755'})).eligible,false);
+});
+
 test('mutation roots match the actual thirteen registered test suites', () => {
   const actual = [...new Set(Object.values(mutationContracts).map(entry => entry.suite.endsWith('.mbt') ?
     entry.suite.slice(0, entry.suite.lastIndexOf('/')) : entry.suite))].sort();

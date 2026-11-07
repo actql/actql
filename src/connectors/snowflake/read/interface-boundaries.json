@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/snowflake/read/read.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "efee0217d2ebf665b68284829dd0c79cec56fc85b47965f9b206242316aef133",
+      "sha256": "312ed6b5fa5b7cda5f5d69827c96389b067951202412224762e24187b26f4a1e",
       "role": "connector-semantics",
       "owner": "Snowflake original SQL API protocol and exact Common response/value admission; Host retains Run/capture/cleanup",
       "exports": [],
@@ -28,6 +28,18 @@
         {
           "name": "accept_result_partition",
           "declaration": "accept_result_partition ( read : Read , ordinal : Int , body : Bytes , ) - > Result [ Int , ReadIssue ]"
+        },
+        {
+          "name": "advance_result_capture",
+          "declaration": "advance_result_capture ( read : Read , quantum : Int , ) - > Result [ ( Bool , Int64 ) , ReadIssue ]"
+        },
+        {
+          "name": "advance_result_capture_cleanup",
+          "declaration": "advance_result_capture_cleanup ( read : Read , quantum : Int , ) - > Result [ Bool , ReadIssue ]"
+        },
+        {
+          "name": "begin_result_capture",
+          "declaration": "begin_result_capture ( read : Read ) - > Result [ Unit , ReadIssue ]"
         },
         {
           "name": "bind_borrowed_read_transport",
@@ -115,6 +127,9 @@
             "accept_charged_result_partition",
             "accept_first_result",
             "accept_result_partition",
+            "advance_result_capture",
+            "advance_result_capture_cleanup",
+            "begin_result_capture",
             "bind_borrowed_read_transport",
             "borrow_accounted_read",
             "capture_result_read",
@@ -389,7 +404,7 @@
     {
       "module": "src/connectors/snowflake/read/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "4e987451120d254d381d9fb742886a04fe63a030582b9ee4c1873408d2d191ef",
+      "sha256": "2fcbbc01206ed63959ec2dc9a80166d971c3c4a4c1bbe5dd59410cd46b71eff2",
       "role": "connector-semantics",
       "owner": "Snowflake original SQL API protocol and exact Common response/value admission; Host retains Run/capture/cleanup",
       "exports": [
@@ -397,7 +412,10 @@
         "pub fn accept_first_result(Read, Bytes) -> Result[Int, ReadIssue]",
         "pub fn accept_result_partition(Read, Int, Bytes) -> Result[Int, ReadIssue]",
         "pub fn accept_statement_response(StatementRead, StatementRequest, Int, Bytes, Bytes) -> Result[Unit, StatementIssue]",
+        "pub fn advance_result_capture(Read, Int) -> Result[(Bool, Int64), ReadIssue]",
+        "pub fn advance_result_capture_cleanup(Read, Int) -> Result[Bool, ReadIssue]",
         "pub fn attempt_statement_request(StatementRead, StatementRequest) -> Result[Unit, StatementIssue]",
+        "pub fn begin_result_capture(Read) -> Result[Unit, ReadIssue]",
         "pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]",
         "pub fn borrow_accounted_read(PreparedRead, @client_row_source_host.RowRun, @catalog.ResponseLimits, Int) -> Result[Read, ReadIssue]",
         "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]",
@@ -451,8 +469,20 @@
           "declaration": "pub fn accept_statement_response(StatementRead, StatementRequest, Int, Bytes, Bytes) -> Result[Unit, StatementIssue]"
         },
         {
+          "name": "advance_result_capture",
+          "declaration": "pub fn advance_result_capture(Read, Int) -> Result[(Bool, Int64), ReadIssue]"
+        },
+        {
+          "name": "advance_result_capture_cleanup",
+          "declaration": "pub fn advance_result_capture_cleanup(Read, Int) -> Result[Bool, ReadIssue]"
+        },
+        {
           "name": "attempt_statement_request",
           "declaration": "pub fn attempt_statement_request(StatementRead, StatementRequest) -> Result[Unit, StatementIssue]"
+        },
+        {
+          "name": "begin_result_capture",
+          "declaration": "pub fn begin_result_capture(Read) -> Result[Unit, ReadIssue]"
         },
         {
           "name": "bind_borrowed_read_transport",
@@ -575,7 +605,10 @@
             "accept_first_result",
             "accept_result_partition",
             "accept_statement_response",
+            "advance_result_capture",
+            "advance_result_capture_cleanup",
             "attempt_statement_request",
+            "begin_result_capture",
             "bind_borrowed_read_transport",
             "borrow_accounted_read",
             "capture_result_read",
@@ -610,7 +643,10 @@
             "pub fn accept_first_result(Read, Bytes) -> Result[Int, ReadIssue]",
             "pub fn accept_result_partition(Read, Int, Bytes) -> Result[Int, ReadIssue]",
             "pub fn accept_statement_response(StatementRead, StatementRequest, Int, Bytes, Bytes) -> Result[Unit, StatementIssue]",
+            "pub fn advance_result_capture(Read, Int) -> Result[(Bool, Int64), ReadIssue]",
+            "pub fn advance_result_capture_cleanup(Read, Int) -> Result[Bool, ReadIssue]",
             "pub fn attempt_statement_request(StatementRead, StatementRequest) -> Result[Unit, StatementIssue]",
+            "pub fn begin_result_capture(Read) -> Result[Unit, ReadIssue]",
             "pub fn bind_borrowed_read_transport(Read, () -> Bool) -> Result[Unit, ReadIssue]",
             "pub fn borrow_accounted_read(PreparedRead, @client_row_source_host.RowRun, @catalog.ResponseLimits, Int) -> Result[Read, ReadIssue]",
             "pub fn capture_result_read(Read) -> Result[@client_row_source_host.RowSourceCapture, ReadIssue]",

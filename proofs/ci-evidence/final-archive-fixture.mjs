@@ -94,7 +94,7 @@ export async function archiveFixture(t, {repository = root, revision: suppliedRe
     imageDefinition: {Id: imageId, Os: 'linux', Architecture: 'amd64', Config: {
       Labels: {'org.actql.ci.owner': owner}, Env: Object.entries(isolatedEnvironment).map(([name, value]) => `${name}=${value}`),
       User: '1000:1000', WorkingDir: '/workspace', Entrypoint: ['/runtime/node', '/source/proofs/ci-evidence/isolated-mutations.mjs']}},
-    costs: {preparationMilliseconds: 1, buildMilliseconds: 2, executionMilliseconds: 3, inspectionMilliseconds: 4, closeMilliseconds: 5}};
+    costs: {preparationMilliseconds: 1, buildMilliseconds: 2, executionMilliseconds: 3, inspectionMilliseconds: 4, closeMilliseconds: 5, inputInspectionMilliseconds: 0}};
   const members = new Map([
     ['context.json', jsonBytes({context, origin, runtime, actionRuntimes})],
     ['runtime-distributions.json', jsonBytes(distributionInputs)], ['isolated-inputs.json', jsonBytes(manifest)],

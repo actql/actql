@@ -336,6 +336,7 @@ pub fn InstalledArenaHost::live_channel_state(Self, InstalledArenaDomain, @host_
 pub fn InstalledArenaHost::observe_backing_extent_work(Self, InstalledArenaBackingBorrow) -> Result[@host_bootstrap.NativeExtentWork, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::observe_domain_inventory(Self, InstalledArenaDomain) -> Result[@host_bootstrap.NativeDomainInventory, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::observe_domain_original_read_cleanup(Self, InstalledArenaOriginalRead) -> Result[@host_bootstrap.NativeReadCleanupObservation, InstalledArenaOriginalReadIssue]
+pub fn InstalledArenaHost::observe_domain_retained_execution_cleanup(Self, InstalledArenaRetainedExecution) -> Result[@host_bootstrap.NativeReadCleanupObservation, InstalledArenaRetainedExecutionIssue]
 pub fn InstalledArenaHost::observe_domain_retained_execution_cleanup_scope(Self, InstalledArenaRetainedExecution) -> Result[@host_bootstrap.NativeBackedReadScope, InstalledArenaRetainedExecutionIssue]
 pub fn InstalledArenaHost::observe_domain_retained_execution_scope(Self, InstalledArenaRetainedExecution) -> Result[@host_bootstrap.NativeBackedReadScope, InstalledArenaRetainedExecutionIssue]
 pub fn InstalledArenaHost::observe_local_host_consuming_read_scope(Self, InstalledArenaLocalHostResources, InstalledArenaOriginalRead) -> Result[InstalledArenaLocalHostReadScope, InstalledArenaLocalHostResourcesIssue]

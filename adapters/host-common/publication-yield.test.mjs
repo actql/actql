@@ -4,6 +4,7 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {runtimeField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';
 import {publishEffectFreeRun} from './run-publication.mjs';
+import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
 
 // Execute the two actual private loops with explicit Common ports. These
 // counters establish scheduling and cleanup, not installed Host acceptance.
@@ -277,8 +278,9 @@ function publicationLifetimeLoops(publishRun) {
     .filter(node => node && (node.id && names.has(node.id.name) ||
       node.type === 'VariableDeclaration' && node.declarations.some(item => names.has(item.id.name))))
     .map(node => text.slice(node.start, node.end)).join('\n');
-  return new Function('publishRun', declarations +
-    '\nreturn {publishEffectFreeRun, uncertainFailure, member, lookupOriginalCommit};')(publishRun);
+  return new Function('publishRun', 'retainFirstAndLatestCleanupError', declarations +
+    '\nreturn {publishEffectFreeRun, uncertainFailure, member, lookupOriginalCommit};')(
+      publishRun, retainFirstAndLatestCleanupError);
 }
 
 test('publication caller forwards its original Index to the existing Store commit', async () => {

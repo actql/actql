@@ -14,7 +14,15 @@ export function createRetainedGraphAuthorization() {
       account_id: 'retained-graph-fixture', entries: [{entry_id: 'synthetic-site',
         outcome: 'allow', principal: {any_of: [userInfo().username]},
         connection: {any_of: ['actql-remote-host']}, resource: {all: true},
-        operation: {any_of: ['write']}, exclusions: []}]}),
+        operation: {any_of: ['write']}, exclusions: []},
+      // Run observation and the authored answer are distinct ordinary reads.
+      // They retain this same synthetic principal/Site; neither grants another
+      // Result, another principal or another operation.
+      {entry_id: 'synthetic-site-read', outcome: 'allow',
+        principal: {any_of: [userInfo().username]},
+        connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/answer', 'run']},
+        operation: {any_of: ['read']}, exclusions: []}]}),
     reviewers: [{keyId: 'graph-fixture-reviewer', reviewerId: 'graph-fixture-reviewer',
       principalId: userInfo().username,
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],

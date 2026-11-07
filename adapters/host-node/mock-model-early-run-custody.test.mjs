@@ -151,7 +151,7 @@ test('Mock installs its same original Run Scope before returning any Source prep
 
 test('legacy Effect Mock refuses before any independent admission or Scope',()=>{
  const f=fixture();
- assert.throws(()=>f.prepareManagedRun(f.prepared,f.request,undefined,true),{code:'InstalledEffectPlanUnavailable'});
+ assert.throws(()=>f.prepareManagedRun(f.prepared,f.request,undefined,true),{code:'InvalidInstalledManagedRunRequest'});
  assert.equal(f.records.size,0);assert.equal(f.calls.includes('original'),false);assert.equal(f.calls.includes('scope'),false);
 });
 

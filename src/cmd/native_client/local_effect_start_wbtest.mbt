@@ -92,7 +92,7 @@ test "CLI first Effect compilation retains original create profile and exact nor
 ///|
 // This executes the CLI's first compiled Run with the existing Core fixture
 // Ledger. It does not install normal funding, accept a journal Run or authorize
-// an Effect. Public contract bodies are fixed by the matching-target guard.
+// an Effect. Public contract originals come from the bundled asset admission.
 test "CLI first Effect binding remains the nominal owner through Local Values Compute and capture" {
   let original = local_effect_prefix_fixture_original(
     local_effect_prefix_fixture_preparation(),
@@ -108,11 +108,11 @@ test "CLI first Effect binding remains the nominal owner through Local Values Co
     original.allowed,
     original.definition,
   ).unwrap()
-  let registry = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_REGISTRY").unwrap()
-  let values = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_VALUES").unwrap()
-  let fragment = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_FRAGMENT")
+  let assets = @run_host.client_local_product_assets()
+  let values = assets.values
+  let fragment = Some(assets.fragment)
   let registry = @local_values.prepare_installed_sequence_contracts(
-    registry,
+    assets.registry,
     values,
     fragment,
     None,

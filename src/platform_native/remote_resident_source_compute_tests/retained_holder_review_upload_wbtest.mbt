@@ -21,11 +21,20 @@ fn retained_holder_upload_original_review(
       5000,
     )
     .unwrap()
-  let url = required("ACTQL_TEST_EFFECT_REVIEW_UPLOAD_FIXTURE_URL")
-  let report_url = required("ACTQL_TEST_EFFECT_REVIEW_REPORT_FIXTURE_URL")
   let (before_report, before_wire) = work
     .review_projection(() => true, 65536)
     .unwrap()
+  // Independent fixture journals can reuse authored dispatch identities. Bind
+  // this physical peer's response sequence to the original journal and report;
+  // transport scope is not a new report, ACK, permission or production Owner.
+  let original = "?original=" +
+    @remote.remote_effect_checkpoint_report_identity(before_report) +
+    "&journal=sha256:" +
+    @sha.hex(@utf8.encode(journal_path))
+  let url = required("ACTQL_TEST_EFFECT_REVIEW_UPLOAD_FIXTURE_URL") + original
+  let report_url = required("ACTQL_TEST_EFFECT_REVIEW_REPORT_FIXTURE_URL") +
+    original
+  let publication = { ..publication, report_url, artifact_url: url, }
   // Inject a separately admitted report for the same dispatch into the actual
   // journal. Its protocol validity cannot acknowledge this holder's original
   // paired Store report. Restore the exact original bytes before asserting,

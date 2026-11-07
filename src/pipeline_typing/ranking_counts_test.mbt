@@ -18,7 +18,7 @@ test "pooling reduces a known vector count without synthesizing an empty group" 
 }
 
 ///|
-test "ranking accumulation checks overflow only when a finite union bound is derivable" {
+test "ranking accumulation retains its global cap and keeps overflowing estimates unknown" {
   let prefix = [
     ranking_count_seed(2, "c", false),
     ranking_count_seed(1, "q", false),
@@ -51,7 +51,10 @@ test "ranking accumulation checks overflow only when a finite union bound is der
     if global {
       assert_count(result.unwrap(), prefix.length(), 1L, false)
     } else {
-      assert_eq(result.unwrap_err().kind, RowBoundOverflow)
+      assert_true(
+        @pipeline_typing.row_count(result.unwrap(), Step(prefix.length()))
+        is None,
+      )
     }
   }
   let text = @contract.primitive(StringType, nullable=false)

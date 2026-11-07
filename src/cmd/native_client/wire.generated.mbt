@@ -11894,6 +11894,11 @@ fn wire_cancellation_attempt_shape(value : Json) -> Bool {
 }
 
 ///|
+fn wire_check_outcome_shape(value : Json) -> Bool {
+  wire_rule_64(value)
+}
+
+///|
 enum WireResponseIssue {
   InvalidShape
   ConnectionMismatch

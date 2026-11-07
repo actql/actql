@@ -5,20 +5,29 @@ import {tokens} from './portable-core.mjs';
 
 // Construction topology of the actual portable caller, not runtime call or
 // validation counts. The Common tests exercise the original typed bindings.
-const source = tokens(readFileSync(new URL('../src/run_publication_host/client_source_preparation.mbt', import.meta.url), 'utf8'), true);
-const start = source.findIndex((token, index) => token.value === 'fn' && source[index + 1]?.value === 'prepare_client_source_computation');
-assert(start >= 0);
-let at = start + 2;
-while (source[at]?.value !== '{') {assert(at < source.length); at++;}
-let depth = 1;
-const body = [];
-while (++at < source.length) {
-  if (source[at].value === '{') depth++;
-  if (source[at].value === '}' && --depth === 0) break;
-  body.push(source[at]);
-}
-assert.equal(depth, 0);
-const calls = name => body.filter((token, index) => token.kind === 'word' && token.value === name && body[index + 1]?.value === '(').length;
+const functionBody = (path, name) => {
+  const source = tokens(readFileSync(new URL(path, import.meta.url), 'utf8'), true);
+  const starts = source.flatMap((token, index) =>
+    token.value === 'fn' && source[index + 1]?.value === name ? [index] : []);
+  assert.equal(starts.length, 1, name);
+  let at = starts[0] + 2;
+  while (source[at]?.value !== '{') {assert(at < source.length); at++;}
+  let depth = 1;
+  const body = [];
+  while (++at < source.length) {
+    if (source[at].value === '{') depth++;
+    if (source[at].value === '}' && --depth === 0) break;
+    body.push(source[at]);
+  }
+  assert.equal(depth, 0);
+  return body;
+};
+const body = functionBody('../src/run_publication_host/client_source_preparation.mbt',
+  'prepare_client_source_computation');
+const intake = functionBody('../src/run_publication_host/client_source_preparation_input.mbt',
+  'prepare_client_source_input');
+const callsIn = (body, name) => body.filter((token, index) => token.kind === 'word' && token.value === name && body[index + 1]?.value === '(').length;
+const calls = name => callsIn(body, name);
 
 test('portable Source preparation binds all publication parts once', () => {
   assert.equal(calls('bind_published_query_parts_with_catalog'), 1);
@@ -49,7 +58,16 @@ test('portable pure and Effect preparation consume the same original Catalog', (
 
 test('portable Source preparation retains its parsed computation and original intake', () => {
   assert.equal(calls('lower'), 1);
-  assert.equal(calls('parse_json_bytes_preserving'), 1);
+  assert.equal(calls('prepare_client_source_input'), 1);
+  assert.equal(calls('parse_json_bytes_preserving'), 0,
+    'The caller consumes the single original intake from its Source input Owner');
+  assert.equal(callsIn(intake, 'client_submitted_intent_wire'), 1);
+  assert.equal(callsIn(intake, 'parse_json_bytes_preserving'), 1);
+  for (const name of ['prepare_client_source_input', 'prepare_client_source_computation',
+    'lower', 'prepare_parsed_effect_free_client_program',
+    'prepare_parsed_client_effect_computation', 'parse']) {
+    assert.equal(callsIn(intake, name), 0, name);
+  }
   assert.equal(calls('prepare_parsed_effect_free_client_program'), 1);
   assert.equal(calls('prepare_parsed_client_effect_computation'), 1);
   assert.equal(calls('parse'), 0, 'Do not reparse the lowerer emitted Program JSON');

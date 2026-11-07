@@ -18,6 +18,8 @@ const fail = () => { throw refusedEffectPreparation(Object.assign(
 export function installUpdateTargetOriginals({moon, control, installedEffect, limits,
   features = [false, true, true, true, true, false, false]}) {
   const compilations = new WeakMap();
+  const admitWithCompilation = Object.getOwnPropertyDescriptor(moon,
+    'clientProgramAdmitEffectRunMaterialsWithCompilation')?.value;
   const same = (left, right) => updateTargetOriginalDataEqual(moon, left, right);
   const selectionsOf = prepared => retainUpdateTargetSelection(moon, prepared);
   const current = selections => {
@@ -75,20 +77,28 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     compilations.set(prepared, compilation);
     return Object.freeze({prepared, compilation, ...bound});
   };
-  const restoreEffectMaterials = (wire, runDefinition, identity) => {
-    const restored = checked(moon.clientProgramAdmitEffectRunMaterials(wire,
-      runDefinition.identity, ...features, identity ?? null));
+  const restoreEffectMaterials = (wire, runDefinition, identity, originalCompilation) => {
+    if (originalCompilation !== undefined &&
+        (typeof admitWithCompilation !== 'function' || identity === undefined)) fail();
+    // The caller already retains/funds this nominal compiler. Bind saved full
+    // materials to it instead of parsing/checking/compiling the Program again.
+    // A wire-only cold caller keeps the existing restoration route until its
+    // SAME Request owner supplies the actual compiler, never a data flag.
+    const restored = checked(originalCompilation === undefined
+      ? moon.clientProgramAdmitEffectRunMaterials(wire, runDefinition.identity, ...features, identity ?? null)
+      : Reflect.apply(admitWithCompilation, moon,
+        [wire, runDefinition.identity, originalCompilation, identity, ...features]));
     const prepared = moon.clientProgramEffectRunMaterialsPrepared(restored);
     const compilation = moon.clientProgramEffectRunMaterialsCompilation(restored);
     const allowed = moon.clientProgramEffectRunMaterialsAllowed(restored);
     const definition = moon.clientProgramEffectRunMaterialsDefinition(restored);
     return Object.freeze({materials: restored, prepared, compilation, allowed, definition});
   };
-  const restoreRun = (original, runDefinition, identity) => {
+  const restoreRun = (original, runDefinition, identity, originalCompilation) => {
     if (!updateTargetRunOriginalShape(original, undefined, moon)) fail();
     const expectedSelectionCid = runUpdateSelectionCid(runDefinition, moon);
     if (expectedSelectionCid === undefined) fail();
-    const restored = restoreEffectMaterials(original.materialsWire, runDefinition, identity);
+    const restored = restoreEffectMaterials(original.materialsWire, runDefinition, identity, originalCompilation);
     const {prepared, compilation, definition} = restored;
     // Retain the existing whole Run/material binding admission as well as the
     // nominal selection/preparation projection. No replacement Run is issued.
@@ -133,6 +143,14 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
         allowed, definition, identity ?? null));
     },
     compilationFor: prepared => compilations.get(prepared),
+    // A captured target-read continuation already has this admitted pair on
+    // its SAME managed Run. Compare its original capture without restoring a
+    // second Prepared/compiler or replacing the live selection association.
+    validatePreparedOriginal(prepared, compilation, original) {
+      if (compilations.get(prepared) !== compilation ||
+          !updateTargetPreparedOriginalShape(original, moon) ||
+          !same(capturePrepared(prepared, compilation), original)) fail();
+    },
     validatePrepared(prepared) {
       const selections = selectionsOf(prepared);
       current(selections);
@@ -155,12 +173,13 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
       if (selections === undefined || original === undefined ||
           expectedSelectionCid !== updateTargetSelectionsCid(selections, moon) ||
           !updateTargetRunOriginalShape(original, evidence, moon)) fail();
-      const restored = restoreRun(original, runDefinition, identity);
-      if (!same(capturePrepared(prepared, compilation),
-        capturePrepared(restored.prepared, restored.compilation))) fail();
-      // The restored pair authenticates the saved material. Execution keeps
-      // this caller's preparation, so retain its own nominal selection too.
-      return bind(selections, original.installations);
+      const restored = restoreRun(original, runDefinition, identity, compilation);
+      // Core bound the complete saved material to this exact compiler. Keep
+      // that SAME returned pair; encoding both preparations and checking the
+      // same installation again would repeat this boundary's existing work.
+      if (restored.prepared !== prepared || restored.compilation !== compilation) fail();
+      return Object.freeze({updateTargetSelections: restored.updateTargetSelections,
+        assertUpdateSelectionCurrent: restored.assertUpdateSelectionCurrent});
     },
   });
 }

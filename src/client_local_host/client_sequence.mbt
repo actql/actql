@@ -555,7 +555,7 @@ fn prepare_client_query_acquisition_prefix(
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
   )? = None,
-) -> @execution.GeneratedSequence? {
+) -> (@execution.GeneratedSequence, @sourceviews.QueryAcquisition)? {
   let query = match (prepared, query_time) {
     (Pure(value), Some((original, request))) =>
       @publication_host.prepare_client_query_acquisition_at_query_time(
@@ -592,6 +592,7 @@ fn prepare_client_query_acquisition_prefix(
   )
   .to_option()
   .bind(sequences => sequences.get(0))
+  .map(sequence => (sequence, query))
 }
 
 ///|
@@ -689,10 +690,8 @@ fn prepare_client_local_sequences_owned(
   let generated = []
   let composed_boundaries = match prepared {
     Effect(value) =>
-      match @publication_host.prepared_client_effect_infer_occurrence(value) {
-        Some(occurrence) => [occurrence]
-        None => []
-      }
+      @publication_host.prepared_client_effect_infer_occurrences(value).unwrap_or([],
+      )
     Pure(value) =>
       @publication_host.prepared_client_composed_infer_occurrences(value).unwrap_or([],
       )

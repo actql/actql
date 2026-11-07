@@ -6,6 +6,7 @@ import {
   "actql/actql/canonical_json",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/run_publication",
@@ -228,11 +229,19 @@ pub fn observe_model_raw_capture(ModelPhysicalCall, @run_publication_host.Client
 
 pub fn openai_chat_projection_work(OpenAIChatProjection) -> Int
 
+pub fn original_completed_model_matches_parent(ModelExecution, @physical_resources.Ledger) -> Bool
+
+pub fn original_model_mock_installation_construction_extent() -> @decode_shape.CollectionConstructionExtent
+
+pub fn original_model_mock_installation_retained_extent() -> @decode_shape.CollectionConstructionExtent
+
 pub fn original_model_mock_provider(ModelMockInstallation) -> Result[ModelProvider, ModelMockInstallationIssue]
 
 pub fn original_model_publication_capacity_covers(OriginalModelPublicationCapacity, Int64, Int64) -> Bool
 
 pub fn original_model_publication_capacity_current(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope) -> Bool
+
+pub fn original_model_publication_capacity_matches_parent(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope) -> Bool
 
 pub fn poll_model_call_entry_persistence(ModelCallEntryPersistence, ModelCallEntry, ModelPreparedCallSet) -> Result[ModelEntryPersistenceObservation, ModelExecutionIssue]
 
@@ -276,6 +285,8 @@ pub fn read_model_mock_answer_document(@check_environment.PublicModelTaskDeclara
 
 pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
+pub fn read_original_model_mock_dependencies(ModelMockInstallation, @check_environment.ModelExecutionContract, Bytes?, Bytes?, Bytes?, @check_environment.Limits, Int) -> Result[@check_environment.SingleAttemptModelDependencies, @check_environment.ModelDependencyIssue]
+
 pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
 pub fn release_model_outcomes(ModelOutcomeRead) -> Bool
@@ -294,7 +305,7 @@ pub fn request_model_cancel(ModelExecution) -> Bool
 
 pub fn reserve_original_model_publication_capacity(ModelExecution, @run_publication_host.ClientInferCallScope, Int64, Int64) -> Result[OriginalModelPublicationCapacity, ModelExecutionIssue]
 
-pub fn restore_prepared_model_call(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, ModelAttemptRecords, @run_publication.ModelCaptureBundleRead?) -> Result[Unit, ModelExecutionIssue]
+pub fn restore_prepared_model_call(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, ModelAttemptRecords, @run_publication.ModelCaptureBundleRead?, @run_publication.RunEvidenceValue?) -> Result[Unit, ModelExecutionIssue]
 
 pub fn restore_prepared_model_unknown(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[Unit, ModelExecutionIssue]
 

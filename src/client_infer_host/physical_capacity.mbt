@@ -12,7 +12,7 @@ pub fn bind_quantity_capacity(
     active.advancing ||
     !(active.source is Physical(_)) ||
     !(active.phase is Input) ||
-    active.work != 0L ||
+    !execution_input_unadvanced(active) ||
     active.quantity_capacity is Some(_) {
     return Err(InvalidAdvance)
   }
@@ -89,7 +89,7 @@ pub fn bind_physical_preflight(
     active.advancing ||
     !(active.source is Physical(_)) ||
     !(active.phase is Input) ||
-    active.work != 0L ||
+    !execution_input_unadvanced(active) ||
     active.physical_preflight is Some(_) {
     return Err(InvalidAdvance)
   }
@@ -119,7 +119,7 @@ pub fn bind_egress_admission(
     active.advancing ||
     !(active.source is Physical(_)) ||
     !(active.phase is Input) ||
-    active.work != 0L ||
+    !execution_input_unadvanced(active) ||
     active.egress_admission is Some(_) {
     return Err(InvalidAdvance)
   }

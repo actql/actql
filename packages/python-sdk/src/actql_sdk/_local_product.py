@@ -10,6 +10,7 @@ from collections.abc import Callable
 from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import partial
 import hashlib
 import os
 import secrets
@@ -29,7 +30,9 @@ from ._local_distribution import installed_local_components, LocalInstallationEr
 from ._local_files import (LocalFileRoot, _AllocationArea, _PayloadFile, _NameAdoption, _FileFinalization, _FileReader,
     LocalAreaAcquisitionError, LocalFileAcquisitionError, LocalReaderAcquisitionError)
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
-from ._local_preparation import LocalPreparation, _Environment, _Preparation
+from ._local_preparation import LocalPreparation, LocalPreparationFailure, _Environment, _Preparation
+from ._local_project import OriginalLocalProjectConfiguration, ProjectLocations
+from ._local_project_files import OriginalLocalProjectFiles, LocalProjectFilesCleanupPending, _ProjectFile
 from ._local_run import LocalRunCustody, _RunConfiguration, _Run, _PhysicalStart, _SourceFreeCompute
 from ._local_commit_projection import OriginalCommitProjection
 from ._local_reader_facts import OriginalReaderFacts
@@ -166,9 +169,11 @@ class InstalledLocalHost:
     recreate an epoch key, adopt another Store, or send any operation.
     """
 
-    def __init__(self, core: LocalCore, directory: Path, *,
+    def __init__(self, core: LocalCore, directory: Path | None, *,
                  now: Callable[[], int], observed_at: str, sdk_finite: bool = False,
-                 _native_store: _OriginalNativeStoreSelection | None = None) -> None:
+                 _native_store: _OriginalNativeStoreSelection | None = None,
+                 _project_directory: Path | None = None,
+                 _project_profile: str | None = None) -> None:
         if type(core) is not LocalCore or not callable(now):
             raise ValueError('Installed Local Host requires its original Core')
         self._original = self
@@ -234,7 +239,19 @@ class InstalledLocalHost:
         self._uncertain_ticket: int | None = None
         self._closing = False
         self._physical_work: list[OriginalLocalWork] = []
+        self._project_files: OriginalLocalProjectFiles | None = None
+        self._project_configuration: OriginalLocalProjectConfiguration | None = None
+        self._project_locations: ProjectLocations | None = None
+        self._project_members: list[tuple[str, str | None, _ProjectFile]] = []
         try:
+            if _project_directory is not None:
+                project_state = self._capture_project(_project_directory, _project_profile)
+                directory = _private_state_directory(
+                    project_state if directory is None else
+                    OriginalLocalProjectFiles._path(_project_directory / directory))
+            elif _project_profile is not None or directory is None:
+                raise ValueError('Original project directory is unavailable')
+            assert directory is not None
             self._installation = OriginalLocalInstallation(core, directory,
                 observed_at=observed_at, now=now, project_epoch=self._project_epoch,
                 sdk_finite=sdk_finite, native_store=_native_store)
@@ -257,8 +274,14 @@ class InstalledLocalHost:
     @classmethod
     def installed(cls, *, state_dir: str | os.PathLike[str] | None = None,
                   resources: LocalCoreResources | None = None,
-                  _initial_preparation: _OriginalPythonPreparation | None = None) -> InstalledLocalHost:
+                  _initial_preparation: _OriginalPythonPreparation | None = None,
+                  _discover_project: bool = False,
+                  _project_profile: str | None = None) -> InstalledLocalHost:
         """Resolve the selected cohort with no endpoint/token/internal paths."""
+        if (type(_discover_project) is not bool or _project_profile is not None
+                and (not _discover_project or type(_project_profile) is not str
+                     or len(_project_profile) > 65536)):
+            raise ValueError('Invalid original project factory selection')
         if resources is None and _initial_preparation is not None:
             from ._local_worker_funding import LocalWorkerFundingUnavailable
             from ._local_initial_preparation import _OriginalPythonPreparation, _capture_initial_preparation
@@ -299,6 +322,12 @@ class InstalledLocalHost:
             resources=resources, _ordinary_host=True)
         try:
             with core._host_operation(initial=True):
+                if _discover_project:
+                    return cls(core, directory_option,
+                        now=lambda: time.time_ns() // 1_000_000,
+                        observed_at=datetime.now(timezone.utc).isoformat(
+                            timespec='milliseconds').replace('+00:00', 'Z'), sdk_finite=True,
+                        _project_directory=Path.cwd(), _project_profile=_project_profile)
                 directory = (_default_directory() if directory_option is None
                              else _private_state_directory(directory_option))
                 now = lambda: time.time_ns() // 1_000_000
@@ -356,16 +385,17 @@ class InstalledLocalHost:
                 if body['intentCid'] != identity:
                     raise ValueError('Invalid original Local submitted intent identity')
                 observed = _object(self._lookup_original_submission(body['submissionRef']), 1048576)
-                if observed.get('kind') in ('ready', 'preparing') and observed.get('intentCid') != identity:
+                if observed.get('kind') in ('ready', 'preparing', 'preparation_failed') and observed.get('intentCid') != identity:
                     value = {'kind': 'conflict', 'attemptRef': body['attemptRef'],
                         'submissionRef': body['submissionRef'], 'intentCid': identity, 'reason': 'intent'}
                     if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
                         raise ValueError('Invalid original Local Submission conflict')
                     raw = wire_bytes(value)  # type: ignore[no-untyped-call]
-                elif observed.get('kind') == 'ready':
+                elif observed.get('kind') in ('ready', 'preparing', 'preparation_failed'):
                     # The saved admission is DATA, not a restored executable
                     # Run. Never prepare, dispatch or issue another Run here.
-                    value = {'kind': 'already_satisfied', 'attemptRef': body['attemptRef'],
+                    value = {'kind': 'recorded' if observed['kind'] == 'preparing' else 'already_satisfied',
+                        'attemptRef': body['attemptRef'],
                         'outcome': observed}
                     if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
                         raise ValueError('Invalid original saved Local Submission response')
@@ -373,21 +403,30 @@ class InstalledLocalHost:
                 else:
                     run, admission = self._accept_original(body['submissionRef'],
                         wire_bytes(intent), run_id='python-' + secrets.token_hex(16))  # type: ignore[no-untyped-call]
-                    saved = _object(admission, 4096)
-                    if (not wire.negotiated(saved, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
-                            or saved['ref']['authorityScopeCid'] != body['submissionRef']['epoch']['authorityScopeCid']):
-                        raise ValueError('Invalid original saved Local admission wire')
+                    saved = _object(admission, 1048576)
+                    if run is None:
+                        if (saved.get('kind') != 'preparation_failed'
+                                or saved.get('intentCid') != identity
+                                or not wire.submission_outcome(saved, _LOCAL_SELECTION,
+                                    body['submissionRef'], lookup=True)):  # type: ignore[no-untyped-call]
+                            raise ValueError('Invalid original Local preparation failure response')
+                        outcome = saved
+                    else:
+                        if (not wire.negotiated(saved, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
+                                or saved['ref']['authorityScopeCid'] != body['submissionRef']['epoch']['authorityScopeCid']):
+                            raise ValueError('Invalid original saved Local admission wire')
+                        outcome = {'kind': 'ready', 'submissionRef': body['submissionRef'],
+                            'intentCid': identity, 'admission': saved}
                     # The invocation envelope correlates this call with the saved
                     # Owner admission, as in the existing Host transport. It does
                     # not manufacture a Run terminal, dispatch or Result response.
-                    value = {'kind': 'recorded', 'attemptRef': body['attemptRef'], 'outcome': {
-                        'kind': 'ready', 'submissionRef': body['submissionRef'],
-                        'intentCid': identity, 'admission': saved}}
+                    value = {'kind': 'recorded', 'attemptRef': body['attemptRef'], 'outcome': outcome}
                     if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
                         raise ValueError('Invalid original Local Submission response')
-                    self._register_original_run_reference(run, admission)
                     raw = wire_bytes(value)  # type: ignore[no-untyped-call]
-                    work = OriginalLocalWork(lambda: self._execute_original_admitted_run(run))
+                    if run is not None:
+                        self._register_original_run_reference(run, admission)
+                        work = OriginalLocalWork(partial(self._execute_original_admitted_run, run))
             elif operation in ('status', 'wait'):
                 if operation == 'wait' and (body['until'] not in (None, 'terminal')
                         or body['since'] is not None):
@@ -726,8 +765,7 @@ class InstalledLocalHost:
         try:
             self._persist_original_sdk_read_evidence(run, projection, request)
             delivery.persist(request, run.handle)
-            delivery.prepare_original_codecs(request, clock)
-            fact = delivery.selected_original_payload(request, clock)
+            fact = delivery.prepare_original_payload(request, clock)
             try:
                 reader = OriginalSDKPayloadReader(delivery, request, clock, fact)
             except SDKPayloadReaderCleanupPending as failure:
@@ -840,8 +878,69 @@ class InstalledLocalHost:
         self._core.seal_input(loan)
         return loan
 
+    def _capture_project(self, directory: Path, profile: str | None) -> Path:
+        """Retain configuration and selected physical originals before Store IO.
+
+        The Core selects profile/locators. This method neither interprets their
+        bodies nor installs an environment from equal serialized locator DATA.
+        """
+        if (self._project_files is not None or self._project_configuration is not None
+                or profile is not None and (type(profile) is not str or len(profile) > 65536)):
+            raise ValueError('Invalid or repeated original project selection')
+        try:
+            self._project_files = self._reserve(lambda: OriginalLocalProjectFiles(
+                self._core, max_files=128, max_bytes=8388608))
+        except LocalProjectFilesCleanupPending as failure:
+            self._project_files = failure.cleanup_files
+            raise
+        files = self._project_files
+        selected = files.discover(directory)
+        configuration = None if selected is None else files.original_bytes(selected).decode('utf-8')
+        source = self._copy(wire_bytes({'configuration': configuration, 'profile': profile}))  # type: ignore[no-untyped-call]
+        self._project_configuration = self._reserve(
+            lambda: OriginalLocalProjectConfiguration(self._core, source))
+        self._project_locations = self._project_configuration.prepare()
+        locations = self._project_locations
+        base = files._path(directory) if selected is None else selected.path.parent
+        originals = {} if selected is None else {selected.path: selected}
+        locators: list[tuple[str, str | None, str | None]] = [
+            ('connectors', None, locations.connectors),
+            ('model_tasks', None, locations.model_tasks),
+            ('lock', None, locations.lock),
+            ('mock_catalog', None, locations.mock_catalog),
+            ('mock_data', None, locations.mock_data)]
+        locators.extend(('mock_answer', task, path) for task, path in locations.mock_answers)
+        for role, task, locator in locators:
+            if locator is None:
+                continue
+            path = files._path(base / locator)
+            member = originals.get(path)
+            if member is None:
+                member = files.read_original(path, max_bytes=1048576)
+                if member is None:
+                    raise ValueError('Original selected project input is unavailable')
+                originals[path] = member
+            files.original_bytes(member)
+            self._project_members.append((role, task, member))
+        files.current()
+        return files._path(base / locations.state_dir)
+
+    def _require_project_execution_environment(self) -> None:
+        if self._project_configuration is None:
+            return
+        if self._project_files is None:
+            raise ValueError('Original project input custody is unavailable')
+        self._project_files.current()
+        locations = self._project_configuration.prepare()
+        if (locations.profile is not None or self._project_members):
+            # These originals still require the selected published/Mock
+            # environment constructor. Never execute them against the old
+            # source-free bootstrap as a substitute.
+            raise ValueError('Original selected project execution environment is not installed')
+
     def _original_check_environment(self) -> _Environment:
         installation = self._active()
+        self._require_project_execution_environment()
         if self._environment is None:
             selected = next(value for value in installation.binding._selected
                             if value.name == 'environment.json')
@@ -1028,7 +1127,8 @@ class InstalledLocalHost:
             observed_kind = original.get('kind')
             fields = ({'kind'} if observed_kind == 'missing' else {'kind', 'intentCid'}
                       if observed_kind == 'preparing' else {'kind', 'intentCid', 'admission'}
-                      if observed_kind == 'ready' else set())
+                      if observed_kind == 'ready' else {'kind', 'intentCid', 'problemCode', 'problemClassification'}
+                      if observed_kind == 'preparation_failed' else set())
             if not fields or set(original) != fields:
                 raise ValueError('Invalid original Local submission lookup')
             if kind == 5:
@@ -1053,6 +1153,9 @@ class InstalledLocalHost:
                     if type(original['admission']) is not str:
                         raise ValueError('Invalid original saved Local admission')
                     result['admission'] = _object(original['admission'].encode('utf-8'), 4096)
+                elif observed_kind == 'preparation_failed':
+                    result['problem'] = {'code': original['problemCode'],
+                                         'classification': original['problemClassification']}
             if not wire.submission_outcome(result, _LOCAL_SELECTION, captured_reference, lookup=True):  # type: ignore[no-untyped-call]
                 raise ValueError('Invalid original Local submission lookup response')
             raw: bytes = wire_bytes(result)  # type: ignore[no-untyped-call]
@@ -1131,6 +1234,7 @@ class InstalledLocalHost:
         a checked input here does not rerun Source, Compute, Model or Effect.
         """
         installation = self._active()
+        self._require_project_execution_environment()
         if type(intent) is not bytes or not 0 < len(intent) <= 65536:
             raise ValueError('Invalid original Local submitted input transport')
         # Capture once before physical IO so a caller cannot change the request
@@ -1152,17 +1256,92 @@ class InstalledLocalHost:
             document = self._copy(intent)
             prepared = self._preparation.reserve(self._environment, document, format='submitted')
             self._prepared_inputs.append(prepared)
+            failures: list[LocalPreparationFailure] = []
             def check(current: _Output) -> None:
                 # The observed original is revalidated in the same borrowed
                 # read snapshot before entering the existing parser/Checker.
                 self._core.validate_submission_append(observed, current)
-                self._preparation.prepare(prepared)
+                try:
+                    self._preparation.prepare(prepared)
+                except LocalPreparationFailure as failure:
+                    if self._preparation.failed_original(failure) is not prepared:
+                        raise ValueError('Foreign original Local preparation failure')
+                    failures.append(failure)
             installation.binding.inspect(check)
             if not self._close_projection(observed):
                 raise LocalProductCleanupPending(self)
+            if failures:
+                raise failures[0]
             return prepared
 
-    def _accept_original(self, reference: object, intent: bytes, *, run_id: str) -> tuple[_Run, bytes]:
+    def _commit_preparation_failure(self, reference: object, intent: bytes,
+                                    failure: LocalPreparationFailure) -> bytes:
+        """Commit one original terminal candidate, then independently look it up.
+
+        A failed COMMIT exits with the same loans retained. It is never retried
+        or translated into a known failure. No Run, dispatch or replacement
+        preparation is issued by this path.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        if configuration is None or installation._store is None or installation._epoch is None:
+            raise ValueError('Original Local failure suppliers are unavailable')
+        prepared = self._preparation.failed_original(failure)
+        if not any(original is prepared for original in self._prepared_inputs):
+            raise ValueError('Foreign original Local failed preparation')
+        identity = installation._epoch.identity(reference)
+        source = self._copy(wire_bytes({'reference': wire_bytes(reference).decode('utf-8')}))  # type: ignore[no-untyped-call]
+        output = self._reserve(lambda: self._core.reserve_submission_preparation_failure(
+            configuration.handle, prepared.handle, source, cleanup=lambda: True))
+        self._projections.append(output)
+        self._append_sources[output.ticket] = source
+        candidates: list[dict[str, Any]] = []
+        def observe(current: _Output) -> None:
+            self._core.produce_submission_append(output, current)
+            candidates.append(_object(self._core.read_submission_append(output, current), 1048576))
+        installation.binding.inspect(observe)
+        candidate = candidates[0]
+        if (set(candidate) != {'key', 'revision', 'before', 'body'}
+                or any(type(value) is not str for value in candidate.values())
+                or candidate['key'] != identity.request_id):
+            raise ValueError('Invalid original Local preparation failure candidate')
+        revision = candidate['revision']
+        if (not revision.isascii() or not revision.isdecimal()
+                or len(revision) > 19 or (len(revision) > 1 and revision.startswith('0'))
+                or int(revision) > 2**63 - 1):
+            raise ValueError('Invalid original Local preparation failure revision')
+        terminal = _object(candidate['body'].encode('utf-8'), 262144)
+        problem = {'code': terminal.get('preparation_problem_code'),
+                   'classification': terminal.get('preparation_problem_classification')}
+        store = installation._store
+        with installation.binding.fenced() as fences:
+            def inspect(reader: Any) -> None:
+                installation.binding.inspect_reader(reader, lambda current:
+                    self._core.validate_submission_append(output, current))
+            result = store.compare_exchange_many_inspected((ByteWrite(
+                store.namespaced_key('client_submitted_intents', candidate['key']),
+                int(revision), candidate['body'].encode('utf-8')),), fences,
+                inspect=inspect, current=installation.binding._current_observer)
+        if result is None:
+            raise LocalStorageError('Original Local preparation failure write conflicted; lookup is required')
+        if not self._close_projection(output):
+            raise LocalProductCleanupPending(self)
+        saved = self._lookup_original_submission(reference)
+        observed = _object(saved, 1048576)
+        intent_cid = content_cid({'version': 'actql-submitted-intent/0.1',
+            'intent': _object(intent, 65536)}, data_keys=True)  # type: ignore[no-untyped-call]
+        if (observed.get('kind') != 'preparation_failed' or observed.get('intentCid') != intent_cid
+                or observed.get('problem') != problem):
+            raise ValueError('Changed original Local preparation failure readback')
+        if not self._preparation.close_preparation(prepared):
+            raise LocalProductCleanupPending(self)
+        self._prepared_inputs.remove(prepared)
+        if not self._core.close_input(prepared.input):
+            raise LocalProductCleanupPending(self)
+        self._inputs.remove(prepared.input)
+        return saved
+
+    def _accept_original(self, reference: object, intent: bytes, *, run_id: str) -> tuple[_Run | None, bytes]:
         """Join original preparation, finite issuance, same-TX write and lookup.
 
         Only Core supplies the Policy, row candidate and saved admission. The
@@ -1180,7 +1359,10 @@ class InstalledLocalHost:
         with self._core._lock:
             if self._pending_run_write is not None:
                 raise LocalStorageError('Original Local Run write requires lookup; new acceptance is unavailable')
-            prepared = self._prepare_original(captured_reference, intent)
+            try:
+                prepared = self._prepare_original(captured_reference, intent)
+            except LocalPreparationFailure as failure:
+                return None, self._commit_preparation_failure(captured_reference, intent, failure)
             observed = self._retain_intent(captured_reference, intent)
             source = self._copy(wire_bytes({'run_id': run_id, 'now': self._now()}))  # type: ignore[no-untyped-call]
             run = self._runs.reserve(configuration, prepared, source)
@@ -3132,6 +3314,10 @@ class InstalledLocalHost:
                 if not self._preparation.close_environment(self._environment):
                     return False
                 self._environment = None
+            if self._project_configuration is not None:
+                if not self._project_configuration.close():
+                    return False
+                self._project_configuration = None
             for source in tuple(reversed(self._inputs)):
                 if not self._core.close_input(source):
                     return False
@@ -3141,6 +3327,12 @@ class InstalledLocalHost:
                 if not self._installation.close():
                     return False
                 self._installation = None
+            if self._project_files is not None:
+                if not self._project_files.close():
+                    return False
+                self._project_files = None
+                self._project_locations = None
+                self._project_members.clear()
             if not self._core.close():
                 return False
             self._physical_work.clear()

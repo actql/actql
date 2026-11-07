@@ -32,7 +32,11 @@ async function fixture(t, {seed = true} = {}) {
   const reviewer = generateKeyPairSync('ed25519'), host = generateKeyPairSync('ed25519');
   let computes = 0, starts = 0, client;
   const authorization = {accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
-    account_id: 'synthetic-original', entries: [{entry_id: 'run-acceptance', outcome: 'delegate',
+    account_id: 'synthetic-original', entries: [{entry_id: 'read-original', outcome: 'allow',
+      principal: {any_of: [principalId]}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['result/answer', 'run']},
+      operation: {any_of: ['read']}, exclusions: []},
+    {entry_id: 'run-acceptance', outcome: 'delegate',
       principal: {all: true}, connection: {all: true}, resource: {all: true},
       operation: {any_of: ['write']}, exclusions: []}]}),
   reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer', principalId, publicKey: pem(reviewer.publicKey)}],
@@ -45,7 +49,11 @@ async function fixture(t, {seed = true} = {}) {
   const open = async () => client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     durability: 'durable', installation: {directory, authorization}});
   t.after(async () => {await close(); await rm(directory, {recursive: true, force: true});});
-  await open(); await close();
+  await open();
+  // Activate the lazy, empty Journal through its public read before seeding
+  // the independently authored historical-format original.
+  assert.deepEqual((await client.checkpoints()).items, []);
+  await close();
   const original = seed ? await writeSyntheticHistoricalHeldValues({directory, document,
     requestId: 'original-synthetic-values', authorization, runtimeRootUrl}) : undefined;
   const signer = {keyId: 'reviewer-key', reviewerId: 'reviewer',

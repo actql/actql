@@ -28,13 +28,44 @@ every resolved limit with its source.
 | --- | --- | --- |
 | Rows admitted by a local Values lowering sequence | 100 across its Values roots | Host profile; `valuesMaxRows` configures only the source-free, single-task Values profile, not every Program using `VALUES` |
 | Rows read from a source per Run | Connector contract | Connector |
-| Bytes read per Run and total work | Host capacity policy (512 MiB in the default Local profile) | Host |
+| Logical retained and execution byte capacities | 512 MiB for each counter in the default Local policy | Host policy |
+| Transfer bytes and total work | Separate admitted Host and operation limits | Host and selected profile |
 | Model calls per `INFER` | Row count, capped by `MAX ITEMS` when set; no call is made if the count would exceed the limit | Program and Connector |
 | Model retries | Transient failures only, within a fixed bound | Language law |
 | Rows produced by a join | `MAX_OUTPUT_ROWS` when set, otherwise Host capacity policy | Program and Host |
 | Effect items per Set | Connector contract | Connector |
-| Result read response | 1 MiB per read by default, 16 MiB maximum | Client option |
+| Result wire bytes | Selected Host limits; the current Node Local profile advertises 10 MiB total per read and 1 MiB per row | Host; client options can only tighten |
 | Query text | A fixed decoded size and token budget | Language law |
+
+### Capacity and Result quantities
+
+The ordinary captured native Program entrance derives its byte and node
+bounds from the same original Request's observed SDK snapshot. It keeps depth
+64 and reserves construction under the existing Host retained/execution byte
+ceilings; the former fixed 1 MiB/65,536-node default is not an independent
+support boundary. Saved intent intake derives its bounds from that original
+wire's existing preflight. Explicit preparation limits and tighter Host
+selections remain applicable.
+The same Request reserves the actual parser/index and Program construction
+before allocating them. Passing input admission still supplies no execution,
+Result or cleanup permission.
+
+The Local policy's 512 MiB figures are separate logical retained-byte and
+execution-byte ceilings. They are not a per-Run network-transfer allowance,
+a process RSS limit, a physical allocation, or a latency bound. Transfer and
+work have their own counters. A policy ceiling does not supply the backing for
+a constructor: its actual input, workspace, output and failed-child overlap
+still need admission under the same original resource.
+
+Result limits are negotiated independently. The current Node Local profile
+advertises `maxReadWireBytes` of 10 MiB and `maxRowWireBytes` of 1 MiB. Its
+separate decoded-value bounds are `maxRetainedValueBytes` of 10 MiB and
+`maxRowRetainedValueBytes` of 1 MiB; batch rows and retained bytes have their own
+bounds too. A total wire limit is not a per-row or decoded-retention limit.
+Client Result-read options default to the negotiated bounds and may only make
+them smaller. Other Host profiles must state their own selected bounds; these
+Node Local values do not establish a universal Result maximum. See the
+[Local Host profile](../../packages/local-node/README.md).
 
 ### Local Values profiles and JOIN
 

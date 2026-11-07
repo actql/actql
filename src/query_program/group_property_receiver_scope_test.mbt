@@ -70,6 +70,7 @@ test "GROUP BY ALL keeps both range and object property keys in an independent P
     text in [
       "SELECT payload.score AS input_score, (payload.payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL",
       "SELECT payload.score AS input_score, ((`PAYLOAD`.payload)).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL",
+      "SELECT payload.score AS input_score, ((payload.payload)).`SCORE` AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY ALL",
       "SELECT payload.score AS input_score, (payload.payload).score AS object_score, COUNT(*) AS n FROM objects AS payload GROUP BY payload.score, (payload.payload).score",
     ] {
     let actual = compile(

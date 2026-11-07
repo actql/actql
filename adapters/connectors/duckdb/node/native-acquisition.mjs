@@ -5,6 +5,7 @@ import { DuckDBTransportError } from './session.mjs';
 import { withSourceAcquisition } from './source-acquisition.mjs';
 
 export async function runNativeAcquisition(grant, port, limits, signal, accounting) {
+  limits = Object.freeze({...limits});
   return await withSourceAcquisition(grant, port, limits, signal, async (session, readView) => {
     const started = performance.now();
     // The trusted adapter supplies catalog-only SQL, not a source-row query.
@@ -16,12 +17,19 @@ export async function runNativeAcquisition(grant, port, limits, signal, accounti
     const receive = async (role, sql, parameters) => {
       const receiptStarted = performance.now();
       let begun = false;
+      let sourceRows = 0;
       const begin = async fields => {
         await port.beginReceipt(role, fields, readView);
         begun = true;
       };
       const before = session.usage();
       const fields = await session.command(sql, parameters, async chunk => {
+        if (role === 'validation_scan' && limits.maxSourceRows !== undefined) {
+          if (chunk.rowCount > limits.maxSourceRows - sourceRows) {
+            throw new DuckDBTransportError('SourceRows');
+          }
+          sourceRows += chunk.rowCount;
+        }
         if (!begun) await begin(chunk.fields);
         await port.acceptChunk(role, chunk, readView);
       });

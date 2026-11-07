@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {checkProofRunnerExtension} from './proof-runner-extension.mjs';
 export const hash = value => createHash('sha256').update(value).digest('hex');
 export const snapshotDirectories = Object.freeze(['src', 'vendor', 'proofs/bounded-session', 'proofs/relation-chain', 'proofs/relation-capacity', 'proofs/relation-pipeline']);
-export const snapshotFiles = Object.freeze(['scripts/owned-scratch.mjs', 'scripts/native-cxx-link-driver.sh', 'scripts/ar', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json', '.github/workflows/ci.yml', 'docs/spec/language.md', 'docs/spec/execution.md']);
+export const snapshotFiles = Object.freeze(['adapters/host-node/ordinary-node-resource-runtime.cjs', 'scripts/owned-scratch.mjs', 'scripts/native-cxx-link-driver.sh', 'scripts/ar', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json', '.github/workflows/ci.yml', 'docs/spec/language.md', 'docs/spec/execution.md']);
 function files(path) {
   return readdirSync(path, { withFileTypes: true }).flatMap(e => e.isDirectory()
     ? files(join(path, e.name)) : e.isFile() ? [join(path, e.name)] : []);

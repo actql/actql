@@ -267,7 +267,6 @@ pub fn prepared_client_publication_data_policy_cid(
 ) -> String? {
   let graph = value.graph
   let program = @strategy.graph_program(graph)
-  let source_owner = @checked.source_identity(program)
   let count = @strategy.graph_result_count(graph)
   if count == 0 {
     return None
@@ -305,27 +304,9 @@ pub fn prepared_client_publication_data_policy_cid(
       }
     }
     guard found is Some(policy) else { return None }
-    if prepared_client_acquisition_count(value) == 2 {
-      let covered = [false, false]
-      if @checked.publication_policy_source_count(policy) != 2 {
-        return None
-      }
-      for index in 0..<2 {
-        let check = @checked.publication_policy_source_at(policy, index).unwrap()
-        let subject = @checked.source_execution_subject(check)
-        if !physical_equal(subject.owner, source_owner) ||
-          subject.stage < 0 ||
-          subject.stage > 1 ||
-          subject.input != 0 ||
-          covered[subject.stage] ||
-          !(@checked.source_execution_kind(check) is @checked.CarrierResponse) {
-          return None
-        }
-        covered[subject.stage] = true
-      }
-      if covered != [true, true] {
-        return None
-      }
+    if prepared_client_acquisition_count(value) == 2 &&
+      !client_publication_policy_covers_source_responses(program, policy) {
+      return None
     }
     match selected {
       None => selected = Some(policy.cid)
@@ -333,4 +314,51 @@ pub fn prepared_client_publication_data_policy_cid(
     }
   }
   selected
+}
+
+///|
+// Whole-Run two-Direct publication retains every actual response original,
+// including a downstream keyed response. Source coordinates and equal CIDs
+// are not substitutes for the same checked occurrence. The policy owns the
+// existing inventory; this read-only comparison constructs no second policy.
+fn client_publication_policy_covers_source_responses(
+  program : @checked.CheckedProgram,
+  policy : @checked.PublicationSourcePolicy,
+) -> Bool {
+  let owner = @checked.source_identity(program)
+  let policy_count = @checked.publication_policy_source_count(policy)
+  let mut responses = 0
+  for index in 0..<@checked.source_execution_count(program) {
+    let original = @checked.source_execution_at(program, index).unwrap()
+    let response = match @checked.source_execution_kind(original) {
+      @checked.CarrierResponse =>
+        @checked.source_execution_subject(original).request
+        is @acquisition.Direct(_, _)
+      @checked.KeyedResponse(_) => true
+      _ => false
+    }
+    if response {
+      if !physical_equal(
+          @checked.source_execution_subject(original).owner,
+          owner,
+        ) {
+        return false
+      }
+      let mut occurrences = 0
+      for policy_index in 0..<policy_count {
+        if @checked.publication_policy_source_at(policy, policy_index)
+          is Some(candidate) &&
+          physical_equal(candidate, original) {
+          occurrences += 1
+        }
+      }
+      if occurrences != 1 {
+        return false
+      }
+      responses += 1
+    }
+  }
+
+  // Extra, duplicate or foreign policy entries cannot fill a missing original.
+  responses == policy_count
 }

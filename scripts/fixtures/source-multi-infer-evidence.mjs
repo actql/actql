@@ -123,11 +123,13 @@ export function modelConfiguration(base, {firstInstructions = 'Return the origin
     .sort((a, b) => cid(a) < cid(b) ? -1 : cid(a) > cid(b) ? 1 : 0);
   const dependencies = new Map(configurations.flatMap(value => value.dependencies)
     .map(value => [value.cid, value]));
-  return {tasks: configurations.map(value => value.task), installation: {
+  // Preserve these same authored DATA originals for the funded Request reader.
+  // Freezing changes no contract bytes, identity or admission expectation.
+  return {tasks: configurations.map(value => value.task), installation: Object.freeze({
     environmentWire: canonical({...environment, evidence_bundle_cid: cid(environment)}),
-    executionContracts: configurations.map(value => value.execution),
-    dependencyBodies: [...dependencies.values()],
-  }};
+    executionContracts: Object.freeze(configurations.map(value => Object.freeze(value.execution))),
+    dependencyBodies: Object.freeze([...dependencies.values()]),
+  })};
 }
 
 // Reissue the owned synthetic Source metadata together. This declares the

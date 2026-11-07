@@ -584,6 +584,16 @@ retransmit executable work. Cancellation before gateway admission creates no
 pending operation, while a caller disconnect after admission removes only
 that caller's waiter.
 
+An ordinary status can arrive after a Release waiter is registered, including
+from another control process's earlier query. It is admitted as an observation
+without retiring Release delivery. The gateway keeps offering the same Release
+until the existing Owner confirms released cleanup without retained material
+or quarantine. Cleanup is independent of execution: the existing before-start
+release path remains valid without a terminal execution observation. With a
+durable receiver, that decision
+uses its latest committed observation rather than an older reply. This delivery
+fence neither cancels the Run nor grants another execution.
+
 The required Remote Site tests cover an authenticated loopback subprocess and
 separated native Site networks. They use distinct Store roots and may not use
 shared memory, a shared filesystem, or a shared absolute path as the data
@@ -1077,7 +1087,9 @@ receiver requires the same candidate request, Catalog, runtime and Credential
 control/Journal, and verifies the original grant and use occurrence through the
 existing Credential receiver. Copied records, restored Catalogs and scalar
 ETag or CID values cannot register an acquisition. The existing target version
-continues to identify its original response and provider target; an HTTP ETag
+identifies the provider target and the named record-state digest policy in
+[Salesforce write capability evidence](salesforce-write-capability.md#target-record-state-identity-and-physical-evidence).
+The exact physical response digest remains separately retained. An HTTP ETag
 is a separate fact and never replaces that version.
 
 The conditional representation requires one strong ETag of at most 1024 HTTP

@@ -561,10 +561,8 @@ def verify(core_receipt: Path, expected_source: str, *,
         raise ValueError('Original image compiler module path is unavailable')
     assembly.component(module, digest, 32 * 1024 * 1024, 'client_host_wasm.wasm')
     version = read_cohort(ROOT)
-    original = (assembly.recipe.image_recipe_original(ROOT, source)
-        if runtime_allocation == 'native-owned' else
-        assembly.recipe.image_recipe_original(ROOT, source,
-            runtime_allocation=runtime_allocation))
+    original = assembly.recipe.module_image_recipe_original(ROOT, source, module, digest,
+        runtime_allocation=runtime_allocation)
     recipe = _recipe_from_original(original, source_sha=source,
                                    package_version=version, module_sha256=digest)
     return {'source': source, 'module': module, 'module_sha256': digest,

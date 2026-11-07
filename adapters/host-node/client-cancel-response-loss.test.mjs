@@ -71,8 +71,8 @@ for (const transport of ['in-process', 'http']) {
 }
 
 
-// Copy faults target the stable captured DTO. Getter/prototype inputs are
-// separate positive cases below; they must not require repeated raw reads.
+// Selected DTO faults target the actual response capture. A separate unused
+// clone trap proves that response admission does not consult a global copier.
 for (const [scenario, alterCopy] of [
   ['clone erases fields', copy => { delete copy.revision; return copy; }],
   ['clone throws', () => { throw new Error('private-clone-failure'); }],
@@ -84,18 +84,19 @@ for (const [scenario, alterCopy] of [
     }]),
 ]) {
   test(`in-process: cancellation ${scenario} retains original Run uncertainty`, async t => {
-    const f = await fixture(t, 'in-process', undefined, {physicalStart: true});
-    const clone = globalThis.structuredClone;
-    t.after(() => { globalThis.structuredClone = clone; });
-    globalThis.structuredClone = value => {
-      const copy = clone(value);
-      if (value?.kind === 'accepted' && value?.cancellation !== undefined) {
-        copy.cancellation = alterCopy(copy.cancellation);
-      }
-      return copy;
-    };
+    const privateCause = new Error('private-response-capture-failure');
+    let captures = 0;
+    const f = await fixture(t, 'in-process', undefined, {physicalStart: true,
+      transformCancelReply(value) {
+        captures++;
+        const copy = {...value, ref: {...value.ref}, cancelRef: {...value.cancelRef}};
+        if (scenario === 'clone throws') return Object.defineProperty(copy, 'revision', {
+          enumerable: true, get() { throw privateCause; }});
+        return alterCopy(copy);
+      }});
     const ref = {...f.execution.ref};
     const result = await f.execution.cancel(f.cancelOptions()).then(value => ({value}), error => ({error}));
+    assert.equal(captures, 1);
     assert.equal(result.error?.code, 'CancellationUnknown', '[check-mutation:cancel-clone-invalid]');
     assert.equal(result.error.cause.code, 'InvalidHostCancellation');
     const expected = {observation: 'outcome_unknown',
@@ -116,6 +117,35 @@ for (const [scenario, alterCopy] of [
     assert.deepEqual(f.stored(), committed);
     assert.deepEqual(f.counts(), {cancelCalls: 1, submits: 0});
     assert.deepEqual(f.operations, ['connect', 'attach', 'cancel', 'status']);
+  });
+}
+
+for (const scenario of ['erase', 'throw', 'namespaceId', 'authorityScopeCid', 'runDefinitionCid']) {
+  test(`in-process: unused cancellation clone trap ${scenario} cannot replace original data`, async t => {
+    const f = await fixture(t, 'in-process', undefined, {physicalStart: true});
+    let copies = 0;
+    const clone = globalThis.structuredClone;
+    t.mock.method(globalThis, 'structuredClone', value => {
+      const copy = clone(value);
+      if (value?.kind === 'accepted' && value?.cancellation !== undefined) {
+        copies++;
+        if (scenario === 'throw') throw new Error('private-clone-failure');
+        if (scenario === 'erase') delete copy.cancellation.revision;
+        else copy.cancellation.ref[scenario] = scenario === 'namespaceId'
+          ? 'foreign-namespace' : cid('f');
+      }
+      return copy;
+    });
+    const answer = await f.execution.cancel(f.cancelOptions());
+    assert.equal(copies, 0, 'Response capture must not consult the request copier');
+    assert.equal(answer.kind, 'accepted');
+    assert.deepEqual(answer.cancellation.ref, f.execution.ref);
+    assert.equal(answer.cancellation.revision, f.before[0].revision + 1);
+    assert.equal(sdk.explainCancellation(answer).observation, 'accepted');
+    assert.deepEqual(f.stored(), [{...f.before[0], cancellation_requested: 1,
+      revision: f.before[0].revision + 1}]);
+    assert.deepEqual(f.counts(), {cancelCalls: 1, submits: 0});
+    assert.deepEqual(f.operations, ['connect', 'attach', 'cancel']);
   });
 }
 
@@ -391,30 +421,26 @@ for (const [entrance, transport] of [['local', 'in-process'], ['https', 'https']
     assert.deepEqual(f.stored(), f.before);
   });
   test(`${entrance}: copied Run observations retain original owner facts`, async t => {
-    const f = await fixture(t, transport, undefined, {physicalStart: true});
+    let changed = 0, alter = false;
+    const f = await fixture(t, transport, undefined, {physicalStart: true,
+      transformRunReply(value) {
+        if (!alter) return value;
+        changed++;
+        return {...value, run_id: 'foreign-run-copy',
+          control: {...value.control, physical_stop: 'confirmed',
+            revision: value.control.revision + 1}};
+      }});
     const before = await f.execution.status();
     assert.equal(before.status, 'running');
     assert.equal(before.control.physical_stop, 'unknown');
-    const clone = globalThis.structuredClone;
-    t.after(() => { globalThis.structuredClone = clone; });
-    let changed = 0;
-    globalThis.structuredClone = value => {
-      const copy = clone(value);
-      if (value?.version === 'actql-run-state/0.1') {
-        changed++;
-        copy.control.physical_stop = 'confirmed';
-        copy.control.revision++;
-        copy.run_id = 'foreign-run-copy';
-      }
-      return copy;
-    };
+    alter = true;
     let rejected;
     try { await f.execution.status(); } catch (error) { rejected = error; }
     assert.equal(rejected?.code, 'InvalidHostRunState', '[check-mutation:run-copy-public]');
     assert.ok(changed > 0, 'Fault must affect a Run observation copy');
     assert.deepEqual(sdk.explainRunObservationFailure(rejected), {
-      kind: 'protocol_failure', problem: 'malformed_response', operation: 'status',
-      summary: 'The Run reply violates the registered state contract.',
+      kind: 'protocol_failure', problem: 'stale_observation', operation: 'status',
+      summary: 'The Run reply has an older control revision or conflicts with previously observed control facts.',
       hint: 'Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.',
       next: {operation: 'status', ref: f.execution.ref},
     });
@@ -425,7 +451,7 @@ for (const [entrance, transport] of [['local', 'in-process'], ['https', 'https']
     assert.deepEqual(f.stored(), f.before);
     assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
     assert.equal(f.operations.filter(operation => operation === 'status').length, 2);
-    globalThis.structuredClone = clone;
+    alter = false;
     const refreshed = await f.execution.status();
     assert.deepEqual(refreshed, before);
     assert.equal(f.operations.filter(operation => operation === 'status').length, 3);
@@ -439,6 +465,46 @@ for (const [entrance, transport] of [['local', 'in-process'], ['https', 'https']
     assert.deepEqual(unavailable.next, {operation: 'status', ref: f.execution.ref});
     assert.equal(sdk.explainRunObservationFailure({...denied}), undefined);
     assert.equal(sdk.explainEffectUncertainty(denied), undefined);
+    assert.deepEqual(f.stored(), f.before);
+    assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
+  });
+  test(`${entrance}: malformed Run DTO retains the original owner lookup`, async t => {
+    const f = await fixture(t, transport, undefined, {physicalStart: true,
+      transformRunReply(value) {
+        const copy = {...value};
+        delete copy.run_id;
+        return copy;
+      }});
+    let rejected;
+    try { await f.execution.status(); } catch (error) { rejected = error; }
+    assert.equal(rejected?.code, 'InvalidHostRunState');
+    const explanation = sdk.explainRunObservationFailure(rejected);
+    assert.equal(explanation.kind, 'protocol_failure');
+    assert.equal(explanation.problem, 'malformed_response');
+    assert.deepEqual(explanation.next, {operation: 'status', ref: f.execution.ref});
+    assert.equal(Object.hasOwn(rejected, 'cause'), false);
+    assert.equal(sdk.explainEffectUncertainty(rejected), undefined);
+    assert.deepEqual(f.stored(), f.before);
+    assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
+    assert.deepEqual(f.operations, ['connect', 'attach', 'status']);
+  });
+  test(`${entrance}: unused Run clone trap cannot replace original owner facts`, async t => {
+    const f = await fixture(t, transport, undefined, {physicalStart: true});
+    const before = await f.execution.status();
+    const clone = globalThis.structuredClone;
+    let copies = 0;
+    t.mock.method(globalThis, 'structuredClone', value => {
+      const copy = clone(value);
+      if (value?.version === 'actql-run-state/0.1') {
+        copies++;
+        copy.run_id = 'foreign-run-copy';
+        copy.control.physical_stop = 'confirmed';
+      }
+      return copy;
+    });
+    assert.deepEqual(await f.execution.status(), before);
+    assert.equal(copies, 0);
+    assert.equal(before.control.physical_stop, 'unknown');
     assert.deepEqual(f.stored(), f.before);
     assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
   });
@@ -587,26 +653,21 @@ for (const [entrance, transport] of [['local', 'in-process'], ['https', 'https']
   });
 
   test(`${entrance}: request lookup verification faults preserve original uncertainty and journal custody`, async t => {
-    const f = await fixture(t, transport, undefined, {physicalStart: true});
-    const ref = {...f.execution.ref};
-    const clone = globalThis.structuredClone;
     const privateCause = new Error('private-lookup-verification-getter');
     let copies = 0, reads = 0, failure;
-    // Inject only SDK verification-copy access, after the real Local/HTTPS
-    // journal lookup. This is not ordinary native structuredClone behavior.
-    const mocked = t.mock.method(globalThis, 'structuredClone', value => {
-      const copy = clone(value);
-      if (value?.kind === 'found' && value.requestId === requestId) {
+    const f = await fixture(t, transport, undefined, {physicalStart: true,
+      transformLookupReply(value) {
         copies++;
-        Object.defineProperty(copy, 'ref', {enumerable: true, configurable: true,
-          get() { reads++; throw privateCause; }});
-      }
-      return copy;
-    });
+        const copy = {...value};
+        if (transport === 'in-process') return Object.defineProperty(copy, 'ref', {
+          enumerable: true, get() { reads++; throw privateCause; }});
+        // An HTTP decoder receives DATA, not the server's getter or exception.
+        return {...copy, ref: null};
+      }});
+    const ref = {...f.execution.ref};
     try { await f.client.lookupRequest(requestId); } catch (error) { failure = error; }
-    finally { mocked.mock.restore(); }
     assert.equal(copies, 1);
-    assert.equal(reads, 1);
+    assert.equal(reads, transport === 'in-process' ? 1 : 0);
     assert.deepEqual(f.execution.ref, ref);
     assert.deepEqual(f.stored(), f.before);
     assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
@@ -626,4 +687,27 @@ for (const [entrance, transport] of [['local', 'in-process'], ['https', 'https']
     assert.deepEqual(f.stored(), f.before);
     assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
   });
+  test(`${entrance}: unused request lookup clone trap cannot replace original custody`, async t => {
+    const f = await fixture(t, transport, undefined, {physicalStart: true});
+    const clone = globalThis.structuredClone;
+    let copies = 0;
+    t.mock.method(globalThis, 'structuredClone', value => {
+      const copy = clone(value);
+      if (value?.kind === 'found' && value.requestId === requestId) {
+        copies++;
+        Object.defineProperty(copy, 'ref', {enumerable: true,
+          get() { throw new Error('private-unused-lookup-getter'); }});
+      }
+      return copy;
+    });
+    const answer = await f.client.lookupRequest(requestId);
+    assert.equal(copies, 0);
+    assert.equal(answer.kind, 'found');
+    assert.equal(answer.requestId, requestId);
+    assert.deepEqual(answer.ref, f.execution.ref);
+    assert.deepEqual(f.stored(), f.before);
+    assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
+    assert.deepEqual(f.operations, ['connect', 'attach', 'lookup-request']);
+  });
+
 }

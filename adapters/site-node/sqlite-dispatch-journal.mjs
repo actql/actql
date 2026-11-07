@@ -15,6 +15,8 @@ import {
   admitRemoteManagedOutputSubjectJson,
 } from
   '../host-common/remote-dispatch-wire.mjs';
+import {createSqliteTransaction, throwSqliteInitializationFailure} from
+  '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => {
   const error = Object.assign(new Error(code, {cause}), {code});
@@ -27,19 +29,6 @@ function syncDirectory(path) {
   const descriptor = openSync(path, 'r');
   try { fsyncSync(descriptor); }
   finally { closeSync(descriptor); }
-}
-
-function transaction(database, body) {
-  database.exec('BEGIN IMMEDIATE');
-  try {
-    const value = body();
-    database.exec('COMMIT');
-    return value;
-  } catch (error) {
-    try { database.exec('ROLLBACK'); }
-    catch (rollback) { fail('RemoteJournalRollbackFailed', rollback); }
-    throw error;
-  }
 }
 
 export function openSqliteDispatchJournal(root, {
@@ -68,6 +57,7 @@ export function openSqliteDispatchJournal(root, {
     readOnly: false,
     enableForeignKeyConstraints: true,
   });
+  const transaction = createSqliteTransaction(database, 'RemoteJournal');
   let closed = false;
   try {
     database.exec('PRAGMA journal_mode = WAL');
@@ -116,7 +106,7 @@ export function openSqliteDispatchJournal(root, {
         )
       ) STRICT;
     `);
-    transaction(database, () => {
+    transaction.run(() => {
       const version = database.prepare(
         'SELECT value FROM journal_metadata WHERE key = ?',
       ).get('schema_version');
@@ -160,7 +150,7 @@ export function openSqliteDispatchJournal(root, {
         fail('UnsupportedRemoteJournalVersion');
       }
     });
-    transaction(database, () => {
+    transaction.run(() => {
       const version = database.prepare(
         'SELECT value FROM journal_metadata WHERE key = ?',
       ).get('schema_version');
@@ -268,10 +258,10 @@ export function openSqliteDispatchJournal(root, {
     });
     if (!existed) syncDirectory(directory);
   } catch (error) {
-    database.close();
-    throw error;
+    throwSqliteInitializationFailure(database, error, 'dispatch-journal');
   }
 
+  try {
   const selectDispatch = database.prepare(`
     SELECT dispatch_request_cid, request_json, revision, execution_state,
       evidence_state, cleanup_state, material_available,
@@ -336,6 +326,7 @@ export function openSqliteDispatchJournal(root, {
 
   const ensureOpen = () => {
     if (closed) fail('RemoteJournalClosed');
+    transaction.assertUsable();
   };
   const integer = value => Number.isSafeInteger(value) && value >= 0;
   const bit = value => value === 0 || value === 1;
@@ -518,7 +509,7 @@ export function openSqliteDispatchJournal(root, {
   };
   const persistTransition = (key, projection, revision) => {
     const prepared = preparePhysicalTransition(key, projection, revision);
-    transaction(database, () => persistPhysicalTransition(prepared));
+    transaction.run(() => persistPhysicalTransition(prepared));
     return prepared.states;
   };
   const install = (request, requestJson, control) => {
@@ -541,7 +532,7 @@ export function openSqliteDispatchJournal(root, {
         !count(generation) || !count(attempt) || attempt === 0) {
       fail('ForeignRemoteJournalSite');
     }
-    return transaction(database, () => {
+    return transaction.run(() => {
       const existing = selectDispatch.get(key[0], key[1], generation, key[3]);
       if (existing !== undefined) {
         if (existing.dispatch_request_cid !== identity ||
@@ -742,7 +733,7 @@ export function openSqliteDispatchJournal(root, {
         projection,
         control.revision(record),
       );
-      transaction(database, () => {
+      transaction.run(() => {
         persistPhysicalTransition(
           prepared,
           evidenceJson,
@@ -813,7 +804,7 @@ export function openSqliteDispatchJournal(root, {
           undefined,
         ));
       }
-      transaction(database, () => {
+      transaction.run(() => {
         const storedGeneration = database.prepare(`
           SELECT value FROM journal_metadata WHERE key = 'site_generation'
         `).get()?.value;
@@ -894,4 +885,7 @@ export function openSqliteDispatchJournal(root, {
       return true;
     },
   });
+  } catch (error) {
+    throwSqliteInitializationFailure(database, error, 'dispatch-journal');
+  }
 }

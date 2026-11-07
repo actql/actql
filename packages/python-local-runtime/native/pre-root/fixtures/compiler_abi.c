@@ -16,8 +16,8 @@ static bool signature(const actql_compiler_signature *item, const char *paramete
 }
 int main(void) {
     bool cases[] = {
-        ACTQL_COMPILER_CORE_ABI == 78,
-        ACTQL_COMPILER_IMPORTS_COUNT == 24,
+        ACTQL_COMPILER_CORE_ABI == 86,
+        ACTQL_COMPILER_IMPORTS_COUNT == 28,
         signature(find(actql_compiler_imports, ACTQL_COMPILER_IMPORTS_COUNT, "input_byte"),
                   "i32 i32", "i32"),
         signature(find(actql_compiler_imports, ACTQL_COMPILER_IMPORTS_COUNT, "execution_child_report"),
@@ -29,6 +29,10 @@ int main(void) {
                   "", "i32"),
         signature(find(actql_compiler_imports, ACTQL_COMPILER_IMPORTS_COUNT, "execution_child_capacity"),
                   "i64 i32", "i64"),
+        signature(find(actql_compiler_imports, ACTQL_COMPILER_IMPORTS_COUNT, "platform_vm_observation"),
+                  "i64 i32", "i64"),
+        signature(find(actql_compiler_exports, ACTQL_COMPILER_EXPORTS_COUNT, "actql_buffer_open_platform"),
+                  "i64 i64 i32 i32 i32 i32 i32 i64 i64 i64 i64", "i32"),
     };
     size_t total = sizeof(cases) / sizeof(cases[0]), passed = 0;
     for (size_t i = 0; i < total; i++) {

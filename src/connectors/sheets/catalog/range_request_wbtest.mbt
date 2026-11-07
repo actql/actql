@@ -357,3 +357,87 @@ test "range write construction templates bound original update and clear bodies 
   assert_eq(metadata.rows, 2)
   assert_eq(metadata.columns, 2)
 }
+
+///|
+// Exact previous range_parse path, retained only as a migration oracle.
+fn range_parse_indexed_before(
+  wire : String,
+  limits : Limits,
+) -> Result[Json, RangeFailure] {
+  guard admit(@utf8.encode(wire), limits) is Ok(_) else {
+    return Err(range_failure("same-original-refusal"))
+  }
+  Ok(@json.parse(wire)) catch {
+    _ => Err(range_failure("same-original-refusal"))
+  }
+}
+
+///|
+test "range parser keeps the original full refusal boundary without constructing an unused index" {
+  let bodies = [
+    "{\"text\":\"e\u0301\\r\\n\",\"n\":1,\"b\":true,\"nil\":null}", "{\"a\":[1,2,{\"emoji\":\"😀\"}],\"empty\":{}}",
+    "{\"escaped\":\"\\u00e9\\n\\uD83D\\uDE00\"}", "-0", "{\"a\":1,\"a\":2}", "{\"a\":[1,]}",
+    "1e400", "\"\\uD800\"", "[[]] trailing",
+  ]
+  let limits : Array[Limits] = [
+    { max_bytes: 1024, max_nodes: 64, max_depth: 8, max_cells: 6400, },
+    { max_bytes: 16, max_nodes: 64, max_depth: 8, max_cells: 6400, },
+    { max_bytes: 1024, max_nodes: 2, max_depth: 8, max_cells: 6400, },
+    { max_bytes: 1024, max_nodes: 64, max_depth: 1, max_cells: 6400, },
+    { max_bytes: 0, max_nodes: 64, max_depth: 8, max_cells: 6400, },
+    { max_bytes: 1024, max_nodes: 0, max_depth: 8, max_cells: 6400, },
+    { max_bytes: 1024, max_nodes: 64, max_depth: 0, max_cells: 6400, },
+    { max_bytes: 1024, max_nodes: 64, max_depth: 8, max_cells: 0, },
+  ]
+  for body in bodies {
+    for bound in limits {
+      match
+        (
+          range_parse_indexed_before(body, bound),
+          range_parse(body, bound, "same-original-refusal"),
+        ) {
+        (Ok(before), Ok(after)) => assert_eq(before, after)
+        (Err(before), Err(after)) =>
+          assert_eq(range_failure_code(before), range_failure_code(after))
+        _ => fail("original parser/refusal boundary changed")
+      }
+    }
+  }
+  guard range_parse(bodies[0], limits[0], "same-original-refusal").unwrap()
+    is Object(kept) else {
+    fail("same object")
+  }
+  assert_eq(kept.get("text"), Some("e\u0301\r\n".to_json()))
+  assert_eq(kept.get("b"), Some(true.to_json()))
+}
+
+///|
+test "original request material survives repeated facts without admitting a copied binding" {
+  let binding = owned_binding()
+  let request = prepare_range_request(
+    binding,
+    owned_value(),
+    binding.target_wire,
+  ).unwrap()
+  let value = request.value
+  let target = binding.target
+  let identity = range_request_identity(request)
+  let first = range_request_json(binding, request).unwrap()
+  let second = range_request_json(binding, request).unwrap()
+  assert_eq(first, second)
+  assert_eq(range_request_identity(request), identity)
+  assert_true(physical_equal(request.value, value))
+  assert_true(physical_equal(binding.target, target))
+  // A consumer may mutate its separately parsed public facts. It never gets
+  // the private original native Json retained by this binding/request.
+  let public_copy = @json.parse(first) catch { _ => fail("fixed facts") }
+  guard public_copy is Object(fields) else { fail("facts object") }
+  fields.set("value", "foreign consumer copy".to_json())
+  fields.set("target", Json::null())
+  assert_eq(range_request_json(binding, request), Ok(first))
+  let foreign = owned_binding()
+  assert_eq(
+    range_request_json(foreign, request).map_err(range_failure_code),
+    Err("ForeignSheetsRangeRequest"),
+  )
+}

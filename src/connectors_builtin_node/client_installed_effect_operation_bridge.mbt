@@ -3,6 +3,37 @@
 // bridges project no Ledger and supply no grant, new Root or cleanup ACK.
 
 ///|
+#export_name("clientProgramInstalledEffectCapturedInputInventoryRetain")
+pub fn client_program_installed_effect_captured_input_inventory_retain(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  inputs : @strategy.CapturedEffectInputs,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.retain_installed_effect_captured_input_inventory(
+    owner, prepared, request, plan, inputs,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectRecoveredInputInventoryRetain")
+pub fn client_program_installed_effect_recovered_input_inventory_retain(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.retain_installed_effect_recovered_input_inventory(
+    owner, prepared, request, plan, allowed, definition, invocation, preview,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationBorrow")
 pub fn client_program_installed_effect_operation_borrow(
   owner : @client_local_host.ClientInstalledManagedRun,
@@ -123,9 +154,13 @@ pub fn client_program_installed_effect_operation_response_backing_fits(
   original : @client_local_host.ClientInstalledEffectOperationExtent,
   max_response_bytes : Int,
   max_header_bytes : Int,
+  response_read_quantum : Int,
 ) -> Bool {
   @client_local_host.installed_effect_operation_response_backing_fits(
-    original, max_response_bytes, max_header_bytes,
+    original,
+    max_response_bytes,
+    max_header_bytes,
+    response_read_quantum~,
   )
 }
 
@@ -188,4 +223,158 @@ pub fn client_program_installed_standard_create_constructor_capacities(
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   @client_local_host.installed_standard_create_constructor_capacities(original)
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationConstructionComplete")
+pub fn client_program_installed_effect_operation_construction_complete(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_operation_construction(original)
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationConstructionRetain")
+pub fn client_program_installed_effect_operation_construction_retain(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  member_index : Int,
+  per_row : Bool,
+  operation_index : Int,
+  row_index : Int,
+  operation : String,
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationBorrow,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, member_index, per_row, operation_index, row_index,
+    operation,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationConstructionBegin")
+pub fn client_program_installed_effect_operation_construction_begin(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_construction(original)
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationControlsRetain")
+pub fn client_program_installed_effect_operation_controls_retain(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationControlConstructionBegin")
+pub fn client_program_installed_effect_operation_control_construction_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationControlInputBegin")
+pub fn client_program_installed_effect_operation_control_input_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  wire : String,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_control_input(
+    owner, prepared, request, plan, wire,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationControlConstructionComplete")
+pub fn client_program_installed_effect_operation_control_construction_complete(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationInputBegin")
+pub fn client_program_installed_effect_operation_input_begin(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+  input : @client_local_host.ClientInstalledEffectOperationExtent,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_input(original, input)
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationLedgerCodecBegin")
+pub fn client_program_installed_effect_operation_ledger_codec_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  wire : String?,
+  nodes : Int,
+  depth : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_ledger_codec(
+    owner, prepared, request, plan, wire, nodes, depth,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationLedgerCodecComplete")
+pub fn client_program_installed_effect_operation_ledger_codec_complete(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_operation_ledger_codec(
+    owner, prepared, request, plan,
+  )
+}
+
+///|
+/// Same owned constructor's detached output after actual physical close.
+#export_name("clientProgramInstalledEffectOperationConstructionCompleteOutput")
+pub fn client_program_installed_effect_operation_construction_complete_output(
+  value : @client_local_host.ClientInstalledEffectOperationBorrow,
+  wire : String,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_operation_construction_output(
+    value, wire,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationResponseProjectionComplete")
+pub fn client_program_installed_effect_operation_response_projection_complete(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_operation_response_projection(
+    original,
+  )
 }

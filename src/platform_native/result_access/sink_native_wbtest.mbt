@@ -1,6 +1,6 @@
 ///|
 test "Native Result service rejects unsupported frame limits before admission or delivery" {
-  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let parent = @filesystem.open_root(root_path).unwrap()
   let name = "sink-invalid-limits-" + @env.now().to_string()
   parent.create_directory(name).unwrap() |> ignore
@@ -63,7 +63,7 @@ test "Native Result service rejects unsupported frame limits before admission or
 fn sink_access_case(
   case : String,
 ) -> (@store.Store, NativeResultAccessSession, Ref[Bool]) {
-  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let parent = @filesystem.open_root(root_path).unwrap()
   let name = "sink-" + case + "-" + @env.now().to_string()
   parent.create_directory(name).unwrap() |> ignore

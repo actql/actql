@@ -50,8 +50,8 @@ fn installed_source_response_workspace(
     owned_utf16_units: literal.owned_utf16_units,
     owned_wire_bytes: 0L,
   }
-  // Unicode 16's pinned <=4-scalar recursive expansion gives <=8 UTF16
-  // units per decoded key unit. Sum all normalized key output with the
+  // Use the SAME canonical Owner's generated UTF16 expansion, including
+  // supplementary mappings. Sum all normalized key output with the
   // non-normalizing tree bound, even if old text would already be unrooted.
   // The separate one-key normalization workspace includes scalar arrays,
   // stable ordering, builder, LF passes and bounded recursive controls.
@@ -59,7 +59,8 @@ fn installed_source_response_workspace(
     record_headers: 1L + nodes.to_int64(),
     reference_slots: 0L,
     scalar_words: 0L,
-    owned_utf16_units: 9L * bytes.to_int64(),
+    owned_utf16_units: bytes.to_int64() +
+    @canonical.nfc_lf_retained_output_units(bytes.to_int64()).unwrap(),
     owned_wire_bytes: 0L,
   }
   @execution.compose_preparation_representation([
@@ -79,111 +80,19 @@ fn installed_source_response_preserving_workspace(
   nodes : Int,
   depth : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  guard @source.json_literal_construction_extent(bytes, nodes, depth)
-    is Some(literal) &&
-    @shape.key_admission_construction_extent(nodes, nodes) is Some(all_keys) &&
-    @shape.key_admission_construction_extent(Int::min(nodes, depth), nodes)
-    is Some(active_keys) &&
-    literal.record_headers >= all_keys.record_headers &&
-    literal.reference_slots >= all_keys.reference_slots &&
-    literal.scalar_words >= all_keys.scalar_words else {
+  guard @decode.preserving_json_admission_construction_inventory(
+      bytes, nodes, depth,
+    )
+    is Some(original) else {
     return None
   }
-  // Reuse ONLY the decoder's structural families. Each node is either an object, an array or a scalar;
-  // objects+arrays <= nodes. The shared structural inventory is affine in
-  // those counts. Its two homogeneous endpoints therefore bound each
-  // representation coordinate for every mixture, without co-counting two
-  // impossible full container populations. These are constructor bounds, not facts from the ASCII scan.
-  // Its parser/text/ASCII-control inventories are not consumed below.
-  let indexed = closed_values_source_inventories({
-    input_bytes: bytes,
-    node_upper: nodes,
-    objects: nodes,
-    arrays: 0,
-    fields_upper: nodes,
-    quoted_tokens: 0,
-    quoted_utf16_units: 0,
-    longest_quoted_utf16: 0,
-    longest_atom_utf16: 0,
-    depth_upper: Int::min(nodes, depth),
-  })
-  let array_indexed = closed_values_source_inventories({
-    input_bytes: bytes,
-    node_upper: nodes,
-    objects: 0,
-    arrays: nodes,
-    fields_upper: nodes,
-    quoted_tokens: 0,
-    quoted_utf16_units: 0,
-    longest_quoted_utf16: 0,
-    longest_atom_utf16: 0,
-    depth_upper: Int::min(nodes, depth),
-  })
-  guard @execution.compose_preparation_representation([
-      indexed.indexed_additional,
-      indexed.decoder_ancestry_peak,
-      indexed.decoder_controls_peak,
-    ])
-    is Some(objects) &&
-    @execution.compose_preparation_representation([
-      array_indexed.indexed_additional,
-      array_indexed.decoder_ancestry_peak,
-      array_indexed.decoder_controls_peak,
-    ])
-    is Some(arrays) else {
-    return None
-  }
-  // json_literal_construction_extent includes its full key-map peak already.
-  // Parser frames release their maps when an object completes; decoder
-  // ObjectNext frames start only after parsing. Neither map is in the Source
-  // tree. Both check depth BEFORE creating a new map, so at most min(nodes,
-  // depth) map owners and nodes entries coexist, including a pending key on
-  // refusal. Replace only that original component, then charge ONE shared
-  // peak for these sequential phases, not a second decoder key-map peak.
-  let source : @execution.PreparationRepresentationUnits = {
-    record_headers: literal.record_headers - all_keys.record_headers,
-    reference_slots: literal.reference_slots - all_keys.reference_slots,
-    scalar_words: literal.scalar_words - all_keys.scalar_words,
-    owned_utf16_units: literal.owned_utf16_units,
+  Some({
+    record_headers: original.record_headers,
+    reference_slots: original.reference_slots,
+    scalar_words: original.scalar_words,
+    owned_utf16_units: original.owned_utf16_units,
     owned_wire_bytes: 0L,
-  }
-  // The original Bytes decoder owns its input String. Preserving parsing
-  // and exact-key admission do not normalize keys or allocate normalized key
-  // Strings; source/index/UTF8 validation and refusal controls stay included.
-  let input_and_keys : @execution.PreparationRepresentationUnits = {
-    record_headers: 1L,
-    reference_slots: 0L,
-    scalar_words: 0L,
-    owned_utf16_units: bytes.to_int64(),
-    owned_wire_bytes: 0L,
-  }
-  @execution.compose_preparation_representation([
-    source,
-    {
-      record_headers: Int64::max(objects.record_headers, arrays.record_headers),
-      reference_slots: Int64::max(
-        objects.reference_slots,
-        arrays.reference_slots,
-      ),
-      scalar_words: Int64::max(objects.scalar_words, arrays.scalar_words),
-      owned_utf16_units: Int64::max(
-        objects.owned_utf16_units,
-        arrays.owned_utf16_units,
-      ),
-      owned_wire_bytes: Int64::max(
-        objects.owned_wire_bytes,
-        arrays.owned_wire_bytes,
-      ),
-    },
-    {
-      record_headers: active_keys.record_headers,
-      reference_slots: active_keys.reference_slots,
-      scalar_words: active_keys.scalar_words,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
-    },
-    input_and_keys,
-  ])
+  })
 }
 
 ///|
@@ -198,12 +107,13 @@ pub fn installed_json_source_reader_capacity(
 }
 
 ///|
-fn installed_json_source_reader_capacity_with_decoder(
+fn installed_source_reader_retained_inventory(
   limits : Array[Int],
   columns : Int,
   secret_bytes : Int,
-  response_workspace : (Int, Int, Int) -> @execution.PreparationRepresentationUnits?,
-) -> @execution.ExecutionCapacity? {
+  track_row_identity? : Bool = true,
+  received? : (Int64, Int)? = None,
+) -> @execution.PreparationRepresentationUnits? {
   // Same field order as the installed JSON reader's immutable limits view.
   // response/total/nodes/depth/rows/totalRows/pages/pageSize/cursor/identity/
   // target/valueNodes/valueText/rowWire/rowNodes/rowDepth.
@@ -217,11 +127,26 @@ fn installed_json_source_reader_capacity_with_decoder(
   }
   let response = limits[0].to_int64()
   let total = limits[1].to_int64()
-  let rows = limits[4].to_int64()
-  let ids = limits[5].to_int64()
+  // JSON page decoding owns its id/cursor duplicate-tracking state. A native
+  // managed sequence never constructs it; its selected codec owns and quotes
+  // the original protocol's actual identity/locator material instead.
+  let ids = if track_row_identity { limits[5].to_int64() } else { 0L }
   let pages = limits[6].to_int64()
-  let cursors = pages
-  let originals = pages + 1L
+  let cursors = if track_row_identity { pages } else { 0L }
+  let (total, originals) = match received {
+    None => (total, pages + 1L)
+    Some((bytes, count)) => {
+      if bytes < 0L ||
+        count < 0 ||
+        count > limits[6] ||
+        bytes > total + response {
+        return None
+      }
+      // Retain actual received originals plus one next physical body. Future
+      // page maxima are not already allocated retained response buffers.
+      (bytes, count.to_int64() + 1L)
+    }
+  }
   let fields = columns.to_int64()
   // Charge/retain the original received body before a total-byte refusal.
   // One offending response overlaps the admitted total; no new request is
@@ -260,13 +185,33 @@ fn installed_json_source_reader_capacity_with_decoder(
     is Some(text) else {
     return None
   }
+  let fixed = installed_source_reader_fixed_retention_inventory()
+  Some({
+    record_headers: fixed.record_headers + 3L * originals,
+    reference_slots: fixed.reference_slots +
+    2L * fields +
+    9L * originals +
+    2L * ids +
+    2L * cursors,
+    scalar_words: fixed.scalar_words + 3L * originals + ids + cursors,
+    owned_utf16_units: text,
+    owned_wire_bytes: raw,
+  })
+}
+
+///|
+// Shared original reader frame; protocol-specific inventories add only DATA.
+fn installed_source_reader_fixed_retention_inventory() -> @execution.PreparationRepresentationUnits {
   // Source-owned reader frame, handle/custody/binding envelopes, captured
   // methods and callback environments, provider invocation context/limits,
   // prepared reader/state, two projected-name vectors and two live Sets.
   // Original installation/schema/Account/Journal backing remains borrowed.
   // The same reader retains one optional direct sequence reference in its
   // existing frame until original read/binding retirement; no child Owner.
-  let common_fields = 37L + 4L + 1L + 3L + 3L + 21L + 6L + 2L + 2L
+  // RowRun's existing preparation flag now retains its SAME original response
+  // borrow through workspace return and final cleanup. The reference replaces
+  // that flag in the SAME resident slot; they never coexist in that frame.
+  let common_fields = 38L + 4L + 1L + 3L + 3L + 21L + 6L + 2L + 2L + 1L
   let provider_fields = 5L + 5L + 6L + 3L + 18L + 16L + 5L + 6L + 8L + 4L
   let closures = 13L
   // One resolver-close carrier (six fields), its original binding field and
@@ -274,27 +219,97 @@ fn installed_json_source_reader_capacity_with_decoder(
   // file Owner; these are managed control records, not a physical FD price.
   let resolver_headers = 5L
   let resolver_slots = 11L
-  let retained : @execution.PreparationRepresentationUnits = {
-    record_headers: 39L + resolver_headers + 3L * originals,
+  // Two typed-value callbacks share the original RowRun/sequence state.
+  let native_callback_headers = 2L
+  let native_callback_slots = 4L
+  // The root and borrowed credential keep their SAME captured current pairs
+  // until binding retirement (2H/6R). A bound Site carries its two resource-
+  // child method references (2R); the generic factory/reader retains five
+  // selection/method slots (5R). Actual separately bound children and their
+  // credentials/secret/current closures belong to the selected domain quote.
+  let resource_current_headers = 2L
+  let resource_current_slots = 13L
+  {
+    record_headers: 39L +
+    resolver_headers +
+    native_callback_headers +
+    resource_current_headers,
     reference_slots: common_fields +
     provider_fields +
     closures +
     resolver_slots +
-    4L +
-    2L * fields +
-    9L * originals +
-    2L * ids +
-    2L * cursors,
-    scalar_words: 20L + 3L * originals + ids + cursors,
-    owned_utf16_units: text,
-    owned_wire_bytes: raw,
+    native_callback_slots +
+    resource_current_slots +
+    4L,
+    // The one native-prepared selection flag survives until reader retirement.
+    scalar_words: 20L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
   }
+}
+
+///|
+fn installed_source_reader_control_inventory() -> @execution.PreparationRepresentationUnits {
+  let native_control_headers = 7L
+  // One private prepare argument and one factory input property forward the
+  // SAME bound response borrow. One context slot exposes the SAME combined
+  // cancellation signal, not another owner. No new selection/Run is created.
+  let native_control_slots = 14L + 2L + 1L
+  let native_control_words = 11L
+  {
+    record_headers: 20L + native_control_headers,
+    reference_slots: 3L +
+    18L +
+    3L +
+    18L +
+    5L +
+    6L +
+    2L +
+    1L +
+    6L +
+    4L +
+    4L +
+    15L +
+    native_control_slots,
+    scalar_words: 12L + native_control_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+}
+
+///|
+fn installed_json_source_reader_capacity_with_decoder(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  response_workspace : (Int, Int, Int) -> @execution.PreparationRepresentationUnits?,
+  sequential_preserving? : Bool = false,
+) -> @execution.ExecutionCapacity? {
+  guard installed_source_reader_retained_inventory(
+      limits, columns, secret_bytes,
+    )
+    is Some(retained) else {
+    return None
+  }
+  let response = limits[0].to_int64()
+  let rows = limits[4].to_int64()
+  let fields = columns.to_int64()
   // Provider projection, admitted values and the parsed output row page
   // coexist with the Source/indexed workspace below. JSON-node pricing comes
   // from B's shared
   // fold, not another provider-specific byte tariff.
+  // The fixed preserving Sheets codecs parse the response with Source and
+  // return only projected rows/scalars. They never JSON.parse the raw body in
+  // Host JS. Its complete Source tree is already owned by response_workspace;
+  // do not price that SAME raw tree again as generic Host value-node slots.
+  // Returned row/value nodes, Strings, output wire and failure peaks stay.
+  let response_value_nodes = if sequential_preserving {
+    0L
+  } else {
+    limits[2].to_int64()
+  }
   guard @execution.checked_preparation_add_product(
-      limits[2].to_int64(),
+      response_value_nodes,
       limits[14].to_int64(),
       1L,
     )
@@ -315,21 +330,18 @@ fn installed_json_source_reader_capacity_with_decoder(
   }
   // Current raw decode, provider row wire, parsed-row serialization, target
   // encoding and literal admission text are distinct live work buffers.
+  // A native signed child retains both original field descriptors, the
+  // two-field handoff and its extra argument through the current await.
+  // Include the optional method envelope and typed-consumption callback
+  // controls alongside that whole prefix, even though those calls ordinarily
+  // complete in sequence. No new variable payload or credential is copied.
+  // Prepared-native entry adds one own-field descriptor (one reference and
+  // three Boolean words), two original-fact references in the existing input
+  // record and one first-invocation reference in the existing read arguments.
+  // These are borrowed originals, never copied acquisition or grant payloads.
+  let controls = installed_source_reader_control_inventory()
   let workspace : @execution.PreparationRepresentationUnits = {
-    record_headers: 20L,
-    reference_slots: 3L +
-    18L +
-    3L +
-    18L +
-    5L +
-    6L +
-    2L +
-    1L +
-    6L +
-    4L +
-    4L +
-    15L,
-    scalar_words: 12L,
+    ..controls,
     owned_utf16_units: response +
     3L * limits[13].to_int64() +
     limits[10].to_int64() +
@@ -337,9 +349,61 @@ fn installed_json_source_reader_capacity_with_decoder(
     owned_wire_bytes: response + limits[13].to_int64(),
   }
   guard response_workspace(limits[0], limits[2], limits[3])
-    is Some(response_workspace) &&
-    @execution.compose_preparation_representation([
-      workspace, response_workspace,
+    is Some(response_parse) else {
+    return None
+  }
+  if sequential_preserving {
+    // The fixed Sheets bridge returns only Json rows/scalars (or a scalar
+    // refusal) from project_grid/check_target. Its raw Source Cursor/index
+    // cannot escape into the later stringify/Host JSON.parse/acceptPage call.
+    // Keep all received bodies and the returned row/value envelope. Only the
+    // two complete parser peaks are sequential; neither is omitted, including
+    // a failed response or a failed output-page admission.
+    let response_buffers = {
+      ..workspace,
+      owned_utf16_units: response +
+      limits[10].to_int64() +
+      limits[12].to_int64(),
+      owned_wire_bytes: response,
+    }
+    guard response_workspace(limits[13], limits[14], limits[15])
+      is Some(row_parse) &&
+      @execution.compose_preparation_representation([
+        response_buffers, response_parse,
+      ])
+      is Some(response_peak) &&
+      @execution.compose_preparation_representation([workspace, row_parse])
+      is Some(row_peak) &&
+      @execution.preparation_execution_capacity({
+        retained,
+        workspace: response_peak,
+        retained_nodes: 0L,
+        workspace_nodes: nodes,
+        retained_bytes: 0L,
+        workspace_bytes: 0L,
+      })
+      is Some(response_capacity) &&
+      @execution.preparation_execution_capacity({
+        retained,
+        workspace: row_peak,
+        retained_nodes: 0L,
+        workspace_nodes: nodes,
+        retained_bytes: 0L,
+        workspace_bytes: 0L,
+      })
+      is Some(row_capacity) else {
+      return None
+    }
+    return @execution.execution_capacity(
+      @execution.execution_capacity_retained_bytes(response_capacity),
+      Int64::max(
+        @execution.execution_capacity_execution_bytes(response_capacity),
+        @execution.execution_capacity_execution_bytes(row_capacity),
+      ),
+    )
+  }
+  guard @execution.compose_preparation_representation([
+      workspace, response_parse,
     ])
     is Some(workspace) else {
     return None
@@ -566,10 +630,80 @@ pub fn installed_preserving_json_source_reader_capacity_with_request(
 ) -> @execution.ExecutionCapacity? {
   guard request is Some(request) &&
     installed_json_source_reader_capacity_with_decoder(
-      limits, columns, secret_bytes, installed_source_response_preserving_workspace,
+      limits,
+      columns,
+      secret_bytes,
+      installed_source_response_preserving_workspace,
+      sequential_preserving=true,
     )
     is Some(reader) else {
     return None
   }
-  @execution.add_execution_capacity(reader, request)
+  // The fixed standard Reader calls its synchronous request projector before
+  // sending, and invokes the response decoder only after that request returns.
+  // An invalid async/throwing request cannot proceed to receive/decode. Keep
+  // all original response-prefix and returned request data simultaneously;
+  // only their completed constructor workspaces are sequential.
+  standard_create_sequence_pair_capacity(reader, request)
+}
+
+///|
+/// Same shared Reader/response/binding controls for a native typed protocol.
+/// Its original domain recipe supplies all parser/index/typed-codec material;
+/// no generic JSON row serialization or a second raw decoder is selected.
+/// A missing native constructor quote remains unavailable, never zero/default.
+pub fn installed_native_source_reader_capacity(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  native : @execution.ExecutionCapacity?,
+  received? : (Int64, Int)? = None,
+) -> @execution.ExecutionCapacity? {
+  guard native is Some(native) &&
+    installed_source_reader_retained_inventory(
+      limits,
+      columns,
+      secret_bytes,
+      track_row_identity=false,
+      received~,
+    )
+    is Some(retained) else {
+    return None
+  }
+  let controls = installed_source_reader_control_inventory()
+  let preflight = @source.json_source_preflight_control_extent()
+  let staged = if received is Some(_) { 1L } else { 0L }
+  guard @execution.preparation_execution_capacity({
+      retained,
+      workspace: {
+        record_headers: controls.record_headers +
+        staged * (preflight.record_headers + 4L),
+        reference_slots: controls.reference_slots +
+        staged * (preflight.reference_slots + 10L),
+        scalar_words: controls.scalar_words +
+        staged * (preflight.scalar_words + 4L),
+        // Fund the next bounded decoded Source String before its preflight.
+        // The grammar tree is admitted separately from that original geometry.
+        owned_utf16_units: limits[10].to_int64() +
+        (if received is Some(_) { limits[0].to_int64() } else { 0L }),
+        owned_wire_bytes: limits[0].to_int64(),
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(reader) else {
+    return None
+  }
+  @execution.add_execution_capacity(reader, native)
+}
+
+///|
+/// One additional independently issued read Grant uses the existing Credential
+/// codec and Journal construction recipe. This quantity does not issue a Grant
+/// or replace its original decision/current checks. Shared readers already fund
+/// their root; a selected distinct-Resource child composes this once separately.
+pub fn installed_source_child_grant_construction_capacity() -> @execution.ExecutionCapacity? {
+  standard_create_grant_capacity()
 }

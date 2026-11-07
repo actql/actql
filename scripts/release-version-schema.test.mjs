@@ -25,13 +25,13 @@ test('actual schema version regex and shared parser match independent literal ve
   assert.equal(supported.length + invalid.length, 27);
 });
 
-test('existing lint opt-in selects the release files without new publication authority', () => {
+test('existing public lint selects the release files without new publication authority', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs.lint;
   assert.deepEqual(workflow.jobs.native.steps.find(step => step.name === 'Test immutable Native package-version C mechanism'),
     {name: 'Test immutable Native package-version C mechanism', run: 'node --test scripts/native-cli-version-native.test.mjs'});
   assert.deepEqual(job.needs, ['select-targets', 'preflight']);
-  assert.equal(job.if, "${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}");
+  assert.equal(job.if, "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}");
   const selected = job.steps.filter(step => step.name === 'Test explicit release policy and publication refusal');
   assert.equal(selected.length, 1);
   assert.deepEqual(selected[0], {name: 'Test explicit release policy and publication refusal',

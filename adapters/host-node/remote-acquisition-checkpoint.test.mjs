@@ -10,6 +10,7 @@ import {mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile} from 'node:fs/pr
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {Readable} from 'node:stream';
+import {EventEmitter} from 'node:events';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
@@ -23,6 +24,8 @@ import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
+const fixtureHostCapacityPolicy = Object.freeze(JSON.parse(await readFile(join(repository,
+  'spec/local-check-environment.json'), 'utf8')).host_policy_profile.capacity);
 const scratch = join(repository, '_build', 'remote-acquisition-checkpoint');
 await mkdir(scratch, {recursive: true});
 const tlsRoot = await mkdtemp(join(scratch, 'tls-'));
@@ -56,7 +59,7 @@ test('acquisition fixture retains its independently pinned identity', () => {
   const {evidence_bundle_cid: expected, ...body} = sourceEnvironment;
   assert.equal(machineCid(body), expected);
   assert.equal(expected,
-    'sha256:535c4c9bbefc918c4e1c67afcc8a7fae402d37b9113d039b3a03c758ae59a58e');
+    'sha256:19b12bb2e1a64301bca6709ba8b2336d04fca3293983f9aae7ff653619a6e9cf');
 });
 
 const accountConfiguration = (outcome, operation, accountId) =>
@@ -65,6 +68,15 @@ const accountConfiguration = (outcome, operation, accountId) =>
       outcome, principal: {all: true}, connection: {all: true},
       resource: {all: true}, operation: {any_of: [operation]},
       exclusions: []}]});
+
+const hostAccountConfiguration = outcome => {
+  const body = JSON.parse(accountConfiguration(outcome, 'write', 'host-account'));
+  body.entries.push({entry_id: 'host-observation', outcome: 'allow',
+    principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/b', 'result/c', 'run']},
+    operation: {any_of: ['read']}, exclusions: []});
+  return canonicalJson(body);
+};
 
 async function installedSource(root, readOutcome) {
   // Keep the generic checking fixture unchanged; this publication extends
@@ -110,10 +122,9 @@ async function acquiringHost(t, {readOutcome = 'delegate',
   runOutcome = 'allow', extra = {}, directory, profile} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   const source = profile ?? await installedSource(root, readOutcome);
-  const steps = [];
+  const steps = [], resumeFailures = [];
   const authorization = {
-      accountConfiguration: accountConfiguration(runOutcome, 'write',
-        'host-account'),
+      accountConfiguration: hostAccountConfiguration(runOutcome),
       reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
         principalId: 'reviewer-principal',
         publicKey: pem(reviewerKeys.publicKey)}],
@@ -125,6 +136,9 @@ async function acquiringHost(t, {readOutcome = 'delegate',
       ...extra,
       faultInjection: async (name, detail) => {
         steps.push(name);
+        if (name === 'resume_failed' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail?.code ?? '')) {
+          resumeFailures.push(detail.code);
+        }
         await extra.faultInjection?.(name, detail);
       },
     };
@@ -132,13 +146,24 @@ async function acquiringHost(t, {readOutcome = 'delegate',
     directory: join(root, 'state'),
     authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
     sourceProfilePath: source.path, authorization,
+    hostCapacityPolicy: fixtureHostCapacityPolicy,
   });
   let host = await openHost();
+  const closeOriginalHost = () => host.close().catch(error => {
+    t.diagnostic(JSON.stringify({phase: 'close_host', code: error.code,
+      owners: error.cleanupErrors?.map(({owner, error: failure}) => ({owner,
+        code: failure.code,
+        message: /^[A-Za-z][A-Za-z0-9_ ]{0,100}$/u.test(failure.message ?? '')
+          ? failure.message : undefined,
+        frames: failure.stack?.split('\n').slice(1, 4)}))}));
+    throw error;
+  });
   const seedHistorical = async (requestId, {runHeld} = {}) => {
-    await host.close();
+    await closeOriginalHost();
     const original = await writeSyntheticHistoricalHeldQuery({directory: join(root, 'state'), document: program,
       requestId, authorization, sourceProfile: JSON.parse(await readFile(source.path, 'utf8')),
-      runtimeRootUrl: new URL('../../', import.meta.url), runHeld});
+      runtimeRootUrl: new URL('../../', import.meta.url), runHeld,
+      hostCapacityPolicy: fixtureHostCapacityPolicy});
     await writeFile(join(root, 'synthetic-original.json'), JSON.stringify(original), {flag: 'wx', mode: 0o600});
     host = await openHost();
   };
@@ -151,7 +176,7 @@ async function acquiringHost(t, {readOutcome = 'delegate',
     closed = true;
     server.closeAllConnections?.();
     await new Promise(resolve => server.close(resolve));
-    await host.close();
+    await closeOriginalHost();
   };
   t.after(async () => {
     await close();
@@ -166,7 +191,7 @@ async function acquiringHost(t, {readOutcome = 'delegate',
     }
     return client;
   };
-  return {root, steps, close, source, as, handler: (request, response) => host.handler(request, response),
+  return {root, steps, resumeFailures, close, source, as, handler: (request, response) => host.handler(request, response),
     diagnose: () => journalState(root, steps),
     count: name => steps.filter(item => item === name).length};
 }
@@ -221,8 +246,9 @@ async function held(client, requestId, original = {}) {
 async function assertResults(client, requestId, describe) {
   const found = await waitFor(async () => {
     const lookup = await client.lookupRequest(requestId);
-    return lookup.kind === 'found' ? lookup : undefined;
+    return lookup.kind === 'found' || lookup.state === 'ended' ? lookup : undefined;
   }, describe);
+  assert.equal(found.kind, 'found', found.terminalErrorCode ?? found.endReason);
   const execution = await client.attach(found.ref);
   const state = await waitFor(async () => {
     const current = await execution.wait();
@@ -381,6 +407,7 @@ test('A5: an expired read approval or a changed source account acquires nothing'
     await waitFor(async () => (await owner2.lookupRequest('expired-a'))
       .state === 'ended');
     assert.equal(restarted.count('acquisition_started'), 0);
+    await restarted.close();
     // The source account changed to deny while a read waited: the held
     // request ends at revalidation and nothing is acquired.
     const changing = await acquiringHost(t, {extra: {
@@ -403,6 +430,7 @@ test('A5: an expired read approval or a changed source account acquires nothing'
     });
     assert.equal(ended.endReason, 'revalidation_failed');
     assert.equal(after.count('acquisition_started'), 0);
+    await after.close();
   });
 
 test('A3: Run acceptance and the read are held and answered in turn',
@@ -479,6 +507,7 @@ test('A3: an approved read never reads a different physical target',
       assert.equal(ended.kind, 'held', name);
       assert.equal(second.count('dispatch_reserved'), 0, name);
       assert.equal(second.count('acquisition_started'), 0, name);
+      await second.close();
     }
   });
 
@@ -684,7 +713,11 @@ test('A3: an approved read binds the exact physical name, not its NFC form',
       const second = await acquiringHost(t, {directory, profile: source});
       const owner2 = await second.as('owner-token');
       if (expected === 'result') {
-        await assertResults(owner2, `unicode-${name}`);
+        await assertResults(owner2, `unicode-${name}`, async () => {
+          const lookup = await owner2.lookupRequest(`unicode-${name}`);
+          return {kind: lookup.kind, state: lookup.state, endReason: lookup.endReason,
+            failures: second.resumeFailures, steps: second.steps.slice(-10)};
+        });
         assert.equal(second.count('acquisition_started'), 1, name);
       } else {
         await waitFor(async () =>
@@ -692,6 +725,7 @@ test('A3: an approved read binds the exact physical name, not its NFC form',
         assert.equal(second.count('dispatch_reserved'), 0, name);
         assert.equal(second.count('acquisition_started'), 0, name);
       }
+      await second.close();
     }
   });
 
@@ -759,24 +793,33 @@ test('Remote Host close waits for a read recording its delivery attempt',
         authorization: 'Bearer owner-token'}});
     // A response that accepts every byte but holds its end.
     const response = () => {
-      const sent = {status: undefined, chunks: [], release: undefined};
+      const sent = Object.assign(new EventEmitter(),
+        {status: undefined, chunks: [], release: undefined});
+      sent.on('error', error => {sent.failure = error;});
       return Object.assign(sent, {
         destroyed: false, writableEnded: false, headersSent: false,
         writeHead(status) { sent.status = status; sent.headersSent = true; },
-        write(bytes, done) { sent.chunks.push(Buffer.from(bytes)); done?.(); },
+        write(bytes, done) { sent.chunks.push(Buffer.from(bytes)); done?.();return true; },
         end(bytes, done) {
           if (typeof bytes === 'function') [bytes, done] = [undefined, bytes];
           if (bytes !== undefined) sent.chunks.push(Buffer.from(bytes));
           sent.writableEnded = true;
           sent.release = done ?? (() => {});
         },
-        on() {}, off() {}, destroy() { sent.destroyed = true; },
+        destroy(error) {
+          sent.destroyed = true;
+          if (error !== undefined) sent.emit('error', error);
+          sent.emit('close');
+        },
       });
     };
     const held = response();
     const reading = host.handler(raw('read', {ref: execution.ref,
       resultName: 'b', format: 'jsonl', attemptId: 'close-read-a'}), held);
-    await waitFor(async () => held.release !== undefined, host.diagnose);
+    await waitFor(async () => {
+      if (held.failure !== undefined) throw held.failure;
+      return held.release !== undefined;
+    }, host.diagnose);
     assert.equal(held.status, 200, Buffer.concat(held.chunks).toString());
     assert.ok(Buffer.concat(held.chunks).length > 0);
     let closed = false;
@@ -799,4 +842,5 @@ test('Remote Host close waits for a read recording its delivery attempt',
     const attempt = await (await (await reopened.as('owner-token'))
       .attach(execution.ref)).result('b').deliveryAttempt('close-read-a');
     assert.equal(attempt.record?.state, 'succeeded');
+    await reopened.close();
   });

@@ -26,6 +26,7 @@ import {
   "actql/actql/relation_nest",
   "actql/actql/relation_typing",
   "actql/actql/source_value",
+  "actql/actql/sourceview_input",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
@@ -325,6 +326,8 @@ pub fn group_string_limit_source(GroupStringLimit) -> GroupAggregateSource
 
 pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
 
+pub fn independent_supplied_binding_issue(CheckOutcome, @stage_syntax.Program, @decode_core.Cursor?) -> @parameter_binding.Issue?
+
 pub fn infer_item_limit_claim(InferItemLimit) -> @capacity_witness.LimitClaim
 
 pub fn infer_item_limit_matches(InferItemLimit, CheckedProgram, Int, Int) -> Bool
@@ -363,6 +366,8 @@ pub fn interval_search_limit_selection(IntervalSearchLimit) -> @pipeline_check_c
 
 pub fn interval_search_limit_source(IntervalSearchLimit) -> UnitOperationSource
 
+pub fn keyed_execution_requirement(KeyedExecution) -> @sourceview_resolution.LookupRequirement
+
 pub fn keyed_input_proof_acquired(KeyedInputProof) -> ReidentifiedSourceInput?
 
 pub fn keyed_input_proof_at(CheckedProgram, Int) -> KeyedInputProof?
@@ -374,6 +379,8 @@ pub fn keyed_input_proof_count(CheckedProgram) -> Int
 pub fn keyed_input_proof_execution(KeyedInputProof) -> SourceExecution
 
 pub fn keyed_input_proof_source(KeyedInputProof) -> UnitOperationSource
+
+pub fn keyed_input_runtime_admission(KeyedInputProof) -> KeyedExecution?
 
 pub fn local_common_normalization_entry_at(LocalCommonNormalizationInventory, Int) -> (String, String, String, String)?
 
@@ -530,6 +537,8 @@ pub fn parsed_catalog_retained_extent(ParsedCatalogInput) -> @check_environment.
 pub fn parsed_catalog_semantic_work(ParsedCatalogInput) -> Int
 
 pub fn parsed_check_carriers_inspection_bound(ParsedCheckRegistry) -> Int64
+
+pub fn parsed_check_collected_source_inputs(ParsedCheckRegistry) -> @sourceview_input.Inputs?
 
 pub fn parsed_check_contents_inspection_bound(ParsedCheckRegistry) -> Int64
 
@@ -1415,7 +1424,6 @@ pub enum InputRequestKind {
   NumericReductionProfile(@decode_core.Cursor)
   AggregateStringByteLimit(@decode_core.Cursor)
   TemporalSearchInputRows(@decode_core.Cursor, SearchInputSide)
-  KeyedAcquisitionInputRows(@decode_core.Cursor)
 }
 
 type InputRequests
@@ -1428,8 +1436,8 @@ pub struct KeyedExecution {
   index : Int
   join : @sourceview_resolution.KeyedJoin
   bounds : @sourceview_resolution.LookupBounds
-  counts : @sourceview_resolution.LookupCounts
-  producer : @capacity_graph_preflight.TargetMembership
+  requirement : @sourceview_resolution.LookupRequirement
+  producer : @capacity_graph_preflight.TargetMembership?
 }
 
 type KeyedInputProof

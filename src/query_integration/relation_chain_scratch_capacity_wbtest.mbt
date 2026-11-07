@@ -33,10 +33,15 @@ test "ordinary keyed count chain reserves only one cleaned child scratch envelop
   for index in 0..<count {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
-    let child = @execution.generated_sequence_capacity(
-      selected,
+    // Select the original built-in child's actual recipe. A keyed aggregate
+    // can retain the generic envelope even beside bounded leaf children.
+    let child_provider = @local_connector.local_bounded_relation_provider(
       limits.local_execution,
       limits.guards,
+      selected,
+    ).unwrap()
+    let child = @local_connector.managed_provider_capacity(
+      child_provider, selected,
     ).unwrap()
     retained += child.retained_bytes
     scratch = Int64::max(scratch, child.execution_bytes)

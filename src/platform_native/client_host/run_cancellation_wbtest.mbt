@@ -367,12 +367,28 @@ test "Native original cancellation refuses missing altered or lost witness custo
       })
       is Err(CustodyLost),
     )
+    let selected_key = if loss == "orphan_original" { "orphan" } else { key }
+    let corrupt = database.read(table, selected_key)
     database.close_checked().unwrap()
     let reopened = epoch_test_database(name)
-    assert_true(open_native_client_run_journal(reopened, 8) is Err(CustodyLost))
+    let reopened_journal = open_native_client_run_journal(reopened, 8).unwrap()
+    assert_true(run_journal_custody(reopened, 8) is Err(CustodyLost))
     assert_true(
-      initialize_native_client_run_journal(reopened) is Err(CustodyLost),
+      reopened_journal.transaction(() => {
+        initialize_native_client_run_journal_rows(reopened)
+      })
+      is Err(CustodyLost),
     )
+    match (corrupt, reopened.read(table, selected_key)) {
+      (Ok(before), Ok(after)) => {
+        assert_eq(after.body, before.body)
+        assert_eq(after.revision, before.revision)
+      }
+      (Err(@sqlite.NotFound), Err(@sqlite.NotFound)) => ()
+      _ =>
+        fail("integrity inspection changed the original cancellation custody")
+    }
+
     reopened.close_checked().unwrap()
   }
 }

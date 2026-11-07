@@ -58,6 +58,10 @@ async function fixture(t, installedBeforeFailure) {
     wire: '{"fixture":"original candidate, not issued authority"}'};
   const control = {
     reserveWorkspace(original) { assert.equal(original, ledger); counts.reserves++; return reservation; },
+    growWorkspace(original, handle, maximum, count) {
+      assert.equal(original, ledger); assert.equal(handle, reservation);
+      assert.equal(maximum, 4096); assert.equal(count, 1);
+    },
     releaseWorkspace(original, handle) {
       assert.equal(original, ledger); assert.equal(handle, reservation);
       assert.equal(prepared.status().pending, false, 'original physical child retires before funding');
@@ -76,7 +80,7 @@ async function fixture(t, installedBeforeFailure) {
     moon: {clientProgramKeyedAcquisitionMatchesProgram: () => true,
       clientProgramKeyedAcquisitionSourceEvidenceFacts: () => ({$tag: 1,
         _0: ['fixture Source', cid('contract'), cid('schema'), policy, 'internal', cid('view')]}),
-      clientProgramKeyedLookupCapacity: () => ({_1: 1})},
+      clientProgramKeyedLookupCapacity: () => assert.fail('static count is not a workspace prerequisite')},
     publications: {checkClientCompiledRunOwner() {}, checkClientCompiledRunDefinition() {}},
     control, preparedProgram: program, plan: {compiled, runDefinition: {
       identity: cid('original Run'), wire: '{"valid_until":"2099-01-01T00:00:00.000Z"}'}},

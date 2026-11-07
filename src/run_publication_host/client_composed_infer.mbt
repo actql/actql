@@ -100,6 +100,14 @@ pub fn prepared_client_composed_infer_occurrences(
     let count = @pipeline.step_count(
       @lower.pipeline(@lower.bound_preparation(preparation)),
     )
+    if count == 0 {
+      // A checked input-only task has a real receiving Carrier, not a
+      // fabricated output operation. Keep the same owner/target validation.
+      guard client_task_output_target(graph, task) is Some(@pipeline.Input(_)) else {
+        return None
+      }
+      continue
+    }
     guard client_task_output_step(graph, task, count) is Some(last) else {
       return None
     }
@@ -262,4 +270,13 @@ pub fn client_infer_occurrence_host_ceilings(
     "max_model_request_bytes_per_item",
     MissingRequestCeiling,
   ).map(bytes => (items, bytes))
+}
+
+///|
+/// Exact checked Effect occurrences in the existing task order. This borrows
+/// its private compiler view without issuing an Effect-free preparation.
+pub fn prepared_client_effect_infer_occurrences(
+  owner : PreparedClientEffectComputation,
+) -> Array[ClientInferOccurrence]? {
+  prepared_client_composed_infer_occurrences(client_effect_program_view(owner))
 }

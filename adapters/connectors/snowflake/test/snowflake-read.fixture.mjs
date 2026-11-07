@@ -54,10 +54,14 @@ async function originalRowOwner(descriptionBody) {
     read('spec/contracts/actql-aoa.json').then(JSON.parse),
     read('spec/contracts/actql-query-acquisition.json'),
     read('spec/contracts/actql-query-process-evidence.json')]);
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  // The native preparation accepts the original admitted sequence contracts,
+  // not the registry's raw JSON spelling in that nominal argument position.
+  const contracts = checked(moon.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
   const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
-    program, 0, 0, registry, JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    program, 0, 0, contracts, values, fragment, ordered));
   const prepared = checked(moon.clientProgramSnowflakePrepareRead(description,
     declaration, requirement, query, evidence, descriptionLimits, declarationLimits));
   const acquisition = moon.clientProgramSnowflakeReadAcquisition(prepared);
@@ -71,10 +75,7 @@ async function originalRowOwner(descriptionBody) {
   checked(moon.clientProgramRowSourceBegin(run, 4096, 2, 2, undefined));
   return {prepared, acquisition, run, ledger, requestId, requirement,
     originals: {description, declaration, declared, environment, program,
-      descriptionLimits, declarationLimits, registry,
-      values: JSON.stringify(aoa.execution_contracts['REL.values']),
-      fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])},
+      descriptionLimits, declarationLimits, registry: contracts, values, fragment, ordered},
     usage: () => moon.clientProgramMultiCapturedLedgerUsage(ledger),
     assertNoCapture: () => assert.throws(() => checked(moon.clientProgramRowSourceCapture(run)),
       {code: 'MoonBitHostFailure'}),

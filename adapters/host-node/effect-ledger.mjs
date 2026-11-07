@@ -11,6 +11,25 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
+// The normalizing Ledger parser alone uses the staged Unicode workspace.
+// Receipt/data-key constructors keep their complete unchanged envelope. These
+// original methods are closed installing-code calls, never caller callbacks.
+function bindEffectLedgerCodecs(original, construction) {
+  if (typeof construction?.ledgerCodec !== 'function') return original;
+  const codec = construction.ledgerCodec;
+  const control = {...original};
+  for (const name of ['admitLedgerEntry', 'issuePreparedLedgerEntry',
+    'issueNextLedgerEntry', 'issueRowReceiptTerminalEntry',
+    'issueRowReceiptTerminalEntryFromResponse']) {
+    const method = original[name];
+    if (typeof method !== 'function') fail('EffectLedgerControlRuntimeUnavailable');
+    control[name] = (...args) => Reflect.apply(codec, construction,
+      [original, method, args, name === 'admitLedgerEntry' ? args[0] : undefined,
+        args.at(-2), args.at(-1)]);
+  }
+  return Object.freeze(control);
+}
+
 // MoonBit admits the canonical fact and its transition. SQLite only owns
 // durable bytes and the atomic compare-and-swap of one item head.
 export function openEffectLedger({
@@ -28,6 +47,7 @@ export function openEffectLedger({
   maxOutcomeNodes = effectLedgerImplementationBounds.maxOutcomeNodes,
   maxOutcomeDepth = effectLedgerImplementationBounds.maxOutcomeDepth,
   maxCallerBytes = effectLedgerImplementationBounds.maxCallerBytes,
+  controlConstruction,
 }) {
   if (!Number.isSafeInteger(maxBatchRows) ||
       maxBatchRows < 1 || maxBatchRows > 1000) {
@@ -39,7 +59,8 @@ export function openEffectLedger({
       maxOutcomeDepth < 1 || maxOutcomeDepth > 32) {
     fail('InvalidEffectLedgerOutcomeLimit');
   }
-  const control = runtimeCore(moon).effectApplicationControl;
+  if (controlConstruction !== undefined && typeof controlConstruction !== 'function') fail('InvalidEffectLedgerConstruction');
+  const control = bindEffectLedgerCodecs(runtimeCore(moon).effectApplicationControl, controlConstruction);
   const scope = control.logicalRequestScope(
     authorityScopeCid, callerRequestId, maxCallerBytes,
   );
@@ -979,5 +1000,16 @@ export function openEffectLedger({
     },
     close: () => physical.close(),
   });
-  return ledger;
+  if (controlConstruction === undefined) return ledger;
+  // The original private ledger remains the receiver and internal call target.
+  // One outer caller frame owns nested original work, never recursive debits.
+  // Close remains the original cleanup path even after a constructor failed.
+  const caller = {};
+  for (const name of Object.keys(ledger)) {
+    const method = ledger[name];
+    caller[name] = typeof method !== 'function' ? method : name === 'close'
+      ? (...args) => Reflect.apply(method, ledger, args)
+      : (...args) => controlConstruction(ledger, method, args);
+  }
+  return Object.freeze(caller);
 }

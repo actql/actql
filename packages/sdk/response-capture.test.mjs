@@ -211,7 +211,10 @@ for (const item of cases) {
       enumerable: true, get() { return ++secondReads === 1 ? 7 : 99; }});
     if (item.operation === 'delivery-attempt') Object.defineProperty(reply, 'hostReleaseReceipt', {
       enumerable: true, get() { return ++secondReads === 1 ? null : delivered.hostReleaseReceipt; }});
-    const f = await fixture(t, reply), answer = await item.invoke(f.run, f.client);
+    const f = await fixture(t, reply);
+    let answer, failure;
+    try { answer = await item.invoke(f.run, f.client); } catch (error) { failure = error; }
+    assert.equal(failure, undefined, '[check-mutation:response-capture-once]');
     assert.equal(reads, 1, '[check-mutation:response-capture-once]');
     if (['cancel', 'delivery-attempt'].includes(item.operation)) assert.equal(secondReads, 1);
     assert.deepEqual(item.operation === 'submit-intent' ? answer.held : answer, item.reply());

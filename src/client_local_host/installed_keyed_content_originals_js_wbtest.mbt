@@ -2,7 +2,7 @@
 // Actual original Program/requirements and existing keyed constructor. This
 // is completed DATA reuse, not provider I/O, allocation or permission proof.
 test "keyed Content keeps the completed original requirements during later ledger selection" {
-  let source = split_keyed_content_limits_fixture()
+  let (source, _, _, declaration) = split_keyed_content_limits_fixture()
   let contracts = prepare_installed_sequence_contracts(
     source_query_original_registry,
     source_query_original_values,
@@ -25,7 +25,7 @@ test "keyed Content keeps the completed original requirements during later ledge
     source.prepared,
     source.direct,
     source.keyed,
-    source.declaration,
+    declaration,
     original_keyed_child_limits(),
     [8192L, 8192L],
     [4096L, 4096L],

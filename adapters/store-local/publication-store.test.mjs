@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
+import {buildNodeDirectoryNative} from '../../scripts/build-node-directory-native.mjs';
 import {
   chmod,
   link,
@@ -29,7 +30,8 @@ import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 import {canonicalCid, createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore as openActualLocalPublicationStore,
-  prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership}
+  prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership,
+  captureOriginalLocalExecutionOwner}
   from './publication-store.mjs';
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
@@ -195,6 +197,7 @@ test('fresh Store coverage shares its original native schema commit', async t =>
 });
 
 test('fresh Store coverage uses the same actual prepared owner creation', async t => {
+  buildNodeDirectoryNative();
   const directory = await mkdtemp(join(tmpdir(), 'actql-prepared-empty-store-'));
   let store, original;
   t.after(async () => {
@@ -207,7 +210,9 @@ test('fresh Store coverage uses the same actual prepared owner creation', async 
     maxObjects: 100, maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth};
   original = await prepareLocalPublicationStoreOwnership(directory,
     {maxWireBytes: 64 * 1024, maxDirectoryEntries: 100});
-  const owner = await readFile(join(directory, 'owner', 'owner.json'));
+  const ownerPath = join(directory, 'owner', 'owner.json');
+  const owner = JSON.parse(await readFile(ownerPath, 'utf8'));
+  const ownerState = await stat(ownerPath);
   let commits = 0;
   const exec = DatabaseSync.prototype.exec;
   t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
@@ -218,7 +223,14 @@ test('fresh Store coverage uses the same actual prepared owner creation', async 
   store = await openLocalPublicationStore(configuration, contractControl,
     undefined, undefined, original);
   assert.equal(commits, 1);
-  assert.deepEqual(await readFile(join(directory, 'owner', 'owner.json')), owner);
+  const receipt = captureOriginalLocalExecutionOwner(original);
+  assert.notEqual(receipt, undefined, 'adoption qualifies the original native lease');
+  assert.equal(receipt.token, owner.token);
+  assert.deepEqual(JSON.parse(await readFile(ownerPath, 'utf8')),
+    {...owner, leaseAnchor: receipt.anchor});
+  const adoptedState = await stat(ownerPath);
+  assert.equal(adoptedState.dev, ownerState.dev);
+  assert.equal(adoptedState.ino, ownerState.ino, 'lease qualification updates the same prepared owner file');
   assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, true);
   await store.close();
   assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, false);
@@ -7843,22 +7855,8 @@ test('restart reconciles a retired Result after unlink response is lost',
       maxContractNodes: limits.maxNodes,
       maxContractDepth: limits.maxDepth,
     };
-    let objectSyncFailures = 0;
-    const durability = Object.freeze({
-      async syncDirectory(path) {
-        if (path === join(directory, 'objects') && objectSyncFailures > 0) {
-          objectSyncFailures--;
-          const error = new Error('lost object directory sync response');
-          error.code = 'EIO';
-          throw error;
-        }
-        const handle = await open(path, 'r');
-        try { await handle.sync(); }
-        finally { await handle.close(); }
-      },
-    });
     const store = await openLocalPublicationStore(
-      configuration, contractControl, durability,
+      configuration, contractControl,
     );
     const invocationValue = invocation();
     const request = publicationRequest(
@@ -7874,17 +7872,38 @@ test('restart reconciles a retired Result after unlink response is lost',
     await commitFixtureIndex(store,
       wire(entry), prepared.required, prepared.evidence,
     );
-    objectSyncFailures = 1;
-    const retired = await store.retireCommittedResult(
-      indexKeyFor(request), request.inventory[0].result_definition_cid,
-    );
-    assert.equal(retired.cleanup.status().pending, true);
-    // Model abrupt process loss: no product close or cleanup callback runs.
-    // Only the dead owner's fencing record is removed before reopen.
-    await rm(join(directory, 'owner'), {recursive: true, force: false});
-    // The fixture explicitly models this owner as dead. Teardown must close
-    // the reopened owner, without invoking the dead owner's cleanup callback.
-    fixtureStores.get(resolve(directory)).delete(store);
+    await store.close();
+    const child = await runStoreChild(`
+      import assert from 'node:assert/strict';
+      import {open} from 'node:fs/promises';
+      import {join} from 'node:path';
+      import {openLocalPublicationStore} from ${JSON.stringify(new URL('./publication-store.mjs', import.meta.url).href)};
+      import {createPublicationContractControlFixture} from ${JSON.stringify(new URL('../host-common/publication-contract-control.fixture.mjs', import.meta.url).href)};
+      const configuration = ${JSON.stringify(configuration)};
+      const control = createPublicationContractControlFixture();
+      let objectSyncFailures = 0;
+      const store = await openLocalPublicationStore(configuration, control, {
+        async syncDirectory(path) {
+          if (path === join(configuration.directory, 'objects') && objectSyncFailures > 0) {
+            objectSyncFailures--;
+            throw Object.assign(new Error('lost object directory sync response'), {code: 'EIO'});
+          }
+          const handle = await open(path, 'r');
+          try { await handle.sync(); } finally { await handle.close(); }
+        },
+      });
+      const before = store.status().storedBytes;
+      objectSyncFailures = 1;
+      const retired = await store.retireCommittedResult(${JSON.stringify(indexKeyFor(request))},
+        ${JSON.stringify(request.inventory[0].result_definition_cid)});
+      assert.equal(retired.cleanup.status().pending, true);
+      assert.equal(store.status().storedBytes, before, 'lost ACK keeps original capacity');
+      await assert.rejects(openLocalPublicationStore(configuration, control),
+        {code: 'PublicationStoreBusy'});
+      // Actual process death ends this native lease without product cleanup.
+      process.exit(77);
+    `);
+    assert.equal(child.exitCode, 77, child.stderr);
     const reopened = await openLocalPublicationStore(
       configuration, contractControl,
     );
@@ -10284,6 +10303,73 @@ test('physical holding retirement waits for the exact active reader',
     assert.equal((await retiring.cleanup.retry()).pending, false);
     assert.equal(store.status().storedBytes, 0);
   });
+
+for (const interruption of ['failed ACK', 'replacement during ACK']) {
+test(`missing prior-lifetime holding retains capacity on ${interruption}`, async t => {
+  let failObjectSync = false;
+  const {store, configuration, directory} = await fixture(t);
+  const prepared = await preparePhysical(store, 'missing');
+  const record = physicalHolding(digest('missing prior holding'), digest('missing prior manifest'),
+    [{cid: prepared.cid, byte_count: prepared.bytes}]);
+  await store.commitPhysicalHolding(record, [prepared.prepared]);
+  await store.close();
+  await unlink(join(directory, 'objects', prepared.cid.slice(7)));
+  const reopened = await openLocalPublicationStore(configuration, contractControl, {
+    async syncDirectory(path) {
+      if (failObjectSync && path === join(directory, 'objects')) {
+        failObjectSync = false;
+        if (interruption === 'failed ACK') {
+          throw Object.assign(new Error('original missing-object directory ACK unavailable'), {code: 'EIO'});
+        }
+        await writeFile(join(path,prepared.cid.slice(7)), 'foreign replacement');
+      }
+      const handle = await open(path, 'r');
+      try {await handle.sync();} finally {await handle.close();}
+    },
+  });
+  await assert.rejects(reopened.inspectPhysicalHolding(record.holding_cid), code('PublicationObjectMissing'));
+  const unrelated = await reopened.putBytes(Buffer.from('current healthy object'));
+  const before = reopened.status();
+  failObjectSync = true;
+  const retired = await reopened.retirePhysicalHolding(record.holding_cid);
+  assert.equal(retired.deleted, false);
+  assert.equal(retired.cleanup.status().pending, true);
+  assert.equal(reopened.status().storedBytes, before.storedBytes,
+    'an absent pathname alone cannot refund its indexed original');
+  if (interruption === 'replacement during ACK') {
+    assert.equal(retired.cleanup.status().errors.at(-1).code, 'PublicationObjectAccountingMismatch');
+    assert.equal(await readFile(join(directory,'objects',prepared.cid.slice(7)), 'utf8'), 'foreign replacement');
+    await unlink(join(directory,'objects',prepared.cid.slice(7)));
+  }
+  assert.equal((await retired.cleanup.retry()).pending, false);
+  assert.equal(reopened.status().storedBytes, unrelated.bytes);
+  assert.equal(reopened.status().objectCount, 1);
+  await reopened.close();
+  assert.deepEqual(await readFile(join(directory, 'objects', unrelated.cid.slice(7))), Buffer.from('current healthy object'));
+});
+}
+
+test('missing current-lifetime holding retains its original charge until the original allocation returns', async t => {
+  const {store, directory} = await fixture(t);
+  const prepared = await preparePhysical(store, 'current');
+  const record = physicalHolding(digest('missing current holding'), digest('missing current manifest'),
+    [{cid: prepared.cid, byte_count: prepared.bytes}]);
+  await store.commitPhysicalHolding(record, [prepared.prepared]);
+  const path = join(directory, 'objects', prepared.cid.slice(7));
+  const retained = join(directory, 'original-current-allocation');
+  await link(path, retained);
+  await unlink(path);
+  const before = store.status();
+  const retired = await store.retirePhysicalHolding(record.holding_cid);
+  assert.equal(retired.deleted, false);
+  assert.equal(retired.cleanup.status().pending, true);
+  assert.equal(store.status().storedBytes, before.storedBytes);
+  assert.equal(retired.cleanup.status().errors.at(-1).code, 'PublicationObjectAccountingMismatch');
+  await link(retained, path);
+  await unlink(retained);
+  assert.equal((await retired.cleanup.retry()).pending, false);
+  assert.equal(store.status().storedBytes, 0);
+});
 
 test('physical holding retains capacity until unlink durability retry',
   async t => {

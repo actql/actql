@@ -55,9 +55,171 @@ let native_json_reader : @source.JsonDataReader[NativeJsonValue] = {
 }
 
 ///|
+// Exact authored public 100-column/99-row fixture, without a caller policy
+// override or a serialization fallback in the production native entry.
+extern "js" fn request_native_wide_public_program() -> String =
+  #|() => {
+  #| const fields = Array.from({length:100},(_,i)=>`v${i}`);
+  #| const rows = Array.from({length:99},(_,r)=>Object.fromEntries(fields.map((name,c)=>[name,r+c])));
+  #| return JSON.stringify({version:'actql/0.1',id:'static-limit-acceptance',stages:[{id:'main',inputs:{},steps:[{as:'v',values:{schema:Object.fromEntries(fields.map(name=>[name,{type:'number',nullable:false}])),rows}}],results:{rows:{from:'v',fields}}}],results:{answer0:{from:{stage:'main',result:'rows'}}}});
+  #|}
+
+///|
+test "standard native Program input retains the original public 100 by 99 Values document" {
+  let document = request_native_wide_public_program()
+  assert_eq(document.length(), 98034)
+  let (parent, input) = native_driver_parent(document)
+  let limits = request_default_program_preparation_limits(parent, input).unwrap().checking.input
+  let admitted = @syntax.admit_captured_program_input(
+    request_native_test_value(document),
+    native_json_reader,
+    limits,
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(admitted is Ok(_))
+}
+
+///|
+test "explicit native input limits remain tight and default selection cannot borrow a foreign Request" {
+  let document = request_native_wide_public_program()
+  let limits = @publication_host.client_standard_program_preparation_limits().checking.input
+  assert_true(
+    @syntax.admit_captured_program_input(
+      request_native_test_value(document),
+      native_json_reader,
+      limits,
+    )
+    is Err(_),
+  )
+  let (parent, input) = native_driver_parent(document)
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    request_default_program_preparation_limits(parent, [1])
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(
+    request_default_program_preparation_limits(parent, input) is Err(_),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+extern "js" fn request_native_numeric_public_program(count : Int) -> String =
+  #|(count) => JSON.stringify({version:'actql/0.1',id:'numeric-scale',
+  #| stages:[{id:'main',inputs:{},steps:[{as:'v',values:{
+  #| schema:{v0:{type:'number',nullable:false}},
+  #| rows:Array.from({length:count},(_,v0)=>({v0}))}}],
+  #| results:{rows:{from:'v',fields:['v0']}}}],
+  #| results:{answer0:{from:{stage:'main',result:'rows'}}}})
+
+///|
+test "default native Program input covers original numeric 10000 and 10001 rows" {
+  for count in [10000, 10001] {
+    let document = request_native_numeric_public_program(count)
+    let (parent, input) = native_driver_parent(document)
+    let limits = request_default_program_preparation_limits(parent, input).unwrap().checking.input
+    let admitted = @syntax.admit_captured_program_input(
+      request_native_test_value(document),
+      native_json_reader,
+      limits,
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_true(admitted is Ok(_))
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "explicit tight native Request fails before compilation and retains original cleanup" {
+  let document = request_native_wide_public_program()
+  let (parent, input) = native_driver_parent(document)
+  let (environment, publication) = request_query_publication_fixture()
+  let original = prepare_request_native_computation_check(
+    parent,
+    input,
+    request_native_test_value(document),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    @publication_host.client_standard_program_preparation_limits(),
+    @publication_host.client_standard_effect_computation_limits(),
+  )
+  assert_true(original is Err(Preparation(ProgramJson(Syntax(Parse(_))))))
+  assert_true(parent.compiled_program is None && parent.compiled_effect is None)
+  assert_true(
+    parent.program_source_free is None && parent.program_captured is None,
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
 #cfg(target="js")
 extern "js" fn request_native_test_value(document : String) -> NativeJsonValue =
   #|(document) => JSON.parse(document)
+
+///|
+// The authored SDK values fixture and its four original refusal mutations.
+// This constructs test DATA only; the existing Request driver below performs
+// the actual native admission, declaration and semantic-phase selection.
+extern "js" fn request_native_presemantic_case(index : Int) -> String =
+  #|(index) => {
+  #| const program = {version:'actql/0.1', id:'client-values', stages:[{
+  #|   id:'source', inputs:{}, steps:[{values:{schema:{id:{type:'number',nullable:false}},
+  #|     rows:[{id:1},{id:2}]}, as:'selected'}],
+  #|   results:{rows:{from:'selected',fields:['id']}}}],
+  #|   results:{answer:{from:{stage:'source',result:'rows'}}}};
+  #| if (index === 0) program.bindings = {opaque:{type:'string'}};
+  #| else if (index === 1) program.stages = Array.from({length:33}, (_,i) =>
+  #|   ({...program.stages[0], id:`stage-${i}`}));
+  #| else if (index === 2) program['e\u0301/😀~'] = null;
+  #| else if (index === 3) program.params = {n:{type:'number',default:'private-default'}};
+  #| else throw new Error('Unknown authored refusal case');
+  #| return JSON.stringify(program);
+  #|}
+
+///|
+test "native submission preparation refusals have no original semantic observation" {
+  let (environment, publication) = request_query_publication_fixture()
+  for index in 0..<4 {
+    let text = request_native_presemantic_case(index)
+    let (parent, input) = native_driver_parent(text)
+    let terminal = match
+      prepare_request_native_computation_check(
+        parent,
+        input,
+        request_native_test_value(text),
+        native_json_reader,
+        environment,
+        publication,
+        [],
+        @publication_host.client_standard_program_preparation_limits(),
+        @publication_host.client_standard_effect_computation_limits(),
+      ) {
+      Err(issue) => issue
+      Ok(_) => fail("the authored refusal was accepted: " + index.to_string())
+    }
+    guard terminal is Preparation(_) else {
+      fail("the original semantic checker was reached: " + index.to_string())
+    }
+    assert_true(
+      parent.compiled_program is None && parent.compiled_effect is None,
+    )
+    let before = @resources.ledger_usage(parent.ledger)
+    // An absent original cannot supply a report, location or verdict. Even a
+    // malformed audience body must not invoke a replacement projection.
+    assert_true(
+      request_observation_project(parent, input, terminal, "malformed")
+      is Ok(None),
+    )
+    assert_eq(@resources.ledger_usage(parent.ledger), before)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
 
 ///|
 test "Request native input reaches the existing Program and original checker on one capacity" {
@@ -88,7 +250,8 @@ test "Request native input reaches the existing Program and original checker on 
     native_json_reader,
     limits.input,
   ).unwrap()
-  assert_eq(calls.val - before, 1)
+  // One pre-constructor grow and one post-reader scratch retirement.
+  assert_eq(calls.val - before, 2)
   assert_true(physical_equal(source.capacity, parent.capacity))
   let original_index = source.indexed.unwrap()
   assert_true(
@@ -101,7 +264,7 @@ test "Request native input reaches the existing Program and original checker on 
     )
     is Err(WrongPhase),
   )
-  assert_eq(calls.val - before, 1)
+  assert_eq(calls.val - before, 2)
   construct_program_json_preparation(source).unwrap()
   reconcile_program_json_preparation_structure(source).unwrap()
   assert_true(physical_equal(source.indexed.unwrap(), original_index))
@@ -438,4 +601,544 @@ test "Request observed shape grows independently of Text without duplicate curre
   assert_true(separate.reference_slots < coupled.reference_slots)
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "refused original Query keeps an independent supplied type violation without a second check" {
+  let text = "SELECT missing AS n FROM records WHERE amount >= @minimum"
+  let declarations = "{\"minimum\":{\"type\":\"number\"}}"
+  let parameters = "{\"minimum\":\"twenty\"}"
+  let captured = "{\"format\":\"sql\",\"text\":\"" +
+    text +
+    "\",\"parameterDeclarations\":" +
+    declarations +
+    "}"
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(captured + parameters)
+  let terminal = match
+    prepare_request_native_source_computation_check(
+      parent,
+      input,
+      request_native_test_value(captured),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+      supplied=Some(request_native_test_value(parameters)),
+    ) {
+    Err(issue) => issue
+    Ok(_) => fail("the unpublished Source must not be accepted")
+  }
+  let query = parent.query_syntax.unwrap()
+  let original_query = query.query.unwrap().unwrap()
+  let lowering = query.lowering.unwrap()
+  let original_failure = lowering.output.unwrap()
+  assert_true(
+    parent.phase == QueryLoweringFailed && parent.program_check is None,
+  )
+  let before = @resources.ledger_usage(parent.ledger)
+  let project = () => {
+    project_request_check_outcome(
+      parent,
+      input,
+      terminal,
+      "{\"environmentCid\":\"" +
+      @checked.checking_environment_cid(environment) +
+      "\",\"aliases\":[]}",
+      "ctx:" + "a".repeat(64),
+      "text",
+      "rev:" + "b".repeat(64),
+      text.length(),
+      Some("rev:" + "d".repeat(64)),
+      declarations.length(),
+      Some("rev:" + "e".repeat(64)),
+      parameters.length(),
+      "corr:" + "c".repeat(32),
+      None,
+    )
+    .unwrap()
+    .unwrap()
+  }
+  let report = project()
+  assert_true(report.contains("\"verdict\":\"invalid\""), msg=report)
+  assert_true(report.contains("supplied_value_type_mismatch"), msg=report)
+  assert_true(report.contains("\"parameter\":\"minimum\""), msg=report)
+  assert_true(report.contains("\"expected_type\":\"number\""), msg=report)
+  assert_true(report.contains("\"actual_type\":\"string\""), msg=report)
+  assert_true(report.contains("source_resolution"), msg=report)
+  assert_true(!report.contains("twenty"), msg=report)
+  assert_eq(project(), report)
+  let original_supplied = parent.native_parameters
+  parent.native_parameters = Some(
+    @local_preparation.admit_captured_local_parameters(
+      request_native_test_value(parameters),
+      native_json_reader,
+    ).unwrap(),
+  )
+  assert_true(
+    project_request_check_outcome(
+      parent,
+      input,
+      terminal,
+      "{\"environmentCid\":\"" +
+      @checked.checking_environment_cid(environment) +
+      "\",\"aliases\":[]}",
+      "ctx:" + "a".repeat(64),
+      "text",
+      "rev:" + "b".repeat(64),
+      text.length(),
+      Some("rev:" + "d".repeat(64)),
+      declarations.length(),
+      Some("rev:" + "e".repeat(64)),
+      parameters.length(),
+      "corr:" + "c".repeat(32),
+      None,
+    )
+    is Err(ForeignOriginal),
+  )
+  parent.native_parameters = original_supplied
+  assert_true(
+    parent.phase == QueryLoweringFailed && parent.program_check is None,
+  )
+  assert_true(physical_equal(query.query.unwrap().unwrap(), original_query))
+  assert_true(physical_equal(lowering.output.unwrap(), original_failure))
+  assert_eq(
+    @resources.ledger_usage(parent.ledger).planning_work,
+    before.planning_work,
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+extern "js" fn query_refusal_test_throw_undefined() -> Bool =
+  #|() => { throw undefined; }
+
+///|
+extern "js" fn query_refusal_test_is_undefined(
+  failure : QueryBindingForeignFailure,
+) -> Bool =
+  #|failure => Object.hasOwn(failure, 'cause') && failure.cause === undefined
+
+///|
+test "refused Query binding retains the original failure and pending work on short capacity or undefined current" {
+  for throw_undefined in [false, true] {
+    let text = "SELECT missing AS n FROM records WHERE amount >= @minimum"
+    let declarations = "{\"minimum\":{\"type\":\"number\"}}"
+    let parameters = "{\"minimum\":\"twenty\"}"
+    let captured = "{\"format\":\"sql\",\"text\":\"" +
+      text +
+      "\",\"parameterDeclarations\":" +
+      declarations +
+      "}"
+    let (environment, publication) = request_query_publication_fixture()
+    let input = [1]
+    let selected : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+    let triggered = Ref(false)
+    let blocker = Ref(None)
+    let initial = request_parent_fixture(input, current=() => {
+      if !triggered.val &&
+        selected.val is Some(parent) &&
+        parent.query_syntax is Some(query) &&
+        query.lowering is Some(lowering) &&
+        lowering.refusal_binding is Some(binding) &&
+        binding.work is Some(_) {
+        triggered.val = true
+        if throw_undefined {
+          return query_refusal_test_throw_undefined()
+        }
+        let limits = @resources.ledger_limits(parent.ledger)
+        let usage = @resources.ledger_usage(parent.ledger)
+        blocker.val = Some(
+          @resources.reserve_capacity(
+            parent.ledger,
+            limits.retained_bytes - usage.reserved_retention_bytes,
+            0L,
+          ).unwrap(),
+        )
+      }
+      true
+    })
+    let parent = begin_request_preparation(
+      initial,
+      input,
+      client_local_resource_policy(),
+    ).unwrap()
+    selected.val = Some(parent)
+    reserve_request_snapshot(parent, input, 1024L, 256L).unwrap()
+    let terminal = match
+      prepare_request_native_source_computation_check(
+        parent,
+        input,
+        request_native_test_value(captured),
+        native_json_reader,
+        environment,
+        publication,
+        [],
+        @publication_host.client_standard_program_preparation_limits(),
+        @publication_host.client_standard_effect_computation_limits(),
+        supplied=Some(request_native_test_value(parameters)),
+      ) {
+      Err(issue) => issue
+      Ok(_) => fail("the original lowerer must still refuse")
+    }
+    assert_true(triggered.val)
+    let query = parent.query_syntax.unwrap()
+    let lowering = query.lowering.unwrap()
+    let binding = lowering.refusal_binding.unwrap()
+    let original_failure = match lowering.output.unwrap() {
+      Err(issue) => issue
+      Ok(_) => fail("the original lowering failure must remain")
+    }
+    assert_true(
+      parent.phase == QueryLoweringFailed && parent.program_check is None,
+    )
+    assert_true(
+      @parameters.binding_read_phase(binding.reader) ==
+      @parameters.BindingHeader,
+    )
+    assert_true(binding.work is Some(_) && binding.returned)
+    if throw_undefined {
+      // The actual ordinary original catches a failed current and latches
+      // retirement. Preserve its existing typed refusal, not a fabricated ACK.
+      guard terminal
+        is QueryLowering(
+          BindingFailure(original, Capacity(Resource(ClosedReservation)))
+        ) else {
+        fail("lost current must retain the original typed capacity refusal")
+      }
+      assert_true(physical_equal(original, original_failure))
+    } else {
+      guard terminal is QueryLowering(BindingFailure(original, Capacity(_))) else {
+        fail("short reservation must not become a supplied-value refusal")
+      }
+      assert_true(physical_equal(original, original_failure))
+      @resources.settle_capacity(parent.ledger, blocker.val.unwrap()).unwrap()
+    }
+    assert_true(
+      lower_request_published_query(
+        parent,
+        input,
+        publication,
+        environment,
+        None,
+        public_primary=true,
+        binding_limits=Some(
+          request_query_binding_limits(
+            @publication_host.client_standard_program_preparation_limits().checking,
+          ),
+        ),
+      )
+      is Err(Request(WrongPhase)),
+    )
+    assert_true(
+      physical_equal(lowering.refusal_binding.unwrap().reader, binding.reader),
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_true(binding.work is None)
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "refused Query binding foreign boundary retains undefined as a present failure" {
+  let finished = Ref(0)
+  let result : Result[
+    Result[Unit, ClientRequestPreparationIssue],
+    QueryBindingForeignFailure,
+  ] = query_binding_protected_call(
+    () => {
+      query_refusal_test_throw_undefined() |> ignore
+      Ok(())
+    },
+    () => finished.val += 1,
+  )
+  guard result is Err(original) else {
+    fail("undefined must remain a present foreign failure")
+  }
+  assert_true(query_refusal_test_is_undefined(original))
+  assert_eq(finished.val, 1)
+}
+
+///|
+fn query_pointer_original_fixture(
+  raw : String,
+) -> (
+  ClientRequestPreparation[Array[Int]],
+  Array[Int],
+  ClientRequestTerminalIssue,
+  String,
+  String,
+  String,
+  String,
+) raise {
+  let name = if raw == "minimum" { "minimum" } else { "K" }
+  let text = "SELECT missing AS n FROM records WHERE amount >= @" + name
+  let declarations = "{\"" + name + "\":{\"type\":\"number\"}}"
+  let parameters = "{\"" + raw + "\":\"caller-private\"}"
+  let captured = "{\"format\":\"sql\",\"text\":\"" +
+    text +
+    "\",\"parameterDeclarations\":" +
+    declarations +
+    "}"
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(captured + parameters)
+  let terminal = match
+    prepare_request_native_source_computation_check(
+      parent,
+      input,
+      request_native_test_value(captured),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+      supplied=Some(request_native_test_value(parameters)),
+    ) {
+    Err(issue) => issue
+    Ok(_) => fail("the protected original Source must remain a refusal")
+  }
+  guard terminal is QueryLowering(WithBinding(_, _)) else {
+    fail("only the completed original binding supplies this finding")
+  }
+  let visible = "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  (parent, input, terminal, text, declarations, parameters, visible)
+}
+
+///|
+fn query_pointer_original_report(
+  parent : ClientRequestPreparation[Array[Int]],
+  input : Array[Int],
+  terminal : ClientRequestTerminalIssue,
+  text : String,
+  declarations : String,
+  parameters : String,
+  visible : String,
+  body : String?,
+) -> Result[String?, ClientRequestPreparationIssue] {
+  project_request_check_outcome(
+    parent,
+    input,
+    terminal,
+    visible,
+    "ctx:" + "a".repeat(64),
+    "text",
+    "rev:" + "b".repeat(64),
+    @utf8.encode(text).length(),
+    Some("rev:" + "d".repeat(64)),
+    @utf8.encode(declarations).length(),
+    Some("rev:" + "e".repeat(64)),
+    @utf8.encode(parameters).length(),
+    "corr:" + "c".repeat(32),
+    None,
+    original_parameters=body,
+  )
+}
+
+///|
+test "refused original Query locations require matching raw supplied keys and current originals" {
+  for raw in ["minimum", "K", "\u{212a}"] {
+    let (parent, input, terminal, text, declarations, parameters, visible) = query_pointer_original_fixture(
+      raw,
+    )
+    let query = parent.query_syntax.unwrap()
+    let lowering = query.lowering.unwrap()
+    let original_failure = lowering.output.unwrap()
+    let binding = lowering.refusal_binding.unwrap()
+    let work = @resources.ledger_usage(parent.ledger).planning_work
+    let project = (body : String?) => {
+      query_pointer_original_report(
+        parent, input, terminal, text, declarations, parameters, visible, body,
+      )
+    }
+    let absent = project(None).unwrap().unwrap()
+    assert_true(absent.contains("supplied_value_type_mismatch"))
+    assert_false(absent.contains("\"pointer\":"))
+    let present = project(Some(parameters)).unwrap().unwrap()
+    assert_true(present.contains("\"pointer\":\"/" + raw + "\""), msg=present)
+    assert_true(present.contains("unresolved_protected"), msg=present)
+    assert_false(present.contains("caller-private"))
+    assert_false(present.contains("\"parameter\":\"missing\""))
+    // A moved key and malformed scalar spelling cannot acquire a location.
+    for body in ["{\"Z\":\"caller-private\"}", "{\""] {
+      let moved = project(Some(body)).unwrap().unwrap()
+      assert_true(moved.contains("supplied_value_type_mismatch"))
+      assert_false(moved.contains("\"pointer\":"), msg=moved)
+    }
+    assert_true(
+      project(Some(parameters + " ".repeat(16))) is Err(ForeignOriginal),
+    )
+    let supplied = parent.native_parameters
+    parent.native_parameters = Some(
+      @local_preparation.admit_captured_local_parameters(
+        request_native_test_value(parameters),
+        native_json_reader,
+      ).unwrap(),
+    )
+    assert_true(project(Some(parameters)) is Err(ForeignOriginal))
+    parent.native_parameters = supplied
+    assert_true(physical_equal(lowering.output.unwrap(), original_failure))
+    assert_true(physical_equal(lowering.refusal_binding.unwrap(), binding))
+    assert_true(parent.phase == QueryLoweringFailed)
+    assert_eq(@resources.ledger_usage(parent.ledger).planning_work, work)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    assert_true(project(Some(parameters)).unwrap() is None)
+  }
+}
+
+///|
+test "refused Query raw pointer workspace cannot borrow a one-short reservation" {
+  let (parent, input, terminal, text, declarations, parameters, visible) = query_pointer_original_fixture(
+    "minimum",
+  )
+  let project = (body : String?) => {
+    query_pointer_original_report(
+      parent, input, terminal, text, declarations, parameters, visible, body,
+    )
+  }
+  let _ = project(None).unwrap().unwrap()
+  let query = parent.query_syntax.unwrap()
+  let lowering = query.lowering.unwrap()
+  let binding = lowering.refusal_binding.unwrap()
+  let original = lowering.output.unwrap()
+  let (declaration_root, declared) = parent.native_query_declarations.unwrap()
+  let units = text.length().to_int64() +
+    @decode.admission_usage(declaration_root).nodes.to_int64() +
+    1L
+  let findings = 2L * @parameters.declaration_count(declared).to_int64() + 4L
+  let report_bytes = request_check_observation_inventory_bytes(
+    visible, findings, units,
+  ).unwrap()
+  let pointer_bytes = request_check_original_pointer_bytes(
+    parameters,
+    parent.native_parameters.unwrap(),
+  ).unwrap()
+  let (retained, _) = @resources.preparation_capacity_working_extents(
+    parent.capacity,
+    input,
+  ).unwrap()
+  let policy = @resources.ledger_limits(parent.ledger)
+  let blocker = @resources.reserve_capacity(
+    parent.ledger,
+    policy.retained_bytes - retained - report_bytes - pointer_bytes + 1L,
+    0L,
+  ).unwrap()
+  let work = @resources.ledger_usage(parent.ledger).planning_work
+  assert_true(project(Some(parameters)) is Err(Capacity(_)))
+  assert_true(parent.phase == QueryLoweringFailed)
+  assert_true(physical_equal(lowering.output.unwrap(), original))
+  assert_true(physical_equal(lowering.refusal_binding.unwrap(), binding))
+  assert_eq(@resources.ledger_usage(parent.ledger).planning_work, work)
+  @resources.settle_capacity(parent.ledger, blocker).unwrap()
+  let report = project(Some(parameters)).unwrap().unwrap()
+  assert_true(report.contains("\"pointer\":\"/minimum\""), msg=report)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "refused Query reports original missing declarations beside an independent wrong value" {
+  let text = "SELECT @a AS n, @b AS m FROM records"
+  let declarations = "{\"a\":{\"type\":\"number\"},\"b\":{\"type\":\"number\"}}"
+  let captured = "{\"format\":\"sql\",\"text\":\"" +
+    text +
+    "\",\"parameterDeclarations\":" +
+    declarations +
+    "}"
+  for (missing, wrong) in [("a", "b"), ("b", "a")] {
+    let parameters = "{\"" + wrong + "\":\"caller-private\"}"
+    let (environment, publication) = request_query_publication_fixture()
+    let (parent, input) = native_driver_parent(captured + parameters)
+    let terminal = match
+      prepare_request_native_source_computation_check(
+        parent,
+        input,
+        request_native_test_value(captured),
+        native_json_reader,
+        environment,
+        publication,
+        [],
+        @publication_host.client_standard_program_preparation_limits(),
+        @publication_host.client_standard_effect_computation_limits(),
+        supplied=Some(request_native_test_value(parameters)),
+      ) {
+      Err(issue) => issue
+      Ok(_) => fail("the unavailable original Source remains a refusal")
+    }
+    guard terminal is QueryLowering(WithBinding(_, _)) else {
+      fail("the same complete binding must retain its wrong-value finding")
+    }
+    let original = parent.query_syntax.unwrap().lowering.unwrap()
+    let reader = original.refusal_binding.unwrap().reader
+    let failure = original.output.unwrap()
+    let work = @resources.ledger_usage(parent.ledger).planning_work
+    let report = query_pointer_original_report(
+        parent,
+        input,
+        terminal,
+        text,
+        declarations,
+        parameters,
+        "{\"environmentCid\":\"" +
+        @checked.checking_environment_cid(environment) +
+        "\",\"aliases\":[]}",
+        Some(parameters),
+      )
+      .unwrap()
+      .unwrap()
+    assert_true(report.contains("\"verdict\":\"invalid\""), msg=report)
+    assert_true(report.contains("supplied_value_type_mismatch"), msg=report)
+    assert_true(report.contains("\"pointer\":\"/" + wrong + "\""), msg=report)
+    assert_true(report.contains("parameter_value_required"), msg=report)
+    assert_true(
+      report.contains("\"parameter\":\"" + missing + "\""),
+      msg=report,
+    )
+    assert_true(report.contains("bound_values_missing"), msg=report)
+    assert_true(report.contains("unresolved_protected"), msg=report)
+    assert_false(report.contains("caller-private"))
+    assert_true(
+      physical_equal(original.refusal_binding.unwrap().reader, reader),
+    )
+    assert_true(physical_equal(original.output.unwrap(), failure))
+    assert_eq(@resources.ledger_usage(parent.ledger).planning_work, work)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "default native Request input uses its original observed snapshot instead of a legacy fixed ceiling" {
+  let document = request_native_numeric_public_program(100000)
+  assert_eq(document.length(), 1289175)
+  let input = [1]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  // Exact high-water DATA from the existing SDK snapshotClientRequest on the
+  // authored intent envelope. It grants nothing: the SAME Request must back
+  // its snapshot before a default compiler-profile projection is available.
+  reserve_request_snapshot(parent, input, 1703936L, 262144L).unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  let selected = request_default_program_preparation_limits(parent, input).unwrap()
+  assert_true(
+    selected.checking.input.source.max_input_bytes >= document.length(),
+  )
+  assert_true(selected.checking.input.source.max_nodes >= 200026)
+  assert_eq(selected.checking.input.max_stages, 32)
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  assert_true(request_default_program_preparation_limits(parent, [1]) is Err(_))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_true(
+    request_default_program_preparation_limits(parent, input) is Err(_),
+  )
 }

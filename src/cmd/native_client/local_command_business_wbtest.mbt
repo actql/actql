@@ -43,7 +43,7 @@ test "Business candidate rejects parent control overlap and simultaneous allowan
 }
 
 ///|
-test "checked business requirements reduce acquisition without changing finite-facility support" {
+test "checked business limits stay independent of the compiled acquisition layout" {
   let maximum : @initial_resources.LedgerLimits = {
     planning_work: 100000,
     attempts: 32,
@@ -72,22 +72,40 @@ test "checked business requirements reduce acquisition without changing finite-f
     maximum,
   )
   assert_eq(local_command_selected_business_limits(maximum, None), maximum)
-  let small = local_command_domain_bytes(
-    required.retained_bytes + required.execution_bytes,
-  ).unwrap()
-  let large = local_command_domain_bytes(
-    maximum.retained_bytes + maximum.execution_bytes,
-  ).unwrap()
-  assert_true(small > required.retained_bytes + required.execution_bytes)
   assert_true(
     (required.retained_bytes + required.execution_bytes) %
     native_storage_page_bytes() !=
     0L,
   )
-  assert_eq(small % native_storage_page_bytes(), 0L)
-  assert_true(small < large)
+  if local_command_test_selected_layout() {
+    // Positive geometry requires the actual linked provider. This branch
+    // supplies no replacement layout to the ordinary unselected Core binary.
+    let small = local_command_domain_bytes(
+      required.retained_bytes + required.execution_bytes,
+    ).unwrap()
+    let large = local_command_domain_bytes(
+      maximum.retained_bytes + maximum.execution_bytes,
+    ).unwrap()
+    assert_true(small > required.retained_bytes + required.execution_bytes)
+    assert_eq(small % native_storage_page_bytes(), 0L)
+    assert_true(small < large)
+  } else {
+    assert_eq(
+      local_command_domain_bytes(
+        required.retained_bytes + required.execution_bytes,
+      ),
+      None,
+    )
+    assert_eq(
+      local_command_domain_bytes(
+        maximum.retained_bytes + maximum.execution_bytes,
+      ),
+      None,
+    )
+  }
   assert_eq(local_command_domain_bytes(9223372036854775807L), None)
   assert_true(command_preparation_invocation.val is None)
+  assert_true(initial_crypto_invocation.val is None)
 }
 
 ///|
@@ -132,19 +150,31 @@ test "saved Result selection preserves Read facilities without a Compute acquisi
 }
 
 ///|
-test "fresh Run selection retains its supported Compute maxima" {
+test "fresh Run selection requires its compiled layout before Compute acquisition" {
   let static_profile = native_storage_finite_arithmetic_profile()
   let parsed = command().parse(
     argv=["--mode", "local", "run", "query.aql"],
     env=Map([]),
   )
-  let (selected, retained) = local_command_profile_selection(
-    static_profile, parsed,
-  )
-  let compute = retained.unwrap()
-  assert_true(compute.kind == SourceFreeCompute)
-  assert_eq(compute.limits.retained_bytes, 536870912L)
-  assert_eq(compute.limits.execution_bytes, 536870912L)
-  assert_true(selected.arena_bytes > static_profile.arena_bytes)
-  assert_true(compute.domain_bytes > compute.payload_facility_bytes)
+  if local_command_test_selected_layout() {
+    let (selected, retained) = local_command_profile_selection(
+      static_profile, parsed,
+    )
+    let compute = retained.unwrap()
+    assert_true(compute.kind == SourceFreeCompute)
+    assert_eq(compute.limits.retained_bytes, 536870912L)
+    assert_eq(compute.limits.execution_bytes, 536870912L)
+    assert_true(selected.arena_bytes > static_profile.arena_bytes)
+    assert_true(compute.domain_bytes > compute.payload_facility_bytes)
+  } else {
+    let failure = try {
+      ignore(local_command_profile_selection(static_profile, parsed))
+      "unexpected Compute profile"
+    } catch {
+      ClientStop(message) => message
+    }
+    assert_eq(failure, "LocalBusinessLayoutUnavailable")
+  }
+  assert_true(command_preparation_invocation.val is None)
+  assert_true(initial_crypto_invocation.val is None)
 }

@@ -33,6 +33,7 @@ priv struct Instance {
   installed_sequences : InstalledSequenceContracts
   wasm_capacity : @resources.SharedCapacity
   host_capacity : @resources.SharedCapacity?
+  platform_vm : @resources.PlatformVMCapacity?
   workspaces : Map[Int, (Int, @buffers.WorkspaceLoan)]
   workspace_slots : Int
   mut runtime_closing : Bool
@@ -162,6 +163,7 @@ fn install_buffer_instance(
   pool : @buffers.BufferPool,
   max_slots : Int,
   installed_sequences : InstalledSequenceContracts,
+  platform_vm? : @resources.PlatformVMCapacity? = None,
 ) -> Int {
   instance.val = Some({
     nonce,
@@ -170,6 +172,7 @@ fn install_buffer_instance(
     installed_sequences,
     wasm_capacity,
     host_capacity,
+    platform_vm,
     workspaces: {},
     workspace_slots: max_slots,
     runtime_closing: false,
@@ -337,6 +340,77 @@ pub fn open(
   execution_bytes : Int64,
   host_capacity_bytes : Int64,
 ) -> Int {
+  open_buffer_instance(
+    nonce,
+    total_bytes,
+    max_slots,
+    max_wire_bytes,
+    planning_work,
+    attempts,
+    holdings,
+    transfer_bytes,
+    retained_bytes,
+    execution_bytes,
+    host_capacity_bytes,
+    ScalarDiagnostic,
+  )
+}
+
+///|
+/// Same platform VM, distinct from scalar diagnostics and native imports.
+pub fn open_platform(
+  nonce : Int64,
+  total_bytes : Int64,
+  max_slots : Int,
+  max_wire_bytes : Int,
+  planning_work : Int,
+  attempts : Int,
+  holdings : Int,
+  transfer_bytes : Int64,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  host_capacity_bytes : Int64,
+) -> Int {
+  if host_capacity_bytes != 0L {
+    return -3
+  }
+  open_buffer_instance(
+    nonce,
+    total_bytes,
+    max_slots,
+    max_wire_bytes,
+    planning_work,
+    attempts,
+    holdings,
+    transfer_bytes,
+    retained_bytes,
+    execution_bytes,
+    host_capacity_bytes,
+    OriginalPlatform,
+  )
+}
+
+///|
+priv enum BufferInitialization {
+  ScalarDiagnostic
+  OriginalPlatform
+} derive(Eq)
+
+///|
+fn open_buffer_instance(
+  nonce : Int64,
+  total_bytes : Int64,
+  max_slots : Int,
+  max_wire_bytes : Int,
+  planning_work : Int,
+  attempts : Int,
+  holdings : Int,
+  transfer_bytes : Int64,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  host_capacity_bytes : Int64,
+  initialization : BufferInitialization,
+) -> Int {
   if nonce <= 0L ||
     live_initialization_attempt.val is Some(_) ||
     instance.val is Some(_) ||
@@ -378,6 +452,30 @@ pub fn open(
     match @resources.reserve_shared_capacity(root, host_capacity_bytes) {
       Err(_) => return -4
       Ok(capacity) => Some(capacity)
+    }
+  }
+  if initialization == OriginalPlatform {
+    let original = match
+      @resources.bind_platform_vm_capacity(nonce, root, wasm_capacity) {
+      Ok(original) => original
+      Err(issue) => return imported_child_issue_code(issue)
+    }
+    return match
+      @buffers.open_pool_on_platform_vm_capacity(
+        original, root, wasm_capacity, total_bytes, max_slots, max_wire_bytes,
+      ) {
+      Err(issue) => issue_code(issue)
+      Ok(pool) =>
+        install_buffer_instance(
+          nonce,
+          root,
+          wasm_capacity,
+          None,
+          pool,
+          max_slots,
+          installed_sequences,
+          platform_vm=Some(original),
+        )
     }
   }
   match

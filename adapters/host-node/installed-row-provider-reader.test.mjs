@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {startInstalledRowRun} from './installed-row-run.mjs';
+import {createInstalledCredentialSourceReader} from './installed-credential-source-reader.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
 const error = value => ({$tag: 0, _0: value});
@@ -46,6 +47,10 @@ function fixture({read = () => 'rows', stop = () => {}, observe,
       assert.equal(actualBorrow, borrow); cleanup = observer;
       assert.equal(cleanup(), false); calls.push('bind'); return ok(undefined);
     },
+    clientProgramRowSourceRetireResponseWorkspace(actualBorrow) {
+      assert.equal(actualBorrow, borrow);
+      return cleanup() ? ok(undefined) : error('original reader pending');
+    },
     clientProgramRowSourceCloseAccounted(actualRun) {
       assert.equal(actualRun, run); closes++;
       calls.push('close');
@@ -58,7 +63,7 @@ function fixture({read = () => 'rows', stop = () => {}, observe,
   const start = overrides => startInstalledRowRun({moon, acquisition,
     nonce: 'original-nonce', ledger, capacity: {provider: capacity,
       transferBytes: 17n, executionBytes: 23n}, ...overrides});
-  return {moon, start, calls, reader, supplier, options, capacity, acquisition,
+  return {moon, start, calls, reader, supplier, options, capacity, acquisition, run, ledger, borrow,
     readBegan: began.promise,
     read: session => session.readProvider({prepare: supplier.prepare,
       receiver: supplier, options}),
@@ -66,6 +71,108 @@ function fixture({read = () => 'rows', stop = () => {}, observe,
     counts: () => ({closes, settles}),
     cleanup: () => cleanup()};
 }
+
+test('provider construction callback keeps the same original borrow before Query and whole-input reads', async () => {
+  for (const wholeInput of [false, true]) {
+    let reserve, grows = 0;
+    const next = Object.freeze({});
+    const f = fixture({read() {reserve(next); return 'same rows';}});
+    const grow = function(actual, capacity) {
+      assert.equal(this, f.moon); assert.equal(actual, f.borrow); assert.equal(capacity, next);
+      grows++; return ok();
+    };
+    f.moon.clientProgramRowSourceGrowResponseConstructionCapacity = grow;
+    f.moon.clientProgramRowSourceGrowResponseCapacity = () => assert.fail('charged response fallback');
+    const read = {};
+    if (wholeInput) {
+      f.moon.clientProgramInstalledSourceReadCheckLedger = (original, ledger) => {
+        assert.equal(original, read); assert.equal(ledger, f.ledger); return ok();
+      };
+      f.moon.clientProgramInstalledWholeSourceReadStartRows = (original, selected) => {
+        assert.equal(original, read); assert.equal(selected, f.acquisition); return ok(f.run);
+      };
+      f.moon.clientProgramInstalledSourceReadRetire = original => {
+        assert.equal(original, read); return ok();
+      };
+      f.moon.clientProgramWholeSourceBorrowResponses = f.moon.clientProgramRowSourceBorrowResponses;
+    }
+    const session = f.start(wholeInput ? {wholeInput, originalRead: read} : undefined);
+    const supplier = {prepare(options, retain, responseCapacity) {
+      assert.equal(this, supplier); assert.equal(options, f.options);
+      assert.equal(typeof retain, 'function');
+      assert.equal(typeof responseCapacity, 'function');
+      reserve = capacity => responseCapacity(capacity, 'announced-body');
+      assert.throws(() => reserve(next), {code: 'InstalledSourceClosed'});
+      assert.equal(grows, 0);
+      // The original method and receiver were captured before this mutation.
+      f.moon.clientProgramRowSourceGrowResponseConstructionCapacity = () => {
+        assert.fail('replacement constructor entry');
+      };
+      return f.reader;
+    }};
+    assert.equal(await session.readProvider({receiver: supplier, prepare: supplier.prepare,
+      options: f.options}), 'same rows');
+    assert.equal(grows, 1);
+    assert.throws(() => reserve(next), {code: 'InstalledSourceClosed'});
+    const state = {};
+    session.closeAfterFailure(state);
+    assert.equal(await state.recovery.cleanup(), false);
+    assert.equal(f.counts().settles, 0);
+    f.retire();
+    assert.equal(await state.recovery.cleanup(), true);
+    assert.equal(f.counts().settles, 1);
+    assert.throws(() => reserve(next), {code: 'InstalledSourceClosed'});
+    assert.equal(grows, 1);
+  }
+});
+
+test('provider construction refusal and callback close never enter the native constructor or release pending originals', async () => {
+  for (const kind of ['refused', 'closed']) {
+    const primary = Object.freeze(new Error('same original capacity refusal'));
+    let reserve, constructors = 0, calls = 0;
+    const f = fixture({read() {reserve(f.capacity); constructors++;}});
+    const session = f.start(), state = {};
+    f.moon.clientProgramRowSourceGrowResponseCapacity = () => assert.fail('charged response fallback');
+    f.moon.clientProgramRowSourceGrowResponseConstructionCapacity = function(borrow, capacity) {
+      assert.equal(this, f.moon); assert.equal(borrow, f.borrow); assert.equal(capacity, f.capacity);
+      calls++;
+      if (kind === 'refused') return error(primary);
+      session.closeAfterFailure(state);
+      return ok();
+    };
+    const supplier = {prepare(options, _retain, response) {
+      assert.equal(this, supplier); assert.equal(options, f.options); reserve = capacity => response(capacity, 'announced-body');
+      return f.reader;
+    }};
+    await assert.rejects(session.readProvider({receiver: supplier, prepare: supplier.prepare,
+      options: f.options}), actual => kind === 'refused' ? actual.cause === primary
+      : actual.code === 'InstalledSourceClosed');
+    assert.equal(constructors, 0);
+    assert.equal(calls, 1);
+    if (kind === 'refused') session.closeAfterFailure(state);
+    assert.equal(await state.recovery.cleanup(), false);
+    assert.equal(f.counts().settles, 0);
+    f.retire();
+    assert.equal(await state.recovery.cleanup(), true);
+    assert.equal(f.counts().settles, 1);
+    assert.throws(() => reserve(f.capacity), {code: 'InstalledSourceClosed'});
+    assert.equal(calls, 1);
+  }
+});
+
+test('missing provider construction port remains absent instead of falling back to the charged response entry', async () => {
+  const f = fixture(), session = f.start();
+  f.moon.clientProgramRowSourceGrowResponseCapacity = () => assert.fail('response fallback');
+  const supplier = {prepare(options, _retain, response) {
+    assert.equal(this, supplier); assert.equal(options, f.options);
+    assert.equal(typeof response, 'function');
+    return {...f.reader, read() {response(f.capacity, 'announced-body'); assert.fail('native constructor');}};
+  }};
+  await assert.rejects(session.readProvider({receiver: supplier, prepare: supplier.prepare,
+    options: f.options}), {code: 'InstalledSourceResponseConstructionUnavailable'});
+  assert.equal(f.calls.filter(name => name === 'read').length, 0);
+  assert.equal(f.counts().settles, 0);
+});
 
 test('provider reader is bound to the original acquisition before factory and read', async () => {
   const f = fixture(), session = f.start();
@@ -209,6 +316,152 @@ test('throwing factory or method getter retains the installed original borrow wi
   }
 });
 
+// Actual shared factory preparation, with explicit Core/Account/Site ports.
+// No credential binding or physical read may occur in these failed constructors.
+function originalPreparationFixture() {
+  let reads = 0, bindings = 0;
+  const site = Object.freeze({});
+  const factory = createInstalledCredentialSourceReader({capacity: {},
+    originalSite: Object.freeze({site, referenceCurrent() {return true;},
+      authorizationPurpose() {assert.fail('No failed constructor can authorize a read');},
+      bindRunAcquisition() {bindings++; assert.fail('No failed constructor can bind a child');},
+      callResource() {reads++; assert.fail('No failed constructor can send');}}),
+    assertCurrent() {}, operation: 'read', maxResponses: 1,
+    maxResponseBytes: 128, maxSecretBytes: 128,
+    preparePageReader() {return Object.freeze({
+      fetchPage() {assert.fail('No page request before reader entry');},
+      decodePage() {assert.fail('No response before reader entry');},
+    });}});
+  const options = Object.freeze({resource: 'rows', columns: Object.freeze(['id']),
+    requestWire: 'same-original-request', verifyRead() {}, authorizationFor() {},
+    chargePage() {assert.fail('No failed constructor can charge a body');},
+    consumePage() {assert.fail('No failed constructor can consume a page');}});
+  return {factory, options, counts: () => ({reads, bindings})};
+}
+
+test('same RowRun recovers the actual shared factory preparation after its original constructor refuses', async () => {
+  const f = fixture(), session = f.start(), original = originalPreparationFixture();
+  const options = Object.freeze({...original.options, authorizationFor: undefined});
+  await assert.rejects(session.readProvider({receiver: original.factory,
+    prepare: original.factory.prepare, options}), {code: 'InstalledSourceReaderMethodUnavailable'});
+  // The original factory's preparation finally has run, but its early record
+  // must still reach this SAME Core borrow before the failed attempt can close.
+  session.close();
+  assert.equal(f.counts().settles, 1);
+  assert.equal(original.factory.retire(), true);
+  assert.deepEqual(original.counts(), {reads: 0, bindings: 0});
+  assert.equal(f.calls.filter(name => name === 'borrow').length, 1);
+});
+
+test('same RowRun keeps actual preparation custody when the returned reader method getter throws', async () => {
+  const f = fixture(), session = f.start(), original = originalPreparationFixture();
+  const cause = Object.freeze(new Error('original-returned-method-failure'));
+  await assert.rejects(session.readProvider({receiver: original.factory,
+    options: original.options,
+    prepare(options, retain, grow) {
+      assert.equal(this, original.factory); assert.equal(options, original.options);
+      Reflect.apply(original.factory.prepare, original.factory, [options, retain, grow]);
+      return Object.freeze({get read() {throw cause;}});
+    }}), observed => observed === cause);
+  session.close();
+  assert.equal(f.counts().settles, 1);
+  assert.equal(original.factory.retire(), true);
+  assert.deepEqual(original.counts(), {reads: 0, bindings: 0});
+  assert.equal(f.calls.filter(name => name === 'borrow').length, 1);
+});
+
+test('provider preparation keeps the same pending original and rejects truthy retirement', async () => {
+  const f = fixture(), session = f.start(), cause = new Error('partial constructor failed');
+  let retired = false, calls = 0;
+  const preparation = Object.freeze({retire() {
+    assert.equal(this, preparation); calls++; return retired ? true : 'pending';
+  }});
+  await assert.rejects(session.readProvider({options: f.options, prepare(_options, retain) {
+    retain(preparation); throw cause;
+  }}), observed => observed === cause);
+  const state = {};
+  session.closeAfterFailure(state);
+  assert.equal(await state.recovery.cleanup(), false);
+  assert.equal(f.counts().settles, 0);
+  assert.equal(state.recovery.cleanupPending(), true);
+  assert(calls > 0);
+  retired = true;
+  assert.equal(await state.recovery.cleanup(), true);
+  assert.equal(f.counts().settles, 1);
+  assert.equal(f.calls.filter(name => name === 'borrow').length, 1);
+  assert.equal(f.calls.includes('read'), false);
+});
+
+test('provider preparation keeps one unexpected Promise flight and never treats its settlement as ACK', async () => {
+  const f = fixture(), session = f.start(), pending = deferred();
+  let calls = 0, acknowledged = false;
+  const preparation = Object.freeze({retire() {
+    assert.equal(this, preparation); calls++;
+    return calls === 1 ? pending.promise : acknowledged;
+  }});
+  const cause = new Error('partial constructor failed');
+  await assert.rejects(session.readProvider({options: f.options, prepare(_options, retain) {
+    retain(preparation); throw cause;
+  }}), observed => observed === cause);
+  const state = {};
+  session.closeAfterFailure(state);
+  assert.equal(await state.recovery.cleanup(), false);
+  assert.equal(calls, 1);
+  assert.equal(f.counts().settles, 0);
+  pending.resolve(true); await Promise.resolve();
+  assert.equal(await state.recovery.cleanup(), false);
+  assert.equal(f.counts().settles, 0);
+  acknowledged = true;
+  assert.equal(await state.recovery.cleanup(), true);
+  assert.equal(f.counts().settles, 1);
+});
+
+test('provider preparation refuses a replacement and fences same-record cleanup reentry', async () => {
+  const f = fixture(), session = f.start();
+  let mayRetire = false, reentered = false, foreignCalls = 0;
+  const original = Object.freeze({retire() {
+    assert.equal(this, original);
+    if (!reentered) {
+      reentered = true;
+      assert.throws(() => session.close(), {code: 'MoonBitHostFailure'});
+    }
+    return mayRetire;
+  }});
+  const foreign = Object.freeze({retire() {foreignCalls++; return true;}});
+  await assert.rejects(session.readProvider({options: f.options, prepare(_options, retain) {
+    retain(original); retain(foreign);
+  }}), {code: 'InstalledSourcePreparationAlreadyRetained'});
+  const state = {};
+  session.closeAfterFailure(state);
+  assert.equal(await state.recovery.cleanup(), false);
+  assert.equal(reentered, true);
+  assert.equal(f.counts().settles, 0);
+  mayRetire = true;
+  assert.equal(await state.recovery.cleanup(), true);
+  assert.equal(f.counts().settles, 1);
+  assert.equal(foreignCalls, 0);
+});
+
+test('provider preparation preserves original options and the existing third capacity-growth argument', async () => {
+  const f = fixture(), session = f.start(), capacity = Object.freeze({});
+  let grow, growths = 0;
+  f.moon.clientProgramRowSourceGrowResponseCapacity = (borrow, selected) => {
+    assert.equal(borrow, f.borrow); assert.equal(selected, capacity); growths++; return ok();
+  };
+  const read = f.reader.read;
+  f.reader.read = function () {grow(capacity); return Reflect.apply(read, this, []);};
+  await session.readProvider({receiver: f.supplier, options: f.options,
+    prepare(options, retain, reserve) {
+      assert.equal(this, f.supplier); assert.equal(options, f.options);
+      assert.equal(typeof retain, 'function'); assert.equal(typeof reserve, 'function');
+      assert.throws(() => reserve(capacity), {code: 'InstalledSourceClosed'});
+      grow = reserve; return f.reader;
+    }});
+  assert.equal(growths, 1);
+  f.retire(); session.close();
+  assert.equal(f.counts().settles, 1);
+});
+
 test('truthy, missing or throwing reader cleanup observations never acknowledge retirement', async () => {
   for (const observe of [() => ({cleanupConfirmed: 1}), () => ({}),
     () => {throw new Error('original observation unavailable');}]) {
@@ -221,4 +474,115 @@ test('truthy, missing or throwing reader cleanup observations never acknowledge 
     catch (error) {assert.match(error.message, /original observation unavailable/u);}
     assert.equal(f.counts().settles, 0);
   }
+});
+
+
+function installCompletedProviderCapture(f) {
+  const capture = {}, source = {}, checkedOwner = {}, requirement = {};
+  Object.assign(f.moon, {
+    clientProgramRowSourceFinish: actual => {assert.equal(actual,f.run);return ok(undefined);},
+    clientProgramRowSourceAttempt: actual => {assert.equal(actual,f.run);return {};},
+    clientProgramRowSourceCaptureBegin: () => ok(undefined),
+    clientProgramRowSourceCaptureAdvance: () => ok({_0:true,_1:1n}),
+    clientProgramRowSourceCapture: () => ok(capture),
+    clientProgramRowSourceCaptureSource: actual => {assert.equal(actual,capture);return ok(source);},
+    clientProgramEffectCapturedSourceMatches: () => true,
+    clientProgramIdentifyCapturedEffectSourceRelation: () => ok({}),
+    clientProgramEffectIssueCapturedSourceLogical: () => ok({}),
+    clientProgramRowSourceRetireResponseWorkspace(actualBorrow) {
+      assert.equal(actualBorrow,f.borrow);
+      if (!f.cleanup()) return error('original reader pending');
+      f.calls.push('retire-workspace'); return ok(undefined);
+    },
+  });
+  return {capture,source,options:{owner:{checkedOwner,effectful:true,
+    requirement,occurrence:{task:0}},prepared:{checkedSource:{}},
+    registry:'registry',values:'values',currentRead:async()=>{}}};
+}
+
+test('completed provider capture retires SAME reader workspace before returning live Source', async () => {
+  let f;
+  f=fixture({stop(){f.retire();}});
+  const selected=installCompletedProviderCapture(f),session=f.start();
+  await f.read(session);
+  const result=await session.complete(selected.options);
+  assert.deepEqual(f.calls.filter(name=>['stop','retire-workspace','close'].includes(name)),
+    ['stop','retire-workspace']);
+  assert.equal(result.capture.source(),selected.source);
+  assert.equal(f.counts().closes,0);
+  assert.equal(f.calls.filter(name=>name==='observe').length,1);
+  result.close();
+  assert.equal(f.counts().settles,1);
+});
+
+test('provider workspace completion refuses pending original stop and keeps SAME cleanup', async () => {
+  const f=fixture(),selected=installCompletedProviderCapture(f),session=f.start();
+  await f.read(session);
+  await assert.rejects(session.complete(selected.options),{code:'MoonBitHostFailure'});
+  assert.equal(f.calls.includes('retire-workspace'),false);
+  assert.equal(f.counts().settles,0);
+  assert.equal(await session.cleanup(),false);
+  f.retire();
+  assert.equal(await session.cleanup(),true);
+  assert.equal(f.calls.filter(name=>name==='read').length,1);
+  assert.equal(f.counts().settles,1);
+});
+
+test('provider workspace Core refusal preserves original observer for final cleanup', async () => {
+  let f;f=fixture({stop(){f.retire();}});
+  const selected=installCompletedProviderCapture(f),session=f.start();
+  f.moon.clientProgramRowSourceRetireResponseWorkspace=actual=>{
+    assert.equal(actual,f.borrow);return error('same original current refused');
+  };
+  await f.read(session);
+  await assert.rejects(session.complete(selected.options),{code:'MoonBitHostFailure'});
+  assert.equal(f.counts().settles,0);
+  assert.equal(await session.cleanup(),true);
+  assert.equal(f.counts().settles,1);
+});
+
+test('provider workspace completion cannot interpret an unresolved stop Promise as retirement', async () => {
+  const pending=deferred();let f;f=fixture({stop(){f.retire();return pending.promise;}});
+  const selected=installCompletedProviderCapture(f),session=f.start();
+  await f.read(session);
+  await assert.rejects(session.complete(selected.options),{code:'MoonBitHostFailure'});
+  assert.equal(f.calls.includes('retire-workspace'),false);
+  pending.resolve();await Promise.resolve();
+  assert.equal(await session.cleanup(),true);
+  assert.equal(f.calls.filter(name=>name==='stop').length,1);
+  assert.equal(f.calls.filter(name=>name==='read').length,1);
+});
+
+test('WholeInput forwards announced and charged growth through its same original borrow without Query substitution', async () => {
+  const f = fixture(), originalRead = {}, next = {};
+  f.moon.clientProgramInstalledSourceReadCheckLedger = (read, ledger) => {
+    assert.equal(read, originalRead); assert.equal(ledger, f.ledger); return ok();
+  };
+  f.moon.clientProgramInstalledWholeSourceReadStartRows = (read, selected) => {
+    assert.equal(read, originalRead); assert.equal(selected, f.acquisition); return ok(f.run);
+  };
+  f.moon.clientProgramInstalledSourceReadRetire = read => {
+    assert.equal(read, originalRead); return ok();
+  };
+  f.moon.clientProgramWholeSourceBorrowResponses = (run, selected) => {
+    assert.equal(run, f.run); assert.equal(selected, f.acquisition); return ok(f.borrow);
+  };
+  const phases = [];
+  f.moon.clientProgramRowSourceGrowResponseConstructionCapacity = (borrow, capacity) => {
+    assert.equal(borrow, f.borrow); assert.equal(capacity, next); phases.push('announced'); return ok();
+  };
+  f.moon.clientProgramRowSourceGrowResponseCapacity = (borrow, capacity) => {
+    assert.equal(borrow, f.borrow); assert.equal(capacity, next); phases.push('charged'); return ok();
+  };
+  let reserve;
+  const supplier = {prepare(options, retain, grow, originalBorrow) {
+    assert.equal(this, supplier); assert.equal(options, f.options);
+    assert.equal(originalBorrow, f.borrow); reserve = grow;
+    f.reader.read = function () {assert.equal(this, f.reader); reserve(next, 'announced-body'); reserve(next); return 'rows';};
+    return f.reader;
+  }};
+  const session = f.start({wholeInput:true, originalRead});
+  assert.equal(await session.readProvider({prepare:supplier.prepare,receiver:supplier,options:f.options}), 'rows');
+  assert.deepEqual(phases, ['announced', 'charged']);
+  f.retire(); assert.equal(await session.cleanup(), true);
 });

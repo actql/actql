@@ -106,6 +106,25 @@ export function localFilesLookupExecutionPolicy(sourceLimits) {
   });
 }
 
+// A selected Local service keeps its explicit lookup policy. Only response
+// wire transfer has the same dimension as the nominal Resource counter. Peak
+// memory is not a cumulative decoded-byte budget, and no row estimate is used.
+// This initial ceiling is not remaining capacity: the same Run Ledger still
+// reserves actual transfer before every provider operation.
+export function localResourceLookupExecutionPolicy(moon, original, selected) {
+  const policy = snapshotHostLookupExecutionPolicy(selected);
+  if (policy === undefined) return undefined;
+  const limits = moon.clientLocalPreparationResourceLimits(original);
+  if (!Array.isArray(limits) || limits.length !== 6 ||
+      (typeof limits[3] !== 'bigint' && !Number.isSafeInteger(limits[3]))) {
+    fail('LocalLookupResourcePolicy');
+  }
+  const transfer = BigInt(limits[3]);
+  if (transfer <= 0n || transfer > BigInt(Number.MAX_SAFE_INTEGER)) fail('LocalLookupResourcePolicy');
+  return snapshotHostLookupExecutionPolicy({...policy,
+    max_total_response_bytes: Math.min(policy.max_total_response_bytes, Number(transfer))});
+}
+
 export function selectInstalledHostEnvironment(moon, baseWire, selection, lookupSelection) {
   const policy = snapshotHostCapacityPolicy(selection);
   const lookup = snapshotHostLookupExecutionPolicy(lookupSelection);
@@ -125,6 +144,8 @@ export function selectInstalledHostEnvironment(moon, baseWire, selection, lookup
 // Only the selected in-process materializing Local installation consumes this
 // nominal policy. It is a necessary row ceiling, not a new resource grant:
 // the actual checked plan must still fund all cells, names and live workspaces.
+// With no explicit Host policy, use the same installed Model request window
+// as execution; the generic Environment defaults are not this service profile.
 // Generic Hosts and independently installed Effect/streaming profiles retain
 // their original selector and policy identity.
 export function selectInstalledLocalMaterializationEnvironment(
@@ -138,6 +159,12 @@ export function selectInstalledLocalMaterializationEnvironment(
   }
   const base = JSON.parse(baseWire).host_policy_profile.capacity;
   const capacity = {...(explicit ?? base)};
+  if (explicit === undefined) {
+    const modelRequestBytes = moon.clientLocalResourcePolicyModelRequestByteCeiling(original);
+    if (typeof modelRequestBytes !== 'bigint' || modelRequestBytes < 1n ||
+        modelRequestBytes > BigInt(Number.MAX_SAFE_INTEGER)) fail('LocalModelRequestPolicyProjection');
+    capacity.max_model_request_bytes_per_item = Number(modelRequestBytes);
+  }
   for (const field of ['max_relation_output_rows', 'max_artifact_rows']) {
     capacity[field] = explicit === undefined ? rows : Math.min(explicit[field], rows);
   }

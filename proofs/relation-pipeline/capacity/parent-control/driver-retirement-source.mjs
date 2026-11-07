@@ -15,23 +15,39 @@ export function blockAfter(source,anchor) {
   }
   assert.fail('Unbalanced owner boundary');
 }
+// The caller may return Local scratch while the SAME provider keeps an
+// independently accepted completion. Full cleanup and retention are distinct.
 const release=`{
-    match provider_execution.val {
-      None => true
-      Some(active) => {
-        if !@local.managed_provider_stopped(active) ||
-          !@local.cleanup_managed_provider(active).unwrap_or(false) {
-          return false
-        }
-        final_provider_work.val = @local.managed_provider_cumulative_work(active)
-        provider_execution.val = None
-        true
-      }
+  release_local_managed_provider_scratch(provider_execution,
+    provider_completion_retained,
+    live.val && settled.val && (ordinary.val is Some(_) || carrier.val is Some(_)),
+    final_provider_work,)
+}`;
+const providerScratch=`{
+  guard provider.val is Some(active) else { return true }
+  if !@local.managed_provider_stopped(active) { return false }
+  match @local.cleanup_managed_provider(active) {
+    Ok(true) => {
+      final_work.val = @local.managed_provider_cumulative_work(active)
+      provider.val = None
+      true
     }
-  }`;
+    Ok(false) => if completed && (retained_completion.val ||
+      @local.managed_provider_retained_completion(active)) {
+      final_work.val = @local.managed_provider_cumulative_work(active)
+      retained_completion.val = true
+      true
+    } else { false }
+    Err(_) => false
+  }
+}`;
+const retainedCompletion=`{
+  (execution.stopped)() &&
+  execution.retained_completion.map(check => check()).unwrap_or(false)
+}`;
 const scratch=`{
     ( disposed.val || (settled.val && finalization_ready.val) || (settled.val && carrier.val is Some(_)) ) &&
-    scratch_uses.val == 0 && provider_execution.val is None &&
+    scratch_uses.val == 0 && (provider_execution.val is None || provider_completion_retained.val) &&
     (live.val || input_stop.phase == Stopped) &&
     scratch_retirement.phase == Retired &&
     ( !disposed.val || retained.val is Some(_) ||
@@ -42,7 +58,7 @@ const scratch=`{
   }`;
 const ownedScratch=`{
   if !(disposed.val || (settled.val && (finalization_ready.val || carrier.val is Some(_)))) ||
-    scratch_uses.val != 0 || provider_execution.val is Some(_) ||
+    scratch_uses.val != 0 || (provider_execution.val is Some(_) && !provider_completion_retained.val) ||
     relation_snapshot_cancel.val is Some(_) ||
     (!live.val && input_stop.phase != Stopped) {
     return
@@ -96,25 +112,95 @@ const rootSlice=`{
   }
   cursor.phase == Retired
 }`.replaceAll(';','');
+// The same owner retains accounting refusal across later physical-pending
+// observations and fences synchronous reentry before touching the owned task.
+const retirementObservation=`{
+  let previous = execution.cleanup_observation
+  match previous {
+    CleanupChecking => return Ok(false)
+    CleanupReady | CleanupRefused(_) => ()
+  }
+  execution.cleanup_observation = CleanupChecking
+  let observed = release_task_execution_owned(run, execution)
+  let result = match (observed, previous) {
+    (Ok(false), CleanupRefused(issue)) => Err(issue)
+    _ => observed
+  }
+  execution.cleanup_observation = match result {
+    Err(issue) => CleanupRefused(issue)
+    Ok(true) => CleanupReady
+    Ok(false) => previous
+  }
+  result
+}`;
 const retirement=`{
-  if !execution.disposed || !execution.execution_settled || !task_execution_matches(run, execution) {
-    return
+  if !execution.execution_settled || !task_execution_matches(run, execution) {
+    return Ok(false)
+  }
+  if !execution.disposed {
+    if !task_done(run, execution.task) {
+      return Ok(false)
+    }
+    let scratch_released = task_execution_scratch_released(execution)
+    if !task_execution_matches(run, execution) {
+      return Ok(execution.hooks is None)
+    }
+    if scratch_released && @resources.reservation_open(execution.reservation) {
+      match @resources.settle_execution_reservation(run.ledger, execution.reservation,
+        remaining_execution=0L,) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+    }
+    return Ok(false)
   }
   let scratch_released = task_execution_scratch_released(execution)
-  if !scratch_released || !task_execution_retention_released(execution) {
+  if !task_execution_matches(run, execution) {
+    return Ok(execution.hooks is None)
+  }
+  let retention_released = if scratch_released {
+    task_execution_retention_released(execution)
+  } else {
+    false
+  }
+  if !task_execution_matches(run, execution) {
+    return Ok(execution.hooks is None)
+  }
+  if !scratch_released || !retention_released {
     if @resources.reservation_open(execution.reservation) {
-      @resources.settle_execution_reservation(run.ledger, execution.reservation,
+      match @resources.settle_execution_reservation(run.ledger, execution.reservation,
         remaining_execution=if scratch_released { 0L } else { execution.scratch },)
-      |> ignore
+      {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
     }
-    return
+    return Ok(false)
   }
   if execution.failed_holding is Some(holding) {
-    @resources.release_allocation(run.ledger, holding) |> ignore
-    execution.failed_holding = None
+    let released = @resources.release_allocation(run.ledger, holding)
+    if !task_execution_matches(run, execution) {
+      return Ok(execution.hooks is None)
+    }
+    match released {
+      Err(issue) => return Err(issue)
+      Ok(_) => execution.failed_holding = None
+    }
   }
   if @resources.reservation_open(execution.reservation) {
-    @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
+    let settled = @resources.settle_reservation(run.ledger, execution.reservation,)
+    if !task_execution_matches(run, execution) {
+      return Ok(execution.hooks is None)
+    }
+    match settled {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  match release_captured_task_retention(run, execution.task) {
+    Err(issue) => return Err(issue)
+    Ok(false) => return Ok(false)
+    Ok(true) => ()
   }
   captured_cleanup_confirmed(run, execution)
   run.executions[execution.task] = None
@@ -124,6 +210,7 @@ const retirement=`{
   execution.admitted_managed_inputs = None
   task_execution_released(hooks)
   collect_captured_retention(run)
+  Ok(true)
 }`;
 const stopInputs=`{
   if live.val { return true }
@@ -271,6 +358,13 @@ export function checkDriverRetirementSource(read) {
   const bridge=read(bridgeReclamationPath).toString();
   const importer=read(importReclamationPath).toString();
   assert.equal(clean(blockAfter(driver,'let release_provider_scratch = fn()')),clean(release),'Changed provider stop/cleanup/work/root retirement ordering');
+  assert.equal(clean(blockAfter(roots,'fn release_local_managed_provider_scratch(')),clean(providerScratch),'Changed same-provider pending/error/retained-completion custody');
+  const provider=read('src/connectors/local/managed_provider.mbt').toString();
+  assert.equal(clean(blockAfter(provider,'pub fn managed_provider_retained_completion(')),clean(retainedCompletion),'Changed stopped same-provider retained-completion observation');
+  assert.match(driver,/let provider_completion_retained = Ref\(false\)/,'Completion handoff must start absent');
+  const retention=clean(blockAfter(driver,'retention_released: fn()'));
+  assert(retention.includes('provider_execution.valisNone&&relation_released&&'), 'Retained completion cannot acknowledge whole provider cleanup');
+
   assert.equal(clean(blockAfter(driver,'scratch_released: fn()')),clean(scratch),'Changed installed driver scratch witness');
   assert.equal(clean(blockAfter(driver,'let release_owned_scratch = fn()')),clean(ownedScratch),'Changed installed incremental root retirement guard');
   assert.equal(clean(blockAfter(driver,'let stop_owned_inputs = fn()')),clean(stopInputs),'Changed installed input revocation boundary');
@@ -300,12 +394,16 @@ export function checkDriverRetirementSource(read) {
   assert.equal(clean(blockAfter(roots,'fn local_managed_input_writes_open(')),clean('{ live && !settled && !disposed }'),'Changed late input write rejection');
   assert.equal((driver.match(/let scratch_retirement = local_managed_scratch_retirement\(\)/g)??[]).length,1,'Changed installed scratch cursor construction');
   assert.equal((driver.match(/local_managed_input_writes_open\(/g)??[]).length,5,'Changed import/bridge write guards');
-  assert.equal(clean(blockAfter(strategy,'fn release_task_execution(')),clean(retirement),'Changed common reservation retirement boundary');
+  assert.equal(clean(blockAfter(strategy,'fn release_task_execution(')),clean(retirementObservation),'Changed common cleanup reentry/refusal observation boundary');
+  assert.equal(clean(blockAfter(strategy,'fn release_task_execution_owned(')),clean(retirement),'Changed common reservation retirement boundary');
   assert.match(driver.replace(/\s+/g,' '),/let provider_execution : Ref\[@local\.ManagedProviderExecution\?\] = Ref\(None\)/);
-  assert.deepEqual([...driver.matchAll(/provider_execution\.val\s*=\s*([^\n]+)/g)].map(m=>m[1].trim()),['None','Some(started)'],'Unreviewed provider root replacement');
+  assert.deepEqual([...driver.matchAll(/provider_execution\.val\s*=\s*([^\n]+)/g)].map(m=>m[1].trim()),['Some(started)'],'Unreviewed provider root replacement');
   return {scope:'exact reviewed driver scratch-root and common reservation retirement boundaries',
     retainsProviderUntilStoppedAndCleanupSuccess:true,clearsProviderAfterCleanupSuccess:true,
+    retainedCompletionKeepsSameCleanupOwner:true,retentionRequiresProviderAbsent:true,
     cachesFinalProviderWorkBeforeDroppingRoot:true,incrementalScratchRootRetirement:true,
+    retainsAccountingRefusalAcrossPending:true,fencesSynchronousCleanupReentry:true,
+    settlesOwnedHoldingsBeforeClearingTask:true,
     incrementalInputRevocation:true,incrementalPrivateImportRows:true,
     snapshotCustody:{pendingCancelRetainsCallback:true,retirementRequiresCallbackAbsent:true,
       cleanupRetryBeforeRootRetirement:true,successfulFinishRequiresReleasedStorage:true,

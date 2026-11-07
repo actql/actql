@@ -51,7 +51,8 @@ test "resolver constructor metadata keeps original identities separate from opaq
     reference_slots: 39L,
     scalar_words: 11L,
   })
-  assert_eq(q.returned_utf16_units, 640L)
+  // The pinned NFC output expansion is four per original identity UTF16 unit.
+  assert_eq(q.returned_utf16_units, 320L) // 4 * 80
   let resolved = resolve(large, catalog, caps()).unwrap()
   assert_true(physical_equal(inputs(resolved), large))
   assert_true(physical_equal(@sourceview_resolution.catalog(resolved), catalog))
@@ -140,7 +141,7 @@ test "resolver constructor retains actual ambiguous UTF16 names and both sort ar
     reference_slots: 67L,
     scalar_words: 13L,
   })
-  assert_eq(q.returned_utf16_units, 1928L)
+  assert_eq(q.returned_utf16_units, 964L) // 4 * 241
   let result = resolve(inputs, catalog, caps())
   assert_true(result is Err({ kind: Ambiguous(["a", "𐀀", ""]), .. }))
 }

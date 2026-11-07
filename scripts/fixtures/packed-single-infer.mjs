@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {scopedModelHolding} from './model-custody-fixture.mjs';
 import {providerBindingOriginals} from './model-provider-binding-fixture.mjs';
+import {inferPreparationFailureData} from './packed-infer-preparation-diagnostic.mjs';
 import {execFileSync} from 'node:child_process';
 import {createDecipheriv, createHash, generateKeyPairSync, sign} from 'node:crypto';
 import {appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
@@ -8,10 +9,46 @@ import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
+import {types as nodeTypes} from 'node:util';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {canonical, cid, configuration, program, expected} from
   './installed-infer-fixture.mjs';
+
+// Reuse the existing dispatch observer without serializing its original Error,
+// Run reference, input, message or stack. Diagnostics never change execution.
+function inferDispatchFailureData(detail) {
+  const own = (record, key) => {
+    if (record === null || typeof record !== 'object' || nodeTypes.isProxy(record)) return undefined;
+    const field = Object.getOwnPropertyDescriptor(record, key);
+    return field && Object.hasOwn(field, 'value') ? field.value : undefined;
+  };
+  const data = {};
+  for (const key of ['code', 'primaryCode']) {
+    const value = own(detail, key);
+    if (typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(value)) data[key] = value;
+  }
+  for (const key of ['issueTag', 'nestedIssueTag']) {
+    const value = own(detail, key);
+    if (Number.isSafeInteger(value) && value >= 0 && value <= 65535) data[key] = value;
+  }
+  return Object.keys(data).length === 0 ? undefined : Object.freeze(data);
+}
+
+function inferTerminalFailureData(terminal) {
+  const own = (record, key) => {
+    if (record === null || typeof record !== 'object' || nodeTypes.isProxy(record)) return undefined;
+    const field = Object.getOwnPropertyDescriptor(record, key);
+    return field && Object.hasOwn(field, 'value') ? field.value : undefined;
+  };
+  const data = {};
+  for (const [key, value] of [['status', own(terminal, 'status')],
+    ['nextAction', own(own(terminal, 'next_action'), 'kind')],
+    ['terminalCode', own(own(terminal, 'terminal_error'), 'code')]]) {
+    if (typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(value)) data[key] = value;
+  }
+  return Object.freeze(data);
+}
 
 const mode = process.argv[2];
 const transport = process.argv[3] ?? 'local';
@@ -34,8 +71,8 @@ const root = join(process.cwd(), transport,
 const hostRoot = approval ? join(root, 'host') : root;
 const certificateRoot = join(process.cwd(), transport);
 mkdirSync(root, {recursive: true});
-const {installation, taskCid} = configuration(
-  JSON.parse(readFileSync('base-environment.json', 'utf8')));
+const baseEnvironment = JSON.parse(readFileSync('base-environment.json', 'utf8'));
+const {installation, taskCid} = configuration(baseEnvironment);
 const keys = generateKeyPairSync('ed25519');
 const keyPath = join(root, 'fixture-reviewer.json');
 const keyMaterial = approval && existsSync(keyPath)
@@ -58,6 +95,10 @@ const authorization = {
       {entry_id: 'model', outcome: 'delegate', principal: {all: true},
         connection: {all: true}, resource: {all: true},
         operation: {any_of: ['infer']}, exclusions: []},
+      {entry_id: 'read-original', outcome: 'allow',
+        principal: {any_of: [userInfo().username]}, connection: {all: true},
+        resource: {any_of: ['result/answer', 'run']},
+        operation: {any_of: ['read']}, exclusions: []},
       {entry_id: 'run', outcome: 'allow', principal: {all: true},
         connection: {all: true}, resource: {all: true},
         operation: {any_of: ['write']}, exclusions: []},
@@ -75,6 +116,27 @@ const physicalStop = new Promise(resolve => { releasePhysicalStop = resolve; });
 let stopBeforeAcknowledgement;
 let started;
 const ready = new Promise(resolve => { started = resolve; });
+const inferFailureObservations = [];
+let inferFailureObserved = false;
+let dispatchFailureObserved = false;
+authorization.observe = (name, detail) => {
+  if (name === 'dispatch_failed' && !dispatchFailureObserved) {
+    const data = inferDispatchFailureData(detail);
+    if (data === undefined) return;
+    dispatchFailureObserved = true;
+    const observed = Object.freeze({event: name, ...data, calls});
+    inferFailureObservations.push(observed);
+    console.error(JSON.stringify(observed));
+    return;
+  }
+  if (name !== 'infer_preparation_rejected' || inferFailureObserved) return;
+  const data = inferPreparationFailureData(detail);
+  if (data === undefined) return;
+  inferFailureObserved = true;
+  const observed = Object.freeze({event: name, ...data});
+  inferFailureObservations.push(observed);
+  console.error(JSON.stringify(observed));
+};
 authorization.faultInjection = async name => {
   if (mode === 'approval-stop-cancel' && name === 'infer_model_settlement_committed' && !cancelled) {
     await ready;
@@ -89,7 +151,7 @@ authorization.faultInjection = async name => {
       JSON.stringify({calls, boundary: name}));
     process.exit(0);
   }
-  if (mode === 'cancel' && name === 'infer_execution_advanced' &&
+  if (mode === 'cancel' && name === 'infer_model_settlement_committed' &&
       calls === 1 && !cancelled) {
     cancelled = true;
     await ready;
@@ -101,6 +163,7 @@ const checked = result => {
   return result._0;
 };
 const installationOptions = {directory: hostRoot, authorization,
+    hostCapacityPolicy: baseEnvironment.host_policy_profile.capacity,
     modelInstallation: installation,
     registerModelProviders: moon => [{providerId: 'models/packed',
       bindingOriginals: providerBindingOriginals('models/packed', {selector: 'packed-risk-model'}),
@@ -245,8 +308,13 @@ try {
     await new Promise(resolve => setImmediate(resolve));
     terminal = await run.wait();
   }
-  assert.equal(terminal.status, mode === 'cancel' ? 'cancelled' :
-    mode === 'failure' ? 'failed' : 'succeeded');
+  const expectedTerminalStatus = mode === 'cancel' ? 'cancelled' :
+    mode === 'failure' ? 'failed' : 'succeeded';
+  const terminalContext = {phase: 'infer_terminal',
+    ...inferTerminalFailureData(terminal), calls, observations: inferFailureObservations};
+  // Preserve this bounded DATA even if the original finally later refuses cleanup.
+  if (terminal.status !== expectedTerminalStatus) console.error(JSON.stringify(terminalContext));
+  assert.equal(terminal.status, expectedTerminalStatus, JSON.stringify(terminalContext));
   if (mode === 'cancel' || mode === 'failure') {
     await assert.rejects(run.result('answer').all());
   } else {
@@ -260,12 +328,7 @@ try {
     principalId: userInfo().username})).digest('hex')}`;
   for (const role of ['model_call_attempt', 'model_attempt_accounting',
     'model_attempt_outcome', 'model_dispatch_authority']) {
-    const holding = mode === 'cancel' || mode === 'failure'
-      ? scopedModelHolding(root, run.ref.runDefinitionCid, storeCid, role)
-      : cid({role, slot: 0,
-      run_definition_cid: run.ref.runDefinitionCid,
-      store_authority_cid: storeCid,
-      version: 'actql-model-private-holding/0.1'});
+    const holding = scopedModelHolding(root, run.ref.runDefinitionCid, storeCid, role);
     const record = JSON.parse(readFileSync(join(root, 'publication',
       'physical-holdings', `${holding.slice(7)}.json`), 'utf8'));
     assert.equal(record.holding_cid, holding);

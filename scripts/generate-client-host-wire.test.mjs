@@ -472,15 +472,27 @@ test('check protocol discriminants derive from the registered schema without ano
   assert.throws(() => buildClientHostWire(registry, changed), /InvalidCheckOutcomeDiscriminants/);
 });
 
-test('Requirement fact identities follow their referenced checked-contract schema', async () => {
-  const {applyCheckOutcomeSchema} = await import('./check-outcome-contract.mjs');
+test('Requirement fact identities require a coherent checked-contract and catalog update', async () => {
+  const {applyCheckOutcomeSchema, checkOutcomeSchema} = await import('./check-outcome-contract.mjs');
+  const {readCheckReasonCatalog, checkReasonSchemaFromCatalog} = await import('./check-reason-catalog.mjs');
+  const {machineCid} = await import('./actql-spec-family.mjs');
   const changed = structuredClone(protocol);
   changed.schemas.canonical_value_contract.title += '-independent-fixture';
-  applyCheckOutcomeSchema(changed);
-  assert.notEqual(changed.artifact_schema_cids.check_reason, protocol.artifact_schema_cids.check_reason);
-  assert.notEqual(changed.artifact_schema_cids.check_outcome, protocol.artifact_schema_cids.check_outcome);
+  assert.throws(() => applyCheckOutcomeSchema(changed), /StaleCheckReasonParameterContractSchema/);
+  // The owned catalog is the reason-schema source. An intentional schema
+  // change must update that explicit reference too; generation cannot hide it.
+  const catalog = readCheckReasonCatalog();
+  const pin = machineCid(changed.schemas.canonical_value_contract);
+  for (const facts of catalog.reason_schema.properties.facts.oneOf) {
+    if (facts.properties.admission) facts.properties.admission.properties.contract_schema_cid.const = pin;
+  }
+  changed.artifact_schemas.check_reason = checkReasonSchemaFromCatalog(catalog, pin);
+  changed.artifact_schemas.check_outcome = checkOutcomeSchema(changed.artifact_schemas.check_reason);
+  for (const name of ['check_reason', 'check_outcome']) {
+    changed.artifact_schema_cids[name] = machineCid(changed.artifact_schemas[name]);
+    assert.notEqual(changed.artifact_schema_cids[name], protocol.artifact_schema_cids[name]);
+  }
   assert.notEqual(buildClientHostWire(registry, changed).module, buildClientHostWire(registry, protocol).module);
-
 });
 
 test('Run observation vocabulary derives from the registered state schema', async () => {

@@ -67,9 +67,14 @@ fn native_payload_fixture(
     is Some(library_path) else {
     return None
   }
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
-    return None
+  // The full Core caller deliberately leaves the optional shared Store root
+  // unset. Its actual private SQLite namespace also owns these per-case roots;
+  // selecting it here must not activate other packages' shared-root fixtures.
+  let selected_root = match @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") {
+    Some(root) => Some(root)
+    None => @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT")
   }
+  guard selected_root is Some(root) else { return None }
   let token = label + "-" + @env.now().to_string()
   let authority = native_payload_cid(token + "-authority")
   let library = @sqlite.load_library(library_path).unwrap()

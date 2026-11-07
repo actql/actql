@@ -20,6 +20,27 @@ and move records through an app's workflow.
   `version` from `kintone.attachments`; the Connector downloads only the
   files the join names.
 
+### Installed record reads
+
+The ordinary installed record Source uses the existing managed Source reader
+for both checked Query and authored whole-input acquisition. It preserves the
+original declaration and typed values; it does not reconstruct an acquisition
+from a provider response or a matching schema identifier.
+
+Form metadata has its own authorized read Resource and credential binding.
+Record permission does not grant Form permission. The reader checks the
+original Form before reading records and again after each page, including the
+last page. Both bindings and their currentness checks remain owned until the
+same reader confirms cleanup. A changed Form or denied current read stops the
+acquisition rather than publishing partially accepted rows.
+
+`maxRequests` counts Form and record responses together; `maxPages` still bounds
+record pages. The configured byte, row, parser and value limits are unchanged.
+Actual received bytes are charged before a native construction-capacity check
+and decoding; insufficient capacity can refuse a permitted-size response
+without silently reducing those limits. Repeated Result reads and reopening a
+Saved Result use the captured values, not another provider read.
+
 ## Types
 
 | kintone field | ActQL | Notes |

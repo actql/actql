@@ -22,6 +22,7 @@ test "asynchronous reference completion requires settlement and cancellation ret
     let reserved = @resources.ledger_usage(ledger)
     assert_true(reserved.reserved_execution_bytes > 0L)
     assert_true(reserved.reserved_retention_bytes > 0L)
+    assert_true(reserved.reserved_attempts > 0)
     assert_false(@strategy.captured_task_completed(run, 1))
     if cancel {
       @reference_driver.close_async_numeric(work)
@@ -35,11 +36,26 @@ test "asynchronous reference completion requires settlement and cancellation ret
         reserved.reserved_retention_bytes,
       )
       assert_true(@reference_driver.execute_async_numeric(work) is Err(_))
+      assert_eq(@resources.ledger_usage(ledger).attempts, reserved.attempts)
       @reference_driver.settle_async_numeric(work).unwrap()
       assert_true(@reference_driver.complete_async_numeric(work) is Err(_))
       assert_false(@strategy.captured_task_completed(run, 1))
     } else {
       @reference_driver.execute_async_numeric(work).unwrap()
+      let used = @resources.ledger_usage(ledger)
+      assert_eq(used.attempts, reserved.attempts + 1)
+      assert_eq(used.reserved_attempts, reserved.reserved_attempts - 1)
+      assert_eq(
+        used.reserved_execution_bytes,
+        reserved.reserved_execution_bytes,
+      )
+      assert_eq(
+        used.reserved_retention_bytes,
+        reserved.reserved_retention_bytes,
+      )
+      // A rejected second payload entry neither reissues nor refunds this use.
+      assert_true(@reference_driver.execute_async_numeric(work) is Err(_))
+      assert_eq(@resources.ledger_usage(ledger).attempts, used.attempts)
       assert_false(@strategy.captured_task_completed(run, 1))
       @reference_driver.settle_async_numeric(work).unwrap()
       @reference_driver.complete_async_numeric(work).unwrap()
@@ -50,6 +66,11 @@ test "asynchronous reference completion requires settlement and cancellation ret
       @strategy.close_captured_task_output(run, 1)
     }
     let final_usage = @resources.ledger_usage(ledger)
+    assert_eq(
+      final_usage.attempts,
+      reserved.attempts + (if cancel { 0 } else { 1 }),
+    )
+    assert_eq(final_usage.reserved_attempts, reserved.reserved_attempts - 1)
     assert_eq(final_usage.held_bytes, 0L)
     assert_eq(final_usage.reserved_execution_bytes, 0L)
     assert_eq(final_usage.reserved_retention_bytes, 0L)

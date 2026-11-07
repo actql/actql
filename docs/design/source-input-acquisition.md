@@ -323,3 +323,76 @@ no current callback; the following original read constructor retains its own
 pre-call admission, current fence, partial-child retention and cleanup duties.
 Neither the variant nor release of a read alias acknowledges physical stop or
 parent retirement.
+
+
+## Mixed installed capture originals
+
+A mixed Row/DuckDB prefix retains each occurrence's capacity in the SAME
+checked Request Plan. The DuckDB preparation borrows its original requirement
+and opaque installed capacity from that Plan after the original Run's current
+check. It does not prepare a second Query or pending capacity envelope. The
+existing Native/Broad selector still checks Account/current and its actual
+selected configuration against those retained bounds before physical I/O.
+The pending and installed envelope entry points share one acceptance predicate.
+The Source also forwards its same three retained acquisition/evidence contract
+originals; Run preparation does not reopen and parse those installation files.
+
+The builtin DuckDB installation supplies its registered `builtin_source/0.1`
+identity. Its private preparation map binds the original prepared object,
+exact physical target and selected catalogue view to that installation's
+binding CID. A copied or foreign preparation, retired installation or partial
+bound inventory cannot become ordinary Saved custody.
+
+The dispatch owner retains each original preparation's retirement method before
+opening the first input. Completed captures retire through their original close
+first. Only after pending physical cleanup has settled does that same owner
+return still-unentered Row preparations, so an early sibling failure cannot
+strand a later original read until global installation close. Unknown physical
+work still blocks this cut. No read, retry, replacement Ledger or cleanup ACK is
+created by returning an unentered preparation. Per-capture cleanup and complete
+Run/preparation retirement remain different observation boundaries.
+
+## Keyed relation on the original materializing Run
+
+An ordinary Direct Source followed by a keyed relation borrows the same
+Request's admitted Run Ledger. Optional cardinality estimates do not create
+a second budget or turn an unknown row count into a checked bound. The
+retained Plan supplies its original Direct capacity, generated sequences and
+configured Compute; opening the keyed input does not check or compile again.
+The same Request, Prepared and Source identities remain bound, including the
+right-side key, version, correlation and current read authorization.
+
+RowRun, lookup assembly and Compute reserve their actual demand on that same
+finite Ledger before use and grow there as actual inputs arrive. A whole
+execution ceiling is not an additional execution cost. Existing current and
+post-callback original fences remain authoritative. Foreign Request, capacity,
+Ledger or retired custody refuses without falling back to a standalone Run.
+Compute stops before the borrowed lookup and Direct input are reclaimed;
+their cleanup and final parent retirement remain separate duties. The
+standalone path and Model/serialization purposes retain their own contracts.
+
+## Salesforce response construction on the original reader
+
+The installed Salesforce reader charges and retains each original response
+before projection. Its raw-body inventory consists of the received prefix and
+one next bounded transport buffer, including the first offending response. The
+aggregate byte and response-count limits remain rejection limits; future pages
+are not already allocated bodies.
+
+The existing QueryRead retains the original body, path and digest with the
+Source preflight cursor. Unicode and byte preflight observe wire geometry
+before grammar construction. This geometry bounds malformed prefixes as well
+as successful input; it is neither a parsed page nor authority to execute.
+The same RowRun must admit the constructor peak before QueryRead transfers and
+advances that same parser. A copied or changed body cannot consume the cursor.
+The original JSON, node, depth, field, row and locator checks still decide
+admission. Missing nullable cells, compound roles and multipicklist expansion
+remain in the value-construction inventory.
+
+Prior Describe material and the next query workspace have separate extents.
+A large query body does not enlarge an already completed Describe parser.
+Only one query page is pending; its original acknowledgment precedes the next
+locator request. Interruption retires its pending parser through the existing
+QueryRead, while the reader retains raw responses, failed children and physical
+cleanup responsibilities. Neither parser retirement nor a quantity quote is a
+physical-stop or Host-close acknowledgment.

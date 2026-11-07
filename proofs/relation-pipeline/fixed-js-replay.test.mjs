@@ -8,6 +8,7 @@ import {verifyFixedJsTamperRefusals, eraseFixedJsDetection} from '../ci-evidence
 import {controlledFixedJsOriginal} from './fixtures/fixed-js-original.mjs';
 import {readFileSync} from 'node:fs';
 import {applyMutation, sites} from './sites.mjs';
+import {hash} from './inventory.mjs';
 
 const local = {profile:'local-fixed-js', mode:'fixed', partId:'L-M0', revision:'a'.repeat(40)};
 test('the ordinary runner keeps all targets; the separate local scope fixes its part, minima and all phases', () => {
@@ -58,4 +59,20 @@ test('cross-phase comparison retains scientific rows, NULL, contract types, work
   assert.deepEqual(fixedJsScientificObservation(altered), fixedJsScientificObservation(payload.report));
   altered.results[1].healthy.js.wireRows.reverse();
   assert.notDeepEqual(fixedJsScientificObservation(altered), fixedJsScientificObservation(payload.report));
+});
+
+test('controlled copies bind current mutation sources and reject another source body', () => {
+  const {payload, context} = controlledFixedJsOriginal();
+  for (const result of payload.report.results) {
+    const current = readFileSync(new URL(`../../${result.site}`, import.meta.url));
+    assert.deepEqual(context.readSource(result.site), current);
+    assert.equal(context.source.sources[result.site], hash(current));
+    assert.equal(result.originalDigest, hash(current));
+  }
+  const selected = payload.report.results[0].site;
+  const readSource = path => path === selected
+    ? Buffer.concat([context.readSource(path), Buffer.from('\n// changed source body\n')])
+    : context.readSource(path);
+  assert.throws(() => validateFixedJsReport({report: payload.report,
+    files: payload.files, ...context, readSource}), /Original mutation bytes differ/u);
 });

@@ -59,6 +59,8 @@ const resultDataPolicyBody = {
 const resultDataPolicy = Object.freeze({kind: 'data_policy',
   cid: cid(resultDataPolicyBody), wire: canonicalText(resultDataPolicyBody)});
 const inferPollKind = poll => moon.clientProgramInferExecutionPollKind(poll);
+// Closed issue/observation tags below follow src/model_execution/execution.mbt;
+// exact nested refusal assertions remain separate from the outer Host issue.
 
 // Fixed id/outcome/value(reason,risk) schema: each scalar emission takes 15
 // steps and the two-field object takes 68 (value_contract/encode.mbt). Each
@@ -101,7 +103,7 @@ const prepare = (source, owner) =>
   moon.clientProgramPrepareEffectFreeWithParameters(
     canonicalText(source), 'json', owner, undefined);
 
-const registry = readFileSync(new URL(
+const registryWire = readFileSync(new URL(
   '../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8');
 const executionContracts = JSON.parse(readFileSync(new URL(
   '../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'))
@@ -114,6 +116,10 @@ const checked = value => {
   assert.equal(value?.$tag, 1, inspect(value, {depth: 3}));
   return value._0;
 };
+// Install the same authored sequence closure once in this Common namespace.
+// A registry JSON wire is DATA, not the constructor's retained original.
+const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+  registryWire, values, fragment, ordered));
 
 async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = false,
   rawFailure) {
@@ -348,14 +354,25 @@ async function originalSdkStoreConnection(t, journalAck, loseCommitResponse = fa
       await assert.rejects(continuation.authorize(), error => {
         refusal = error;
         return rawFailure === 'binder' ? error.message === 'FixtureRawBinderRefused'
-          : error.code === 'MoonBitHostFailure';
+          : error.code === 'InstalledModelRawOriginalsUnavailable';
       });
-      await assert.rejects(continuation.authorize(), error => error === refusal);
+      // Availability is a fresh pre-attempt current check, not an attempted
+      // registration's cached construction failure. The binder remains sticky.
+      await assert.rejects(continuation.authorize(), error => rawFailure === 'binder'
+        ? error === refusal : error.code === 'InstalledModelRawOriginalsUnavailable');
       assert.equal(rawBindings, rawFailure === 'binder' ? 1 : 0);
       assert.equal(fetches, 0);
       assert.equal(requests, 0);
       assert.equal(continuation.entry(0), undefined);
-      assert.equal(checkpoints.journal.readModelCalls(continuation.inventory).slots[0].state, 'Unsent');
+      if (rawFailure === 'binder') {
+        assert.equal(checkpoints.journal.readModelCalls(continuation.inventory).slots[0].state, 'Unsent');
+      } else {
+        // Current refusal precedes Approval and scope registration entirely.
+        // Keep the actual Common call prepared; do not invent an Unsent row.
+        assert.equal(moon.clientProgramInferPreparedCallCount(waiting.preparedCallSet), 1);
+        assert.deepEqual(checkpoints.journal.discoverModelCallSets({
+          runId: continuation.inventory.runId, limit: 1}), []);
+      }
       assert.equal(continuation.close(), false, 'original operation still owes cleanup');
       await assert.rejects(operation.close(), {code: 'ClientDispatchCleanupPending'});
       assert.equal(operation.cleanupPending(), true, 'SDK preparation still owes retirement');
@@ -887,7 +904,7 @@ test('actual Host request ceilings reject a late row before any dispatch', async
     const failed = await ownedInferTerminal(active);
     assert.equal(inferPollKind(failed), 'failed', inspect(failed));
     assert.equal(failed._0.$tag, 2, 'the common model owner rejects preflight');
-    assert.equal(failed._0._0.$tag, 12, 'exact Model(RequestLimit) cause');
+    assert.equal(failed._0._0.$tag, 15, 'exact Model(RequestLimit) cause');
     assert.equal(calls(), 0);
     assert.equal(moon.clientProgramInferExecutionCapture(active), undefined);
     assert.equal(moon.clientProgramAcquireInferOutput(active), undefined);
@@ -1132,7 +1149,9 @@ test('Node Infer rechecks the retained Host egress observation before I/O', asyn
       } else {
         assert.ok(await fixture.operation.run());
       }
-      assert.equal(observations, 2);
+      // Admission, dispatch current and the final physical-start current.
+      // A changed observation refuses at the first current check.
+      assert.equal(observations, changed ? 2 : 3);
       assert.equal(fixture.calls(), changed ? 0 : 1);
     } finally {
       await fixture.operation.close();
@@ -1421,7 +1440,7 @@ test('Node Infer rechecks account and clock observations immediately before mode
       await assert.rejects(operation.run(), failure => {
         assert.equal(failure.code, 'MoonBitHostFailure');
         assert.equal(failure.cause?.$tag, 2, 'Host Model issue');
-        assert.equal(failure.cause?._0?.$tag, 14, 'Model Authorization issue');
+        assert.equal(failure.cause?._0?.$tag, 17, 'Model Authorization issue');
         assert.equal(failure.cause?._0?._0?.$tag,
           changed === 'expiry' ? 1 : 2, 'expiry or changed configuration');
         return true;
@@ -1574,7 +1593,7 @@ test('physical Infer preflight enforces the selected contract before dispatch', 
       await assert.rejects(operation.run(), error => {
         assert.equal(error.code, 'MoonBitHostFailure');
         assert.equal(error.cause?.$tag, 2, 'Host Model issue');
-        assert.equal(error.cause?._0?.$tag, 9, 'Model Ledger issue');
+        assert.equal(error.cause?._0?.$tag, 11, 'Model Ledger issue');
         assert.equal(error.cause?._0?._0, ledgerIssue,
           ledgerIssue === 2 ? 'AttemptLimit' : 'TransferLimit');
         return true;
@@ -1847,7 +1866,7 @@ test('the physical Infer wrapper preserves a typed model failure and cleans with
   await assert.rejects(fixture.operation.run(), error => {
     assert.equal(error.code, 'MoonBitHostFailure');
     assert.equal(error.cause?.$tag, 2, 'Host Model issue');
-    assert.equal(error.cause?._0?.$tag, 4, 'Model Provider issue');
+    assert.equal(error.cause?._0?.$tag, 6, 'Model Provider issue');
     assert.equal(error.cause?._0?._0, 2, 'ProviderError from invalid response');
     return true;
   });
@@ -2087,9 +2106,11 @@ test('failed slot custody survives encrypted Store reopen and replays without di
       import {createPublicationContractControlFixture} from ${JSON.stringify(new URL(
         '../adapters/host-common/publication-contract-control.fixture.mjs', import.meta.url).href)};
       const fixture = JSON.parse(readFileSync(0, 'utf8'));
-      const {task, baseEnvironment, registry, values, fragment, ordered} = fixture;
+      const {task, baseEnvironment, registryWire, values, fragment, ordered} = fixture;
       const cid = ${cid.toString()};
       const checked = ${checked.toString()};
+      const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+        registryWire, values, fragment, ordered));
       const environment = ${environment.toString()};
       const prepare = ${prepare.toString()};
       const program = ${program.toString()};
@@ -2174,7 +2195,7 @@ test('failed slot custody survives encrypted Store reopen and replays without di
     `;
     const restarted = JSON.parse(execFileSync(process.execPath,
       ['--input-type=module', '-e', childSource], {encoding: 'utf8',
-        input: JSON.stringify({task, baseEnvironment, registry, values,
+        input: JSON.stringify({task, baseEnvironment, registryWire, values,
           fragment, ordered,
           configuration: {...configuration, privateEvidenceKey: undefined},
           bindings, policy, runDefinitionWire: runDefinition.wire})}));
@@ -2243,7 +2264,7 @@ test('checked capture serializes its formal bundle and survives encrypted Store 
   assert.equal(exact.wire, expectedWire);
   assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(exact.active)), true);
   const oneShort = await exportedModelCapture(saved, {maxBytes: exactBytes - 1});
-  assert.equal(oneShort.failure.$tag, 5, 'exact OutputValue serialization failure');
+  assert.equal(oneShort.failure.$tag, 7, 'exact OutputValue serialization failure');
   assert.equal(moon.clientProgramInferCaptureExportIdentity(oneShort.active), undefined);
   assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(oneShort.active)), true);
 
@@ -2357,9 +2378,11 @@ test('checked capture serializes its formal bundle and survives encrypted Store 
       import {createPublicationContractControlFixture} from ${JSON.stringify(new URL(
         '../adapters/host-common/publication-contract-control.fixture.mjs', import.meta.url).href)};
       const fixture = JSON.parse(readFileSync(0, 'utf8'));
-      const {task, baseEnvironment, registry, values, fragment, ordered} = fixture;
+      const {task, baseEnvironment, registryWire, values, fragment, ordered} = fixture;
       const cid = ${cid.toString()};
       const checked = ${checked.toString()};
+      const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+        registryWire, values, fragment, ordered));
       const environment = ${environment.toString()};
       const prepare = ${prepare.toString()};
       const program = ${program.toString()};
@@ -2395,7 +2418,7 @@ test('checked capture serializes its formal bundle and survives encrypted Store 
     `;
     const restarted = JSON.parse(execFileSync(process.execPath,
       ['--input-type=module', '-e', childSource], {encoding: 'utf8',
-        input: JSON.stringify({task, baseEnvironment, registry, values,
+        input: JSON.stringify({task, baseEnvironment, registryWire, values,
           fragment, ordered,
           configuration: {...configuration, privateEvidenceKey: undefined},
           identity: exported.identity, holdingCid})}));
@@ -2454,7 +2477,7 @@ test('a macrotask stops nested capture serialization without releasing its owner
   assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), false);
   const stopped = moon.clientProgramAdvanceInferCaptureExport(stream, 1);
   assert.equal(stopped.$tag, 0);
-  assert.equal(stopped._0.$tag, 7, 'exact Cancelled cause');
+  assert.equal(stopped._0.$tag, 9, 'exact Cancelled cause');
   assert.equal(moon.clientProgramInferCaptureExportIdentity(stream), undefined);
   assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(stream)), true);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), true);
@@ -2473,23 +2496,25 @@ test('restored replay validates records and typed responses rather than acceptin
   assert.equal(moon.clientProgramReadInferCaptureBundle(exported.wire,
     cid({foreign: 'holding'})).$tag, 0);
 
+  // Reconstructed response/key observation identity is checked by
+  // check_model_replayed_observation before the later OutputIdentity fence.
   const cases = [
-    ['raw response', slot => { slot.structured_response.risk = 'low'; }, false, 6],
-    ['typed response', slot => { slot.structured_response.risk = 42; }, false, 5],
-    ['key payload', slot => { slot.evidence.input_row_identity = 'b'; }, true, 6],
+    ['raw response', slot => { slot.structured_response.risk = 'low'; }, false, 16, 6],
+    ['typed response', slot => { slot.structured_response.risk = 42; }, false, 7],
+    ['key payload', slot => { slot.evidence.input_row_identity = 'b'; }, true, 16, 6],
     ['slot', slot => {
       slot.model_call_slot_cid = cid({foreign: 'slot'});
       slot.evidence.model_call_slot_cid = slot.model_call_slot_cid;
-    }, true, 6],
+    }, true, 8],
     ['request', slot => {
       slot.semantic_request_cid = cid({foreign: 'request'});
       slot.evidence.semantic_request_cid = slot.semantic_request_cid;
-    }, true, 6],
-    ['task', slot => { slot.evidence.model_task_contract_cid = cid({foreign: 'task'}); }, true, 6],
-    ['artifact', slot => { slot.evidence.input_result_artifact_cid = cid({foreign: 'input'}); }, true, 6],
-    ['unsealed observation', slot => { slot.evidence.provider_request_id = 'altered'; }, false, 13],
+    }, true, 8],
+    ['task', slot => { slot.evidence.model_task_contract_cid = cid({foreign: 'task'}); }, true, 8],
+    ['artifact', slot => { slot.evidence.input_result_artifact_cid = cid({foreign: 'input'}); }, true, 8],
+    ['unsealed observation', slot => { slot.evidence.provider_request_id = 'altered'; }, false, 16, 6],
   ];
-  for (const [name, mutate, reseal, cause] of cases) {
+  for (const [name, mutate, reseal, cause, evidenceCause] of cases) {
     const body = structuredClone(baseline);
     delete body.bundle_cid;
     mutate(body.captures[0]);
@@ -2497,6 +2522,22 @@ test('restored replay validates records and typed responses rather than acceptin
       const {model_invocation_evidence_cid: ignored, ...evidence} = body.captures[0].evidence;
       void ignored;
       body.captures[0].evidence.model_invocation_evidence_cid = cid(evidence);
+    }
+    // Sealed mutations must reach real input/response correspondence, not
+    // fail because the per-record envelope has a stale self identity.
+    const evidence = moon.strategyRunEvidenceAdmit('model_invocation_evidence',
+      canonicalText(body.captures[0].evidence), 16384, 1024, 16);
+    assert.equal(evidence.$tag, name === 'unsealed observation' ? 0 : 1,
+      `${name}: original record integrity`);
+    if (name === 'raw response') {
+      assert.equal(baseline.captures[0].evidence.structured_response_artifact_cid,
+        cid({reason: null, risk: 'high'}));
+      assert.equal(cid(body.captures[0].structured_response), cid({reason: null, risk: 'low'}));
+      assert.notEqual(body.captures[0].evidence.structured_response_artifact_cid,
+        cid(body.captures[0].structured_response));
+    } else if (name === 'key payload') {
+      assert.equal(baseline.captures[0].evidence.input_row_identity, 'a');
+      assert.equal(body.captures[0].evidence.input_row_identity, 'b');
     }
     const identity = cid(body);
     // Transport/self integrity alone is valid, deliberately. The common
@@ -2511,6 +2552,9 @@ test('restored replay validates records and typed responses rather than acceptin
     assert.equal(inferPollKind(terminal), 'failed', name);
     assert.equal(terminal._0.$tag, 2, `${name}: model cause`);
     assert.equal(terminal._0._0.$tag, cause, `${name}: exact typed cause`);
+    if (evidenceCause !== undefined) {
+      assert.equal(terminal._0._0._0.$tag, evidenceCause, `${name}: exact evidence identity mismatch`);
+    }
     assert.equal(moon.clientProgramInferExecutionOutput(terminal), undefined);
     assert.equal(moon.clientProgramAcquireInferCapture(replay), undefined);
     assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
@@ -2665,7 +2709,7 @@ test('replay rejects changed input and task instead of redispatching a model', a
     const terminal = await ownedInferTerminal(replay);
     assert.equal(inferPollKind(terminal), 'failed', inspect(terminal));
     assert.equal(terminal._0.$tag, 2, 'Model issue');
-    assert.equal(terminal._0._0.$tag, 6, 'exact OutputIdentity cause');
+    assert.equal(terminal._0._0.$tag, 8, 'exact OutputIdentity cause');
     assert.equal(moon.clientProgramAcquireInferOutput(replay), undefined);
     assert.equal(moon.clientProgramAcquireInferCapture(replay), undefined);
     assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
@@ -2938,9 +2982,9 @@ test('a response arriving after cancellation cannot authorize model output', asy
   assert.equal(reservation.$tag, 0,
     'reserve attempts in bounded steps before the first call');
   assert.equal(calls, 0);
-  // ModelObservation has Continue, Waiting, Settling, Completed, Failed, Stopped.
+  // ModelObservation has Continue, AwaitIo, Waiting, Settling, Completed, Failed, Stopped.
   // Unlike Infer Poll, this bridge has no kind accessor for its stop observation.
-  assert.equal((await modelTerminal(active, reservation._2 ?? reservation._1)).$tag, 5,
+  assert.equal((await modelTerminal(active, reservation._2 ?? reservation._1)).$tag, 6,
     'preflight reaches the provider before its cancellation stops the owner');
   assert.equal(moon.clientProgramStartModelOutput(input, rows, active).$tag, 0);
   assert.equal(checked(moon.clientProgramCleanupInferInput(input)), false,

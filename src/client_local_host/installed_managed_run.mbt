@@ -3,15 +3,15 @@
 /// capacity issuer. Any Source reads and the managed DAG borrow this one Ledger.
 priv enum ClientInstalledManagedRunOriginal {
   PureManaged(
-    @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
+    @resources.PreparedRunAdmission[@publication_host.PreparedClientProgram],
     @publication_host.PreparedClientProgram
   )
   PlannedEffectManaged(
-    @resources.NodeManagedRunAdmission[ClientInstalledEffectManagedPlan],
+    @resources.PreparedRunAdmission[ClientInstalledEffectManagedPlan],
     ClientInstalledEffectManagedPlan
   )
   PreparationContentManaged(
-    @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
+    @resources.PreparedRunAdmission[@publication_host.PreparedClientProgram],
     @publication_host.PreparedClientProgram
   )
 }
@@ -107,6 +107,24 @@ pub fn installed_managed_run_compilation_original(
 }
 
 ///|
+/// The adopted SAME Run retains this exact captured Model prefix. Borrow it
+/// through the original compilation/payload-retirement fence and original
+/// Request association; never reconstruct a Plan or prepare another sequence.
+/// Immutable DATA only: no current callback, debit, compiler or new authority.
+pub fn installed_managed_run_model_input_prefix(
+  run : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[@execution.GeneratedSequence, ClientInstalledManagedRunIssue] {
+  guard installed_managed_run_compilation_original(run, prepared) is Some(_) &&
+    run.captured_preparation is Some(plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, run.request) else {
+    return Err(ForeignOriginal)
+  }
+  prepared_request_model_input_prefix(plan)
+}
+
+///|
 /// Same payload-retirement fence as the original compilation getter. A timed
 /// module keeps the original issued Run/Definition through its invocation;
 /// later publication must consume those originals rather than issue again.
@@ -186,7 +204,10 @@ fn installed_managed_owner_shape_supported(
   owner : ClientLocalSequenceOwner,
   mock_model : Bool,
   model? : @publication_host.ClientInferPlanGraph? = None,
+  model_graphs? : Array[@publication_host.ClientInferPlanGraph]? = None,
   model_occurrence? : @publication_host.ClientInferOccurrence? = None,
+  model_occurrences? : Array[@publication_host.ClientInferOccurrence]? = None,
+  content? : ClientInstalledEffectContentPreparation? = None,
 ) -> Bool {
   let graph = installed_managed_owner_graph(owner)
   let captured = @strategy.graph_captured_prefix(graph)
@@ -194,23 +215,107 @@ fn installed_managed_owner_shape_supported(
   // Later module/Plan callers must supply their actual checked Graph instead.
   let selected_occurrence = match model {
     Some(selected) => Some(selected.occurrence)
-    None => model_occurrence
+    None =>
+      match model_graphs {
+        Some(graphs) => graphs.get(0).map(value => value.occurrence)
+        None =>
+          match (owner, model_occurrence) {
+            (Effect(prepared), None) if mock_model =>
+              @publication_host.prepared_client_effect_infer_occurrence(
+                prepared,
+              )
+            _ => model_occurrence
+          }
+      }
   }
-  let boundary_count = match owner {
+  // Reuse the same immutable checked occurrence inventory for the count and
+  // ordered identity comparison; do not enumerate it again for the vector.
+  let original_occurrences = match owner {
     Pure(prepared) =>
-      @publication_host.prepared_client_composed_infer_occurrences(prepared).map(value => {
-          value.length()
-        },
-      )
+      @publication_host.prepared_client_composed_infer_occurrences(prepared)
     Effect(prepared) =>
-      Some(
-        if @publication_host.prepared_client_effect_infer_occurrence(prepared)
-          is Some(_) {
-          1
-        } else {
-          0
-        },
-      )
+      @publication_host.prepared_client_effect_infer_occurrences(prepared)
+  }
+  let boundary_count = original_occurrences.map(value => value.length())
+  if model_graphs is Some(graphs) {
+    guard mock_model &&
+      model is None &&
+      model_occurrences is None &&
+      original_occurrences is Some(expected) &&
+      graphs.length() > 1 &&
+      graphs.length() == expected.length() else {
+      return false
+    }
+    for index, selected in graphs {
+      if !(match owner {
+          Pure(prepared) => physical_equal(selected.owner, prepared)
+          Effect(prepared) =>
+            @publication_host.client_infer_occurrence_matches_effect(
+              expected[index],
+              prepared,
+            )
+        }) ||
+        !(match owner {
+          Pure(_) =>
+            @publication_host.client_infer_occurrence_matches_plan(
+              expected[index],
+              selected,
+            )
+          Effect(prepared) =>
+            @publication_host.client_infer_occurrence_matches_effect(
+              selected.occurrence,
+              prepared,
+            ) &&
+            @publication_host.client_infer_occurrence_coordinates(
+              selected.occurrence,
+            ) ==
+            @publication_host.client_infer_occurrence_coordinates(
+              expected[index],
+            )
+        }) ||
+        (match (owner, selected.serialization) {
+          (_, None) => false
+          (Effect(_), Some(component)) =>
+            !content
+            .map(original => physical_equal(original.component, component))
+            .unwrap_or(false)
+          _ => true
+        }) {
+        return false
+      }
+    }
+  }
+  let selected_count = match model_occurrences {
+    None =>
+      match model_graphs {
+        Some(graphs) => graphs.length()
+        None => if mock_model { 1 } else { 0 }
+      }
+    Some(originals) => {
+      guard mock_model &&
+        originals.length() > 1 &&
+        original_occurrences is Some(expected) &&
+        expected.length() == originals.length() else {
+        return false
+      }
+      for index, original in originals {
+        if !(match owner {
+            Pure(prepared) =>
+              @publication_host.client_infer_occurrence_matches(
+                original, prepared,
+              )
+            Effect(prepared) =>
+              @publication_host.client_infer_occurrence_matches_effect(
+                original, prepared,
+              )
+          }) ||
+          @publication_host.client_infer_occurrence_coordinates(original) !=
+          @publication_host.client_infer_occurrence_coordinates(expected[index]) {
+          return false
+        }
+      }
+      originals.length()
+    }
   }
   let serialized = match owner {
     Pure(prepared) =>
@@ -232,10 +337,17 @@ fn installed_managed_owner_shape_supported(
     (captured == 0 && @strategy.graph_source_free_inputs_complete(graph))
   ) &&
   boundary_count is Some(count) &&
-  count == (if mock_model { 1 } else { 0 }) &&
+  count == selected_count &&
   (match model {
     None =>
-      serialized.is_empty() &&
+      (
+        (serialized.is_empty() && content is None) ||
+        (match (owner, content) {
+          (Effect(prepared), Some(original)) =>
+            installed_effect_content_preparation_matches(original, prepared)
+          _ => false
+        })
+      ) &&
       (match (model_occurrence, owner) {
         (None, _) => true
         (Some(original), Pure(prepared)) =>
@@ -272,6 +384,8 @@ fn source_free_installed_managed_preparation_owned(
   ordered_body : String?,
   mock_model : Bool,
   model? : @publication_host.ClientInferPlanGraph? = None,
+  model_graphs? : Array[@publication_host.ClientInferPlanGraph]? = None,
+  content? : ClientInstalledEffectContentPreparation? = None,
   query_time? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -281,7 +395,13 @@ fn source_free_installed_managed_preparation_owned(
   ClientInstalledManagedRunIssue,
 ] {
   let graph = installed_managed_owner_graph(owner)
-  if !installed_managed_owner_shape_supported(owner, mock_model, model~) ||
+  if !installed_managed_owner_shape_supported(
+      owner,
+      mock_model,
+      model~,
+      model_graphs~,
+      content~,
+    ) ||
     @strategy.graph_captured_prefix(graph) != 0 ||
     !@strategy.graph_source_free_inputs_complete(graph) {
     return Err(Unsupported)
@@ -330,14 +450,11 @@ fn source_free_installed_managed_preparation_owned(
     // original owner; an unproved nested schema still takes the old fallback.
     scalar_values=true,
     graph=Some(graph),
+    content~,
   )
-  // This fixed issuer requested Result metadata from the same checked graph.
-  // A present envelope with zero retained bytes is the failed metadata quote,
-  // not an empty Result: successful scalar metadata and the ordinary cleanup
-  // fallback are both positive. Preserve its exact pre-admission cause before
-  // the generic Plan matcher rejects this unusable zero-byte sentinel.
-  if capacity_plan._retained_result_envelope is Some(_) &&
-    capacity_plan.metadata_retained_bytes == 0L {
+  // Preserve the failed required quote before entering provider construction.
+  // Neither a genuine zero nor a graph-less calculator means quote failure.
+  if capacity_plan.metadata_quote is MetadataUnavailable {
     return Err(MetadataCapacityUnavailable)
   }
   guard client_local_sequence_capacity(
@@ -346,6 +463,7 @@ fn source_free_installed_managed_preparation_owned(
       capacity_plan=Some(capacity_plan),
       retained_inputs=Some(inputs),
       max_rows~,
+      runtime_admission=true,
     )
     is Some((limits, provider_retained_bytes, provider_execution_bytes)) else {
     return Err(Unsupported)
@@ -694,6 +812,7 @@ fn prepare_installed_managed_acquisitions_owned(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  direct_occurrences? : @publication_host.ClientDirectAcquisitionOccurrences? = None,
   query_time? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -708,12 +827,35 @@ fn prepare_installed_managed_acquisitions_owned(
   if declarations.length() != captured {
     return Err(Unsupported)
   }
+  if captured == 0 {
+    return Ok([])
+  }
+  let selected = match direct_occurrences {
+    Some(value) => value
+    None =>
+      match installed_direct_occurrences_owned(owner) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+  }
+  if !installed_direct_occurrences_match_owner(selected, owner) ||
+    @publication_host.client_direct_acquisition_occurrence_count(selected) !=
+    captured {
+    return Err(ForeignOriginal)
+  }
   let acquisitions = []
   for index in 0..<captured {
+    guard @publication_host.client_direct_acquisition_occurrence_at(
+        selected, index,
+      )
+      is Some((stage, input, task)) &&
+      task == index else {
+      return Err(ForeignOriginal)
+    }
     guard prepare_local_query_requirement_owned(
         owner,
-        index,
-        0,
+        stage,
+        input,
         installed_contracts,
         values_body,
         fragment_body,
@@ -778,7 +920,7 @@ fn new_installed_managed_run(
   ledger : @resources.Ledger,
 ) -> ClientInstalledManagedRun {
   new_installed_managed_run_owned(
-    PureManaged(admission, prepared),
+    PureManaged(@resources.node_prepared_run_admission(admission), prepared),
     request,
     ledger,
   )
@@ -942,13 +1084,11 @@ fn installed_managed_run_accounting_values(
 
 ///|
 fn[P] check_installed_managed_run_admission(
-  admission : @resources.NodeManagedRunAdmission[P],
+  admission : @resources.PreparedRunAdmission[P],
   prepared : P,
   ledger : @resources.Ledger,
 ) -> Result[Unit, @resources.ImportedChildLedgerIssue] {
-  @resources.check_node_managed_run_mutable_admission(
-    admission, prepared, ledger,
-  )
+  @resources.check_prepared_run_admission(admission, prepared, ledger)
 }
 
 ///|
@@ -997,6 +1137,29 @@ pub fn begin_installed_managed_run_source_read(
   value : ClientInstalledManagedRun,
   occurrence : Int,
 ) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue] {
+  begin_installed_managed_run_source_read_owned(value, occurrence, None)
+}
+
+///|
+pub fn begin_installed_managed_run_source_read_at(
+  value : ClientInstalledManagedRun,
+  stage : Int,
+  input : Int,
+  task : Int,
+) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue] {
+  begin_installed_managed_run_source_read_owned(
+    value,
+    task,
+    Some((stage, input, task)),
+  )
+}
+
+///|
+fn begin_installed_managed_run_source_read_owned(
+  value : ClientInstalledManagedRun,
+  occurrence : Int,
+  expected : (Int, Int, Int)?,
+) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue] {
   let ledger = match require_installed_managed_run(value) {
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
@@ -1010,6 +1173,11 @@ pub fn begin_installed_managed_run_source_read(
   let owner = match installed_managed_run_owner(value) {
     Err(issue) => return Err(issue)
     Ok(owner) => owner
+  }
+  if expected is Some(coordinate) &&
+    installed_managed_run_direct_occurrence(value, occurrence) !=
+    Some(coordinate) {
+    return Err(ForeignOriginal)
   }
   let read : ClientInstalledSourceRead = {
     original: None,
@@ -1167,13 +1335,24 @@ fn prepare_installed_managed_run_ledger_owned(
     )
   }
   guard required is Some(required) else { return Err(Unsupported) }
-  let available = @resources.ledger_limits(ledger)
-  if required.planning_work > available.planning_work ||
-    required.attempts > available.attempts ||
-    required.holdings > available.holdings ||
-    required.transfer_bytes > available.transfer_bytes ||
-    required.retained_bytes > available.retained_bytes ||
-    required.execution_bytes > available.execution_bytes {
+  let fits = match value.preparation_retirement {
+    None =>
+      installed_effect_limits_fit(required, @resources.ledger_limits(ledger))
+    Some(EffectPlanPreparation(_)) => false
+    Some(PurePreparation(original)) => {
+      // Captured/Content routes returned through their existing constructors
+      // above. This is the same preparation-owned source-free Pure body.
+      guard value.reads.is_empty() &&
+        value.preparation is Some(PureManaged(admission, prepared)) &&
+        value.source_free_preparation is Some(plan) &&
+        plan.owner is Pure(selected) &&
+        physical_equal(selected, prepared) else {
+        return Err(ForeignOriginal)
+      }
+      preparation_owned_run_limits_fit(original, admission, prepared, ledger)
+    }
+  }
+  if !fits {
     return Err(InsufficientCapacity)
   }
   for index in 0..<value.reads.length() {
@@ -1352,10 +1531,10 @@ fn open_installed_managed_source_free_host_original(
 }
 
 ///|
-/// Managed retirement after all Source capture duties, actual Compute usage
-/// report and the original logical stop. This does not acknowledge FD/backing
-/// release, an uncertain operation, or another Run's remaining holdings.
-pub fn retire_installed_managed_run(
+/// Stop new original operations and settle only controls whose actual child
+/// cleanup has completed. Model Scope quiescence then precedes parent-holder
+/// retirement. Pending children keep their same Run and reservation for retry.
+pub fn quiesce_installed_managed_run(
   value : ClientInstalledManagedRun,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(value, original) else {
@@ -1385,11 +1564,12 @@ pub fn retire_installed_managed_run(
       return Err(CleanupPending)
     }
   }
+  // Fence new work before releasing the original idle controls.
+  value.effect_operation_closing = true
   // Every original child ACK precedes control retirement. Keep the spent
   // occurrence fence closed even if later Root retirement remains pending.
   if !value.effect_operations.is_empty() ||
     value.effect_operation_controls is Some(_) {
-    value.effect_operation_closing = true
     if value.effect_operation_controls is Some(control) &&
       value.ledger is Some(ledger) {
       match @resources.settle_capacity(ledger, control.reservation) {
@@ -1401,6 +1581,23 @@ pub fn retire_installed_managed_run(
       }
     }
     value.effect_operations.clear()
+  }
+  Ok(())
+}
+
+///|
+/// Managed retirement after all Source capture duties, actual Compute usage
+/// report and the original logical stop. This does not acknowledge FD/backing
+/// release, an uncertain operation, or another Run's remaining holdings.
+pub fn retire_installed_managed_run(
+  value : ClientInstalledManagedRun,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  match quiesce_installed_managed_run(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.ledger is None {
+    return Ok(())
   }
   if value.preparation_retirement is Some(original) {
     return match original {
@@ -1416,11 +1613,11 @@ pub fn retire_installed_managed_run(
   guard value.preparation is Some(preparation) else { return Err(Retired) }
   let cleaned = match preparation {
     PureManaged(admission, _) =>
-      @resources.cleanup_node_managed_run_admission(admission)
+      @resources.cleanup_prepared_run_admission(admission)
     PlannedEffectManaged(admission, _) =>
-      @resources.cleanup_node_managed_run_admission(admission)
+      @resources.cleanup_prepared_run_admission(admission)
     PreparationContentManaged(admission, _) =>
-      @resources.cleanup_node_managed_run_admission(admission)
+      @resources.cleanup_prepared_run_admission(admission)
   }
   match cleaned {
     Err(issue) => return Err(Resource(issue))

@@ -129,11 +129,15 @@ for (const initial of ['absent', 'undefined']) {
 async function submit(client, submissionRef) {
   const run = await client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef});
   assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');
-  assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
+  assert.deepEqual(await run.result('main').all(), [{n: 1}]);
   return run;
 }
 async function remote(t, directory, selected, mutate, extra = {}) {
-  const opening = openInstalledRemoteHttpHost({directory, hostCapacityPolicy: selected, ...extra,
+  const opening = openInstalledRemoteHttpHost({directory, hostCapacityPolicy: selected,
+    authorization: {accountConfiguration: canonical({version: 'actql-execution-account-config/0.1',
+      account_id: 'host-policy-fixture', entries: [{entry_id: 'run-and-result', outcome: 'allow',
+        principal: {all: true}, connection: {all: true}, resource: {all: true},
+        operation: {any_of: ['read', 'write']}, exclusions: []}]})}, ...extra,
     authenticate: header => header === 'Bearer policy-token' ? userInfo().username : undefined});
   mutate?.();
   const host = await opening;
@@ -274,8 +278,8 @@ for (const entrance of ['local', 'https']) {
     const run = await client.startSource(item.text, {format: item.format, submissionRef: client.newSubmission({nonce: 'analytic-original-profile'}),
       parameters: item.parameters, parameterDeclarations: item.parameterDeclarations});
     assert.equal((await run.wait({signal: AbortSignal.timeout(10000)})).status, 'succeeded');
-    assert.deepEqual(await run.result('answer').all(), item.expected);
-    assert.deepEqual((await run.result('answer').describe()).columns, item.columns);
+    assert.deepEqual(await run.result('main').all(), item.expected);
+    assert.deepEqual((await run.result('main').describe()).columns, item.columns);
     assert.equal(run.ref.authorityScopeCid, expectedScope(directory, selected));
     await host?.close();
   });
@@ -285,13 +289,17 @@ for (const entrance of ['local', 'https']) {
 test('default Local connection scopes separate roots and survive the same-root restart', async t => {
   const firstRoot = await mkdtemp(join(scratch, 'scope-first-'));
   const secondRoot = await mkdtemp(join(scratch, 'scope-second-'));
+  const clients = [];
   t.after(async () => {
+    // Keep the original state directories until every actual owner has closed.
+    for (const client of clients.toReversed()) await client.close();
     await rm(firstRoot, {recursive: true, force: true});
     await rm(secondRoot, {recursive: true, force: true});
   });
   const first = await connect({mode: 'local', owner: 'local', installation: {directory: firstRoot}});
+  clients.push(first);
   const second = await connect({mode: 'local', owner: 'local', installation: {directory: secondRoot}});
-  t.after(() => first.close()); t.after(() => second.close());
+  clients.push(second);
   assert.equal(first.profile.scopeRef, expectedScope(firstRoot, undefined));
   assert.equal(second.profile.scopeRef, expectedScope(secondRoot, undefined));
   assert.notEqual(first.profile.scopeRef, second.profile.scopeRef);
@@ -303,7 +311,7 @@ test('default Local connection scopes separate roots and survive the same-root r
   assert.equal(unrelated.ref.authorityScopeCid, expectedScope(secondRoot, undefined));
   await first.close();
   const reopened = await connect({mode: 'local', owner: 'local', installation: {directory: firstRoot}});
-  t.after(() => reopened.close());
+  clients.push(reopened);
   assert.equal(reopened.profile.scopeRef, first.profile.scopeRef);
   const lookup = await reopened.lookupSubmission(submissionRef);
   assert.equal(lookup.kind, 'ready');

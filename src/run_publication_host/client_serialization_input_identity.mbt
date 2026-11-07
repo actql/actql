@@ -1,4 +1,15 @@
 ///|
+/// Existing closed Content proof codec: input Artifact, derivation and
+/// generation. The latter two issuers already enforce these bounds. The input
+/// Artifact has nine String fields (version plus eight original CIDs), three
+/// nonnegative Int fields and its sealed identity; it embeds no row, schema,
+/// Program body or Source response. Empty invocation bindings are fixed too.
+/// These are codec bounds, not a Resource allowance or a new proof owner.
+pub fn client_serialization_evidence_codec_bounds() -> (Int, Int, Int) {
+  (16384, 256, 16)
+}
+
+///|
 /// A borrowed identity proof, not another input/capture/cleanup owner. Its
 /// receipt comes from the existing bounded completed-Relation export. This
 /// token binds actual content to this compiler and exact completed input.
@@ -127,6 +138,12 @@ fn bind_client_serialization_input_identity_owned(
       @publication.RunEvidenceReferenceMismatch("content_input_artifact.rows"),
     )
   }
+  // Keep caller refusals below the existing closed proof bounds. A large
+  // generic contract decoder ceiling cannot become this constructor's size.
+  let (proof_bytes, proof_nodes, proof_depth) = client_serialization_evidence_codec_bounds()
+  let max_wire_bytes = Int::min(max_wire_bytes, proof_bytes)
+  let max_nodes = Int::min(max_nodes, proof_nodes)
+  let max_depth = Int::min(max_depth, proof_depth)
   let bindings = match
     issue_prepared_client_empty_invocation_bindings(
       run.owner,

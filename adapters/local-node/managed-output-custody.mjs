@@ -154,3 +154,29 @@ async function continueFailureCleanup(failure, operations) {
   } catch { /* Original failure and recovery owner remain authoritative. */ }
   return failure;
 }
+
+
+// A completed material stays live. This advances only the original provider's
+// existing scratch cleanup, never output close, stop, retention release or work.
+// Retry only a typed local continuation that made finite retirement progress;
+// a provider/reader/physical stall preserves its original reservation.
+export async function refreshCompletedLocalManagedScratch(operations, available) {
+  if (typeof operations.cleanup_refresh !== 'function' ||
+      typeof operations.cleanup_local_continuation !== 'function' ||
+      typeof available !== 'function') {
+    throw new TypeError('MissingLocalCompletedScratchRefresh');
+  }
+  if (!available()) throw new Error('ReleasedLocalManagedOutput');
+  operations.cleanup_refresh();
+  let previous = cleanupContinuation(operations);
+  while (typeof previous === 'bigint' && previous >= 0n) {
+    await new Promise(resolve => setTimeout(resolve, 0));
+    if (!available()) throw new Error('ReleasedLocalManagedOutput');
+    const ready = cleanupContinuation(operations);
+    if (typeof ready !== 'bigint' || ready < previous) return;
+    operations.cleanup_refresh();
+    const current = cleanupContinuation(operations);
+    if (typeof current !== 'bigint' || current < 0n || current <= previous) return;
+    previous = current;
+  }
+}

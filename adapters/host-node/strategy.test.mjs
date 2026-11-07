@@ -15,6 +15,36 @@ import {accountEntry, fixtureAuthorization} from './authorization-fixture.mjs';
 
 const siteControl = createExecutionSiteControlFixture();
 
+test('completed strategy scratch uses its original result receiver without releasing the live output', async () => {
+  const setup = {}, registration = {}, output = {}, material = {};
+  let completed = false, calls = 0, resume;
+  const child = Object.freeze({completed: output, material,
+    async refreshCompletedScratch() {
+      assert.strictEqual(this, child);
+      calls++;
+      await new Promise(resolve => {resume = resolve;});
+    }});
+  const core = {siteControl, count: () => 1, taskCapacity: () => [0n, 0n],
+    nextTask: () => completed ? -1 : 0, managedProducers: () => [],
+    selectManaged: (_setup, task, selected) => task === 0 && selected === registration,
+    managedMatches: () => true, completed: () => completed, finished: () => completed,
+    stop() {}, closeOutputs() {}, output: () => output, usage: () => ({}), explain: () => ({})};
+  const entry = {registration, managedSelectionKey: 'local',
+    run() {assert.fail('No legacy execution');},
+    prepareNext: () => completed ? undefined : {task: 0, inputs: [], durationMilliseconds: 1n},
+    runPrepared() {completed = true; return child;}};
+  const result = await runInstalledStrategy({setup, runtime: {core, contributions: [entry]}});
+  assert.equal(result.status, 'host-tasks-completed');
+  const flight = result.refreshCompletedScratch();
+  assert.equal(calls, 1, 'The retained projection must reach the actual result');
+  await assert.rejects(result.refreshCompletedScratch(), {code: 'StrategyScratchRefreshReentrant'});
+  resume(); await flight;
+  assert.strictEqual(result.output(0), output);
+  result.close();
+  await assert.rejects(result.refreshCompletedScratch(), {code: 'ReleasedStrategy'});
+  assert.equal(calls, 1);
+});
+
 test('scoped Host observes asynchronous close failures even after recovery succeeds', async () => {
   for (const kind of ['undefined', 'null', 'recoverable']) {
     assert.deepEqual(await asynchronousCloseCase(kind), {failed: true, firstPreserved: true,

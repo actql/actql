@@ -101,3 +101,87 @@ test "staged check and Catalog continuation retain the original Source and compl
     scalar_words: 0L,
   })
 }
+
+///|
+test "Request-stage original supplied binding reuses fitting values and replaces a tight failed read" {
+  for original_nodes in [1000, 0] {
+    let (_, program, environment, evidence, limits) = public_input_fixture(
+      generated=true,
+    )
+    let supplied = quotation_supplied("{\"n\":7}")
+    let source = @stages.prepare(program, {
+      max_parameters: 1,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    }).unwrap()
+    let (source, bound) = @stages.prepare_bindings(source, Some(supplied), {
+      max_nodes: original_nodes,
+      max_depth: 0,
+      max_text_bytes: 10000,
+    })
+    if original_nodes == 0 {
+      assert_true(bound is Err(_))
+    } else {
+      assert_true(bound is Ok(Ready(_)))
+    }
+    let original = @program_check.prepare_parsed_check_input(
+      program,
+      environment,
+      Some(supplied),
+      evidence,
+      limits,
+      source_preparation=Some(source),
+    ).unwrap()
+    let prelude = @program_check.observe_parsed_check_prelude(original).0.unwrap()
+    let registry = @program_check.observe_parsed_check_registry(
+      @program_check.prepare_parsed_catalog_input(prelude).unwrap(),
+    ).0.unwrap()
+    @program_check.observe_parsed_check_contents(
+      @program_check.prepare_parsed_contents_input(registry).unwrap(),
+    ).0.unwrap()
+    @program_check.observe_parsed_check_references(
+      @program_check.prepare_parsed_references_input(registry).unwrap(),
+    ).0.unwrap()
+    @program_check.observe_parsed_check_policies(
+      @program_check.prepare_parsed_policies_input(registry).unwrap(),
+    ).0.unwrap()
+    @program_check.observe_parsed_check_values(
+      @program_check.prepare_parsed_values_input(registry).unwrap(),
+    ).0.unwrap()
+    @program_check.observe_parsed_check_views(
+      @program_check.prepare_parsed_views_input(registry).unwrap(),
+    ).0.unwrap()
+    @program_check.observe_parsed_check_carriers(
+      @program_check.prepare_parsed_carriers_input(registry).unwrap(),
+    ).0.unwrap()
+    @program_check.observe_parsed_check_requests(
+      @program_check.prepare_parsed_requests_input(registry).unwrap(),
+    ).0.unwrap()
+    let checked = public_checked(
+      @program_check.finish_parsed_check_registry(registry).unwrap(),
+    )
+    let identity = @context.program_identity_stage_at(
+      @program_check.source_identity(checked),
+      0,
+    ).unwrap()
+    let actual = @parameter_refs.used_value_at(
+      @context.stage_identity_parameter_values(identity),
+      0,
+    ).unwrap()
+    match bound {
+      Ok(Ready(original_values)) =>
+        assert_true(
+          physical_equal(
+            actual,
+            @parameters.bound_value_at(original_values, 0).unwrap(),
+          ),
+        )
+      _ => () // The failed zero-node original could not supply this value.
+    }
+    assert_true(
+      @program_check.finish_parsed_check_registry(registry)
+      is Err(AlreadyConsumed),
+    )
+  }
+}

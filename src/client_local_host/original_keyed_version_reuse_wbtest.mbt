@@ -38,6 +38,7 @@ fn original_keyed_version_history(
   typed_content? : Bool = false,
   same_ledger_consumer? : Bool = false,
   one_short_census? : Bool = false,
+  unknown_left_rows? : Bool = false,
 ) -> Unit raise {
   let source_contracts = prepare_installed_sequence_contracts(
     source_query_original_registry,
@@ -51,6 +52,7 @@ fn original_keyed_version_history(
   let suffix = suffix || content
   let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture(
     relation_versions=true,
+    unknown_left_rows~,
     serialization_max_bytes=if suffix { 4470 } else { 4096 },
     typed_content_input=typed_content,
   )
@@ -634,4 +636,14 @@ test "original keyed Content input enters once and hands off through the same or
 ///|
 test "original keyed Content input keeps the original ticket when the handoff census is one slot short" {
   original_keyed_version_history(one_short_census=true)
+}
+
+///|
+test "unknown Source rows retain their original keyed JOIN multiplicity and cleanup without a take bound" {
+  original_keyed_version_history(unknown_left_rows=true)
+}
+
+///|
+test "unknown Source rows feed Content through the same keyed Run without a take bound" {
+  original_keyed_version_history(content=true, unknown_left_rows=true)
 }

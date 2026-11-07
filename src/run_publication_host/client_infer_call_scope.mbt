@@ -626,6 +626,13 @@ fn infer_scope_expected_sources(
   if count < 1 || count > 2 || occurrence.task < count {
     return Err(UnsupportedBindings)
   }
+  guard client_infer_composed_source_origin(occurrence) is Some(original) else {
+    return Err(ForeignInput)
+  }
+  if client_infer_occurrence_coordinates(original) !=
+    client_infer_occurrence_coordinates(occurrence) {
+    return infer_scope_expected_sources(original)
+  }
   let pipeline = @lower.pipeline(
     @lower.bound_preparation(occurrence.preparation),
   )
@@ -658,6 +665,36 @@ fn infer_scope_expected_sources(
       return Err(ForeignInput)
     }
     expected.push((name, facts))
+  }
+  match client_composed_keyed_source_coordinates(owner) {
+    Ok(None) => ()
+    Ok(Some((stage, input, join))) => {
+      guard stage == occurrence.stage &&
+        join < occurrence.step &&
+        prepare_client_keyed_acquisition(
+          owner,
+          stage,
+          input,
+          1000000,
+          join_step=Some(join),
+        )
+        is Ok(keyed) &&
+        client_keyed_acquisition_coordinates(keyed) is Some((_, task, _)) &&
+        task == occurrence.task &&
+        @planning.keyed_source_evidence_facts(keyed.facts) is Some(facts) else {
+        return Err(ForeignInput)
+      }
+      // Source declaration ordinals and lowered input slots are distinct. Use
+      // the same original declared name as the live composed lookup projection.
+      let subject = @checked.source_execution_subject(keyed.check)
+      let name = @acquisition.declaration(subject.source).input_name
+      guard @pipeline.lookup(pipeline, name) is Some(@pipeline.Input(_)) &&
+        !expected.any(item => item.0 == name) else {
+        return Err(ForeignInput)
+      }
+      expected.push((name, facts))
+    }
+    Err(_) => return Err(ForeignInput)
   }
   Ok(expected)
 }
@@ -834,6 +871,15 @@ pub fn client_infer_saved_call_scope_matches_run(
   definition : @publication.PublicationContract,
 ) -> Bool {
   (value.available)() &&
+  infer_saved_call_scope_run_originals(value, compiled, definition)
+}
+
+///|
+fn infer_saved_call_scope_run_originals(
+  value : ClientInferSavedCallScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
   physical_equal(value.compiled, compiled) &&
   @publication.publication_contract_identity(value.definition) ==
   @publication.publication_contract_identity(definition)
@@ -846,10 +892,34 @@ pub fn client_infer_saved_call_scope_matches_occurrence(
   plan : ClientInferPlanGraph,
 ) -> Bool {
   (value.available)() &&
+  infer_saved_call_scope_occurrence_originals(value, occurrence, plan)
+}
+
+///|
+fn infer_saved_call_scope_occurrence_originals(
+  value : ClientInferSavedCallScope,
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+) -> Bool {
   client_infer_occurrence_matches(value.occurrence, occurrence.owner) &&
   client_infer_occurrence_coordinates(value.occurrence) ==
   client_infer_occurrence_coordinates(occurrence) &&
   physical_equal(value.plan, plan)
+}
+
+///|
+/// One current observation for the same synchronous Run/occurrence borrow.
+/// Both original identity laws remain owned by the same private predicates.
+pub fn client_infer_saved_call_scope_matches_originals(
+  value : ClientInferSavedCallScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+) -> Bool {
+  infer_saved_call_scope_run_originals(value, compiled, definition) &&
+  infer_saved_call_scope_occurrence_originals(value, occurrence, plan) &&
+  (value.available)()
 }
 
 ///|
@@ -933,4 +1003,32 @@ pub fn restore_client_infer_call_scope(
     source_ordinal: occurrence.step,
     generation: None,
   })
+}
+
+///|
+/// Borrow only this original saved Scope's already-admitted Source leaves.
+/// The combined identity/current predicate observes custody once at entry.
+pub fn client_infer_saved_source_originals(
+  value : ClientInferSavedCallScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+) -> Result[
+  Array[(@publication.RunEvidenceValue, @publication.RunEvidenceValue)],
+  ClientInferCallScopeIssue,
+] {
+  if !client_infer_saved_call_scope_matches_originals(
+      value, compiled, definition, occurrence, plan,
+    ) {
+    return Err(ForeignOwner)
+  }
+  Ok(
+    value.named_sources.map(item => {
+      let (source, input, _, _) = @publication.model_source_observation_originals(
+        item.1,
+      )
+      (source, input)
+    }),
+  )
 }

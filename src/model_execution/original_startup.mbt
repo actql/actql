@@ -166,10 +166,20 @@ fn original_model_startup_matches(
     _ => false
   }) &&
   original_model_startup_limits_match(value, limits, provider) &&
-  @resources.quantity_configuration_matches(
-    value.ledger,
-    quantities.map(value => value.limits),
-  ) &&
+  (if value.shared_mock is Some(_) {
+    // This original purpose retains one component's contract on a shared
+    // parent. Its original reservation/trace inventory enforces the component
+    // ceiling; Resource also enforces the SAME Run's aggregate expenditure.
+    @resources.quantity_configuration_covers(
+      value.ledger,
+      quantities.map(value => value.limits),
+    )
+  } else {
+    @resources.quantity_configuration_matches(
+      value.ledger,
+      quantities.map(value => value.limits),
+    )
+  }) &&
   value.retained_bytes > 0L &&
   value.execution_bytes >= 0L &&
   @resources.capacity_reservation_matches(

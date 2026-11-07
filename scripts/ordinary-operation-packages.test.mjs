@@ -883,3 +883,33 @@ test('successful samples cannot hide failed or unfinished original cleanup and p
     assert.deepEqual(await readFile(join(original.directory, 'samples.jsonl')), rawBefore);
   }
 });
+
+test('record-only prepares the same five original packages with its own bound protocol', async t => {
+  const p = await packages(t);
+  const result = await prepareOrdinaryPerformanceConsumer({...p, install: syntheticInstall, mode: 'record-only'});
+  const controls = JSON.parse(await readFile(result.controlsPath));
+  assert.equal(controls.historyProtocolSha256, hash(JSON.stringify(nodeOperationProtocol('record-only'))));
+  assert.equal(controls.comparison, undefined);
+});
+
+test('main trend lane reuses exact normal packages without dispatch, rebuild, or speed gating', () => {
+  const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const job = workflow.jobs['main-performance'];
+  assert.match(job.if, /github.event_name == 'push'/u);
+  assert.match(job.if, /github.ref == 'refs\/heads\/main'/u);
+  assert.deepEqual(job.needs, ['preflight', 'client-packages']);
+  assert.equal(job['timeout-minutes'], 15);
+  const download = job.steps.find(step => step.uses === './.github/actions/download-client-packages');
+  assert.equal(download.with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
+  const commands = job.steps.map(step => step.run ?? '').join('\n');
+  assert.match(commands, /ordinary-operation-packages.mjs prepare/u);
+  assert.match(commands, /benchmark-node-operations.mjs/u);
+  assert.match(commands, /benchmark-node-process-operations.mjs/u);
+  assert.match(commands, /--mode record-only/u);
+  assert.doesNotMatch(commands, /npm (?:ci|run|pack)|continue-on-error|workflow_dispatch/u);
+  for (const step of job.steps.filter(step => step.run)) {
+    assert.equal(spawnSync('bash', ['-n'], {input: step.run, encoding: 'utf8'}).status, 0);
+  }
+  const upload = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
+  assert.equal(upload.if, 'always()'); assert.equal(upload.with['if-no-files-found'], 'error');
+});

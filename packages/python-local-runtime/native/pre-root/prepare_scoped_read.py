@@ -59,16 +59,17 @@ def _select_target(manifest: dict[str, object], target: str | None) -> dict[str,
     selected = copy.deepcopy(manifest)
     if target is None or target == manifest['target']:
         return selected
-    if target != 'aarch64-unknown-linux-gnu':
+    if target not in ('aarch64-unknown-linux-gnu', 'x86_64-unknown-linux-gnu'):
         raise ValueError('Unknown source closure target')
     variant = manifest.get('source_targets', {}).get(target)
+    extra = ['ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY'] if target.startswith('x86_64-') else []
     if (type(variant) is not dict
             or set(variant) != {'deployment_target', 'required_defines', 'binary_inputs', 'required_source_parameters'}
             or variant['required_source_parameters'] != ['ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS']
             or variant['deployment_target'] is not None
             or variant['required_defines'] != [*manifest['required_defines'],
                                                '_GNU_SOURCE',
-                                               'ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN']
+                                               'ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN', *extra]
             or set(variant['binary_inputs']) != {'lib/libmoonbitrun.o', 'lib/libbacktrace.a'}):
         raise ValueError('Invalid selected source target recipe')
     replaced = set()
@@ -149,11 +150,16 @@ def prepare(moonbit: Path, destination: Path, *, provider: Path = HERE,
     return record
 
 
-if __name__ == '__main__':
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--moonbit', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--target', choices=['aarch64-apple-darwin',
-                                              'aarch64-unknown-linux-gnu'])
-    args = parser.parse_args()
+                                              'aarch64-unknown-linux-gnu',
+                                              'x86_64-unknown-linux-gnu'])
+    args = parser.parse_args(argv)
     print(json.dumps(prepare(args.moonbit, args.destination, target=args.target)))
+
+
+if __name__ == '__main__':
+    main()

@@ -6,9 +6,31 @@ import {createHash} from 'node:crypto';
 import {mkdir, readFile, readdir, stat} from 'node:fs/promises';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
+import {canonicalText} from '../check-canonical-json.mjs';
 
 export const residentEffectSourceContractCid =
   'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3';
+
+// The shared Effect fixture declares ordinary query acquisition. This Native
+// realization additionally uses both validation and query receipts. Declare
+// that exact installed contract before admission; do not weaken selection.
+export async function residentEffectSourceEnvironment(repository) {
+  const environment = JSON.parse(await readFile(join(repository,
+    'packages/run-host-core/fixtures/source-compute-effect.environment.json'), 'utf8'));
+  const receipts = JSON.parse(await readFile(join(repository,
+    'spec/contracts/actql-query-two-receipt.json'), 'utf8'));
+  const cid = body => 'sha256:' + createHash('sha256').update(canonicalText(body)).digest('hex');
+  const members = environment.connector_capabilities.filter(member =>
+    member.source_ref === 'connector://crm/main/r#v' &&
+    member.source_contract_cid === residentEffectSourceContractCid);
+  assert.equal(members.length, 1, 'same original Effect Source capability');
+  const member = members[0];
+  member.capability_contract_cids = [...new Set([
+    ...member.capability_contract_cids, cid(receipts),
+  ])].sort();
+  delete environment.evidence_bundle_cid;
+  return canonicalText({...environment, evidence_bundle_cid: cid(environment)});
+}
 
 export function prepareResidentEffectComputation({runHost, programText,
   environmentWire, createdAt, validUntil, physicalCid, coordinatorAuthority}) {

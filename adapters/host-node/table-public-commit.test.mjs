@@ -41,6 +41,11 @@ const account = () => canonicalJson({version: 'actql-execution-account-config/0.
     {entry_id: 'effect', outcome: 'delegate', principal: {all: true},
       connection: {any_of: [connection]}, resource: {any_of: [resource]},
       operation: {any_of: ['effect']}, exclusions: []},
+    {entry_id: 'original-run-result-read', outcome: 'allow',
+      principal: {any_of: [userInfo().username]},
+      connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['result/answer', 'run']},
+      operation: {any_of: ['read']}, exclusions: []},
     {entry_id: 'read', outcome: 'allow', principal: {all: true},
       connection: {any_of: [connection]}, resource: {any_of: [resource]},
       operation: {any_of: ['read']}, exclusions: []},
@@ -599,10 +604,20 @@ test(`Table text Effect-only CTAS through ${transport} (${empty ? 'empty' : 'non
     const checkpoint = (await client.checkpoints()).items[0];
     const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
     const preview = JSON.parse(Buffer.from(review.bytes).toString());
-    assert.equal(preview.effects.length, 1);
-    assert.equal(preview.effects[0].count, 1);
-    assert.equal(preview.effects[0].approval, 'required');
-    const operation = preview.effects[0].changes[0].intended_changes.value;
+    assert.equal(preview.version, 'actql-review-projection/0.1');
+    assert.equal(preview.effect_preview_cid, checkpoint.requiredArtifact.cid);
+    assert.equal(preview.review_projection_cid, review.artifactCid);
+    assert.deepEqual(preview.approval_claims, ['effect_scope_approved']);
+    assert.deepEqual(preview.displayed_permissions, ['scope:store']);
+    assert.equal(preview.displayed_scope.effects.length, 1);
+    assert.equal(preview.displayed_scope.effects[0].kind, 'store');
+    assert.equal(preview.displayed_scope.effects[0].count, 1);
+    assert.equal(preview.displayed_scope.effects[0].target, targetRef);
+    assert.equal(preview.displayed_rows.length, 1);
+    assert.equal(preview.displayed_rows[0].effect_id, preview.displayed_scope.effects[0].effect_id);
+    assert.equal(preview.displayed_rows[0].intended_changes.state, 'present');
+    const operation = preview.displayed_rows[0].intended_changes.value;
+    assert.equal(preview.displayed_rows[0].target_row_identity, operation.request_cid);
     assert.equal(operation.action, 'create');
     assert.equal(operation.expected_table, null);
     const ref = run.ref;

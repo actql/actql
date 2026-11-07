@@ -31,6 +31,8 @@ test "metadata policy preserves zero wire legacy and rejects negative independen
       { ..legacy, completion_entries: -1, },
       { ..legacy, result_workspace_entries: -1, },
       { ..legacy, retained_bytes: -1L, },
+      { ..legacy, result_rows_reserved: Some(-1), },
+      { ..legacy, result_rows_reserved: Some(101), },
     ] {
     assert_true(local_managed_metadata_limits(limits, Some(bad)) is None)
   }
@@ -60,4 +62,31 @@ test "metadata retained conversion rejects negative and overflow before reservat
   assert_eq(local_retained_with_metadata(9223372036854775806L, 2L), None)
   assert_eq(local_retained_with_metadata(-1L, 0L), None)
   assert_eq(local_retained_with_metadata(0L, -1L), None)
+}
+
+///|
+test "missing input copy quote preserves original scratch metadata export and exact copy boundaries" {
+  let base = @execution.execution_capacity(3L, 5L).unwrap()
+  for
+    (copies, retained, execution, transfer) in [
+      (0, 23L, 28L, 0L),
+      (1, 34L, 39L, 37L),
+      (2, 45L, 50L, 74L),
+    ] {
+    let actual = local_dispatch_copy_capacity(
+      base, 7L, 11L, 13L, 37L, copies, true,
+    ).unwrap()
+    assert_eq(actual.retained_bytes, retained)
+    assert_eq(actual.execution_bytes, execution)
+    assert_eq(actual.transfer_bytes, transfer)
+  }
+  assert_true(
+    local_dispatch_copy_capacity(base, 7L, 11L, 13L, 37L, -1, true) is None,
+  )
+  assert_true(
+    local_dispatch_copy_capacity(
+      base, 9223372036854775807L, 11L, 13L, 37L, 0, true,
+    )
+    is None,
+  )
 }

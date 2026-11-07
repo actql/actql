@@ -1,6 +1,10 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/decode_shape" @shape,
+  "actql/actql/execution_relation" @execution,
   "actql/actql/connectors/snowflake/catalog" @response,
   "actql/actql/client_row_source_host" @rows,
   "actql/actql/value_contract" @contract,

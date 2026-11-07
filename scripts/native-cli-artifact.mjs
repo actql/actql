@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
 import {chmod, copyFile, mkdir, open, readFile, realpath, writeFile} from 'node:fs/promises';
-import {join, resolve, delimiter} from 'node:path';
+import {isAbsolute, join, resolve, delimiter} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState} from './packed-client-packages.mjs';
 import {platformKey} from '../packages/native-cli/bin/actql.mjs';
@@ -50,6 +50,19 @@ export function nativeCliCompileBudget(compileSeconds, scoped = false) {
   return {seconds, timeoutMs: (seconds + (scoped ? 30 : 0)) * 1000};
 }
 
+// Actual producer selection only. The same target's original scoped provider
+// and component observations still decide whether a Local artifact can exist.
+export function nativeLocalCompilerArguments(platform, {clang, sdk}) {
+  assert(typeof clang === 'string' && isAbsolute(clang));
+  if (platform === 'darwin-arm64') {
+    assert(typeof sdk === 'string' && isAbsolute(sdk));
+    return ['--clang', clang, '--sdk', sdk, '--target', 'darwin-arm64'];
+  }
+  assert.equal(platform, 'linux-x64-gnu', 'No selected Local producer target');
+  assert.equal(sdk, undefined, 'Linux Local cannot substitute a Darwin SDK');
+  return ['--clang', clang, '--target', 'linux-x64'];
+}
+
 export async function buildNativeCliArtifact(destination, {verbose = false, localRuntime, compileSeconds,
   completedLocalProvider = false, packageVersion} = {}) {
   const selectedVersion = packageVersion === undefined ? undefined : nativePackageVersion(packageVersion);
@@ -70,7 +83,8 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
   const platform = platformKey({platform: process.platform, arch: process.arch, glibc});
   destination = resolve(destination);
   const completed = completedLocalProvider ? await admitCompletedNativeLocalProvider(
-    destination, source.revision, repository, await realpath(process.env.MOON_HOME), {packageVersion: selectedVersion}) : undefined;
+    destination, source.revision, repository, await realpath(process.env.MOON_HOME),
+    {packageVersion: selectedVersion, platform}) : undefined;
   let localMetadata;
   if (localRuntime !== undefined) {
     assert.equal(localRuntime.sourceSha, source.revision, 'Local runtime must belong to this exact source');
@@ -100,14 +114,14 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     buildEnvironment = {...process.env, PATH: `${versionCompiler.directory}${delimiter}${process.env.PATH ?? ''}`};
   }
   if (localMetadata !== undefined) {
-    assert.equal(platform, 'darwin-arm64', 'Initial Local Crypto requires its selected physical provider');
     assert(process.env.MOON_HOME, 'Set MOON_HOME to the selected pinned toolchain');
-    const sdk = await realpath(run('xcrun', ['--show-sdk-path']).trim());
-    const clang = run('xcrun', ['--find', 'clang']).trim();
+    const sdk = platform === 'darwin-arm64' ? await realpath(run('xcrun', ['--show-sdk-path']).trim()) : undefined;
+    const clang = await realpath(platform === 'darwin-arm64' ? run('xcrun', ['--find', 'clang']).trim()
+      : run('sh', ['-c', 'command -v clang']).trim());
     buildCommand = run('python3', ['-c', 'import os,sys;print(os.path.realpath(sys.executable))']).trim();
     selectedBuildArgs = [join(repository, 'scripts/produce-native-remote-scoped-runtime.py'),
       '--source', source.revision, '--moon-home', await realpath(process.env.MOON_HOME),
-      '--clang', clang, '--sdk', sdk, '--destination', join(destination, 'native-producer'),
+      ...nativeLocalCompilerArguments(platform, {clang, sdk}), '--destination', join(destination, 'native-producer'),
       '--seconds', String(budget.seconds), '--entry', 'src/cmd/native_client',
       ...(selectedVersion === undefined ? [] : ['--package-version', selectedVersion])];
     built = join(destination, 'native-producer/emission/native/release/build/cmd/native_client/native_client.exe');
@@ -128,6 +142,7 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
       scopedReceipt = JSON.parse(await readFile(join(destination, 'native-producer/build.json'), 'utf8'));
       assert.equal(scopedReceipt.source, source.revision);
       assert.equal(scopedReceipt.entry, 'src/cmd/native_client');
+      assert.equal(scopedReceipt.target, platform === 'darwin-arm64' ? 'darwin-arm64' : 'linux-x64');
       assert.equal(scopedReceipt.plan_only, false);
       assert.equal(scopedReceipt.providers, 1);
       assert.equal(scopedReceipt.moon_build_exit, 0);

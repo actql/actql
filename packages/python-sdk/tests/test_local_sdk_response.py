@@ -1,9 +1,13 @@
 """Actual File-backed stream with scalar Core/sink/terminal doubles; public0."""
 import copy
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+from actql_sdk._local_files import LocalFileRoot, LocalFileError
+from actql_sdk._local_saved_read import OriginalSavedResultRead
 from actql_sdk._local_sdk_payload_reader import OriginalSDKPayloadReader
 from actql_sdk._local_sdk_response import OriginalLocalSDKResponseStream
 from actql_sdk._local_storage import LocalStorageCommitUnknown
@@ -17,7 +21,7 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
         helper.addCleanup = self.addCleanup
         holder, store, core, request, first, fact, initial_clock, state, calls = helper.bridge(root, final)
         reader = OriginalSDKPayloadReader(holder, request, initial_clock, fact)
-        host = SimpleNamespace(_core=core, _inputs=[initial_clock], _response_streams=set(), _nominal=lambda: None)
+        host = SimpleNamespace(_core=core, _inputs=[initial_clock], _response_streams=set(), _nominal=lambda: None, _active=lambda: None)
         def clock():
             tick = core.reserve_input(b'{"observed_at":"2026-10-13T00:00:06.000Z"}',
                 cleanup=lambda: True, stopped=lambda _: True)
@@ -90,3 +94,227 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(commit.call_count, 0)
             self.assertTrue(holder.close())
             with self.assertRaises(ValueError): copy.copy(stream).__aiter__()
+
+
+    async def test_saved_response_close_releases_same_area_before_next_saved_read(self):
+        # Actual directory custody and stream/payload close; scalar Core ports
+        # isolate this lifetime edge, not a complete installed Saved admission.
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final), TemporaryDirectory() as directory:
+            stream, host, reader, holder, _, _, _, _, _, _ = self.bridge(root, final)
+            results = LocalFileRoot(Path(directory), max_files=2, max_chunk_bytes=4)
+            area = results.create_area('saved-original-area')
+            results.open_area(area)
+            identity = results.observe_area(area)
+            saved = OriginalSavedResultRead(host)
+            saved._area = area
+            host._installation = SimpleNamespace(_results=results)
+            host._saved_result_reads = [saved]
+            try:
+                with self.assertRaises(LocalFileError):
+                    results.restore_area(area.name, identity)
+                # The production saved caller must bind this SAME carrier.
+                # No new area, copied holder or cleanup callback is supplied.
+                host._response_streams.discard(stream)
+                stream = OriginalLocalSDKResponseStream(host, reader, saved_read=saved)
+                await stream.aclose()
+                self.assertTrue(saved._closed)
+                self.assertIsNone(saved._area)
+                self.assertNotIn(saved, host._saved_result_reads)
+                self.assertNotIn(stream, host._response_streams)
+                restored = results.restore_area(area.name, identity)
+                self.assertEqual(results.observe_area(restored), identity)
+                self.assertTrue(results.close_area(restored))
+            finally:
+                await stream.aclose()
+                self.assertTrue(saved.close())
+                self.assertTrue(holder.close())
+                self.assertTrue(results.close())
+
+    async def test_pending_saved_area_keeps_same_stream_and_skips_returned_payload_children(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final), TemporaryDirectory() as directory:
+            stream, host, reader, holder, _, _, _, _, _, _ = self.bridge(root, final)
+            results = LocalFileRoot(Path(directory), max_files=2, max_chunk_bytes=4)
+            area = results.create_area('pending-saved-area')
+            results.open_area(area)
+            identity = results.observe_area(area)
+            saved = OriginalSavedResultRead(host)
+            saved._area = area
+            host._installation = SimpleNamespace(_results=results)
+            host._saved_result_reads = [saved]
+            host._response_streams.discard(stream)
+            stream = OriginalLocalSDKResponseStream(host, reader, saved_read=saved)
+            try:
+                with patch.object(results, 'close_area', return_value=False) as close_area:
+                    with self.assertRaises(RuntimeError):
+                        await stream.aclose()
+                    close_area.assert_called_once_with(area)
+                self.assertTrue(stream._payload_closed)
+                self.assertFalse(stream._closed)
+                self.assertIs(stream._saved_read, saved)
+                self.assertIs(saved._area, area)
+                self.assertIn(saved, host._saved_result_reads)
+                self.assertIn(stream, host._response_streams)
+                with self.assertRaises(LocalFileError):
+                    results.restore_area(area.name, identity)
+                with patch.object(reader, 'close', side_effect=AssertionError('Returned child must not repeat')):
+                    await stream.aclose()
+                    await stream.aclose()
+                self.assertTrue(saved._closed)
+                self.assertNotIn(saved, host._saved_result_reads)
+                self.assertNotIn(stream, host._response_streams)
+            finally:
+                await stream.aclose()
+                self.assertTrue(saved.close())
+                self.assertTrue(holder.close())
+                self.assertTrue(results.close())
+
+    async def test_saved_response_refuses_copied_foreign_or_unregistered_parent_before_retention(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            stream, host, reader, holder, _, _, _, _, _, _ = self.bridge(root, final)
+            saved = OriginalSavedResultRead(host)
+            foreign = OriginalSavedResultRead(SimpleNamespace(_core=host._core))
+            host._saved_result_reads = [saved, foreign]
+            before = set(host._response_streams)
+            for candidate in (copy.copy(saved), foreign, OriginalSavedResultRead(host)):
+                with self.assertRaises(ValueError):
+                    OriginalLocalSDKResponseStream(host, reader, saved_read=candidate)
+                self.assertEqual(host._response_streams, before)
+                self.assertFalse(reader._closed)
+            await stream.aclose()
+            self.assertTrue(holder.close())
+
+    async def test_saved_parent_retires_after_reader_ack_and_allows_sequential_area_restore(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]', slots=4) as (_, root, _, final):
+            created = root.create_area('saved-area')
+            identity = created.identity
+            self.assertTrue(root.close_area(created))
+            area = root.restore_area('saved-area', identity)
+            stream, host, reader, holder, _, _, request, _, state, _ = self.bridge(root, final)
+            saved = OriginalSavedResultRead(host)
+            saved._area = area
+            host._installation = SimpleNamespace(_results=root)
+            host._saved_result_reads = [saved]
+            host._response_streams.discard(stream)
+            stream = OriginalLocalSDKResponseStream(host, reader, saved_read=saved)
+            close_original = saved.close
+            closed = []
+            def close_parent():
+                self.assertTrue(reader._closed)
+                self.assertNotIn(request.ticket, holder._payload_reader_borrows)
+                acknowledged = close_original()
+                if acknowledged:
+                    closed.append(area)
+                return acknowledged
+            try:
+                with patch.object(saved, 'close', side_effect=close_parent):
+                    iterator = stream.__aiter__()
+                    self.assertEqual(await anext(iterator), b'')
+                    with self.assertRaises(LocalFileError):
+                        root.restore_area('saved-area', identity)
+                    state['cleanup'] = False
+                    with self.assertRaises(RuntimeError):
+                        await stream.aclose()
+                    self.assertEqual(closed, [])
+                    self.assertIn(stream, host._response_streams)
+                    self.assertIs(root._areas[id(area)], area)
+                    state['cleanup'] = True
+                    await stream.aclose()
+                    await stream.aclose()
+                self.assertEqual(closed, [area])
+                self.assertNotIn(saved, host._saved_result_reads)
+                self.assertNotIn(stream, host._response_streams)
+                restored = root.restore_area('saved-area', identity)
+                self.assertIsNot(restored, area)
+                self.assertEqual(restored.identity, identity)
+                self.assertTrue(root.close_area(restored))
+            finally:
+                state['cleanup'] = True
+                await stream.aclose()
+                self.assertTrue(saved.close())
+                self.assertTrue(holder.close())
+
+    async def test_partial_parent_close_does_not_reuse_retired_transport_inputs(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            stream, host, reader, holder, _, _, _, _, _, _ = self.bridge(root, final)
+            saved = OriginalSavedResultRead(host)
+            host._saved_result_reads = [saved]
+            host._response_streams.discard(stream)
+            stream = OriginalLocalSDKResponseStream(host, reader, saved_read=saved)
+            close_original = saved.close
+            calls = []
+            def close_parent():
+                self.assertTrue(reader._closed)
+                calls.append(reader)
+                return False if len(calls) == 1 else close_original()
+            with patch.object(saved, 'close', side_effect=close_parent), patch.object(
+                    holder, 'close_original_first', wraps=holder.close_original_first) as close_first:
+                with self.assertRaises(RuntimeError):
+                    await stream.aclose()
+                self.assertIn(stream, host._response_streams)
+                self.assertTrue(stream._payload_closed)
+                self.assertIs(stream._saved_read, saved)
+                await stream.aclose()
+                await stream.aclose()
+                close_first.assert_called_once()
+            self.assertEqual(calls, [reader, reader])
+            self.assertNotIn(saved, host._saved_result_reads)
+            self.assertNotIn(stream, host._response_streams)
+            self.assertTrue(holder.close())
+
+    async def test_partial_saved_payload_constructor_keeps_cleanup_when_core_is_closing(self):
+        # Exercise the actual partial payload constructor and response carrier;
+        # the explicit Core port refuses binding after entering closing state.
+        from actql_sdk._local_product import InstalledLocalHost
+        from actql_sdk._local_sdk_payload_reader import SDKPayloadReaderCleanupPending
+        files = files_fixture.ReaderFactsTests()
+        helper = payload_fixture.SDKPayloadReaderTests()
+        helper.addCleanup = self.addCleanup
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            holder, _, core, request, first, fact, clock, state, _ = helper.bridge(root, final)
+            host = SimpleNamespace(_core=core, _inputs=[clock], _response_streams=set(),
+                                   _saved_result_reads=[], _closing=False,
+                                   _installation=object(), _nominal=lambda: None)
+            host._active = lambda: InstalledLocalHost._active(host)
+            saved = OriginalSavedResultRead(host)
+            host._saved_result_reads.append(saved)
+            original_call = core._call
+            def closing_bind(family, name, *args):
+                if name == 'bind_sdk_payload_record':
+                    core._closing = True
+                    state['binding_status'] = -32
+                return original_call(family, name, *args)
+            stream = None
+            try:
+                with patch.object(core, '_call', side_effect=closing_bind), patch(
+                        'actql_sdk._local_files.os.open',
+                        side_effect=AssertionError('Refused binding cannot open a payload')):
+                    with self.assertRaises(SDKPayloadReaderCleanupPending) as issue:
+                        OriginalSDKPayloadReader(holder, request, clock, fact)
+                partial = issue.exception.cleanup_reader
+                self.assertTrue(core._closing)
+                self.assertIs(holder._payload_reader_borrows[request.ticket], partial)
+                self.assertIsNone(partial._reader)
+                with self.assertRaises(ValueError):
+                    saved._ensure_active()
+                stream = OriginalLocalSDKResponseStream(host, partial, saved_read=saved)
+                self.assertIs(stream._reader, partial)
+                self.assertIs(stream._saved_read, saved)
+                self.assertIn(stream, host._response_streams)
+                self.assertIs(core._loans[first.ticket], first)
+                await stream.aclose()
+                self.assertTrue(partial._closed)
+                self.assertTrue(saved._closed)
+                self.assertNotIn(stream, host._response_streams)
+                self.assertNotIn(saved, host._saved_result_reads)
+            finally:
+                if stream is not None:
+                    await stream.aclose()
+                for partial in tuple(holder._payload_reader_borrows.values()):
+                    self.assertTrue(partial.close())
+                self.assertTrue(core.close_input(clock))
+                self.assertTrue(holder.close())

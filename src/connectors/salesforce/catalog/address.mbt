@@ -2,20 +2,33 @@
 /// These are the documented REST Address property roles. A suffix only selects
 /// a role after the original Describe positively associates the component with
 /// this parent. Standard and custom API names remain unchanged in the plan.
+let address_component_roles : ReadOnlyArray[(String, String)] = [
+  ("City", "city"),
+  ("Country", "country"),
+  ("CountryCode", "countryCode"),
+  ("GeocodeAccuracy", "geocodeAccuracy"),
+  ("Latitude", "latitude"),
+  ("Longitude", "longitude"),
+  ("PostalCode", "postalCode"),
+  ("State", "state"),
+  ("StateCode", "stateCode"),
+  ("Street", "street"),
+]
+
+///|
+/// Geometry of the same documented REST roles, without resource pricing or
+/// acquisition custody. Host constructor inventory reads this original table.
+pub fn address_component_role_bounds() -> (Int, Int) {
+  let mut longest = 0
+  for (_, role) in address_component_roles {
+    longest = Int::max(longest, role.length())
+  }
+  (address_component_roles.length(), longest)
+}
+
+///|
 fn address_component_role(name : String) -> String? {
-  for
-    (suffix, role) in [
-      ("City", "city"),
-      ("Country", "country"),
-      ("CountryCode", "countryCode"),
-      ("GeocodeAccuracy", "geocodeAccuracy"),
-      ("Latitude", "latitude"),
-      ("Longitude", "longitude"),
-      ("PostalCode", "postalCode"),
-      ("State", "state"),
-      ("StateCode", "stateCode"),
-      ("Street", "street"),
-    ] {
+  for (suffix, role) in address_component_roles {
     if name.has_suffix(suffix) || name.has_suffix("__" + suffix + "__s") {
       return Some(role)
     }
@@ -73,11 +86,7 @@ fn address_components(
     return None
   }
   let ordered = []
-  for
-    role in [
-      "city", "country", "countryCode", "geocodeAccuracy", "latitude", "longitude",
-      "postalCode", "state", "stateCode", "street",
-    ] {
+  for (_, role) in address_component_roles {
     if components.get(role) is Some(original) {
       ordered.push((role, original))
     }

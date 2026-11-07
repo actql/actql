@@ -38,8 +38,10 @@ fn runtime_file_witness_refuses_mutation(
   assert_eq(after, before)
   assert_true(old_generation_matches)
   assert_true(current is Err(Physical(@local_filesystem.GenerationMismatch)))
-  assert_true(assets is Err(Physical(@local_filesystem.GenerationMismatch)))
-  assert_true(libraries is Err(Physical(@local_filesystem.GenerationMismatch)))
+  // The explicit failed current observation spends this snapshot. Later
+  // getters cannot revive it or repeat a new physical observation as authority.
+  assert_true(assets is Err(Changed))
+  assert_true(libraries is Err(Changed))
 }
 
 ///|

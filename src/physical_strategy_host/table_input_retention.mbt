@@ -157,6 +157,28 @@ pub fn captured_table_input_borrow_cell_output(
 }
 
 ///|
+/// Read the same retained generation's verified inventory, never its rows.
+pub fn captured_table_input_borrow_row_count(
+  value : CapturedTableInputBorrow,
+) -> Int? {
+  match value.kind {
+    Cells(pin) if pin.live =>
+      if @execution.completed_output_available(pin.output) {
+        Some(@execution.completed_row_count(pin.output))
+      } else {
+        None
+      }
+    Resident(pin) if pin.live =>
+      match pin.reference {
+        Managed(reference) =>
+          @execution.managed_completed_reference_row_count(reference)
+        Carrier(_) => None
+      }
+    _ => None
+  }
+}
+
+///|
 pub fn release_captured_table_input_borrow(
   value : CapturedTableInputBorrow,
 ) -> Bool {

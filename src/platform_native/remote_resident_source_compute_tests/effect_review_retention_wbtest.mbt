@@ -14,6 +14,7 @@ fn retained_effect_review_retention_store(
   wire : String,
   authoring_cid : String,
   review_work? : @effect_provider.NativeResidentEffectReview? = None,
+  approved_row? : Bool = false,
   original_journal_path? : String? = None,
   original_work? : (
     @client.NativeClientEffectSourceWork,
@@ -47,7 +48,7 @@ fn retained_effect_review_retention_store(
   }
   let initial_host = initial_reviewer is Some((fixture, _)) &&
     fixture.attest_host
-  let now = @env.now().to_int64()
+  let now = @env.now().reinterpret_as_int64()
   let created_at = if initial_host {
     @values.epoch_milliseconds_timestamp(now).unwrap()
   } else {
@@ -862,7 +863,8 @@ fn retained_effect_review_retention_store(
   } else {
     None
   }
-  if @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW") == Some("1") {
+  if approved_row ||
+    @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW") == Some("1") {
     retained_holder_write_row(
       review_work.unwrap(),
       report.unwrap(),

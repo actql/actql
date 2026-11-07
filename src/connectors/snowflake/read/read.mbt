@@ -565,6 +565,50 @@ pub fn result_read_original(read : Read) -> @response.ResultSet? {
 }
 
 ///|
+/// Retry only the stopped original capture child. The Common Owner refuses
+/// advancement before close; pending cleanup never resumes capture or pages.
+pub fn advance_result_capture_cleanup(
+  read : Read,
+  quantum : Int,
+) -> Result[Bool, ReadIssue] {
+  if read.custody is InstalledBorrow(_) {
+    return Err(BorrowedRun)
+  }
+  @rows.advance_row_capture_cleanup(read.run, quantum).map_err(issue => {
+    Host(issue)
+  })
+}
+
+///|
+/// Begin only the existing checked acquisition prefix after page completion.
+/// The original Common RowRun retains its child, evidence and cleanup duties.
+pub fn begin_result_capture(read : Read) -> Result[Unit, ReadIssue] {
+  if read.custody is InstalledBorrow(_) {
+    return Err(BorrowedRun)
+  }
+  if !read_available(read) || !read.finished {
+    return Err(Closed)
+  }
+  @rows.begin_row_capture(read.run).map_err(issue => Host(issue))
+}
+
+///|
+/// Advance that same child by the caller's work quantum. Completion is not a
+/// transport or resource-release acknowledgement; final capture still checks it.
+pub fn advance_result_capture(
+  read : Read,
+  quantum : Int,
+) -> Result[(Bool, Int64), ReadIssue] {
+  if read.custody is InstalledBorrow(_) {
+    return Err(BorrowedRun)
+  }
+  if !read_available(read) || !read.finished {
+    return Err(Closed)
+  }
+  @rows.advance_row_capture(read.run, quantum).map_err(issue => Host(issue))
+}
+
+///|
 /// Common checks original transport settlement, residual execution and issued
 /// evidence. Page completion alone cannot manufacture a captured Source.
 pub fn capture_result_read(

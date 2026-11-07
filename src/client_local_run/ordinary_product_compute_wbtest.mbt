@@ -87,24 +87,41 @@ test "ordinary Python insufficient original root refuses without a replacement o
     attempts: 4096,
     holdings: 4096,
     transfer_bytes: 67108864L,
-    retained_bytes: 67108864L,
-    execution_bytes: 67108864L,
+    // The existing Wasm holding exhausts this explicit fixture root.
+    // Keep a real insufficient original, independent of quote reductions.
+    retained_bytes: 16777216L,
+    execution_bytes: 16777216L,
   }).unwrap()
   let wasm = @resources.reserve_shared_capacity(root, 16777216L).unwrap()
-  assert_true(
-    configure_source_free_local_compute_on_ledger(
-      original,
-      root,
-      installed,
-      assets.values,
-      Some(assets.fragment),
-      assets.ordered,
-    )
-    is Err(Configuration),
+  let configured = configure_source_free_local_compute_on_ledger(
+    original,
+    root,
+    installed,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
   )
+  let refused = match configured {
+    Ok(host) => {
+      println(
+        "ORIGINAL_SHORT_ROOT unexpectedly configured on its original ledger",
+      )
+      let run = local_compute_run(host)
+      assert_true(physical_equal(@strategy.captured_dag_ledger(run), root))
+      @strategy.stop_captured_dag(run)
+      @strategy.refresh_captured_retention(run)
+      false
+    }
+    Err(Configuration) => {
+      println("ORIGINAL_SHORT_ROOT Configuration refusal")
+      true
+    }
+    Err(_) => fail("original root failed outside configuration capacity")
+  }
   assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 16777216L)
   assert_eq(@resources.ledger_usage(root).held_bytes, 0L)
   @resources.close_shared_capacity(wasm).unwrap()
   @resources.settle_shared_capacity(wasm).unwrap()
   assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 0L)
+  assert_true(refused)
 }

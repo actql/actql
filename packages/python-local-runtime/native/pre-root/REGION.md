@@ -61,6 +61,134 @@ custody, complete pre-spawn funding, Wasmtime, runtime recipe adoption, wheels a
 public installed E2E remain unverified. `fixtures/region.c` tests physical guards
 and shared bytes using the original 64-page fixture, with no worker/VM startup.
 
+## Explicit anonymous-root backing growth
+
+The same anonymous root can acquire an explicitly requested additional mapping
+without moving old allocations. Each segment contains its own control records
+and keeps stable logical page indices under the original capacity lock. Existing
+pointers, original loans, recipe and generation remain unchanged. Allocations
+never grow implicitly and one allocation cannot cross segment boundaries.
+
+The original Native Host first grows its existing SharedCapacity reservation
+and control claim through the canonical reservation resize. An address-bound
+pending token records exactly that unconstructed suffix. Until acquisition is
+confirmed, new suballocation and borrowing are fenced; an atomic mmap refusal
+returns only that suffix. Unknown outcomes retain the original charge. Neither
+policy ceilings nor observed free memory are physical backing.
+
+The physical growth port checks the expected current amount before acquiring.
+A stale replay after a lost result cannot acquire another segment. Successful
+child retirement still precedes segment unmapping and original root close.
+Partial unmap failure leaves the same owner and remaining mappings for retry.
+The original control claim is released only after all physical cleanup succeeds.
+
+This root port rejects FD-backed and carved child domains: their independently
+bounded original views and loans cannot be widened by an anonymous root call.
+Actual child-domain additions require their own retained parent loan/view and
+explicit attachment; root growth alone does not expand a child Read or Request.
+
+## Explicit local-domain segment attachment
+
+A local domain may explicitly attach another already acquired, whole private
+view from its same original parent. The new control table lives inside that
+view's exact payload. The original domain, generation, initial view and existing
+Read contexts remain unchanged. An allocation must fit in one physical segment;
+aggregate available bytes do not prove the next constructor fits. The supplier
+must account for the required contiguous span and every control prefix before
+calling the attachment port.
+
+The attachment validates the original parent allocation, exclusive loan and
+address-bound view, and compares the expected current domain size before any
+mutation. Copied carriers, foreign parents, duplicate attachments, FD/process
+domains and a previously selected allocation ceiling refuse. The port does not
+acquire backing, enter the parent, create a Common grant or widen delegation.
+Its caller must retain the original and added view/loan carriers until cleanup;
+an opaque pointer alone is not a managed-language lifetime guarantee.
+
+The same domain retains each added view until its allocations, scopes and Read
+aliases have physically retired. Domain close then detaches the added views
+without returning a parent loan or unmapping any parent storage. Each original
+view close, loan return and parent allocation retirement still needs its own
+ACK. A failed child cleanup retains all attached views; a lost attachment result
+must retain both old and new custody and cannot be retried as a fresh addition.
+
+This physical port does not yet connect Native child reservation resizing to
+parent acquisition. Such a connection must fund its own control constructors,
+retain their full nominal graph, preserve the original admitted Request, and
+perform an explicit admitted transition of any selected allocation ceiling.
+
+## Same-original physical domain supplier
+
+The same domain header can pre-own one fixed transaction slot before entry.
+Its size is part of the provider's actual initial control-page quote. Preparing
+it binds the existing whole private view and original anonymous parent; it
+neither allocates another controller nor creates a Common allowance.
+
+The quote takes a complete contiguous constructor requirement, not an estimate
+of available memory or just aggregate shortage. It solves the child and parent
+control geometry from the compiled extent sizes, including one self-hosted
+parent allocation/loan/view receipt. Each quote stores the expected original
+parent and child amounts and consumes a nonrecycled serial. These scalar
+observations are data, not funding or authority. The trusted Resource owner
+must admit the entire root addition before acquisition.
+
+Acquisition uses the existing locked grow, allocation, loan, view and attachment
+operations under parent-before-child locking. The entered child and Read remain
+current throughout; no parent TLS replacement, callback, heap allocation or
+fallback occurs. The new receipt lives in its actual parent mapping's control
+pages and stays with this original domain. Atomic mmap failure acquires nothing.
+Any later failure retains its acquired stages and fences new parent allocation
+until cleanup. Finish confirms only the physical attachment and does not commit
+a Common reservation. Lost or stale calls cannot replay another acquisition.
+
+Domain close first retires all child allocations and Read aliases, detaches the
+additional views, and then drains each receipt's view, loan and parent allocation
+in that order. Failed stages remain retryable. Parent close preflights all live
+allocations before reaping retired ones, so it cannot consume a child's pending
+receipt during a failed close probe. Root mappings remain charged and owned until
+the root's separate physical close, even after a partial acquisition is cleaned.
+
+The existing Request prefix carries a logical retained/control quote. This
+supplier does not translate that quote into Native object/slab/page coexistence,
+issue the opaque
+managed binding, grow the original Common aggregate claim, or connect the
+canonical child reservation hook. Those remain prerequisites for normal CLI
+use; a positive initial-control declaration or a larger policy limit is not their
+physical proof.
+
+## Linux x64 process profile
+
+The default `platform_native/host_bootstrap` C entry selects the process-only
+provider for its actual Linux x64 compiler target. Its existing Moon native
+compiler flags select GNU feature visibility before system headers, and its
+link flags retain pthread support. Imported and scoped-read providers keep
+their separate source selection. Compiling `owned_capacity.c` alone without an
+explicit profile still refuses Linux x64.
+
+`owned_linux_x64_process_profile.h` requires Linux x64/glibc, little-endian LP64,
+64-bit pointers, ranges and FD offsets, 32-bit PID records, and always-lock-free
+shared PID atomics. It reuses the same allocator, FD mapping, address-bound
+loan/view, current scope, thread and child-first retirement implementations.
+Control sizes and page geometry come from that compiled provider; an ARM or
+Darwin layout is not a substitute. This selection does not issue Core funding,
+authorize a read, acknowledge a child stop, or select an image, Rust or Engine
+profile. The existing original child/borrow/current and retirement duties remain.
+
+`linux-x64-process-source.json` binds the selected source and pinned toolchain.
+`python3 scripts/test_native_linux_x64_owned_process.py` requires an actual
+Linux x64 host and retains the original physical-case binaries and controls.
+Its C results do not qualify Moon FFI or a normal installation. The existing
+Native HTTP and separated-network wrappers must still execute all their
+selected packages and later controls; this profile provides no case exclusion
+or fallback. Source selection alone is not execution or distribution evidence.
+
+The shared `owned_inventory.inc` observes the same provider's actual control,
+generic, pending-retirement and heap records on every selected process profile.
+It is also used by the original Darwin heap backend. Moving this census does
+not add a Rust allocator to Linux or substitute zero availability values for
+physical observations. The Native bootstrap inventory FFI remains bound to the
+same entered original domain and its existing scalar bounds and cleanup owner.
+
 ## Original child allocation domain
 
 The trusted child supplier can bind the original Core payload to an

@@ -11,6 +11,110 @@ priv struct NativeIssuerFixture {
 }
 
 ///|
+test "native measurement retains exact selected origin and historical capture after issuer close" {
+  let f = native_issuer_fixture()
+  let original = native_issued_attempt(f)
+  let sibling = native_issued_attempt(f)
+  // Equal compiled preparation and receipt DATA cannot replace the original
+  // receiver, authority or the measurement issued into that attempt's state.
+  assert_true(
+    physical_equal(
+      @duckdb_query.duckdb_native_attempt_preparation(original),
+      @duckdb_query.duckdb_native_attempt_preparation(sibling),
+    ),
+  )
+  for attempt in [original, sibling] {
+    native_attempt_receive_fixture(attempt)
+    @duckdb_query.settle_duckdb_native_transport(attempt).unwrap()
+  }
+  let measure = fn(attempt : @duckdb_query.DuckDBNativeAttempt) {
+    @duckdb_query.measure_duckdb_native_attempt(
+      attempt,
+      native_demand_physical(),
+      native_attempt_wire(),
+      5,
+      47,
+    ).unwrap()
+  }
+  let measured = measure(original)
+  let other = measure(sibling)
+  assert_true(
+    @duckdb_query.duckdb_native_measurement_matches(measured, original),
+  )
+  assert_true(@duckdb_query.duckdb_native_measurement_matches(other, sibling))
+  assert_false(
+    @duckdb_query.duckdb_native_measurement_matches(measured, sibling),
+  )
+  assert_false(@duckdb_query.duckdb_native_measurement_matches(other, original))
+  assert_eq(
+    @duckdb_query.duckdb_native_measured_receipt(measured, @duckdb.NativeResult),
+    @duckdb_query.duckdb_native_measured_receipt(other, @duckdb.NativeResult),
+  )
+  f.transport.push(original)
+  let records = @duckdb_query.issue_duckdb_native_records(
+    original,
+    47,
+    query_material_limits(),
+  ).unwrap()
+  let observation = @duckdb_query.capture_duckdb_native_query(
+    f.issuer,
+    original,
+    records,
+    query_capture_limits(),
+  ).unwrap()
+  let cid = @duckdb_query.duckdb_native_observation_cid(observation)
+  let document = @encode.document_text(
+    @duckdb_query.duckdb_native_observation_document(observation),
+  )
+  let usage = @duckdb_query.duckdb_native_observation_measurement_usage(
+    observation,
+  )
+  let receipt = @duckdb_query.duckdb_native_measured_receipt(
+    measured,
+    @duckdb.NativeResult,
+  )
+  @duckdb_query.abort_duckdb_native_attempt(original)
+  @duckdb_query.verify_duckdb_native_observation(
+    f.issuer,
+    original,
+    observation,
+  ).unwrap()
+  @duckdb_query.close_duckdb_native_issuer(f.issuer)
+  // Historical matching and getters remain DATA. The closed issuer still
+  // refuses live evidence use; neither these values nor close is a stop ACK.
+  assert_true(
+    @duckdb_query.duckdb_native_measurement_matches(measured, original),
+  )
+  assert_false(
+    @duckdb_query.duckdb_native_measurement_matches(measured, sibling),
+  )
+  assert_true(
+    @duckdb_query.verify_duckdb_native_observation(
+      f.issuer,
+      original,
+      observation,
+    )
+    is Err(IssuerClosed),
+  )
+  assert_eq(@duckdb_query.duckdb_native_observation_cid(observation), cid)
+  assert_eq(
+    @encode.document_text(
+      @duckdb_query.duckdb_native_observation_document(observation),
+    ),
+    document,
+  )
+  assert_eq(
+    @duckdb_query.duckdb_native_observation_measurement_usage(observation),
+    usage,
+  )
+  assert_eq(
+    @duckdb_query.duckdb_native_measured_receipt(measured, @duckdb.NativeResult),
+    receipt,
+  )
+  @duckdb_query.abort_duckdb_native_attempt(sibling)
+}
+
+///|
 fn native_issuer_fixture() -> NativeIssuerFixture raise {
   let (registry, requirement, prepared) = native_candidate_fixture()
   let candidate = @duckdb_query.duckdb_native_candidate(

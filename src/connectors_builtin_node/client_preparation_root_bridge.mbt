@@ -64,6 +64,24 @@ pub fn client_program_reserve_request_effect_capture_recovery(
 }
 
 ///|
+#export_name("clientProgramReserveRequestModelRecoveryMaterials")
+pub fn client_program_reserve_request_model_recovery_materials(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  count : Int,
+  wire_at : (Int) -> String,
+  containers : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_model_recovery_materials(
+    parent, input, request, definition, count, wire_at, containers,
+  )
+}
+
+///|
 #export_name("clientProgramBorrowRequestModelPlanInput")
 pub fn client_program_borrow_request_model_plan_input(
   parent : @client_local_host.ClientRequestPreparation[
@@ -277,6 +295,33 @@ pub fn client_program_prepare_request_model_compilation(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestModelsCompilation")
+pub fn client_program_prepare_request_models_compilation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_models_compilation(
+    parent,
+    input,
+    graphs,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramPreparedInstalledManagedModelRequirements")
 pub fn client_program_prepared_installed_managed_model_requirements(
   original : @client_local_host.ClientInstalledManagedModelPlan,
@@ -297,6 +342,32 @@ pub fn client_program_prepare_request_model_read_scope(
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   @client_local_host.prepare_request_model_read_scope(parent, input, plan)
+}
+
+///|
+// The same retained provider supplies its actual quantity declaration before
+// Request/Run binding. Core intersects the original execution contract and
+// Resource enforces its existing one-shot preparation-only configuration.
+#export_name("clientProgramPrepareRequestModelReadScopeWithQuantities")
+pub fn client_program_prepare_request_model_read_scope_with_quantities(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+) -> Result[
+  @publication_host.ClientModelReadScope,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_model_read_scope(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({ tokens, cost_units, duration_ms, }),
+  )
 }
 
 ///|
@@ -1143,6 +1214,18 @@ pub fn client_program_prepare_request_submitted_intent(
 }
 
 ///|
+#export_name("clientProgramRetainRequestSubmittedIntent")
+pub fn client_program_retain_request_submitted_intent(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  intent : @publication_host.ClientSubmittedIntent,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.retain_request_submitted_intent(parent, input, intent)
+}
+
+///|
 #export_name("clientProgramFinishRequestSubmittedIntent")
 pub fn client_program_finish_request_submitted_intent(
   parent : @client_local_host.ClientRequestPreparation[
@@ -1151,6 +1234,20 @@ pub fn client_program_finish_request_submitted_intent(
   input : ClientLocalPreparationInputOriginal,
 ) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
   @client_local_host.finish_request_submitted_intent(parent, input)
+}
+
+///|
+#export_name("clientProgramReserveRequestRetainedProgramMaterial")
+pub fn client_program_reserve_request_retained_program_material(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  wire : String,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_retained_program_material(
+    parent, input, wire,
+  )
 }
 
 ///|
@@ -1212,6 +1309,7 @@ pub fn client_program_installed_managed_capture_plan_prepare(
     retained_output~,
     provider_factory=installed_client_family_providers,
     query_time~,
+    runtime_admission=true,
   )
 }
 
@@ -1329,6 +1427,11 @@ pub fn client_program_prepare_request_native_computation(
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   values_max_rows : Int?,
 ) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
+  let selected = match
+    @client_local_host.request_default_program_preparation_limits(parent, input) {
+    Ok(limits) => limits
+    Err(issue) => return Err(issue)
+  }
   @client_local_host.prepare_request_native_computation_check(
     parent,
     input,
@@ -1337,10 +1440,7 @@ pub fn client_program_prepare_request_native_computation(
     environment,
     publication,
     [],
-    {
-      ..@publication_host.client_standard_program_preparation_limits(),
-      values_max_rows,
-    },
+    { ..selected, values_max_rows, },
     @publication_host.client_standard_effect_computation_limits(),
     supplied=if native_json_parameter_is_absent(parameters) {
       None
@@ -1487,6 +1587,29 @@ pub fn client_program_prepare_request_effect_model_read_scope(
 ] {
   @client_local_host.prepare_request_effect_model_read_scope(
     parent, input, plan,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareRequestEffectModelReadScopeWithQuantities")
+pub fn client_program_prepare_request_effect_model_read_scope_with_quantities(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+) -> Result[
+  @publication_host.ClientModelReadScope,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_effect_model_read_scope(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({ tokens, cost_units, duration_ms, }),
   )
 }
 
@@ -1740,4 +1863,540 @@ pub fn client_program_installed_managed_keyed_content_prepare(
     prefix_retained_bytes,
     prefix_execution_bytes,
   )
+}
+
+///|
+// The SAME Effect Model occurrence owns this intermediate Content component.
+#export_name("clientProgramPrepareRequestModelSerializationGraph")
+pub fn client_program_prepare_request_model_serialization_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  occurrence : @publication_host.ClientInferOccurrence,
+  task : Int,
+  step : Int,
+  policy_cid : String,
+  policy_wire : String,
+  max_rows : Int,
+  max_bytes : Int,
+  include_results : Bool,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientSerializationPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_serialization_graph(
+    parent,
+    input,
+    task,
+    step,
+    policy_cid,
+    policy_wire,
+    max_rows,
+    max_bytes,
+    include_results,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    model_occurrence=Some(occurrence),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+// The SAME Effect Model occurrence owns this intermediate Content component.
+#export_name("clientProgramPrepareRequestModelAcquiredSerializationGraph")
+pub fn client_program_prepare_request_model_acquired_serialization_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  occurrence : @publication_host.ClientInferOccurrence,
+  task : Int,
+  step : Int,
+  max_rows : Int,
+  max_bytes : Int,
+  include_results : Bool,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientSerializationPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_acquired_serialization_graph(
+    parent,
+    input,
+    task,
+    step,
+    max_rows,
+    max_bytes,
+    include_results,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    model_occurrence=Some(occurrence),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelsReadScopes")
+pub fn client_program_prepare_request_models_read_scopes(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_models_read_scopes(parent, input, plan)
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelsReadScopesWithQuantities")
+pub fn client_program_prepare_request_models_read_scopes_with_quantities(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_models_read_scopes(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({ tokens, cost_units, duration_ms, }),
+  )
+}
+
+///|
+#export_name("clientProgramAdoptRequestModelsPreparation")
+pub fn client_program_adopt_request_models_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+  scopes : Array[@publication_host.ClientModelReadScope],
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  guard scopes.get(0) is Some(first) else { return Err(ForeignOriginal) }
+  @client_local_host.begin_request_model_managed_run(
+    parent,
+    request,
+    first,
+    scopes=Some(scopes),
+  )
+}
+
+///|
+fn prepare_request_model_recovery_scopes_original(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+  selected : Array[@infer_host.Limits],
+  model_retained_bytes : Array[Int64],
+  model_execution_bytes : Array[Int64],
+  read_retained_bytes : Array[Int64],
+  read_execution_bytes : Array[Int64],
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+  quantities : @resources.QuantityAmounts?,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  let count = graphs.length()
+  guard count > 0 &&
+    selected.length() == count &&
+    model_retained_bytes.length() == count &&
+    model_execution_bytes.length() == count &&
+    read_retained_bytes.length() == count &&
+    read_execution_bytes.length() == count else {
+    return Err(ForeignOriginal)
+  }
+  let mut total : @resources.LedgerLimits = {
+    planning_work: 0,
+    attempts: 0,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: 0L,
+    execution_bytes: 0L,
+  }
+  for index in 0..<count {
+    let bounds = selected[index]
+    guard model_retained_bytes[index] >= bounds.model.ledger.retained_bytes &&
+      model_execution_bytes[index] >= bounds.model.ledger.execution_bytes &&
+      max_reservations >= bounds.input.rows.operation_entries &&
+      max_holdings >= bounds.input.rows.retained_entries &&
+      max_delegations >= bounds.input.rows.metadata_entries &&
+      @resources.add_ledger_limits(total, {
+        ..bounds.model.ledger,
+        retained_bytes: model_retained_bytes[index],
+        execution_bytes: model_execution_bytes[index],
+      })
+      is Some(next) else {
+      return Err(InsufficientCapacity)
+    }
+    total = next
+  }
+  @client_local_host.prepare_request_model_recovery_read_scopes(
+    parent,
+    input,
+    request,
+    definition,
+    prepared,
+    compiled,
+    graphs,
+    total,
+    read_retained_bytes,
+    read_execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+    quantity_limits=quantities,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelRecoveryReadScopes")
+pub fn client_program_prepare_request_model_recovery_read_scopes(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+  selected : Array[@infer_host.Limits],
+  model_retained_bytes : Array[Int64],
+  model_execution_bytes : Array[Int64],
+  read_retained_bytes : Array[Int64],
+  read_execution_bytes : Array[Int64],
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  prepare_request_model_recovery_scopes_original(
+    parent,
+    input,
+    request,
+    definition,
+    prepared,
+    compiled,
+    graphs,
+    selected,
+    model_retained_bytes,
+    model_execution_bytes,
+    read_retained_bytes,
+    read_execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+    None,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelRecoveryReadScopesWithQuantities")
+pub fn client_program_prepare_request_model_recovery_read_scopes_with_quantities(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+  selected : Array[@infer_host.Limits],
+  model_retained_bytes : Array[Int64],
+  model_execution_bytes : Array[Int64],
+  read_retained_bytes : Array[Int64],
+  read_execution_bytes : Array[Int64],
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  prepare_request_model_recovery_scopes_original(
+    parent,
+    input,
+    request,
+    definition,
+    prepared,
+    compiled,
+    graphs,
+    selected,
+    model_retained_bytes,
+    model_execution_bytes,
+    read_retained_bytes,
+    read_execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+    Some({ tokens, cost_units, duration_ms, }),
+  )
+}
+
+///|
+#export_name("clientProgramRequestModelRecoveryLedger")
+pub fn client_program_request_model_recovery_ledger(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+) -> Result[@resources.Ledger, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.request_model_recovery_ledger(
+    parent, input, request, definition,
+  )
+}
+
+///|
+/// Open the existing Local driver on this recovery Request's original Ledger.
+/// Captures/providers retain their old current and cleanup responsibilities.
+#export_name("clientProgramOpenRequestModelRecoveryHost")
+pub fn client_program_open_request_model_recovery_host(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  prepared : @publication_host.PreparedClientProgram,
+  sources : Array[@query.CapturedInputSource],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  providers : Array[@local.ManagedProvider],
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue]?,
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  let program = @publication_host.prepared_client_identity(prepared)
+  guard sources.length() <= 2 &&
+    sources.length() ==
+    @publication_host.prepared_client_acquisition_count(prepared) &&
+    program.program_definition_cid ==
+    @publication_host.client_request_program_cid(request) &&
+    program.parameter_values_cid ==
+    @publication_host.client_request_parameters_cid(request) else {
+    return Err(ForeignOriginal)
+  }
+  let ledger = match
+    @client_local_host.request_model_recovery_ledger(
+      parent, input, request, definition,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let provider_factory = capacity => {
+    let families = installed_client_family_providers(capacity)
+    for provider in providers {
+      families.push(provider)
+    }
+    families
+  }
+  // A single restored Source is not a two-capture prefix. Keep its original
+  // Request ledger and providers through the existing single-capture owner.
+  if sources.length() == 1 {
+    return Ok(
+      @client_local_host.open_captured_local_retained_host_on_ledger(
+        prepared,
+        sources[0],
+        ledger,
+        contracts,
+        values,
+        fragment,
+        ordered,
+        provider_factory~,
+      ),
+    )
+  }
+  let captures = []
+  for index in 0..<sources.length() {
+    captures.push((index, sources[index]))
+  }
+  Ok(
+    @client_local_host.open_multi_captured_local_retained_host(
+      prepared,
+      captures,
+      ledger,
+      contracts,
+      values,
+      fragment,
+      ordered,
+      provider_factory~,
+    ),
+  )
+}
+
+///|
+#export_name("clientProgramRequestModelRecoveryUsageIsolated")
+pub fn client_program_request_model_recovery_usage_isolated(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  captured : @strategy.CapturedDAG,
+) -> Bool {
+  @client_local_host.request_model_recovery_usage_isolated(
+    parent, input, request, definition, captured,
+  )
+}
+
+///|
+#export_name("clientProgramRequestModelRecoverySourceCoordinates")
+pub fn client_program_request_model_recovery_source_coordinates(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  Array[Array[Int]],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  let selected = match
+    @client_local_host.request_model_recovery_direct_occurrences(
+      parent, input, request, definition, prepared,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let coordinates = []
+  for
+    index in 0..<@publication_host.client_direct_acquisition_occurrence_count(
+      selected,
+    ) {
+    guard @publication_host.client_direct_acquisition_occurrence_at(
+        selected, index,
+      )
+      is Some((stage, input, task)) else {
+      return Err(ForeignOriginal)
+    }
+    coordinates.push([stage, input, task])
+  }
+  Ok(coordinates)
+}
+
+///|
+#export_name("clientProgramCompleteInstalledEffectCaptureRecovery")
+pub fn client_program_complete_installed_effect_capture_recovery(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_capture_recovery(original)
+}
+
+///|
+#export_name("clientProgramPrepareRequestEffectModelsReadScopes")
+pub fn client_program_prepare_request_effect_models_read_scopes(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_effect_models_read_scopes(
+    parent, input, plan,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareRequestEffectModelsReadScopesWithQuantities")
+pub fn client_program_prepare_request_effect_models_read_scopes_with_quantities(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_effect_models_read_scopes(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({ tokens, cost_units, duration_ms, }),
+  )
+}
+
+///|
+#export_name("clientProgramAdoptRequestEffectModelsPreparation")
+pub fn client_program_adopt_request_effect_models_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+  scopes : Array[@publication_host.ClientModelReadScope],
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  guard scopes.get(0) is Some(scope) else {
+    return Err(@client_local_host.ForeignOriginal)
+  }
+  @client_local_host.begin_request_effect_model_managed_run(
+    parent,
+    request,
+    scope,
+    scopes=Some(scopes),
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectModelsDemandPrepare")
+pub fn client_program_installed_effect_models_demand_prepare(
+  originals : Array[@client_local_host.ClientInstalledEffectModelDemand],
+) -> Result[
+  @client_local_host.ClientInstalledEffectModelDemand,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_models_demand(originals)
 }

@@ -210,7 +210,8 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
   state.parametersCursor=state.compilationKind=state.preparationFailure=undefined;
   state.originalCheckResult=state.projectOriginalCheck=undefined;
   state.compilationFamily=undefined;
-  state.modelCompilation=state.modelGraph=state.modelPlan=state.modelProviderBinding=state.contentPlan=state.contentCompilation=state.contentGraph=undefined;
+  state.recovery=undefined;
+  state.modelCompilation=state.modelGraph=state.modelPlan=state.modelProviderBinding=state.modelSourceCoordinates=state.contentPlan=state.contentCompilation=state.contentGraph=undefined;
   state.capturePlan=state.acquisitionCount=undefined;
   state.policyVerifier=state.policySignal=undefined;state.policyVerifierSelected=false;
   state.parameterMetadataLoaded=false;state.preparationFailed=false;

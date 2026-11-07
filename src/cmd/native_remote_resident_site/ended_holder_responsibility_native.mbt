@@ -40,6 +40,17 @@ fn retry_stopped_recovery_terminal_close(
   guard retained.val is Some(owner) && physical_equal(owner, original) else {
     return false
   }
+  guard retry_stopped_recovery_terminal_handles(original) else { return false }
+  retained.val = None
+  true
+}
+
+///|
+/// Observe only the existing Core-selected terminal handle steps. Local
+/// failure cleanup never selects this state or turns it into Run release.
+fn retry_stopped_recovery_terminal_handles(
+  original : StoppedReleaseRecovery,
+) -> Bool {
   if original.terminal_close is RecoveryTerminalJournal {
     guard original.journal.close_checked() is Ok(_) else { return false }
     original.terminal_close = RecoveryTerminalSlot
@@ -51,11 +62,7 @@ fn retry_stopped_recovery_terminal_close(
     }
     original.terminal_close = RecoveryTerminalClosed
   }
-  if original.terminal_close is RecoveryTerminalClosed {
-    retained.val = None
-    return true
-  }
-  false
+  original.terminal_close is RecoveryTerminalClosed
 }
 
 ///|
@@ -205,15 +212,24 @@ fn observe_ended_holder(
 fn ended_holder_can_leave_window(
   original : EndedHolderResponsibility,
   slot : @slot.NativeExecutorSlot,
+  slot_progress : Ref[ControlTerminalClose],
 ) -> Bool {
-  guard original.channel is ChannelDescriptorsRetired &&
+  guard original.original.releases.is_empty() &&
+    original.channel is ChannelDescriptorsRetired &&
     original.report_evidence is OriginalStatusAcknowledged &&
     original.startability is Some(_) &&
     original.journal.val is None else {
     return false
   }
   guard retire_ended_holder_process(original) else { return false }
-  slot.try_acquire() == Ok(true) && slot.verify_current_hold() == Ok(())
+  guard slot.try_acquire() == Ok(true) && slot.verify_current_hold() == Ok(()) else {
+    return false
+  }
+  // Return this exact controller descriptor after its current stop fence.
+  // Stopped recovery owns a separate descriptor for the same named Slot;
+  // retaining this lock would prevent it from discharging saved cancellation.
+  // A failed close preserves both the ended responsibility and its progress.
+  retry_control_slot_close(slot, slot_progress)
 }
 
 ///|
@@ -228,6 +244,7 @@ priv struct ControlEndedHolderLifetime {
   observation_url : String
   slot_path : String
   mut slot : @slot.NativeExecutorSlot
+  mut slot_progress : Ref[ControlTerminalClose]
   mut orphan_store : @publication_store.Store?
   recovery : Ref[StoppedReleaseRecovery?]
   recovery_cursor : Ref[String]
@@ -253,6 +270,7 @@ fn retry_control_ended_holder_lifetime(
     original.failed_orphan_store,
     original.replay_journal,
     original.slot,
+    original.slot_progress,
   ) else {
     return false
   }
@@ -351,9 +369,49 @@ fn retry_control_ended_holder_lifetime(
     // Same configured slot path, as in the ordinary controller. A failed
     // opener never discards the original ended/live responsibility.
     match @slot.open_native_executor_slot(original.slot_path) {
-      Ok(value) => original.slot = value
+      Ok(value) => {
+        original.slot = value
+        original.slot_progress = Ref(ControlSlotPending)
+      }
       Err(_) => return false
     }
+  }
+  let current_delegation = delegation(
+    original.matches,
+    budget(original.matches),
+  ) catch {
+    CommandStop(_) => return false
+  }
+  for ended in original.ended {
+    guard begin_ended_holder_releases(
+      ended,
+      original.environment,
+      original.slot,
+      current_delegation,
+    ) else {
+      return false
+    }
+  }
+  if original.ended.any(ended => !ended.original.releases.is_empty()) {
+    // The existing stopped recovery acquires its own Slot. Return this exact
+    // control Slot first; its checked close is not a Run/resource ACK.
+    retain_control_reclaim_slot_close(original.slot, original.slot_progress)
+    for ended in original.ended {
+      let released = finish_ended_holder_releases(
+        ended,
+        original.matches,
+        original.environment,
+        current_delegation,
+        original.recovery,
+        original.recovery_close_failures,
+        original.client,
+        original.observation_url,
+      ) catch {
+        CommandStop(_) => false
+      }
+      guard released else { return false }
+    }
+    return false // Reopen the control Slot through the existing next pass.
   }
   let remaining = original.ended.filter(ended => {
     observe_ended_holder(
@@ -362,7 +420,7 @@ fn retry_control_ended_holder_lifetime(
       original.client,
       original.observation_url,
     )
-    !ended_holder_can_leave_window(ended, original.slot)
+    !ended_holder_can_leave_window(ended, original.slot, original.slot_progress)
   })
   original.ended.clear()
   original.ended.append(remaining)
@@ -388,7 +446,9 @@ fn retain_control_ended_holder_lifetime(
   failed_orphan_store : Ref[
     @publication_store.NativePublicationStoreOpenFailure?,
   ],
-) -> @slot.NativeExecutorSlot {
+  slot_progress : Ref[ControlTerminalClose],
+  cleanup_wait_ms : Int,
+) -> (@slot.NativeExecutorSlot, Ref[ControlTerminalClose]) {
   let original : ControlEndedHolderLifetime = {
     ended,
     live: Ref(live),
@@ -396,6 +456,7 @@ fn retain_control_ended_holder_lifetime(
     client,
     observation_url,
     slot,
+    slot_progress,
     slot_path,
     orphan_store,
     recovery,
@@ -413,7 +474,11 @@ fn retain_control_ended_holder_lifetime(
       original,
       retry_control_ended_holder_lifetime,
       () => CleanupInputEnded,
-      wait_holder_cleanup_lifetime_signal,
+      // A peer Slot/Store release or an ACKed internal phase does not send a
+      // second SIGTERM. Drive only this SAME controller custody at the existing
+      // positive shutdown pace; false/unknown close remains pending. Generic
+      // holder cleanup retains its original channel/signal-driven policy.
+      () => @slot.native_wait_milliseconds(cleanup_wait_ms),
       (custody, _) => {
         report("control-cleanup-pending", [
           ("ended", custody.ended.length().to_string()),
@@ -422,5 +487,5 @@ fn retain_control_ended_holder_lifetime(
       },
     ),
   )
-  original.slot
+  (original.slot, original.slot_progress)
 }

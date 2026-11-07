@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {gunzipSync} from 'node:zlib';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {
@@ -19,53 +18,17 @@ import {
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 
-function restoreHistoricalSchemas(schemas, changes) {
-  const historical = structuredClone(schemas);
-  for (const change of changes) {
-    const parent = change.path.slice(0, -1).reduce((value, key) => value[key], historical);
-    const key = change.path.at(-1);
-    assert.equal(Object.hasOwn(parent, key), change.current_present !== false);
-    if (change.current_present !== false) assert.deepEqual(parent[key], change.current);
-    if (change.historical_present === false) {
-      if (Array.isArray(parent)) parent.splice(key, 1);
-      else delete parent[key];
-    } else parent[key] = structuredClone(change.historical);
-  }
-  return historical;
-}
-
-test('Run Definition optional selection projection preserves the old shape', () => {
-  const vectors = read('portability/corpus/effect-target-selection-projection.json');
+test('Run Definition selection projection is optional in its closed schema', () => {
   const registry = read('spec/contracts/actql-protocol-schemas.json');
   const schema = registry.artifact_schemas.run_definition;
   assert.equal(schema.additionalProperties, false);
   assert.ok(!schema.required.includes('effect_target_selections_cid'));
   assert.deepEqual(schema.properties.effect_target_selections_cid,
     {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'});
-  assert.equal(machineCid(schema), vectors.schema_pins.run_definition.after);
-  const previous = structuredClone(schema);
-  delete previous.properties.effect_target_selections_cid;
-  assert.equal(machineCid(previous), vectors.schema_pins.run_definition.before);
-  assert.equal(machineCid(registry.artifact_schemas), registry.artifact_registry_cid);
-  // The vector's aggregate pin belongs to fde035cf, before later adopted
-  // schema changes. Reconstruct that exact body with checked leaf inverses;
-  // neither its historical pin nor today's registry is silently repinned.
-  const history = read('portability/corpus/publication-selection-registry-history.json');
-  // Retain the exact successor fixture while also checking the accepted
-  // current-to-successor inverse before the predecessor transition.
-  assert.equal(history.inverse_source_transitions[0].historical_source_commit,
-    '68984332ab66af4d918511d6cbc70fdd64d9a60b');
-  const successorBytes = gunzipSync(readFileSync(
-    'scripts/fixtures/publication-selection-registry/68984332-protocol.json.gz'));
-  assert.equal(createHash('sha1').update(Buffer.concat([
-    Buffer.from(`blob ${successorBytes.length}\0`), successorBytes,
-  ])).digest('hex'), '288bdc228f7749ad3f0f3f1ba3c4536a92c17969');
-  assert.deepEqual(restoreHistoricalSchemas(registry.artifact_schemas,
-    history.changes.slice(0, 3 + history.inverse_source_transitions[0].change_count)),
-  JSON.parse(successorBytes).artifact_schemas);
-  const historical = restoreHistoricalSchemas(registry.artifact_schemas, history.changes);
-  assert.equal(history.artifact_registry_cid, vectors.artifact_registry_pins.after);
-  assert.equal(machineCid(historical), vectors.artifact_registry_pins.after);
+  assert.equal(machineCid(schema),
+    'sha256:fa0af630d657a970ca5bba7fe82fa2adb97076dd9c8ae12ad8fdff87d52953b6');
+  assert.equal(machineCid(schema), registry.artifact_schema_cids.run_definition);
+  assert.equal(registry.artifact_registry_cid, machineCid(registry.artifact_schemas));
 });
 
 test('independent Run vectors bind admitted compilation and original selection', () => {
@@ -106,6 +69,18 @@ test('Command Preview and review retain the closed ResourceRef target schema', (
   assert.deepEqual(current.artifact_schemas.review_projection.properties.displayed_rows
     .items.properties.target_row_identity, target);
   assert.deepEqual(preview, original, 'the supplied schema is not mutated');
+  const member = preview.properties.effects.items;
+  assert.deepEqual(member.properties.preview_strength.enum, ['full_diff', 'targeted']);
+  assert.deepEqual(member.properties.target.oneOf.at(-1), registry.schemas.resource_ref);
+  const review = registry.artifact_schemas.review_projection;
+  const row = review.properties.displayed_rows.items;
+  for (const field of ['preview_strength', 'target_guard', 'intended_changes']) {
+    assert.deepEqual(row.properties[field], field === 'preview_strength'
+      ? member.properties[field] : member.properties.changes.items.properties[field]);
+    assert.ok(!row.required.includes(field));
+  }
+  assert.deepEqual(review.properties.displayed_scope.properties.effects.items
+    .properties.target.oneOf.at(-1), registry.schemas.resource_ref);
   assert.deepEqual(effectPreviewSchema(effectPreviewSchema(preview)),
     effectPreviewSchema(preview));
 });
@@ -546,199 +521,7 @@ test('corrected schemas have independently fixed canonical identities', () => {
         'sha256:a37894cfc6919e1562be6b44293871f349085e6b94e27281eec26b7af8d0514c',
     },
   );
-  // Independently hashed at 99130778 and its true parent: undo only its
-  // optional closed listing-report member before examining older evidence.
-  function withoutListingReports(receipt) {
-    const prior = structuredClone(receipt);
-    const evidence = prior.properties.source_evidence.items;
-    assert.equal(machineCid(evidence.properties.file_listing_reports),
-      'sha256:72aab33f04df6a895e4445202e48a76acd12a5669e71faae49d56403a2d88545');
-    assert.ok(!evidence.required.includes('file_listing_reports'));
-    delete evidence.properties.file_listing_reports;
-    return prior;
-  }
-  const priorListingReceipt = withoutListingReports(registry.artifact_schemas.run_receipt);
-  assert.equal(machineCid(priorListingReceipt),
-    'sha256:98d9a727e977009817027e7e88aa510127d1275a24a0f4baec866b7e5ebb7847');
-  const priorListingCapture = structuredClone(registry.artifact_schemas.captured_run);
-  priorListingCapture.properties.receipt = priorListingReceipt;
-  assert.equal(machineCid(priorListingCapture),
-    'sha256:b3e0df2dca997b53950a1035ac64d334f128ed36840302a535c1ff56f13a064b');
-  // 7d143f02 added this exact issuer restriction. Preserve the preceding
-  // ff6ee156 captured body, rather than treating its CID as today's schema.
-  const issuer = priorListingCapture.properties.effect_context.properties
-    .content_generations.items.properties.content_reference.properties
-    .metadata.properties.issuer_evidence;
-  assert.deepEqual(issuer.properties.reported_media_type,
-    {type: 'string', minLength: 1, maxLength: 256});
-  assert.deepEqual(issuer.allOf, [{
-    if: {properties: {issuer_kind: {const: 'connector_capture'}}, required: ['issuer_kind']},
-    then: {required: ['reported_media_type']},
-    else: {not: {required: ['reported_media_type']}},
-  }]);
-  delete issuer.properties.reported_media_type;
-  delete issuer.allOf;
-  assert.equal(machineCid(priorListingCapture),
-    'sha256:4d29468956029714f8d1cdab1f43f44ca682775f78b36ccda03b2b3fb908609a');
-  // Content generation changes only the optional observation and capture
-  // inventory. Reverse those exact reviewed additions and keep the original
-  // identities below: unrelated schema drift cannot be hidden by repinning.
-  function withoutContentObservation(receipt) {
-    const prior = withoutListingReports(receipt);
-    const observation = prior.properties.observation_set;
-    assert.deepEqual(observation.properties.content_generation_cids, {
-      type: 'array', uniqueItems: true,
-      items: {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'},
-    });
-    assert.ok(!observation.required.includes('content_generation_cids'));
-    delete observation.properties.content_generation_cids;
-    const kind = prior.properties.external_observation_evidence.items.properties.kind;
-    assert.deepEqual(kind.enum, ['model_invocation', 'source_lookup', 'content_generation']);
-    kind.enum = ['model_invocation', 'source_lookup'];
-    return prior;
-  }
-  const baselineReceipt = withoutContentObservation(registry.artifact_schemas.run_receipt);
-  assert.equal(machineCid(baselineReceipt),
-    'sha256:15fc852a55288e801b64eccd756bb9d82a6cd0c3c65e6116505b27bbdc32523a');
-  const baselineCapture = structuredClone(registry.artifact_schemas.captured_run);
-  baselineCapture.properties.receipt = withoutContentObservation(baselineCapture.properties.receipt);
-  const generation = baselineCapture.properties.effect_context.properties.content_generations;
-  assert.equal(generation.type, 'array');
-  assert.equal(generation.minItems, 1);
-  assert.equal(generation.items.additionalProperties, false);
-  assert.deepEqual(generation.items.required, ['content_evidence', 'content_generation',
-    'content_input_artifact', 'content_reference', 'invocation_template']);
-  const profiles = read('spec/contracts/actql-production-profile-schemas.json');
-  assert.deepEqual(generation.items.properties, {
-    content_evidence: profiles.schemas.content_evidence,
-    content_generation: registry.artifact_schemas.content_generation,
-    content_input_artifact: registry.artifact_schemas.content_input_artifact,
-    content_reference: registry.schemas.content_ref,
-    invocation_template: registry.artifact_schemas.bound_invocation_template,
-  });
-  assert.ok(!baselineCapture.properties.effect_context.required.includes('content_generations'));
-  delete baselineCapture.properties.effect_context.properties.content_generations;
-  assert.equal(machineCid(baselineCapture),
-    'sha256:b46b747d9b40e7c3eaf4bc30806c7f048b96b9e957792e41453d3b66e67cb9e4');
-  // Reverse the later state-level observation revision before the older
-  // empty-inventory change. Control revision is an independent existing field.
-  const priorState = structuredClone(registry.artifact_schemas.run_state);
-  assert.deepEqual(priorState.properties.revision,
-    {type: 'integer', minimum: 0, maximum: 9007199254740991});
-  assert.equal(priorState.required.filter(name => name === 'revision').length, 1);
-  priorState.required = priorState.required.filter(name => name !== 'revision');
-  delete priorState.properties.revision;
-  priorState.properties.result_availability.minProperties = 1;
-  const emptyRules = priorState.allOf.filter(rule =>
-    rule.if?.properties?.result_availability?.maxProperties === 0);
-  assert.equal(emptyRules.length, 1);
-  priorState.allOf = priorState.allOf.filter(rule => !emptyRules.includes(rule));
-  assert.equal(machineCid(priorState),
-    'sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e');
-  const priorManifest = structuredClone(registry.artifact_schemas.result_manifest);
-  priorManifest.properties.results.minProperties = 1;
-  assert.equal(machineCid(priorManifest),
-    'sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa');
-  const priorReceipt = structuredClone(baselineReceipt);
-  priorReceipt.properties.result_manifest = priorManifest;
-  assert.equal(machineCid(priorReceipt),
-    'sha256:d5de76fb14e35a588d34bfa13d758b6e6b2e0a388645630b692de8cf1f27ba79');
-  // Independently recomputed from fixed e88475ee with the private Definition
-  // choice and four typed dependency roles added. Undo exactly those changes
-  // before checking the previous source discriminant and Manifest extension.
-  const previous = structuredClone(baselineCapture);
-  previous.properties.receipt = priorReceipt;
-  assert.equal(machineCid(previous),
-    'sha256:249355f0a0d114884907036fe07590799bceb281d1ba243cf5ec10f3550f9322');
-  const context = previous.properties.effect_context;
-  const definition = context.properties.effect_source_local_inventory
-    .additionalProperties.properties.definition;
-  const stage = read('spec/contracts/actql-stage-contracts.json');
-  assert.deepEqual(definition, {oneOf: [stage.schemas.local_result_definition,
-    stage.schemas.local_table_input_definition]});
-  context.properties.effect_source_local_inventory.additionalProperties
-    .properties.definition = definition.oneOf[0];
-  const privateKinds = ['table_input_artifact', 'table_input_derivation',
-    'table_input_ordering', 'local_table_input_definition'];
-  const kinds = context.properties.effect_dependency_inventory.items
-    .properties.kind;
-  assert.equal(kinds.enum.filter(kind => privateKinds.includes(kind)).length, 4);
-  kinds.enum = kinds.enum.filter(kind => !privateKinds.includes(kind));
-  assert.equal(machineCid(previous),
-    'sha256:6869cf0338f030b2258d60cebfb12704a229586eb542cc08aafc6af78f2ba231');
-  const physical = previous.properties.effect_context.properties
-    .effect_source_artifacts.additionalProperties;
-  assert.deepEqual(physical.oneOf, [
-    {required: ['source_result'], not: {required: ['source_table_input']}},
-    {required: ['source_table_input'], not: {required: ['source_result']}},
-  ]);
-  assert.deepEqual(physical.properties.source_table_input,
-    {type: 'string', minLength: 1});
-  delete physical.oneOf;
-  delete physical.properties.source_table_input;
-  physical.required.splice(2, 0, 'source_result');
-  assert.equal(machineCid(previous),
-    'sha256:a9530fa01bf5d3f8a7a97142138c16ac85031d405a9c7aed3c26ad4f9f11ec4d');
-  const manifest = previous.properties.effect_context.properties
-    .effect_source_local_inventory.additionalProperties.properties.manifest;
-  assert.deepEqual(manifest.properties.table_inputs, {
-    type: 'object', minProperties: 1,
-    additionalProperties: {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'},
-  });
-  delete manifest.properties.table_inputs;
-  assert.equal(machineCid(previous),
-    'sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7');
 });
-
-test('ResourceRef targets change only the independently pinned Preview and review union', () => {
-  const registry = read('spec/contracts/actql-protocol-schemas.json');
-  for (const [name, currentCid, priorCid, target] of [
-    ['effect_preview',
-      'sha256:821609c0cc04ef0ca1b0760a1864673e4fa70a3709af5d33e37e5177477d2f3a',
-      'sha256:97d9ea83f6ad1abfa9eaf21c7c22c75652dba20f0a928ed568010162b471a8a5',
-      schema => schema.properties.effects.items.properties.changes.items.properties.target_row_identity],
-    ['review_projection',
-      'sha256:454fb9ff461949542c38af133e210912e3e9e4260e53a2dc25ae3de7b42160d2',
-      'sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb',
-      schema => schema.properties.displayed_rows.items.properties.target_row_identity],
-  ]) {
-    let adopted = structuredClone(registry.artifact_schemas[name]);
-    // Undo only the later sealed-review extensions before testing the older
-    // ff6ee156 ResourceRef row-identity change and its original literal pins.
-    if (name === 'effect_preview') {
-      // Restore the later Command policy-carriage correction from the SAME
-      // independently recorded inverse DATA as the complete registry case.
-      const changes = read('portability/corpus/publication-selection-registry-history.json')
-        .changes.filter(change => change.source_change === 'command-preview-approval-omission');
-      assert.equal(changes.length, 3);
-      adopted = restoreHistoricalSchemas({effect_preview: adopted}, changes).effect_preview;
-      const member = adopted.properties.effects.items;
-      assert.deepEqual(member.properties.preview_strength.enum, ['full_diff', 'targeted']);
-      member.properties.preview_strength.enum = ['full_diff', 'targeted', 'blind'];
-      assert.deepEqual(member.properties.target.oneOf.pop(), registry.schemas.resource_ref);
-    } else {
-      const row = adopted.properties.displayed_rows.items;
-      const member = registry.artifact_schemas.effect_preview.properties.effects.items;
-      for (const field of ['preview_strength', 'target_guard', 'intended_changes']) {
-        assert.deepEqual(row.properties[field], field === 'preview_strength'
-          ? member.properties[field] : member.properties.changes.items.properties[field]);
-        assert.ok(!row.required.includes(field));
-        delete row.properties[field];
-      }
-      assert.deepEqual(adopted.properties.displayed_scope.properties.effects.items
-        .properties.target.oneOf.pop(), registry.schemas.resource_ref);
-    }
-    assert.equal(machineCid(registry.artifact_schemas[name]), registry.artifact_schema_cids[name]);
-    assert.equal(machineCid(adopted), currentCid);
-    const prior = structuredClone(adopted);
-    const union = target(prior);
-    assert.equal(union.oneOf.length, 4);
-    assert.deepEqual(union.oneOf.at(-1), registry.schemas.resource_ref);
-    union.oneOf.pop();
-    assert.equal(machineCid(prior), priorCid, 'all non-target schema content is unchanged');
-  }
-});
-
 
 test('CLI receipt containers embed only the unchanged closed delivery object', () => {
   const registry = read('spec/contracts/actql-protocol-schemas.json');

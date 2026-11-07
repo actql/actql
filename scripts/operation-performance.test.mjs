@@ -6,7 +6,7 @@ import {mkdtempSync, writeFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {operationTargets, latencySummary, assessLatency as rawAssessLatency, calibrateSqliteComparisonProfile, calibratedLatencyTarget, assessStructure, assessHistory,
-  assessChunks, assessBoundaries, boundaryExpectations, collectOperationSamples, assessPerformanceEvidence, assessNativeOperations} from './operation-performance.mjs';
+  recordOperationMeasurements, assessChunks, assessBoundaries, boundaryExpectations, collectOperationSamples, assessPerformanceEvidence, assessNativeOperations} from './operation-performance.mjs';
 
 import {syntheticSQLiteBaseline} from './fixtures/operation-performance-comparison.mjs';
 const baseline = syntheticSQLiteBaseline();
@@ -550,4 +550,24 @@ test('Native provenance binds each NEW command query and output', () => {
     const report = nativeReport(); mutate(report.latency[0].samples[0]);
     assert.throws(() => assessNativeOperations(report));
   }
+});
+
+test('record-only retains slow verified repetitions without claiming acceptance p95', async () => {
+  let clock = 0n;
+  const collected = await collectOperationSamples({operation: 'warm-select', mode: 'record-only',
+    now: () => clock, cpu: () => ({user: 0, system: 0}),
+    execute: () => {clock += 1_000_000_000n;}, emit: () => {}});
+  assert.equal(collected.stoppedEarly, false);
+  const summary = recordOperationMeasurements({operation: 'warm-select', mode: 'record-only', ...collected});
+  assert.equal(summary.count, 3); assert.equal(summary.medianMs, 1000);
+  assert.equal(summary.maxMs, 1000); assert.equal(summary.p95Ms, null);
+  assert.equal(summary.acceptanceAssessed, false); assert(summary.resources.rss.available);
+  assert.throws(() => recordOperationMeasurements({operation: 'warm-select', mode: 'record-only', samples: []}));
+});
+test('record-only stops failed public operation without retry and cannot summarize it as success', async () => {
+  let calls = 0;
+  const collected = await collectOperationSamples({operation: 'warm-result', mode: 'record-only',
+    execute: () => {calls++; throw new Error('Unknown');}, emit: () => {}});
+  assert.equal(calls, 1); assert.equal(collected.stoppedEarly, true);
+  assert.throws(() => recordOperationMeasurements({operation: 'warm-result', mode: 'record-only', ...collected}));
 });

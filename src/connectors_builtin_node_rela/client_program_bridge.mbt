@@ -324,6 +324,36 @@ pub fn client_program_preparation_issue_code(
 }
 
 ///|
+// The original read-only lowerer terminal is matched directly, never rebuilt
+// as a fabricated Request result just to recurse through its classification.
+fn client_program_query_lowering_issue_code(
+  issue : @client_local_host.ClientRequestQueryLoweringIssue,
+) -> String? {
+  match issue {
+    WithBinding(
+      _,
+      BindingInput(Supplied, Value(ValueIssue(WrongType | UnexpectedNull, ..)))
+    )
+    | WithBinding(
+      _,
+      BindingInput(
+        Supplied,
+        Value(Decode({ kind: WrongType | UnexpectedNull, .. }))
+      )
+    ) => Some("source_invalid_input")
+    WithBinding(original, _)
+    | BindingFailure(original, _)
+    | BindingException(original, _) =>
+      client_program_query_lowering_issue_code(original)
+    Publication(Frontend(issue)) =>
+      Some(client_source_preparation_issue_code(Frontend(issue)))
+    Publication(Publication(Declarations)) =>
+      Some(client_source_preparation_issue_code(Declarations))
+    _ => None
+  }
+}
+
+///|
 /// Project the original Request terminal through the SAME existing semantic
 /// issue projection. No document, getter, checker or compiler is entered here.
 /// None deliberately preserves foreign/current/resource/Host uncertainty; it
@@ -333,12 +363,11 @@ pub fn client_program_request_preparation_issue_code(
   result : Result[String, @client_local_host.ClientRequestTerminalIssue],
 ) -> String? {
   let issue : ClientProgramBridgeIssue = match result {
-    Err(QuerySyntax(Frontend(issue)))
-    | Err(QueryLowering(Publication(Frontend(issue))))
-    | Err(Publication(Frontend(issue))) =>
+    Err(QueryLowering(issue)) =>
+      return client_program_query_lowering_issue_code(issue)
+    Err(QuerySyntax(Frontend(issue))) | Err(Publication(Frontend(issue))) =>
       return Some(client_source_preparation_issue_code(Frontend(issue)))
-    Err(QueryLowering(Publication(Publication(Declarations))))
-    | Err(Publication(Publication(Declarations))) =>
+    Err(Publication(Publication(Declarations))) =>
       return Some(client_source_preparation_issue_code(Declarations))
     Err(CheckOutcome(Rejected(diagnostic))) => Preparation(Check(diagnostic))
     Err(CheckOutcome(NeedsInputs(_))) => return Some("needs_inputs")
@@ -785,6 +814,19 @@ pub fn client_program_installed_managed_run_compilation_original(
   prepared : @publication_host.PreparedClientProgram,
 ) -> @publication_host.ClientRunCompilation? {
   @client_local_host.installed_managed_run_compilation_original(run, prepared)
+}
+
+///|
+/// Read only the actual adopted Model Plan's already retained input prefix.
+#export_name("clientProgramInstalledManagedRunModelInputPrefix")
+pub fn client_program_installed_managed_run_model_input_prefix(
+  run : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @execution.GeneratedSequence,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_managed_run_model_input_prefix(run, prepared)
 }
 
 ///|
@@ -7733,6 +7775,7 @@ pub fn client_program_compile_local_effects(
 fn compile_client_local_effects(
   prepared : @publication_host.PreparedClientEffectComputation,
   infer : @publication_host.ClientInferPlanGraph?,
+  infers? : Array[@publication_host.ClientInferPlanGraph] = [],
 ) -> Result[
   @publication_host.ClientEffectCompilation,
   ClientProgramEffectCompilationBridgeIssue,
@@ -7751,6 +7794,7 @@ fn compile_client_local_effects(
     100000,
     100,
     infer~,
+    infers~,
   ).map_err(issue => Compilation(issue))
 }
 
@@ -9112,8 +9156,47 @@ pub fn client_program_row_source_prepare_mapping(
   resource : String,
   sources_json : String,
 ) -> String {
+  client_row_source_prepare_mapping(
+    declaration, writes_json, resource, sources_json, false,
+  )
+}
+
+///|
+/// The same installed Mapping continuation for a declared full Relation UPDATE.
+/// Closed write facts carry no replacement schema or current authority.
+#export_name("clientProgramRowSourcePrepareUpdateMapping")
+pub fn client_program_row_source_prepare_update_mapping(
+  declaration : @client_row_source_host.RowDeclaration,
+  writes_json : String,
+  resource : String,
+  sources_json : String,
+) -> String {
+  client_row_source_prepare_mapping(
+    declaration, writes_json, resource, sources_json, true,
+  )
+}
+
+///|
+fn client_row_source_prepare_mapping(
+  declaration : @client_row_source_host.RowDeclaration,
+  writes_json : String,
+  resource : String,
+  sources_json : String,
+  update : Bool,
+) -> String {
   let refused = (name : String) => {
     ({ "issue": name.to_json() } : Json).stringify()
+  }
+  // Keep the established CREATE entry unchanged. The new UPDATE entrance
+  // validates the bounded complete source map before stdlib reconstruction.
+  if update &&
+    @source.parse_json(sources_json, {
+      max_input_bytes: 4000000,
+      max_nodes: 400000,
+      max_depth: 64,
+    })
+    is Err(_) {
+    return refused("InvalidSpecification")
   }
   let parsed = @json.parse(sources_json) catch {
     _ => return refused("InvalidSpecification")
@@ -9134,10 +9217,16 @@ pub fn client_program_row_source_prepare_mapping(
         @client_row_source_host.RowMappingSource),
     )
   }
-  match
+  let prepared = if update {
+    @client_row_source_host.prepare_row_update_mapping(
+      declaration, writes_json, resource, sources,
+    )
+  } else {
     @client_row_source_host.prepare_row_mapping(
       declaration, writes_json, resource, sources,
-    ) {
+    )
+  }
+  match prepared {
     Ok(mapping) =>
       (
         {
@@ -9161,4 +9250,49 @@ pub fn client_program_row_source_prepare_mapping(
       refused(name)
     }
   }
+}
+
+///|
+#export_name("clientProgramEffectInferOccurrences")
+pub fn client_program_effect_infer_occurrences(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> Result[Array[@publication_host.ClientInferOccurrence], @infer_host.Issue] {
+  match @publication_host.prepared_client_effect_infer_occurrences(prepared) {
+    Some(originals) => Ok(originals)
+    None => Err(@infer_host.InvalidAdvance)
+  }
+}
+
+///|
+#export_name("clientProgramCompileLocalEffectsWithInfers")
+pub fn client_program_compile_local_effects_with_infers(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+) -> Result[
+  @publication_host.ClientEffectCompilation,
+  ClientProgramEffectCompilationBridgeIssue,
+] {
+  compile_client_local_effects(prepared, None, infers=graphs)
+}
+
+///|
+#export_name("clientProgramEffectCompilationInferOriginals")
+pub fn client_program_effect_compilation_infer_originals(
+  value : @publication_host.ClientEffectCompilation,
+) -> Array[
+  (
+    @publication_host.ClientInferPlanGraph,
+    @publication_host.ClientInferOccurrence,
+    @check_environment.ModelExecutionContract,
+  ),
+]? {
+  @publication_host.client_effect_compilation_infer_originals(value).map(originals => {
+    originals.map(original => {
+      (
+        original.0,
+        original.1,
+        @publication_host.client_infer_plan_graph_execution_contract(original.0),
+      )
+    })
+  })
 }

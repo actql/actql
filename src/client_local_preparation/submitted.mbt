@@ -116,3 +116,20 @@ pub fn prepare_local_submitted_input(
     original, format, environment, supplied, query_context, limits,
   ).map(input => { intent, input, })
 }
+
+///|
+/// Derive the request from this exact retained submitted carrier, including
+/// original authored input intent. This is the existing request algorithm;
+/// no scope, Run, dispatch permission or saved acceptance is issued here.
+pub fn local_submitted_preparation_request(
+  value : LocalSubmittedPreparation,
+  authority_scope_cid : String,
+  request_id : String,
+) -> Result[@host.ClientRequestIdentity, @host.ClientRequestIdentityIssue] {
+  @host.prepare_client_request_identity(
+    local_prepared_program(value.input),
+    authority_scope_cid,
+    request_id,
+    @host.client_submitted_intent_cid(value.intent),
+  )
+}

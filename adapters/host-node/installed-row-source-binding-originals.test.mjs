@@ -37,9 +37,12 @@ const setup = create.body.body.slice(setupIndex, setupIndex + 3).map(slice).join
 assert.match(setup, /physicalTarget = immutableTargets.prepare/u);
 assert.match(setup, /let physicalTargetGeneration/u);
 const ownerInsertion = slice(one(create, node => node.type === 'CallExpression' &&
-  node.callee.type === 'MemberExpression' && node.callee.object.name === 'preparations' && node.callee.property.name === 'set')) + ';';
-const installed = one(create, node => node.type === 'VariableDeclarator' && node.id?.name === 'installedSource');
-const close = installed.init.arguments[0].properties.find(node => node.key?.name === 'close');assert(close);
+  node.callee.type === 'MemberExpression' && node.callee.object.name === 'preparations' && node.callee.property.name === 'set' &&
+  node.arguments[1]?.arguments?.[0]?.properties?.some(property => property.key?.name === 'checkedOwner') &&
+  !node.arguments[1]?.arguments?.[0]?.properties?.some(property => property.key?.name === 'retainedOnly'))) + ';';
+const sourceBody = one(create, node => node.type === 'VariableDeclarator' && node.id?.name === 'sourceBody');
+assert.equal(sourceBody.init.type, 'ObjectExpression');
+const close = sourceBody.init.properties.find(node => node.key?.name === 'close');assert(close);
 const compile = new Function('physicalTarget', 'ports', 'nodeTypes', 'checked', 'validInstallationBinding',
   'checkpointApprovalFacts', 'canonicalJson', 'createHash', `
 const counts={bindingGenerations:0,bindingHashes:0,subjectHashes:0,targetReads:0,authorizations:0,completedChecks:0,
@@ -74,7 +77,7 @@ ${variable('currentRead')}
 function initial(){
  const resource=state.resource,fields=[...state.fields],access=sourceAccess,wholeInput=state.wholeInput;
  const checkedOwner={},effectful=false,occurrence=Object.freeze({stage:0,input:0,task:0});
- const providerCaptureCapacity=undefined,originalRead=undefined,managedRun=undefined;
+ const providerCaptureCapacity=undefined,originalRead=undefined,managedRun=undefined,requestIdentity=undefined;
  const prepared=Object.freeze({checkedSource:Object.freeze({requirementCid:'sha256:'+'b'.repeat(64)}),
   readTuple:Object.freeze({connection:site.connection,resource,operation:'read'}),physicalBinding:physicalTarget(resource,fields)});
  const physicalBindingCid=valueCid(prepared.physicalBinding);

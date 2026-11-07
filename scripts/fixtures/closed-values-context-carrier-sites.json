@@ -356,11 +356,11 @@
     },
     {
       "path": "src/pipeline_check_context/source_producers.mbt",
-      "sites": 35,
-      "payload_slots_upper": 56,
+      "sites": 40,
+      "payload_slots_upper": 62,
       "live_multiplier": 1,
       "max_slots": 5,
-      "source_sha256": "0c28a5348b9c801c26ab65a1e91795357072da55fd2ee45e65f4a0358e837ca6"
+      "source_sha256": "c75feb048b06e415a7febb792c65e902606fd91dc1b93b1bf0002d300b8a8365"
     },
     {
       "path": "src/pipeline_check_context/source_requests.mbt",
@@ -372,11 +372,11 @@
     },
     {
       "path": "src/pipeline_check_context/source_rows.mbt",
-      "sites": 75,
-      "payload_slots_upper": 124,
+      "sites": 74,
+      "payload_slots_upper": 121,
       "live_multiplier": 1,
       "max_slots": 5,
-      "source_sha256": "ddbbba62e6b203208620e3b9142d8b1409371e21d18095eff241bae674ed4288"
+      "source_sha256": "d4186f6c236e6d1d9e86aba1408c7fc81aa8192e337f39dad5f050004d44d25d"
     },
     {
       "path": "src/pipeline_check_context/stage_requirement_closure.mbt",
@@ -468,11 +468,11 @@
     },
     {
       "path": "src/program_check/publication_wire.mbt",
-      "sites": 78,
-      "payload_slots_upper": 131,
+      "sites": 48,
+      "payload_slots_upper": 76,
       "live_multiplier": 1,
       "max_slots": 7,
-      "source_sha256": "5be49d52bee5f3976b5465d7ad9b2f2b2906b964a7040ed38b32b06a55e179f3"
+      "source_sha256": "6529479463d0de488b8f00a96682637ffae7094e74105dd3e9f678248e31f42d"
     },
     {
       "path": "src/program_check/reidentified_graph.mbt",
@@ -492,11 +492,11 @@
     },
     {
       "path": "src/sourceview_input/input.mbt",
-      "sites": 186,
-      "payload_slots_upper": 257,
+      "sites": 197,
+      "payload_slots_upper": 279,
       "live_multiplier": 1,
       "max_slots": 10,
-      "source_sha256": "8ce0ac04800b8d3f8101477808acaf74be817797ccfdb4091fcd915acc9669bc"
+      "source_sha256": "dc891ce0557572294fbe77dfb8b4c050dfc9bfc33a31414e49a2964b1b59e93b"
     },
     {
       "path": "src/sourceview_resolution/keyed_facts.mbt",
@@ -516,11 +516,11 @@
     },
     {
       "path": "src/sourceview_resolution/pipeline.mbt",
-      "sites": 90,
-      "payload_slots_upper": 140,
+      "sites": 110,
+      "payload_slots_upper": 193,
       "live_multiplier": 1,
       "max_slots": 5,
-      "source_sha256": "532aa87fb53eaa2ef9225b75f9871260c7a9e481ec22abe645b79c18e8a1ef8e"
+      "source_sha256": "6af61bcd415b136be77e827462009bff94feb86152b9de48addfd7701f5b726d"
     },
     {
       "path": "src/sourceview_resolution/request.mbt",
@@ -540,11 +540,11 @@
     },
     {
       "path": "src/sourceview_resolution/resolve.mbt",
-      "sites": 155,
-      "payload_slots_upper": 270,
+      "sites": 172,
+      "payload_slots_upper": 305,
       "live_multiplier": 1,
       "max_slots": 5,
-      "source_sha256": "92580d14f2ed87811e29ed336cb72b1909a925f89a88353cacbd632ac9bf4a89"
+      "source_sha256": "9daca7e118f26ea3a4697f07c2b734ea893729f5ae35f14e58d3d93327523b46"
     },
     {
       "path": "src/sourceview_resolution/uses.mbt",
@@ -572,11 +572,11 @@
     },
     {
       "path": "src/stage_local_inputs/prepare_environment.mbt",
-      "sites": 81,
-      "payload_slots_upper": 133,
+      "sites": 18,
+      "payload_slots_upper": 31,
       "live_multiplier": 1,
       "max_slots": 8,
-      "source_sha256": "6566fb3d55f9cbeb7667e82dcf5d9e1fa60e5300360616d0e5874665baba88a3"
+      "source_sha256": "632f44eafa192af6bd7b18fcdef057b3b197cfab4ea6dca87aaad2051660cde4"
     },
     {
       "path": "src/stage_local_inputs/program_environment.mbt",
@@ -604,13 +604,13 @@
     },
     {
       "path": "src/stage_source_refs/resolve.mbt",
-      "sites": 93,
-      "payload_slots_upper": 141,
+      "sites": 107,
+      "payload_slots_upper": 166,
       "live_multiplier": 1,
       "max_slots": 6,
-      "source_sha256": "c8a0bd24835f0a07bc065c11fde16d9dcec729afd4781d047df5913b005753b5"
+      "source_sha256": "1ef1df4f1ad1f98f35d621ad3524e307de67159826eb74b3d722f6697b4f05d8"
     }
   ],
-  "sites": 7003,
-  "payload_slots_upper": 11475
+  "sites": 6976,
+  "payload_slots_upper": 11456
 }

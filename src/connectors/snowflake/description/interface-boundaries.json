@@ -293,7 +293,7 @@
     {
       "module": "src/connectors/snowflake/description/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "177030fdbf4d0512f8e814c8b2e6f852a2f886d73f9d1f823ff5bff0308fcd3f",
+      "sha256": "c856c36b21474acad4c40e31b10081bfc94a6c709b0d5088b64efd56ef8ee467",
       "role": "connector-semantics",
       "owner": "Snowflake original metadata projection; Common owns contracts, encoding and relation declaration issuance",
       "exports": [
@@ -311,6 +311,7 @@
         "pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]",
         "pub fn prepare_update_candidate(TableDescription, String, @value_admission.CheckedValue, Array[(String, @value_admission.CheckedValue)], Array[(String, @value_admission.CheckedValue)], UpdateCandidateLimits) -> Result[UpdateCandidate, UpdateCandidateIssue]",
         "pub fn project_table_description(TableTarget, @catalog.ResultSet, Array[@catalog.Partition], DescriptionLimits) -> Result[TableDescription, DescriptionIssue]",
+        "pub fn read_declaration_construction_capacity(Array[Int], Int, Int, Int, Int, Int, @catalog.ResponseLimits, DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?",
         "pub fn read_projection_fields(ReadProjection) -> Array[String]",
         "pub fn read_projection_matches_description(ReadProjection, TableDescription) -> Bool",
         "pub fn read_projection_relation_view(ReadProjection, String) -> @client_row_source_host.RowRelationViewSpec",
@@ -384,6 +385,10 @@
         {
           "name": "project_table_description",
           "declaration": "pub fn project_table_description(TableTarget, @catalog.ResultSet, Array[@catalog.Partition], DescriptionLimits) -> Result[TableDescription, DescriptionIssue]"
+        },
+        {
+          "name": "read_declaration_construction_capacity",
+          "declaration": "pub fn read_declaration_construction_capacity(Array[Int], Int, Int, Int, Int, Int, @catalog.ResponseLimits, DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?"
         },
         {
           "name": "read_projection_fields",
@@ -556,6 +561,80 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "read_declaration_construction_capacity"
+          ],
+          "exports": [
+            "pub fn read_declaration_construction_capacity(Array[Int], Int, Int, Int, Int, Int, @catalog.ResponseLimits, DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/connectors/snowflake/description/pkg.generated.mbti",
+                "anchor": "read_declaration_construction_capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
         }
       ]
     },
@@ -704,6 +783,111 @@
               {
                 "path": "src/connectors/snowflake/description/update_candidate_wbtest.mbt",
                 "anchor": "test \"UPDATE SQL NULL and typed JSON null remain different original values\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/snowflake/description/read_construction.mbt",
+      "sha256": "b6310d8ac836698311989a4b84fa9b8a8864562db6ccf2dc26ea880a7bd9d94d",
+      "exports": [],
+      "operations": [
+        {
+          "name": "read_declaration_construction_capacity",
+          "declaration": "read_declaration_construction_capacity ( body_lengths : Array [ Int ] , encoded_units : Int , target_units : Int , resource_units : Int , connector_units : Int , revision_units : Int , response : @ response . ResponseLimits , description : DescriptionLimits , declaration : @ rows . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "read_initialization_collection_units",
+          "declaration": "read_initialization_collection_units ( value : @ shape . CollectionConstructionExtent , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "read_initialization_decoded_construction",
+          "declaration": "read_initialization_decoded_construction ( bytes : Int , nodes : Int , depth : Int , normalize_keys : Bool , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "read_initialization_writer_units",
+          "declaration": "read_initialization_writer_units ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "read_response_construction",
+          "declaration": "read_response_construction ( body_bytes : Int , limits : @ response . ResponseLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Snowflake SQL metadata/description and schema producer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "read_declaration_construction_capacity",
+            "read_initialization_collection_units",
+            "read_initialization_decoded_construction",
+            "read_initialization_writer_units",
+            "read_response_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }

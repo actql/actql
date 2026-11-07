@@ -315,7 +315,7 @@ For `{"issue":"wrong_type"}`: A Program field has the wrong JSON type. Use the J
 
 For `{"issue":"unexpected_null"}`: A required Program field cannot be null. Provide the required field value; null is distinct from absence.
 
-Independent acceptance: [structured Program rejection binds the original parent pointer](../../adapters/host-node/client-submission-input.test.mjs).
+Independent acceptance: [original Unicode pointer omission and NULL keep their distinct meanings](../../adapters/host-node/source-selector-check.test.mjs).
 
 ## query_alias_absent
 

@@ -36,6 +36,42 @@ pub fn captured_effect_local_result_matches_source(
 }
 
 ///|
+// Inspect the SAME captured acquisition retained by this Run. Equal logical
+// rows, a reused Prepared owner, or an evidence object's CID cannot substitute
+// for that original capture. The callback may retire the Run synchronously.
+fn captured_effect_original_acquisition_matches(
+  run : CapturedDAG,
+  unit : Int,
+  identity : @query.CapturedSourceRelationIdentity,
+) -> Bool {
+  if run.stopped || unit < 0 || unit >= run.graph.captured_prefix_value() {
+    return false
+  }
+  guard run.original_sources.get(unit).bind(value => value) is Some(source) else {
+    return false
+  }
+  @query.captured_source_relation_identity_matches_source(identity, source) &&
+  !run.stopped
+}
+
+///|
+/// Match acquisition provenance, not a computed Result's physical output.
+/// Result export/currentness and publication admission remain separate duties.
+pub fn captured_effect_inputs_acquired_source_matches(
+  inputs : CapturedEffectInputs,
+  unit : Int,
+  identity : @query.CapturedSourceRelationIdentity,
+) -> Bool {
+  inputs.live &&
+  captured_effect_original_acquisition_matches(
+    inputs.run.captured,
+    unit,
+    identity,
+  ) &&
+  inputs.live
+}
+
+///|
 priv struct EffectDependencyPort {
   stage : Int
   task : Int
@@ -138,13 +174,14 @@ fn effect_dependency_ports(
     work -= results
     for index in 0..<results {
       let port = @ports.port_at(publications, index).unwrap()
-      // Every checked acquisition-prefix Unit occupies its own source task,
-      // without a selected Compute target. The actual Result target remains
-      // checked against that source's completion when the pin is acquired.
-      let selected = if stage < graph.captured_prefix_value() {
-        Some(stage)
-      } else {
-        graph_stage_target_task(graph, stage, @ports.port_target(port))
+      // A captured Unit can also publish a later computed Result. Resolve its
+      // exact checked target before falling back to that Unit's Source task.
+      // The ordinary pin still checks the original owner, target and lifetime.
+      let selected = match
+        graph_stage_target_task(graph, stage, @ports.port_target(port)) {
+        Some(task) => Some(task)
+        None if stage < graph.captured_prefix_value() => Some(stage)
+        None => None
       }
       guard selected is Some(task) && graph.owners_at(task) is Some(owner) else {
         return Err(ForeignCandidate)

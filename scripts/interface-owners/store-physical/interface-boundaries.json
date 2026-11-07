@@ -254,11 +254,12 @@
     {
       "module": "adapters/local-node/managed-output-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0934b69dc9ecd64b759ebddd216acec572bc7a218aed9f3f9f776301bc2157b6",
+      "sha256": "9280a6e0712edbe611eccf83c0c9a22f1a729c4d0d4938b0d7dc2db92ff2d92f",
       "exports": [
         "closeCompletedLocalManagedOutput",
         "closeCompletedLocalManagedOutputAsync",
-        "continueLocalManagedFailureCleanup"
+        "continueLocalManagedFailureCleanup",
+        "refreshCompletedLocalManagedScratch"
       ],
       "operations": [
         {
@@ -323,6 +324,21 @@
         {
           "name": "continueLocalManagedFailureCleanup/flight/flight",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "refreshCompletedLocalManagedScratch",
+          "parameters": [
+            "operations",
+            "available"
+          ],
+          "async": true
+        },
+        {
+          "name": "refreshCompletedLocalManagedScratch/refreshCompletedLocalManagedScratch",
+          "parameters": [
+            "resolve"
+          ],
           "async": false
         },
         {
@@ -498,11 +514,14 @@
             "continueFailureCleanup/continueFailureCleanup",
             "continueLocalManagedFailureCleanup",
             "continueLocalManagedFailureCleanup/flight/flight",
-            "retirementProgress"
+            "retirementProgress",
+            "refreshCompletedLocalManagedScratch",
+            "refreshCompletedLocalManagedScratch/refreshCompletedLocalManagedScratch"
           ],
           "exports": [
             "closeCompletedLocalManagedOutputAsync",
-            "continueLocalManagedFailureCleanup"
+            "continueLocalManagedFailureCleanup",
+            "refreshCompletedLocalManagedScratch"
           ],
           "attributes": {
             "responsibility": [
@@ -583,6 +602,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Failure, cancellation and publication"
+              },
+              {
+                "path": "src/client_local_host/managed_cleanup_control_inventory.mbt",
+                "anchor": "managed_cleanup_control_units"
               }
             ],
             "extension": [
@@ -599,6 +622,10 @@
               {
                 "path": "adapters/local-node/managed-output-custody.test.mjs",
                 "anchor": "completed memory retirement refuses copied wrappers and replaced recovery handles"
+              },
+              {
+                "path": "adapters/local-node/managed-output-custody.test.mjs",
+                "anchor": "completed live Local material refreshes only progressing original scratch without close or ACK"
               }
             ]
           }
@@ -4637,7 +4664,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "43ac2ad080339b2baba468c5a1e96f8d91339a61a36b8f296bcc601ba6aade6f",
+      "sha256": "f140a22f5fd36525be872dcdcf6558ecbd5d4cfdf5271dde8d96ee43dc401f0c",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -5142,7 +5169,15 @@
         {
           "name": "openDeliveryAttemptIndex/init:physicalObject/init:physicalObject",
           "parameters": [
-            "cidValue"
+            "cidValue",
+            "priorLifetime"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:physicalObject/init:physicalObject/preparing/preparing",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -6147,6 +6182,7 @@
             "openDeliveryAttemptIndex/init:pendingPublication/init:pendingPublication",
             "openDeliveryAttemptIndex/init:pendingPublications/init:pendingPublications",
             "openDeliveryAttemptIndex/init:physicalObject/init:physicalObject",
+            "openDeliveryAttemptIndex/init:physicalObject/init:physicalObject/preparing/preparing",
             "openDeliveryAttemptIndex/init:physicalObjectRecoveryRequired/init:physicalObjectRecoveryRequired",
             "openDeliveryAttemptIndex/init:physicalObjectUsage/init:physicalObjectUsage",
             "openDeliveryAttemptIndex/init:publicationAttempt/init:publicationAttempt",
@@ -6205,15 +6241,15 @@
             "openDeliveryAttemptIndex/nativeIndexKey/nativeIndexKey",
             "openDeliveryAttemptIndex/nativeMaterialCopy/nativeMaterialCopy",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#5",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#6",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#7",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/physicalOriginal/physicalOriginal",
             "openDeliveryAttemptIndex/physicalState/physicalState",
             "openDeliveryAttemptIndex/preparationKey/preparationKey",
@@ -6234,12 +6270,12 @@
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/originals/originals",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation",
-            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/installed/installed",
-            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation",
-            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation#2",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#2",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#3",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#4",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/installed/installed",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation#2",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/retry/retry",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/selected/selected",
             "openDeliveryAttemptIndex/readResultRecovery/readResultRecovery",
@@ -6268,8 +6304,8 @@
             "openDeliveryAttemptIndex/samePreparation/samePreparation",
             "openDeliveryAttemptIndex/sameProgress/sameProgress",
             "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress",
-            "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress/sameProgress",
             "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress#2",
+            "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress/sameProgress",
             "openDeliveryAttemptIndex/samePublication/samePublication",
             "openDeliveryAttemptIndex/samePublication/samePublication/samePublication",
             "openDeliveryAttemptIndex/sameRecoveryOriginal/sameRecoveryOriginal",
@@ -6899,7 +6935,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c60c95f9b2c144b0212e73812b4febb39ab4a4062edb877221e0ab74aee4b59f",
+      "sha256": "5a3cd1c28d4ce4c4095a8ea88aecc0b34c601811ae0053ae77686b7837d36bd9",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6909,6 +6945,7 @@
         "closePreparedLocalPublicationStoreOwnership",
         "openLocalPublicationStore",
         "originalLocalExecutionOwnerStopped",
+        "physicalContentReadWindowBytes",
         "prepareLocalPublicationStoreOwnership",
         "readBoundedLocalMetadata"
       ],
@@ -7395,6 +7432,11 @@
             "options"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/assertPriorPhysicalUnborrowed/assertPriorPhysicalUnborrowed",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt",
@@ -9219,6 +9261,14 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
+          "parameters": [
+            "cid",
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/parseContract/parseContract",
           "parameters": [
             "contract"
@@ -10468,6 +10518,51 @@
           "parameters": [
             "selected"
           ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/confirmAbsent/confirmAbsent",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/holder",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/unborrowed/unborrowed",
+          "parameters": [],
           "async": false
         },
         {
@@ -11805,6 +11900,7 @@
         {
           "operations": [
             "<module>",
+            "PublicationStoreError/constructor:constructor/constructor:constructor",
             "acquireStoreOwnership",
             "cidHex/cidHex",
             "encodePrivateEvidenceEnvelope",
@@ -11838,6 +11934,7 @@
             "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords",
             "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords#2",
             "openOriginalLocalPublicationStore/appendRecord/appendRecord",
+            "openOriginalLocalPublicationStore/assertPriorPhysicalUnborrowed/assertPriorPhysicalUnborrowed",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/init:retry/init:retry",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/resolveConfirmed/resolveConfirmed",
@@ -12066,6 +12163,7 @@
             "openOriginalLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding",
             "openOriginalLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding/bytes/bytes",
             "openOriginalLocalPublicationStore/observeTrustedClock/observeTrustedClock",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore#2",
             "openOriginalLocalPublicationStore/parseContract/parseContract",
             "openOriginalLocalPublicationStore/parseCustodyRecord/parseCustodyRecord",
             "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory",
@@ -12087,15 +12185,15 @@
             "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
+            "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
+            "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
+            "openOriginalLocalPublicationStore/preparePrivateEvidenceBytes/preparePrivateEvidenceBytes",
+            "openOriginalLocalPublicationStore/preparePrivateEvidenceInput/preparePrivateEvidenceInput",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/init:retry/init:retry",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle#2",
             "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
-            "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
-            "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
-            "openOriginalLocalPublicationStore/preparePrivateEvidenceBytes/preparePrivateEvidenceBytes",
-            "openOriginalLocalPublicationStore/preparePrivateEvidenceInput/preparePrivateEvidenceInput",
             "openOriginalLocalPublicationStore/privateEvidenceAad/privateEvidenceAad",
             "openOriginalLocalPublicationStore/privateEvidenceField/privateEvidenceField",
             "openOriginalLocalPublicationStore/privateEvidenceHolding/privateEvidenceHolding",
@@ -12220,6 +12318,15 @@
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:forget/init:forget",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:pathState/init:pathState",
             "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/acquisition/acquisition/holder/init:releaseQuota/init:releaseQuota",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/confirmAbsent/confirmAbsent",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/holder",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck/init:retireAfterDirectoryAck#2",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/holder/init:unlinkOriginal/init:unlinkOriginal/init:unlinkOriginal#2",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval/unborrowed/unborrowed",
             "openOriginalLocalPublicationStore/removalKey/removalKey",
             "openOriginalLocalPublicationStore/removeCustodyRecord/removeCustodyRecord",
             "openOriginalLocalPublicationStore/removeRunMetadataDirectories/removeRunMetadataDirectories",
@@ -12304,7 +12411,6 @@
             "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/status/status",
             "privateEvidenceWireLimitForObject",
             "processIsAlive",
-            "PublicationStoreError/constructor:constructor/constructor:constructor",
             "quantity/quantity",
             "readBounded",
             "readBounded/captureClose/captureClose",
@@ -15938,6 +16044,110 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "physicalContentReadWindowBytes"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/stored-content-consumption.test.mjs",
+                "anchor": "test('stored Content family refuses copied input"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -15950,6 +16160,7 @@
         "./prepared-custody-queue.mjs",
         "./prepared-holder-owner.mjs",
         "./publication-commit-owner.mjs",
+        "./publication-owner-lease.mjs",
         "./result-deletion-owner.mjs",
         "node:buffer",
         "node:crypto",

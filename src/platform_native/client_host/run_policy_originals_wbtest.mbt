@@ -10,8 +10,13 @@ fn policy_host_fixture(
   files? : Array[String] = [],
   account_body? : Bytes = policy_account_original,
   legacy_evidence? : Bool = false,
+  state_parent? : String? = None,
 ) -> NativeLocalHostConnection {
   let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let parent_path = match state_parent {
+    Some(selected) => selected
+    None => path
+  }
   let account = name + ".account.json"
   if !existing {
     let parent = @filesystem.open_private_root(path).unwrap()
@@ -20,7 +25,7 @@ fn policy_host_fixture(
     writer.seal(account).unwrap() |> ignore
   }
   let session = begin_native_local_host_adoption(
-    path,
+    parent_path,
     name + ".host",
     path,
     account,
@@ -90,17 +95,36 @@ fn policy_host_fixture(
 }
 
 ///|
+// These source-free Programs have no contributing Source policy. Admit the
+// independently authored Result policy through the same checked Host entrance
+// as the publication-routing fixture, before binding the original Run.
+fn policy_test_result_original(
+  unselected : @host.ClientCompiledRun,
+) -> (@host.ClientCompiledRun, String) {
+  let cid = "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563"
+  let body = "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
+  let compiled = @host.with_client_source_free_result_policy(
+    unselected, cid, body, 65536, 8192, 64,
+  ).unwrap()
+  let original = @host.client_compiled_run_source_free_result_policy_body(
+    compiled,
+  ).unwrap()
+  (compiled, @publication.captured_effect_dependency_body_cid(original))
+}
+
+///|
 test "Native original publication Policy packet survives journal reopen without work" {
   let name = "run-policy-original-reopen"
   let host = policy_host_fixture(name)
   let crypto = epoch_test_crypto()
   let journal = host.run_journal().unwrap()
   let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
-  let (request, prepared, compiled, definition) = journal_test_run(
+  let (request, prepared, unselected, definition) = journal_test_run(
     "policy-request",
     "policy-run",
     scope~,
   )
+  let (compiled, root) = policy_test_result_original(unselected)
   let bound = journal
     .bind_run(request, prepared, compiled, definition, true)
     .unwrap()
@@ -114,7 +138,6 @@ test "Native original publication Policy packet survives journal reopen without 
     run_record_body(read_run_record({ body: old_body, revision: 0L, }).unwrap()).unwrap(),
     old_body,
   )
-  let root = @host.prepared_client_publication_data_policy_cid(prepared).unwrap()
   assert_true(
     host.lookup_publication_policy_original(
       crypto, "operator", "cli", request, "answer", root,
@@ -179,14 +202,26 @@ test "Native original publication Policy packet survives journal reopen without 
 test "Native Policy original custody refuses foreign Host scope and current generation replacement" {
   let name = "run-policy-authority"
   let host = policy_host_fixture(name)
-  let foreign = policy_host_fixture("run-policy-another-host")
+  // Adoption locks belong to the state parent, independently of state names.
+  // Keep both actual Hosts open with their own original exclusive locks.
+  let state_parent = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
+    "/run-policy-foreign-parent"
+  host.session.source_root
+  .create_directory("run-policy-foreign-parent")
+  .unwrap()
+  |> ignore
+  let foreign = policy_host_fixture(
+    "run-policy-another-host",
+    state_parent=Some(state_parent),
+  )
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
-  let (request, prepared, compiled, definition) = journal_test_run(
+  let (request, prepared, unselected, definition) = journal_test_run(
     "policy-request",
     "policy-run",
     scope~,
   )
+  let (compiled, root) = policy_test_result_original(unselected)
   let journal = host.run_journal().unwrap()
   journal.bind_run(request, prepared, compiled, definition, true).unwrap()
   |> ignore
@@ -208,7 +243,6 @@ test "Native Policy original custody refuses foreign Host scope and current gene
   )
   .unwrap()
   |> ignore
-  let root = @host.prepared_client_publication_data_policy_cid(prepared).unwrap()
   assert_true(
     host.lookup_publication_policy_original(
       crypto, "operator", "cli", request, "unpermitted-result", root,
@@ -252,11 +286,12 @@ test "Native Policy original custody never repairs a started Run and refuses mal
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
   let journal = host.run_journal().unwrap()
-  let (request, prepared, compiled, definition) = journal_test_run(
+  let (request, prepared, unselected, definition) = journal_test_run(
     "policy-request",
     "policy-run",
     scope~,
   )
+  let (compiled, root) = policy_test_result_original(unselected)
   journal.bind_run(request, prepared, compiled, definition, true).unwrap()
   |> ignore
   let (_, _, _, another) = journal_test_run(
@@ -278,7 +313,6 @@ test "Native Policy original custody never repairs a started Run and refuses mal
     )
     is Err(Fenced),
   )
-  let root = @host.prepared_client_publication_data_policy_cid(prepared).unwrap()
   assert_true(
     host.lookup_publication_policy_original(
       crypto, "operator", "cli", request, "answer", root,

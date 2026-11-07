@@ -12,6 +12,7 @@ import { selectTargets } from '../../scripts/ci-targets.mjs';
 import { safePath, inventory, validateEnvelope, requiredStages, contextFromEnvironment,
   packArchive, unpackArchive, verifyArchive, joinEvidence, inspectProducerEvidence } from './ci-artifacts.mjs';
 import { body, boundFixture, executionCommand } from './fixture.mjs';
+import * as artifactTransport from './ci-artifacts.mjs';
 
 // Only synthetic evidence is used here. Real compiler execution and source,
 // semantic and capacity acceptance remain in the existing gates.
@@ -340,7 +341,7 @@ function producerFixture(root, producer, expected, mutate = () => {}) {
       cases: [{ id: `${producer}:${label}:${target}` }] };
     put(directory, stem + '.fixture.mbt', fixture);
     put(directory, stem + '.log', `ACTQL_PIPELINE_BUILD:${buildIdentity}\nTotal tests: 1, passed: 1, failed: 0.\n`);
-    json(path, receipt);
+    put(directory, path, JSON.stringify(receipt) + '\n');
     const ref = { path: prefix + path, digest: digest(JSON.stringify(receipt)), receipt };
     refs.push(ref); return ref;
   }
@@ -385,6 +386,52 @@ function joinFixture(t, mutate = {}) {
   return { root, expected, inputs, destination: join(root, 'joined') };
 }
 
+test('compact execution receipts keep every original observation and logical identity through transport', t => {
+  const options = joinFixture(t);
+  const before = options.inputs.map(input => inventory(input.directory));
+  const report = joinEvidence(options);
+  assert.equal(report.receiptCount, 9);
+  assert.equal(report.observationCount, 9);
+  assert.deepEqual(options.inputs.map(input => inventory(input.directory)), before);
+});
+
+test('compact receipt codec retains nested observations within the original 32 MiB physical bound', t => {
+  const root = scratch(t);
+  const receipt = {target: 'native', boundary: {workspace: 'original-owner'},
+    cases: Array.from({length: 28}, (_, id) => ({id: `case-${id}`,
+      observation: {rows: Array.from({length: 15000}, (_, row) => [row, null, 'é💡'])}}))};
+  const compact = JSON.stringify(receipt) + '\n';
+  assert(Buffer.byteLength(canonical(receipt)) > 32 * 1024 ** 2);
+  assert(Buffer.byteLength(compact) < 32 * 1024 ** 2);
+  const path = put(root, 'original.json', compact);
+  const originalDigest = digest(compact);
+  const read = artifactTransport.canonicalExecutionReceipt(path);
+  assert.deepEqual(read, receipt);
+  assert.equal(digest(JSON.stringify(read)), digest(JSON.stringify(receipt)));
+  assert.equal(digest(readFileSync(path)), originalDigest, 'The reader must not rewrite its input');
+});
+
+test('compact receipt codec refuses alternate encodings and preserves strict report and file boundaries', t => {
+  const root = scratch(t), receipt = {target: 'native', cases: [{id: 'original', row: [null, 'é💡']}]};
+  const path = put(root, 'receipt.json', JSON.stringify(receipt) + '\n');
+  assert.deepEqual(artifactTransport.canonicalExecutionReceipt(path), receipt);
+  for (const bytes of [canonical(receipt), JSON.stringify(receipt), JSON.stringify(receipt) + '\n\n',
+    '{"target":"js","target":"native"}\n', '{ "target":"native" }\n']) {
+    writeFileSync(path, bytes);
+    assert.throws(() => artifactTransport.canonicalExecutionReceipt(path), /Noncanonical or ambiguous JSON evidence/);
+  }
+  writeFileSync(path, JSON.stringify(receipt) + '\n');
+  assert.throws(() => artifactTransport.canonicalJson(path), /Noncanonical or ambiguous JSON evidence/);
+  const manifest = put(root, 'manifest.json', canonical(receipt));
+  assert.deepEqual(artifactTransport.canonicalJson(manifest), receipt);
+  const linked = join(root, 'linked.json');
+  symlinkSync(path, linked);
+  assert.throws(() => artifactTransport.canonicalExecutionReceipt(linked), /Linked evidence path/);
+  rmSync(linked);
+  linkSync(path, linked);
+  assert.throws(() => artifactTransport.canonicalExecutionReceipt(path), /unlinked regular file/);
+});
+
 test('the existing large capacity aggregate has a separate bounded read allowance', t => {
   const options = joinFixture(t, { capacity: ({ directory, json }) => {
     const report = JSON.parse(readFileSync(join(directory, 'capacity/all.json')));
@@ -399,7 +446,7 @@ test('aggregate allowance stays bounded and does not expand receipt or manifest 
   const options = joinFixture(t), directory = options.inputs[1].directory;
   const aggregate = join(directory, 'capacity/all.json');
   const original = readFileSync(aggregate);
-  truncateSync(aggregate, 256 * 1024 ** 2 + 1);
+  truncateSync(aggregate, 512 * 1024 ** 2 + 1);
   assert.throws(() => inspectProducerEvidence(directory, 'capacity', options.expected), /Oversized JSON evidence/);
   writeFileSync(aggregate, original);
   const receipt = join(directory, '1790000000001-456-0000-capacity-js.json');
@@ -502,7 +549,7 @@ test('join rejects a reused observation under a different producer receipt path'
   const report = JSON.parse(readFileSync(join(directory, 'capacity/all.json')));
   const ref = report.executions[0]; ref.receipt.cases[0].id = 'mutations:base:js';
   ref.digest = digest(JSON.stringify(ref.receipt));
-  put(directory, ref.path.slice('.artifacts/relation-pipeline/'.length), canonical(ref.receipt));
+  put(directory, ref.path.slice('.artifacts/relation-pipeline/'.length), JSON.stringify(ref.receipt) + '\n');
   put(directory, 'capacity/all.json', canonical(report));
   const refs = [ref, ...['js', 'wasm', 'native'].flatMap(target => JSON.parse(readFileSync(join(directory, `${target}.json`))).executions)];
   const manifest = syntheticSeal(directory, 'capacity', options.expected, refs);
@@ -523,7 +570,7 @@ const workflow = parse(readFileSync(join(repositoryRoot, '.github/workflows/ci.y
 const { jobs } = workflow;
 const producerJobs = ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants'];
 const partNames = {'pipeline-mutations':'L-M0','pipeline-mutations-rest':'L-M1','pipeline-capacity':'L-C0','pipeline-capacity-mutants':'L-C1'};
-const normalSchedule = "${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
+const normalSchedule = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
 const runLines = job => jobs[job].steps.filter(step => step.run).flatMap(step => step.run.trim().split('\n'));
 const shell = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: repositoryRoot, env: { ...process.env, ...env }, encoding: 'utf8', timeout: 10_000,
@@ -548,7 +595,7 @@ test('workflow partitions complete campaigns into exactly four owners with manda
   assert.deepEqual(listed.stdout.trim().split('\n').sort(),expected);
   for(const name of producerJobs) {
     const job=jobs[name], part=partNames[name], lines=runLines(name);
-    assert.equal(job.if,normalSchedule); assert.deepEqual(job.needs,['select-targets','preflight']);
+    assert.equal(job.if,normalSchedule.replace(" }}", " && needs.select-targets.outputs.deep_proofs == 'true' }}")); assert.deepEqual(job.needs,['select-targets','preflight']);
     assert.equal(job.strategy,undefined);assert.equal(job['runs-on'],'ubuntu-24.04');
     assert.deepEqual(job.env,{ACTQL_PIPELINE_PART:part});
     assert(!lines.some(line=>line.includes('node --test')),'Synthetic tests run once elsewhere');
@@ -574,7 +621,7 @@ test('workflow downloads exact producer IDs only after its success and identity 
   const final = jobs['pipeline-evidence'];
   assert.deepEqual(final.needs, [...producerJobs,'pipeline-validation']);
   assert.match(final.if, /always\(\)/u);
-  for(const name of [...producerJobs,'pipeline-validation']) assert(final.if.includes(`needs.${name}.result == 'skipped'`));
+  for(const name of producerJobs) assert(final.if.includes(`needs.${name}.result == 'skipped'`));
   assert.deepEqual(final.steps[0].env, { PIPELINE_NEEDS: '${{ toJSON(needs) }}' });
   assert(final.steps[0].run, 'Guard must run before all downloads');
   for (const name of producerJobs) {
@@ -643,7 +690,7 @@ test('global check continues to require the final pipeline-evidence verdict', t 
   assert(jobs.check.needs.includes('pipeline-evidence'));
   assert(!producerJobs.some(name => jobs.check.needs.includes(name)), 'Final audited join remains the required check boundary');
   const script = jobs.check.steps.find(step => step.run).run;
-  const needs = Object.fromEntries(jobs.check.needs.map(name => [name, { result: name === 'focused-tests' ? 'skipped' : 'success' }]));
+  const needs = Object.fromEntries(jobs.check.needs.map(name => [name, { result: ['focused-tests', 'main-performance', 'health-quick'].includes(name) ? 'skipped' : 'success' }]));
   const revision = 'b'.repeat(40);
   const selection = selectTargets(['.github/workflows/ci.yml']);
   assert.equal(selection.profile, 'full');

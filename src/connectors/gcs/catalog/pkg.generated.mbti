@@ -2,6 +2,7 @@
 package "actql/actql/connectors/gcs/catalog"
 
 import {
+  "actql/actql/execution_relation",
   "moonbitlang/core/debug",
 }
 
@@ -31,6 +32,8 @@ pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadat
 pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String
 
 pub fn object_collection_identity_json(ObjectCollectionBinding) -> String
+
+pub fn object_collection_mapping_construction_capacity(String, Int, Int, Int, Int, Int, ObjectUploadDeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn object_collection_resource_json(ObjectCollectionBinding) -> String
 
@@ -106,6 +109,8 @@ pub fn object_upload_body_for(ObjectUploadBinding, ObjectUploadRequest) -> Resul
 
 pub fn object_upload_body_media_type(ObjectUploadRequest) -> String
 
+pub fn object_upload_catalog_construction_capacity(String, Int, ObjectUploadDeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]
 
 pub fn object_upload_cid(ObjectUploadRequest) -> String
@@ -151,6 +156,8 @@ pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, Obj
 pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]
 
 pub fn restore_object_mutation_value_wire(ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]
+
+pub fn source_facts_construction_capacity(Int, String, String, String, String, Array[Int64]) -> @execution_relation.ExecutionCapacity?
 
 // Errors
 

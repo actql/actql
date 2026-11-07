@@ -302,6 +302,10 @@ pub fn emit_model_provider_handling(ModelProviderHandling, @encode_core.Writer) 
 
 pub fn emit_model_provider_handling_original(ModelProviderHandling, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn empty_model_tasks_construction_extent(WireEnvironment) -> RegistryConstructionExtent?
+
+pub fn empty_model_tasks_retained_extent(WireEnvironment) -> RegistryConstructionExtent?
+
 pub fn expression_contract_body(String) -> ExpressionContractBody?
 
 pub fn expression_contract_body_cid(ExpressionContractBody) -> String
@@ -521,6 +525,10 @@ pub fn model_mock_profile_current(ModelMockProfile) -> Bool
 pub fn model_mock_profile_originals(ModelMockProfile) -> (String, String, String, String, String, String)?
 
 pub fn model_openai_chat_instructions(ModelDependency) -> String?
+
+pub fn model_provider_defaults_resolution_construction_inventory(ModelProviderDefaults, Int64?) -> ModelProviderDefaultsResolutionConstructionInventory
+
+pub fn model_provider_defaults_resolution_retained_extent(ModelProviderDefaults, Int64?) -> @decode_shape.CollectionConstructionExtent
 
 pub fn model_provider_defaults_usage(ModelProviderDefaults) -> (Int, Int, Int)
 
@@ -752,6 +760,8 @@ pub fn read_model_provider_defaults_configuration(Bytes, Limits, Int) -> Result[
 
 pub fn read_model_response_profile(Bytes, String, Limits, Int) -> Result[ModelResponseProfile, ModelTaskIssue]
 
+pub fn read_original_mock_model_dependencies(ModelMockProfile, NormalizedPublicModelTask, ModelExecutionContract, Bytes?, Bytes?, Bytes?, Limits, Int) -> Result[SingleAttemptModelDependencies, ModelDependencyIssue]
+
 pub fn read_project_public_model_task_environment(String, String, Array[NormalizedPublicModelTask], ModelTaskLimits) -> Result[(String, String, Int), ModelTaskIssue]
 
 pub fn read_public_model_task_contract(@decode_core.Cursor, ModelTaskLimits) -> Result[PublicModelTaskContract, ModelTaskIssue]
@@ -926,6 +936,8 @@ pub fn source_view_shape_at(SourceViewShapes, Int) -> Member?
 
 pub fn source_view_shape_usage(SourceViewShapes) -> (Int, Int)
 
+pub fn source_view_shape_validation_construction_extent(Int, Int, Int, Int) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn source_view_shape_values(SourceViewShapes) -> ProtocolValueContracts
 
 pub fn stage_semantic_contract_cid(StageSemanticContract) -> String
@@ -957,6 +969,10 @@ pub fn usage(WireEnvironment) -> (Int, Int, Int)
 pub fn validate_decision_answers(DecisionContract, @decode_core.Cursor, DecisionProbabilityProfile, Int) -> Result[Int, DecisionIssue]
 
 pub fn value_contract_policies(ProtocolValueContracts) -> SourceDataPolicies
+
+pub fn wire_admission_construction_extent(WireAdmissionConstructionGeometry) -> RegistryConstructionExtent?
+
+pub fn wire_admission_retained_extent(WireAdmissionConstructionGeometry) -> RegistryConstructionExtent?
 
 pub fn wire_hash_construction_extent(Int) -> RegistryConstructionExtent?
 
@@ -1539,6 +1555,18 @@ type ModelMockProfile
 
 type ModelProviderDefaults
 
+pub(all) struct ModelProviderDefaultsResolutionConstructionInventory {
+  resolved_records : Int64
+  generation_copies : Int64
+  comparison_arrays : Int64
+  comparison_items : Int64
+  comparison_array_constructions : Int64
+  work_cells : Int64
+  issue_tags : Int64
+  error_results : Int64
+  success_results : Int64
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ModelProviderDefaultsResolutionIssue {
   InvalidLimits
   WorkLimit
@@ -1969,6 +1997,23 @@ pub(all) struct ValueContractLimits {
   max_envelopes : Int
   contracts : @value_contract.Limits
 }
+
+pub(all) struct WireAdmissionConstructionGeometry {
+  bytes : Int
+  nodes : Int
+  depth : Int
+  fields : Int
+  objects : Int
+  arrays : Int
+  root_fields : Int
+  max_fields : Int
+  key_utf16_units : Int
+  max_key_utf16_units : Int
+  members : Int
+  snapshots : Int
+  catalogs : Int
+  manifest_entries : Int
+} derive(Eq, @debug.Debug)
 
 type WireEnvironment
 

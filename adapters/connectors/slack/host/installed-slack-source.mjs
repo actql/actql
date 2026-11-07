@@ -8,6 +8,7 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
+import {installedJsonSourceReaderLimitNames} from '../../../host-node/installed-credential-source-reader.mjs';
 import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
 import {prepareSlackSourceReadSequence} from '../site/slack-source-read.mjs';
 import {SLACK_USER_LIST_OPERATION} from '../site/user-list-read.mjs';
@@ -90,6 +91,26 @@ export async function installedSlackSourceIdentityParts(profile,providerProfile,
   return[{...profile,accountConfigurationWire:JSON.parse(profile.accountConfigurationWire)},site,binding];
 }
 
+// Original Source profile and operation occurrences select the existing Core
+// composition once. The shared Host keeps this exact result through cleanup.
+function slackReaderSelection(original, columns, profile) {
+  if (original.maxPages === 2147483647 || original.pageSize >= 1000 ||
+      columns > profile.maxColumns || original.maxDeclarationBytes > profile.maxDeclarationBytes ||
+      original.maxDeclarationNodes > profile.maxDeclarationNodes) fail('InstalledSourceReaderImplementationBoundsExceeded');
+  const children = entries => Object.freeze(entries.map(([operation,maxUses]) => Object.freeze({operation,maxUses})));
+  const sequence = (operation,maxUses,entries) => Object.freeze({operation,maxUses,children:children(entries)});
+  return Object.freeze({original,limits:Object.freeze({...Object.fromEntries(
+    installedJsonSourceReaderLimitNames.map(name => [name,original[name]])),
+    maxPages:original.maxPages+1,maxSecretBytes:original.maxSecretBytes}),
+    sequences:Object.freeze({
+      users:sequence('slack:users:list',original.maxPages,[['slack:workspace:identity',1]]),
+      channels:sequence('slack:channels:list',original.maxPages,[['slack:workspace:identity',1]]),
+      messages:sequence('slack:messages:history',original.maxPages,[
+        ['slack:workspace:identity',original.maxPages],['slack:channels:list',original.maxPages],
+        ['slack:messages:replies',original.maxPages]]),
+    })});
+}
+
 export async function loadInstalledSlackSource(profile,{moon,providerMoon:provider,
   runtimeBundleCid,resolveSecret,configurationReader,sourceInitialization,installationServices,installation}={}){
   if(!sourceInitialization||typeof sourceInitialization!=='object'||types.isProxy(sourceInitialization)||
@@ -101,6 +122,8 @@ export async function loadInstalledSlackSource(profile,{moon,providerMoon:provid
   const services=captureInstalledSourceServices(installationServices,()=>Object.assign(
     new Error('InstalledSlackSourceServicesUnavailable'),{code:'InstalledSlackSourceServicesUnavailable'}));
   if(typeof resolveSecret!=='function')fail('SlackCredentialMaterialUnavailable');
+  const capacityPort=Object.getOwnPropertyDescriptor(moon??{},'clientProgramInstalledSlackSourceReaderCapacity')?.value;
+  if(typeof capacityPort!=='function')fail('InstalledSourceReaderRuntimeUnavailable');
   const{installed,site:siteProfile,ca,binding}=await readInputs(profile,configurationReader);
   const{limits}=installed;
   if(provider===null||typeof provider!=='object'||types.isProxy(provider))fail('InvalidInstalledSlackProvider');
@@ -119,7 +142,13 @@ export async function loadInstalledSlackSource(profile,{moon,providerMoon:provid
   }
   const columnCount=Math.max(...['slackUserListColumnNames','slackChannelListColumnNames','slackMessageColumnNames']
     .map(name=>Reflect.apply(declarationPorts[name],provider,[]).length));
-  const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,limits,columnCount});
+  const selected=slackReaderSelection(limits,columnCount,policy);
+  const capacity=Reflect.apply(capacityPort,moon,[
+    installedJsonSourceReaderLimitNames.map(name=>selected.limits[name]),columnCount,limits.maxSecretBytes,limits.maxPages]);
+  if(capacity===undefined||capacity===null)fail('InstalledSourceReaderCapacityUnavailable');
+  const readSequenceConstruction=Object.freeze({capacity,originalLimits:limits,sequences:selected.sequences,maxRequestBytes:2});
+  const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,
+    limits:selected.limits,columnCount,readSequenceConstruction});
   const views=[['users','slack_users','slackUserListSchemaWire','slackUserListRelationFactsWire'],
     ['channels','slack_channels','slackChannelListSchemaWire','slackChannelListRelationFactsWire'],
     ['messages','slack_messages','slackMessageSchemaWire','slackMessageRelationFactsWire']].map(

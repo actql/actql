@@ -6,6 +6,7 @@ import {
   "actql/actql/source_frontend",
   "actql/actql/query_program",
   "actql/actql/query_syntax",
+  "actql/actql/stage_syntax",
   "actql/actql/parameter_binding",
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @decode,
@@ -14,3 +15,11 @@ import {
   "actql/actql/client_host_buffers" @buffers,
   "moonbitlang/core/encoding/utf8",
 }
+
+import {
+  "actql/actql/sourceview_resolution" @sourceviews,
+  "actql/actql/sourceview_input" @inputs,
+  "actql/actql/stage_parameters" @stages,
+  "actql/actql/binding_declarations" @bindings,
+  "actql/actql/source_request_slots" @slots,
+} for "wbtest"

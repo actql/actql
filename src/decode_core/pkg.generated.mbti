@@ -93,11 +93,17 @@ pub fn open_object(Cursor) -> Result[ObjectView, Issue]
 
 pub fn open_object_construction_extent(Int) -> @decode_shape.CollectionConstructionExtent?
 
+pub fn preserving_json_admission_construction_inventory(Int, Int, Int) -> @source_value.JsonLiteralConstructionExtent?
+
+pub fn preserving_json_parser_construction_inventory(Int, Int, Int) -> @source_value.JsonLiteralConstructionExtent?
+
 pub fn require_non_null_cursor(Cursor) -> Result[Cursor, Issue]
 
 pub fn required(ObjectView, String) -> Result[Cursor, Issue]
 
 pub fn safe_integer(Cursor) -> Result[Int64, Issue]
+
+pub fn shallow_value_view_construction_extent(Int, Int) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn start_admission(@source_value.Node, Limits) -> Result[Admission, Issue]
 

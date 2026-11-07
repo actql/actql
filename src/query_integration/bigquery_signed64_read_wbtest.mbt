@@ -52,7 +52,7 @@ test "BigQuery Signed64 crosses original checked Source RowRun and capture witho
     2,
   )
   @bigquery_read.finish_result_read(read).unwrap()
-  let capture = @bigquery_read.capture_result_read(read).unwrap()
+  let capture = bigquery_capture_result(read).unwrap()
   let storage = @query.captured_source_storage(
     @row_host.row_capture_source(capture).unwrap(),
     10000,

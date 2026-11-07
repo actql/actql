@@ -59,18 +59,70 @@ pub fn generated_sequence_capacity(
   limits : SequenceExecutionLimits,
   measurement : FixedInputGuardMeasureLimits,
 ) -> ExecutionCapacity? {
+  generated_sequence_capacity_with_roots(
+    generated,
+    limits,
+    measurement,
+    limits.rows.retained_entries.to_int64() +
+    limits.rows.metadata_entries.to_int64(),
+    limits.rows.metadata_entries.to_int64(),
+    false,
+  )
+}
+
+///|
+/// Constructor-specific recipe for bounded Values, Append and binding-row
+/// providers; not a claim about arbitrary executors of the same kernel.
+/// The bounded single-operation constructors use an operation workspace, not
+/// the legacy sequence wiring/table store. Their completed port retains exact
+/// schema names and input identities. Keep a second metadata occurrence in
+/// scratch; all operation, DATA, measurement and fragment allowances stay intact.
+pub fn generated_bounded_sequence_capacity(
+  generated : GeneratedSequence,
+  limits : SequenceExecutionLimits,
+  measurement : FixedInputGuardMeasureLimits,
+) -> ExecutionCapacity? {
+  guard generated.selected_steps is Some([step]) &&
+    generated_sequence_step_at(generated, 0) is Some(operation) else {
+    return generated_sequence_capacity(generated, limits, measurement)
+  }
+  match operation {
+    @lower.ValuesStep(_) | @lower.AppendStep(_) | @lower.RowStep(_) => ()
+    _ => return generated_sequence_capacity(generated, limits, measurement)
+  }
+  let prepared = @lower.bound_preparation(
+    @lower.sequence_owner(generated.sequence),
+  )
+  guard @lower.node_at(prepared, step) is Some(node) &&
+    completion_preparation_schema(
+      generated_completion_preparation(generated),
+      @pipeline.Step(step),
+    )
+    is Some(schema) else {
+    return generated_sequence_capacity(generated, limits, measurement)
+  }
+  let roots = @schema.field_count(schema).to_int64() +
+    @lower.node_input_count(node).to_int64()
+  generated_sequence_capacity_with_roots(
+    generated, limits, measurement, roots, roots, true,
+  )
+}
+
+///|
+fn generated_sequence_capacity_with_roots(
+  generated : GeneratedSequence,
+  limits : SequenceExecutionLimits,
+  measurement : FixedInputGuardMeasureLimits,
+  retained_roots : Int64,
+  metadata_scratch : Int64,
+  bounded_single : Bool,
+) -> ExecutionCapacity? {
   let rows = limits.rows
+  if rows.retained_entries < 0 || rows.metadata_entries < 0 {
+    return None
+  }
   guard execution_capacity_inventory_bytes([
-      {
-        unit: CursorRootSlots,
-        count: rows.retained_entries.to_int64(),
-        copies: 1,
-      },
-      {
-        unit: CursorRootSlots,
-        count: rows.metadata_entries.to_int64(),
-        copies: 1,
-      },
+      { unit: CursorRootSlots, count: retained_roots, copies: 1, },
       {
         unit: ValueNodeSlots,
         count: rows.output_values.max_nodes.to_int64(),
@@ -89,11 +141,7 @@ pub fn generated_sequence_capacity(
         count: rows.operation_entries.to_int64(),
         copies: 1,
       },
-      {
-        unit: CursorRootSlots,
-        count: rows.metadata_entries.to_int64(),
-        copies: 1,
-      },
+      { unit: CursorRootSlots, count: metadata_scratch, copies: 1, },
       { unit: CursorRootSlots, count: limits.max_frames.to_int64(), copies: 1, },
       {
         unit: ValueNodeSlots,
@@ -153,6 +201,23 @@ pub fn generated_sequence_capacity(
       physical.max_body_depth < 0 {
       return None
     }
+    // Only the selected bounded constructor can use the borrowed-leaf proof.
+    // Unknown expressions and all generic sequence paths retain the original
+    // live-value envelope; neither case changes its actual logical guards.
+    let leaf = if bounded_single {
+      bounded_leaf_fragment_capacity(generated, context, limits)
+    } else {
+      None
+    }
+    let live_capacity = match leaf {
+      Some(bytes) => Some(bytes)
+      None =>
+        execution_capacity_inventory_bytes([
+          { unit: ValueNodeSlots, count: live, copies: 1, },
+          { unit: CanonicalWireBytes, count: live, copies: 1, },
+        ])
+    }
+    guard live_capacity is Some(live_capacity) else { return None }
     guard execution_capacity_inventory_bytes([
         {
           unit: ValueNodeSlots,
@@ -169,10 +234,7 @@ pub fn generated_sequence_capacity(
           count: physical.max_body_bytes.to_int64(),
           copies: 1,
         },
-        // The existing live-byte envelope allows at most one node/root and
-        // its wire allowance per logical byte; no observed-row reduction.
-        { unit: ValueNodeSlots, count: live, copies: 1, },
-        { unit: CanonicalWireBytes, count: live, copies: 1, },
+        { unit: QuotedBytes, count: live_capacity, copies: 1, },
       ])
       is Some(required) else {
       return None

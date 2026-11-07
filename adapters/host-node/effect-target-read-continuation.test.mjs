@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
+import {compileFunction} from 'node:vm';
+import {parse} from 'acorn';
+import {retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {assertEffectTargetReadBinding, effectTargetReadContinuation} from './effect-target-read-continuation.mjs';
 import {effectTargetReadInventory} from './effect-target-read-inventory.mjs';
@@ -301,4 +304,147 @@ test('opaque binding identity distinguishes exact keys and ignores insertion ord
   const original = exactInventory(); original[0].physicalBinding.json = {'e\u0301': 'decomposed'};
   assert.notEqual(effectTargetReadInventory(changed).inventoryCid,
     effectTargetReadInventory(original).inventoryCid);
+});
+
+
+// Execute the existing Host's actual read-access resume flight with explicit
+// Journal/Request/claim ports. This is caller ordering and custody evidence,
+// not a Common compiler, permission, physical cleanup or ordinary Run proof.
+async function capturedReadResumeFixture({rejectPrepare = false, failFinish = false} = {}) {
+  const source = await readFile(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const flights = [];
+  const walk = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id.name === 'flight' &&
+        node.init?.type === 'CallExpression' && node.init.callee.type === 'ArrowFunctionExpression' &&
+        source.slice(node.init.callee.start, node.init.callee.end)
+          .includes('await checkpoints.runUnitReadContinuation(view)')) flights.push(node.init.callee);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk);
+      else if (value && typeof value === 'object') walk(value);
+    }
+  };
+  walk(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(flights.length, 1);
+  const events = [], captured = Object.freeze({kind: 'program', input: {original: 'authored input'}, parameters: null});
+  const prepared = {}, facts = {}, accepted = {ref: {runDefinitionCid: 'same-definition'}};
+  const ref = accepted.ref, claim = {}, view = {checkpointCid: 'same-checkpoint', runId: 'same-run'};
+  let retainedRequest, held = false, preparing = 0, finishAttempts = 0;
+  const primary = undefined, cleanupFailure = new Error('OriginalInputRetirementPending');
+  const input = {finish(terminal) {
+    assert.equal(this, input);assert.equal(held, true);events.push(['finish', terminal]);finishAttempts++;
+    if (failFinish && finishAttempts <= 2) throw cleanupFailure;
+    held = false;
+  }};
+  const preparation = {
+    retainEffectRequestInput(runtime, request, intent, original) {
+      assert.equal(runtime, moon);assert.equal(intent, undefined);assert.equal(original, captured);
+      assert.equal(retainedRequest, undefined);retainedRequest = request;held = true;events.push('retain');return input;
+    },
+    bindSourceRequest(request, actual) {
+      assert.equal(request, retainedRequest);assert.equal(actual, prepared);assert(held);events.push('bind');
+    },
+  };
+  const moon = {}, checkpoints = {async runUnitReadContinuation(actual) {
+    assert.equal(actual, view);return {version: 'target', submission: captured};
+  }, journal: {
+    currentResume() {return {state: 'open'};}, renewResume() {},
+    admitResume(actual, options) {assert.equal(actual, claim);assert.equal(options.checkpointCid, view.checkpointCid);return {};},
+    refuseUnsentReadResume() {events.push('refuse');assert(held);return {outcome: 'unknown'};},
+    getRunState() {return undefined;},
+  }};
+  const prepareCapturedSubmission = async (request, actualRef) => {
+    preparing++;assert.equal(request, retainedRequest, 'same captured Request must be retained before preparation');
+    assert.equal(actualRef, ref);assert(held);events.push('prepare');if (rejectPrepare) throw primary;return prepared;
+  };
+  const localPreparationCustody = {
+    adopt(actual, request) {assert.equal(actual, prepared);assert.equal(request, retainedRequest);events.push('adopt');return actual;},
+    attach(request, actual) {assert.equal(request, retainedRequest);assert.equal(actual, prepared);request.preparedProgram = actual;events.push('attach');},
+  };
+  const retained = Object.freeze({kind: 'same admitted Run frame'}), control = {};
+  const ports = {authorization: {}, checkpoints, view, claimed: {claim}, ref, preparation, moon, control, retained,
+    localPreparationCustody, prepareCapturedSubmission,
+    requestOf(request) {assert.equal(request, retainedRequest);assert.equal(request.preparedProgram, prepared);return {effectful: true};},
+    inferSelections: new Map(), EFFECT_TARGET_CONTINUATION: 'target',
+    admitEffectDefinition(request) {assert.equal(request, retainedRequest);assert(held);events.push('definition');return accepted;},
+    effectRun: {restoreComputation(actual) {assert.equal(actual, accepted);return facts;}, reconciliation() {return undefined;}},
+    async executeEffectComputation(actual, sourceResume, targetResume) {
+      assert.equal(actual, facts);assert.equal(sourceResume, undefined);assert(held);targetResume.assertCurrent();events.push('execute');return {};
+    },
+    journal: {observeRunCancellation(actual, requestControl, publicationControl, original) {
+      assert.equal(actual,ref);assert.equal(requestControl,moon);
+      assert.equal(publicationControl,control);assert.equal(original,retained);
+      return () => ({cancellationRequested:false});
+    }},
+    terminal() {return false;}, observeRun() {assert.fail('No terminal observation selected');},
+    setInterval() {return {unref() {}};}, clearInterval() {events.push('clear');},
+    retainInstalledHostRuntimeFailure,
+  };
+  const execute = compileFunction('return '+source.slice(flights[0].start, flights[0].end), Object.keys(ports))(...Object.values(ports));
+  return {execute, events, primary, cleanupFailure, held: () => held, preparing: () => preparing};
+}
+
+test('actual read-access resume retains its same captured Request through preparation and dispatch', async () => {
+  const f = await capturedReadResumeFixture();await f.execute();
+  assert.deepEqual(f.events.filter(value => value !== 'clear'),
+    ['retain', 'prepare', 'adopt', 'attach', 'bind', 'definition', 'execute', ['finish', 'returned']]);
+  assert.equal(f.held(), false);assert.equal(f.preparing(), 1);
+});
+
+test('actual read-access resume keeps thrown undefined and original failed-input retirement', async () => {
+  const f = await capturedReadResumeFixture({rejectPrepare: true});
+  let rejected = false;
+  try {await f.execute();}
+  catch (cause) {rejected = true;assert.strictEqual(cause, f.primary);}
+  assert.equal(rejected, true);
+  assert.deepEqual(f.events.filter(value => value !== 'clear'),
+    ['retain', 'prepare', 'refuse', ['finish', 'failed']]);
+  assert.equal(f.held(), false);assert.equal(f.preparing(), 1);
+});
+
+test('actual read-access resume retains the same input retirement retry without preparing again', async () => {
+  const f = await capturedReadResumeFixture({failFinish: true});
+  let failure;
+  try {await f.execute();} catch (cause) {failure = cause;}
+  assert.strictEqual(failure.primaryFailure, f.cleanupFailure);
+  assert.strictEqual(failure.cause, f.cleanupFailure);assert.equal(f.held(), true);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(f.held(), false);assert.equal(f.preparing(), 1);
+  assert.deepEqual(f.events.filter(Array.isArray),
+    [['finish', 'returned'], ['finish', 'returned'], ['finish', 'returned']]);
+});
+
+test('actual read-access settlement observes undefined without replacing its original failure', async () => {
+  const source = await readFile(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const selected = [];
+  const walk = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id.name === 'settlement' &&
+        source.slice(node.init?.start, node.init?.end).includes("diagnostic('source_resume_failed'")) selected.push(node.init);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk);
+      else if (value && typeof value === 'object') walk(value);
+    }
+  };
+  walk(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(selected.length, 1);
+  const ref = {}, key = {}, view = {runId: 'same-run'};
+  const flight = Promise.reject(undefined);
+  const effectResumeFlights = new Map([[key, flight]]);
+  const observed = [];
+  const ports = {flight, ref, key, view, effectResumeFlights,
+    diagnostic(name, detail) {observed.push({name, detail});},
+    checkpoints: {journal: {getRunState() {return {status: 'resuming'};}},
+      sweep() {assert.fail('An unresolved original claim must not be swept');}},
+  };
+  const settlement = compileFunction('return '+source.slice(selected[0].start, selected[0].end),
+    Object.keys(ports))(...Object.values(ports));
+  await settlement;
+  let rejected = false;
+  try {await flight;} catch (cause) {rejected = true;assert.strictEqual(cause, undefined);}
+  assert.equal(rejected, true);
+  assert.deepEqual(observed, [{name: 'source_resume_failed',
+    detail: {ref, code: undefined, detail: undefined, cause: undefined, missingModule: undefined}}]);
+  assert.equal(effectResumeFlights.size, 0);
 });

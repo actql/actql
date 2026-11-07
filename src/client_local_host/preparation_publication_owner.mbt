@@ -38,11 +38,11 @@ fn publication_original_body(
 }
 
 ///|
-/// Static pre-quote allowance: snapshot projector H2552/R20371/W20791 =
-/// 370128, plus wrapper H32/R64/W64 =1536 for original occurrence/port/Schema
+/// Static pre-quote allowance: snapshot projector H2638/R22166/W22540 =
+/// 399856, plus wrapper H32/R64/W64 =1536 for original occurrence/port/Schema
 /// Some carriers, running totals, cost results and the returned handle.
 /// This is admitted BEFORE any projector constructor, including failed quotes.
-let publication_projection_execution : Int64 = 371664L
+let publication_projection_execution : Int64 = 401392L
 
 ///|
 /// Fixed adopted-owner entry. No supplied row count, policy override or bytes.
@@ -73,7 +73,7 @@ pub fn reserve_program_publication(
       source_free.capacity_plan
     }
   }
-  let snapshot_prequoted = plan.scalar_demand is Some(_) ||
+  let mut snapshot_prequoted = plan.scalar_demand is Some(_) ||
     plan.value_node_demand is Some(_)
   let (inventory, rows, text) = match plan.scalar_demand {
     Some(demand) => {
@@ -81,7 +81,7 @@ pub fn reserve_program_publication(
         physical_equal(demand.original, inventory) else {
         return Err(ForeignOriginal)
       }
-      (inventory, demand.rows, None)
+      (Some(inventory), demand.rows, None)
     }
     None =>
       // This SAME Plan already checked its flat Number/Boolean/Text schemas
@@ -93,17 +93,16 @@ pub fn reserve_program_publication(
             physical_equal(demand.original, inventory) else {
             return Err(ForeignOriginal)
           }
-          (inventory, demand.rows, Some(plan.values.max_text_bytes))
+          (Some(inventory), demand.rows, Some(plan.values.max_text_bytes))
         }
         None => {
-          // The same checked dispatch inventory can contain ARRAY/STRUCT.
-          // Only snapshot construction is delayed until its original export
-          // supplies exact geometry; execution remains on this original Plan.
-          guard plan.demand_inventory is Some(inventory) &&
-            plan.publication is Some(publication) else {
+          // Derived outputs need not have an input schema-demand inventory.
+          // Their same finished export supplies exact snapshot geometry; the
+          // original publication policy still bounds its accepted row count.
+          guard plan.publication is Some(publication) else {
             return Err(ForeignOriginal)
           }
-          (inventory, publication.rows, None)
+          (None, publication.rows, None)
         }
       }
   }
@@ -155,7 +154,7 @@ pub fn reserve_program_publication(
   }
   let mut retained = 0L
   let mut execution = 0L
-  if snapshot_prequoted {
+  if inventory is Some(inventory) {
     guard scalar_snapshot_layout(
         inventory.fields,
         inventory.names,
@@ -176,6 +175,16 @@ pub fn reserve_program_publication(
       let schema = @results.port_schema(
         @execution.managed_result_occurrence_port(occurrence),
       )
+      // A node-demand proof also covers bounded ARRAY/STRUCT. Only the
+      // original leaf schemas justify this flat snapshot layout. Otherwise
+      // keep the same Run/export and fund each recursive copy from its exact
+      // completed writer extent before entering that snapshot constructor.
+      if !client_local_json_leaf_schema(schema) {
+        snapshot_prequoted = false
+        retained = 0L
+        execution = 0L
+        break
+      }
       guard scalar_snapshot_layout(
           @schema.field_count(schema),
           @schema.field_reference_name_bytes(schema),

@@ -18,19 +18,21 @@ import {createHash, randomUUID} from 'node:crypto';
 import {mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {dirname, isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {httpsCredentialResponseHeaderByteLimit} from '../../../site-node/https-credential-resource.mjs';
+import {installedJsonSourceReaderLimitNames} from '../../../host-node/installed-credential-source-reader.mjs';
 import {retainInstalledHostInitializationFailure} from
   '../../../host-node/installed-host-cleanup.mjs';
 import {readSourceProfileJson, captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {canonicalJson, contentCid} from
   '../../../host-node/local-account-config.mjs';
-import {createInstalledRowSource, installRowSourceAuthorization,
-  openRowSourceCredentialSite, rowSourceCheckEnvironment} from
+import {installRowSourceAuthorization,
+  openRowSourceCredentialSite} from
   '../../../host-node/installed-row-source.mjs';
 import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
 import {githubIssueListPath} from '../site/github-issue-read.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
-  readGitHubIssuesByNode, readGitHubPullRequestsByNode, readGitHubIssueCommentsByNode} from '../site/github-issue-graphql-read.mjs';
+  prepareGitHubSourceReadSequence} from '../site/github-issue-graphql-read.mjs';
 
 export const INSTALLED_GITHUB_SOURCE_VERSION =
   'actql-installed-github-source/0.1';
@@ -299,16 +301,23 @@ export async function publishGitHubRepository(checkedProfile, {root,
 // binding without provider I/O.
 export async function loadInstalledGitHubSource(profile, {root, principalId,
   moon, providerMoon, baseEnvironmentWire, runtimeBundleCid, resolveSecret,
-  installation}) {
+  installation, construction}) {
+  if (typeof construction?.prepareDeclaration !== 'function' ||
+      typeof construction.openRowSite !== 'function' ||
+      typeof construction.createRowSource !== 'function' ||
+      typeof construction.sourceReaderImplementation !== 'function' ||
+      typeof construction.createSourceReader !== 'function' ||
+      typeof construction.configurationReader?.readOriginalText !== 'function') {
+    fail('InstalledGitHubConstructionUnavailable');
+  }
+  const readers = construction.configurationReader;
   const checkedProfile = checkInstalledGitHubSourceProfile(profile);
-  const site = await readSite(checkedProfile.siteProfilePath);
-  const publication = await readGitHubPublication(checkedProfile, site);
-  const {declaration, declared} = await restore(moon,
-    checkedProfile.connectorId, publication.catalogCid);
-  const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared);
-  const opened = await openSite(checkedProfile, site, {root, principalId,
-    moon, runtimeBundleCid, resolveSecret, publication, installation});
-  try {
+  const site = await readSite(checkedProfile.siteProfilePath, readers);
+  const publication = await readGitHubPublication(checkedProfile, site, readers.readJson);
+  const viewInput = await readers.readOriginalText(viewsUrl);
+  construction.prepareDeclaration(viewInput, publication.catalogCid);
+  const connection = `github:${new URL(site.apiOrigin).host}/${site.owner}/${site.repo}`;
+  {
     const physicalTarget = (resource, fields) => Object.freeze({
       version: TARGET_VERSION, api_origin: site.apiOrigin,
       repository_id: publication.repository.id,
@@ -316,11 +325,69 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
       owner: site.owner, repo: site.repo,
       catalog_cid: publication.catalogCid, resource,
       fields: Object.freeze([...fields])});
-    return await createInstalledRowSource({moon, declaration, declared,
-      environmentWire: environment.wire,
-      connectorId: checkedProfile.connectorId,
-      connectorRegistration: registration, connectorRevision: revision,
-      site: opened.site, authorization: opened.authorization,
+    const policyMethod = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledSourceReaderPolicy')?.value;
+    if (typeof policyMethod !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
+    const policy = Reflect.apply(policyMethod,moon,[]);
+    if (!Array.isArray(policy) || policy.length !== 3 || policy.some(value =>
+      !Number.isSafeInteger(value) || value < 1 || value > 2147483647)) fail('InstalledSourceReaderPolicyUnavailable');
+    // Original binding/target strings, not observed rows or a capacity grant.
+    const bindingUnits = site.apiOrigin.length + site.owner.length + site.repo.length +
+      publication.repository.node_id.length + String(publication.repository.id).length +
+      publication.catalogCid.length + TARGET_VERSION.length;
+    const readerLimits = Object.freeze({maxResponseBytes:readLimits.maxBytes,
+      maxTotalResponseBytes:readLimits.maxPages * readLimits.maxBytes,
+      maxNodes:readLimits.maxNodes,maxDepth:readLimits.maxDepth,
+      maxRows:readLimits.maxRows,maxTotalRows:readLimits.maxRows,
+      maxPages:readLimits.maxPages,pageSize:readLimits.perPage,
+      maxCursorBytes:3 * 1024,maxIdentityBytes:readLimits.maxBytes,
+      maxTargetBytes:1024 + 6 * (bindingUnits + viewInput.length),
+      maxValueNodes:readLimits.maxNodes,maxValueTextBytes:readLimits.maxBytes,
+      maxRowsWireBytes:rowLimits.maxPageBytes,maxRowsWireNodes:readLimits.maxNodes,
+      maxRowsWireDepth:readLimits.maxDepth,maxSecretBytes:policy[0]});
+    const nativeCapacity = Object.getOwnPropertyDescriptor(providerMoon, 'githubSourceReadPrefixConstructionCapacity')?.value;
+    const readerCapacity = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledNativeSourceReaderCapacity')?.value;
+    if (typeof nativeCapacity !== 'function' || typeof readerCapacity !== 'function') {
+      fail('InstalledSourceReaderRuntimeUnavailable');
+    }
+    const originalBounds = Object.freeze(['maxBytes','maxNodes','maxDepth','maxRows','maxPages','maxSubjects']
+      .map(name => readLimits[name]));
+    const readerBounds = Object.freeze(installedJsonSourceReaderLimitNames.map(name => readerLimits[name]));
+    const responseCapacity = (bytes, responses = 0) => {
+      const domain = Reflect.apply(nativeCapacity,providerMoon,[...originalBounds,bytes,httpsCredentialResponseHeaderByteLimit,responses]);
+      const capacity = Reflect.apply(readerCapacity,moon,[readerBounds,policy[2],policy[0],domain]);
+      if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
+      return capacity;
+    };
+    const implementation = construction.sourceReaderImplementation({limits:readerLimits,columnCount:policy[2],
+      readSequenceConstruction:Object.freeze({capacity:responseCapacity(0),originalLimits:readLimits,
+        maxRequestBytes:readLimits.maxRequestBytes,
+        sequence:Object.freeze({operation:GITHUB_GRAPHQL_READ_OPERATION,maxUses:readLimits.maxPages,
+          children:Object.freeze([])})})});
+    // The same credential issuer captures this implementation's limits when
+    // its Site is constructed; later registration cannot retrofit that owner.
+    const opened = await construction.openRowSite({
+      accountConfiguration: checkedProfile.accountConfigurationWire, connection,
+      runAcquisitionLimits: implementation.runAcquisitionLimits,
+      profile: Object.freeze({...site, resourceOrigin: site.apiOrigin}),
+      resolveSecret: resolveSecret ?? environmentSecret(site.tokenEnvironment),
+      ca: site.ca, responseHeaders: installation?.responseHeaders ?? [],
+      admitsApprovalTarget: (binding, resource) =>
+        binding?.version === TARGET_VERSION &&
+        binding.api_origin === site.apiOrigin &&
+        binding.repository_id === publication.repository.id &&
+        binding.repository_node_id === publication.repository.node_id &&
+        binding.owner === site.owner && binding.repo === site.repo &&
+        binding.catalog_cid === publication.catalogCid &&
+        binding.resource === resource && Array.isArray(binding.fields)});
+    const repository = Object.freeze({nodeId:publication.repository.node_id,
+      databaseId:publication.repository.id,nameWithOwner:`${site.owner}/${site.repo}`});
+    const providerReader = construction.createSourceReader({implementation,
+      prepareReadSequence(input,retireProjection) {
+        return prepareGitHubSourceReadSequence({moon:providerMoon,site:opened.site,repository,
+          preparedRead:input.preparedRead,originalAuthorization:input.originalAuthorization,
+          limits:readLimits,responseCapacity,retireProjection});
+      }});
+    return await construction.createRowSource({
       readOperation: GITHUB_GRAPHQL_READ_OPERATION, physicalTarget,
       bindingCid: contentCid({version: 'actql-installed-github-binding/0.1',
         contextCid: opened.authorization.context.contextCid,
@@ -331,25 +398,10 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
         credentialAuthorityId: site.credentialAuthorityId,
         credentialKeyId: site.credentialKeyId}),
       limits: rowLimits,
-      readPages: async ({resource, authorizationFor, chargePage, consumeObservation, consumePage,
-        signal}) => {
-        const read = resource === 'issues' ? readGitHubIssuesByNode
-          : resource === 'pull_requests' ? readGitHubPullRequestsByNode
-          : resource === 'issue_comments' ? readGitHubIssueCommentsByNode : undefined;
-        if (read === undefined) fail('UndeclaredGitHubResource');
-        return read({moon: providerMoon,
-          repository: {nodeId: publication.repository.node_id,
-            databaseId: publication.repository.id,
-            nameWithOwner: `${site.owner}/${site.repo}`},
-          filters: {state: 'all', labels: []},
-          credential: opened.site.credential,
-          callResource: opened.site.callResource, authorizationFor,
-          limits: readLimits, chargePage, consumeObservation,
-          consumePage: (rows, _page, admission) => consumePage(rows, admission),
-          signal});
+      providerReader,
+      prepareRead: async ({resource,nonce,runInvocationCid,dispatchRequestCid,signal}) => {
+        if (!['issues','pull_requests','issue_comments'].includes(resource)) fail('UndeclaredGitHubResource');
+        return Object.freeze({resource,nonce,runInvocationCid,dispatchRequestCid,signal});
       }});
-  } catch (cause) {
-    throw await retainInstalledHostInitializationFailure(cause,
-      {sourceProfile: opened.site});
   }
 }

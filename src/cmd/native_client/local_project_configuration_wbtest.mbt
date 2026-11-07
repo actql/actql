@@ -124,7 +124,8 @@ test "uninstalled project bindings cannot silently run live or fabricate a mock 
   for
     field in [
       "\"profile\":\"mock\"", "\"connectors\":\"connectors.json\"", "\"model_tasks\":\"tasks.json\"",
-      "\"lock\":\"lock.json\"", "\"mock\":{\"data\":\"data.json\"}", "\"mock\":{\"answers\":{\"task\":\"answers.yaml\"}}",
+      "\"lock\":\"lock.json\"", "\"mock\":{\"catalog\":\"catalog.json\"}", "\"mock\":{\"data\":\"data.json\"}",
+      "\"mock\":{\"answers\":{\"task\":\"answers.yaml\"}}",
     ] {
     let project = local_project_select_loaded(
       matches,
@@ -620,7 +621,7 @@ test "saved default selection never replaces explicit Remote or reference-file r
     arguments in [
       ["--mode", "remote", "result", "original-run"],
       ["--endpoint", "https://example.invalid", "status", "original-run"],
-      ["result", "--ref-file", "original.json"],
+      ["status", "--ref-file", "original.json"],
       ["status", "--submission-ref-file", "original.json"],
     ] {
     let matches = command().parse(argv=arguments[:], env=Map([]))
@@ -630,4 +631,48 @@ test "saved default selection never replaces explicit Remote or reference-file r
     assert_eq(optional(matches, "state-dir"), None)
     assert_true(command_preparation_invocation.val is None)
   }
+}
+
+///|
+test "project init support is implementation data and acquires no command original" {
+  assert_true(local_project_binding_implementation(None, false))
+  assert_false(local_project_binding_implementation(Some("mock"), true))
+  assert_false(local_project_binding_implementation(None, true))
+  assert_false(local_project_binding_implementation(Some("other"), false))
+  let matches = command().parse(argv=[
+    "--config", "/never-created/config.json", "--state-dir", "/never-created/state",
+    "project-init-support",
+  ])
+  let reply : Ref[String?] = Ref(None)
+  assert_true(command_preparation_invocation.val is None)
+  execute_and_write_native_reply(matches, reply)
+  assert_eq(
+    reply.val,
+    Some(
+      "{\"version\":\"actql-project-init-support/0.1\",\"sourceFree\":true,\"mock\":false}",
+    ),
+  )
+  assert_true(command_preparation_invocation.val is None)
+}
+
+///|
+test "catalog-only mock metadata cannot silently select the source-free installation" {
+  let matches = command().parse(argv=["check", "never-read.aql"])
+  let project = local_project_select_loaded(
+    matches, "/never-created", "{\"version\":\"actql-config/0.1\",\"mock\":{\"catalog\":\"never-opened.json\"},\"connectors\":\"absent.json\"}",
+  )
+  assert_true(
+    try {
+      ignore(local_project_read_execution_bindings(Some(project), "check"))
+      false
+    } catch {
+      ClientStop(reason) => reason == "LocalProjectBindingsUnavailable"
+    },
+  )
+  assert_eq(required(matches, "mode"), "remote")
+  assert_eq(optional(matches, "state-dir"), None)
+  // Saved operations do not replace original bindings from current metadata.
+  assert_true(
+    local_project_read_execution_bindings(Some(project), "status") is Ok(_),
+  )
 }

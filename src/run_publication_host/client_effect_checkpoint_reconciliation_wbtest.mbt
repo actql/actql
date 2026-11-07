@@ -115,12 +115,12 @@ fn checkpoint_reconciliation_fixture(
     "}],\"status\":\"" +
     (if unknown { "unknown_outcome" } else { "applied" }) +
     "\"}"
-  let member = @publication.seal_publication_contract(
+  let publication_member = @publication.seal_publication_contract(
     "effect_apply_receipt", receipt_body, 100000, 10000, 100,
   ).unwrap()
   let set = @publication.issue_effect_set_apply_receipt_from_members(
     preview,
-    [member],
+    [publication_member],
     [false],
     100000,
     10000,
@@ -133,7 +133,7 @@ fn checkpoint_reconciliation_fixture(
     preview_wire,
     invocation_wire: @publication.publication_contract_json(invocation),
     set_wire: @publication.publication_contract_json(set),
-    members: [@publication.publication_contract_json(member)],
+    members: [@publication.publication_contract_json(publication_member)],
   }
 }
 

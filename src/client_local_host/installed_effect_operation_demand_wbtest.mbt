@@ -64,12 +64,14 @@ fn effect_plan_fixture_failure(
 ///|
 // Checked authored Effect Program and immutable implementation DATA only.
 // No physical dispatcher, permission, Resource root or ordinary package here.
-fn effect_operation_plan_inputs() -> (
+fn effect_operation_plan_inputs(
+  rows? : String = "[{\"id\":1}]",
+) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
   ClientInstalledSequenceContracts,
 ) {
-  let prepared = installed_effect_managed_fixture()
+  let prepared = installed_effect_managed_fixture(rows~)
   let request = @publication_host.prepare_client_effect_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
@@ -219,7 +221,9 @@ test "original implementation control material shares the checked row inventory 
   )
   assert_eq(
     selected.limits.execution_bytes - baseline.limits.execution_bytes,
-    rows * 11L + carrier,
+    // Its4-byte control workspace fits the already funded20-byte pure
+    // constructor peak; only all original7-byte outputs/carrier are added.
+    rows * 7L + carrier,
   )
   let huge = @execution.execution_capacity(
     9223372036854775807L, 9223372036854775807L,
@@ -238,30 +242,37 @@ test "original implementation control material shares the checked row inventory 
 // generated, and expected identities/rows are not taken from execution output.
 fn effect_operation_source_plan_fixture(
   bounded_output? : Bool = false,
+  source_width? : Int = 1,
+  additional_source? : Bool = false,
   second_result? : Bool = false,
+  same_unit_results? : Bool = false,
   provider? : @execution.ExecutionCapacity? = None,
   query_time_for? : ((
     @publication_host.PreparedClientEffectComputation,
     @publication_host.ClientRequestIdentity,
   ) -> @publication_host.ClientQueryTimePreparation)? = None,
 ) -> ClientInstalledEffectManagedPlan raise {
+  let fields : Array[@row_source_host.RowField] = [
+    { name: "id", value_type: "number", nullable: false, },
+  ]
+  for index in 1..<source_width {
+    fields.push({
+      name: "field_" + index.to_string(),
+      value_type: "number",
+      nullable: false,
+    })
+  }
   let declaration = @row_source_host.generate_row_declaration(
     "operation-source",
     "fixture",
     "fixture/0.1",
-    [
-      {
-        resource: "r",
-        resource_kind: "record",
-        fields: [{ name: "id", value_type: "number", nullable: false, }],
-      },
-    ],
+    [{ resource: "r", resource_kind: "record", fields, }],
     {
       max_bytes: 1000000,
       max_nodes: 100000,
       max_depth: 100,
       max_views: 1,
-      max_fields: 1,
+      max_fields: source_width,
     },
   ).unwrap()
   let parsed = @json.parse(source_query_original_environment)
@@ -319,6 +330,27 @@ fn effect_operation_source_plan_fixture(
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"source-effect-operation-plan","stages":[{"id":"acquire","inputs":{"remote":{"connector":"operation-source","resource":"r"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id"]}}},{"id":"apply","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"id > 2","as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"apply","result":"rows"}}}}
+  let document = if source_width == 1 {
+    document
+  } else {
+    let names = fields
+      .map(field => Json::string(field.name))
+      .to_json()
+      .stringify()
+    document.replace(
+      old="{\"select\":[\"id\"],\"as\":\"captured\"}",
+      new="{\"select\":" + names + ",\"as\":\"captured\"}",
+    )
+  }
+  // The acquired Unit publishes a Result computed after its captured prefix.
+  // Both the root Result and the downstream Effect retain that exact producer.
+  let document = if same_unit_results {
+    let same_unit =
+      #|{"version":"actql/0.1","id":"source-effect-operation-plan","stages":[{"id":"acquire","inputs":{"remote":{"connector":"operation-source","resource":"r"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"captured"},{"derive":{"tag":{"literal":1}},"as":"tagged"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"apply","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"id > 2","as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"apply","result":"rows"}},"computed":{"from":{"stage":"acquire","result":"rows"}}}}
+    same_unit
+  } else {
+    document
+  }
   let document = if query_time_for is Some(_) {
     document.replace(
       old="id > 0",
@@ -339,6 +371,19 @@ fn effect_operation_source_plan_fixture(
     document.replace(
       old="\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"id\"]}},\"effects\":{\"save\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}}}",
       new="\"as\":\"selected\"},{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":3},{\"id\":5},{\"id\":7}]},\"as\":\"three\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"id\"]},\"other\":{\"from\":\"three\",\"fields\":[\"id\"]}},\"effects\":{\"save\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}},\"save_other\":{\"update\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"other\"},\"id\":\"id\",\"set\":{\"Name\":{\"field\":\"id\"}}}}}",
+    )
+  } else {
+    document
+  }
+  let document = if additional_source {
+    document
+    .replace(
+      old="{\"id\":\"apply\",",
+      new="{\"id\":\"acquire_second\",\"inputs\":{\"remote\":{\"connector\":\"operation-source\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > 0\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"rows\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{\"id\":\"apply\",",
+    )
+    .replace(
+      old="\"inputs\":{\"input\":{\"result\":{\"stage\":\"acquire\",\"result\":\"rows\"}}},\"steps\":[{\"filter\":\"id > 2\",\"as\":\"selected\"}]",
+      new="\"inputs\":{\"input\":{\"result\":{\"stage\":\"acquire\",\"result\":\"rows\"}},\"other\":{\"result\":{\"stage\":\"acquire_second\",\"result\":\"rows\"}}},\"steps\":[{\"from\":\"input\",\"cross_join\":{\"with\":\"other\",\"max_output_rows\":10,\"select\":{\"id\":\"left.id\"}},\"as\":\"both\"},{\"from\":\"both\",\"filter\":\"id > 2\",\"as\":\"selected\"}]",
     )
   } else {
     document
@@ -391,7 +436,11 @@ fn effect_operation_source_plan_fixture(
   ).unwrap()
   let demand = prepare_installed_effect_operation_demand(
     prepared,
-    1,
+    if additional_source {
+      2
+    } else {
+      1
+    },
     "save",
     [extent],
     [extent],
@@ -413,11 +462,23 @@ fn effect_operation_source_plan_fixture(
   prepare_installed_effect_managed_plan(
     prepared,
     request,
-    [declaration],
+    if additional_source {
+      [declaration, declaration]
+    } else {
+      [declaration]
+    },
     original_row_query_contract_fixture,
     original_row_evidence_contract_fixture,
-    [1024L],
-    [2048L],
+    if additional_source {
+      [1024L, 1024L]
+    } else {
+      [1024L]
+    },
+    if additional_source {
+      [2048L, 2048L]
+    } else {
+      [2048L]
+    },
     contracts,
     source_query_original_values,
     Some(source_query_original_fragment),
@@ -1209,6 +1270,36 @@ test "Effect Result bounds preserve unknown inputs instead of assuming the obser
 }
 
 ///|
+test "unknown Effect input funds fixed member work without reserving future policy-max rows" {
+  let plan = effect_operation_source_plan_fixture()
+  assert_true(plan.capacity_plan.demand_inventory.unwrap().closed_rows is None)
+  // The unchanged executor/coordinate ceiling remains a rejection bound.
+  assert_eq(
+    plan.rows,
+    @publication_host.client_standard_values_sequence_limits().max_rows,
+  )
+  assert_eq(plan.held_children, 1 + plan.rows)
+  // Only the actual fixed member is initially admitted. Unknown is not a
+  // zero-row fact and cannot enter any row constructor before captured input.
+  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 1)
+  assert_eq(
+    plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes,
+    7L,
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(
+      plan.operation_control_capacity,
+    ) <
+    @execution.execution_capacity_retained_bytes(
+      installed_effect_operation_control_capacity(
+        plan.held_children,
+        recovery_members=plan.operations.length(),
+      ).unwrap(),
+    ),
+  )
+}
+
+///|
 test "Effect Result bounds keep multiple original member occurrences and endpoint widths" {
   let plan = effect_operation_source_plan_fixture(
     bounded_output=true,
@@ -1316,6 +1407,242 @@ test "preserving Effect request keeps the exact original native capacity and inv
         native, bytes, nodes, depth,
       )
       is None,
+    )
+  }
+}
+
+///|
+test "capture name capacity resolves once from the same checked effect member before row multiplicity" {
+  let (prepared, _, _) = effect_operation_plan_inputs()
+  let zero = @execution.execution_capacity(0L, 0L).unwrap()
+  let fixed = @execution.execution_capacity(50L, 70L).unwrap()
+  let row = @execution.execution_capacity(7L, 11L).unwrap()
+  let rate = @execution.execution_capacity(3L, 5L).unwrap()
+  let template = prepare_installed_effect_capture_recipe_extent("operation", [
+    fixed, row, zero, zero, zero, rate,
+  ]).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "save",
+    [template],
+    [],
+  ).unwrap()
+  let resolved = demand.member_extents[0]
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(resolved.capacity),
+    62L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(resolved.capacity),
+    90L,
+  )
+  assert_true(resolved.checked_effect_id_capacity is None)
+  assert_true(resolved.checked_row_capacity is Some(_))
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(template.capacity),
+    50L,
+  )
+  assert_true(template.checked_effect_id_capacity is Some(_))
+  let twice = resolve_installed_effect_capture_extent(resolved, 2).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(twice.capacity), 76L)
+  assert_eq(@execution.execution_capacity_execution_bytes(twice.capacity), 112L)
+  assert_true(
+    prepare_installed_effect_operation_demand(prepared, 0, "xxxx", [template], [])
+    is Err(ForeignOriginal),
+  )
+  let name_only = { ..template, checked_row_capacity: None, }
+  assert_true(
+    prepare_installed_effect_operation_demand(prepared, 0, "save", [], [
+      name_only,
+    ])
+    is Err(Unsupported),
+  )
+  let enormous = @execution.execution_capacity(0L, 9223372036854775807L).unwrap()
+  let overflow = prepare_installed_effect_capture_recipe_extent("operation", [
+    fixed, row, zero, zero, zero, enormous,
+  ]).unwrap()
+  assert_true(
+    prepare_installed_effect_operation_demand(prepared, 0, "save", [overflow], [])
+    is Err(Unsupported),
+  )
+}
+
+///|
+// Compare identical checked Program, extent/slot structure and retained
+// quantities. Only two original pure-constructor temporary workspaces differ.
+// No timing, physical authority, Root or normal acceptance is inferred.
+fn effect_constructor_peak_fixture(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  contracts : ClientInstalledSequenceContracts,
+  workspace : Bool,
+) -> ClientInstalledEffectManagedPlan {
+  let capture = prepare_installed_effect_operation_extent(
+    "capture",
+    @execution.execution_capacity(50L, if workspace { 70L } else { 50L }).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let request_body = prepare_installed_effect_operation_extent(
+    "request",
+    @execution.execution_capacity(90L, if workspace { 130L } else { 90L }).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let physical = prepare_installed_effect_operation_extent(
+    "send",
+    @execution.execution_capacity(200L, 300L).unwrap(),
+    17L,
+    true,
+  ).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "save",
+    [capture],
+    [request_body, physical],
+  ).unwrap()
+  prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+}
+
+///|
+test "installed Effect Plan sums retained pure outputs and takes one sequential constructor workspace peak" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let retained_only = effect_constructor_peak_fixture(
+    prepared, request, contracts, false,
+  )
+  let original = effect_constructor_peak_fixture(
+    prepared, request, contracts, true,
+  )
+  assert_eq(original.rows, 1)
+  assert_eq(original.limits.retained_bytes, retained_only.limits.retained_bytes)
+  assert_eq(original.limits.attempts, retained_only.limits.attempts)
+  assert_eq(original.limits.transfer_bytes, retained_only.limits.transfer_bytes)
+  // All returned material remains held; one callback owns max(20,40) scratch.
+  // The physical 300-byte body and every control keep their complete old E.
+  assert_eq(
+    original.limits.execution_bytes - retained_only.limits.execution_bytes,
+    40L,
+  )
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(
+      original.operation_control_capacity,
+    ),
+    @execution.execution_capacity_retained_bytes(
+      retained_only.operation_control_capacity,
+    ),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(
+      original.operation_control_capacity,
+    ),
+    @execution.execution_capacity_execution_bytes(
+      retained_only.operation_control_capacity,
+    ),
+  )
+}
+
+///|
+test "sequential constructor workspace still refuses overflow against its same Compute and control inventory" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let extent = prepare_installed_effect_operation_extent(
+    "constructor",
+    @execution.execution_capacity(1L, 9223372036854775807L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "save",
+    [],
+    [extent],
+  ).unwrap()
+  assert_true(
+    prepare_installed_effect_managed_plan(
+      prepared,
+      request,
+      [],
+      "",
+      "",
+      [],
+      [],
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      [demand],
+      provider_factory=_ => [],
+    )
+    is Err(Unsupported),
+  )
+}
+
+///|
+test "control callback and pure constructor share only actual sequential workspace while all row outputs remain held" {
+  for rows in ["[]", "[{\"id\":1}]", "[{\"id\":1},{\"id\":2},{\"id\":3}]"] {
+    let (prepared, request, contracts) = effect_operation_plan_inputs(rows~)
+    let original = effect_operation_plan_fixture(prepared, request, contracts)
+    let without = effect_operation_plan_with_control_fixture(
+      prepared,
+      request,
+      contracts,
+      original,
+      @execution.execution_capacity(7L, 7L).unwrap(),
+    ).unwrap()
+    let actual = effect_operation_plan_with_control_fixture(
+      prepared,
+      request,
+      contracts,
+      original,
+      @execution.execution_capacity(7L, 47L).unwrap(),
+    ).unwrap()
+    let count = actual.rows
+    assert_eq(actual.limits.retained_bytes, without.limits.retained_bytes)
+    assert_eq(actual.limits.attempts, without.limits.attempts)
+    assert_eq(actual.limits.transfer_bytes, without.limits.transfer_bytes)
+    assert_eq(
+      actual.operation_control_idle_execution,
+      without.operation_control_idle_execution,
+    )
+    // The original row constructor has20 workspace; each actual control
+    // callback needs40. All checked rows' outputs stay held, but callbacks
+    // are synchronous and serial. max(20,40)-20 =20, independently of count.
+    assert_eq(
+      actual.limits.execution_bytes - without.limits.execution_bytes,
+      if count == 0 {
+        0L
+      } else {
+        20L
+      },
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(
+        actual.operation_control_capacity,
+      ) -
+      @execution.execution_capacity_execution_bytes(
+        without.operation_control_capacity,
+      ),
+      if count == 0 {
+        0L
+      } else {
+        40L
+      },
     )
   }
 }

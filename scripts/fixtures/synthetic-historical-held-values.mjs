@@ -49,8 +49,11 @@ export async function writeSyntheticHistoricalHeldValues({directory, document,
   const namespaceId = 'local', siteKey = 'actql-remote-host', realizationKey = 'source-free-values';
   assert.equal(authorization.siteKey ?? siteKey, siteKey);
   const account = JSON.parse(authorization.accountConfiguration);
-  assert.equal(account.entries.length, 1);
-  assert.equal(account.entries[0].outcome, 'delegate');
+  // Extra read entries do not replace this fixed original delegation.
+  const delegates = account.entries.filter(entry => entry.entry_id === 'run-acceptance');
+  assert.equal(delegates.length, 1, 'The historical fixture requires one original run-acceptance entry');
+  const [delegate] = delegates;
+  assert.equal(delegate.outcome, 'delegate');
   const configurationCid = cid(account);
   const contextCid = cid({host: 'actql-local-host', principal: principalId, account_id: account.account_id});
   // This existing Host identity uses its original ordered JSON preimage, not
@@ -119,7 +122,7 @@ export async function writeSyntheticHistoricalHeldValues({directory, document,
     {name: 'prepared_invocation', wire: wire(invocation)},
     {name: 'review_projection', wire: reviewWire}];
   const decisionSubject = {account_id: account.account_id, configuration_cid: configurationCid,
-    entry_id: account.entries[0].entry_id, principal: principalId, connection: siteKey,
+    entry_id: delegate.entry_id, principal: principalId, connection: siteKey,
     resource: realizationKey, operation: 'write', boundary: 'preparation', subject_cid: cid(subject),
     context_cid: contextCid};
   const continuation = {version: 'actql-remote-continuation/0.1', prepare_attempt_id: prepareAttemptId,
@@ -144,14 +147,21 @@ export async function writeSyntheticHistoricalHeldValues({directory, document,
   // returned acceptance result; the original binding is independently hashed.
   environmentBody.host_policy_profile.capacity = {max_graph_construction_edges: 1000,
     max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
-    ...environmentBody.host_policy_profile.capacity};
+    ...environmentBody.host_policy_profile.capacity,
+    // Ordinary Local materialization selects these declared 512MiB/256-byte
+    // row and 64KiB Model windows. An independently published Remote Effect
+    // keeps its generic policy identity instead of borrowing that profile.
+    ...(effectEnvironmentWire === undefined ? {
+      max_relation_output_rows: 536870912 / 256,
+      max_artifact_rows: 536870912 / 256,
+      max_model_request_bytes_per_item: 65536} : {})};
   const binding = {authorization_context_cid: cid({principal: principalId,
     account_id: account.account_id, configuration_cid: configurationCid, source_configuration_cid: null}),
   environment_binding_cid: cid({version: 'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,
     realization_key: realizationKey, environment_cid: cid(environmentBody), authority_scope_cid: authorityScopeCid})};
 
-  // The public initializer has already established an empty owned root. All
-  // its handles must be closed before these synthetic original bytes exist.
+  // The caller activated the empty Journal through its public Checkpoint read.
+  // All its handles must be closed before these synthetic original bytes exist.
   const requests = new DatabaseSync(join(root, 'requests/client-requests.sqlite3'));
   try {
     assert.equal(requests.prepare('SELECT COUNT(*) AS n FROM client_requests').get().n, 0);
@@ -161,7 +171,7 @@ export async function writeSyntheticHistoricalHeldValues({directory, document,
     {enableForeignKeyConstraints: true});
   try {
     assert.equal(database.prepare("SELECT value FROM journal_metadata WHERE key = 'schema_version'").get().value,
-      'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1');
+      'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1;model-current-cut-invalidation=1');
     for (const table of ['runs', 'resolutions', 'resume_intents', 'resume_admissions',
       ...(append ? [] : ['preparations', 'checkpoints'])]) {
       assert.equal(database.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n, 0);

@@ -1,7 +1,7 @@
-// Public SDK/installed-ingress acceptance, with the real request journal and
+// Public SDK/ingress component with the real request journal and
 // common Run/control issuers and cancellation-operation custody. This does not
-// simulate provider execution. Physical-start/close facts in the
-// explanation cases are recorded through the existing control owner only.
+// establish ordinary Host or funded execution acceptance. Physical-start/close
+// facts are recorded through the existing control owner only.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
@@ -18,14 +18,14 @@ import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {issueInstalledRunControlObservation,
-  issueInstalledUnpublishedRunState} from
+import {issueInstalledUnpublishedRunState} from
   '../host-common/run-state-observation.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 
 const scratch = new URL('../../_build/client-cancel-tests/', import.meta.url).pathname;
 await mkdir(scratch, {recursive: true});
@@ -51,7 +51,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local',
     maxBatchRetainedValueBytes: 2048}};
 
 export async function fixture(t, transport, loss, {physicalStart = false, terminal = false,
-  reply = null, runId = 'saved-run', targetOperation = 'cancel', cancelResponseCache, transformCancelReply, transformRunReply} = {}) {
+  reply = null, runId = 'saved-run', targetOperation = 'cancel', cancelResponseCache, transformCancelReply, transformRunReply, transformLookupReply} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-cancel-loss-'));
   const journal = openClientRequestJournal(directory);
   let database, server, client;
@@ -146,7 +146,7 @@ export async function fixture(t, transport, loss, {physicalStart = false, termin
       const retained = journal.lookupRunDefinition(ref, moon,
         publicationControl);
       assert.ok(retained);
-      return {...issueInstalledUnpublishedRunState(moon, {
+      const state = issueInstalledUnpublishedRunState(moon, {
         runId: publicationControl.runDefinitionRunId(retained.runDefinition),
         observedAt: '2026-10-02T00:00:00.000Z',
         resultNames: retained.resultNames,
@@ -156,13 +156,9 @@ export async function fixture(t, transport, loss, {physicalStart = false, termin
           retained.physicalStartReserved === false,
         observedTerminalOutcome: retained.observedTerminalOutcome ?? 'none',
         executionUnknown: false,
-      }), control: issueInstalledRunControlObservation(moon, {
-        revision: retained.revision,
-        cancellationRequested: retained.cancellationRequested,
-        physicallyUnstarted: retained.physicalStartReserved === false,
-        preDispatchFailureConfirmed: retained.preDispatchFailureConfirmed,
-        physicalCloseConfirmed: retained.physicalCloseConfirmed,
-      })};
+      });
+      return Object.freeze(JSON.parse(journal.publishRunState(retained, state,
+        moon, publicationControl)));
     },
     maxRowBytes: 1024,
   };
@@ -186,11 +182,20 @@ export async function fixture(t, transport, loss, {physicalStart = false, termin
         if (phase === 'before-dispatch') throw new Error('LostCancelTransport');
         const reply = await port.perform(operation, body, signal);
         if (phase === 'after-commit') throw new Error('LostCancelTransport');
-        return operation === targetOperation ? alterReply(reply) : operation === 'status' && transformRunReply ? transformRunReply(reply) : reply;
+        if (operation === targetOperation) return alterReply(reply);
+        if (operation === 'status' && transformRunReply) return transformRunReply(reply);
+        if (operation === 'lookup-request' && transformLookupReply) return transformLookupReply(reply);
+        return reply;
       },
     });
   } else {
-    const handler = createClientHttpHandler(options);
+    const environmentWire = await readFile(new URL('../../packages/sdk/fixtures/values.environment.json', import.meta.url), 'utf8');
+    const environmentBody = JSON.parse(environmentWire);
+    const environment = moon.clientProgramCheckEnvironment(environmentWire.trimEnd(),
+      environmentBody.evidence_bundle_cid, false, false, true, false, false, false, false);
+    assert.ok(environment);
+    const funded = await fundedClientPreparation(t, {moon, environment, http: true});
+    const handler = createClientHttpHandler({...options, prepareRequest: funded.prepareRequest});
     const serve = (request, response) => {
       const operation = request.url.split('/').at(-1);
       operations.push(operation);
@@ -218,11 +223,13 @@ export async function fixture(t, transport, loss, {physicalStart = false, termin
           return end.call(this, JSON.stringify(alterReply(value)), ...args);
         };
       }
-      if (operation === 'status' && transformRunReply) {
+      const transformObservation = operation === 'status' ? transformRunReply
+        : operation === 'lookup-request' ? transformLookupReply : undefined;
+      if (transformObservation) {
         const end = response.end;
         response.end = function(data, ...args) {
           if (response.statusCode !== 200) return end.call(this, data, ...args);
-          return end.call(this, JSON.stringify(transformRunReply(JSON.parse(data.toString()))), ...args);
+          return end.call(this, JSON.stringify(transformObservation(JSON.parse(data.toString()))), ...args);
         };
       }
       void handler(request, response);

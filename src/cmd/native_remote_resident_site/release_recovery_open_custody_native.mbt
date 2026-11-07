@@ -8,7 +8,6 @@ priv struct ReleaseRecoveryOpenCustody {
   mut bundles : @bundle.NativeRuntimeBundleStore?
   mut failed_bundle : @bundle.NativeRuntimeBundleStoreOpenFailure?
   mut failure : String
-  mut slot_issue : @slot.NativeExecutorSlotIssue?
   mut slot_closed : Bool
   mut slot_close_unknown : Bool
 }
@@ -25,7 +24,6 @@ fn release_recovery_open_custody(
     bundles: None,
     failed_bundle: None,
     failure: "release recovery preparation incomplete",
-    slot_issue: None,
     slot_closed: false,
     slot_close_unknown: false,
   }
@@ -41,21 +39,13 @@ fn acquire_release_recovery_slot_with_custody(
 ) -> Result[@slot.NativeExecutorSlot, ReleaseRecoveryOpenCustody] {
   let original = release_recovery_open_custody(slot, identity)
   let failure = match slot.try_acquire() {
-    Ok(true) => {
+    Ok(true) =>
       match slot.verify_current_hold() {
         Ok(_) => return Ok(slot)
-        Err(issue) => original.slot_issue = Some(issue)
+        Err(_) => "release recovery Slot current hold unconfirmed"
       }
-      "release recovery Slot current hold unconfirmed"
-    }
-    Ok(false) => {
-      original.slot_issue = Some(@slot.Busy)
-      "release recovery Slot busy"
-    }
-    Err(issue) => {
-      original.slot_issue = Some(issue)
-      "release recovery Slot acquisition failed"
-    }
+    Ok(false) => "release recovery Slot busy"
+    Err(_) => "release recovery Slot acquisition failed"
   }
   original.failure = failure
   Err(original)
@@ -128,6 +118,9 @@ fn open_release_recovery_with_custody(
       request_identity: identity,
       bundle_closed: false,
       transfer_journal: None,
+      input_cleanup_resources: new_holder_partial_output_resources(),
+      input_cleanup_paths: None,
+      input_cleanup_step: Ref(0),
       physical_cleanup: None,
       physical_cleanup_done: false,
       release_failure_hook: { remaining: release_failures, attempts: 0, },
@@ -187,16 +180,17 @@ fn retry_release_recovery_open_cleanup(
 /// EOF and termination do not turn cleanup Unknown into success.
 fn finish_failed_release_recovery_open(
   original : ReleaseRecoveryOpenCustody,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Unit {
-  install_partial_holder_cleanup_signal()
+  install_partial_holder_cleanup_signal(report_progress~)
   ignore(
     retain_holder_cleanup_lifetime(
       original,
       retry_release_recovery_open_cleanup,
       () => CleanupInputEnded,
-      wait_holder_cleanup_lifetime_signal,
+      () => wait_holder_cleanup_lifetime_signal_with_report(report_progress~),
       (same, control_ended) => {
-        report("release-recovery-open-cleanup-pending", [
+        report_progress("release-recovery-open-cleanup-pending", [
           ("request_cid", same.request_identity),
           ("control_ended", control_ended.to_string()),
         ])

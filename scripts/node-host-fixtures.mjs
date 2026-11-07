@@ -15,6 +15,10 @@ const source = readFileSync(join(root,'src/workers_conformance/fixture.generated
 const aliases = new Set([...source.matchAll(/@(\w+)/g)].map(x => x[1]));
 const queryManifest = readFileSync(join(root,'src/query_integration/moon.pkg'),'utf8');
 const nativeOptions = `\noptions(
+  targets: {
+    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],
+    "row_stream_current_js_wbtest.mbt": [ "js" ],
+  },
   link: {
     "native": {
       "cc": "./scripts/native-cxx-link-driver.sh",

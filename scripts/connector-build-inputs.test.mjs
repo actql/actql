@@ -319,24 +319,135 @@ function targetClause(source) {
 test('shared target reader retains both actual selected Core package target clauses', () => {
   for (const [name, expected] of [
     ['physical_resources', [
+      ['original_inventory_index_js_wbtest.mbt', ['js']],
+      ['preparation_inventory_backing_nonjs_wbtest.mbt', ['not', 'js']],
+      ['node_managed_run_admission.mbt', ['js']],
+      ['node_preparation_admission.mbt', ['js']],
+      ['node_preparation_cleanup.mbt', ['js']],
+      ['node_managed_run_bootstrap_wbtest.mbt', ['js']],
+      ['node_managed_run_cleanup_wbtest.mbt', ['js']],
+      ['node_managed_run_admission_wbtest.mbt', ['js']],
+      ['node_managed_run_current_wbtest.mbt', ['js']],
+      ['node_managed_run_continuation_wbtest.mbt', ['js']],
+      ['node_managed_run_preparation_lifetime_wbtest.mbt', ['js']],
+      ['node_managed_run_unsupported.mbt', ['not', 'js']],
       ['node_original_source_child_js.mbt', ['js']],
       ['node_managed_run_admission_js.mbt', ['js']],
       ['node_preparation_admission_js.mbt', ['js']],
+      ['node_preparation_lifecycle_js.mbt', ['js']],
+      ['node_preparation_lifecycle_unsupported.mbt', ['not', 'js']],
+      ['node_preparation_admission_wbtest.mbt', ['js']],
+      ['node_preparation_cleanup_wbtest.mbt', ['js']],
       ['node_managed_run_admission_js_wbtest.mbt', ['js']],
       ['node_original_source_child_js_wbtest.mbt', ['js']],
       ['ledger_usage_js_boundary_wbtest.mbt', ['js']],
       ['imported_child_ledger_wasm.mbt', ['wasm']],
+      ['platform_vm_capacity_wasm.mbt', ['wasm']],
+      ['platform_vm_capacity_unsupported.mbt', ['not', 'wasm']],
       ['imported_child_ledger_unsupported.mbt', ['not', 'wasm']],
       ['imported_child_ledger_unsupported_wbtest.mbt', ['not', 'wasm']],
     ]],
     ['client_local_host', [
+      ['preparation_request_acquired_graph_js_wbtest.mbt', ['js']],
+      ['preparation_request_model_graph_js_wbtest.mbt', ['js']],
+      ['preparation_request_model_materials_js_wbtest.mbt', ['js']],
+      ['preparation_request_model_recovery_js_wbtest.mbt', ['js']],
+      ['preparation_request_model_module_js_wbtest.mbt', ['js']],
+      ['preparation_request_serialization_graph_js_wbtest.mbt', ['js']],
+      ['preparation_effect_capture_recovery_js_wbtest.mbt', ['js']],
+      ['installed_whole_source_publication_js_wbtest.mbt', ['js']],
+      ['installed_whole_source_result_js_wbtest.mbt', ['js']],
+      ['installed_whole_source_query_time_js_wbtest.mbt', ['js']],
+      ['preparation_request_check_boundary_js_wbtest.mbt', ['js']],
+      ['preparation_request_check_observation_js_wbtest.mbt', ['js']],
+      ['preparation_request_supplied_observation_js_wbtest.mbt', ['js']],
+      ['preparation_request_policy_fixture_js_wbtest.mbt', ['js']],
+      ['preparation_request_policy_check_js_wbtest.mbt', ['js']],
+      ['installed_whole_source_plan_js_wbtest.mbt', ['js']],
+      ['installed_whole_source_dispatch_js_wbtest.mbt', ['js']],
+      ['installed_kintone_create_plan_js_wbtest.mbt', ['js']],
+      ['installed_kintone_whole_source_js_wbtest.mbt', ['js']],
+      ['installed_effect_operation_borrow_js_wbtest.mbt', ['js']],
+      ['installed_effect_host_preview_input_js_wbtest.mbt', ['js']],
+      ['installed_effect_staged_input_js_wbtest.mbt', ['js']],
+      ['installed_effect_operation_index_js_wbtest.mbt', ['js']],
+      ['preparation_parameter_source_current_wbtest.mbt', ['js']],
+      ['preparation_program_check_context_input_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_core_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_delta_binding_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_evidence_work_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_imported_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_inputs_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_local_tail_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_pipeline_entry_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_topology_entry_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_local_snapshot_batch_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_parameters_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_topology_locals_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_current_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_finish_js_wbtest.mbt', ['js']],
+      ['preparation_program_compile_js_wbtest.mbt', ['js']],
+      ['preparation_request_program_body_js_wbtest.mbt', ['js']],
+      ['preparation_request_effect_body_js_wbtest.mbt', ['js']],
+      ['preparation_request_effect_model_js_wbtest.mbt', ['js']],
+      ['preparation_request_capture_body_js_wbtest.mbt', ['js']],
+      ['preparation_request_model_js_wbtest.mbt', ['js']],
+      ['model_scope_demand_js_wbtest.mbt', ['js']],
+      ['content_original_execution_demand_js_wbtest.mbt', ['js']],
+      ['preparation_request_same_stage_model_js_wbtest.mbt', ['js']],
+      ['preparation_request_content_body_js_wbtest.mbt', ['js']],
+      ['preparation_request_keyed_content_js_wbtest.mbt', ['js']],
+      ['preparation_request_keyed_prefix_js_wbtest.mbt', ['js']],
+      ['preparation_request_serialization_compilation_js_wbtest.mbt', ['js']],
+      ['installed_keyed_content_originals_js_wbtest.mbt', ['js']],
+      ['installed_capture_original_row_js_wbtest.mbt', ['js']],
+      ['installed_keyed_capture_parent_js_wbtest.mbt', ['js']],
+      ['installed_capture_provider_source_js_wbtest.mbt', ['js']],
+      ['preparation_request_query_syntax_js_wbtest.mbt', ['js']],
+      ['preparation_request_query_lowering_js_wbtest.mbt', ['js']],
+      ['preparation_request_snapshot_js_wbtest.mbt', ['js']],
+      ['preparation_request_native_input_js_wbtest.mbt', ['js']],
+      ['preparation_request_parent_js_wbtest.mbt', ['js']],
+      ['preparation_host_initial_js_wbtest.mbt', ['js']],
+      ['preparation_request_terminal_js_wbtest.mbt', ['js']],
+      ['preparation_request_parameters_js_wbtest.mbt', ['js']],
+      ['preparation_request_intent_js_wbtest.mbt', ['js']],
+      ['preparation_request_plan_input_js_wbtest.mbt', ['js']],
+      ['preparation_request_compilation_handoff_js_wbtest.mbt', ['js']],
+      ['preparation_request_model_query_time_js_wbtest.mbt', ['js']],
+      ['preparation_request_invocation_js_wbtest.mbt', ['js']],
+      ['preparation_request_document_js_wbtest.mbt', ['js']],
+      ['preparation_recursive_snapshot_layout_js_wbtest.mbt', ['js']],
+      ['preparation_request_native_computation_js_wbtest.mbt', ['js']],
+      ['preparation_managed_publication_js_wbtest.mbt', ['js']],
+      ['preparation_request_program_json_js_wbtest.mbt', ['js']],
+      ['preparation_request_handoff_js_wbtest.mbt', ['js']],
+      ['preparation_request_check_parent_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_source_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_collection_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_resolution_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_pipeline_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_local_entry_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_local_index_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_local_groups_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_local_snapshot_js_wbtest.mbt', ['js']],
+      ['preparation_program_check_local_snapshot_reference_js_wbtest.mbt', ['js']],
+      ['preparation_module_call_js.mbt', ['js']],
+      ['preparation_module_call_portable.mbt', ['wasm', 'wasm-gc', 'native']],
+      ['preparation_closed_values_module_wbtest.mbt', ['js']],
+      ['preparation_closed_values_module_fault_wbtest.mbt', ['js']],
+      ['preparation_closed_values_module_controls_wbtest.mbt', ['js']],
+      ['preparation_closed_values_module_adoption_wbtest.mbt', ['js']],
       ['preparation_publication_custody_wbtest.mbt', ['js']],
       ['preparation_publication_snapshot_wbtest.mbt', ['js']],
       ['preparation_publication_start_custody_wbtest.mbt', ['js']],
       ['preparation_publication_validation_custody_wbtest.mbt', ['js']],
+      ['installed_direct_occurrences_js_wbtest.mbt', ['js']],
+      ['installed_effect_content_model_js_wbtest.mbt', ['js']],
       ['installed_effect_operation_parent_js_wbtest.mbt', ['js']],
       ['installed_effect_provider_plan_js_wbtest.mbt', ['js']],
       ['installed_capture_parent_js_wbtest.mbt', ['js']],
+      ['managed_source_free_preparation_js_wbtest.mbt', ['js']],
     ]],
   ]) {
     const source = readFileSync(new URL(`../src/${name}/moon.pkg`, import.meta.url), 'utf8');
@@ -531,7 +642,7 @@ test('module format review refuses extra flags, hooks and duplicate options', t 
   ]) {
     f.mod(1, ['actql/actql@0.0.1'], extra);
     assert.throws(() => resolveConnectorBuildInputs(f.configuration),
-      /Unsupported build metadata syntax|Duplicate reviewed module format/);
+      {message: 'Unsupported or duplicate module metadata: options'});
   }
 });
 
@@ -772,21 +883,13 @@ test('duplicate installed source and Effect profiles are refused by the shared s
   }
 });
 
-test('selected packages accept only literal local file target selections', t => {
+test('selected packages preserve compiler-owned literal targets and refuse structural options', t => {
   const f = fixture(t);
   const path = join(f.connector, 'src/driver/moon.pkg');
   const original = readFileSync(path, 'utf8');
   for (const source of [
     'options(targets: {"local_file.mbt": ["js"], "fallback.mbt": ["not", "wasm"],})',
-    ...['physical_resources', 'client_local_host'].map(name => {
-      const source = readFileSync(new URL(`../src/${name}/moon.pkg`, import.meta.url), 'utf8');
-      return source.slice(source.indexOf('options('));
-    }),
-  ]) {
-    f.put(path, original + source);
-    assert.equal(resolveConnectorBuildInputs(f.configuration).computeEntries.length, 1);
-  }
-  for (const option of [
+    // Literal target DATA is retained for the pinned compiler, not resolved as file I/O.
     'options(targets: {"../outside.mbt": ["js"]})',
     'options(targets: {"/outside.mbt": ["js"]})',
     'options(targets: {"sub/file.mbt": ["js"]})',
@@ -796,6 +899,16 @@ test('selected packages accept only literal local file target selections', t => 
     'options(targets: {"file.mbt": ["unknown"]})',
     'options(targets: {"file.mbt": ["not", "unknown"]})',
     'options(targets: {"file.mbt": ["js", "native"]})',
+    ...['physical_resources', 'client_local_host'].map(name => {
+      const source = readFileSync(new URL(`../src/${name}/moon.pkg`, import.meta.url), 'utf8');
+      return source.slice(source.indexOf('options('));
+    }),
+  ]) {
+    f.put(path, original + source);
+    assert.equal(resolveConnectorBuildInputs(f.configuration).computeEntries.length, 1);
+    assert.equal(readFileSync(path, 'utf8'), original + source);
+  }
+  for (const option of [
     'options(targets: {"file.mbt": ["js"], "file.mbt": ["js"]})',
     'options(targets: {}) options(targets: {})',
     'options(targets: {}, deps: {"absent/dependency": "1.0.0"})',

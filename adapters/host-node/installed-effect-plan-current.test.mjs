@@ -18,8 +18,11 @@ function fixture(withModel = false) {
   const controls = {getters: 0, checks: 0, quotes: 0, selected: 0, demands: 0,
     onRead: undefined, onCurrent: undefined, returnedPlan: plan, failBegin: false};
   const runtime = {
-    clientProgramInstalledEffectOperationControlsBegin() {return ok(plan);},
+    clientProgramInstalledEffectOperationControlConstructionBegin() {return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationControlConstructionComplete() {return {$tag:1,_0:undefined};},
+    clientProgramInstalledEffectOperationControlsRetain() {return ok(plan);},
     clientProgramInstalledManagedRunRetire() {return ok();},
+    clientProgramInstalledManagedRunQuiesce(value) {assert.equal(value, parent); return ok();},
     clientProgramNodeEffectManagedPlanCleanup() {return ok();},
     clientProgramInstalledEffectManagedOperationPlan(value, p, r) {
       assert.equal(this, runtime); assert.equal(arguments.length, 3);
@@ -175,7 +178,7 @@ test('actual public acquired owner refuses a prepared identity replaced by its b
 test('original Effect control debit follows Request adoption once before a consumer getter',()=>{
   for(const withModel of [false,true]){
     const f=fixture(withModel);let debits=0;
-    f.options.runtime.clientProgramInstalledEffectOperationControlsBegin=function(owner,prepared,request,plan){
+    f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=function(owner,prepared,request,plan){
       assert.equal(this,f.options.runtime);assert.equal(owner,f.parent);assert.equal(prepared,f.prepared);assert.equal(request,f.request);assert.equal(plan,f.plan);
       assert.equal(f.runs.get(f.prepared).value,f.parent);assert.equal(f.controls.quotes,1);debits++;return ok(plan);
     };
@@ -188,7 +191,7 @@ test('original Effect control debit follows Request adoption once before a consu
 test('failed original Effect control debit remains attached to its same adopted Request',()=>{
   for(const failure of [undefined,false,new Error('original control capacity refusal')]){
     const f=fixture();let debits=0;
-    f.options.runtime.clientProgramInstalledEffectOperationControlsBegin=()=>{debits++;throw failure;};
+    f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{debits++;throw failure;};
     assert.equal(thrown(()=>prepare(f.options)),failure);
     const original=f.runs.get(f.prepared);
     assert.equal(original.value,f.parent);assert.equal(original.operationsBegun,false);assert.equal(original.failure,failure);
@@ -200,7 +203,7 @@ test('failed original Effect control debit remains attached to its same adopted 
 test('control Begin preserves a recorded primary before its secondary native refusal',()=>{
   for(const primary of [undefined,false,new Error('original current failure')]){
     const f=fixture(),secondary=new Error('secondary native refusal');
-    f.options.runtime.clientProgramInstalledEffectOperationControlsBegin=()=>{f.runs.get(f.prepared).failure=primary;return {$tag:0,_0:secondary};};
+    f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{f.runs.get(f.prepared).failure=primary;return {$tag:0,_0:secondary};};
     assert.equal(thrown(()=>prepare(f.options)),primary);
     assert.equal(thrown(()=>read(f.options)),primary);
     assert.equal(f.controls.quotes,1);
@@ -211,7 +214,7 @@ test('control Begin preserves a recorded primary before its secondary native ref
 test('initial Effect controls return the same original Plan without another getter; later reads stay current',()=>{
   for(const withModel of [false,true]){
     const f=fixture(withModel);let begun=false,after=0;
-    f.options.runtime.clientProgramInstalledEffectOperationControlsBegin=function(parent,prepared,request,plan){
+    f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=function(parent,prepared,request,plan){
       assert.equal(this,f.options.runtime);assert.equal(parent,f.parent);assert.equal(prepared,f.prepared);
       assert.equal(request,f.request);assert.equal(plan,f.plan);begun=true;return ok(plan);
     };
@@ -225,7 +228,7 @@ test('initial Effect controls return the same original Plan without another gett
 test('initial Effect controls refuse a Unit or foreign returned Plan on the same adopted parent',()=>{
   for(const returned of [undefined,{},null]){
     const f=fixture();let calls=0;
-    f.options.runtime.clientProgramInstalledEffectOperationControlsBegin=()=>{calls++;return ok(returned);};
+    f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{calls++;return ok(returned);};
     const cause=thrown(()=>prepare(f.options));assert.equal(cause.code,'ForeignInstalledEffectManagedRun');
     assert.equal(f.runs.get(f.prepared).value,f.parent);assert.equal(f.controls.getters,0);
     assert.equal(thrown(()=>prepare(f.options)),cause);assert.equal(calls,1);
@@ -240,7 +243,7 @@ test('initial Effect facts must be the actual frozen own DATA shape before nativ
     if(kind==='accessor'){Object.defineProperty(copy,'prepared',{get(){getters++;return f.prepared;},enumerable:true});facts=Object.freeze(copy);}
     if(kind==='proxy')facts=new Proxy(f.options.facts,{get(){getters++;throw new Error('No proxy operation');}});
     if(kind==='missing'){delete copy.queryTimePreparation;facts=Object.freeze(copy);}
-    f.options.facts=facts;f.options.runtime.clientProgramInstalledEffectOperationControlsBegin=()=>{begins++;return ok(f.plan);};
+    f.options.facts=facts;f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{begins++;return ok(f.plan);};
     const cause=thrown(()=>prepare(f.options));assert.equal(cause.code,'ForeignInstalledEffectManagedRun');
     assert.equal(thrown(()=>prepare(f.options)),cause);assert.equal(getters,0);assert.equal(begins,0);
     assert.equal(f.controls.selected,0);assert.equal(f.controls.quotes,0);
@@ -251,7 +254,7 @@ test('initial Effect Plan result preserves original primary and Model post-callb
   for(const field of ['value','prepared','request','runtime','operationPlan','readPlan','definitionOriginal',
     'manager','selection','sourceProfile','model','modelDemand','modelScope','admission','original','requestInput','closed','map','set']){
     const f=fixture(true);
-    f.options.runtime.clientProgramInstalledEffectOperationControlsBegin=()=>{
+    f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{
       const run=f.runs.get(f.prepared);
       if(field==='map')f.runs.delete(f.prepared);else if(field==='set')f.liveRuns.delete(run);
       else run[field]=field==='closed'?true:{};
@@ -260,14 +263,14 @@ test('initial Effect Plan result preserves original primary and Model post-callb
     assert.throws(()=>prepare(f.options),{code:'ForeignInstalledEffectManagedRun'});assert.equal(f.controls.getters,0);
   }
   for(const primary of [undefined,false,new Error('Original controls primary')]){
-    const f=fixture(true);f.options.runtime.clientProgramInstalledEffectOperationControlsBegin=()=>{
+    const f=fixture(true);f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{
       f.runs.get(f.prepared).failure=primary;return ok({});
     };
     assert.equal(thrown(()=>prepare(f.options)),primary);assert.equal(thrown(()=>read(f.options)),primary);
     assert.equal(f.controls.getters,0);
   }
   const f=fixture(true);let begun=false;
-  f.options.runtime.clientProgramInstalledEffectOperationControlsBegin=()=>{begun=true;return ok(f.plan);};
+  f.options.runtime.clientProgramInstalledEffectOperationControlsRetain=()=>{begun=true;return ok(f.plan);};
   f.controls.onCurrent=run=>{if(begun)run.modelScope={};};
   assert.throws(()=>prepare(f.options),{code:'ForeignInstalledEffectManagedRun'});assert.equal(f.controls.getters,0);
 });

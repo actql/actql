@@ -139,6 +139,73 @@ pub fn target_observation_before_value_wire(
 }
 
 ///|
+// These standard nullable date-time metadata fields record reads, not record
+// revisions. Unexpected types remain significant. Coordinates borrow the SAME
+// preserving admission; no body copy, canonicalization or nested-name masking.
+fn target_read_history_span(
+  object : @decode.ObjectView,
+  name : String,
+) -> (Int, Int) {
+  match @decode.lookup(object, name) {
+    Some(cursor) if @decode.is_null(cursor) || @decode.is_text(cursor) => {
+      let span = @decode.cursor_span(cursor)
+      (span.start_byte, span.end_byte)
+    }
+    _ => (-1, -1)
+  }
+}
+
+///|
+fn target_record_state_sha256(
+  bytes : Bytes,
+  object : @decode.ObjectView,
+) -> Result[String, TargetObservationIssue] {
+  let viewed = target_read_history_span(object, "LastViewedDate")
+  let referenced = target_read_history_span(object, "LastReferencedDate")
+  if (
+      viewed.0 != -1 &&
+      (viewed.0 < 0 || viewed.1 <= viewed.0 || viewed.1 > bytes.length())
+    ) ||
+    (
+      referenced.0 != -1 &&
+      (
+        referenced.0 < 0 ||
+        referenced.1 <= referenced.0 ||
+        referenced.1 > bytes.length()
+      )
+    ) {
+    return Err(InvalidRecord)
+  }
+  let hash = @sha.hasher()
+  let mut index = 0
+  while index < bytes.length() {
+    if index == viewed.0 || index == referenced.0 {
+      @sha.update_byte(hash, 0x6e) catch {
+        _ => return Err(CapacityExceeded)
+      }
+      @sha.update_byte(hash, 0x75) catch {
+        _ => return Err(CapacityExceeded)
+      }
+      @sha.update_byte(hash, 0x6c) catch {
+        _ => return Err(CapacityExceeded)
+      }
+      @sha.update_byte(hash, 0x6c) catch {
+        _ => return Err(CapacityExceeded)
+      }
+      index = if index == viewed.0 { viewed.1 } else { referenced.1 }
+    } else {
+      @sha.update_byte(hash, bytes[index]) catch {
+        _ => return Err(CapacityExceeded)
+      }
+      index += 1
+    }
+  }
+  Ok(@sha.finish_hex(hash)) catch {
+    _ => Err(CapacityExceeded)
+  }
+}
+
+///|
 pub fn prepare_target_observation(
   request : SingleWriteRequest,
   status : Int,
@@ -283,11 +350,16 @@ pub fn prepare_target_observation(
     return Err(ForeignTarget)
   }
   let response_sha256 = @sha.hex(bytes)
+  let record_state_sha256 = match target_record_state_sha256(bytes, object) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let version_cid = match
     write_target_digest(
       [
         ("object_cid", expected.object_cid),
-        ("response_sha256", response_sha256),
+        ("record_state_policy", "actql-salesforce-read-history-values/0.1"),
+        ("record_state_sha256", record_state_sha256),
         ("version", "actql-salesforce-target-observation/0.1"),
       ],
       limits.max_identity_bytes,

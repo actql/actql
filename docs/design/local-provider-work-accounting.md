@@ -60,3 +60,15 @@ on prompt cancellation with no added work. Its propositions and reviewed scopes
 remain unchanged. Runtime regressions for delayed stop do not extend those
 formal guarantees; source changes invalidate old source-bound evidence.
 See [the pilot boundaries](../../proofs/relation-chain/README.md).
+
+## Asynchronous reference physical use
+
+Beginning a numeric contribution registers its original TaskExecution and
+reserves its capacity; it does not consume a physical attempt. The async
+payload boundary first enters that same execution's existing current/Owner
+check and consumes its reserved attempt once. A current refusal cannot enter
+the numeric payload. Repeated entry cannot consume another attempt, and a
+failed or cancelled entered execution cannot refund its use. Pre-entry
+cancellation remains unused. The same original task retains output, scratch
+and failure cleanup until the existing explicit settlement/retirement path;
+this accounting boundary supplies neither execution permission nor stop ACK.

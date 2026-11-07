@@ -391,6 +391,7 @@ fn open_site_environment(
   matches : @argparse.Matches,
   process_hold_id : String,
   entry : ResidentInitialControl,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Result[SiteEnvironment, SiteEnvironmentOpenCustody] raise CommandStop {
   let max_file_bytes = required_int64(matches, "max-file-bytes")
   let max_record_bytes = required_int64(matches, "max-record-bytes")
@@ -420,10 +421,22 @@ fn open_site_environment(
   let loaded_component_cid = match
     @process_image.current_executable_cid(max_bytes, 1048576) {
     Ok(value) => value
-    Err(_) => stop("resident Site executable identity failed")
+    Err(issue) => {
+      // This reader returns only its own fixed diagnostic or strerror text,
+      // never the configured path, runtime document or credential material.
+      let reason = match issue {
+        InvalidLimit => "InvalidLimit"
+        Open(message) => "Open(" + message + ")"
+        Read(message) => "Read(" + message + ")"
+        Close(message) => "Close(" + message + ")"
+        CapacityExceeded => "CapacityExceeded"
+        EmptyImage => "EmptyImage"
+      }
+      stop("resident Site executable identity failed: " + reason)
+    }
   }
   if loaded_component_cid != component_cid {
-    report("setup-failed", [("reason", "executable-identity-mismatch")])
+    report_progress("setup-failed", [("reason", "executable-identity-mismatch")])
     stop("resident Site executable identity mismatch")
   }
   let sqlite_library = match
@@ -871,17 +884,22 @@ priv struct RunningHolder {
   request : @remote.DispatchRequest
   mut next_report_ms : UInt64
   mut reported_revision : Int?
+  releases : Map[String, @remote.DispatchRequest]
 }
 
 ///|
-/// Acceptance evidence only: while `failures` is positive, a reclaim pass is
-/// reported as skipped and the count goes down.
-fn skip_reclaim(failures : Ref[Int]) -> Bool {
-  if failures.val <= 0 {
+/// Acceptance evidence only: defer an actual nonempty reclaim pass. The empty
+/// startup scan must complete normally before the first holder can start.
+fn skip_reclaim(
+  failures : Ref[Int],
+  pending : Int,
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
+) -> Bool {
+  if failures.val <= 0 || pending == 0 {
     return false
   }
   failures.val -= 1
-  report("orphan-reclaim-pending", [("reason", "injected")])
+  report_progress("orphan-reclaim-pending", [("reason", "injected")])
   true
 }
 
@@ -912,6 +930,9 @@ fn reclaim_orphaned_outputs(
   held : @publication_store.Store?,
   replay_journal : Ref[ControlReplayJournalCustody?],
   failed_store : Ref[@publication_store.NativePublicationStoreOpenFailure?],
+  slot_progress : Ref[ControlTerminalClose],
+  failures : Ref[Int],
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> OrphanReclaim {
   let publication_root = settings.root
   let close_held = fn(store : @publication_store.Store) -> OrphanReclaim {
@@ -920,11 +941,11 @@ fn reclaim_orphaned_outputs(
     }
     match store.close() {
       Ok(_) => {
-        retain_control_reclaim_slot_close(slot)
+        retain_control_reclaim_slot_close(slot, slot_progress, report_progress~)
         OrphansPending
       }
       Err(@publication_store.RecoveryRequired) => {
-        report("allocation-needs-reconciliation", [
+        report_progress("allocation-needs-reconciliation", [
           ("reason", "allocation-ownership-unconfirmed"),
           ("publication_root", publication_root),
           ("journal", environment.journal_path),
@@ -932,14 +953,14 @@ fn reclaim_orphaned_outputs(
         OrphanNeedsReconciliation(store)
       }
       Err(_) => {
-        report("orphan-reclaim-pending", [("reason", "store-close")])
+        report_progress("orphan-reclaim-pending", [("reason", "store-close")])
         OrphanStoreOpen(store)
       }
     }
   }
   guard open_control_replay_journal(environment, replay_journal)
     is Some(journal) else {
-    report("orphan-reclaim-pending", [("reason", "journal-open")])
+    report_progress("orphan-reclaim-pending", [("reason", "journal-open")])
     return match held {
       Some(store) => close_held(store)
       None => OrphansPending
@@ -948,8 +969,8 @@ fn reclaim_orphaned_outputs(
   let intents = match journal.pending_output_intents() {
     Ok(value) => value
     Err(_) => {
-      close_control_replay_journal(replay_journal)
-      report("orphan-reclaim-pending", [("reason", "journal-read")])
+      close_control_replay_journal(replay_journal, report_progress~)
+      report_progress("orphan-reclaim-pending", [("reason", "journal-read")])
       return match held {
         Some(store) => close_held(store)
         None => OrphansPending
@@ -964,19 +985,25 @@ fn reclaim_orphaned_outputs(
       OrphansPending
     }
   }
+  if held is None && skip_reclaim(failures, pending, report_progress~) {
+    // No Store or Slot was acquired by this pass. A failed Journal close
+    // remains in its original custody and keeps admission fenced below.
+    close_control_replay_journal(replay_journal, report_progress~)
+    return OrphansPending
+  }
   let store = match held {
     Some(value) => value
     None => {
       match slot.try_acquire() {
         Ok(true) => ()
         Ok(false) => {
-          close_control_replay_journal(replay_journal)
-          report("orphan-reclaim-pending", [("reason", "slot-busy")])
+          close_control_replay_journal(replay_journal, report_progress~)
+          report_progress("orphan-reclaim-pending", [("reason", "slot-busy")])
           return OrphansPending
         }
         Err(_) => {
-          close_control_replay_journal(replay_journal)
-          report("orphan-reclaim-pending", [("reason", "slot-lock")])
+          close_control_replay_journal(replay_journal, report_progress~)
+          report_progress("orphan-reclaim-pending", [("reason", "slot-lock")])
           return OrphansPending
         }
       }
@@ -986,9 +1013,14 @@ fn reclaim_orphaned_outputs(
           // The failed Store was constructed after this Journal. Retain both
           // and the Slot until reverse-order cleanup acknowledges originals.
           if failed_store.val is None {
-            retain_control_orphan_reader_cleanup(replay_journal, slot)
+            retain_control_orphan_reader_cleanup(
+              replay_journal,
+              slot,
+              slot_progress,
+              report_progress~,
+            )
           }
-          report("orphan-reclaim-pending", [("reason", "store-open")])
+          report_progress("orphan-reclaim-pending", [("reason", "store-open")])
           return OrphansPending
         }
       }
@@ -1000,21 +1032,22 @@ fn reclaim_orphaned_outputs(
       @resident_host.OutputPayloadStore(@publication_store.RecoveryRequired)
     ) {
     for intent in intents {
-      report("allocation-reconciliation-intent", [
+      report_progress("allocation-reconciliation-intent", [
         ("payload_request_cid", intent.0),
       ])
     }
   }
-  close_control_replay_journal(replay_journal)
+  close_control_replay_journal(replay_journal, report_progress~)
   match remaining {
-    Ok(0) => report("orphans-reclaimed", [("intents", pending.to_string())])
+    Ok(0) =>
+      report_progress("orphans-reclaimed", [("intents", pending.to_string())])
     Ok(count) =>
-      report("orphan-reclaim-pending", [
+      report_progress("orphan-reclaim-pending", [
         ("reason", "store"),
         ("intents", count.to_string()),
       ])
     Err(issue) =>
-      report("orphan-reclaim-pending", [("reason", output_code(issue))])
+      report_progress("orphan-reclaim-pending", [("reason", output_code(issue))])
   }
   match close_held(store) {
     OrphansPending if remaining is Ok(0) => OrphansDone
@@ -1033,6 +1066,9 @@ priv struct StoppedReleaseRecovery {
   request_identity : String
   mut bundle_closed : Bool
   mut transfer_journal : @transfer_journal.Journal?
+  input_cleanup_resources : HolderPartialOutputResources
+  mut input_cleanup_paths : (String, String?)?
+  input_cleanup_step : Ref[Int]
   mut physical_cleanup : (() -> Bool)?
   mut physical_cleanup_done : Bool
   release_failure_hook : StoppedReleaseFailureHook
@@ -1068,13 +1104,14 @@ fn open_release_recovery(
 fn close_recovery_bundle(
   owner : StoppedReleaseRecovery,
   failures : Ref[Int],
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Bool {
   if owner.bundle_closed {
     return true
   }
   if failures.val > 0 {
     failures.val -= 1
-    report("release-recovery-pending", [
+    report_progress("release-recovery-pending", [
       ("reason", "bundle-close"),
       ("request_cid", owner.request_identity),
     ])
@@ -1099,6 +1136,7 @@ fn recover_stopped_release(
   request : @remote.DispatchRequest,
   retained : Ref[StoppedReleaseRecovery?],
   close_failures : Ref[Int],
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Bool raise CommandStop {
   let identity = @remote.dispatch_request_identity(request)
   let owner = match retained.val {
@@ -1112,7 +1150,7 @@ fn recover_stopped_release(
       match acquire_release_recovery_slot_with_custody(slot, identity) {
         Ok(_) => ()
         Err(original) => {
-          finish_failed_release_recovery_open(original)
+          finish_failed_release_recovery_open(original, report_progress~)
           return false
         }
       }
@@ -1123,8 +1161,8 @@ fn recover_stopped_release(
           // Keep all other controller responsibilities on this same stack.
           // Only checked retirement of this failed preparation permits return;
           // it does not confirm the original Run's release or retry execution.
-          finish_failed_release_recovery_open(original)
-          report("release-recovery-preparation-failed", [
+          finish_failed_release_recovery_open(original, report_progress~)
+          report_progress("release-recovery-preparation-failed", [
             ("request_cid", identity),
           ])
           return false
@@ -1189,14 +1227,19 @@ fn recover_stopped_release(
       owner.physical_cleanup_done || codes[2] == 2,
     )
     is Some(attempt) {
-    report("cleanup-pending", [
+    report_progress("cleanup-pending", [
       ("step", "release"),
       ("request_cid", identity),
       ("attempt", attempt.to_string()),
     ])
     return false
   }
-  if !settle_stopped_holder_custody(matches, owner, request) {
+  if !settle_stopped_holder_custody(matches, owner, request, report_progress~) {
+    retire_failed_stopped_holder_input_constructor(
+      owner,
+      retained,
+      report_progress~,
+    )
     return false
   }
   if !owner.bundle_closed {
@@ -1259,7 +1302,7 @@ fn recover_stopped_release(
       _ => return false
     }
   }
-  if !close_recovery_bundle(owner, close_failures) {
+  if !close_recovery_bundle(owner, close_failures, report_progress~) {
     return false
   }
   // The exclusive slot proves process-local operations/readers/holdings
@@ -1297,7 +1340,7 @@ fn recover_stopped_release(
           return false
         }
         if required(matches, "release-recovery-kill-at") == "after-transition" {
-          report("release-recovery-killed", [("request_cid", identity)])
+          report_progress("release-recovery-killed", [("request_cid", identity)])
           @slot.native_kill_self()
         }
       }
@@ -1322,7 +1365,7 @@ fn accepted_request(
   }
   guard fresh_journal(environment) is Some(journal) else { return None }
   let envelope = journal.dispatch_envelope(attempt)
-  ignore(journal.close())
+  retain_control_replay_journal_close(journal)
   admit_accepted_request_envelope(envelope, attempt)
 }
 
@@ -1756,6 +1799,7 @@ fn run_control(
     Ok(value) => value
     Err(_) => stop("executor slot open failed")
   }
+  let mut slot_progress = Ref(ControlSlotPending)
   while !@slot.native_termination_requested() {
     // The original preparation is retained before fallible channel/spawn work.
     // Partial close uncertainty cannot be replaced by another spawn attempt.
@@ -1785,7 +1829,7 @@ fn run_control(
     }
     // A failed Store was acquired after its original Journal and Slot.
     if !retry_control_orphan_store_cleanup(
-        failed_orphan_store, replay_journal, slot,
+        failed_orphan_store, replay_journal, slot, slot_progress,
       ) {
       report("orphan-store-cleanup-pending", [])
       @slot.native_wait_milliseconds(idle_wait_ms)
@@ -1896,7 +1940,7 @@ fn run_control(
         orphan_reconciliation ||
         recovery.val is Some(_) ||
         pending_custody is Some(_) ||
-        !ended_holder_can_leave_window(current, slot) {
+        !ended_holder_can_leave_window(current, slot, slot_progress) {
         return true
       }
       if current.startability is Some(true) {
@@ -1906,6 +1950,16 @@ fn run_control(
         next_start_ms = @env.now() + max_backoff_ms.to_uint64()
       } else {
         ignore(queue.remove(current.original.attempt))
+        // Preserve the private observation only after the original status,
+        // Channel, scoped process and current slot have confirmed retirement.
+        // This DATA is not a Run outcome or task/Store capacity release.
+        report("holder-settled", [
+          ("attempt", current.original.attempt),
+          (
+            "request_cid",
+            @remote.dispatch_request_identity(current.original.request),
+          ),
+        ])
       }
       false
     })
@@ -1932,17 +1986,34 @@ fn run_control(
         Ok(value) => value
         Err(_) => stop("executor slot open failed")
       }
+      slot_progress = Ref(ControlSlotPending)
+    }
+    // An already delivered Release survives its live relay. Only the original
+    // stopped process and current exclusive Slot allow its durable begin.
+    if holder is None && reclaim_due {
+      let mut release_pending = false
+      for ended in unsettled {
+        if !begin_ended_holder_releases(
+            ended, environment, slot, site_delegation,
+          ) {
+          release_pending = true
+        }
+      }
+      if release_pending {
+        @slot.native_wait_milliseconds(idle_wait_ms)
+        continue
+      }
     }
     if !orphan_reconciliation &&
       holder is None &&
       (
         orphan_store is Some(_) ||
         (reclaim_due && @env.now() >= next_reclaim_ms)
-      ) &&
-      !skip_reclaim(reclaim_failures) {
+      ) {
       match
         reclaim_orphaned_outputs(
           orphan_settings, environment, slot, orphan_store, replay_journal, failed_orphan_store,
+          slot_progress, reclaim_failures,
         ) {
         OrphansDone => {
           reclaim_due = false
@@ -1966,6 +2037,14 @@ fn run_control(
       orphan_store is None &&
       !reclaim_due &&
       !orphan_reconciliation {
+      for ended in unsettled {
+        ignore(
+          finish_ended_holder_releases(
+            ended, matches, environment, site_delegation, recovery, recovery_close_failures,
+            client, observation_url,
+          ),
+        )
+      }
       reconcile_saved_cancellation(
         matches, environment, replay_journal, client, observation_url, cancel_cursor,
         next_cancel_report, max_backoff_ms, site_delegation, recovery, recovery_close_failures,
@@ -1992,6 +2071,7 @@ fn run_control(
           Ok(value) => value
           Err(_) => stop("executor slot open failed")
         }
+        slot_progress = Ref(ControlSlotPending)
       }
       match queue.next() {
         Some(attempt) =>
@@ -2038,6 +2118,7 @@ fn run_control(
                         request,
                         next_report_ms: 0,
                         reported_revision: None,
+                        releases: Map([]),
                       })
                       pending_spawn.val = None
                       report(
@@ -2083,6 +2164,7 @@ fn run_control(
               Ok(value) => value
               Err(_) => stop("executor slot open failed")
             }
+            slot_progress = Ref(ControlSlotPending)
           }
           if slot.try_acquire() == Ok(true) {
             let original = try {
@@ -2342,6 +2424,17 @@ fn run_control(
         let identity = @remote.dispatch_request_identity(request)
         if holder is Some(current) &&
           holder_can_receive(current.request, request) {
+          guard journal.require(request) is Ok(_) &&
+            remember_holder_release(
+              current.request,
+              current.releases,
+              request,
+              admission.limits.preparation.max_tasks,
+            ) else {
+            report("release-failed", [("reason", "original-release-custody")])
+            close_control_replay_journal(replay_journal)
+            continue
+          }
           if current.channel.send("release " + identity) {
             report("release-relayed", [("request_cid", identity)])
           } else {
@@ -2375,56 +2468,22 @@ fn run_control(
             continue
           }
         }
-        if orphan_store is None &&
-          !reclaim_due &&
-          !orphan_reconciliation &&
-          (match journal.require(request) {
-            Ok(record) => {
-              let codes = @remote.dispatch_record_state_codes(record)
-              codes[0] == 3 &&
-              (
-                recovery.val is Some(_) ||
-                codes[2] == 0 ||
-                codes[2] == 1 ||
-                codes[2] == 3
-              )
-            }
-            _ => false
-          }) {
-          guard retry_control_replay_journal_cleanup(replay_journal) else {
-            report("release-failed", [("reason", "original-journal-close")])
-            continue
-          }
-          if recover_stopped_release(
-              matches, environment, request, recovery, recovery_close_failures,
-            ) {
-            report("release-recovered", [("request_cid", identity)])
-          }
-        }
-        // Recovery commits through a separate journal Owner. The pre-recovery
-        // view has already restored this dispatch and cannot admit its newer
-        // cleanup revision. Report only from a new exact durable view, as the
-        // cancellation recovery path does; do not relax reconstruction.
-        guard retry_control_replay_journal_cleanup(replay_journal) else {
-          report("release-failed", [("reason", "original-journal-close")])
-          continue
-        }
-        guard open_control_replay_journal(environment, replay_journal)
-          is Some(current) else {
-          report("release-failed", [("reason", "journal")])
-          close_control_replay_journal(replay_journal)
-          continue
-        }
-        match
-          @client.acknowledge_status(current, client, observation_url, request) {
-          Ok(_) =>
-            report("release-observed", [
-              ("request_cid", @remote.dispatch_request_identity(request)),
-            ])
-          Err(issue) =>
-            report("release-failed", [("reason", client_code(issue))])
-        }
-        close_control_replay_journal(replay_journal)
+        ignore(
+          finish_stopped_control_release(
+            matches,
+            environment,
+            request,
+            site_delegation,
+            recovery,
+            recovery_close_failures,
+            replay_journal,
+            client,
+            observation_url,
+            recover_now=orphan_store is None &&
+              !reclaim_due &&
+              !orphan_reconciliation,
+          ),
+        )
       }
       Ok(Some(@remote.RetainedPlan(input))) => {
         backoff_ms = 0
@@ -2650,6 +2709,10 @@ fn run_control(
   // After a termination request no new work is taken. A running holder is
   // given a bounded time to finish; after it, the durable journal keeps its
   // record and nothing unconfirmed is settled here.
+  let shutdown_poll_ms = 50
+  let cleanup_wait_ms = control_shutdown_cleanup_interval(
+    idle_wait_ms, min_backoff_ms, max_backoff_ms, shutdown_poll_ms,
+  )
   let mut waited = 0
   while holder is Some(current) && waited < shutdown_wait_ms {
     match current.child.wait(false) {
@@ -2658,8 +2721,8 @@ fn run_control(
         holder = None
       }
       _ => {
-        @slot.native_wait_milliseconds(50)
-        waited += 50
+        @slot.native_wait_milliseconds(shutdown_poll_ms)
+        waited += shutdown_poll_ms
       }
     }
   }
@@ -2676,11 +2739,13 @@ fn run_control(
     recovery.val is Some(_) ||
     pending_custody is Some(_) ||
     replay_journal.val is Some(_) {
-    slot = retain_control_ended_holder_lifetime(
+    let handed = retain_control_ended_holder_lifetime(
       unsettled, holder, environment, client, observation_url, slot, slot_path, orphan_store,
       recovery, matches, recovery_close_failures, pending_custody, replay_journal,
-      pending_spawn, failed_orphan_store,
+      pending_spawn, failed_orphan_store, slot_progress, cleanup_wait_ms,
     )
+    slot = handed.0
+    slot_progress = handed.1
     holder = None
     orphan_store = None
     pending_custody = None
@@ -2697,7 +2762,7 @@ fn run_control(
       }
     None => ()
   }
-  retain_control_terminal_handles(client, slot)
+  retain_control_terminal_handles(client, slot, slot_progress)
   // Library and backing retirement happen after this command's aliases
   // unwind. The terminal report is emitted only after those Owners close.
   entry.controller_returned = true
@@ -2949,12 +3014,17 @@ fn open_holder_output_resources(
 /// Acceptance evidence only: at the named output step the holder kills
 /// itself with SIGKILL, as an abrupt external kill would.
 fn holder_checkpoint(resources : HolderOutputResources) -> (String) -> Unit {
+  // The Store retains this observer. Capture only its immutable settings:
+  // retaining resources here would also retain that Store and its Journal.
+  let pause_at = resources.pause_at
+  let pause_ms = resources.pause_ms
+  let kill_at = resources.kill_at
   fn(point : String) {
-    if point == resources.pause_at {
+    if point == pause_at {
       report("holder-paused", [("point", point)])
-      @slot.native_wait_milliseconds(resources.pause_ms)
+      @slot.native_wait_milliseconds(pause_ms)
     }
-    if point == resources.kill_at {
+    if point == kill_at {
       report("holder-killed", [("point", point)])
       @slot.native_kill_self()
     }
@@ -3281,7 +3351,10 @@ fn serve_holder_output(
                 ) {
                 Ok(value) => value
                 Err(_) => {
-                  report("consumer-refused", [("reason", "materials")])
+                  report("consumer-refused", [
+                    ("reason", "materials"),
+                    ("boundary", "execution-family"),
+                  ])
                   continue
                 }
               }
@@ -3307,7 +3380,10 @@ fn serve_holder_output(
                 }) {
                 Ok(value) => value
                 Err(_) => {
-                  report("consumer-refused", [("reason", "retained-input")])
+                  report("consumer-refused", [
+                    ("reason", "retained-input"),
+                    ("boundary", "producer-route"),
+                  ])
                   continue
                 }
               }
@@ -3348,7 +3424,10 @@ fn serve_holder_output(
                 }) {
                 Ok(value) => value
                 Err(_) => {
-                  report("consumer-refused", [("reason", "retained-input")])
+                  report("consumer-refused", [
+                    ("reason", "retained-input"),
+                    ("boundary", "consumer-preparation"),
+                  ])
                   continue
                 }
               }
@@ -3360,7 +3439,10 @@ fn serve_holder_output(
               )
               guard remember_holder_successor(tasks, order, producer, candidate)
                 is Some(task) else {
-                report("consumer-refused", [("reason", "retained-input")])
+                report("consumer-refused", [
+                  ("reason", "retained-input"),
+                  ("boundary", "successor-custody"),
+                ])
                 continue
               }
               match
@@ -4048,6 +4130,18 @@ fn serve_holder_output(
   }
   // The caller retains the same resources for checked Host -> ordinary ->
   // environment/process-hold -> slot closure. No close result is discarded here.
+  // Every exact report and reverse-order release above has completed. Retire
+  // the disposable task references explicitly before the enclosing Library
+  // close; ending this helper frame alone does not promise finalizer timing.
+  // Pending cleanup never reaches here, and the durable Journal is unchanged.
+  for task in tasks.values() {
+    if task.released {
+      task.executed = None
+      task.consumer = None
+      task.handoff = None
+    }
+  }
+  tasks.clear()
 }
 
 ///|
@@ -4462,10 +4556,18 @@ fn run_holder(
         slot,
         issue,
       )
+      report("setup-failed", [
+        ("attempt", attempt),
+        ("reason", "output-resources-refused"),
+      ])
       return HolderCommandFailed(None, issue)
     }
     Err(HolderOutputSetupPending(original, issue)) => {
       retain_partial_holder_output_setup(original, environment, slot, issue)
+      report("setup-failed", [
+        ("attempt", attempt),
+        ("reason", "output-resources-pending"),
+      ])
       return HolderCommandFailed(None, issue)
     }
   }
@@ -4795,6 +4897,18 @@ fn recover_release_command(
   } else {
     None
   }
+  let completed_input_producer = optional(
+    child, "completed-input-producer-attempt",
+  ).map(attempt => (attempt, required(child, "expect-input-producer-dispatch")))
+  if completed_input_producer is Some(_) && recorded_source is Some(_) {
+    stop("release recovery conflicting cleanup roles")
+  }
+  let publication_settings : ControlOrphanStoreSettings = {
+    root: required(matches, "publication-root"),
+    authority_cid: required(matches, "publication-authority-cid"),
+    capacity_bytes: required_int64(matches, "publication-capacity-bytes"),
+  }
+  let observation_url = required(matches, "observation-url")
   let slot = match
     @slot.open_native_executor_slot(required(matches, "executor-slot")) {
     Ok(value) => value
@@ -4810,90 +4924,97 @@ fn recover_release_command(
   let owner = open_release_recovery(matches, environment, slot, identity)
   owner.recorded_source = recorded_source
   owner.recorded_consumer = recorded_consumer
-  owner.completed_input_producer = optional(
-    child, "completed-input-producer-attempt",
-  ).map(attempt => (attempt, required(child, "expect-input-producer-dispatch")))
-  if owner.completed_input_producer is Some(_) && recorded_source is Some(_) {
-    stop("release recovery conflicting cleanup roles")
-  }
-  let mut cursor = ""
-  while true {
-    match owner.journal.output_report_after(cursor) {
-      Ok(Some((key, custody, state))) => {
-        cursor = key
-        if @remote.dispatch_request_identity(
-            @remote.remote_output_report_custody_dispatch(custody),
-          ) ==
-          identity &&
-          !(state is Some(@remote.RemoteOutputReportReply::Accepted)) {
-          stop("release recovery Output acknowledgement pending")
+  owner.completed_input_producer = completed_input_producer
+  let retained : Ref[StoppedReleaseRecovery?] = Ref(Some(owner))
+  let resources = new_holder_partial_output_resources()
+  let failure = try {
+    let mut cursor = ""
+    while true {
+      match owner.journal.output_report_after(cursor) {
+        Ok(Some((key, custody, state))) => {
+          cursor = key
+          if @remote.dispatch_request_identity(
+              @remote.remote_output_report_custody_dispatch(custody),
+            ) ==
+            identity &&
+            !(state is Some(@remote.RemoteOutputReportReply::Accepted)) {
+            stop("release recovery Output acknowledgement pending")
+          }
         }
+        Ok(None) => break
+        Err(_) => stop("release recovery Output acknowledgement unreadable")
       }
-      Ok(None) => break
-      Err(_) => stop("release recovery Output acknowledgement unreadable")
     }
-  }
-  match
-    @resident_host.begin_resident_output_release(
+    match
+      @resident_host.begin_resident_output_release(
+        owner.journal,
+        delegation(matches, budget(matches)),
+        environment.site_generation,
+        request,
+      ) {
+      Ok(_) => ()
+      // Preserve the existing cancelled/unstarted cleanup dispositions.
+      Err(@resident_host.OutputUnavailable) => ()
+      Err(_) => stop("release recovery release persistence unconfirmed")
+    }
+    let store = match
+      open_release_command_store(environment, resources, publication_settings) {
+      Some(original) => original
+      None => stop("release recovery publication Store unavailable")
+    }
+    let reclaimed = @resident_host.reclaim_resident_dispatch_output_intents(
       owner.journal,
-      delegation(matches, budget(matches)),
-      environment.site_generation,
+      store,
       request,
-    ) {
-    Ok(_) => ()
-    // Preserve the existing cancelled/unstarted cleanup dispositions.
-    Err(@resident_host.OutputUnavailable) => ()
-    Err(_) => stop("release recovery release persistence unconfirmed")
+    )
+    let intents_empty = match owner.journal.pending_output_intents() {
+      Ok(values) => values.is_empty()
+      Err(_) => false
+    }
+    let empty = match store.capacity_usage() {
+      Ok(value) => value.reserved_bytes == 0L && value.reserved_objects == 0L
+      Err(_) => false
+    }
+    let closed = store.close()
+    if closed is Ok(_) {
+      resources.store = None
+    }
+    if !(reclaimed is Ok(0)) || !intents_empty || !empty || !(closed is Ok(_)) {
+      stop("release recovery publication custody unconfirmed")
+    }
+    if !recover_stopped_release(matches, environment, request, retained, Ref(0)) {
+      stop("release recovery pending")
+    }
+    None
+  } catch {
+    CommandStop(issue) => Some(issue)
   }
-  let store = match
-    @publication_store.open_store(
-      environment.sqlite_library,
-      required(matches, "publication-root"),
-      required(matches, "publication-authority-cid"),
-      required_int64(matches, "publication-capacity-bytes"),
-      required_int(matches, "max-transfers").to_int64(),
-      environment.max_record_bytes,
-    ) {
-    Ok(value) => value
-    Err(_) => stop("release recovery publication Store unavailable")
+  if retained.val is Some(same) {
+    // The same ready Owner survives every fallible body operation. Checked
+    // handle cleanup never selects a terminal Run action or masks failure.
+    retain_partial_output_recovery_setup(
+      resources,
+      same,
+      same.slot,
+      failure.unwrap_or("release recovery handle retirement"),
+    )
+    retained.val = None
   }
-  let reclaimed = @resident_host.reclaim_resident_dispatch_output_intents(
-    owner.journal,
-    store,
-    request,
-  )
-  let intents_empty = match owner.journal.pending_output_intents() {
-    Ok(values) => values.is_empty()
-    Err(_) => false
-  }
-  let empty = match store.capacity_usage() {
-    Ok(value) => value.reserved_bytes == 0L && value.reserved_objects == 0L
-    Err(_) => false
-  }
-  let closed = store.close()
-  if !(reclaimed is Ok(0)) || !intents_empty || !empty || !(closed is Ok(true)) {
-    stop("release recovery publication custody unconfirmed")
-  }
-  let retained : Ref[StoppedReleaseRecovery?] = { val: Some(owner), }
-  if !recover_stopped_release(matches, environment, request, retained, {
-      val: 0,
-    }) {
-    stop("release recovery pending")
+  if failure is Some(issue) {
+    stop(issue)
   }
   let client = control_client(matches, entry)
   guard fresh_journal(environment) is Some(journal) else {
     stop("release recovery observation journal unavailable")
   }
   let observed = @client.acknowledge_status(
-    journal,
-    client,
-    required(matches, "observation-url"),
-    request,
+    journal, client, observation_url, request,
   )
-  let closed = journal.close()
-  ignore(client.close())
+  retain_control_replay_journal_close(journal)
+  // The actual ready/failed Client stays on the same initial entry through
+  // its existing checked Library/Read retirement; no close result is discarded.
   match observed {
-    Ok(Some(record)) if closed =>
+    Ok(Some(record)) =>
       report("release-recovery-observed", [
         ("request_cid", identity),
         ("revision", @remote.dispatch_record_revision(record).to_string()),
@@ -5325,44 +5446,40 @@ fn run_command(
           }
           Ok(None) => break
           Err(_) => {
-            ignore(journal.close())
+            retain_control_replay_journal_close(journal)
             stop("report inspection failed")
           }
         }
       }
-      if !journal.close() {
-        stop("journal close pending")
-      }
+      retain_control_replay_journal_close(journal)
     }
     Some(("retry-output-report", child)) => {
+      let key = required(child, "intent-cid")
+      let delegated = delegation(matches, budget(matches))
       let environment = open_control_environment(matches, entry)
       guard fresh_journal(environment) is Some(journal) else {
         stop("journal unavailable")
       }
-      let key = required(child, "intent-cid")
       let custody = match journal.output_report(key) {
         Ok(value) => value.0
         Err(_) => {
-          ignore(journal.close())
+          retain_control_replay_journal_close(journal)
           stop("report unavailable")
         }
       }
       if @resident.check_resident_dispatch_delegation(
-          delegation(matches, budget(matches)),
+          delegated,
           @remote.remote_output_report_custody_dispatch(custody),
           environment.site_generation,
         )
         is Err(_) {
-        ignore(journal.close())
+        retain_control_replay_journal_close(journal)
         stop("current report scope refused")
       }
       let result = journal.retry_output_report(key)
-      let closed = journal.close()
+      retain_control_replay_journal_close(journal)
       if result is Err(_) {
         stop("report retry rejected")
-      }
-      if !closed {
-        stop("journal close pending")
       }
       report("output-report-retry-enabled", [])
     }
@@ -5407,8 +5524,8 @@ fn main {
     control.enter()
     true
   } catch {
-    CommandStop(_) => {
-      resident_control_diagnostic_ffi(1)
+    CommandStop(issue) => {
+      resident_control_diagnostic_ffi(resident_initial_failure_stage(issue))
       false
     }
   }

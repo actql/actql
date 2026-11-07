@@ -1,6 +1,9 @@
 // Durable local publication storage. Prepared objects are content-addressed
 // but remain invisible to ordinary Result lookup until an authority-scoped
 // public index entry is installed with an exclusive atomic link.
+// Existing bounded physical Content reader implementation DATA, not a caller
+// allowance or proof of the separate Store metadata/read preparation.
+export const physicalContentReadWindowBytes = 65536;
 import {openPublicationOwnerLease} from './publication-owner-lease.mjs';
 import {
   constants,
@@ -1365,6 +1368,7 @@ async function openOriginalLocalPublicationStore(
   const physicalRemovalOriginals = new Map();
   const physicalRemovalAcquisitions = new Map();
   const physicalRetirementFences = new Map();
+  let assertPriorPhysicalUnborrowed = () => fail('PublicationStoreCleanupPending');
   const removalKey = original => `${original.cid}\0${original.device}\0${original.inode}`;
   const physicalRemovalFor = (cid, original) => {
     const matches = [...physicalRemovalOriginals.values()].filter(holder =>
@@ -1424,7 +1428,59 @@ async function openOriginalLocalPublicationStore(
       if (state !== undefined) fail('PublicationObjectAccountingMissing');
       return undefined;
     }
-    if (original.byte_count !== bytes || state === undefined ||
+    if (original.byte_count !== bytes) fail('PublicationObjectAccountingMismatch');
+    if (state === undefined && deliveryIndex.physicalObject(cid,{priorLifetime:true}) !== undefined) {
+      // The adopted opening row belongs to a closed prior Store lifetime,
+      // not a current allocation whose FD could be reconstructed from a CID.
+      // Reconcile only this absent row, under the existing namespace fence;
+      // all current allocations and unrelated quota remain unchanged.
+      const unborrowed = () => assertPriorPhysicalUnborrowed(cid,original);
+      unborrowed();
+      deliveryIndex.beginPhysicalObjectLifetime();
+      deliveryIndex.retainPhysicalRemoval(original);
+      const key = removalKey(original);
+      let absent = false, settled = false, unlinkFlight, retireFlight;
+      const confirmAbsent = async () => {
+        unborrowed();
+        try {
+          await lstat(resolve(objectsDirectory,cid.slice(7)));
+          fail('PublicationObjectAccountingMismatch');
+        } catch (error) {if(error?.code!=='ENOENT')throw error;}
+        if (!settled) unborrowed();
+      };
+      const holder = Object.freeze({
+        original,
+        get settled() {return settled;},
+        unlinkOriginal() {
+          if (settled) return Promise.resolve();
+          return unlinkFlight ??= confirmAbsent().then(() => {absent = true;})
+            .finally(() => {unlinkFlight = undefined;});
+        },
+        retireAfterDirectoryAck() {
+          if (settled) return Promise.resolve();
+          return retireFlight ??= Promise.resolve().then(async () => {
+            if (!absent) fail('PublicationStoreCleanupPending');
+            // Recheck after the real directory ACK: even a replacement from
+            // outside the fenced Store must never receive this old refund.
+            await confirmAbsent();
+            if (settled) return;
+            unborrowed();
+            accountPhysicalUsage(deliveryIndex.removePhysicalObjects([original]));
+            settled = true;
+            physicalRemovalOriginals.delete(key);
+            const owners = physicalRetirementFences.get(cid);
+            owners?.delete(holder);
+            if (owners?.size === 0) physicalRetirementFences.delete(cid);
+          }).finally(() => {retireFlight = undefined;});
+        },
+      });
+      physicalRemovalOriginals.set(key,holder);
+      const owners = physicalRetirementFences.get(cid) ?? new Set();
+      owners.add(holder);
+      physicalRetirementFences.set(cid,owners);
+      return holder;
+    }
+    if (state === undefined ||
         original.device !== String(state.dev) || original.inode !== String(state.ino)) {
       // A live owner never reconstructs an absent allocation's FD from a CID.
       // Interrupted processes are reconciled by the exclusive opening census
@@ -1655,6 +1711,18 @@ async function openOriginalLocalPublicationStore(
   const pendingPhysicalHoldingDeletions = new Map();
   const pendingUncommittedMetadataCleanups = new Map();
   const reclaimingMaterialCids = new Set();
+  assertPriorPhysicalUnborrowed = (cid, original) => {
+    const prepared = preparedObjects.get(cid);
+    if (reservedObjects !== 0 || activePhysicalRecordWriters.size !== 0 ||
+        activeSemanticReaders.size !== 0 || activeResultReaders.size !== 0 ||
+        activePhysicalHoldingReaders.size !== 0 || unconfirmedPhysicalInstalls.has(cid) ||
+        prepared !== undefined && (prepared.holders.size !== 0 || prepared.commitOwners.size !== 0)) {
+      fail('PublicationStoreCleanupPending');
+    }
+    const prior = deliveryIndex.physicalObject(cid,{priorLifetime:true});
+    if (prior?.byte_count !== original.byte_count || prior?.device !== original.device ||
+        prior?.inode !== original.inode) fail('PublicationObjectAccountingMismatch');
+  };
 
   const objectPath = cid => resolve(objectsDirectory, cidHex(cid));
   const custodyPath = token => resolve(custodyDirectory, `${token}.json`);
@@ -2396,7 +2464,7 @@ async function openOriginalLocalPublicationStore(
       // Nothing escapes this verifier's synchronous hash update. Reuse this
       // dedicated backing for short reads instead of a stream's shrink copy
       // or queued next backing; only the same original read is in flight.
-      const buffer = Buffer.allocUnsafeSlow(before.size < 65536 ? before.size + 1 : 65536);
+      const buffer = Buffer.allocUnsafeSlow(before.size < physicalContentReadWindowBytes ? before.size + 1 : physicalContentReadWindowBytes);
       for (;;) {
         const remaining = before.size - bytes;
         const requested = remaining < buffer.byteLength ? remaining + 1 : buffer.byteLength;
@@ -4021,7 +4089,7 @@ async function openOriginalLocalPublicationStore(
       let size = 0;
       if (before.size > 0) {
         const stream = handle.createReadStream({autoClose: false,
-          end: before.size - 1, highWaterMark: Math.min(65536, before.size)});
+          end: before.size - 1, highWaterMark: Math.min(physicalContentReadWindowBytes, before.size)});
         for await (const chunk of stream) {
           if (chunk.byteLength > before.size - size ||
               chunk.byteLength > configuration.maxObjectBytes - size) {
@@ -6697,7 +6765,7 @@ async function openOriginalLocalPublicationStore(
       // piece, and no following piece is acquired until its callback returns.
       // Do not reuse a delivered backing: the consumer can retain its alias.
       while (bytes < before.size) {
-        const buffer = Buffer.allocUnsafeSlow(Math.min(65536, before.size - bytes));
+        const buffer = Buffer.allocUnsafeSlow(Math.min(physicalContentReadWindowBytes, before.size - bytes));
         let filled = 0;
         while (filled < buffer.byteLength) {
           const requested = buffer.byteLength - filled;

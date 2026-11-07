@@ -52,7 +52,7 @@ export function checkCostObservation({collectionBytes, certificate, state, catal
       exclusiveMilliseconds = currentMilliseconds;
       if (action.id === 'mutations-js') {
         assert(isolatedExecution, 'Missing actual isolated cost observation');
-        exact(isolatedExecution.costs, ['preparationMilliseconds', 'buildMilliseconds', 'executionMilliseconds', 'inspectionMilliseconds', 'closeMilliseconds']);
+        exact(isolatedExecution.costs, ['preparationMilliseconds', 'buildMilliseconds', 'executionMilliseconds', 'inspectionMilliseconds', 'closeMilliseconds', 'inputInspectionMilliseconds']);
         assert.equal(isolatedExecution.owner, `${state.origin.runId}:${state.origin.runAttempt}:${state.origin.jobId}`, 'Wrong isolated cost owner');
         assert.equal(isolatedExecution.costs.preparationMilliseconds, collection.isolatedPreparationMilliseconds, 'Wrong isolated preparation cost');
         assert.equal(sum(Object.values(isolatedExecution.costs)), currentMilliseconds, 'Wrong isolated action cost envelope');

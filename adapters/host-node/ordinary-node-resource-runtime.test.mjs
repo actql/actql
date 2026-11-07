@@ -138,3 +138,38 @@ test('ordinary original port selection refuses when same-callback reentry alread
   assert.equal(inner.cancelUnpublished(), 0);
   assert.equal(runtime.ordinaryManagedRunStatus(original).stopped, true);
 });
+
+test('ordinary preparation keeps charged transfer history without pinning completed cleanup', () => {
+  const prepared = {};
+  let childPending = true;
+  const original = runtime.retainOrdinaryManagedRun(prepared, requirements,
+    () => {}, () => childPending, 'local-preparation');
+  const ports = runtime.prepareOriginalLocalPreparationPorts(original, prepared);
+  assert.equal(ports.status(0), 0);
+  // These are the original completed Run's cumulative counters. Stop must not
+  // require a second, fabricated zero-history report to retire that same Run.
+  const report = ({transferred = 7n, uncertain = 19n, reservedTransfer = 0n,
+    held = 0n, retention = 0n, execution = 0n, holdings = 0,
+    attempts = 0, reservations = 0, delegations = 0} = {}) =>
+    ports.report(1, 1, holdings, transferred, uncertain, reservedTransfer,
+      held, retention, execution, 21n, attempts, reservations, delegations);
+  assert.equal(report(), 0);
+  assert.equal(ports.status(2), -42); // Physical child cleanup is still required.
+  childPending = false;
+  for (const pending of [{reservedTransfer: 1n}, {held: 1n}, {retention: 1n},
+    {execution: 1n}, {holdings: 1}, {attempts: 1}, {reservations: 1}, {delegations: 1}]) {
+    assert.equal(report(pending), 0);
+    assert.equal(ports.status(2), -42);
+  }
+  assert.equal(report(), 0);
+  // Keeping historical uncertainty out of stop's live projection must never
+  // remove it from the existing transfer quota or accept a replacement report.
+  assert.equal(report({transferred: 982n}), -42);
+  assert.equal(report({uncertain: 994n}), -42);
+  assert.equal(report({reservedTransfer: 975n}), -42);
+  assert.equal(ports.status(2), 0);
+  assert.equal(runtime.ordinaryManagedRunStatus(original).stopped, true);
+  assert.equal(ports.status(1), 1);
+  assert.equal(report(), -42);
+  assert.equal(runtime.prepareOriginalLocalPreparationPorts(original, prepared), null);
+});

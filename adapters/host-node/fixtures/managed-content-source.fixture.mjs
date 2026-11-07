@@ -54,17 +54,28 @@ export async function openManagedContentSourceFixture({scratch, keys, account,
       const {moon, installation, sourceInitialization} = options;
       const service = captureInstalledSourceServices(options.installationServices,
         () => {throw new Error('ContentFixtureInstallationServicesUnavailable');});
-      const {declaration, declared, environment} = sourceInitialization.prepareDeclaration(fixture.declarationViewsWire);
-      assert.equal(declared.catalog_cid, fixture.declared.catalog_cid);
+      const {declaration, declared, environment} = sourceInitialization.prepareAuthoredCommands(
+        fixture.declarationViewsWire, Object.freeze({operation: 'files.write',
+          commands: Object.freeze([Object.freeze({resource: 'transfers', body: canonical(fixture.command)})]),
+          contracts: fixture.commandContracts}));
+      assert.equal(declared.catalog_cid, fixture.commandCatalogCid);
+      assert.deepEqual(declared.views, fixture.declared.views);
+      assert.deepEqual(declared.command_bodies, [canonical(fixture.command)]);
       const policy = service('sourceReaderImplementationProfile', {installation,
         sourceInitialization, metadataResponses: 0, originUnits: origin.length});
       const limits = Object.freeze({maxPages: 1, maxPageBytes: 8192, maxPageRows: 1, maxCaptureRows: 1});
-      const pageBounds = Object.freeze({maxNodes: policy.maxNodes, maxDepth: policy.maxDepth,
-        maxCursorBytes: policy.maxCursorBytes});
+      // Every parsed JSON value occupies at least one original response byte.
+      // The selected row array remains a span of that SAME response, without
+      // an author transform or a second page. Preserve any tighter policy.
+      const pageBounds = Object.freeze({maxNodes: Math.min(policy.maxNodes, limits.maxPageBytes),
+        maxDepth: policy.maxDepth, maxCursorBytes: policy.maxCursorBytes});
       assert.ok(limits.maxPageBytes <= policy.maxResponseBytes);
       const implementationLimits = Object.freeze({...Object.fromEntries(
         [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'].map(name => [name, policy[name]])),
         maxPages: limits.maxPages, maxResponseBytes: limits.maxPageBytes,
+        maxTotalResponseBytes: Math.min(policy.maxTotalResponseBytes, limits.maxPages * limits.maxPageBytes),
+        maxRowsWireBytes: Math.min(policy.maxRowsWireBytes, limits.maxPageBytes),
+        maxRowsWireNodes: Math.min(policy.maxRowsWireNodes, limits.maxPageBytes),
         maxRows: limits.maxPageRows, maxTotalRows: limits.maxCaptureRows, ...pageBounds});
       const implementation = service('sourceReaderImplementation', {installation, sourceInitialization,
         limits: implementationLimits, columnCount: declared.views[0].fields.length});

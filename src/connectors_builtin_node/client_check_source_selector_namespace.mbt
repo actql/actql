@@ -32,3 +32,15 @@ pub fn client_program_check_source_selector_namespace(
     range, namespace_name, configuration_revision, context_ref, program_revision,
   )
 }
+
+///|
+#export_name("clientProgramCheckPreparedSourceSelectorRange")
+pub fn client_program_check_prepared_source_selector_range(
+  environment : @program_check.CheckEnvironment,
+  prepared : @source_publication.PreparedPublishedQueryEnvironment,
+  registrations : Array[@program_check.CheckEnvironment],
+) -> ClientCheckSourceSelectorRange? {
+  @local_preparation.client_program_check_prepared_source_selector_range(
+    environment, prepared, registrations,
+  )
+}

@@ -193,6 +193,7 @@ fn prepare_checked_client_effect_computation_owned(
   store_targets : @update_targets.StoreTargetPublication?,
   command_targets : @update_targets.CommandTargetPublication?,
   lowering_work_out? : Ref[Int64]? = None,
+  source_intent? : ClientSubmittedIntent? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let mappings = match
     @environment.check_mapping_contract_shapes(
@@ -221,6 +222,7 @@ fn prepare_checked_client_effect_computation_owned(
     store_targets,
     command_targets,
     lowering_work_out~,
+    source_intent~,
   )
 }
 
@@ -264,6 +266,7 @@ fn compile_static_client_effect_computation(
   store_targets : @update_targets.StoreTargetPublication?,
   command_targets : @update_targets.CommandTargetPublication?,
   lowering_work_out? : Ref[Int64]? = None,
+  source_intent? : ClientSubmittedIntent? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let target_selections = match
     prepare_client_effect_target_selections(
@@ -315,7 +318,7 @@ fn compile_static_client_effect_computation(
     command_targets,
     normalization: None,
     normalization_custody: None,
-    source_intent: None,
+    source_intent,
     source: parsed,
     supplied,
     candidate,

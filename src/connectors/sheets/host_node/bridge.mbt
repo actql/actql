@@ -181,23 +181,36 @@ pub fn sheets_append_request_json(
 ) -> String {
   let limits : @catalog.Limits = { max_bytes, max_nodes, max_depth, max_cells, }
   guard columns_of(columns, limits) is Some(columns) &&
-    parse_wire(row, limits) is Some(root) &&
-    @decode.closed_object(root, columns.map(column => column.name))
-    is Ok(object) &&
-    @decode.object_length(root) == Some(columns.length()) else {
+    @source.parse_json_bytes_preserving(@utf8.encode(row), {
+      max_input_bytes: max_bytes,
+      max_nodes,
+      max_depth,
+    })
+    is Ok(root) &&
+    root.value is @source.Object(fields) &&
+    fields.length() == columns.length() &&
+    fields.all(field => columns.any(column => column.name == field.key)) else {
     return ({ "refused": issue_json(InvalidSchema) } : Json).stringify()
+  }
+  // Only this fresh private parse reaches the borrowed field view. Its
+  // complete grammar, duplicate-key, Unicode and byte/node/depth admission
+  // already ran. Decoded text totals cannot exceed the same original wire;
+  // another generic index would repeat that admission without new evidence.
+  let object : Map[String, @source.Node] = Map([])
+  for field in fields {
+    object[field.key] = field.value
   }
   let values = []
   for column in columns {
-    guard @decode.lookup(object, column.name) is Some(value) else {
+    guard object.get(column.name) is Some(value) else {
       return (
         { "refused": issue_json(UnrepresentableWrite(column.name)) } : Json).stringify()
     }
-    let scalar : Json = match @decode.view(value) {
-      NullValue => Json::null()
-      TextValue(text) => text.to_json()
-      NumberValue(number) => number.to_json()
-      BoolValue(boolean) => boolean.to_json()
+    let scalar : Json = match value.value {
+      @source.Null => Json::null()
+      @source.String(text) => text.to_json()
+      @source.Number(number) => number.to_json()
+      @source.Bool(boolean) => boolean.to_json()
       _ =>
         return (
           { "refused": issue_json(UnrepresentableWrite(column.name)) } : Json).stringify()

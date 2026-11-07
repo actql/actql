@@ -78,3 +78,22 @@ test "Source Result publication keeps exact acquisition custody through port clo
     0L,
   )
 }
+
+///|
+test "captured consumer retirement retains original Result pins through same retry" {
+  let (run, issuer) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  for task in 1..<@strategy.graph_task_count(graph) {
+    captured_graph_local(run, task).unwrap()
+  }
+  let task = @strategy.graph_result_task(graph, 0).unwrap()
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let held = @strategy.borrow_captured_result_output(run, task, occurrence, 2).unwrap()
+  assert_false(@strategy.retire_captured_task_outputs(run))
+  assert_false(@strategy.retire_captured_task_outputs(run))
+  assert_true(@strategy.captured_result_borrow_matches_run(held, run))
+  assert_true(@strategy.release_captured_result_borrow(held))
+  assert_true(@strategy.retire_captured_task_outputs(run))
+  assert_true(@strategy.retire_captured_task_outputs(run))
+  @mock.close_mock_query_issuer(issuer)
+}

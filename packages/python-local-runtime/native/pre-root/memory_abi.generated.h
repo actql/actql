@@ -30,6 +30,8 @@ int actql_native_owned_control_scope_clear(void);
 actql_owned_capacity * actql_native_owned_current(void);
 int actql_native_owned_enter(actql_owned_capacity * lease);
 int actql_native_owned_extent_work(actql_owned_capacity * lease, uint64_t * out, size_t count);
+int actql_native_owned_grow(actql_owned_capacity * lease, size_t expected_bytes, size_t additional_bytes, uint64_t * control_bytes);
+int actql_native_owned_growth_control_bytes(actql_owned_capacity * lease, size_t bytes, uint64_t * out);
 int actql_native_owned_inventory(actql_owned_capacity * lease, uint64_t * out, size_t count);
 int actql_native_owned_leave(actql_owned_capacity * lease);
 int actql_native_owned_protect(actql_owned_capacity * lease, void * allocation, size_t offset, size_t length, int protection);

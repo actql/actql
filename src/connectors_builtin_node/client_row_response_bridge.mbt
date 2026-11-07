@@ -85,3 +85,86 @@ pub fn client_program_row_source_bind_response_cleanup(
 ) -> Result[Unit, @client_row_source_host.RowHostIssue] {
   @client_row_source_host.bind_row_run_response_borrow_cleanup(value, cleanup)
 }
+
+///|
+#export_name("clientProgramRowSourceRetireResponseWorkspace")
+pub fn client_program_row_source_retire_response_workspace(
+  value : @client_row_source_host.RowRunResponseBorrow,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.retire_row_run_response_workspace(value)
+}
+
+///|
+#export_name("clientProgramRowSourceGrowResponseCapacity")
+pub fn client_program_row_source_grow_response_capacity(
+  value : @client_row_source_host.RowRunResponseBorrow,
+  capacity : @execution.ExecutionCapacity,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.grow_row_run_response_capacity(value, capacity)
+}
+
+///|
+#export_name("clientProgramRowSourceGrowResponseConstructionCapacity")
+pub fn client_program_row_source_grow_response_construction_capacity(
+  value : @client_row_source_host.RowRunResponseBorrow,
+  capacity : @execution.ExecutionCapacity,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.grow_row_run_response_construction_capacity(
+    value, capacity,
+  )
+}
+
+///|
+/// Pure Local Table body-construction DATA. The installing caller retains
+/// this SAME returned native capacity and grows its original RowRun before
+/// allocation; this projection issues no page, attempt or cleanup proof.
+#export_name("clientProgramInstalledTableSourceBodyCapacity")
+pub fn client_program_installed_table_source_body_capacity(
+  previous : @execution.ExecutionCapacity,
+  body_bytes : Int,
+  max_depth : Int,
+) -> Result[@execution.ExecutionCapacity, @resources.PreparationCapacityIssue] {
+  match
+    @client_local_host.installed_table_source_body_capacity(
+      previous, body_bytes, max_depth,
+    ) {
+    Some(value) => Ok(value)
+    None => Err(@resources.InvalidExtent)
+  }
+}
+
+///|
+#export_name("clientProgramInstalledTableSourceReaderCapacity")
+pub fn client_program_installed_table_source_reader_capacity(
+  columns : Int,
+  profile : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_table_source_reader_capacity(columns, profile)
+}
+
+///|
+#export_name("clientProgramInstalledTableSourceSerializationCapacity")
+pub fn client_program_installed_table_source_serialization_capacity(
+  previous : @execution.ExecutionCapacity,
+  bytes : Int,
+) -> Result[@execution.ExecutionCapacity, @resources.PreparationCapacityIssue] {
+  match
+    @client_local_host.installed_table_source_serialization_capacity(
+      previous, bytes,
+    ) {
+    Some(value) => Ok(value)
+    None => Err(@resources.InvalidExtent)
+  }
+}
+
+///|
+#export_name("clientProgramRowSourceChargeResponseBody")
+pub fn client_program_row_source_charge_response_body(
+  run : @client_row_source_host.RowRun,
+  body : Bytes,
+) -> Result[
+  @client_row_source_host.RowPageCharge,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.charge_row_run_response_body(run, body)
+}

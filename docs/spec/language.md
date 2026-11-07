@@ -8523,11 +8523,14 @@ join cardinality assertion, and any optional output guard remain author-visible.
 Key deduplication, batching, paging, pushdown, materialization, and local join
 strategy are compiler/runtime choices.
 
-<!-- requirement-block: external-joins.the-external-right-input-must-resolve-one-pinned-relation-valued-search external-joins.its-default-read-mode-must-be-a-bounded-snapshot-or external-joins.the-left-relation-must-have-a-compiler-proven-positive-finite-row external-joins.the-authored-equality-keys-must-match-every-and-only-the external-joins.the-sourceview-must-prove-a-complete-response-for-each-requested external-joins.the-effective-data-policy-must-be-admitted-before-dispatch external-joins.the-selected-physical-strategy-must-fit-the-sealed-request-byte -->
+<!-- requirement-block: external-joins.the-external-right-input-must-resolve-one-pinned-relation-valued-search external-joins.its-default-read-mode-must-be-a-bounded-snapshot-or external-joins.the-left-relation-must-have-a-compiler-proven-positive-finite-row external-joins.check-must-not-require-an-exact-count-or-finite-upper-bound-proof external-joins.an-unavailable-estimate-must-remain-an-explicit-runtime-resource-admission-obligation external-joins.the-authored-equality-keys-must-match-every-and-only-the external-joins.the-sourceview-must-prove-a-complete-response-for-each-requested external-joins.the-effective-data-policy-must-be-admitted-before-dispatch external-joins.the-selected-physical-strategy-must-fit-the-sealed-request-byte -->
 The external right input MUST resolve one pinned relation-valued `search`,
 `fetch`, or `follow` SourceView. Its default read mode MUST be a bounded
-`snapshot` or bounded `changes` mode. The left Relation MUST have a
-compiler-proven positive finite row bound. The authored equality keys MUST
+`snapshot` or bounded `changes` mode. Check MUST retain available checked
+left-Relation row estimates, including genuine zero, but MUST NOT require an
+exact count or finite upper-bound proof solely to admit the keyed operation.
+An unavailable estimate MUST remain an explicit runtime resource-admission
+obligation bound to the original checked join and left target. The authored equality keys MUST
 match every and only the SourceView's correlation response roles. The
 SourceView MUST prove a complete response for each requested key. Its response
 cardinality (`zero_or_one | zero_or_many | one | one_or_many`) and capacity
@@ -8538,9 +8541,15 @@ response limit is resolved separately as specified below. The effective data
 policy MUST be admitted before dispatch. The selected physical strategy MUST
 fit the sealed request, byte, attempt, cost, and duration envelope.
 
-<!-- requirement-block: external-joins.check-must-not-require-the-author-to-repeat-a-transport -->
-If the left key set is unbounded, Check fails with
-`ACTQL_E_UNBOUNDED_EXTERNAL_JOIN`. A truncating `hard_limit_only` response is
+<!-- requirement-block: external-joins.an-unavailable-static-left-key-estimate-must-not-by-itself-produce-unbounded-external-join external-joins.execution-must-admit-resources-from-the-completed-original-left-relation external-joins.execution-must-not-pre-count-reread-recompile-or-create-a-replacement-run external-joins.unavailable-actual-resources-or-overflow-must-stop-acquisition-with-owned-cleanup external-joins.check-must-not-require-the-author-to-repeat-a-transport -->
+An unavailable static left-key estimate MUST NOT by itself produce
+`ACTQL_E_UNBOUNDED_EXTERNAL_JOIN`. Before allocating acquisition storage or
+accessing a provider, execution MUST use the completed original left Relation
+and admit needed resources on the same operational Ledger. It MUST NOT pre-count
+or reread Sources, recompile the Program or create a replacement Run solely to
+obtain a count. Empty actual input requires no provider access. Unavailable
+actual resources or arithmetic overflow MUST stop acquisition with normal owned
+cleanup. A truncating `hard_limit_only` response is
 not a legal implementation of join semantics and fails with
 `ACTQL_E_EXTERNAL_JOIN_COMPLETENESS_UNPROVEN`. Check MUST NOT require the author
 to repeat a transport limit as `max_items`.
@@ -8567,7 +8576,9 @@ request tuple or one native batch; retries are not additional logical pages.
 `max_response_bytes_per_page` bounds response-body octets after content
 decoding for each such page, including the response envelope, not canonical
 row bytes, headers or compressed transport octets. Host decoded-body limits
-MUST accommodate this worst-case logical response. Separate transport and
+MUST be enforced on actual decoded responses; a conservative declared maximum
+larger than the available budget alone does not prove an inevitable violation.
+Separate transport and
 attempt limits MUST cover retries, redirects and failed responses; this page
 bound alone is not evidence for their wire-byte extent. Capacity does not
 change response cardinality or permit truncating a complete response.
@@ -8639,18 +8650,23 @@ A native batch MUST bind distinct `lookup_request_key`,
 `lookup_batch_request`, and `lookup_response_key` contracts, a positive
 `max_keys_per_request`, and the claim `preserves_per_key_semantics: true`.
 
-<!-- requirement-block: external-joins.every-positive-acquisition-bound-required-by-the-actql-lookup-barrier-0-1-schema-must external-joins.checked-arithmetic-must-reject-overflow-absent-capacity-evidence-or-a external-joins.the-acquisition-s-max-response-rows-is-derived-independently-of-the-logical-join-s -->
-Every positive acquisition bound required by the `actql-lookup-barrier/0.1`
-schema MUST be present in the canonical Lookup Barrier. The schema is
+<!-- requirement-block: external-joins.every-positive-acquisition-bound-required-by-the-actql-lookup-barrier-0-1-schema-must external-joins.unavailable-static-estimates-must-retain-runtime-admission-obligations external-joins.unknown-and-zero-must-not-become-fabricated-positive-bounds external-joins.checked-arithmetic-must-reject-overflow-absent-capacity-evidence-or-a external-joins.known-conservative-estimates-must-remain-available-above-host-ceilings external-joins.actual-allocation-contract-and-policy-breaches-must-fail external-joins.the-acquisition-s-max-response-rows-is-derived-independently-of-the-logical-join-s -->
+When a static bounded `actql-lookup-barrier/0.1` representation is selected,
+every positive acquisition bound required by its schema MUST be present. The schema is
 `schemas.lookup_barrier` in the
 [production-profile schema registry](../../spec/contracts/actql-production-profile-schemas.json);
 [Typed barriers and Plan Documents](#plan-documents) defines its Plan binding. The compiler derives these bounds from the left
-Relation row bound, SourceView batching and capacity facts, and pinned Host
-execution policy.
+Relation row estimate, SourceView batching and capacity facts, and pinned Host
+execution policy. If an estimate is unavailable, unrepresentable or too
+conservative for the selected envelope, the original checked acquisition MUST
+instead retain an explicit runtime-admission obligation. Unknown and zero MUST
+NOT become fabricated positive bounds or signatures of this static schema.
 `max_distinct_keys` is at most the left row bound. If the SourceView omits a
-native batch capability, `max_keys_per_batch` is one. Checked arithmetic MUST
-reject overflow, absent capacity evidence, or a Host byte cap smaller than the
-Connector's worst-case logical response. No request, page, retry, byte, or
+native batch capability, `max_keys_per_batch` is one for nonempty input. Checked
+planning arithmetic MUST preserve overflow as an unavailable estimate, never
+rounding or clipping. Known conservative estimates MUST remain available to
+planning even when they exceed a Host ceiling. Actual allocation arithmetic,
+Source contract violations and runtime policy breaches MUST still fail. No request, page, retry, byte, or
 deadline arithmetic is Program vocabulary. The acquisition's
 `max_response_rows` is derived independently of the logical join's
 `max_output_rows`; a final semi/anti/output cap MUST NOT truncate the response
@@ -8685,21 +8701,31 @@ dispatch and retries for one logical request. `max_total_duration_ms` limits
 the acquisition-wide elapsed deadline, including resumed waiting, not a sum of
 parallel attempt durations or a fresh deadline on resume.
 
-<!-- requirement-block: external-joins.lookup-host-static-fit -->
-Static capacity resolution MUST check that the SourceView's worst-case complete
-logical decoded response fits the selected decoded-response ceiling using
-checked arithmetic. This does not prove the wire extent of a compressed
-response. Selected transport plans additionally fit their own request, response,
-redirect and timeout constraints and the aggregate envelope. In particular, the
-existing HTTP network policy retains its separate compressed/decompressed
-per-request bounds; this Host component does not replace them. Declaring a
-maximum retry count grants no retry capability and does not guarantee that all
-retries fit the remaining byte or deadline budgets. Dispatch and unresolved-usage
-reservations remain subject to those budgets before further work is admitted.
+<!-- requirement-block: external-joins.lookup-host-static-fit external-joins.lookup-runtime-admission-original-binding external-joins.lookup-runtime-admission-budget-enforcement external-joins.lookup-runtime-admission-completeness -->
+Static capacity resolution MAY retain a checked worst-case complete logical
+decoded-response estimate. An unavailable estimate, estimate overflow, or an
+estimate above the selected decoded-response ceiling MUST NOT by itself reject
+an otherwise valid acquisition. These cases MUST retain the original checked join,
+SourceView and Host policy as a runtime admission obligation. A fitting estimate
+does not grant resources or prove the wire extent of a compressed response.
+Execution MUST admit the next managed construction and physical operation on
+the same Run Ledger, enforce the selected per-request and cumulative ceilings,
+and retain owned cleanup on refusal. A fixed construction that cannot fit the
+selected budget may be refused before it starts. Selected transport plans retain
+their request, response, redirect and timeout constraints; the existing HTTP
+network policy's separate compressed/decompressed per-request bounds remain in
+force. Declaring a maximum retry count grants no retry capability and does not
+guarantee that all retries fit the remaining byte or deadline budgets. Dispatch
+and unresolved-usage reservations remain subject to those budgets before further
+work is admitted. Budget exhaustion MUST NOT publish an incomplete acquisition
+as a complete Source response.
 
 <!-- requirement-block: external-joins.upstream-candidate-completeness-and-complete-response-for-requested-keys-are-separate external-joins.acquisitions-with-different-input-aliases-response-policies-null-policies-or -->
-The capacity proof binds the left row bound, SourceView and carrier-facts CIDs,
-Host-policy CID, and every resolved bound. `complete` concerns one successful
+A real static capacity proof binds the left row estimate, SourceView and
+carrier-facts CIDs, Host-policy CID, and every resolved bound. A runtime
+obligation retains those same checked Source/Host owners and original join/left
+target without inventing a count proof. Neither form grants resources or access;
+both require runtime admission and cumulative enforcement. `complete` concerns one successful
 logical response for all requested keys. Redirect, retry, and failed-attempt
 bodies count toward transport wire-byte and attempt limits, not as logical
 result data. Upstream-candidate completeness and complete response for

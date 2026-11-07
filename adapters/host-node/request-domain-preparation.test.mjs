@@ -54,10 +54,10 @@ function fixture({infers = [], serializations = [], acquisitions = 0, refusal,
   const producer = {receipt: input, request, kind: 'program', body: snapshot, preparation: state};
   const originals = {installation: {sequenceContractOriginal: {moon, admission: {}}}};
   const read = Function('current', 'producerForRequest', 'fail', 'originals', 'checked',
-    'checkedRequestProgramPreparation', 'requestPreparationAvailable', 'reportCapacityRefusal',
+    'checkedRequestProgramPreparation', 'requestPreparationAvailable', 'reportCapacityRefusal', 'types',
     `const closing=false,closed=false;const pendingRunRegistrations=new Set();${managerHelpers}return ({${method}});`)(() => {},
     actual => {assert.equal(actual, request); return producer;}, fail, originals, value => value,
-    (_moon, value) => value, () => true, () => {});
+    (_moon, value) => value, () => true, () => {}, types);
   return {state, calls, inventory, selected, prepared, moon, parent, input, request,
     read: () => read.fundedPreparation(request),
     compile: graph => read.prepareModelCompilation(prepared, request, graph),
@@ -171,10 +171,15 @@ test('Request Model compilation retains one original artifact and graph without 
 });
 
 
-function adoptionFixture(family, failure) {
+function adoptionFixture(family, failure, {multiple = false} = {}) {
   const parent = {}, input = {}, request = {}, identity = {}, prepared = {}, holder = {};
-  const plan = {}, scope = {}, value = {}, graph = {}, artifact = {}, original = {}, calls = [];
+  const plan = {}, scope = {}, value = {}, graph = multiple ? Object.freeze([{}, {}]) : {}, artifact = {}, original = {}, calls = [];
   const model = {graph, scope: undefined};
+  const scopes = multiple ? [scope, {}] : undefined;
+  if (multiple) {
+    model.scopes = undefined;
+    model.components = Object.freeze(graph.map(graph => ({graph, group: model, scope: undefined})));
+  }
   const originals = {}, requirements = Object.freeze({attempts: 2});
   const state = {parent, prepared, holder, context: {}, original, compilationFamily: family,
     modelCompilation: artifact, modelGraph: graph};
@@ -189,6 +194,11 @@ function adoptionFixture(family, failure) {
     clientProgramCompleteRequestModelPreparation(p, i, selected) {
       assert.equal(this, moon); assert.equal(p, parent); assert.equal(i, input); assert.equal(selected, plan);
       assert.equal(model.scope, scope, 'The existing caller must retain Scope before completion');
+      if (multiple) {
+        assert.equal(model.scopes, scopes, 'Keep the same native return before any fallible complete');
+        assert(Object.isFrozen(scopes), 'Keep each original Scope slot stable across completion/current callbacks');
+        model.components.forEach((member, index) => assert.equal(member.scope, scopes[index]));
+      }
       calls.push('complete'); if (failure) throw failure;
     },
     clientProgramAdoptRequestModelPreparation(p, id, originalScope) {
@@ -204,6 +214,16 @@ function adoptionFixture(family, failure) {
       assert.equal(this, moon); assert.equal(p, parent); assert.equal(id, identity); calls.push('adopt'); return value;
     },
   };
+  if (multiple) {
+    moon.clientProgramPrepareRequestModelsReadScopes = function(p, i, selected) {
+      assert.equal(this, moon); assert.equal(p, parent); assert.equal(i, input); assert.equal(selected, plan);
+      calls.push('scopes'); return scopes;
+    };
+    moon.clientProgramAdoptRequestModelsPreparation = function(p, id, originals) {
+      assert.equal(this, moon); assert.equal(p, parent); assert.equal(id, identity); assert.equal(originals, scopes);
+      calls.push('adopt-all'); return value;
+    };
+  }
   state.context.runtime = moon;
   const name = family === 'model' ? 'adoptModelPreparation' : 'adoptContentPreparation';
   const a = source.indexOf('    '+name+'('), b = source.indexOf('    adopt'+(family === 'model' ? 'Content' : 'Effect')+'Preparation(', a);
@@ -216,7 +236,7 @@ function adoptionFixture(family, failure) {
         calls.push('requirements'); return requirements;
       }}, originals,
     actual => {assert.equal(actual, request); return producer;}, runs, liveRuns, fail, types, result => result);
-  return {state, model, plan, scope, value, calls, original, requirements, producer, runs, liveRuns, prepared,
+  return {state, model, plan, scope, scopes, value, calls, original, requirements, producer, runs, liveRuns, prepared,
     adoptModel: actual => object[name](prepared, identity, plan, actual),
     adopt: () => family === 'model' ? object[name](prepared, identity, plan, model) : object[name](prepared, identity, plan)};
 }
@@ -408,4 +428,81 @@ test('Request synchronous constructor helper latches an original null or undefin
     }
     assert.equal(compiles, 1); assert.equal(constructs, 1);
   }
+});
+
+// Actual manager compiler method; explicit Core ports qualify original-array
+// forwarding and sticky cleanup, not native Graph/Scope/backing or normal ABI.
+test('multiple Model graphs compile once on the same Request with their original ordered inventory',async()=>{
+  const first={},last={},graphs=Object.freeze([first,last]),artifact={};
+  const f=fixture({infers:[{},{}]});await f.read();f.state.modelGraph=last;
+  f.moon.clientProgramRequestProgramModuleIssueCode=()=>undefined;
+  let calls=0;
+  f.moon.clientProgramPrepareRequestModelCompilation=()=>assert.fail('no single graph substitution');
+  f.moon.clientProgramPrepareRequestModelsCompilation=function(parent,input,originals,contracts){
+    assert.strictEqual(this,f.moon);assert.strictEqual(parent,f.parent);assert.strictEqual(input,f.input);
+    assert.strictEqual(originals,graphs);assert.ok(contracts);calls++;return artifact;
+  };
+  assert.strictEqual(f.compile(graphs),artifact);assert.strictEqual(f.compile(graphs),artifact);
+  assert.equal(calls,1);assert.strictEqual(f.state.modelGraph,graphs);
+  assert.throws(()=>f.compile(Object.freeze([first,last])),{code:'ForeignInstalledSourceProducer'});
+  assert.equal(calls,1);
+});
+
+test('multiple Model compiler refusal stays on the same parent without a replacement compilation',async()=>{
+  const graphs=Object.freeze([{},{}]),f=fixture({infers:[{},{}]});await f.read();
+  f.state.modelGraph=graphs[1];let calls=0,failed=false;
+  f.moon.clientProgramRequestProgramModuleIssueCode=()=>undefined;
+  f.moon.clientProgramPrepareRequestModelsCompilation=()=>{calls++;throw undefined;};
+  try{f.compile(graphs);}catch(actual){failed=true;assert.strictEqual(actual,undefined);}
+  assert.equal(failed,true);failed=false;
+  try{f.compile(graphs);}catch(actual){failed=true;assert.strictEqual(actual,undefined);}
+  assert.equal(failed,true);assert.equal(calls,1);assert.equal(f.state.preparationFailed,true);
+  assert.strictEqual(f.state.parent,f.parent);assert.strictEqual(f.state.holder,f.selected);
+});
+
+
+test('complete Model handoff retains every original Scope before completion and adopts once', () => {
+  const f = adoptionFixture('model', undefined, {multiple: true});
+  const run = f.adopt();
+  assert.equal(run.model, f.model); assert.equal(run.value, f.value);
+  assert.equal(f.model.scopes, f.scopes);
+  assert.deepEqual(f.model.components.map(member => member.scope), f.scopes);
+  assert.equal(f.runs.get(f.prepared), run); assert.equal(f.producer.liveRuns, 1);
+  assert.deepEqual(f.calls, ['scopes', 'complete', 'adopt-all']);
+});
+
+test('complete Model handoff keeps all original Scopes and sticky completion failure without adoption', () => {
+  const primary = new Error('same-original-group-completion');
+  const f = adoptionFixture('model', primary, {multiple: true});
+  assert.throws(f.adopt, error => error === primary);
+  assert.equal(f.model.scopes, f.scopes);
+  assert.deepEqual(f.model.components.map(member => member.scope), f.scopes);
+  assert.equal(f.state.modelPlan, f.plan);
+  assert.throws(f.adopt, error => error === primary);
+  assert.deepEqual(f.calls, ['scopes', 'complete']);
+  assert.equal(f.producer.liveRuns, 0);
+});
+
+
+test('Model Source coordinate projection retains the same checked Direct inventory through adoption without guessing Stage or input', async () => {
+  const f = fixture({infers: [{}, {}], acquisitions: 2}); await f.read();
+  const producer = {preparation: f.state, receipt: f.input}, coordinates = [[4, 1, 0], [6, 2, 1]];
+  let selects = 0;
+  f.moon.clientProgramRequestModelDirectSourceCoordinates = function(parent, input) {
+    assert.equal(this, f.moon); assert.equal(parent, f.parent); assert.equal(input, f.input); selects++; return coordinates;
+  };
+  const start = source.indexOf('    modelSourceCoordinates(prepared, request) {'),
+    end = source.indexOf('    selectDomainSourceInput(', start);
+  assert(start > 0 && end > start);
+  const api = Function('current', 'producerForRequest', 'checked', 'fail',
+    'return ({'+source.slice(start, end).trim().replace(/,$/u, '')+'});')(
+      () => {}, request => {assert.equal(request, f.request); return producer;}, value => value, fail);
+  assert.equal(api.modelSourceCoordinates(f.prepared, f.request), coordinates);
+  assert(Object.isFrozen(coordinates)); assert(coordinates.every(Object.isFrozen));
+  f.state.adopting = true;
+  assert.equal(api.modelSourceCoordinates(f.prepared, f.request), coordinates);
+  assert.equal(selects, 1);
+  assert.throws(() => api.modelSourceCoordinates({}, f.request), {code: 'ForeignInstalledSourceProducer'});
+  f.state.prepared = undefined;
+  assert.throws(() => api.modelSourceCoordinates(f.prepared, f.request), {code: 'ForeignInstalledSourceProducer'});
 });

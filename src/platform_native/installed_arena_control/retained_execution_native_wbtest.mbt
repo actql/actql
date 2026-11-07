@@ -42,6 +42,15 @@ test "retained execution preserves pending original identity and parent fence" {
   }
   domain.retained_execution = Some(record)
   assert_true(
+    host.observe_domain_retained_execution_cleanup({ ..record, })
+    is Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))),
+  )
+  assert_true(
+    other.observe_domain_retained_execution_cleanup(record)
+    is Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))),
+  )
+  assert_true(host.observe_domain_retained_execution_cleanup(record) is Err(_))
+  assert_true(
     host.close_domain_retained_execution({ ..record, })
     is Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))),
   )
@@ -58,6 +67,7 @@ test "retained execution preserves pending original identity and parent fence" {
   assert_false(record.closed || record.physical_retired)
   host.close_domain_retained_execution(record).unwrap()
   assert_true(record.closed)
+  assert_true(host.observe_domain_retained_execution_cleanup(record) is Err(_))
   assert_false(record.physical_retired || record.child_started)
   host.close_domain_retained_execution(record).unwrap()
   host.leave_backing_borrow_scope(scope).unwrap()

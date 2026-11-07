@@ -115,7 +115,7 @@ for (const entrance of ['local', 'https']) {
       assert.deepEqual(restored.request.admission.ref, initial.ref);
       assert.equal(restored.status.status, 'succeeded');
       assert.equal(restored.computes, 0);
-      assert.deepEqual(restored.lookupBefore, initial.attempts);
+      assert.deepEqual(restored.lookupBefore, initial.admissions);
       assert.deepEqual(restored.lookupAfter, restored.lookupBefore);
       assert.deepEqual(restored.originalFirst.attempt, initial.attempt.attempt);
       assert.deepEqual(restored.originalSecond, restored.originalFirst);
@@ -143,6 +143,23 @@ for (const entrance of ['local', 'https']) {
       assert.ok(restored.attempts.includes(initial.attempts[0]));
       assert.equal(new Set(restored.grants.map(grant => grant.result_read_grant_cid)).size, 2);
       for (const grant of restored.grants) assert.equal(grant.max_uses, 1);
+      // These are the Store's independently persisted original START/grant
+      // records, not inferred counts from rows(), deliveryAttempt() or SDK I/O.
+      // Lookup alone leaves both issuance wires and consumed grant uses exact.
+      for (const observed of [initial, restored]) {
+        assert.equal(observed.admissions.length, observed.attempts.length);
+        for (const admission of observed.admissions) {
+          const attempt = JSON.parse(admission.attempt_wire);
+          const grant = JSON.parse(admission.grant_wire);
+          assert.equal(admission.run_cid, initial.ref.runDefinitionCid);
+          assert.equal(admission.attempt_cid, attempt.delivery_attempt_cid);
+          assert.equal(admission.grant_cid, attempt.result_read_grant_cid);
+          assert.equal(admission.grant_cid, grant.result_read_grant_cid);
+          assert.equal(admission.ready, 1);
+          assert.match(admission.initial_cid, /^sha256:[0-9a-f]{64}$/u);
+          assert.equal(admission.uses, 1);
+        }
+      }
       console.log('INSTALLED_READ_PREFIX_EVIDENCE', JSON.stringify({directory, entrance,
         ref: initial.ref, originalAttemptId, prefixRows: initial.rowsYielded,
         originalOwnerState: restored.originalFirst.record.state,

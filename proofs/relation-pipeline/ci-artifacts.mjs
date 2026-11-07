@@ -20,10 +20,11 @@ const digestPattern = /^[0-9a-f]{64}$/u;
 const shaPattern = /^[0-9a-f]{40}$/u;
 const maxFiles = 50000, maxFileBytes = 4 * 1024 ** 3, maxTotalBytes = 16 * 1024 ** 3;
 const maxManifestBytes = 32 * 1024 ** 2;
-// The existing whole capacity report is about 159 MiB (535 observations plus
-// repeated correspondence). Give only that named report a bounded allowance;
-// manifests and individual receipts keep the smaller cap.
-const maxCapacityReportBytes = 256 * 1024 ** 2;
+// Capacity reports retain complete original observations and correspondence.
+// Only the named whole/part reports receive this allowance; manifests and
+// individual receipts keep the smaller cap. This is a transport bound, not a
+// product resource allowance.
+export const maxCapacityReportBytes = 512 * 1024 ** 2;
 const manifestName = 'ci-seal.json';
 const prefix = '.artifacts/relation-pipeline/';
 export const requiredStages = Object.freeze({
@@ -32,12 +33,21 @@ export const requiredStages = Object.freeze({
 });
 const encode = value => `${JSON.stringify(value, null, 2)}\n`;
 export function canonicalJson(path, limit = maxManifestBytes) {
+  return readCanonicalJson(path, limit, false);
+}
+// Receipts retain all observations without indentation overhead. Their one
+// canonical encoding is distinct from reports; neither reader accepts both.
+export function canonicalExecutionReceipt(path) {
+  return readCanonicalJson(path, maxManifestBytes, true);
+}
+function readCanonicalJson(path, limit, compact) {
   const info = regularFile(path);
   assert(info.size <= limit, 'Oversized JSON evidence');
   const chunks = []; let size = 0;
   streamFile(path, bytes => {size += bytes.length; assert(size <= limit, 'Oversized JSON evidence'); chunks.push(Buffer.from(bytes));});
   const bytes = Buffer.concat(chunks), value = JSON.parse(bytes);
-  assert(bytes.equals(Buffer.from(encode(value))), 'Noncanonical or ambiguous JSON evidence');
+  const encoded = compact ? `${JSON.stringify(value)}\n` : encode(value);
+  assert(bytes.equals(Buffer.from(encoded)), 'Noncanonical or ambiguous JSON evidence');
   return value;
 }
 export function safePath(path) {
@@ -162,7 +172,7 @@ export function inspectProducerEvidence(directory, producer, expected) {
     assert(execution.path.startsWith(prefix), 'Non-local receipt reference');
     const path = safePath(execution.path.slice(prefix.length));
     assert(!paths.has(path), 'Receipt reused across obligations'); paths.add(path);
-    const receipt = read(path);
+    const receipt = canonicalExecutionReceipt(join(directory, path));
     assert.deepEqual(receipt, execution.receipt, 'Report and receipt differ');
     assert.equal(hash(JSON.stringify(receipt)), execution.digest, 'Receipt digest differs');
     assert(targets.includes(receipt.target));
@@ -342,7 +352,7 @@ export function joinEvidence({root, inputs, expected, destination}) {
     assert.deepEqual(inspectProducerEvidence(input.directory, input.producer, expected), manifest.receipts, 'Transferred receipt bindings differ');
     for (const receipt of manifest.receipts) {
       assert(!receiptPaths.has(receipt.path), 'Receipt path collides across producers'); receiptPaths.add(receipt.path);
-      for (const entry of canonicalJson(join(input.directory, receipt.path)).cases) {
+      for (const entry of canonicalExecutionReceipt(join(input.directory, receipt.path)).cases) {
         assert(!observations.has(entry.id), 'Observation identity collides across producers'); observations.add(entry.id);
       }
     }

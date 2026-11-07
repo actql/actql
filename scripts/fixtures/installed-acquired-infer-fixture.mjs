@@ -47,11 +47,11 @@ export function configuration(base) {
     max_total_duration_ms: 500, max_total_wire_bytes: 66536,
     max_total_token_reservation: 33, media_input_contracts: {},
     default_publication: 'outcomes'};
-  return {taskCid, installation: {
+  return {taskCid, installation: Object.freeze({
     environmentWire: canonical({...environment,
       evidence_bundle_cid: cid(environment)}),
-    executionContracts: [{modelTaskCid: taskCid, cid: cid(execution),
-      bodyWire: canonical({...execution, self_cid: cid(execution)})}],
-    dependencyBodies: bodies,
-  }};
+    executionContracts: Object.freeze([Object.freeze({modelTaskCid: taskCid, cid: cid(execution),
+      bodyWire: canonical({...execution, self_cid: cid(execution)})})]),
+    dependencyBodies: Object.freeze(bodies.map(body => Object.freeze(body))),
+  })};
 }

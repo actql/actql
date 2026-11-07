@@ -50,7 +50,8 @@ function zeroRetained(usage) {
   assert.ok(usage, 'cleanup reports the actual shared acquisition ledger');
   for (const key of ['reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes',
     'reservedExecutionBytes', 'uncertainTransferBytes']) assert.equal(usage[key], '0', key);
-  assert.ok(BigInt(usage.holdings) > 0n, 'the fixture exercised positive acquisition retention');
+  assert.equal(usage.holdings, '0', 'all original live acquisition holdings were returned');
+  assert.ok(BigInt(usage.peakRetentionBytes) > 0n, 'the fixture exercised positive acquisition retention');
 }
 function inventory(row) {
   const wire = JSON.parse(row.run_admission_evidence_json).sourceInventory;
@@ -92,7 +93,7 @@ if (action === 'public-success') {
     }};
     const running = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
       mode, directory, sourceProfilePaths: [installation.profiles.left, installation.profiles.right],
-      tls, authorization, retainedRelationOutput: true});
+      tls, authorization, hostCapacityPolicy: installation.hostCapacityPolicy, retainedRelationOutput: true});
     let client;
     try {
       client = await running.connect();
@@ -188,7 +189,7 @@ if (action === 'public-success') {
     let prepared = false;
     const preflight = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
       mode: 'https', directory: resolve(root, `${caseName}-generation-preflight`),
-      sourceProfilePaths, tls, authorization: {...baseAuthorization,
+      sourceProfilePaths, tls, hostCapacityPolicy: installation.hostCapacityPolicy, authorization: {...baseAuthorization,
         faultInjection(name) {
           if (name === 'dispatch_reserved') { prepared = true; throw new Error('GenerationPreparedBeforePhysicalStart'); }
         }}});
@@ -235,7 +236,8 @@ if (action === 'public-success') {
       }
     }};
   const running = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
-    mode, directory, sourceProfilePaths, tls, authorization});
+    mode, directory, sourceProfilePaths, tls, authorization,
+    hostCapacityPolicy: installation.hostCapacityPolicy});
   const client = await running.connect();
   try {
     const custodyPath = resolve(directory, 'submission-ref.json');
@@ -319,8 +321,7 @@ if (action === 'public-success') {
           assert.ok(error.failures[0].cleanup, 'first acquisition cleanup failure is independently preserved');
           assert.notEqual(error.failures[0].primary, error.failures[0].cleanup);
           assert.match(error.failures[0].primary.message, /missing_records/u);
-          assert.ok(error.failures[0].cleanup.errors.some(failure =>
-            failure.message === 'FixtureFirstAcquisitionCloseFailed'));
+          assert.equal(error.failures[0].cleanup.message, 'ClientSourceCleanupPending');
           return true;
         });
         const attemptsBeforeRetry = faults.filter(event => event.name === 'acquisition_cleanup_started');
@@ -331,8 +332,11 @@ if (action === 'public-success') {
         assert.deepEqual(provider.snapshot(), beforeRetry, 'cleanup retry never reacquires either source');
         const completed = events.filter(event => event.name === 'acquisition_cleanup_completed' && event.task === 0);
         assert.equal(completed.length, 1, 'one close receipt releases the original holding exactly once');
-        zeroRetained(completed[0].resourceUsage);
-        assert.equal(completed[0].resourceUsage.holdings,
+        assert.equal(completed[0].resourceUsage.heldBytes, '0');
+        assert.equal(BigInt(completed[0].resourceUsage.holdings),
+          BigInt(attemptsBeforeRetry[0].resourceUsage.holdings) - 1n,
+          'the one original acquisition holding is returned before parent retirement');
+        for (const event of attemptsBeforeRetry) assert.equal(event.resourceUsage.holdings,
           attemptsBeforeRetry[0].resourceUsage.holdings, 'retry does not issue another acquisition holding');
         assert.equal(completed[0].resourceUsage.attempts,
           attemptsBeforeRetry[0].resourceUsage.attempts, 'retry does not admit another acquisition');
@@ -352,6 +356,8 @@ if (action === 'public-success') {
         assert.deepEqual(faults.filter(event => event.name === 'acquisition_started').map(event => event.task), [0, 1]);
         assert.deepEqual(faults.filter(event => event.name === 'acquisition_completed').map(event => event.task), [0]);
         assert.equal(provider.snapshot().sourceReadSessions, 1);
+        assert.ok(BigInt(events.find(event => event.name === 'acquisition_completed').resourceUsage.holdings) > 0n,
+          'the original acquisition retained a positive holding before cleanup');
         zeroRetained(events.filter(event => event.name === 'dispatch_cleanup_completed').at(-1).resourceUsage);
         assert.equal(events.find(event => event.name === 'acquisition_completed').acquisition.selection.selectedCandidate,
           caseName.startsWith('broad-') ? 'broadQuery' : 'nativeQuery');

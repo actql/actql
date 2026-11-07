@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 const variants = ['current_filter', 'current_edge_filter'];
 const fields = ['execution', 'retention', 'held', 'transfer'];
+const holdingFields = ['retiredHoldingBytes', 'liveOutputBytes'];
 const address = value => typeof value === 'string' && /^[1-9][0-9]*$/.test(value);
 
 // Addresses identify borrowed objects only within one fixture invocation.
@@ -58,7 +59,7 @@ export function inspectDriverRetirement(log) {
       assert(current, 'Ledger outside actual Host case');
       const r = JSON.parse(line.slice(20));
       assert.equal(r.phase, ['pending', 'cleaned', 'repeated'][current.ledger.length]);
-      for (const f of fields) assert(Number.isSafeInteger(r[f]) && r[f] >= 0, 'Unrepresentable ledger observation');
+      for (const f of [...fields, ...holdingFields]) assert(Number.isSafeInteger(r[f]) && r[f] >= 0, 'Unrepresentable ledger observation');
       current.ledger.push(r);
     }
   }
@@ -71,8 +72,14 @@ export function inspectDriverRetirement(log) {
     assert.equal(c.ledger.length, 3, 'Missing reservation boundaries');
     const [pending, cleaned, repeated] = c.ledger;
     assert(pending.execution > cleaned.execution, 'Scratch reservation not returned');
-    for (const f of fields.filter(f => f !== 'execution')) assert.equal(cleaned[f], pending[f], 'Changed unrelated custody');
-    for (const f of fields) assert.equal(repeated[f], cleaned[f], 'Duplicate reservation return');
+    // The original closed task quote is independent of the observed delta.
+    // Its holding returns only after actual full provider cleanup. The other
+    // VALUES output still owns its original live backing throughout this retry.
+    assert(pending.retiredHoldingBytes > 0 && pending.liveOutputBytes > 0);
+    assert.equal(cleaned.held, pending.held - pending.retiredHoldingBytes, 'Changed original task holding return');
+    assert(cleaned.held >= pending.liveOutputBytes, 'Lost live output backing');
+    for (const f of ['retention', 'transfer', ...holdingFields]) assert.equal(cleaned[f], pending[f], 'Changed unrelated custody or original quote');
+    for (const f of [...fields, ...holdingFields]) assert.equal(repeated[f], cleaned[f], 'Duplicate reservation return or changed quote');
     return {variant: c.variant, driverRoots: groups.length, delayedProviders: delayed.length,
       rootRequestedBytes: 16, pendingExecution: pending.execution, cleanedExecution: cleaned.execution};
   });

@@ -7,6 +7,7 @@ struct ClientProjectConfiguration {
   lock : String?
   state_dir : String
   profile : String?
+  mock_catalog : String?
   mock_data : String?
   mock_answers : Array[(String, String)]
 }
@@ -101,15 +102,22 @@ pub fn admit_client_project_configuration(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let mut mock_catalog = None
   let mut mock_data = None
   let mock_answers : Array[(String, String)] = []
   match @decode.field(object, "mock") {
     Missing => ()
     ExplicitNull => return Err(InvalidConfiguration)
     Present(value) => {
-      let mock = match @decode.closed_object(value, ["data", "answers"]) {
+      let mock = match
+        @decode.closed_object(value, ["catalog", "data", "answers"]) {
         Ok(value) => value
         Err(_) => return Err(InvalidConfiguration)
+      }
+      mock_catalog = match
+        project_configuration_optional_text(mock, "catalog") {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
       }
       mock_data = match project_configuration_optional_text(mock, "data") {
         Ok(value) => value
@@ -141,6 +149,7 @@ pub fn admit_client_project_configuration(
     lock,
     state_dir: state_dir.unwrap_or("./.actql"),
     profile,
+    mock_catalog,
     mock_data,
     mock_answers,
   })
@@ -169,6 +178,11 @@ pub fn ClientProjectConfiguration::state_directory(self : Self) -> String {
 ///|
 pub fn ClientProjectConfiguration::selected_profile(self : Self) -> String? {
   self.profile
+}
+
+///|
+pub fn ClientProjectConfiguration::mock_catalog_file(self : Self) -> String? {
+  self.mock_catalog
 }
 
 ///|

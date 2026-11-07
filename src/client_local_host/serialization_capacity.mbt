@@ -1,4 +1,22 @@
 ///|
+/// Checked cells represented by one JSON leaf. Text bytes keep their separate
+/// admitted envelope. Nested/opaque domains need their own recursive proof.
+fn client_local_json_leaf_schema(schema : @schema.Schema) -> Bool {
+  let count = @schema.field_count(schema)
+  if count > client_local_schema_proof_work() {
+    return false
+  }
+  for index in 0..<count {
+    guard @schema.field_at(schema, index) is Some(field) else { return false }
+    match @schema.field_contract(field).shape {
+      @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
 /// Host-private allowances for the actual installed Content composition. These
 /// bound retained roots/wire buffers, not measured heap or logical work. The
 /// original prefix reservation retains them through physical cleanup.
@@ -74,6 +92,14 @@ pub fn client_serialization_workspace_capacity(
     is Some(logical) else {
     return None
   }
+  // The SAME closed proof issuers enforce these bounds before writing or
+  // admitting their bodies. Preserve every lower caller limit. The unrelated
+  // generic contract codec can accept larger bodies but does not allocate them
+  // in this Content constructor or its encrypted three-proof holding path.
+  let (proof_bytes, proof_nodes, proof_depth) = @publication_host.client_serialization_evidence_codec_bounds()
+  let contract_bytes = Int::min(limits.contract_bytes, proof_bytes)
+  let contract_nodes = Int::min(limits.contract_nodes, proof_nodes)
+  let contract_depth = Int::min(limits.contract_depth, proof_depth)
   // Original byte completion, issued Ref and three private proof bodies remain
   // alive together. Two reference bodies overlap candidate issuance; proof
   // canonical bodies and their encrypted Store transport may overlap cleanup.
@@ -92,21 +118,13 @@ pub fn client_serialization_workspace_capacity(
         count: limits.reference_bytes.to_int64(),
         copies: 2,
       },
-      {
-        unit: CanonicalWireBytes,
-        count: limits.contract_bytes.to_int64(),
-        copies: 6,
-      },
+      { unit: CanonicalWireBytes, count: contract_bytes.to_int64(), copies: 6, },
       {
         unit: ValueNodeSlots,
         count: limits.reference_nodes.to_int64(),
         copies: 2,
       },
-      {
-        unit: ValueNodeSlots,
-        count: limits.contract_nodes.to_int64(),
-        copies: 6,
-      },
+      { unit: ValueNodeSlots, count: contract_nodes.to_int64(), copies: 6, },
     ],
     [
       // Payload and logical writers coexist with additional roots, not a
@@ -138,11 +156,7 @@ pub fn client_serialization_workspace_capacity(
         count: limits.reference_depth.to_int64(),
         copies: 1,
       },
-      {
-        unit: CursorRootSlots,
-        count: limits.contract_depth.to_int64(),
-        copies: 1,
-      },
+      { unit: CursorRootSlots, count: contract_depth.to_int64(), copies: 1, },
       {
         unit: CursorRootSlots,
         count: export_limits.schema.max_fields.to_int64(),
@@ -176,4 +190,43 @@ pub fn client_serialization_workspace_capacity(
     ],
     @execution.RetainedAlongsideExecution,
   )
+}
+
+///|
+/// Same checked Content input shape only. This does not bound a different
+/// prefix, admit bytes, issue a Scope, or replace the original row guard.
+/// A negative result leaves recursive/opaque cells on the general profile.
+/// The direct Int projection creates no Option/tuple carrier at the JS ABI.
+pub fn client_serialization_json_leaf_field_count(
+  component : @publication_host.ClientSerializationPlanGraph,
+) -> Int {
+  let schema = @pipeline.serialization_input_schema(
+    @lower.serialization_checked(component.barrier),
+  )
+  if !client_local_json_leaf_schema(schema) {
+    return -1
+  }
+  @schema.field_count(schema)
+}
+
+///|
+/// A fact of the SAME checked serialization input, not its one-row output.
+/// Unknown/external input preserves the existing installed producer ceiling.
+pub fn client_serialization_input_row_bound(
+  component : @publication_host.ClientSerializationPlanGraph,
+) -> Int? {
+  let prepared = @lower.bound_preparation(
+    @lower.serialization_owner(component.barrier),
+  )
+  guard component.step == @lower.serialization_step(component.barrier) &&
+    @lower.node_at(prepared, component.step) is Some(node) &&
+    @lower.node_input_count(node) == 1 &&
+    @lower.node_input_target(node, 0) is Some(@pipeline.Step(input)) else {
+    return None
+  }
+  @lower.prepared_closed_row_bound(
+    prepared,
+    client_local_schema_proof_work(),
+    target_step=Some(input),
+  ).map(bound => bound.0)
 }

@@ -18,3 +18,32 @@ fn[T, E] preparation_module_call(
   preparation_module_scope(() => result.val = Some(body()), finish)
   result.val.unwrap()
 }
+
+///|
+#external
+pub type QueryBindingForeignFailure
+
+///|
+extern "js" fn query_binding_failure_scope(
+  body : () -> Unit,
+  failure : (QueryBindingForeignFailure) -> Unit,
+  finish : () -> Unit,
+) -> Unit =
+  #|(body,failure,finish) => { try { body(); } catch (cause) { failure(Object.freeze({cause})); } finally { finish(); } }
+
+///|
+fn[T] query_binding_protected_call(
+  body : () -> Result[T, ClientRequestPreparationIssue],
+  finish : () -> Unit,
+) -> Result[
+  Result[T, ClientRequestPreparationIssue],
+  QueryBindingForeignFailure,
+] {
+  let result = Ref(None)
+  query_binding_failure_scope(
+    () => result.val = Some(Ok(body())),
+    failure => result.val = Some(Err(failure)),
+    finish,
+  )
+  result.val.unwrap()
+}

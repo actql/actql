@@ -264,3 +264,29 @@ Command targets require their own checked original variant, not a fabricated
 STORE pair, hidden column or current-configuration re-resolution. Missing
 issuer, body workspace, current permission, saved material or physical cleanup
 remains unavailable. Private Preview correspondence is not approval or apply.
+
+## Hot recovery request input
+
+- Responsibility: the existing managed Effect and installed Row Effect retain
+  the recovered request input through final parent retirement.
+- Inputs and outputs: the admitted original Preview and saved provider recovery
+  data produce one original request tuple; each recovery stage only borrows it.
+- Identity: hot reuse requires the same Preview forest and wire, installed member
+  owners, original Request and Plan. Current claims are compared again with the
+  original request CIDs, approved values and targets.
+- Ownership: original member constructor tokens keep the request bodies backed.
+  Closing a transient stage returns its alias after route retirement; it does
+  not retire the retained input or acknowledge the parent.
+- Synchronization: one stage borrows this input at a time. Observation never
+  consumes a spent constructor again or creates another Run or send attempt.
+- Failure: partial construction retains its exact primary and original children;
+  a pending child release keeps final retirement pending.
+- Cancellation: neither cancellation nor Unknown permits resend, inferred stop,
+  early body retirement or a fabricated resource acknowledgement.
+- Resources: the existing control tariff includes the fixed holder and borrow
+  records plus the actual installed-member reference vector. Original request
+  bodies remain on their constructor backing until their own checked release.
+- Extension: this is the existing provider-neutral input lifetime, without a
+  new recovery owner, permission cache or independent execution path.
+- Verification: the original recovery-constructor, hot observation, changed
+  parent, pending child and final control-retirement tests exercise these seams.

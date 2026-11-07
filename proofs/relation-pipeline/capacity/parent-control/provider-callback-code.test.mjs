@@ -1,8 +1,56 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {inspectScalarCode, scalarSites, providerSymbolText} from './provider-callback-code.mjs';
+import {inspectScalarCode, scalarSites, providerSymbolText, nativeArtifactPath} from './provider-callback-code.mjs';
 import {inspectProviderConstructionPoint} from './provider-construction.mjs';
+import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, realpathSync, existsSync} from 'node:fs';
+import {dirname, join} from 'node:path';
+import {tmpdir} from 'node:os';
+
+// Synthetic file transport only; no object is loaded and no Native tool runs.
+function relocatedNativeInput(t) {
+  const root=realpathSync(mkdtempSync(join(tmpdir(),'actql-native-input-path-')));
+  t.after(()=>rmSync(root,{recursive:true,force:true}));
+  const path='.artifacts/relation-pipeline/current-chain-native/code/original.o';
+  const physical=join(root,'extracted/code/original.o'),bytes=Buffer.from([0,255,128,1]);
+  mkdirSync(dirname(physical),{recursive:true});writeFileSync(physical,bytes);
+  const read=selected=>{assert.equal(selected,path);return readFileSync(physical);};
+  return {root,path,physical,bytes,read};
+}
+test('Native tool input resolves the same relocated original without a producer-root copy',t=>{
+  const f=relocatedNativeInput(t),producer=join(f.root,'absent-producer');let calls=0;
+  Object.defineProperty(f.read,'resolveArtifact',{value:function(path){
+    assert.equal(this,f.read);assert.equal(path,f.path);calls++;return f.physical;
+  }});
+  assert.equal(nativeArtifactPath(producer,f.read,f.path),f.physical);
+  assert.equal(calls,1);assert.equal(existsSync(producer),false);
+  assert.deepEqual(readFileSync(f.physical),f.bytes);
+});
+test('Native tool input preserves the original producer path when its resolver is absent or inherited',t=>{
+  const f=relocatedNativeInput(t),physical=join(f.root,f.path);
+  mkdirSync(dirname(physical),{recursive:true});writeFileSync(physical,f.bytes);
+  assert.equal(nativeArtifactPath(f.root,f.read,f.path),physical);
+  Object.setPrototypeOf(f.read,{resolveArtifact(){assert.fail('Inherited resolver must not run');}});
+  assert.equal(nativeArtifactPath(f.root,f.read,f.path),physical);
+});
+test('Native tool input refuses a detached physical file',t=>{
+  const f=relocatedNativeInput(t),wrong=join(f.root,'wrong.o');writeFileSync(wrong,'different bytes');
+  Object.defineProperty(f.read,'resolveArtifact',{value:()=>wrong});
+  assert.throws(()=>nativeArtifactPath(f.root,f.read,f.path),/Detached Native artifact physical input/);
+});
+test('Native tool input does not fall back after a supplied physical path is missing',t=>{
+  const f=relocatedNativeInput(t),ordinary=join(f.root,f.path);
+  mkdirSync(dirname(ordinary),{recursive:true});writeFileSync(ordinary,f.bytes);
+  Object.defineProperty(f.read,'resolveArtifact',{value:()=>join(f.root,'missing.o')});
+  assert.throws(()=>nativeArtifactPath(f.root,f.read,f.path),{code:'ENOENT'});
+});
+test('Native tool input refuses malformed own resolvers without invoking accessors',t=>{
+  const f=relocatedNativeInput(t);
+  for(const descriptor of [{value:undefined},{value:1},{value:()=>undefined},
+    {get(){assert.fail('Resolver getter must not run');}}]) {
+    const read=path=>f.read(path);Object.defineProperty(read,'resolveArtifact',descriptor);
+    assert.throws(()=>nativeArtifactPath(f.root,read,f.path),/Invalid Native artifact/);
+  }
+});
 // Independent tiny ARM64 object/link pair. Addresses deliberately differ;
 // allocation offsets and callback identity must survive linking and ASLR.
 const object = `0000000000000100 <factory>:
@@ -80,8 +128,8 @@ test('unrelated C translation-unit symbols do not become provider identity colli
   assert(selected.includes('__M0connectors5local_callback'));
 });
 
-import {retainedConstructionRead} from './provider-construction-adopted-review.mjs';
-const read = retainedConstructionRead(path => readFileSync(new URL(`../../../../${path}`, import.meta.url)));
+import {retainedConstructionFixtureRead} from '../../fixtures/retained-construction-source.mjs';
+const read = retainedConstructionFixtureRead;
 const constructionFacts = () => [{...facts()[0], kind:'provider construction observation',
   providers:11, records:11, arraySlots:11, callbacks:24, defaultArrays:1,
   indexedBytes:1504, unclassifiedCaptures:0}];

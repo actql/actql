@@ -8,6 +8,7 @@ struct ClientInstalledManagedCapturePlan {
   // context while this original also retains the definition/sample binding.
   _observed_query_time : @publication_host.ClientQueryTimePreparation?
   captures : Array[ClientInstalledCaptureCapacity]
+  direct_occurrences : @publication_host.ClientDirectAcquisitionOccurrences?
   whole_input : ClientInstalledWholeSourceCapacity?
   graph : @strategy.CheckedDAG
   transport_bytes : Array[Int64]
@@ -46,6 +47,7 @@ pub fn prepare_installed_managed_capture_plan(
     @local.ManagedProvider,
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   prepare_installed_managed_capture_plan_owned(
     prepared,
@@ -61,6 +63,7 @@ pub fn prepare_installed_managed_capture_plan(
     retained_output~,
     provider_factory~,
     query_time~,
+    runtime_admission~,
   )
 }
 
@@ -81,7 +84,10 @@ fn prepare_installed_managed_capture_plan_owned(
     @local.ManagedProvider,
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  direct_occurrences? : @publication_host.ClientDirectAcquisitionOccurrences? = None,
   model? : @publication_host.ClientInferPlanGraph? = None,
+  model_graphs? : Array[@publication_host.ClientInferPlanGraph]? = None,
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   let identity = @publication_host.prepared_client_identity(prepared)
   if identity.program_definition_cid !=
@@ -96,6 +102,7 @@ fn prepare_installed_managed_capture_plan_owned(
       Pure(prepared),
       model_purpose,
       model~,
+      model_graphs~,
     ) ||
     count < 1 ||
     captures.length() != count ||
@@ -103,11 +110,31 @@ fn prepare_installed_managed_capture_plan_owned(
     transport_execution_bytes.length() != count {
     return Err(Unsupported)
   }
+  let direct = match direct_occurrences {
+    Some(value) => value
+    None =>
+      match installed_direct_occurrences_owned(Pure(prepared)) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+  }
+  if !installed_direct_occurrences_match_owner(direct, Pure(prepared)) ||
+    @publication_host.client_direct_acquisition_occurrence_count(direct) !=
+    count {
+    return Err(ForeignOriginal)
+  }
   for index, original in captures {
+    guard @publication_host.client_direct_acquisition_occurrence_at(
+        direct, index,
+      )
+      is Some((stage, input, task)) &&
+      task == index else {
+      return Err(ForeignOriginal)
+    }
     if !@publication_host.client_query_requirement_matches_original_query_time(
         prepared,
-        index,
-        0,
+        stage,
+        input,
         original.requirement,
         query_time,
         request,
@@ -152,16 +179,35 @@ fn prepare_installed_managed_capture_plan_owned(
       transport_execution_bytes,
       retained_output,
       provider_factory,
+      runtime_admission~,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  guard installed_direct_occurrences_layout(count)
+    is Some((selector_retained, _)) &&
+    @execution.checked_preparation_add_product(
+      compute.limits.retained_bytes,
+      selector_retained,
+      1L,
+    )
+    is Some(retained_bytes) &&
+    @execution.checked_preparation_add_product(
+      compute.limits.execution_bytes,
+      selector_retained,
+      1L,
+    )
+    is Some(execution_bytes) else {
+    return Err(InsufficientCapacity)
+  }
+  let limits = { ..compute.limits, retained_bytes, execution_bytes, }
   Ok({
     prepared,
     request,
     _observed_query_time: query_time,
     captures: captures.copy(),
     whole_input: None,
+    direct_occurrences: Some(direct),
     graph: @publication_host.prepared_client_graph(prepared),
     transport_bytes: transport_bytes.copy(),
     transport_execution_bytes: transport_execution_bytes.copy(),
@@ -176,7 +222,7 @@ fn prepare_installed_managed_capture_plan_owned(
     model_input_prefix: None,
     model_input_suffix: None,
     compilation: None,
-    limits: compute.limits,
+    limits,
   })
 }
 
@@ -215,7 +261,7 @@ fn prepare_retained_installed_capture_ledger(
 ) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
   guard value.captured_preparation is Some(original) &&
     physical_equal(original, plan) &&
-    value.preparation is Some(PureManaged(_, prepared)) &&
+    value.preparation is Some(PureManaged(admission, prepared)) &&
     physical_equal(prepared, plan.prepared) &&
     physical_equal(value.request, plan.request) else {
     return Err(ForeignOriginal)
@@ -256,7 +302,17 @@ fn prepare_retained_installed_capture_ledger(
       return Err(ForeignOriginal)
     }
   }
-  if !installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)) {
+  let fits = match value.preparation_retirement {
+    None =>
+      installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger))
+    Some(PurePreparation(original)) =>
+      // This captured Plan retains the SAME backed Request body. Source
+      // and Compute constructors still reserve/grow on its finite Ledger;
+      // their whole-run maxima do not allocate storage at this handoff.
+      preparation_owned_run_limits_fit(original, admission, prepared, ledger)
+    Some(EffectPlanPreparation(_)) => false
+  }
+  if !fits {
     return Err(InsufficientCapacity)
   }
   // The caller already crossed this Run's actual current boundary and its
@@ -288,6 +344,7 @@ pub fn installed_managed_capture_plan(
 pub suberror ClientInstalledCaptureHostIssue {
   Managed(ClientInstalledManagedRunIssue)
   Run(@strategy.RunIssue)
+  Keyed(@publication_host.ClientKeyedRequestIssue)
   Configuration
 }
 
@@ -385,6 +442,84 @@ fn open_installed_managed_capture_host_owned(
     Err(issue) => return Err(Run(issue))
     Ok(run) => run
   }
+  bind_retained_installed_capture_host(value, plan, ledger, run)
+}
+
+///|
+/// The keyed input was assembled on this SAME adopted Run's Ledger. Reuse
+/// its retained configuration and generated sequences; opening the supplied
+/// port neither quotes another whole budget nor compiles the Program again.
+pub fn open_installed_managed_keyed_capture_host(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedDAG,
+    Array[@execution.GeneratedSequence],
+  ),
+  ClientInstalledCaptureHostIssue,
+] {
+  if value.source_free_opening || value.source_free_captured is Some(_) {
+    return Err(Managed(AlreadyBound))
+  }
+  value.source_free_opening = true
+  let result = open_installed_managed_keyed_capture_host_owned(
+    value, prepared, request, lookup,
+  )
+  value.source_free_opening = false
+  result
+}
+
+///|
+fn open_installed_managed_keyed_capture_host_owned(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedDAG,
+    Array[@execution.GeneratedSequence],
+  ),
+  ClientInstalledCaptureHostIssue,
+] {
+  let plan = match installed_managed_capture_plan(value, prepared, request) {
+    Err(issue) => return Err(Managed(issue))
+    Ok(plan) => plan
+  }
+  if plan.whole_input is Some(_) || plan.captures.length() != 1 {
+    return Err(Managed(ForeignOriginal))
+  }
+  let ledger = match require_installed_managed_run(value) {
+    Err(issue) => return Err(Managed(issue))
+    Ok(ledger) => ledger
+  }
+  let run = match
+    @publication_host.open_client_keyed_lookup_dag(prepared, lookup, ledger) {
+    Err(issue) => return Err(Keyed(issue))
+    Ok(run) => run
+  }
+  bind_retained_installed_capture_host(value, plan, ledger, run)
+}
+
+///|
+fn bind_retained_installed_capture_host(
+  value : ClientInstalledManagedRun,
+  plan : ClientInstalledManagedCapturePlan,
+  ledger : @resources.Ledger,
+  run : @strategy.CapturedDAG,
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedDAG,
+    Array[@execution.GeneratedSequence],
+  ),
+  ClientInstalledCaptureHostIssue,
+] {
   value.source_free_captured = Some(run)
   let host = bind_client_local_configuration(
     run,

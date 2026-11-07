@@ -11,6 +11,8 @@ import {checkComputeAssembly} from './connector-compute-bundles.mjs';
 import {checkNodeAssembly} from './connector-node-bundles.mjs';
 import {assertClientWireDependency} from
   './connector-addition-wire-dependency.mjs';
+import {copyConnectorAdditionHostSource, assertConnectorAdditionHostSource} from
+  './connector-addition-source.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const git = args => {
@@ -112,18 +114,11 @@ for (const name of readdirSync(join(root, 'src'))) {
     cpSync(join(root, 'src', name), join(isolated, 'src', name), {recursive: true});
   }
 }
-// Rebuild generated composition packages in isolation while retaining their
-// handwritten common Carrier and execution-authorization adapters. Omitting
-// the whole package silently changes managed execution semantics instead of
-// testing connector addition.
-for (const path of [
-  'src/connectors_builtin/local_carrier_dispatch.mbt',
-  'src/connectors_builtin_node/local_carrier_bridge.mbt',
-  'src/connectors_builtin_node/authorization_bridge.mbt',
-]) {
-  mkdirSync(dirname(join(isolated, path)), {recursive: true});
-  cpSync(join(root, path), join(isolated, path));
-}
+// Rebuild only composition-owned outputs while retaining the common Carrier,
+// authorization and complete production Client declaration package. Its
+// existing dependency manifests supply the same aliases. A partial bridge
+// silently changes common consumers instead of testing connector addition.
+const commonHostInputs = copyConnectorAdditionHostSource(root,isolated);
 
 const hash = data => createHash('sha256').update(data).digest('hex');
 function inventory(directory, prefix = '') {
@@ -140,8 +135,16 @@ function inventory(directory, prefix = '') {
 function run(label, args, executable = 'moon') {
   const testKind = args[0] === 'test' ? 'moon' : args.includes('--test') ? 'node' : null;
   if (testKind === 'node') args = nodeTestArguments(args);
-  console.log(JSON.stringify({phase: label, command: [executable, ...args], isolated}));
-  const result = spawnSync(executable, args, {
+  // Reuse Core CI's pinned Linux Native compiler soft-stack prerequisite.
+  // Keep the inherited hard limit; failure aborts before the original exec.
+  const nativeCompiler = process.platform === 'linux' && executable === 'moon' &&
+    args[0] === 'test' && args[1] === '--target' && args[2] === 'native';
+  const compilerProcess = nativeCompiler ? ['bash', '-e', '-c',
+    'ulimit -S -s 65536\nexec "$@"', 'actql-native-compiler', executable, ...args] : null;
+  console.log(JSON.stringify({phase: label, command: [executable, ...args], isolated,
+    ...(compilerProcess ? {compilerProcess} : {})}));
+  const result = spawnSync(compilerProcess ? compilerProcess[0] : executable,
+    compilerProcess ? compilerProcess.slice(1) : args, {
     cwd: isolated, env: process.env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
   });
   writeFileSync(join(isolated, label + '.log'), (result.stdout ?? '') + (result.stderr ?? ''));
@@ -157,6 +160,7 @@ function run(label, args, executable = 'moon') {
 
 if (checkComputeAssembly(isolated, true) !== 2) throw new Error('Expected the declared two-implementation baseline');
 checkNodeAssembly(isolated, true);
+assertConnectorAdditionHostSource(isolated,commonHostInputs);
 if (existsSync(join(isolated, 'src/connectors/reference_compute'))) throw new Error('Third implementation leaked into baseline');
 const snapshot = () => new Map([...inventory(join(isolated, 'src'), 'src/'),
   ...inventory(join(isolated, 'adapters'), 'adapters/'),
@@ -177,6 +181,7 @@ for (const path of ['src/connectors/reference_compute', 'src/query_integration',
 }
 if (checkComputeAssembly(isolated, true) !== 3) throw new Error('Third declaration was not assembled');
 checkNodeAssembly(isolated, true);
+assertConnectorAdditionHostSource(isolated,commonHostInputs);
 const after = snapshot();
 const changed = [...new Set([...before.keys(), ...after.keys()])].filter(path => before.get(path) !== after.get(path)).sort();
 for (const path of changed) if (!allowed(path)) throw new Error(`Common implementation changed: ${path}`);
@@ -186,8 +191,10 @@ const tests = {};
 for (const target of ['js', 'wasm', 'native']) {
   tests[target] = run('third-' + target, ['test', '--target', target,
     'src/query_integration/standard_subset_wbtest.mbt']);
-  if (!tests[target].some(total => total === 'Total tests: 1, passed: 1, failed: 0.')) {
-    throw new Error(`Independent connector test was not executed on ${target}`);
+  // The selected file includes both the reference/both-implementation case
+  // and the Local-only retention refusal. Require both original cases.
+  if (!tests[target].some(total => total === 'Total tests: 2, passed: 2, failed: 0.')) {
+    throw new Error(`Both independent connector cases were not executed on ${target}`);
   }
 }
 tests.node = run('standard-node', ['--test', '--test-name-pattern=standard native and broad Node Hosts',

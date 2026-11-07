@@ -40,10 +40,30 @@ pub fn keyed_response_port_schema(
   owner : @lower.BoundPrepared,
   join : @acquisition.KeyedJoin,
 ) -> Result[@schema.Schema, KeyedInputRequestIssue] {
+  let index = match keyed_response_input_index(owner, join) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    @lower.preparation_input_schema(@lower.bound_preparation(owner), index) {
+    Some(schema) => Ok(schema)
+    None => Err(ForeignInput)
+  }
+}
+
+///|
+// Source inventory coordinates exclude imported Results. Decode and retained
+// runtime inputs instead use the actual checked JOIN right port in its pipeline.
+// Keep the inventory coordinate unchanged for Catalog/Source obligation checks.
+pub fn keyed_response_input_index(
+  owner : @lower.BoundPrepared,
+  join : @acquisition.KeyedJoin,
+) -> Result[Int, KeyedInputRequestIssue] {
   let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
   guard @pipeline.step_at(pipeline, @acquisition.keyed_join_step(join))
     is Some(step) &&
-    step.operation is @pipeline.Join(checked=operation, ..) &&
+    step.operation
+    is @pipeline.Join(checked=operation, right=@pipeline.Input(index)) &&
     physical_equal(operation, @acquisition.keyed_join_operation(join)) &&
     step.input == Some(@acquisition.keyed_join_left(join)) else {
     return Err(ForeignPipeline)
@@ -63,14 +83,16 @@ pub fn keyed_response_port_schema(
         return Err(ForeignParameters)
       }
   }
-  match
-    @lower.preparation_input_schema(
-      @lower.bound_preparation(owner),
-      @acquisition.keyed_join_input(join),
-    ) {
-    Some(schema) => Ok(schema)
-    None => Err(ForeignInput)
+  let input = @acquisition.keyed_request_input(
+    @acquisition.parameterized_keyed_request(
+      @acquisition.keyed_join_request(join),
+    ),
+  )
+  if @pipeline.lookup(pipeline, @acquisition.declaration(input).input_name) !=
+    Some(@pipeline.Input(index)) {
+    return Err(ForeignInput)
   }
+  Ok(index)
 }
 
 ///|

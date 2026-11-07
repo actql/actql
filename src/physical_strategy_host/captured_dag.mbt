@@ -351,8 +351,73 @@ fn open_effect_run_captures(
 }
 
 ///|
+// The selected caller supplies an actual completed keyed read. The checked
+// Source port and original live input, never planned metadata, discharge the
+// one deferred slot. No original graph or Source holding is mutated.
+pub fn open_multi_captured_effect_run_keyed_dag(
+  checked : CheckedEffectRunDAG,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+  task : Int,
+  model_step : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Result[CapturedEffectRunDAG, RunIssue] {
+  let original = checked.computation.graph_value()
+  guard @graph.graph_with_completed_keyed_model_input(
+      original, task, model_step, read,
+    )
+    is Some(graph) else {
+    return Err(ForeignCapture)
+  }
+  let mut slot = None
+  for value in graph.supplied_slots_iter() {
+    if value.consumer == task &&
+      @execution.supplied_relation_read_matches_input(
+        read,
+        graph.owners_at(task).unwrap(),
+        value.source_input,
+      ) {
+      if slot is Some(_) {
+        return Err(ForeignCapture)
+      }
+      slot = Some(value.input)
+    }
+  }
+  guard slot is Some(input) else { return Err(ForeignCapture) }
+  let dependencies = match
+    effect_dependency_ports(checked.computation, 4096, 65536, 64) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let captured = match
+    open_checked_dag(graph, sources, ledger, [], supplied_reads=[
+      (task, input, read),
+    ]) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  for dependency in dependencies {
+    captured.effect_dependency_outputs[dependency.task] = true
+  }
+  Ok({ checked, captured, })
+}
+
+///|
 pub fn captured_effect_run_dag(value : CapturedEffectRunDAG) -> CapturedDAG {
   value.captured
+}
+
+///|
+// The runtime keyed-input view is constructed from this exact checked Effect
+// graph. Its added live input slot does not replace the preparation original.
+// This nominal association conveys no input liveness, capacity or permission.
+pub fn captured_effect_run_matches_preparation(
+  value : CapturedEffectRunDAG,
+  run : CapturedDAG,
+  graph : CheckedDAG,
+) -> Bool {
+  physical_equal(value.captured, run) &&
+  physical_equal(checked_effect_run_graph(value.checked), graph)
 }
 
 ///|
@@ -386,6 +451,8 @@ fn open_checked_dag(
   completed? : Array[(Int, @execution.CompletedOutput)] = [],
   root_wire_bytes? : Int? = None,
   supplied_reads? : Array[(Int, Int, @execution.SuppliedRelationRead)] = [],
+  retained_model? : (Int, Int, @execution.CompletedOutput)? = None,
+  retained_models? : Array[(Int, Int, @execution.CompletedOutput)] = [],
 ) -> Result[CapturedDAG, RunIssue] {
   let count = graph.owners_count()
   if count == 0 {
@@ -460,7 +527,57 @@ fn open_checked_dag(
     count,
     _ => [],
   )
-  if !graph_ordered_inputs_complete(graph) {
+  // A restored Model task has already executed on its original retained
+  // input. Its completion is not a newly completed keyed Source port.
+  let retained_task = match retained_model {
+    None => None
+    Some((task, step, output)) => {
+      guard task >= first_task &&
+        task < count &&
+        graph_keyed_model_plan_inputs_complete(graph, task, step) &&
+        graph.targets_at(task).unwrap() is Some(target) &&
+        @execution.completed_output_matches_port(
+          output,
+          graph.owners_at(task).unwrap(),
+          target,
+        ) &&
+        @execution.completed_output_available(output) else {
+        return Err(ForeignCapture)
+      }
+      outputs[task] = Some(Materialized(output))
+      Some(task)
+    }
+  }
+  // The closed plural Model caller supplies actual original completed
+  // outputs, not planned supplied rows. Keep the scalar entrance unchanged.
+  if retained_models.length() > count ||
+    (retained_task is Some(_) && !retained_models.is_empty()) {
+    return Err(ForeignCapture)
+  }
+  let retained_tasks : Array[Int] = []
+  let mut retained_keyed_input = false
+  for (task, step, output) in retained_models {
+    guard task >= first_task &&
+      task < count &&
+      outputs[task] is None &&
+      graph.targets_at(task).unwrap() is Some(target) &&
+      @execution.completed_output_matches_port(
+        output,
+        graph.owners_at(task).unwrap(),
+        target,
+      ) &&
+      @execution.completed_output_available(output) else {
+      return Err(ForeignCapture)
+    }
+    outputs[task] = Some(Materialized(output))
+    retained_tasks.push(task)
+    if graph_keyed_model_plan_inputs_complete(graph, task, step) {
+      retained_keyed_input = true
+    }
+  }
+  if !graph_ordered_inputs_complete(graph) &&
+    retained_task is None &&
+    !retained_keyed_input {
     return Err(UnsupportedGraph)
   }
   if supplied.length() + supplied_reads.length() != graph.supplied_slots_count() {
@@ -764,7 +881,9 @@ fn open_checked_dag(
     }),
     ledger,
     outputs,
-    done: Array::make(count, false),
+    done: Array::makei(count, task => {
+      retained_task == Some(task) || retained_tasks.contains(task)
+    }),
     lifetimes,
     effect_dependency_outputs: Array::make(count, false),
     resources,
@@ -806,6 +925,25 @@ fn open_checked_dag(
     managed_selections: Array::make(count, None),
     activation_required: false,
     activation_grant: None,
+  }
+  if retained_task is Some(task) {
+    // This is a borrowed completion. Its actual Model execution keeps its
+    // allocation and output-use pin; this DAG neither charges it twice nor
+    // acknowledges that owner's physical cleanup.
+    resources[task] = Some({
+      holding: None,
+      release_confirmed: fn() { true },
+      cleanup_observation: CleanupReady,
+      parents: task_parents(run, task),
+    })
+  }
+  for task in retained_tasks {
+    resources[task] = Some({
+      holding: None,
+      release_confirmed: fn() { true },
+      cleanup_observation: CleanupReady,
+      parents: task_parents(run, task),
+    })
   }
   for (task, port, read) in supplied_reads {
     let lifetime = lifetimes[task]
@@ -1585,6 +1723,7 @@ pub fn execute_captured_synchronous_task(
       0L,
       capacity.retained_bytes,
       capacity.execution_bytes,
+      quantities=@resources.quantity_neutral_amounts(run.ledger),
     ) {
     Ok(reservation) => reservation
     Err(issue) => return Err(Physical(issue))

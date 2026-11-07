@@ -248,6 +248,25 @@ fn local_project_execution_operation(operation : String) -> Bool {
 }
 
 ///|
+// Implementation availability, never an installed binding or permission.
+// Keep discovery and project admission on the same Native owner predicate.
+fn local_project_binding_implementation(
+  profile : String?,
+  mock_inputs : Bool,
+) -> Bool {
+  profile is None && !mock_inputs
+}
+
+///|
+fn local_project_init_support() -> String {
+  "{\"version\":\"actql-project-init-support/0.1\",\"sourceFree\":" +
+  local_project_binding_implementation(None, false).to_string() +
+  ",\"mock\":" +
+  local_project_binding_implementation(Some("mock"), true).to_string() +
+  "}"
+}
+
+///|
 fn local_project_require_supported_profile(
   selected : LocalProjectConfiguration,
   operation : String,
@@ -257,9 +276,12 @@ fn local_project_require_supported_profile(
   }
   let metadata = selected.metadata
   if metadata.lock_file() is Some(_) ||
-    selected.profile is Some(_) ||
-    metadata.mock_data_file() is Some(_) ||
-    metadata.mock_answer_count() != 0 {
+    !local_project_binding_implementation(
+      selected.profile,
+      metadata.mock_catalog_file() is Some(_) ||
+      metadata.mock_data_file() is Some(_) ||
+      metadata.mock_answer_count() != 0,
+    ) {
     stop("LocalProjectBindingsUnavailable")
   }
 }

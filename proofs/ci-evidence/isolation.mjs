@@ -7,7 +7,7 @@ import {constants, openSync, closeSync, readSync, fstatSync, lstatSync, mkdirSyn
 import {join, dirname, resolve, relative, isAbsolute} from 'node:path';
 import {createHash} from 'node:crypto';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {hash, mutationSnapshotExtras, mutationSourceInputs} from './inputs.mjs';
+import {hash, mutationSnapshotExtras, mutationSourceInputs, pipelineInventoryBoundary} from './inputs.mjs';
 import {snapshotDirectories as pipelineDirectories, snapshotFiles as pipelineFiles} from '../relation-pipeline/inventory.mjs';
 export {mutationSnapshotExtras} from './inputs.mjs';
 
@@ -20,7 +20,8 @@ export const isolatedSourceFiles = Object.freeze(['proofs/ci-evidence/isolated-m
   'proofs/ci-evidence/package-configurations.mjs',
   'proofs/ci-evidence/isolated-contract.mjs',
   'proofs/ci-evidence/mutation-inventory.mjs', 'proofs/ci-evidence/mutation-observation.mjs',
-  'proofs/relation-pipeline/inventory.mjs']);
+  pipelineInventoryBoundary.path,
+  ...pipelineInventoryBoundary.dependencies.map(({path}) => path)]);
 const child = isolatedSourceFiles[0];
 export const pipelineChild = 'proofs/ci-evidence/isolated-pipeline-pristine.mjs';
 export const pipelineFixedJsChild = 'proofs/ci-evidence/isolated-pipeline-fixed-js.mjs';

@@ -13,10 +13,12 @@ const program = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const declaration = name => program.body.map(node => node.declaration ?? node)
   .find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
 const identityBody = declaration('embeddedInstallationIdentity');
-const connectBody = declaration('connectEmbeddedLocal');
-const start = source.indexOf('  const root = installation?.directory', connectBody.start);
+// Local and Remote enter this same original initialization owner.
+const openBody = declaration('openPreparedInstalledHost');
+assert(openBody);
+const start = source.indexOf('  const root = installation?.directory', openBody.start);
 const end = source.indexOf('  const client = await profiles.connect', start);
-assert(start > connectBody.start && end > start && end < connectBody.end);
+assert(start > openBody.start && end > start && end < openBody.end);
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 const compile = (scope, body) => new AsyncFunction(...Object.keys(scope), body)
   .bind(undefined, ...Object.values(scope));
@@ -59,6 +61,7 @@ function fixture(paths) {
     source.slice(identityBody.start, identityBody.end) + ';return embeddedInstallationIdentity;');
   const embeddedInstallationIdentity = makeIdentity(...Object.values(common));
   const run = compile({installation, project, projectProfile, projectSourcePreparation,
+    selectedProfile: {selected: undefined},
     originalInstallation, record, moon, control, originals, preparation, resolve, process: {env: {}},
     localStateRoot() {assert.fail('Explicit root selected');},
     installedSourcePaths: common.installedSourcePaths,
@@ -86,13 +89,13 @@ test('Source-free identity keeps its absent configuration service path', async (
 });
 
 function serviceFixture({failConstruction = false} = {}) {
-  const selected = connectBody.body.body.find(node => node.type === 'VariableDeclaration' &&
+  const selected = openBody.body.body.find(node => node.type === 'VariableDeclaration' &&
     node.declarations.some(value => value.id.name === 'preparation'));
   const object = selected.declarations.find(value => value.id.name === 'preparation').init.arguments[0];
   const names = ['sourceInitializationServices', 'hostInitializationPreparation'];
   const methods = names.map(name => object.properties.find(value => value.key.name === name));
   assert(methods.every(Boolean));
-  const check = connectBody.body.body.find(node => node.type === 'FunctionDeclaration' &&
+  const check = openBody.body.body.find(node => node.type === 'FunctionDeclaration' &&
     node.id.name === 'assertSourceInitializationSelection');
   assert(check);
   const scope = {createInstalledHostServices: actualCreateServices,

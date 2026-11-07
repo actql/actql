@@ -1,0 +1,1477 @@
+{
+  "qualification": "Existing initialization producer source correspondence only; not physical backing, runtime or artifact acceptance",
+  "declarations": [
+    {
+      "module": "src/connectors_builtin_node/client_hubspot_initialization_bridge.mbt",
+      "sha256": "4f42a64712a1ad8cb5010c18d89929cfb9b09e863cd699bb3b80ad9e30a078af",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_hubspot_account_construction_capacity",
+          "declaration": "client_program_hubspot_account_construction_capacity ( body_bytes : Int , encoded_units : Int , portal_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_hubspot_object_construction_capacity",
+          "declaration": "client_program_hubspot_object_construction_capacity ( body_bytes : Int , encoded_units : Int , object_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , max_properties : Int , max_name_units : Int , max_columns : Int , max_name_bytes : Int , max_schema_bytes : Int , max_schema_nodes : Int , max_schema_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing same-Common typed producer bridges; RelA is the generated mirror, not an independent issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_hubspot_account_construction_capacity",
+            "client_program_hubspot_object_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_hubspot_initialization_bridge.mbt",
+      "sha256": "b574a71223951265fdbc11b3a90f8e0c31cb914d59c0909c3a3fcad8a70f5647",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_hubspot_account_construction_capacity",
+          "declaration": "client_program_hubspot_account_construction_capacity ( body_bytes : Int , encoded_units : Int , portal_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_hubspot_object_construction_capacity",
+          "declaration": "client_program_hubspot_object_construction_capacity ( body_bytes : Int , encoded_units : Int , object_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , max_properties : Int , max_name_units : Int , max_columns : Int , max_name_bytes : Int , max_schema_bytes : Int , max_schema_nodes : Int , max_schema_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing same-Common typed producer bridges; RelA is the generated mirror, not an independent issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_hubspot_account_construction_capacity",
+            "client_program_hubspot_object_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_salesforce_initialization_bridge.mbt",
+      "sha256": "031379e2957b55187bcd84187c5034b9f8aba5e597fd891b2bb7c031088f7fe1",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_salesforce_execution_mapping_construction_capacity",
+          "declaration": "client_program_salesforce_execution_mapping_construction_capacity ( field_count : Int , field_units : Int , source_count : Int , source_units : Int , key_units : Int , resource_units : Int , connector_units : Int , revision_units : Int , describe_bytes : Int , max_fields : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_salesforce_initialization_construction_capacity",
+          "declaration": "client_program_salesforce_initialization_construction_capacity ( body_lengths : Array [ Int ] , encoded_units : Int , observation_units : Int , name_lengths : Array [ Int ] , binding_units : Int , connector_units : Int , revision_units : Int , max_describe_bytes : Int , max_describe_nodes : Int , max_describe_depth : Int , max_describe_fields : Int , max_describe_name_units : Int , max_observation_bytes : Int , max_declaration_bytes : Int , max_declaration_nodes : Int , max_declaration_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing same-Common typed producer bridges; RelA is the generated mirror, not an independent issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_salesforce_execution_mapping_construction_capacity",
+            "client_program_salesforce_initialization_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_salesforce_initialization_bridge.mbt",
+      "sha256": "13d03f170e36d608f80cacf63c7293d79d95b412e0ddaed9b549f27b8edfb3e6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_salesforce_execution_mapping_construction_capacity",
+          "declaration": "client_program_salesforce_execution_mapping_construction_capacity ( field_count : Int , field_units : Int , source_count : Int , source_units : Int , key_units : Int , resource_units : Int , connector_units : Int , revision_units : Int , describe_bytes : Int , max_fields : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_salesforce_initialization_construction_capacity",
+          "declaration": "client_program_salesforce_initialization_construction_capacity ( body_lengths : Array [ Int ] , encoded_units : Int , observation_units : Int , name_lengths : Array [ Int ] , binding_units : Int , connector_units : Int , revision_units : Int , max_describe_bytes : Int , max_describe_nodes : Int , max_describe_depth : Int , max_describe_fields : Int , max_describe_name_units : Int , max_observation_bytes : Int , max_declaration_bytes : Int , max_declaration_nodes : Int , max_declaration_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing same-Common typed producer bridges; RelA is the generated mirror, not an independent issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_salesforce_execution_mapping_construction_capacity",
+            "client_program_salesforce_initialization_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_gcs_source_construction_bridge.mbt",
+      "sha256": "e97054217a0fff7f9b9025d6752fb6e51d6ddec3280e280cc51c15e0574aebf5",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_gcs_collection_mapping_construction_capacity",
+          "declaration": "client_program_gcs_collection_mapping_construction_capacity ( declared_wire : String , project_units : Int , bucket_units : Int , prefix_units : Int , target_ref_units : Int , connector_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_gcs_source_facts_construction_capacity",
+          "declaration": "client_program_gcs_source_facts_construction_capacity ( view_count : Int , scope_cid : String , version_cid : String , listing_schema_cid : String , content_schema_cid : String , limits : Array [ Int64 ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_gcs_upload_catalog_construction_capacity",
+          "declaration": "client_program_gcs_upload_catalog_construction_capacity ( declared_wire : String , connector_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing same-Common typed producer bridges; RelA is the generated mirror, not an independent issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_gcs_collection_mapping_construction_capacity",
+            "client_program_gcs_source_facts_construction_capacity",
+            "client_program_gcs_upload_catalog_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_gcs_source_construction_bridge.mbt",
+      "sha256": "c8b9f79d87b33b5eeb043e82390d4255156d4694a9dc574997c4f57c11cb96df",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_gcs_collection_mapping_construction_capacity",
+          "declaration": "client_program_gcs_collection_mapping_construction_capacity ( declared_wire : String , project_units : Int , bucket_units : Int , prefix_units : Int , target_ref_units : Int , connector_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_gcs_source_facts_construction_capacity",
+          "declaration": "client_program_gcs_source_facts_construction_capacity ( view_count : Int , scope_cid : String , version_cid : String , listing_schema_cid : String , content_schema_cid : String , limits : Array [ Int64 ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_gcs_upload_catalog_construction_capacity",
+          "declaration": "client_program_gcs_upload_catalog_construction_capacity ( declared_wire : String , connector_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing same-Common typed producer bridges; RelA is the generated mirror, not an independent issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_gcs_collection_mapping_construction_capacity",
+            "client_program_gcs_source_facts_construction_capacity",
+            "client_program_gcs_upload_catalog_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_kintone_read_bridge.mbt",
+      "sha256": "8825e6f184dbec925f2e2203815de0d4fe347a21e5b824639b5a28ffe2fb6131",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_kintone_accept_read_page",
+          "declaration": "client_program_kintone_accept_read_page ( read : @ kintone_host . RecordRead , body : Bytes , ) - > Result [ Int , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_adopt_managed_borrow",
+          "declaration": "client_program_kintone_adopt_managed_borrow ( original : @ kintone_host . RecordDeclaration , borrow : @ client_row_source_host . RowRunResponseBorrow , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , pairs : Int , per_page : Int , ) - > Result [ @ kintone_host . ManagedRecordRead , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_adopt_managed_query",
+          "declaration": "client_program_kintone_adopt_managed_query ( original : @ kintone_host . RecordDeclaration , acquisition : @ client_row_source_host . RowAcquisition , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , pairs : Int , per_page : Int , ) - > Result [ @ kintone_host . ManagedRecordRead , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_adopt_managed_whole",
+          "declaration": "client_program_kintone_adopt_managed_whole ( original : @ kintone_host . RecordDeclaration , acquisition : @ client_row_source_host . RowInputAcquisition , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , pairs : Int , per_page : Int , ) - > Result [ @ kintone_host . ManagedRecordRead , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_bind_read_cleanup",
+          "declaration": "client_program_kintone_bind_read_cleanup ( read : @ kintone_host . RecordRead , stopped : ( ) - > Bool , ) - > Result [ Unit , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_borrow_read",
+          "declaration": "client_program_kintone_borrow_read ( prepared : @ kintone_host . PreparedRecordRead , run : @ client_row_source_host . RowRun , page : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , max_pairs : Int , ) - > Result [ @ kintone_host . RecordRead , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_declaration_limits",
+          "declaration": "client_program_kintone_declaration_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_views : Int , max_fields : Int , ) - > @ client_row_source_host . RowDeclarationLimits"
+        },
+        {
+          "name": "client_program_kintone_declare_records",
+          "declaration": "client_program_kintone_declare_records ( catalog : @ kintone_catalog . FormFieldCatalog , settings : @ kintone_catalog . AppNumberSettings ? , names : Array [ String ] , connector : String , revision : String , resource : String , values : @ kintone_catalog . RecordValueLimits , declaration : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordDeclaration , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_form_limits",
+          "declaration": "client_program_kintone_form_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_fields : Int , max_name_units : Int , ) - > @ kintone_catalog . FormFieldLimits"
+        },
+        {
+          "name": "client_program_kintone_form_request_body",
+          "declaration": "client_program_kintone_form_request_body ( prepared : @ kintone_host . PreparedRecordRead , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_columns",
+          "declaration": "client_program_kintone_managed_columns ( read : @ kintone_host . ManagedRecordRead , ) - > Array [ String ]"
+        },
+        {
+          "name": "client_program_kintone_managed_complete",
+          "declaration": "client_program_kintone_managed_complete ( read : @ kintone_host . ManagedRecordRead , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_managed_form_request",
+          "declaration": "client_program_kintone_managed_form_request ( read : @ kintone_host . ManagedRecordRead , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_page_request",
+          "declaration": "client_program_kintone_managed_page_request ( read : @ kintone_host . ManagedRecordRead , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_project_page",
+          "declaration": "client_program_kintone_managed_project_page ( read : @ kintone_host . ManagedRecordRead , body : Bytes , ) - > Result [ Array [ Array [ @ admitted . CheckedValue ] ] , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_query_matches",
+          "declaration": "client_program_kintone_managed_query_matches ( read : @ kintone_host . ManagedRecordRead , original : @ client_row_source_host . RowAcquisition , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_managed_recheck_form",
+          "declaration": "client_program_kintone_managed_recheck_form ( read : @ kintone_host . ManagedRecordRead , body : Bytes , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ Unit , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_response_capacity",
+          "declaration": "client_program_kintone_managed_response_capacity ( read : @ kintone_host . ManagedRecordRead , previous : @ execution . ExecutionCapacity , bytes : Int , is_form : Bool , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_managed_retire",
+          "declaration": "client_program_kintone_managed_retire ( read : @ kintone_host . ManagedRecordRead , ) - > Unit"
+        },
+        {
+          "name": "client_program_kintone_managed_source_reader_capacity",
+          "declaration": "client_program_kintone_managed_source_reader_capacity ( limits : Array [ Int ] , secret_bytes : Int , original : @ kintone_host . RecordDeclaration , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , pairs : Int , per_page : Int , max_request_bytes : Int , origin : String , resource : String , guest_space : String , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_managed_whole_matches",
+          "declaration": "client_program_kintone_managed_whole_matches ( read : @ kintone_host . ManagedRecordRead , original : @ client_row_source_host . RowInputAcquisition , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_metadata_identity_capacity",
+          "declaration": "client_program_kintone_metadata_identity_capacity ( base : @ execution . ExecutionCapacity , encoded_units : Int , connector_units : Int , app_units : Int , origin_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_page_limits",
+          "declaration": "client_program_kintone_page_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_columns : Int , max_cells : Int , max_table_rows : Int , ) - > @ kintone_catalog . RecordPageLimits"
+        },
+        {
+          "name": "client_program_kintone_page_next_cursor",
+          "declaration": "client_program_kintone_page_next_cursor ( read : @ kintone_host . RecordRead , prior : Array [ String ] , per_page : Int , ) - > Result [ Array [ String ] , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_page_request_body",
+          "declaration": "client_program_kintone_page_request_body ( prepared : @ kintone_host . PreparedRecordRead , cursor : Array [ String ] , per_page : Int , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_read",
+          "declaration": "client_program_kintone_prepare_read ( original : @ kintone_host . RecordDeclaration , requirement : @ planning . QueryRequirement , query : String , evidence : String , ) - > Result [ @ kintone_host . PreparedRecordRead , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_project_form",
+          "declaration": "client_program_kintone_project_form ( body : Bytes , app : String , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ @ kintone_catalog . FormFieldCatalog , @ kintone_catalog . FormFieldIssue ]"
+        },
+        {
+          "name": "client_program_kintone_read_acquisition",
+          "declaration": "client_program_kintone_read_acquisition ( read : @ kintone_host . PreparedRecordRead , ) - > @ client_row_source_host . RowAcquisition"
+        },
+        {
+          "name": "client_program_kintone_read_app",
+          "declaration": "client_program_kintone_read_app ( read : @ kintone_host . PreparedRecordRead , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_read_declaration_construction_capacity",
+          "declaration": "client_program_kintone_read_declaration_construction_capacity ( body_bytes : Int , encoded_units : Int , selected_count : Int , selected_units : Int , app_units : Int , resource_units : Int , connector_units : Int , revision_units : Int , form : @ kintone_catalog . FormFieldLimits , values : @ kintone_catalog . RecordValueLimits , declaration : @ client_row_source_host . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_read_fields",
+          "declaration": "client_program_kintone_read_fields ( read : @ kintone_host . PreparedRecordRead , ) - > Array [ String ]"
+        },
+        {
+          "name": "client_program_kintone_read_page_ids",
+          "declaration": "client_program_kintone_read_page_ids ( read : @ kintone_host . RecordRead , ) - > Result [ Array [ String ] , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_recheck_read_form",
+          "declaration": "client_program_kintone_recheck_read_form ( read : @ kintone_host . RecordRead , body : Bytes , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ Unit , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_record_declaration",
+          "declaration": "client_program_kintone_record_declaration ( original : @ kintone_host . RecordDeclaration , ) - > @ client_row_source_host . RowDeclaration"
+        },
+        {
+          "name": "client_program_kintone_retire_read",
+          "declaration": "client_program_kintone_retire_read ( read : @ kintone_host . RecordRead , ) - > Result [ Unit , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_value_limits",
+          "declaration": "client_program_kintone_value_limits ( max_columns : Int , max_name_bytes : Int , max_nodes : Int , max_depth : Int , max_text_bytes : Int , ) - > @ kintone_catalog . RecordValueLimits"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing same-Common typed producer bridges; RelA is the generated mirror, not an independent issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_kintone_accept_read_page",
+            "client_program_kintone_bind_read_cleanup",
+            "client_program_kintone_borrow_read",
+            "client_program_kintone_declaration_limits",
+            "client_program_kintone_declare_records",
+            "client_program_kintone_form_limits",
+            "client_program_kintone_form_request_body",
+            "client_program_kintone_page_limits",
+            "client_program_kintone_page_next_cursor",
+            "client_program_kintone_page_request_body",
+            "client_program_kintone_prepare_read",
+            "client_program_kintone_project_form",
+            "client_program_kintone_read_acquisition",
+            "client_program_kintone_read_app",
+            "client_program_kintone_read_declaration_construction_capacity",
+            "client_program_kintone_read_fields",
+            "client_program_kintone_read_page_ids",
+            "client_program_kintone_recheck_read_form",
+            "client_program_kintone_record_declaration",
+            "client_program_kintone_retire_read",
+            "client_program_kintone_value_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_adopt_managed_query",
+            "client_program_kintone_adopt_managed_whole",
+            "client_program_kintone_managed_columns",
+            "client_program_kintone_managed_complete",
+            "client_program_kintone_managed_form_request",
+            "client_program_kintone_managed_page_request",
+            "client_program_kintone_managed_project_page",
+            "client_program_kintone_managed_query_matches",
+            "client_program_kintone_managed_recheck_form",
+            "client_program_kintone_managed_retire",
+            "client_program_kintone_managed_whole_matches"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA-only native protocol adopted by the already-accounted generic reader."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Exact CheckedValues carry the adopted input contracts into the generic"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Query(value) => physical_equal(value, original)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "No RowRun, response charge, credential or cleanup acknowledgement is issued."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "pub fn managed_record_complete(read : ManagedRecordRead) -> Bool {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "read.failed = true"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Aggregate row/response/attempt ceilings remain with the generic reader and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "pub fn adopt_managed_record_whole("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/kintone_managed_read_wbtest.mbt",
+                "anchor": "managed Kintone adopts exact Query original and supplies charged typed values without a second borrow"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_adopt_managed_borrow",
+            "client_program_kintone_managed_response_capacity",
+            "client_program_kintone_managed_source_reader_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction.mbt",
+                "anchor": "pub fn managed_record_construction_capacity("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_read_bridge.mbt",
+                "anchor": "pub fn client_program_kintone_adopt_managed_borrow("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "Scalar geometry of the SAME observed catalog."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "Names and metadata are borrowed, not reconstructed."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "The generic owner has retained and charged the original body before"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction.mbt",
+                "anchor": "guard units is Some(units) && managed_record_capacity(units) is Some(stage) else {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction.mbt",
+                "anchor": "@execution.add_execution_capacity(previous, stage)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "pub fn selected_form_construction_geometry("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_managed_capacity_wbtest.mbt",
+                "anchor": "managed Kintone complete base keeps actual protocol limits and original geometry"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_metadata_identity_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_read_bridge.mbt",
+                "anchor": "Five fixed keys, the metadata version, quotes/colons/commas/braces."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_read_bridge.mbt",
+                "anchor": "pub fn client_program_kintone_metadata_identity_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "const {original, declared, metadataCid} = construction.prepareNativeDeclaration"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_read_bridge.mbt",
+                "anchor": "original retirement; no intermediate JS collection earns cleanup credit."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "const complete = moon.clientProgramKintoneMetadataIdentityCapacity(base, encoded.length,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_read_bridge.mbt",
+                "anchor": "if encoded_units < 0 ||"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_read_bridge.mbt",
+                "anchor": "Conservative constructor overlap stays with the initializer until its"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_read_bridge.mbt",
+                "anchor": "@execution.add_execution_capacity(base, identity)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "resource, metadataCid, fields: Object.freeze([...fields])"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_managed_capacity_wbtest.mbt",
+                "anchor": "Kintone metadata identity is funded in original initialization before caching"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_kintone_read_bridge.mbt",
+      "sha256": "2e29743122ca84772669f02f2ce79fad231d12929e8eb01434255448c2239de6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_kintone_accept_read_page",
+          "declaration": "client_program_kintone_accept_read_page ( read : @ kintone_host . RecordRead , body : Bytes , ) - > Result [ Int , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_adopt_managed_borrow",
+          "declaration": "client_program_kintone_adopt_managed_borrow ( original : @ kintone_host . RecordDeclaration , borrow : @ client_row_source_host . RowRunResponseBorrow , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , pairs : Int , per_page : Int , ) - > Result [ @ kintone_host . ManagedRecordRead , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_adopt_managed_query",
+          "declaration": "client_program_kintone_adopt_managed_query ( original : @ kintone_host . RecordDeclaration , acquisition : @ client_row_source_host . RowAcquisition , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , pairs : Int , per_page : Int , ) - > Result [ @ kintone_host . ManagedRecordRead , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_adopt_managed_whole",
+          "declaration": "client_program_kintone_adopt_managed_whole ( original : @ kintone_host . RecordDeclaration , acquisition : @ client_row_source_host . RowInputAcquisition , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , pairs : Int , per_page : Int , ) - > Result [ @ kintone_host . ManagedRecordRead , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_bind_read_cleanup",
+          "declaration": "client_program_kintone_bind_read_cleanup ( read : @ kintone_host . RecordRead , stopped : ( ) - > Bool , ) - > Result [ Unit , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_borrow_read",
+          "declaration": "client_program_kintone_borrow_read ( prepared : @ kintone_host . PreparedRecordRead , run : @ client_row_source_host . RowRun , page : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , max_pairs : Int , ) - > Result [ @ kintone_host . RecordRead , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_declaration_limits",
+          "declaration": "client_program_kintone_declaration_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_views : Int , max_fields : Int , ) - > @ client_row_source_host . RowDeclarationLimits"
+        },
+        {
+          "name": "client_program_kintone_declare_records",
+          "declaration": "client_program_kintone_declare_records ( catalog : @ kintone_catalog . FormFieldCatalog , settings : @ kintone_catalog . AppNumberSettings ? , names : Array [ String ] , connector : String , revision : String , resource : String , values : @ kintone_catalog . RecordValueLimits , declaration : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordDeclaration , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_form_limits",
+          "declaration": "client_program_kintone_form_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_fields : Int , max_name_units : Int , ) - > @ kintone_catalog . FormFieldLimits"
+        },
+        {
+          "name": "client_program_kintone_form_request_body",
+          "declaration": "client_program_kintone_form_request_body ( prepared : @ kintone_host . PreparedRecordRead , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_columns",
+          "declaration": "client_program_kintone_managed_columns ( read : @ kintone_host . ManagedRecordRead , ) - > Array [ String ]"
+        },
+        {
+          "name": "client_program_kintone_managed_complete",
+          "declaration": "client_program_kintone_managed_complete ( read : @ kintone_host . ManagedRecordRead , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_managed_form_request",
+          "declaration": "client_program_kintone_managed_form_request ( read : @ kintone_host . ManagedRecordRead , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_page_request",
+          "declaration": "client_program_kintone_managed_page_request ( read : @ kintone_host . ManagedRecordRead , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_project_page",
+          "declaration": "client_program_kintone_managed_project_page ( read : @ kintone_host . ManagedRecordRead , body : Bytes , ) - > Result [ Array [ Array [ @ admitted . CheckedValue ] ] , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_query_matches",
+          "declaration": "client_program_kintone_managed_query_matches ( read : @ kintone_host . ManagedRecordRead , original : @ client_row_source_host . RowAcquisition , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_managed_recheck_form",
+          "declaration": "client_program_kintone_managed_recheck_form ( read : @ kintone_host . ManagedRecordRead , body : Bytes , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ Unit , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_response_capacity",
+          "declaration": "client_program_kintone_managed_response_capacity ( read : @ kintone_host . ManagedRecordRead , previous : @ execution . ExecutionCapacity , bytes : Int , is_form : Bool , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_managed_retire",
+          "declaration": "client_program_kintone_managed_retire ( read : @ kintone_host . ManagedRecordRead , ) - > Unit"
+        },
+        {
+          "name": "client_program_kintone_managed_source_reader_capacity",
+          "declaration": "client_program_kintone_managed_source_reader_capacity ( limits : Array [ Int ] , secret_bytes : Int , original : @ kintone_host . RecordDeclaration , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , pairs : Int , per_page : Int , max_request_bytes : Int , origin : String , resource : String , guest_space : String , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_managed_whole_matches",
+          "declaration": "client_program_kintone_managed_whole_matches ( read : @ kintone_host . ManagedRecordRead , original : @ client_row_source_host . RowInputAcquisition , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_metadata_identity_capacity",
+          "declaration": "client_program_kintone_metadata_identity_capacity ( base : @ execution . ExecutionCapacity , encoded_units : Int , connector_units : Int , app_units : Int , origin_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_page_limits",
+          "declaration": "client_program_kintone_page_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_columns : Int , max_cells : Int , max_table_rows : Int , ) - > @ kintone_catalog . RecordPageLimits"
+        },
+        {
+          "name": "client_program_kintone_page_next_cursor",
+          "declaration": "client_program_kintone_page_next_cursor ( read : @ kintone_host . RecordRead , prior : Array [ String ] , per_page : Int , ) - > Result [ Array [ String ] , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_page_request_body",
+          "declaration": "client_program_kintone_page_request_body ( prepared : @ kintone_host . PreparedRecordRead , cursor : Array [ String ] , per_page : Int , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_read",
+          "declaration": "client_program_kintone_prepare_read ( original : @ kintone_host . RecordDeclaration , requirement : @ planning . QueryRequirement , query : String , evidence : String , ) - > Result [ @ kintone_host . PreparedRecordRead , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_project_form",
+          "declaration": "client_program_kintone_project_form ( body : Bytes , app : String , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ @ kintone_catalog . FormFieldCatalog , @ kintone_catalog . FormFieldIssue ]"
+        },
+        {
+          "name": "client_program_kintone_read_acquisition",
+          "declaration": "client_program_kintone_read_acquisition ( read : @ kintone_host . PreparedRecordRead , ) - > @ client_row_source_host . RowAcquisition"
+        },
+        {
+          "name": "client_program_kintone_read_app",
+          "declaration": "client_program_kintone_read_app ( read : @ kintone_host . PreparedRecordRead , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_read_declaration_construction_capacity",
+          "declaration": "client_program_kintone_read_declaration_construction_capacity ( body_bytes : Int , encoded_units : Int , selected_count : Int , selected_units : Int , app_units : Int , resource_units : Int , connector_units : Int , revision_units : Int , form : @ kintone_catalog . FormFieldLimits , values : @ kintone_catalog . RecordValueLimits , declaration : @ client_row_source_host . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_kintone_read_fields",
+          "declaration": "client_program_kintone_read_fields ( read : @ kintone_host . PreparedRecordRead , ) - > Array [ String ]"
+        },
+        {
+          "name": "client_program_kintone_read_page_ids",
+          "declaration": "client_program_kintone_read_page_ids ( read : @ kintone_host . RecordRead , ) - > Result [ Array [ String ] , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_recheck_read_form",
+          "declaration": "client_program_kintone_recheck_read_form ( read : @ kintone_host . RecordRead , body : Bytes , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ Unit , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_record_declaration",
+          "declaration": "client_program_kintone_record_declaration ( original : @ kintone_host . RecordDeclaration , ) - > @ client_row_source_host . RowDeclaration"
+        },
+        {
+          "name": "client_program_kintone_retire_read",
+          "declaration": "client_program_kintone_retire_read ( read : @ kintone_host . RecordRead , ) - > Result [ Unit , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_value_limits",
+          "declaration": "client_program_kintone_value_limits ( max_columns : Int , max_name_bytes : Int , max_nodes : Int , max_depth : Int , max_text_bytes : Int , ) - > @ kintone_catalog . RecordValueLimits"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing same-Common typed producer bridges; RelA is the generated mirror, not an independent issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_kintone_accept_read_page",
+            "client_program_kintone_bind_read_cleanup",
+            "client_program_kintone_borrow_read",
+            "client_program_kintone_declaration_limits",
+            "client_program_kintone_declare_records",
+            "client_program_kintone_form_limits",
+            "client_program_kintone_form_request_body",
+            "client_program_kintone_page_limits",
+            "client_program_kintone_page_next_cursor",
+            "client_program_kintone_page_request_body",
+            "client_program_kintone_prepare_read",
+            "client_program_kintone_project_form",
+            "client_program_kintone_read_acquisition",
+            "client_program_kintone_read_app",
+            "client_program_kintone_read_declaration_construction_capacity",
+            "client_program_kintone_read_fields",
+            "client_program_kintone_read_page_ids",
+            "client_program_kintone_recheck_read_form",
+            "client_program_kintone_record_declaration",
+            "client_program_kintone_retire_read",
+            "client_program_kintone_value_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_adopt_managed_query",
+            "client_program_kintone_adopt_managed_whole",
+            "client_program_kintone_managed_columns",
+            "client_program_kintone_managed_complete",
+            "client_program_kintone_managed_form_request",
+            "client_program_kintone_managed_page_request",
+            "client_program_kintone_managed_project_page",
+            "client_program_kintone_managed_query_matches",
+            "client_program_kintone_managed_recheck_form",
+            "client_program_kintone_managed_retire",
+            "client_program_kintone_managed_whole_matches"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA-only native protocol adopted by the already-accounted generic reader."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Exact CheckedValues carry the adopted input contracts into the generic"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Query(value) => physical_equal(value, original)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "No RowRun, response charge, credential or cleanup acknowledgement is issued."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "pub fn managed_record_complete(read : ManagedRecordRead) -> Bool {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "read.failed = true"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Aggregate row/response/attempt ceilings remain with the generic reader and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "pub fn adopt_managed_record_whole("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/kintone_managed_read_wbtest.mbt",
+                "anchor": "managed Kintone adopts exact Query original and supplies charged typed values without a second borrow"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_adopt_managed_borrow",
+            "client_program_kintone_managed_response_capacity",
+            "client_program_kintone_managed_source_reader_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction.mbt",
+                "anchor": "pub fn managed_record_construction_capacity("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node_rela/client_kintone_read_bridge.mbt",
+                "anchor": "pub fn client_program_kintone_adopt_managed_borrow("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "Scalar geometry of the SAME observed catalog."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "Names and metadata are borrowed, not reconstructed."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "The generic owner has retained and charged the original body before"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction.mbt",
+                "anchor": "guard units is Some(units) && managed_record_capacity(units) is Some(stage) else {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction.mbt",
+                "anchor": "@execution.add_execution_capacity(previous, stage)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "pub fn selected_form_construction_geometry("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_managed_capacity_wbtest.mbt",
+                "anchor": "managed Kintone complete base keeps actual protocol limits and original geometry"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_metadata_identity_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node_rela/client_kintone_read_bridge.mbt",
+                "anchor": "Five fixed keys, the metadata version, quotes/colons/commas/braces."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node_rela/client_kintone_read_bridge.mbt",
+                "anchor": "pub fn client_program_kintone_metadata_identity_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "const {original, declared, metadataCid} = construction.prepareNativeDeclaration"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors_builtin_node_rela/client_kintone_read_bridge.mbt",
+                "anchor": "original retirement; no intermediate JS collection earns cleanup credit."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "const complete = moon.clientProgramKintoneMetadataIdentityCapacity(base, encoded.length,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node_rela/client_kintone_read_bridge.mbt",
+                "anchor": "if encoded_units < 0 ||"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors_builtin_node_rela/client_kintone_read_bridge.mbt",
+                "anchor": "Conservative constructor overlap stays with the initializer until its"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors_builtin_node_rela/client_kintone_read_bridge.mbt",
+                "anchor": "@execution.add_execution_capacity(base, identity)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "resource, metadataCid, fields: Object.freeze([...fields])"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_managed_capacity_wbtest.mbt",
+                "anchor": "Kintone metadata identity is funded in original initialization before caching"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

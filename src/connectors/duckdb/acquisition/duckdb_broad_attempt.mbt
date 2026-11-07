@@ -47,23 +47,38 @@ pub fn prepare_duckdb_broad_attempt(
 ///|
 /// Reclaim an adopted bounded residual only after failure or issuer revocation.
 /// Keep its owner reachable when cleanup fails; retries never execute Compute.
+/// Once that cleanup succeeds, retire closed evidence even when no residual
+/// child was adopted. Issuer close alone revokes authority, not this custody.
 pub fn cleanup_duckdb_broad_residual(
   attempt : DuckDBBroadAttempt,
 ) -> Result[Bool, @connector.FixedComputeIssue] {
-  guard attempt.residual_cleanup is Some(cleanup) else { return Ok(true) }
-  if !(attempt.state is Failed) {
-    guard attempt.authority is Some(authority) &&
-      !@planning.query_evidence_registration_live(authority.issuer.registration) else {
-      return Ok(false)
+  if attempt.residual_cleanup is Some(cleanup) {
+    if !(attempt.state is Failed) {
+      guard attempt.authority is Some(authority) &&
+        !@planning.query_evidence_registration_live(
+          authority.issuer.registration,
+        ) else {
+        return Ok(false)
+      }
+    }
+    match cleanup() {
+      Ok(true) => attempt.residual_cleanup = None
+      other => return other
     }
   }
-  match cleanup() {
-    Ok(true) => {
-      attempt.residual_cleanup = None
-      Ok(true)
-    }
-    other => other
+  let records = match attempt.state {
+    EvidenceIssued(records) => records
+    Captured(observation) => observation.records
+    _ => return Ok(true)
   }
+  if @planning.query_evidence_registration_live(
+      records.authority.issuer.registration,
+    ) ||
+    !@planning.retire_query_evidence_custody(records.issued) {
+    return Ok(false)
+  }
+  attempt.state = Failed
+  Ok(true)
 }
 
 ///|
@@ -75,6 +90,11 @@ pub fn abort_duckdb_broad_attempt(attempt : DuckDBBroadAttempt) -> Unit {
   }
   if attempt.state is Receiving(receiver) {
     @duckdb.abort_broad_receiving(receiver)
+  }
+  if attempt.state is EvidenceIssued(records) &&
+    !@planning.retire_query_evidence_custody(records.issued) {
+    // Do not discard the original holder after a rejected retirement.
+    return
   }
   attempt.state = Failed
 }

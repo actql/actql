@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, symlinkSync, existsSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, rmSync, symlinkSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -15,6 +15,57 @@ import {staticElf} from './isolated-execution.mjs';
 import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest, isolatedExperimentPaths} from './isolated-contract.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
 
+test('actual staged Session dependencies load and bind the ordinary CJS through restoration', t => {
+  const repository = fileURLToPath(new URL('../../',import.meta.url));
+  const revision = execFileSync('git',['rev-parse','HEAD'],{cwd:repository,encoding:'utf8'}).trim();
+  const tree = gitTree(repository,revision);
+  const destination = mkdtempSync(join(tmpdir(),'actql-session-dependency-'));
+  t.after(() => rmSync(destination,{recursive:true,force:true}));
+  const staged = stageMutationSource({tree,destination});
+  const sourceRoot = join(destination,'source');
+  const output = execFileSync(process.execPath,['--input-type=module','-e',`
+    import assert from 'node:assert/strict';
+    import {join} from 'node:path';
+    import {pathToFileURL} from 'node:url';
+    import {createRequire} from 'node:module';
+    const root = process.argv[1];
+    const runtime = await import(pathToFileURL(join(root,'proofs/ci-evidence/isolated-runtime.mjs')).href);
+    assert.equal(typeof runtime.checkMutationCheckout,'function');
+    const load = createRequire(join(root,'_build/js/debug/test/query_integration/query_integration.whitebox_test.js'));
+    const ordinary = load('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs');
+    assert(Object.isFrozen(ordinary));
+    assert.equal(typeof ordinary.prepareOriginalManagedRunPorts,'function');
+    console.log('PASS actual staged Session declarations; no operations invoked');
+  `,sourceRoot],{cwd:sourceRoot,encoding:'utf8',timeout:30000,maxBuffer:1024*1024});
+  assert.match(output,/^PASS actual staged Session declarations; no operations invoked/u);
+  const action = readCatalog().actions.find(value => value.id === 'mutations-js');
+  const inputs = actionInputs({tree,revision,action,runtime:{profile:'source-correspondence-only',unresolved:['runtime not executed']}});
+  const bridge = 'adapters/host-node/ordinary-node-resource-runtime.cjs';
+  for (const path of [bridge,'proofs/relation-pipeline/proof-runner-extension.mjs']) {
+    assert(staged.files.some(entry => entry.path === 'source/'+path && entry.digest === hash(tree.read(path))));
+    assert(inputs.inputs.files.some(entry => entry.path === path && entry.digest === hash(tree.read(path))));
+  }
+  const expected = snapshotFromGit(tree);
+  assert.deepEqual(snapshot(sourceRoot),expected);
+  assert.equal(expected.sources[bridge],hash(tree.read(bridge)));
+  const file = join(sourceRoot,bridge),original = readFileSync(file);
+  try {
+    writeFileSync(file,Buffer.concat([original,Buffer.from('\n// changed copied dependency\n')]));
+    assert.notEqual(snapshot(sourceRoot).digest,expected.digest);
+    assert.throws(() => checkMutationCheckout({root:sourceRoot,tree}),/Mutation checkout bytes differ from Git/u);
+  } finally { writeFileSync(file,original); }
+  assert.deepEqual(checkMutationCheckout({root:sourceRoot,tree}),expected);
+});
+
+test('changed dependency restoration bytes cannot inherit the historical isolated experiment contract', () => {
+  const repository = fileURLToPath(new URL('../../',import.meta.url));
+  const revision = execFileSync('git',['rev-parse','HEAD'],{cwd:repository,encoding:'utf8'}).trim();
+  const digest = isolatedExperimentDigest(gitTree(repository,revision));
+  assert.notEqual(digest,isolatedContract.experimentDigest);
+  assert.equal(matchesIsolatedContract({experimentDigest:digest,toolchainDigest:isolatedContract.toolchainDigest,
+    hostImage:isolatedContract.hostImage,platformInputs:{kernelRelease:isolatedContract.kernelRelease}}),false);
+});
+
 test('actual Git sources have the same keyed cohort, staged bytes/modes and original restoration snapshot', t => {
   const repository = fileURLToPath(new URL('../../', import.meta.url));
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
@@ -25,7 +76,7 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
   const transferManifest = 'src/platform_native/remote_transfer_journal/moon.pkg';
   assert(packageImports(tree.read(transferManifest).toString('utf8')).imports.includes('actql/actql/sha256'),
     'Transfer destination reader identity requires the literal SHA-256 dependency');
-  for (const path of [transferManifest, 'src/connectors_builtin_node/moon.pkg', 'src/native_values_integration/moon.pkg',
+  for (const path of [transferManifest, 'src/client_local_host/moon.pkg', 'src/connectors_builtin_node/moon.pkg', 'src/native_values_integration/moon.pkg',
     'src/platform_native/publication_store/moon.pkg', 'src/platform_native/remote_client/moon.pkg',
     'src/platform_native/remote_journal/moon.pkg', 'src/platform_native/remote_transfer_client/moon.pkg',
     'src/platform_native/signature/moon.pkg', 'src/query_integration/moon.pkg',
@@ -43,7 +94,8 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
     'src/effect_application', 'src/logical_request_scope', 'src/client_row_source_host', 'src/bounded_graph_diff',
     'src/platform_native/remote_transfer_journal', 'src/sha256',
     'src/platform_native/remote_journal', 'src/platform_native/remote_standard_host',
-    'src/platform_native/retained_task_file', 'src/client_local_preparation',
+    'src/platform_native/retained_task_file', 'src/client_local_host', 'src/client_local_preparation',
+    'src/value_admission',
     'src/client_local_run', 'src/client_host_buffers']) {
     const immediateMembers = allSources.filter(path => path.startsWith(`${directory}/`) &&
       !path.slice(directory.length + 1).includes('/')).sort();
@@ -77,6 +129,25 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
   const sourceRoot = join(destination, 'source'), expected = snapshotFromGit(tree);
   assert.deepEqual(snapshot(sourceRoot), expected);
   assert.deepEqual(checkMutationCheckout({root: sourceRoot, tree}), expected);
+  const recovery = 'src/client_local_host/preparation_request_model_recovery_js_wbtest.mbt';
+  const preparation = 'src/client_local_preparation/moon.pkg';
+  assert(packageImports(tree.read(preparation).toString()).imports.includes('actql/actql/value_admission'));
+  for (const path of [recovery, preparation, 'src/value_admission/moon.pkg']) {
+    assert(inputs.inputs.files.some(entry => entry.path === path && entry.digest === hash(tree.read(path))));
+    assert.equal(expected.sources[path], hash(tree.read(path)));
+  }
+  const recoveryFile = join(sourceRoot, recovery), original = readFileSync(recoveryFile);
+  try {
+    writeFileSync(recoveryFile, Buffer.concat([original, Buffer.from('\n// unrestored current fixture\n')]));
+    assert.throws(() => checkMutationCheckout({root: sourceRoot, tree}), /Mutation checkout bytes differ from Git/u);
+    writeFileSync(recoveryFile, original);
+    chmodSync(recoveryFile, 0o755);
+    assert.throws(() => checkMutationCheckout({root: sourceRoot, tree}), /Mutation checkout mode differs from Git/u);
+  } finally {
+    writeFileSync(recoveryFile, original);
+    chmodSync(recoveryFile, 0o644);
+  }
+  assert.deepEqual(checkMutationCheckout({root: sourceRoot, tree}), expected);
   for (const path of tree.entries.keys()) if (path.startsWith('src/') && !Object.hasOwn(expected.sources, path))
     assert.equal(existsSync(join(sourceRoot, path)), false);
   assert(inputs.unresolved.includes('runtime not executed'));
@@ -84,7 +155,7 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
     stagedBytes: staged.bytes, scope: 'Git/filesystem correspondence; no compiler, image execution or reuse'}));
 });
 
-for (const manifest of ['src/connectors_builtin_node/moon.pkg', 'src/native_values_integration/moon.pkg',
+for (const manifest of ['src/client_local_host/moon.pkg', 'src/connectors_builtin_node/moon.pkg', 'src/native_values_integration/moon.pkg',
   'src/platform_native/filesystem/moon.pkg', 'src/platform_native/http_client/moon.pkg',
   'src/platform_native/result_access/moon.pkg', 'src/platform_native/sqlite/moon.pkg',
   'src/platform_native/publication_store/moon.pkg', 'src/platform_native/remote_client/moon.pkg',
@@ -143,7 +214,7 @@ function fixture(t, scoped = false) {
     Labels: {'org.actql.ci.owner': owner}, Env: Object.entries(isolatedEnvironment).map(([name, value]) => `${name}=${value}`),
     User: '1000:1000', WorkingDir: '/workspace', Entrypoint: ['/runtime/node', '/source/proofs/ci-evidence/isolated-mutations.mjs']}},
     arguments: isolatedRunArguments({imageId, owner, cidFile: '/owned/container.id'}),
-    costs: {preparationMilliseconds: 1, buildMilliseconds: 2, executionMilliseconds: 3, inspectionMilliseconds: 4, closeMilliseconds: 5}};
+    costs: {preparationMilliseconds: 1, buildMilliseconds: 2, executionMilliseconds: 3, inspectionMilliseconds: 4, closeMilliseconds: 5, inputInspectionMilliseconds: 0}};
   const files = {'isolated-inputs.json': manifest, 'isolated-observation.json': payload, 'isolated-execution.json': execution,
     'receipts/mutations-js.json': {origin: state.origin, inputs: {inputs: {runtime}}, execution: {milliseconds: 15}},
     'results/mutations-js.json': {...report, sourceRestored: true, revision: state.context.candidateRevision}};
@@ -179,6 +250,34 @@ test('actual staged bytes, internal link targets, Git source and original assert
   const host = {profile: 'host', unresolved: ['host loader remains open']};
   assert.equal(runtimeForAction({id: 'session-js'}, host, f.state.actionRuntimes), host);
   assert.equal(runtimeForAction({id: 'mutations-js'}, host, f.state.actionRuntimes), f.runtime);
+});
+
+test('six-phase isolated cost metadata retains nonzero input inspection exactly once', async t => {
+  const f = fixture(t);
+  f.execution.costs.inputInspectionMilliseconds = 7;
+  f.files['receipts/mutations-js.json'].execution.milliseconds += 7;
+  const original = JSON.stringify(f.execution);
+  assert.deepEqual(await readActionRuntimes(f), f.state.actionRuntimes);
+  assert.equal(f.files['receipts/mutations-js.json'].execution.milliseconds, 22);
+  assert.equal(JSON.stringify(f.execution), original);
+});
+
+test('six-phase isolated cost metadata refuses omitted extra invalid and unbound phases', async t => {
+  for (const alter of [
+    f => delete f.execution.costs.inputInspectionMilliseconds,
+    f => f.execution.costs.unlistedMilliseconds = 0,
+    f => f.execution.costs.inputInspectionMilliseconds = -1,
+    f => f.execution.costs.inputInspectionMilliseconds = 0.5,
+    f => f.execution.costs.inputInspectionMilliseconds = NaN,
+    f => f.execution.costs.inputInspectionMilliseconds = Number.MAX_SAFE_INTEGER + 1,
+    f => f.files['receipts/mutations-js.json'].execution.milliseconds -= 7,
+  ]) {
+    const f = fixture(t);
+    f.execution.costs.inputInspectionMilliseconds = 7;
+    f.files['receipts/mutations-js.json'].execution.milliseconds += 7;
+    alter(f);
+    await assert.rejects(readActionRuntimes(f));
+  }
 });
 
 test('missing source, false directory membership, changed environment/definition and missing loader inputs reject', t => {

@@ -24,8 +24,8 @@ collect(run.body);assert.equal(properties.length,1);
 // if present. Explicit Core ports simulate the legitimate later upstream
 // handoff; no Host, Store, Model response or resource grant is fabricated.
 const construct=compileFunction(`
-  const {child,children,originalPreparation,moon,startCompleteInferObservation}=context;
-  let issuance,issuanceComplete=false;
+  const {child,children,originalPreparation,moon,startCompleteInferObservation,completeOriginal=false}=context;
+  let issuance,issuanceComplete=false,publicationOwner;
   ${declaration===undefined?'':source.slice(declaration.start,declaration.end)}
   const callback=${source.slice(properties[0].value.start,properties[0].value.end)};
   return {callback,issuer:()=>issuance,sealed:()=>issuanceComplete};`,['context','checked','runtimeField']);
@@ -106,4 +106,35 @@ test('legacy composed completion retains its existing later observation issuance
   const f=fixture({legacy:true});
   assert.equal(f.owner.callback(),true);
   assert.deepEqual(f.events,['capture']);assert.equal(f.owner.issuer(),undefined);
+});
+
+// Actual callback/helper, two distinct original children. Explicit issuer ports
+// prove ordering and retention only, not the Common ABI or parent admission.
+test('multi original observation seals once at the last retained component before handoff',()=>{
+  const events=[],issued={},children=Array.from({length:2},(_,index)=>({
+    operation:{index},capture:{retainCompleted(){events.push(`retain${index}`);return true;},
+      completedCallCount(){events.push(`count${index}`);return index+1;}}}));
+  let starts=0,advances=0;
+  const context={children,child:children[0],originalPreparation:{},completeOriginal:true,moon:{
+    clientProgramAdvanceInferObservationIssuance(original,quantum){
+      assert.strictEqual(original,issued);assert.equal(quantum,1);advances++;
+      return {$tag:1,_0:{_0:advances===5,_1:BigInt(advances)}};
+    }},startCompleteInferObservation(options){
+      assert.deepEqual(options.operations,children.map(child=>child.operation));
+      assert.equal(options.ledger,undefined);assert.deepEqual(
+        [options.maxSlots,options.maxWireBytes,options.maxWork],[3,16384,5]);
+      starts++;return issued;
+    }};
+  // Keep the same helper state while selecting each actual original child.
+  const run=compileFunction(`
+    const {children,originalPreparation,moon,startCompleteInferObservation,completeOriginal}=context;
+    let issuance,issuanceComplete=false,publicationOwner;
+    ${source.slice(declaration.start,declaration.end)}
+    return {complete:retainCompleted,sealed:()=>issuanceComplete};`,['context','checked','runtimeField'])(context,checked,runtimeField);
+  assert.equal(run.complete(children[0]),true);assert.equal(run.sealed(),false);
+  assert.deepEqual(events,['retain0']);assert.equal(starts,0);
+  assert.equal(run.complete(children[1]),true);assert.equal(run.sealed(),true);
+  assert.deepEqual(events,['retain0','retain1','count0','count1']);
+  assert.equal(starts,1);assert.equal(advances,5);
+  assert.equal(run.complete(children[0]),true);assert.equal(starts,1);
 });

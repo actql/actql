@@ -15,7 +15,12 @@ int main(int argc, char **argv) {
         return 0;
     }
     bool partial = strcmp(argv[1], "partial") == 0;
-    if (partial) assert(setenv("DYLD_ACTQL_RESIDENT_COMPONENT", "1", 1) == 0);
+#if defined(__linux__)
+    const char *loader_key = "LD_ACTQL_RESIDENT_COMPONENT";
+#else
+    const char *loader_key = "DYLD_ACTQL_RESIDENT_COMPONENT";
+#endif
+    if (partial) assert(setenv(loader_key, "1", 1) == 0);
     resident_entry_handle *original = actql_resident_capture_initial_entry();
 #ifdef ACTQL_RESIDENT_INITIAL_CONTROL_HEADER
     assert(actql_resident_initial_entry_current(original) == (partial ? 0 : 1));
@@ -29,11 +34,15 @@ int main(int argc, char **argv) {
 #endif
     resident_entry_handle *second = actql_resident_capture_initial_entry();
     assert(actql_resident_initial_entry_current(second) == 0);
+    assert(actql_resident_controller_retired(original) == -1);
+    assert(actql_resident_controller_retired(second) == -1);
     assert(actql_resident_retire_initial_entry(second) == 0);
     assert(actql_resident_retire_initial_entry(original) == 1);
     assert(actql_resident_initial_entry_current(original) == 0);
     assert(actql_resident_retire_initial_entry(original) == 0);
-    if (partial) assert(unsetenv("DYLD_ACTQL_RESIDENT_COMPONENT") == 0);
+    assert(actql_resident_controller_retired(original) == 0);
+    assert(actql_resident_controller_retired(second) == -1);
+    if (partial) assert(unsetenv(loader_key) == 0);
     assert(actql_resident_initial_entry_current(original) == 0);
     moonbit_decref(second);
     moonbit_decref(original);

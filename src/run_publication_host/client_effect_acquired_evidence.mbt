@@ -198,6 +198,38 @@ pub fn client_effect_acquired_dependency_bodies(
 }
 
 ///|
+// The Source completion and a later computed Result are different physical
+// outputs. The immutable acquisition evidence already belongs to this SAME
+// checked Unit; its computed Result must instead present the exact checked
+// producer/Target. The caller separately requires its live original export
+// receipt and Run admission. This does not turn the result into a Source pin.
+fn client_effect_computed_result_matches_acquired_unit(
+  owner : PreparedClientEffectComputation,
+  source : ClientEffectAcquiredEvidence,
+  result : @strategy.CapturedEffectLocalResult,
+) -> Bool {
+  let graph = @strategy.checked_effect_computation_graph(owner.graph)
+  let unit = @strategy.captured_effect_local_result_stage(result)
+  let task = @strategy.captured_effect_local_result_task(result)
+  if !physical_equal(source.owner, owner) ||
+    unit != source.invocation.unit ||
+    unit < 0 ||
+    unit >= @strategy.graph_captured_prefix(graph) ||
+    task < @strategy.graph_captured_prefix(graph) {
+    return false
+  }
+  let occurrence = @strategy.captured_any_result_borrow_occurrence(
+    @strategy.captured_effect_local_result_borrow(result),
+  )
+  @strategy.graph_stage_target_task(
+    graph,
+    unit,
+    @results.port_target(@execution.managed_result_occurrence_port(occurrence)),
+  ) ==
+  Some(task)
+}
+
+///|
 pub fn issue_acquired_client_effect_local_result_artifact(
   owner : PreparedClientEffectComputation,
   inputs : @strategy.CapturedEffectInputs,
@@ -219,10 +251,20 @@ pub fn issue_acquired_client_effect_local_result_artifact(
   let result = @strategy.captured_effect_local_result_export_result(exported)
   if !physical_equal(source.owner, owner) ||
     !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
-    !@strategy.captured_effect_local_result_matches_source(
-      inputs,
-      result,
-      source.identity,
+    (
+      !@strategy.captured_effect_local_result_matches_source(
+        inputs,
+        result,
+        source.identity,
+      ) &&
+      !(client_effect_computed_result_matches_acquired_unit(
+        owner, source, result,
+      ) &&
+      @strategy.captured_effect_inputs_acquired_source_matches(
+        inputs,
+        source.invocation.unit,
+        source.identity,
+      ))
     ) {
     return Err(ForeignOwner)
   }

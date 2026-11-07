@@ -111,6 +111,7 @@ fn prepare_catalog_source(
   derived_capacity_limits? : @wire.Limits? = None,
   graph? : Bool = false,
   source_preparation? : @stages.Source? = None,
+  collected_inputs_out? : Ref[@source_inputs.Inputs?]? = None,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
   let source = prepare_catalog_stage_source(program, limits, source_preparation)
   let (views, locals) = match
@@ -121,6 +122,7 @@ fn prepare_catalog_source(
       max_inputs=limits.max_slots,
       max_views=limits.max_slots,
       max_order_keys=limits.max_slots,
+      collected_inputs_out~,
     ) {
     Ok(v) => v
     Err(e) => raise Registration(e)

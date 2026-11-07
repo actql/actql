@@ -57,10 +57,15 @@ export function retainedParentCoreBound(count) {
   assert(Number.isSafeInteger(count) && count >= 2 && count <= 2147483647,
     'Outside admitted Int32 serial-chain length');
   const layout = parentStartupLayout();
+  // Preserve the existing conservative callback component and Lean premise.
+  // Current capture requests total 232; the unchanged 240-byte upper retains
+  // eight bytes of slack rather than reducing the admitted core envelope.
+  const callbackUpper = 240n;
+  assert(BigInt(layout.callbacks) <= callbackUpper, 'Callbacks exceed the existing conditional upper');
   const fixed = {
     references: 5n * (8n + 8n), owner: BigInt(layout.blocks.owner),
     state: BigInt(layout.blocks.state),
-    callbacks: BigInt(layout.callbacks), environment: BigInt(layout.blocks.startEnvironment),
+    callbacks: callbackUpper, environment: BigInt(layout.blocks.startEnvironment),
     reportedWorkOverlap: 2n * 16n,
     // Cleanup replaces [] while the old owner is still held by the store.
     arrayOwnersOverlap: 2n * 24n,

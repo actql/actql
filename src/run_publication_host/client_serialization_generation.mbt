@@ -85,6 +85,7 @@ pub fn complete_client_serialization_generation(
     !physical_equal(input_evidence.input, input) {
     return Err(ForeignInput)
   }
+  let (proof_bytes, proof_nodes, proof_depth) = client_serialization_evidence_codec_bounds()
   let evidence = match
     @publication.bind_generated_content_observation(
       run.template,
@@ -94,9 +95,9 @@ pub fn complete_client_serialization_generation(
       input_evidence.artifact,
       candidate,
       content,
-      16384,
-      256,
-      16,
+      proof_bytes,
+      proof_nodes,
+      proof_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))

@@ -26,12 +26,22 @@ fn entry_gate_fixture(
   let contract = @publication_host.client_infer_plan_graph_execution_contract(
     active.plan.unwrap(),
   )
-  let egress_admission = @publication_host.admit_prepared_client_infer_egress(
-    active.prepared.unwrap(),
-    2,
-    contract,
-    () => egress.val,
-  ).unwrap()
+  let egress_result = match active.prepared {
+    Some(prepared) =>
+      @publication_host.admit_prepared_client_infer_egress(
+        prepared,
+        2,
+        contract,
+        () => egress.val,
+      )
+    None =>
+      @publication_host.admit_client_infer_occurrence_egress(
+        active.occurrence,
+        contract,
+        () => egress.val,
+      )
+  }
+  let egress_admission = egress_result.unwrap()
   bind_egress_admission(active, egress_admission).unwrap()
   let (compiled, definition) = match active.run_binding {
     Some(original) => (original.compiled, original.definition)

@@ -220,11 +220,12 @@ class FiniteRunSQLiteTests(unittest.TestCase):
                 self.assertIsNone(self.rows(host)[1])
                 self.assertTrue(host.close())
 
-    def host(self, path):
+    def host(self, path, *, preparing=True):
         host, core, calls, _ = append_fixture.LocalSubmissionAppendTests().host(path)
         reference = {'epoch': host.profile()['submissionEpoch'], 'nonce': 'original'}
-        preparing = host._retain_intent(reference, append_fixture.INTENT)
-        self.assertTrue(host._close_projection(preparing))
+        if preparing:
+            original = host._retain_intent(reference, append_fixture.INTENT)
+            self.assertTrue(host._close_projection(original))
         # This tests physical forwarding only. The independent scalar metadata
         # tag is not evidence of real Account/profile/Run admission.
         host._configuration = replace(host._configuration, sdk=True)
@@ -386,8 +387,8 @@ class FiniteRunAssemblyTests(unittest.TestCase):
     rows = FiniteRunSQLiteTests.rows
     # Inherited physical cases are selected separately; this class adds only
     # the complete assembly caller over the same scalar Core and actual Store.
-    def assembly(self, path, *, restored=False):
-        host, core, output, validations, statuses, candidate = self.host(path)
+    def assembly(self, path, *, restored=False, preparing=True):
+        host, core, output, validations, statuses, candidate = self.host(path, preparing=preparing)
         previous = core._call
         journal_tickets = {}
         events = []
@@ -398,6 +399,7 @@ class FiniteRunAssemblyTests(unittest.TestCase):
                 if name == 'install_environment': return 600000
                 if name == 'reserve_preparation': return 700000 + args[1]
                 if name in ('prepare', 'close_environment', 'close_preparation'): return 0
+                if name == 'prepared_outcome': return 1
                 if name in ('prepared_tasks', 'prepared_results'): return 1
             if family == 'run' and name in ('reserve', 'prepare_sdk', 'prepared', 'close'):
                 events.append((family, name))

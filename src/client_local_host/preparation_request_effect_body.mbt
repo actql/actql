@@ -77,6 +77,19 @@ fn[I] request_effect_plan_quote(
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
+    guard owner.compiled_effect is Some(prepared) &&
+      installed_direct_occurrences_layout(
+        @strategy.graph_captured_prefix(
+          installed_managed_owner_graph(Effect(prepared)),
+        ),
+      )
+      is Some((selector_retained, selector_execution)) &&
+      @execution.checked_preparation_add_product(r, selector_retained, 1L)
+      is Some(r) &&
+      @execution.checked_preparation_add_product(e, selector_execution, 1L)
+      is Some(e) else {
+      return Err(Policy)
+    }
     // The captured Effect's existing schema walk also resolves its SAME
     // checked Result endpoints. Back the additional fixed scratch before
     // that call; no new graph, proof arrays or caller-selected bounds.
@@ -86,10 +99,26 @@ fn[I] request_effect_plan_quote(
             @publication_host.prepared_client_effect_computation_graph(prepared),
           ),
         ) >
-        0 => installed_effect_source_result_bound_scratch_bytes()
+        0 ||
+        !@publication_host.prepared_client_effect_serialization_occurrences(
+          prepared,
+        ).is_empty() => installed_effect_source_result_bound_scratch_bytes()
       _ => 0L
     }
-    guard @execution.checked_preparation_add_product(e, scratch, 1L) is Some(e) else {
+    let control_phase = installed_effect_control_phase_quote_capacity()
+    guard @execution.checked_preparation_add_product(
+        r,
+        @execution.execution_capacity_retained_bytes(control_phase),
+        1L,
+      )
+      is Some(r) &&
+      @execution.checked_preparation_add_product(
+        e,
+        @execution.execution_capacity_execution_bytes(control_phase),
+        1L,
+      )
+      is Some(e) &&
+      @execution.checked_preparation_add_product(e, scratch, 1L) is Some(e) else {
       return Err(Policy)
     }
     owner.program_plan_quote = Some((r, e))
@@ -174,10 +203,77 @@ pub fn[I] prepare_request_effect_model_read_scope(
   owner : ClientRequestPreparation[I],
   input : I,
   plan : ClientInstalledEffectManagedPlan,
+  quantity_limits? : @resources.QuantityAmounts? = None,
 ) -> Result[
   @publication_host.ClientModelReadScope,
   ClientInstalledManagedRunIssue,
 ] {
+  if plan.model is Some(selected) && selected.components is Some(_) {
+    return Err(ForeignOriginal)
+  }
+  prepare_request_effect_model_scopes_owned(
+    owner,
+    input,
+    plan,
+    quantity_limits,
+    (selected, ledger, identity) => {
+      @publication_host.bind_client_model_read_scope(
+        selected.compiled,
+        selected.definition,
+        selected.graph,
+        ledger,
+        identity,
+        model_limits=Some(selected.model_limits),
+      )
+    },
+  )
+}
+
+///|
+pub fn[I] prepare_request_effect_models_read_scopes(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  plan : ClientInstalledEffectManagedPlan,
+  quantity_limits? : @resources.QuantityAmounts? = None,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  ClientInstalledManagedRunIssue,
+] {
+  guard plan.model is Some(selected) && selected.components is Some(_) else {
+    return Err(ForeignOriginal)
+  }
+  prepare_request_effect_model_scopes_owned(
+    owner,
+    input,
+    plan,
+    quantity_limits,
+    (selected, ledger, identity) => {
+      let originals = selected.components.unwrap()
+      @publication_host.bind_client_effect_model_read_scopes(
+        selected._compilation,
+        selected.compiled,
+        selected.definition,
+        ledger,
+        identity,
+        originals.map(value => value.read_retained_bytes),
+        originals.map(value => value.read_execution_bytes),
+      )
+    },
+  )
+}
+
+///|
+fn[I, T] prepare_request_effect_model_scopes_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  plan : ClientInstalledEffectManagedPlan,
+  quantity_limits : @resources.QuantityAmounts?,
+  bind : (
+    ClientInstalledEffectModelDemand,
+    @resources.Ledger,
+    @resources.OriginalLedgerIdentity,
+  ) -> Result[T, @publication_host.ClientModelReadPreparationIssue],
+) -> Result[T, ClientInstalledManagedRunIssue] {
   let quoted = owner.phase == EffectModelScopeQuoted
   guard (
       (
@@ -200,7 +296,10 @@ pub fn[I] prepare_request_effect_model_read_scope(
     return Err(ForeignOriginal)
   }
   guard plan.model is Some(selected) else { return Err(Unsupported) }
-  match check_preparation_owned_effect_limits(owner.initial, input, plan) {
+  if !installed_effect_model_demand_complete(selected) {
+    return Err(ForeignOriginal)
+  }
+  match check_preparation_owned_effect_limits(owner.initial, input, capacity) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -212,6 +311,9 @@ pub fn[I] prepare_request_effect_model_read_scope(
         selected.max_reservations,
         selected.max_holdings,
         selected.max_delegations,
+        model_count=selected.components
+          .map(value => value.length())
+          .unwrap_or(1),
       ) {
       Err(issue) => return Err(issue)
       Ok(value) => value
@@ -226,49 +328,81 @@ pub fn[I] prepare_request_effect_model_read_scope(
   // The original six input/borrower slots already exist. Growing this same
   // census retains their backing and the selected Model maxima; it never
   // replaces preparation history with a new pristine inventory.
-  let result : Result[
-    @publication_host.ClientModelReadScope,
-    ClientInstalledManagedRunIssue,
-  ] = match
-    @resources.grow_preparation_capacity_inventory(
-      capacity,
-      input,
-      r,
-      e,
-      Int::max(request_preparation_borrow_limit, selected.max_reservations),
-      selected.max_holdings,
-      selected.max_delegations,
-    ) {
-    Err(issue) => Err(Preparation(issue))
-    Ok(_) => {
-      guard owner.phase == Selecting &&
-        owner.input is Some(original_input) &&
-        physical_equal(original_input, input) &&
-        owner.effect_capacity is Some(original_capacity) &&
-        physical_equal(original_capacity, capacity) &&
-        owner.effect_plan is Some(original_plan) &&
-        physical_equal(original_plan, plan) &&
-        owner.program_domain_quote is Some(current_quote) &&
-        current_quote.0 == r &&
-        current_quote.1 == e else {
-        if owner.phase == Selecting {
-          owner.phase = EffectModelScopeQuoted
-        }
-        return Err(ForeignOriginal)
+  let quantities_ready : Result[Unit, ClientInstalledManagedRunIssue] = match
+    quantity_limits {
+    None => Ok(())
+    Some(installed) => {
+      let quantities = match
+        request_model_group_quantity_limits(
+          selected.graph,
+          None,
+          installed,
+          effect_models=selected.components,
+        ) {
+        None => return Err(InsufficientCapacity)
+        Some(value) => value
       }
-      match
-        @resources.preparation_capacity_inventory_original(capacity, input) {
-        Err(issue) => Err(Preparation(issue))
-        Ok(identity) =>
-          @publication_host.bind_client_model_read_scope(
-            selected.compiled,
-            selected.definition,
-            selected.graph,
-            owner.ledger,
-            identity,
-          ).map_err(issue => ModelRead(issue))
+      // Same preparation-only Resource entrance as Pure Model. An identical
+      // retry observes its original configuration; it never resets history.
+      if @resources.quantity_configuration_matches(
+          owner.ledger,
+          Some(quantities),
+        ) {
+        Ok(())
+      } else {
+        @resources.configure_quantities(owner.ledger, quantities).map_err(issue => {
+          Ledger(issue)
+        })
       }
     }
+  }
+  if owner.phase != Selecting {
+    return match quantities_ready {
+      Err(issue) => Err(issue)
+      Ok(_) => Err(ForeignOriginal)
+    }
+  }
+  let result : Result[T, ClientInstalledManagedRunIssue] = match
+    quantities_ready {
+    Err(issue) => Err(issue)
+    Ok(_) =>
+      match
+        @resources.grow_preparation_capacity_inventory(
+          capacity,
+          input,
+          r,
+          e,
+          Int::max(request_preparation_borrow_limit, selected.max_reservations),
+          selected.max_holdings,
+          selected.max_delegations,
+        ) {
+        Err(issue) => Err(Preparation(issue))
+        Ok(_) => {
+          guard owner.phase == Selecting &&
+            owner.input is Some(original_input) &&
+            physical_equal(original_input, input) &&
+            owner.effect_capacity is Some(original_capacity) &&
+            physical_equal(original_capacity, capacity) &&
+            owner.effect_plan is Some(original_plan) &&
+            physical_equal(original_plan, plan) &&
+            owner.program_domain_quote is Some(current_quote) &&
+            current_quote.0 == r &&
+            current_quote.1 == e else {
+            if owner.phase == Selecting {
+              owner.phase = EffectModelScopeQuoted
+            }
+            return Err(ForeignOriginal)
+          }
+          match
+            @resources.preparation_capacity_inventory_original(capacity, input) {
+            Err(issue) => Err(Preparation(issue))
+            Ok(identity) =>
+              bind(selected, owner.ledger, identity).map_err(issue => {
+                ModelRead(issue)
+              })
+          }
+        }
+      }
   }
   if result is Ok(_) {
     owner.program_domain_quote = None
@@ -350,7 +484,7 @@ pub fn[I] begin_request_effect_managed_run(
     return Err(ForeignOriginal)
   }
   owner.phase = Selecting
-  let result = begin_preparation_owned_installed_effect_managed_run(
+  let result = begin_preparation_owned_installed_effect_managed_run_original(
     owner.initial,
     input,
     capacity,
@@ -369,6 +503,7 @@ pub fn[I] begin_request_effect_model_managed_run(
   owner : ClientRequestPreparation[I],
   request : @publication_host.ClientRequestIdentity,
   scope : @publication_host.ClientModelReadScope,
+  scopes? : Array[@publication_host.ClientModelReadScope]? = None,
 ) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
   guard owner.phase == EffectBodyReady &&
     owner.input is Some(input) &&
@@ -387,6 +522,7 @@ pub fn[I] begin_request_effect_model_managed_run(
     plan,
     owner.ledger,
     scope,
+    scopes~,
   )
   finish_request_effect_run_adoption(owner, result)
 }
@@ -407,10 +543,13 @@ fn[I] finish_request_effect_run_adoption(
       owner.effect_plan = None
       owner.program_data = None
       owner.program_plan_quote = None
+      owner.program_domain_quote = None
+      owner.program_domain_compilation_inputs = None
       owner.native_parameters = None
       owner.native_query_declarations = None
       owner.native_parameters_ready = false
       owner.held_program = None
+      clear_request_source_input(owner)
       owner.submitted_intent = None
       owner.intent_base = None
       owner.intent_peak_live = false

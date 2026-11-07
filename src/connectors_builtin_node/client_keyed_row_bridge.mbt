@@ -314,7 +314,7 @@ pub fn client_program_keyed_lookup_capacity(
   acquisition : @publication_host.ClientKeyedAcquisition,
   max_bytes : Int,
   max_work : Int,
-) -> (Int64, Int64, Int64, Int64)? {
+) -> (Int64?, Int64?, Int64, Int64)? {
   @publication_host.client_keyed_lookup_capacity(
     acquisition, max_bytes, max_work,
   )

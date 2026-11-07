@@ -189,9 +189,29 @@ pub fn attach_installed_source_read_acquisition(
     Ok(_) => ()
   }
   guard value.owner is Some(owner) else { return Err(Unbound) }
-  if value.managed_run is Some((_, occurrence)) &&
-    (stage != occurrence || source_index != 0) {
-    return Err(ForeignOriginal)
+  if value.managed_run is Some((run, occurrence)) {
+    match installed_managed_run_direct_occurrence(run, occurrence) {
+      Some((selected_stage, selected_input, task)) =>
+        if stage != selected_stage ||
+          source_index != selected_input ||
+          task != occurrence {
+          return Err(ForeignOriginal)
+        }
+      None => {
+        let selected = match run.preparation {
+          Some(PlannedEffectManaged(_, plan)) =>
+            plan.direct_occurrences is Some(_)
+          _ =>
+            match run.captured_preparation {
+              Some(plan) => plan.direct_occurrences is Some(_)
+              None => false
+            }
+        }
+        if selected || stage != occurrence || source_index != 0 {
+          return Err(ForeignOriginal)
+        }
+      }
+    }
   }
   if value.managed_run is Some((run, occurrence)) &&
     run.captured_preparation is Some(plan) {

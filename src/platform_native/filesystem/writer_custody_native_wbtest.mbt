@@ -1,6 +1,6 @@
 ///|
 fn writer_custody_root() -> Root raise {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
+  guard filesystem_custody_fixture_path() is Some(path) else {
     fail("selected Writer custody requires an owned fresh Root")
   }
   open_private_root(path).unwrap()

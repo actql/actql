@@ -145,47 +145,20 @@ pub fn[I, P] adopt_node_preparation_admission(
   // for the admission and one for the Run's actual raw fields. No token can
   // escape on refusal; the same reservation and old holders remain intact.
   owner.transitioning = true
-  capacity.phase = Transferring
-  capacity.borrowers += 2
-  let current = check_node_managed_run_admission(admission, ledger)
-  let transferred : Result[PreparationRetirement, ImportedChildLedgerIssue] = match
-    current {
-    Err(issue) => Err(issue)
-    Ok(_) =>
-      match
-        finish_preparation_capacity_run_current(
-          capacity, input, prepared, ledger,
-        ) {
-        Err(ForeignOriginal) => Err(ForeignOriginal)
-        Err(Resource(issue)) => Err(Resource(issue))
-        Err(_) => Err(Unavailable)
-        Ok(_) =>
-          match claim_preparation_run_retirement(capacity) {
-            Err(Resource(issue)) => Err(Resource(issue))
-            Err(_) => Err(Unavailable)
-            Ok(retirement) => Ok(retirement)
-          }
-      }
-  }
-  let retirement = match transferred {
+  let transferred = transfer_preparation_adoption_holders(
+    capacity,
+    input,
+    prepared,
+    ledger,
+    () => check_node_managed_run_admission(admission, ledger),
+  )
+  let (retirement, holder, run_holder) = match transferred {
     Err(issue) => {
-      capacity.borrowers -= 2
-      capacity.phase = Ready
       owner.transitioning = false
       return Err(issue)
     }
     Ok(value) => value
   }
-  let holder = make_preparation_body_borrow({
-    owner: capacity,
-    body: Some(prepared),
-    returned: false,
-  })
-  let run_holder = make_preparation_body_borrow({
-    owner: capacity,
-    body: Some(prepared),
-    returned: false,
-  })
   let next = prepare_node_managed_run_original(
     admission.child,
     prepared,

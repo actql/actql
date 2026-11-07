@@ -8,6 +8,10 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
   readInitialControlInstallationInput} from './node-initial-control-installation.mjs';
 import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
 import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
+import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
+import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
+import {checkedLocalOutputLimits, localOutputLimits} from './local-values-plan.mjs';
+import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('9')};
@@ -22,6 +26,34 @@ const deferred = () => {
   const promise = new Promise(done => { resolve = done; });
   return {promise, resolve};
 };
+
+test('selected Local lifecycle cannot omit its same own preparation receiver before connect', async () => {
+  // Explicit shutdown ports observe refusal/cleanup order only. No Source
+  // receipt, Root, Account, physical resource or ordinary Run is issued.
+  for (const inherited of [false, true]) {
+    let connects = 0;
+    const closes = [];
+    const port = {async perform(operation) {
+      assert.equal(operation, 'connect'); connects++; return profile;
+    }};
+    if (inherited) Object.setPrototypeOf(port, {
+      [sourcePreparationPort]: {beforeSourceSnapshot() {assert.fail('InheritedReceiver');}},
+    });
+    const initialControl = {close() {closes.push('initial'); return {pending: false};}};
+    const host = {port, initialControl,
+      checkpoints: {stop() {closes.push('stop');}, close() {closes.push('checkpoint');}},
+      dispatchOwner: {drain() {closes.push('drain');}},
+      retireTerminalEffects() {closes.push('retire');},
+      journal: {close() {closes.push('journal');}}, store: {close() {closes.push('store');}}};
+    const registry = createEmbeddedHostRegistry(() => true), installation = {};
+    registry.registerPreparation(host, installation, host);
+    await assert.rejects(registry.connect('/test/selected-local', 'same', async () => host,
+      options, host, undefined, initialControl), {code: 'NodeSourceManagedAdmissionUnavailable'});
+    assert.equal(connects, 0);
+    assert.deepEqual(closes, ['stop', 'drain', 'retire', 'checkpoint', 'journal', 'store', 'initial']);
+  }
+});
+
 function fixture({perform, sourceClose, drain, open, observationClose,
   stopModelRuntime, retireModelRuntime, answerCheckpoint} = {}) {
   const calls = [];
@@ -567,4 +599,497 @@ test('prepared Client pending request index preserves original close drain and r
   assert.deepEqual(calls, ['attach-entered', 'attach-returned', 'stop', 'drain', 'retire', 'checkpoint', 'journal', 'store']);
   assert.throws(() => registry.originalSourceRequest(host, installation, host, alias),
     /InstalledHostPreparationChanged/);
+});
+
+// The actual held caller uses the real Host registry with explicit native and
+// Journal/Checkpoint ports. No synthetic packet below issues capacity, a Run,
+// approval or a physical cleanup acknowledgement.
+function heldRequestOriginalFixture({changed = false, failure, failPreparation = false, finishFailure,
+  finishFailures = 1, preparePlan, effectful = false} = {}) {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  let entry;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id.name === 'heldSubmission') {
+      assert.equal(entry, undefined); entry = node;
+    }
+    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
+    else if (value && typeof value === 'object') visit(value);
+  })(tree);
+  assert(entry);
+  const host = {}, installation = {}, moon = {}, prepared = {}, requested = {};
+  const registry = createEmbeddedHostRegistry(() => true);
+  registry.registerPreparation(host, installation, host);
+  const captured = Object.freeze({version: 'actql-remote-captured-submission/0.1',
+    requestId: 'authored-held-request', principalId: 'actor', connection: 'original-connection',
+    kind: 'program', input: Object.freeze({version: 'actql/0.1', id: 'same-program'}),
+    resultNames: Object.freeze(['answer'])});
+  const calls = [], pending = deferred();
+  let retainedRequest;
+  let finishAttempts = 0;
+  const input = Object.freeze({finish(terminal) {
+    calls.push('finish:' + terminal);
+    if (++finishAttempts <= finishFailures && finishFailure !== undefined) throw finishFailure;
+    pending.resolve();
+  }});
+  const preparation = {
+    retainEffectRequestInput(actualMoon, request, intent, actualCapture) {
+      assert.equal(actualMoon, moon); assert.equal(intent, undefined);assert.equal(actualCapture, captured);
+      retainedRequest = request;
+      registry.retainRequest(host, installation, host, request, pending.promise);
+      calls.push('retain-original'); return input;
+    },
+    bindSourceRequest(request, value) {
+      assert.equal(request, retainedRequest); assert.equal(value, prepared);
+      registry.bindSourceRequest(host, installation, host, request, value);calls.push('bind-original');
+    },
+  };
+  const ports = {moon, preparation, retainInstalledHostRuntimeFailure,
+    localPreparationCustody: {adopt: value => value, attach(request, value) {request.preparedProgram = value;}},
+    async prepareCapturedSubmission(request) {
+      assert.equal(registry.originalSourceRequest(host, installation, host, request), request);
+      calls.push('prepare-original');if (failPreparation) throw failure;return prepared;
+    },
+    requestOf(request) {
+      assert.equal(registry.originalSourceRequest(host, installation, host, prepared), request);
+      calls.push('request-original');return {requested,resultNames:['answer'],acquired:false,acquisitionCount:0,effectful};
+    },
+    admitPreparedSubmission(request, held) {
+      assert.equal(registry.originalSourceRequest(host, installation, host, prepared), request);
+      calls.push('admit-plan');
+      return preparePlan?.({request, moon, prepared, requested, preparation, requestOf:ports.requestOf}, held);
+    },
+    prepareAcquisitions() {assert.fail('No extra Source');}, prepareKeyedSources() {assert.fail('No keyed Source');},
+    prepareAcquisition() {assert.fail('No Source');},
+    captureSubmission(request) {assert.equal(request, retainedRequest);return changed ? {...captured, requestId:'foreign'} : captured;},
+    canonicalValueJson: JSON.stringify};
+  const held = new Function(...Object.keys(ports),
+    'const ' + source.slice(entry.start, entry.end) + ';return heldSubmission;')(...Object.values(ports));
+  return {held: () => held(captured), captured, calls, registry, host, installation, moon, prepared, requested, input,
+    original(value) {return registry.originalSourceRequest(host, installation, host, value);}};
+}
+
+test('held request reconstruction retains its actual pending original before funded preparation', async () => {
+  const f = heldRequestOriginalFixture(), resolved = await f.held();
+  assert.deepEqual(f.calls, ['retain-original','prepare-original','bind-original','request-original','admit-plan']);
+  assert.equal(resolved.requestInput, f.input);
+  assert.equal(f.original(resolved.submission), resolved.submission);
+  assert.equal(f.original(f.prepared), resolved.submission);
+  assert.throws(() => f.original({...resolved.submission}), {code:'InstalledHostPreparationChanged'});
+  resolved.requestInput.finish('returned');await Promise.resolve();await Promise.resolve();
+  assert.throws(() => f.original(resolved.submission), {code:'InstalledHostPreparationChanged'});
+  assert.throws(() => f.original(f.prepared), {code:'InstalledHostPreparationChanged'});
+});
+
+test('held reconstruction failure keeps its original cause and same pending cleanup retry', async () => {
+  const primary = Object.freeze(new Error('original prepared failure'));
+  const f = heldRequestOriginalFixture({failPreparation:true,failure:primary,
+    finishFailure:new Error('first original input cleanup failure')});
+  let failure;
+  await assert.rejects(f.held(), cause => {
+    failure=cause;return cause.cause===primary && cause.cleanupHandle.status().pending===true;
+  });
+  assert.deepEqual(f.calls,['retain-original','prepare-original','finish:failed']);
+  assert.equal((await failure.cleanupHandle.retry()).pending,false);
+  assert.deepEqual(f.calls,['retain-original','prepare-original','finish:failed','finish:failed']);
+});
+
+test('held reconstruction changed capture retires only its own pending original', async () => {
+  const f=heldRequestOriginalFixture({changed:true});
+  await assert.rejects(f.held(),{message:'HeldAcquisitionChanged'});
+  assert.equal(f.calls.at(-1),'finish:failed');await Promise.resolve();await Promise.resolve();
+  assert.throws(()=>f.original(f.prepared),{code:'InstalledHostPreparationChanged'});
+});
+
+test('held resume retains its original input until the actual physical-start handoff', async () => {
+  const f=heldRequestOriginalFixture(),start=deferred(),entered=deferred(),accepted={};
+  const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});let entry;
+  (function visit(node){if(!node||typeof node!=='object')return;
+    if(node.type==='VariableDeclarator'&&node.id.name==='resumeHeld'){assert.equal(entry,undefined);entry=node;}
+    for(const child of Object.values(node))if(Array.isArray(child))child.forEach(visit);
+    else if(child&&typeof child==='object')visit(child);
+  })(tree);assert(entry);
+  const ports={heldSubmission:()=>f.held(),retainInstalledHostRuntimeFailure,
+    effectRun:{checkSupported(){assert.fail('No Effect');}},
+    installedSourceFor(){assert.fail('No Source');},sourceProfile:undefined,
+    async admitDefinition(submission){assert.equal(f.original(submission),submission);return accepted;},
+    definitionOf:()=>undefined,runIdOf:()=> 'original-component-run',
+    settleHeldRun(){},cancelHeldRun(){assert.fail('No cancellation');},
+    async startDispatch(submission){assert.equal(f.original(submission),submission);entered.resolve();
+      await start.promise;assert.equal(f.original(submission),submission);return 'started';}};
+  const resume=new Function(...Object.keys(ports),'const '+source.slice(entry.start,entry.end)+';return resumeHeld;')(...Object.values(ports));
+  const pending=resume({captured:f.captured,step:async()=>{},renew(){},preparationCancelled:()=>false,
+    beforePhysicalStart(){},started(){}});
+  await entered.promise;assert.equal(f.calls.some(value=>value.startsWith('finish:')),false);
+  start.resolve();assert.equal(await pending,'started');
+  assert.equal(f.calls.at(-1),'finish:returned');await Promise.resolve();await Promise.resolve();
+  assert.throws(()=>f.original(f.prepared),{code:'InstalledHostPreparationChanged'});
+});
+
+function heldControl(name, ports) {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion:'latest', sourceType:'module'});
+  let entry;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id.name === name) {
+      assert.equal(entry, undefined); entry = node;
+    }
+    for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(visit);
+    else if (child && typeof child === 'object') visit(child);
+  })(tree);
+  assert(entry, name);
+  return new Function(...Object.keys(ports), 'const ' + source.slice(entry.start, entry.end) +
+    ';return ' + name + ';')(...Object.values(ports));
+}
+
+// Extract the actual route/getter rather than reproducing their branch logic.
+function heldSourceFunction(name, ports) {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion:'latest', sourceType:'module'});
+  let entry;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'FunctionDeclaration' && node.id.name === name ||
+        node.type === 'Property' && node.method && node.key.name === name) {
+      assert.equal(entry, undefined); entry = node.type === 'Property' ? node.value : node;
+    }
+    for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(visit);
+    else if (child && typeof child === 'object') visit(child);
+  })(tree);
+  assert(entry, name);
+  const body = source.slice(entry.start, entry.end);
+  return new Function(...Object.keys(ports), 'return (' +
+    (entry.type === 'FunctionExpression' ? 'function' : '') + body + ');')(...Object.values(ports));
+}
+
+test('held resume adopts the same Request Plan before its original publication consumer', async () => {
+  const record = {computeRuns:new WeakMap()}, run = {}, admitted = [];
+  const clientOperationError = code => Object.assign(new Error(code), {code});
+  const original = heldSourceFunction('managedComputePublicationOriginal', {record, clientOperationError});
+  const route = heldSourceFunction('captureInstalledManagedRunRoute', {clientOperationError});
+  const f = heldRequestOriginalFixture({preparePlan({request, moon, prepared, requested, preparation, requestOf}) {
+    Object.assign(moon, {
+      clientProgramSerializationOccurrences(actual) {assert.equal(actual,prepared);return [];},
+      clientProgramInstalledManagedPublicationLimits(actual, program, maxBytes) {
+        assert.equal(actual,run);assert.equal(program,prepared);assert.equal(maxBytes,localOutputLimits.maxWireBytes);
+        return resultOutputLimitFields.map(name => localOutputLimits[name]);
+      },
+    });
+    Object.assign(preparation, {
+      admitResultPublicationRun(actual) {assert.equal(actual,prepared);admitted.push(actual);},
+      prepareManagedComputeRun(runtime, program, identity, inference, invocation) {
+        assert.equal(runtime,moon);assert.equal(program,prepared);assert.equal(identity,requested);
+        assert.equal(inference,undefined);assert.equal(invocation,undefined);
+        assert.equal(f.original(program),request);
+        assert.equal(record.computeRuns.has(program),false,'No second Plan constructor');
+        record.computeRuns.set(program,{runtime,prepared:program,value:run,closed:false});
+      },
+    });
+    const admit = heldControl('admitPreparedSubmission', {preparation, requestOf, moon,
+      inferSelections:new WeakMap(), admissionFailures:new WeakMap(), holderRefusal:undefined,
+      prepareOrdinaryManagedRun:route({preparation,moon}), clientOperationError});
+    return admit(request);
+  }});
+  const restored = await f.held();
+  const publication = original(f.moon,f.prepared);
+  assert.deepEqual(checkedLocalOutputLimits(f.moon,f.prepared,publication),localOutputLimits);
+  assert.equal(publication.kind,'installed_run');assert.equal(publication.value,run);
+  assert.deepEqual(admitted,[f.prepared]);assert.equal(f.original(f.prepared),restored.submission);
+  assert.deepEqual(f.calls,['retain-original','prepare-original','bind-original','request-original','admit-plan','request-original']);
+  restored.requestInput.finish('returned');
+});
+
+test('held resume forwards its one admitted ordinary Run through the physical-start handoff', async () => {
+  const run = {}, accepted = {}, admitted = [];
+  let constructions = 0, starts = 0;
+  const clientOperationError = code => Object.assign(new Error(code), {code});
+  const route = heldSourceFunction('captureInstalledManagedRunRoute', {clientOperationError});
+  const f = heldRequestOriginalFixture({preparePlan({request, moon, prepared, requested, preparation, requestOf}, held) {
+    moon.clientProgramSerializationOccurrences = actual => {
+      assert.equal(actual, prepared); return [];
+    };
+    preparation.admitResultPublicationRun = actual => assert.equal(actual, prepared);
+    preparation.prepareManagedComputeRun = (runtime, program, identity) => {
+      assert.equal(runtime, moon); assert.equal(program, prepared); assert.equal(identity, requested);
+      assert.equal(f.original(prepared), request);
+      assert.equal(++constructions, 1, 'Resume must not construct or claim a second Run');
+      return run;
+    };
+    const admit = heldControl('admitPreparedSubmission', {preparation, requestOf, moon,
+      inferSelections:new WeakMap(), admissionFailures:new WeakMap(), holderRefusal:undefined,
+      prepareOrdinaryManagedRun:route({preparation, moon}), clientOperationError});
+    assert.equal(admit(request, held), undefined, 'The SDK admission callback remains void');
+  }});
+  const resume = heldControl('resumeHeld', {heldSubmission:()=>f.held(), retainInstalledHostRuntimeFailure,
+    effectRun:{checkSupported(){assert.fail('No Effect');}},
+    installedSourceFor(){assert.fail('No Source');}, sourceProfile:undefined,
+    async admitDefinition(submission, requested, names, held) {
+      assert.equal(f.original(submission), submission); assert.equal(requested, f.requested);
+      assert.deepEqual(names, ['answer']); assert.equal(held.managedRun, run);
+      admitted.push(held); return accepted;
+    },
+    definitionOf:()=>undefined, runIdOf:()=> 'original-component-run', settleHeldRun(){},
+    cancelHeldRun(){assert.fail('No cancellation');},
+    async startDispatch(submission, requested, actualAccepted, held) {
+      assert.equal(f.original(submission), submission); assert.equal(requested, f.requested);
+      assert.equal(actualAccepted, accepted); assert.equal(held, admitted[0]);
+      assert.equal(held.managedRun, run); assert.equal(++starts, 1); return 'started';
+    }});
+  assert.equal(await resume({captured:f.captured, step:async()=>{}, renew(){},
+    preparationCancelled:()=>false, beforePhysicalStart(){}, started(){}}), 'started');
+  assert.equal(constructions, 1); assert.equal(starts, 1);
+  assert.equal(f.calls.at(-1), 'finish:returned');
+});
+
+test('SDK managed admission remains void without a held Run handoff', () => {
+  const prepared = {}, requested = {}, run = {}, submission = {preparedProgram:prepared};
+  let constructions = 0;
+  const admit = heldControl('admitPreparedSubmission', {
+    preparation:{admitResultPublicationRun(value){assert.equal(value, prepared);}},
+    requestOf(value){assert.equal(value, submission);return {requested, acquisitionCount:0, effectful:false};},
+    moon:{clientProgramSerializationOccurrences(value){assert.equal(value, prepared);return [];}},
+    inferSelections:new WeakMap(), admissionFailures:new WeakMap(), holderRefusal:undefined,
+    prepareOrdinaryManagedRun(facts) {
+      assert.equal(facts.preparedProgram, prepared); assert.equal(facts.requestIdentity, requested);
+      assert.equal(++constructions, 1); return run;
+    },
+  });
+  assert.equal(admit(submission), undefined);
+  assert.equal(constructions, 1);
+  assert.equal(Object.hasOwn(submission, 'managedRun'), false);
+});
+
+test('held Run forwarding preserves current and cancellation fences before physical start', async () => {
+  for (const boundary of ['current', 'request-cancelled', 'run-cancelled']) {
+    const marker = new Error('OriginalCurrentRefused'), finishes = [];
+    const captured = {}, managedRun = {}, accepted = {}, requested = {};
+    const submission = {preparedProgram:{}};
+    let cancellations = 0;
+    const resume = heldControl('resumeHeld', {retainInstalledHostRuntimeFailure,
+      heldSubmission:async()=>({submission, requested, resultNames:['answer'], managedRun,
+        requestInput:{finish(value){finishes.push(value);}}}),
+      effectRun:{checkSupported(){assert.fail('No Effect');}}, sourceProfile:undefined,
+      installedSourceFor(){assert.fail('No Source');},
+      async admitDefinition(actual, request, names, held) {
+        assert.equal(actual, submission); assert.equal(request, requested);
+        assert.deepEqual(names, ['answer']); assert.equal(held.managedRun, managedRun); return accepted;
+      },
+      definitionOf:()=>({cancellationRequested:boundary==='run-cancelled'}),
+      async cancelHeldRun(value){assert.equal(value, captured);cancellations++;},
+      startDispatch(){assert.fail('No physical start beyond the original fence');},
+    });
+    const outcome = await resume({captured, step:async()=>{},
+      renew(){if (boundary==='current') throw marker;},
+      preparationCancelled:()=>boundary==='request-cancelled'});
+    assert.deepEqual(outcome, boundary==='current' ? {refused:marker} : 'not_started');
+    assert.equal(cancellations, boundary==='request-cancelled' ? 1 : 0);
+    assert.deepEqual(finishes, ['returned']);
+  }
+});
+
+test('held Effect keeps its existing definition-owned Plan constructor', async () => {
+  const f = heldRequestOriginalFixture({effectful:true,preparePlan(){assert.fail('No duplicate Effect admission');}});
+  const restored = await f.held();
+  assert.equal(restored.effectful,true);assert.equal(f.calls.includes('admit-plan'),false);
+  restored.requestInput.finish('returned');
+});
+
+test('held Plan admission failure preserves the same original input cleanup', async () => {
+  for (const primary of [new Error('original Plan admission failure'),undefined]) {
+    const f = heldRequestOriginalFixture({preparePlan(){throw primary;}});
+    let rejected = false;
+    try {await f.held();} catch (error) {rejected = true;assert.equal(error,primary);}
+    assert.equal(rejected,true);assert.equal(f.calls.at(-1),'finish:failed');
+    await Promise.resolve();await Promise.resolve();
+    assert.throws(()=>f.original(f.prepared),{code:'InstalledHostPreparationChanged'});
+  }
+});
+
+test('held resume successful start retains the same failed input return retry without restarting', async () => {
+  const cleanup = new Error('original input return pending');
+  const f = heldRequestOriginalFixture({finishFailure:cleanup, finishFailures:2});
+  let starts = 0;
+  const resume = heldControl('resumeHeld', {heldSubmission:()=>f.held(), retainInstalledHostRuntimeFailure,
+    effectRun:{checkSupported(){assert.fail('No Effect');}},
+    installedSourceFor(){assert.fail('No Source');}, sourceProfile:undefined,
+    async admitDefinition(submission){assert.equal(f.original(submission),submission);return {};},
+    definitionOf:()=>undefined, runIdOf:()=> 'original-component-run', settleHeldRun(){},
+    cancelHeldRun(){assert.fail('No cancellation');},
+    async startDispatch(submission){assert.equal(f.original(submission),submission);starts++;return 'started';}});
+  let failure;
+  await assert.rejects(resume({captured:f.captured,step:async()=>{},renew(){},
+    preparationCancelled:()=>false,beforePhysicalStart(){},started(){}}), error => {
+    failure = error; return error.cause === cleanup && error.cleanupHandle.status().pending === true;
+  });
+  assert.equal(starts,1);
+  assert.equal(f.original(f.prepared).preparedProgram,f.prepared);
+  assert.equal((await failure.cleanupHandle.retry()).pending,false);
+  assert.equal(starts,1,'Retry only returns the SAME input; physical start is never retried');
+  await Promise.resolve(); await Promise.resolve();
+  assert.throws(()=>f.original(f.prepared),{code:'InstalledHostPreparationChanged'});
+});
+
+test('held abandonment keeps the original start failure including undefined and its same input retry', async () => {
+  for (const primary of [new Error('original start failure'), undefined]) {
+    const f = heldRequestOriginalFixture({finishFailure:new Error('original input return pending'), finishFailures:2});
+    let starts = 0, failure;
+    const abandon = heldControl('abandonHeld', {heldSubmission:()=>f.held(), retainInstalledHostRuntimeFailure,
+      definitionOf:()=>({physicalStartReserved:false,preDispatchFailureConfirmed:false,dispatchReserved:false}),
+      namespaceId:'original-namespace',
+      async startRun(){starts++;throw primary;},
+      journal:{markPreDispatchFailure(){assert.fail('No failure marker after failed admission');}}});
+    await assert.rejects(abandon(f.captured), error => {
+      failure=error; return Object.hasOwn(error,'primaryFailure') && error.primaryFailure === primary &&
+        error.cause === primary && error.cleanupHandle.status().pending === true;
+    });
+    assert.equal(starts,1);
+    await assert.rejects(failure.cleanupHandle.retry(), error => error === failure);
+    assert.equal(failure.cleanupHandle.status().pending,true);
+    assert.equal((await failure.cleanupHandle.retry()).pending,false);
+    assert.equal(starts,1,'Retry owns only the original input return');
+    await Promise.resolve(); await Promise.resolve();
+    assert.throws(()=>f.original(f.prepared),{code:'InstalledHostPreparationChanged'});
+  }
+});
+
+
+// Actual cold Model/Effect caller, Host registry and input-retainer wrapper.
+// Native allocation, saved tuple admission, dispatch and physical cleanup are
+// explicit ports; these controls issue no real Run, permission or stop ACK.
+function coldModelEffectRequestFixture({prepareFailure, failPrepare = false,
+  executeFailure, finishFailure, missingMaterial = false} = {}) {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const nodes = [];
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type) nodes.push(node);
+    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
+    else if (value && typeof value === 'object') visit(value);
+  })(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  const selected = nodes.filter(node => node.type === 'VariableDeclarator' && node.id.name === 'runRestoredModel');
+  assert.equal(selected.length, 1);
+  const methods = ['retainEffectRequestInput', 'bindSourceRequest'].map(name => {
+    const found = nodes.filter(node => node.type === 'Property' && node.method && node.key.name === name);
+    assert.equal(found.length, 1, name); return found[0];
+  });
+  const host = {}, installation = {}, originals = {}, moon = {}, prepared = {}, identity = {}, definition = {};
+  const registry = createEmbeddedHostRegistry(() => true);
+  registry.registerPreparation(host, installation, host);
+  const snapshot = Object.freeze({requestId: 'same-original-request', principalId: 'actor',
+    connection: 'same-connection', kind: 'program', input: Object.freeze({id: 'same-program'})});
+  const events = [], receipt = {}, result = Object.freeze({status: 'waiting_checkpoint'});
+  const execution = deferred(), entered = deferred();
+  const intent = {}, material = 'same-original-materials';
+  let submitted, finishes = 0;
+  const original = value => registry.originalSourceRequest(host, installation, host, value);
+  const manager = {retainRequestInput(request, originalIntent, captured, materialWire) {
+    assert.strictEqual(this, manager); assert.strictEqual(original(request), request);
+    assert.strictEqual(originalIntent, intent); assert.equal(captured, undefined); assert.equal(materialWire, material);
+    assert.equal(submitted, undefined); submitted = request; events.push('retain');
+    return {receipt, body: snapshot};
+  }, finishSourceProducer(value, terminal) {
+    assert.strictEqual(this, manager); assert.strictEqual(value, receipt);
+    events.push('finish:' + terminal);
+    if (++finishes === 1 && finishFailure !== undefined) throw finishFailure;
+  }};
+  const methodPorts = {moon, sourceManaged: manager, computeManaged: undefined, profiles: registry,
+    host, originalInstallation: installation, originals,
+    assertSourceManagedInstallationCurrent(actual, selected) {
+      assert.strictEqual(actual, manager); assert.strictEqual(selected, originals);
+    }, clientOperationError(code) {throw Object.assign(new Error(code), {code});}};
+  const preparation = new Function(...Object.keys(methodPorts), 'return ({' + methods.map(node =>
+    source.slice(node.start, node.end)).join(',') + '});')(...Object.values(methodPorts));
+  const ownRef = {namespaceId: 'namespace', runDefinitionCid: 'same-definition'};
+  const current = {requestId: snapshot.requestId, requestIdentity: identity,
+    runDefinition: definition, runAdmissionEvidence: missingMaterial ? {} : {updateTargetRunOriginal: {materialsWire: material}}, ref: ownRef};
+  const facts = {}, requested = {}, accepted = {ref: ownRef};
+  const ports = {moon, control: {}, ref: ownRef, retained: current, token: {snapshot: {submission: snapshot}},
+    assertCurrent() {}, canonicalValueJson: JSON.stringify,
+    hostConnection: value => value.principalId === snapshot.principalId && value.connection === snapshot.connection,
+    preparation, localPreparationCustody: installLocalPreparationRegistry(() => false),
+    journal: {lookupOwnedDefinition(value) {
+      assert.equal(value.requestId, snapshot.requestId); return current;
+    }, originalSubmittedIntent(value) {
+      assert.strictEqual(value, identity); events.push('original-intent');
+      return {intent, assertCurrent() {events.push('intent-current');}};
+    }, resolveDefinition(value) {assert.strictEqual(value, requested); return accepted;}},
+    async prepareCapturedSubmission() {assert.fail('No unfunded saved Prepared admission');},
+    prepareSubmit: Object.assign(async request => { assert.strictEqual(original(request), request);
+      assert.notStrictEqual(request, snapshot); events.push('prepare');
+      if (failPrepare) throw prepareFailure; return prepared;
+    }, {restoreInferOriginal() {assert.fail('No pure Model replacement for an Effect request');},
+      assertSubmittedIntent(value, original) {assert.strictEqual(value, prepared); assert.strictEqual(original, intent); events.push('same-intent');}}),
+    requestOf(request) {
+      assert.strictEqual(original(prepared), request); assert.strictEqual(request, submitted);
+      events.push('request'); return {effectful: true, requested};
+    }, namespaceId: ownRef.namespaceId,
+    effectRun: {async restoreComputation(value) {assert.strictEqual(value, accepted); events.push('restore'); return facts;}},
+    async admitEffectDefinition(request) {assert.strictEqual(request, submitted); events.push('admit'); return accepted;},
+    async executeEffectComputation(value, target, sourceTarget, model) {
+      assert.strictEqual(value, facts); assert.equal(target, undefined); assert.equal(sourceTarget, undefined);
+      assert.strictEqual(model.token, ports.token); assert.strictEqual(original(prepared), submitted);
+      events.push('execute'); entered.resolve();
+      await execution.promise;
+      if (executeFailure !== undefined) throw executeFailure;
+      return result;
+    }, record: {}, claim: {}, active: {}, runId: 'original-run', parentCheckpoint: undefined,
+    retainInstalledHostRuntimeFailure};
+  const invoke = new Function(...Object.keys(ports),
+    'let restorationDispatchEntered=false,restorationStopConfirmed=false;' +
+    'const restorationReclaimed=()=>!restorationDispatchEntered||restorationStopConfirmed;' +
+    'return (' + source.slice(selected[0].init.start, selected[0].init.end) + ')();');
+  return {invoke: () => invoke(...Object.values(ports)), original, prepared, events, result, entered,
+    releaseExecution: () => execution.resolve(), submitted: () => submitted};
+}
+
+test('cold Model Effect retains the original pending request and derived Prepared through actual execution return', async () => {
+  const f = coldModelEffectRequestFixture(), work = f.invoke(); await f.entered.promise;
+  assert.deepEqual(f.events, ['original-intent', 'intent-current', 'retain', 'prepare', 'same-intent', 'request', 'admit', 'restore', 'execute']);
+  assert.strictEqual(f.original(f.prepared), f.submitted());
+  assert.throws(() => f.original({...f.submitted()}), {code: 'InstalledHostPreparationChanged'});
+  f.releaseExecution(); assert.strictEqual(await work, f.result);
+  assert.equal(f.events.at(-1), 'finish:returned');
+  await Promise.resolve(); await Promise.resolve();
+  assert.throws(() => f.original(f.prepared), {code: 'InstalledHostPreparationChanged'});
+  assert.equal(f.events.filter(value => value === 'prepare').length, 1);
+});
+
+test('cold Model Effect keeps its exact preparation failure and same failed input return retry', async () => {
+  const primary = Object.freeze(new Error('same-original-prepare-failure'));
+  const f = coldModelEffectRequestFixture({failPrepare: true, prepareFailure: primary,
+    finishFailure: new Error('same-original-input-return-pending')});
+  let failure;
+  await assert.rejects(f.invoke(), error => {
+    failure = error; return error.cause === primary && error.cleanupHandle.status().pending === true;
+  });
+  assert.deepEqual(f.events, ['original-intent', 'intent-current', 'retain', 'prepare', 'finish:failed']);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.deepEqual(f.events, ['original-intent', 'intent-current', 'retain', 'prepare', 'finish:failed', 'finish:failed']);
+});
+
+test('cold Model Effect cannot return its request input before the same failed execution cleanup', async () => {
+  let physicalPending = true;
+  const primary = Object.assign(new Error('same-original-execution-failure'), {cleanupHandle: {
+    status: () => ({pending: physicalPending}), async retry() {return {pending: physicalPending};}}});
+  const f = coldModelEffectRequestFixture({executeFailure: primary}), work = f.invoke(); await f.entered.promise;
+  f.releaseExecution(); let failure;
+  await assert.rejects(work, error => {failure = error; return error.cause === primary;});
+  assert.strictEqual(f.original(f.prepared), f.submitted());
+  assert.equal((await failure.cleanupHandle.retry()).pending, true);
+  assert.equal(f.events.some(value => value.startsWith('finish:')), false);
+  physicalPending = false;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(f.events.at(-1), 'finish:failed');
+  await Promise.resolve(); await Promise.resolve();
+  assert.throws(() => f.original(f.prepared), {code: 'InstalledHostPreparationChanged'});
+});
+
+
+test('cold Model Effect refuses absent original material before opening its Request input', async () => {
+  const f = coldModelEffectRequestFixture({missingMaterial: true});
+  await assert.rejects(f.invoke(), {message: 'ModelResumeOriginalMaterialsUnavailable'});
+  assert.deepEqual(f.events, ['original-intent']);
 });

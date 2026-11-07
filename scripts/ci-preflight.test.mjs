@@ -15,14 +15,14 @@ test('PR admission compares current head with event head, not the synthetic test
   assert.deepEqual(revisionToCheck(env, payload), {ref: 'pull/123/head', expected: head});
   assert.deepEqual(await assertCurrentRevision(env, payload, async (repo, ref) => {
     assert.equal(repo, 'actql/actql'); assert.equal(ref, 'pull/123/head'); return head;
-  }), {ref: 'pull/123/head', revision: head});
-  await assert.rejects(assertCurrentRevision(env, payload, async () => newer), /superseded/u);
+  }, {checkoutRevision: merge}), {ref: 'pull/123/head', revision: head});
+  await assert.rejects(assertCurrentRevision(env, payload, async () => newer, {checkoutRevision: merge}), /superseded/u);
 });
 test('main-only advance does not invalidate an unchanged PR head', async () => {
   const calls = [];
   const result = await assertCurrentRevision(env,
     {...payload, pull_request: {...payload.pull_request, base: {sha: newer}}},
-    async (repo, ref) => { calls.push(ref); return head; });
+    async (repo, ref) => { calls.push(ref); return head; }, {checkoutRevision: merge});
   assert.equal(result.revision, head);
   assert.deepEqual(calls, ['pull/123/head']);
 });
@@ -30,15 +30,15 @@ test('working-branch push and dispatch admission retain the latest-ref guard', a
   for (const event of ['push', 'workflow_dispatch']) {
     const context = {...env, GITHUB_EVENT_NAME: event, GITHUB_REF: 'refs/heads/feature'};
     assert.deepEqual(revisionToCheck(context, {}), {ref: 'heads/feature', expected: merge});
-    await assertCurrentRevision(context, {}, async () => merge);
-    await assert.rejects(assertCurrentRevision(context, {}, async () => newer), /superseded/u);
+    await assertCurrentRevision(context, {}, async () => merge, {checkoutRevision: merge});
+    await assert.rejects(assertCurrentRevision(context, {}, async () => newer, {checkoutRevision: merge}), /superseded/u);
   }
 });
 test('unavailable, malformed or ambiguous latest revision fails closed', async () => {
   for (const current of [null, '', 'abc', [], {}, '0'.repeat(39)]) {
     await assert.rejects(assertCurrentRevision(env, payload, async () => current));
   }
-  await assert.rejects(assertCurrentRevision(env, payload, async () => { throw Error('offline'); }), /offline/u);
+  await assert.rejects(assertCurrentRevision(env, payload, async () => { throw Error('offline'); }, {checkoutRevision: merge}), /offline/u);
   for (const invalid of [{}, {number: 0}, {number: 123, pull_request: {head: {sha: 'bad'}}}]) {
     assert.throws(() => revisionToCheck(env, invalid));
   }
@@ -59,8 +59,9 @@ test('read-only ref lookup verifies exact ref/type and never follows token-beari
   }
 });
 test('mandatory preflight admits every normal heavy primitive and does not serialize the compound spec suite', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
-    'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos',
+  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-distribution-callers',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce',
+    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of [...heavy, 'lint', 'spec']) {
     assert(jobs[name].needs.includes('preflight'), name);
@@ -76,6 +77,18 @@ test('mandatory preflight admits every normal heavy primitive and does not seria
   assert.equal(preflight.at(-1), 'node scripts/ci-preflight.mjs');
   assert(!preflight.some(command => /sleep|check:spec|run\.mjs all/u.test(command)));
 });
+test('runtime command inventory fails before expensive fan-out with nonzero execution required', () => {
+  const steps = jobs.preflight.steps;
+  const index = steps.findIndex(step => step.name === 'Check runtime command inventory before fan-out');
+  assert(index > steps.findIndex(step => step.run === 'npm ci'));
+  assert(index < steps.findIndex(step => step.name === 'Install pinned MoonBit'));
+  const command = steps[index].run;
+  assert(command.includes('runFocusedTests("node"'));
+  assert(command.includes('^check:.* retains its exact registered commands'));
+  assert(command.includes('scripts/build-runtime-packages.test.mjs'));
+  assert.equal(steps[index]['continue-on-error'], undefined);
+});
+
 test('moved validators execute exactly once before fan-out; complete local spec command is preserved', () => {
   const preflight = commands('preflight');
   for (const command of ['npm run check:contract-versions', 'moon fmt --check',
@@ -109,7 +122,7 @@ test('operation evidence consistency is mandatory admission without changing the
   assert.deepEqual(selection.targets, ['js', 'wasm', 'native']);
   assert.equal(selection.macos, true);
   const results = Object.fromEntries(gateJobs.map(name =>
-    [name, {result: name === 'focused-tests' ? 'skipped' : 'success'}]));
+    [name, {result: ['focused-tests', 'main-performance', 'health-quick'].includes(name) ? 'skipped' : 'success'}]));
   const plan = {sourceRevision: merge, selection};
   const context = {sourceRevision: merge, event: 'pull_request'};
   verifyGate(plan, results, context);
@@ -120,7 +133,7 @@ test('operation evidence consistency is mandatory admission without changing the
 });
 test('failed, skipped, cancelled or missing preflight cannot become a passing final gate', () => {
   const selection = selectTargets(['.github/workflows/ci.yml']);
-  const results = Object.fromEntries(gateJobs.map(name => [name, {result: name === 'focused-tests' ? 'skipped' : 'success'}]));
+  const results = Object.fromEntries(gateJobs.map(name => [name, {result: ['focused-tests', 'main-performance', 'health-quick'].includes(name) ? 'skipped' : 'success'}]));
   const plan = {sourceRevision: merge, selection};
   const context = {sourceRevision: merge, event: 'pull_request'};
   verifyGate(plan, results, context);
@@ -138,7 +151,7 @@ function mainFixture(event = 'push') {
     repository: {id: 12, full_name: 'actql/actql', visibility: 'public', private: false}}};
 }
 test('authenticated fixed main push and dispatch finish despite later main advancement', async () => {
-  for (const event of ['push', 'workflow_dispatch']) {
+  for (const event of ['push', 'workflow_dispatch', 'schedule']) {
     const {context, body} = mainFixture(event);
     let lookups = 0;
     assert.deepEqual(await assertCurrentRevision(context, body, async () => { lookups++; return newer; },
@@ -163,5 +176,55 @@ test('fixed main exception rejects missing or conflicting event, repository, wor
   const {context, body} = mainFixture();
   for (const checkoutRevision of [null, newer, 'invalid']) {
     await assert.rejects(assertCurrentRevision(context, body, async () => merge, {checkoutRevision}));
+  }
+});
+
+
+test('PR admission requires the tested merge checkout while retaining its distinct head identity', async () => {
+  for (const checkoutRevision of [null, head, newer]) {
+    await assert.rejects(assertCurrentRevision(env, payload, async () => head,
+      {checkoutRevision}), /Checkout differs/u);
+  }
+  const forkPayload = {...payload, pull_request: {...payload.pull_request,
+    head: {...payload.pull_request.head, repo: {full_name: 'contributor/actql'}},
+    base: {sha: newer, repo: {full_name: 'actql/actql'}}}};
+  const checked = await assertCurrentRevision(env, forkPayload, async (repository, ref) => {
+    assert.equal(repository, 'actql/actql');
+    assert.equal(ref, 'pull/123/head');
+    return head;
+  }, {checkoutRevision: merge});
+  assert.equal(checked.revision, head);
+});
+
+test('scheduled deep validation is pinned to authenticated main and cannot admit a working branch', async () => {
+  const f = mainFixture('schedule');
+  await assertCurrentRevision(f.context, f.body, () => { throw Error('must not query moving main'); }, {checkoutRevision: merge});
+  for (const mutate of [
+    f => { f.context.GITHUB_REF = 'refs/heads/feature'; },
+    f => { f.context.GITHUB_WORKFLOW_SHA = newer; },
+    f => { f.body.repository.id = 13; },
+    f => { f.body.repository.private = true; },
+  ]) {
+    const f = mainFixture('schedule'); mutate(f);
+    await assert.rejects(assertCurrentRevision(f.context, f.body, async () => merge, {checkoutRevision: merge}));
+  }
+});
+
+// These runners do not use setup-toolchain: their tests and bundle generators
+// still import the root's pinned parser and build dependencies.
+test('isolated connector jobs install their own exact root verification dependencies', () => {
+  for (const [name, command, lock] of [
+    ['connector-addition', 'npm run check:connector-addition', 'adapters/connectors/duckdb/node/package-lock.json'],
+    ['duckdb-node', 'npm test --prefix adapters/connectors/duckdb/node', 'adapters/connectors/duckdb/node/package-lock.json'],
+    ['workers', 'node scripts/workers-fixtures.mjs', 'adapters/workers/package-lock.json'],
+  ]) {
+    const steps = jobs[name].steps;
+    const install = steps.findIndex(step => step.run === 'npm ci');
+    assert(install >= 0, `${name} must install root dependencies in its own checkout`);
+    const consumer = steps.findIndex(step => step.run === command);
+    assert(consumer > install, `${name} must install before consuming root tools`);
+    const setup = steps.find(step => step.uses?.startsWith('actions/setup-node@'));
+    assert.deepEqual(setup.with['cache-dependency-path'].trim().split(/\s+/u),
+      ['package-lock.json', lock]);
   }
 });

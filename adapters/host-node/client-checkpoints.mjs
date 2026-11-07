@@ -2516,35 +2516,49 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // cancelled; deny and allow are the source account's own. Every other
     // request uses the installed access unchanged.
     acquisitionAccess(requestId, base, occurrence) {
-      const admitted = admittedReads.get(requestId)?.get(occurrence === undefined
-        ? 'singular' : occurrenceKey(occurrence));
+      const key = occurrence === undefined ? 'singular' : occurrenceKey(occurrence);
+      const admitted = admittedReads.get(requestId)?.get(key);
       if (admitted === undefined || occurrence !== undefined &&
           capturedValueCid(occurrence) !== capturedValueCid(admitted.acquisition)) return base;
       const same = scope => ['connection', 'resource', 'operation'].every(
         key => scope?.[key] === admitted.readTuple[key]);
+      let originalApproval;
+      const approvalCurrent = () => {
+        if (admittedReads.get(requestId)?.get(key) !== admitted) return false;
+        const preparation = admitted.prepareAttemptId === undefined
+          ? undefined : journal.getPreparation(admitted.prepareAttemptId);
+        const approvedNow = cid => {
+          try {return journal.committedApprovalAt(cid).current === true;}
+          catch {return false;}
+        };
+        return preparation?.cancelRequested !== true &&
+          [admitted.checkpointCid,...admitted.earlier].filter(cid=>cid!==undefined).every(approvedNow);
+      };
+      const assertApprovedReadCurrent = () => {
+        if (!approvalCurrent()) fail('ApprovalExpired');
+      };
       const authorization = Object.freeze({
         ...base.authorization,
         async authorize(boundary, scope, options) {
+          if (boundary === 'acquisition') originalApproval = undefined;
           const current = await base.authorization.authorize(boundary, scope,
             options);
           if (current.action === 'dispatch' || current.action === 'deny' ||
               boundary !== 'acquisition' || !same(scope)) return current;
-          const preparation = admitted.prepareAttemptId === undefined
-            ? undefined : journal.getPreparation(admitted.prepareAttemptId);
-          const approvedNow = cid => {
-            try { return journal.committedApprovalAt(cid).current === true; }
-            catch { return false; }
-          };
-          const valid = preparation?.cancelRequested !== true &&
-            [admitted.checkpointCid, ...admitted.earlier]
-              .filter(cid => cid !== undefined).every(approvedNow);
           // The returned approval carries the exact approved read, which a
           // source adapter verifies against its own installation.
-          return valid ? recordCheckpointApproval(Object.freeze({boundary,
+          if (!approvalCurrent()) return current;
+          originalApproval = recordCheckpointApproval(Object.freeze({boundary,
             action: 'dispatch', basis: 'resumed_approval',
             tuple: Object.freeze({...scope}),
             checkpointCid: admitted.checkpointCid}), {
             checkpointCid: admitted.checkpointCid,
+            earlierCheckpointCids: Object.freeze(admitted.earlier.filter(cid=>cid!==undefined)),
+            // The original resume entered before this admitted read was
+            // published. Both Site fences retain that same live occurrence;
+            // they issue no new grant or physical request.
+            assertCurrent: assertApprovedReadCurrent,
+            enter: assertApprovedReadCurrent,
             readTuple: admitted.readTuple,
             physicalBinding: admitted.acquisition?.physicalBinding,
             checkedSource: admitted.acquisition?.checkedSource,
@@ -2552,10 +2566,18 @@ export async function installRemoteCheckpoints({root, namespaceId,
               {installationBinding: admitted.acquisition.installationBinding}),
             ...(admitted.acquisition?.stage === undefined ? {} :
               {occurrence: occurrenceIdentity(admitted.acquisition)}),
-            principalId: admitted.principalId}) : current;
+            principalId: admitted.principalId});
+          return originalApproval;
         },
       });
-      return Object.freeze({...base, authorization});
+      // The same read's nominal decision is metadata custody, never another
+      // authorization. Its consumer must validate the original facts/current.
+      return Object.freeze({...base, authorization,
+        originalCheckpointApproval() {
+          if (originalApproval === undefined || admitted.checkpointCid === undefined) return undefined;
+          if (!approvalCurrent()) fail('ApprovalExpired');
+          return originalApproval;
+        }});
     },
 
     // The dispatch of a held read ended; its admitted approval is no longer

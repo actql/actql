@@ -25,17 +25,23 @@ export function captureConfigurationReaders(reader, readJson, unavailable) {
   const text = Object.getOwnPropertyDescriptor(reader, 'readText');
   const originalText = Object.getOwnPropertyDescriptor(reader, 'readOriginalText');
   const originalBytes = Object.getOwnPropertyDescriptor(reader, 'readOriginalBytes');
+  const parseText = Object.getOwnPropertyDescriptor(reader, 'parseJsonText');
   if (!json || !Object.hasOwn(json, 'value') || typeof json.value !== 'function' ||
       !text || !Object.hasOwn(text, 'value') || typeof text.value !== 'function' ||
       originalText !== undefined && (!Object.hasOwn(originalText, 'value') ||
         typeof originalText.value !== 'function') ||
       originalBytes !== undefined && (!Object.hasOwn(originalBytes, 'value') ||
-        typeof originalBytes.value !== 'function')) refuse();
+        typeof originalBytes.value !== 'function') ||
+      parseText !== undefined && (!Object.hasOwn(parseText, 'value') ||
+        typeof parseText.value !== 'function')) refuse();
   // Capture the initializer's optional actual-FD text method before any read awaits.
   // Its absence cannot substitute a bounded reader or manufacture a byte ceiling.
   return Object.freeze({
     readJson: readJson ?? ((...args) => Reflect.apply(json.value, reader, args)),
     readText: (...args) => Reflect.apply(text.value, reader, args),
+    ...(parseText === undefined ? {} : {
+      parseJsonText: (...args) => Reflect.apply(parseText.value, reader, args),
+    }),
     ...(originalText === undefined ? {} : {
       readOriginalText: (...args) => Reflect.apply(originalText.value, reader, args),
     }),
@@ -67,12 +73,12 @@ export async function readBoundedConfigurationText(path, {maxBytes, openFile = o
 // Project originals must not replace malformed bytes with U+FFFD before the
 // Common reader sees them. Keep a genuine BOM as text as well: its admission
 // belongs to that reader, not to an implicit TextDecoder normalization.
-export async function readBoundedConfigurationUtf8(path, {maxBytes, openFile = open, io} = {}) {
+export async function readBoundedConfigurationUtf8(path, {maxBytes, openFile = open, beforeDecode, io} = {}) {
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) {
     throw new TypeError('InvalidInstalledSourceProfileByteLimit');
   }
   return readConfiguration(path, maxBytes, openFile, bytes =>
-    new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes), undefined, io);
+    new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes), beforeDecode, io);
 }
 
 async function readConfiguration(path, maxBytes, openFile, project, beforeDecode, io) {
@@ -117,31 +123,40 @@ async function readConfigurationBody(original, maxBytes, project, beforeDecode) 
     let bytes = 0;
     let used = 0;
     let buffer = Buffer.allocUnsafe(Math.min(chunkBytes, maxBytes + 1));
-    for (;;) {
-      // One lookahead byte distinguishes exact-limit EOF from an oversized
-      // file, including one that grows after it is opened. Never readFile.
-      const {bytesRead} = await original.read(buffer, used,
-        buffer.length - used, null);
-      if (bytesRead === 0) {
-        chunks.push(buffer.subarray(0, used));
-        // The fixed initializer reserves the complete received native decode
-        // before concatenation/text/JSON construction. The old absent port
-        // keeps this reader's exact buffering and parsing semantics.
-        if (beforeDecode !== undefined && beforeDecode(bytes) !== undefined) {
-          throw new TypeError('InvalidInstalledConfigurationConstruction');
+    let joined;
+    try {
+      for (;;) {
+        // One lookahead byte distinguishes exact-limit EOF from an oversized
+        // file, including one that grows after it is opened. Never readFile.
+        const {bytesRead} = await original.read(buffer, used,
+          buffer.length - used, null);
+        if (bytesRead === 0) {
+          chunks.push(buffer.subarray(0, used));
+          // The fixed initializer reserves the complete received native decode
+          // before concatenation/text/JSON construction. The old absent port
+          // keeps this reader's exact buffering and parsing semantics.
+          if (beforeDecode !== undefined && beforeDecode(bytes) !== undefined) {
+            throw new TypeError('InvalidInstalledConfigurationConstruction');
+          }
+          joined = Buffer.concat(chunks, bytes);
+          return project(joined);
         }
-        return project(Buffer.concat(chunks, bytes));
+        bytes += bytesRead;
+        used += bytesRead;
+        if (bytes > maxBytes) {
+          throw new TypeError('InvalidInstalledSourceProfile');
+        }
+        if (used === buffer.length) {
+          chunks.push(buffer);
+          buffer = Buffer.allocUnsafe(Math.min(chunkBytes, maxBytes - bytes + 1));
+          used = 0;
+        }
       }
-      bytes += bytesRead;
-      used += bytesRead;
-      if (bytes > maxBytes) {
-        throw new TypeError('InvalidInstalledSourceProfile');
-      }
-      if (used === buffer.length) {
-        chunks.push(buffer);
-        buffer = Buffer.allocUnsafe(Math.min(chunkBytes, maxBytes - bytes + 1));
-        used = 0;
-      }
+    } finally {
+      // Cut these logical transient aliases before original FD cleanup/current
+      // callbacks. Only its actual close ACK permits the caller's E/R fold.
+      joined = buffer = undefined;
+      chunks.length = 0;
     }
 }
 

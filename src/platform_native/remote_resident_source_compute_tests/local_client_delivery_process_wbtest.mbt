@@ -15,7 +15,7 @@ test "Native actual Source delivery survives exited writer and original Submissi
 
 ///|
 fn native_source_delivery_reader() -> Unit raise {
-  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT").unwrap()
   let name = "native-client-source-delivery-process.duckdb"
   let sqlite = @sqlite.load_library(
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),

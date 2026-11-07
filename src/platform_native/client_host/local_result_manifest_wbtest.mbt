@@ -64,7 +64,7 @@ test "original Result inventory refuses foreign custody and retains empty public
       crypto, "operator", "cli", "result-manifest-run",
     )
     .unwrap()
-  let base = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let base = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let parent = @filesystem.open_private_root(base).unwrap()
   parent.create_directory(name).unwrap() |> ignore
   parent.create_directory(name + "-foreign").unwrap() |> ignore

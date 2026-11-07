@@ -43,8 +43,8 @@ test('full checkpoint binds tested SHA, ancestry, policy and exact successful at
 // Independent full-workflow inventory: focused-tests runs only in its own
 // narrow profile and is skipped alongside the successful full families.
 const fullWorkflowJobs = ['check', 'select-targets', 'preflight', 'lint',
-  'core (js)', 'core (wasm)', 'core (native)', 'host', 'client', 'native',
-  'spec', 'session-evidence', 'pipeline-evidence', 'native-macos',
+  'core (js)', 'core (wasm)', 'core (native)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native',
+  'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
   'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
 function fullWorkflowFixture() {
   const f = fixture();
@@ -60,6 +60,40 @@ test('real gate inventory accepts complete full main with skipped focused-only j
   const {options} = fullWorkflowFixture();
   assert.equal((await resolveMainBaseline(options)).baseSha, base);
   assert.deepEqual(options.requiredJobs, fullWorkflowJobs);
+});
+test('missing, skipped or failed Linux Local acceptance cannot supply a full checkpoint', async () => {
+  for (const outcome of ['missing', 'skipped', 'failure']) {
+    const f = fullWorkflowFixture();
+    if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== 'native-cli-linux-local');
+    else f.state.jobs.jobs.find(job => job.name === 'native-cli-linux-local').conclusion = outcome;
+    f.state.jobs.total_count = f.state.jobs.jobs.length;
+    assert.equal((await resolveMainBaseline(f.options)).baseSha, null, outcome);
+  }
+});
+for (const conclusion of ['missing', 'skipped', 'failure']) {
+  test(`full main checkpoint rejects ${conclusion} native-cli-installed evidence`, async () => {
+    for (const event of ['push', 'workflow_dispatch']) {
+      const {options, state} = fullWorkflowFixture();
+      state.run.event = event;
+      if (conclusion === 'missing') {
+        state.jobs.jobs = state.jobs.jobs.filter(job => job.name !== 'native-cli-installed');
+      } else {
+        state.jobs.jobs.find(job => job.name === 'native-cli-installed').conclusion = conclusion;
+      }
+      state.jobs.total_count = state.jobs.jobs.length;
+      assert.equal((await resolveMainBaseline(options)).baseSha, null, event);
+    }
+  });
+}
+test('manual proof checkpoint needs no push-only monitor and schedule cannot supply reuse', async () => {
+  const f = fullWorkflowFixture();
+  f.state.run.event = 'workflow_dispatch';
+  for (const name of ['main-performance', 'health-quick']) f.state.jobs.jobs.push({name,
+    run_id: 101, run_attempt: 1, head_sha: base, status: 'completed', conclusion: 'skipped'});
+  f.state.jobs.total_count = f.state.jobs.jobs.length;
+  assert.equal((await resolveMainBaseline(f.options)).baseSha, base);
+  f.state.run.event = 'schedule';
+  assert.equal((await resolveMainBaseline(f.options)).baseSha, null);
 });
 test('manual main checkpoint accepts the approved optional macOS skip and retains all primary targets', async () => {
   const {options, state, calls} = fullWorkflowFixture();

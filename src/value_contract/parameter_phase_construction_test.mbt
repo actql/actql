@@ -27,7 +27,7 @@ test "Parameter Type phase funds original views work two paths and normalization
   let n = inventory.normalization.unwrap()
   assert_eq(
     (n.record_headers, n.reference_slots, n.scalar_words, n.owned_utf16_units),
-    (100L, 123L, 738L, 242L),
+    (100L, 123L, 690L, 122L),
   )
   assert_eq(inventory.sort_fields, 0)
   assert_true(@value_contract.read_parameter_syntax(root, limits()) is Ok(_))

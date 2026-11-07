@@ -79,7 +79,7 @@ test "original installed nearest captures retain their exact graph and Host owne
 }
 
 ///|
-test "original nearest task-only transfer allowance remains a typed refusal" {
+test "original nearest one-short transfer allowance remains a typed refusal" {
   nearest_failed_capture_fixture(historical_budget=true)
 }
 
@@ -128,13 +128,16 @@ fn nearest_failed_capture_fixture(
     Some(source_query_original_fragment),
     None,
   ).unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  assert_eq(@strategy.graph_task_count(graph), 15)
+  assert_eq(@strategy.graph_captured_prefix(graph), 2)
   let ledger = if historical_budget {
-    // Preserve the original short allowance as a negative control. Only this
-    // test ledger is changed; the graph, offers, memory and execution limits
-    // are identical to the positive case.
+    // Sixteen receiving ports minus two direct Carrier views and one already
+    // captured cell-access input leave thirteen row-wire imports. A one-byte
+    // short allowance must still refuse; all other dimensions match success.
     @resources.create_ledger({
       ..@resources.ledger_admission_limits(ledger),
-      transfer_bytes: 15008192L,
+      transfer_bytes: 13L * 1000000L - 1L,
     }).unwrap()
   } else {
     ledger
@@ -144,7 +147,7 @@ fn nearest_failed_capture_fixture(
   assert_eq(
     @resources.ledger_admission_limits(ledger).transfer_bytes,
     if historical_budget {
-      15008192L
+      13L * 1000000L - 1L
     } else {
       16008192L
     },
@@ -182,7 +185,6 @@ fn nearest_failed_capture_fixture(
     let capture = @row_source_host.capture_row_run(run).unwrap()
     sources.push((task, @row_source_host.row_capture_source(capture).unwrap()))
   }
-  let graph = @publication_host.prepared_client_graph(prepared)
   let dag = match @strategy.open_multi_captured_dag(graph, sources, ledger) {
     Ok(run) => run
     Err(ForeignCapture) => fail("original installed nearest ForeignCapture")
@@ -351,7 +353,9 @@ fn nearest_failed_offer_boundary(
     if report.rejection is Some(@resources.ExecutionLimit) {
       fail("original nearest strategy ExecutionLimit")
     }
-    assert_eq(report.transfer_bytes, 16000000L)
+    // The two nearest Carrier views and the first ready captured cell-access
+    // input retain their originals without opening row-wire importers.
+    assert_eq(report.transfer_bytes, (16L - 2L - 1L) * 1000000L)
     if historical_budget {
       assert_true(report.rejection is Some(@resources.TransferLimit))
     } else {

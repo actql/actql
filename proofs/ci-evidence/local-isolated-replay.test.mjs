@@ -2,6 +2,7 @@
 // consumer. This neither invents Actions provenance nor executes a new campaign.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
@@ -9,10 +10,12 @@ import {join} from 'node:path';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {gitTree, hash} from './inputs.mjs';
 import {checkLocalImageDefinition, localIsolatedRunArguments} from './isolation.mjs';
-import {checkIsolatedInputs, checkIsolatedResult, snapshotFromGit} from './isolated-runtime.mjs';
+import {checkIsolatedInputs} from './isolated-runtime.mjs';
 import {historicalIsolatedFixture} from './historical-isolated-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
+const currentTree = gitTree(root, execFileSync('git',
+  ['--no-replace-objects', 'rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
 const originals = [
   ['b34f6e544', 'b34f6e5445b731584729a1f8c09ec8c2404ccde6', '9a2e83e9be1396bedc7410fa11b48a8e8942c39f80098f7baa4b238969454c04'],
   ['fc2962f43', 'fc2962f43431e5c4c86cb47970251aa4c7c7f98c', 'e61d9c3c69c012fe4613644e3bc7b084ec402b6506aad4bf569660ab1a429ee4'],
@@ -85,6 +88,6 @@ for (const [name, revision, digest] of originals) {
 
   test(`${name}: a historical cohort cannot be relabeled as the current input policy`, () => {
     assert.throws(() => checkIsolatedInputs({runtime: original.prepared.runtime,
-      manifest: original.prepared.manifest, tree, local: true}), /Wrong reviewed source cohort|Missing\/extra isolated source/u);
+      manifest: original.prepared.manifest, tree: currentTree, local: true}), /Wrong reviewed source cohort|Missing\/extra isolated source/u);
   });
 }

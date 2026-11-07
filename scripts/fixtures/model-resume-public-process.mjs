@@ -16,6 +16,14 @@ const options = JSON.parse(readFileSync(0, 'utf8'));
 const {runtime} = options;
 assert.ok(runtime && typeof runtime.client === 'string' &&
   typeof runtime.httpHost === 'string' && typeof runtime.environment === 'string');
+// The real request Journal retains its physical exec original when opening.
+// Install this fixture fault before that capture, then arm only the selected
+// final cancellation transaction without replacing a live connection method.
+const originalSqliteExec = DatabaseSync.prototype.exec;
+let cancellationCommitFault;
+if (options.commitLoss !== undefined) DatabaseSync.prototype.exec = function(sql) {
+  return (cancellationCommitFault ?? originalSqliteExec).call(this, sql);
+};
 const {connect, RequestHeld} = await import(runtime.client);
 const {openInstalledRemoteHttpHost} = await import(runtime.httpHost);
 const {canonical, cid, configuration} = await import(runtime.inferFixture);
@@ -55,10 +63,10 @@ void ignoredExecution;
 Object.assign(execution, {model_task_contract_cid: taskCid, max_total_attempts: count,
   max_total_duration_ms: 500 * count, max_total_wire_bytes: 66536 * count,
   max_total_token_reservation: 33 * count});
-const modelInstallation = {...configured.installation,
+const modelInstallation = Object.freeze({...configured.installation,
   environmentWire: canonical({...environment, evidence_bundle_cid: cid(environment)}),
-  executionContracts: [{modelTaskCid: taskCid, cid: cid(execution),
-    bodyWire: canonical({...execution, self_cid: cid(execution)})}]};
+  executionContracts: Object.freeze([Object.freeze({modelTaskCid: taskCid, cid: cid(execution),
+    bodyWire: canonical({...execution, self_cid: cid(execution)})})])});
 const fixtureInputs = options.inputTexts ?? ['alpha', 'bravo', 'charlie'].slice(0, count);
 assert.equal(fixtureInputs.length, count);
 assert.equal(new Set(fixtureInputs).size, count);
@@ -82,7 +90,10 @@ const entry = (id, operation, outcome) => ({entry_id: id, outcome,
 const accountConfiguration = canonical({version: 'actql-execution-account-config/0.1',
   account_id: 'public-model-owner', entries: [entry('run', 'write', 'allow'),
     entry('model', 'infer', options.denyInfer ? 'deny' : options.immediate ? 'allow' : 'delegate'),
-    entry('effect', 'effect', 'delegate')].sort((left, right) =>
+    entry('effect', 'effect', 'delegate'),
+    {entry_id: 'read-original', outcome: 'allow', principal: {any_of: [owner]},
+      connection: {all: true}, resource: {any_of: ['result/answer', 'run']},
+      operation: {any_of: ['read']}, exclusions: []}].sort((left, right) =>
       left.entry_id < right.entry_id ? -1 : left.entry_id > right.entry_id ? 1 : 0)});
 
 // This database contains only the independently authored fixture rows. Reissue
@@ -200,6 +211,7 @@ const authorization = {accountConfiguration, checkpointTtlMs, leaseMs: 1000,
 let diagnosticMoon;
 const checked = value => { assert.equal(value?.$tag, 1); return value._0; };
 const installation = {directory: path('host'), modelInstallation, authorization,
+  hostCapacityPolicy: base.host_policy_profile.capacity,
   ...(sourceProfilePath === undefined ? {} : {sourceProfilePath}),
   registerModelProviders: moon => {
     diagnosticMoon = moon;
@@ -285,9 +297,8 @@ async function cancelWithCommitReplyLoss() {
   const cancelRef = {...run.ref, cancelId: 'model-commit-original-cancel',
     expectedRevision: before.control.revision};
   save('cancel-ref.json', cancelRef);
-  const originalExec = DatabaseSync.prototype.exec;
   let lost = false;
-  DatabaseSync.prototype.exec = function(sql) {
+  cancellationCommitFault = function(sql) {
     const outcome = sql === 'COMMIT' && !lost && this.prepare(
       "SELECT name FROM sqlite_master WHERE name = 'client_cancellation_operations'").get() !== undefined
       ? this.prepare('SELECT outcome_wire FROM client_cancellation_operations WHERE cancel_id = ?')
@@ -296,10 +307,10 @@ async function cancelWithCommitReplyLoss() {
     // identity or the independent Model fence transaction.
     if (outcome != null) {
       lost = true;
-      if (options.commitLoss === 'after') originalExec.call(this, sql);
+      if (options.commitLoss === 'after') originalSqliteExec.call(this, sql);
       throw new Error('FixtureCancelCommitReplyLost');
     }
-    return originalExec.call(this, sql);
+    return originalSqliteExec.call(this, sql);
   };
   try {
     await assert.rejects(run.cancel({cancelId: cancelRef.cancelId,
@@ -309,7 +320,7 @@ async function cancelWithCommitReplyLoss() {
       return true;
     });
     assert.equal(lost, true, 'the final original cancellation COMMIT was observed');
-  } finally { DatabaseSync.prototype.exec = originalExec; }
+  } finally { cancellationCommitFault = undefined; }
   const first = await run.lookupCancellation(cancelRef);
   const second = await run.lookupCancellation(cancelRef);
   assert.deepEqual(second, first);
@@ -350,7 +361,8 @@ const execute = async () => { try {
           document: JSON.stringify(program), requestId: 'historical-public-model-resume', authorization,
           sourceProfile: JSON.parse(readFileSync(sourceProfilePath, 'utf8')),
           runtimeRootUrl: new URL(runtime.root), mode: transport === 'https' ? 'remote' : 'local',
-          modelEnvironmentWire: modelInstallation.environmentWire});
+          modelEnvironmentWire: modelInstallation.environmentWire,
+          hostCapacityPolicy: base.host_policy_profile.capacity});
         save('historical-source.json', original);
         await open();
       }
@@ -562,6 +574,7 @@ const execute = async () => { try {
     await new Promise(resolve => server.close(resolve));
   }
   await host?.close();
+  if (options.commitLoss !== undefined) DatabaseSync.prototype.exec = originalSqliteExec;
   if (telemetry !== undefined) {
     save(`${phase}-telemetry.json`, telemetry.status());
     await telemetry.close();

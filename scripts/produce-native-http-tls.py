@@ -23,8 +23,56 @@ def require(ok, message):
         raise ValueError(message)
 
 
-def build(source, archive, destination, clang, sdk, make, perl, seconds):
-    require(sys.platform == 'darwin' and platform.machine() == 'arm64', 'Selected Native TLS target differs')
+def command_profile(target, clang, sdk, destination, minimum_macos=None):
+    """Explicit compiler DATA for the existing same-image TLS implementation."""
+    require(target in ('darwin-arm64', 'linux-x64'), 'Selected Native TLS target differs')
+    require((target == 'darwin-arm64') == (sdk is not None), 'Selected TLS SDK/target differs')
+    require(minimum_macos in (None, '11.0', '26.0') and
+            (target == 'darwin-arm64' or minimum_macos is None), 'Selected TLS deployment profile differs')
+    minimum_macos = (minimum_macos or '26.0') if sdk is not None else None
+    flags = '-O2 -fPIC' + (' -arch arm64 -isysroot ' + str(sdk) if sdk is not None else '')
+    if minimum_macos == '11.0':
+        flags += ' -mmacosx-version-min=11.0'
+    environment = {'PATH': '/Library/Developer/CommandLineTools/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin'
+                   if sdk is not None else '/usr/bin:/bin:/usr/sbin:/sbin',
+                   'HOME': str(destination), 'CC': str(clang), 'LC_ALL': 'C', 'LANG': 'C',
+                   'CFLAGS': flags, 'LDFLAGS': flags}
+    if sdk is not None:
+        environment.update({'SDKROOT': str(sdk), 'MACOSX_DEPLOYMENT_TARGET': minimum_macos})
+    return {'configure': 'darwin64-arm64-cc' if sdk is not None else 'linux-x86_64',
+            'environment': environment,
+            'minimumMacOS': minimum_macos,
+            'compilerFlags': (['-arch', 'arm64', '-isysroot', str(sdk)] +
+                              (['-mmacosx-version-min=11.0'] if minimum_macos == '11.0' else []))
+                              if sdk is not None else ['-D_GNU_SOURCE']}
+
+
+def validate_archive_deployment(loads, minimum_macos):
+    platforms = re.findall(r'cmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform (\d+)', loads)
+    versions = re.findall(r'cmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform 1\s+minos (\d+\.\d+(?:\.\d+)?)', loads)
+    versions += re.findall(r'cmd LC_VERSION_MIN_MACOSX\s+cmdsize \d+\s+version (\d+\.\d+(?:\.\d+)?)', loads)
+    def version(value):
+        return tuple((list(map(int, value.split('.'))) + [0, 0])[:3])
+    require(versions and all(item == '1' for item in platforms) and
+            all(version(value) <= version(minimum_macos) for value in versions),
+            'Original TLS archive deployment requirement exceeds selected macOS profile')
+
+
+def validate_receipt_profile(receipt, target, minimum_macos):
+    require(receipt.get('target', 'darwin-arm64') == target and
+            receipt.get('minimumMacOS', '26.0' if target == 'darwin-arm64' else None) == minimum_macos,
+            'Owned TLS source/deployment profile differs')
+
+
+def build(source, archive, destination, clang, sdk, make, perl, seconds, target='darwin-arm64',
+          minimum_macos=None, *, jobs=1):
+    require(type(jobs) is int and jobs in (1, 2), 'TLS build jobs must be one or two')
+    actual = ('darwin-arm64' if sys.platform == 'darwin' and platform.machine() == 'arm64'
+              else 'linux-x64' if sys.platform == 'linux' and platform.machine() == 'x86_64' else None)
+    require(actual == target, 'Selected Native TLS target differs')
+    require(re.fullmatch(r'[a-f0-9]{40}', source) is not None and type(seconds) is int and seconds > 0,
+            'Invalid selected TLS source or build budget')
+    profile = command_profile(target, clang, sdk, destination, minimum_macos)
 
     def clean():
         require(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() == source and
@@ -38,7 +86,9 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds):
     destination.mkdir(parents=True)
     selected = [archive, Path(__file__).resolve(), ROOT / 'scripts/native-http-component-source.json',
                 ROOT / 'scripts/produce-native-remote-scoped-runtime.py', clang, make, perl,
-                sdk / 'SDKSettings.json', Path(sys.executable).resolve()]
+                Path(sys.executable).resolve()]
+    if sdk is not None:
+        selected.extend([sdk / 'SDKSettings.json', Path('/usr/bin/otool')])
     inputs = [NATIVE.original(p) for p in selected]
     (destination / 'inputs.json').write_text(json.dumps(inputs, indent=2) + '\n')
     with tarfile.open(archive, 'r:gz') as tar:
@@ -72,11 +122,7 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds):
     build_root = destination / 'build'
     build_root.mkdir()
     stage = destination / 'stage'
-    env = {'PATH': '/Library/Developer/CommandLineTools/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin',
-           'HOME': str(destination), 'CC': str(clang), 'SDKROOT': str(sdk),
-           'MACOSX_DEPLOYMENT_TARGET': '26.0', 'LC_ALL': 'C', 'LANG': 'C',
-           'CFLAGS': '-O2 -fPIC -arch arm64 -isysroot ' + str(sdk),
-           'LDFLAGS': '-arch arm64 -isysroot ' + str(sdk)}
+    env = profile['environment']
     deadline, steps = time.monotonic() + seconds, []
 
     def run(name, command):
@@ -88,19 +134,23 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds):
         steps.append({'name': name, 'command': command, 'exit': result.returncode})
         (destination / 'steps.json').write_text(json.dumps(steps, indent=2) + '\n')
         require(result.returncode == 0, 'TLS command failed: ' + name)
+        return result.stdout
 
-    run('configure', [str(perl), str(source_root / 'Configure'), 'darwin64-arm64-cc',
+    run('configure', [str(perl), str(source_root / 'Configure'), profile['configure'],
                       '--prefix=' + str(stage), *recipe['configure']])
-    run('build-libraries', [str(make), '-j1', 'build_libs'])
+    run('build-libraries', [str(make), '-j' + str(jobs), 'build_libs'])
     (stage / 'lib').mkdir(parents=True)
     (stage / 'include/openssl').mkdir(parents=True)
     for name in ('libssl.a', 'libcrypto.a'):
         shutil.copy2(build_root / name, stage / 'lib' / name)
+        if sdk is not None:
+            loads = run('observed-' + name + '-deployment', ['/usr/bin/otool', '-l', str(stage / 'lib' / name)])
+            validate_archive_deployment(loads, profile['minimumMacOS'])
     for headers in (source_root / 'include/openssl', build_root / 'include/openssl'):
         for path in headers.glob('*.h'):
-            target = stage / 'include/openssl' / path.name
-            require(not target.exists() or target.read_bytes() == path.read_bytes(), 'TLS header collision')
-            shutil.copy2(path, target)
+            header_target = stage / 'include/openssl' / path.name
+            require(not header_target.exists() or header_target.read_bytes() == path.read_bytes(), 'TLS header collision')
+            shutil.copy2(path, header_target)
     shutil.copy2(source_root / 'LICENSE.txt', stage / 'LICENSE.txt')
     config = (stage / 'include/openssl/configuration.h').read_text()
     require(all(re.search(r'#\s*define\s+' + option + r'\b', config) for option in
@@ -109,7 +159,8 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds):
         require(NATIVE.original(Path(item['path'])) == item, 'TLS original changed during production')
     clean()
     files = [NATIVE.original(p) for p in sorted(stage.rglob('*')) if p.is_file()]
-    receipt = {'source': source, 'upstream': recipe, 'inputs': inputs, 'stage': str(stage), 'files': files,
+    receipt = {'source': source, 'target': target, 'minimumMacOS': profile['minimumMacOS'], 'buildJobs': jobs,
+               'upstream': recipe, 'inputs': inputs, 'stage': str(stage), 'files': files,
                'compiledLibraries': 2, 'loaded': 0, 'installedSupplier': False, 'normalProfile': None,
                'scope': 'Static TLS dependency only; no Runtime/Host/transport/physical-stop acceptance.'}
     (destination / 'build.json').write_text(json.dumps(receipt, indent=2) + '\n')
@@ -119,9 +170,13 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', required=True)
-    for name in ('archive', 'destination', 'clang', 'sdk', 'make', 'perl'):
+    for name in ('archive', 'destination', 'clang', 'make', 'perl'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--sdk', type=Path)
+    parser.add_argument('--target', choices=('darwin-arm64', 'linux-x64'), default='darwin-arm64')
+    parser.add_argument('--minimum-macos', choices=('11.0', '26.0'))
     parser.add_argument('--seconds', type=int, required=True)
+    parser.add_argument('--jobs', type=int, choices=(1, 2), default=1)
     args = parser.parse_args()
     print(json.dumps(build(args.source, args.archive, args.destination, args.clang,
-                           args.sdk, args.make, args.perl, args.seconds)))
+                           args.sdk, args.make, args.perl, args.seconds, args.target, args.minimum_macos, jobs=args.jobs)))

@@ -61,6 +61,14 @@ pub fn record_form_request_body(
   prepared : PreparedRecordRead,
   max_bytes : Int,
 ) -> Result[String, RecordReadIssue] {
+  record_form_body(prepared.original.catalog.app_id, max_bytes)
+}
+
+///|
+fn record_form_body(
+  app : String,
+  max_bytes : Int,
+) -> Result[String, RecordReadIssue] {
   if max_bytes <= 0 {
     return Err(InvalidLimits)
   }
@@ -70,7 +78,7 @@ pub fn record_form_request_body(
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "app")
-    @encode.string_value(writer, prepared.original.catalog.app_id)
+    @encode.string_value(writer, app)
     @encode.end_object(writer)
     Ok(@encode.finish(writer))
   } catch {
@@ -92,10 +100,27 @@ pub fn record_page_request_body(
   per_page : Int,
   max_bytes : Int,
 ) -> Result[String, RecordReadIssue] {
+  record_page_body(
+    prepared.original.catalog.app_id,
+    prepared.names,
+    cursor,
+    per_page,
+    max_bytes,
+  )
+}
+
+///|
+fn record_page_body(
+  app : String,
+  names : Array[String],
+  cursor : String?,
+  per_page : Int,
+  max_bytes : Int,
+) -> Result[String, RecordReadIssue] {
   if max_bytes <= 0 {
     return Err(InvalidLimits)
   }
-  if per_page <= 0 || per_page > 500 || prepared.names.length() > 998 {
+  if per_page <= 0 || per_page > 500 || names.length() > 998 {
     return Err(InvalidRequest)
   }
   let prefix = match cursor {
@@ -108,18 +133,18 @@ pub fn record_page_request_body(
     }
   }
   let query = prefix + "order by $id asc limit " + per_page.to_string()
-  let writer = @encode.writer(max_bytes, prepared.names.length() + 12, 3) catch {
+  let writer = @encode.writer(max_bytes, names.length() + 12, 3) catch {
     issue => return Err(RequestEncoding(issue))
   }
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "app")
-    @encode.string_value(writer, prepared.original.catalog.app_id)
+    @encode.string_value(writer, app)
     @encode.key(writer, "fields")
     @encode.begin_array(writer)
     @encode.string_value(writer, "$id")
     @encode.string_value(writer, "$revision")
-    for field in prepared.names {
+    for field in names {
       @encode.string_value(writer, field)
     }
     @encode.end_array(writer)

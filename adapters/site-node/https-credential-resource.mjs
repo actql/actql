@@ -29,6 +29,10 @@ export const httpsCredentialResponseHeaderByteLimit = maxHeaderSize;
 // the same fixed prefix. No credential material is exposed by this DATA.
 export const httpsCredentialAuthorizationPrefix = 'Bearer ';
 
+// The unchanged default of the original request constructor below. Installed
+// recipe assembly consumes this same bound instead of copying its number.
+export const httpsCredentialDefaultRequestBytes = 1_048_576;
+
 // Acquisition custody stays in the Credential Owner, not in Connector-visible
 // fields. Scope equality is only identity; each operation still claims and
 // authorizes its own nominal use in the original journal.
@@ -674,7 +678,9 @@ export function httpsCredentialResponseWindowBytes(maxResponseBytes) {
   return BigInt(maxResponseBytes) + 1n;
 }
 
-const responseReadQuantum = 16_384;
+// Implementation geometry of this original observed binary reader, not a
+// configurable body cap, transfer allowance or authority.
+export const httpsCredentialResponseReadQuantum = 16_384;
 
 function receive({hostname, port, path, method, body, bodyMediaType, requestBytes, secret,
   authenticationForm = false,
@@ -755,10 +761,11 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
       }
       const responseRepresentation = !retainRunResponseOriginal ? undefined :
         Object.freeze({etagCount, contentEncodingCount});
-      const chunks = [];
+      let chunks = [];
+      let detachReader;
       let received = 0;
       if (observeResponseBytes === undefined) {
-        response.on('data', chunk => {
+        const readResponseChunk = chunk => {
           received += chunk.byteLength;
           if (received > maxResponseBytes) {
             response.destroy(Object.assign(
@@ -768,18 +775,28 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
             return;
           }
           chunks.push(Buffer.from(chunk));
-        });
+        };
+        response.on('data', readResponseChunk);
+        detachReader = () => response.off('data', readResponseChunk);
       } else {
-        // Paused binary read(size) returns at most size bytes. Bound the SAME
+        // Capture the original method and receiver before an external observer
+        // can replace read. Binary read(size) waits for size bytes until EOF,
+        // permitting one final partial copy rather than arbitrary tiny copies.
+        let readOriginal;
+        // Bound the SAME
         // reader's selected representation to B+1 even when its protocol body
         // cap is B. Charge each actual read BEFORE limit refusal/copy; the last
         // offending byte is included, never silently counted as zero.
         const readObservedResponse = () => {
           if (settled || observerPending || response.destroyed) return;
           try {
+            // Capture once under the SAME original error fence. A throwing
+            // getter (including thrown undefined) destroys this response and
+            // follows its existing binding/socket retirement path.
+            readOriginal ??= response.read;
             let chunk;
-            while ((chunk = response.read(Math.min(responseReadQuantum,
-              maxResponseBytes - received + 1))) !== null) {
+            while ((chunk = Reflect.apply(readOriginal, response, [Math.min(httpsCredentialResponseReadQuantum,
+              maxResponseBytes - received + 1)])) !== null) {
               const observed = observeResponseBytes(chunk.byteLength);
               if (observed !== undefined) {
                 if (types.isPromise(observed)) {
@@ -818,18 +835,38 @@ function receive({hostname, port, path, method, body, bodyMediaType, requestByte
               if (received > maxResponseBytes) fail('RemoteCredentialResponseLimitExceeded');
               chunks.push(Buffer.from(chunk));
             }
-          } catch (error) { response.destroy(error); }
+          } catch (error) {
+            // Native destroy(undefined/null/other falsey values) can close
+            // without an error event. Enter the SAME completion fence with
+            // the original throwable first; it still waits for this binding's
+            // actual request/socket close and any borrowed observer task.
+            finish(reject, error);
+            response.destroy(error);
+          }
         };
         response.on('readable', readObservedResponse);
+        detachReader = () => response.off('readable', readObservedResponse);
       }
       response.once('error', error => finish(reject, error));
-      response.once('end', () => finish(resolve, Object.freeze({
-        statusCode: response.statusCode,
-        headers: response.headers,
-        body: Buffer.concat(chunks, received),
-        requestRepresentation,
-        responseRepresentation,
-      })));
+      response.once('end', () => {
+        let body;
+        try { body = Buffer.concat(chunks, received); }
+        catch (error) { finish(reject, error); return; }
+        // Only successful concatenation retires the copied receive prefix.
+        // Sever the listener and its original Array, not the response/headers
+        // or the request/socket/invalid-observer cleanup responsibilities.
+        detachReader();
+        detachReader = undefined;
+        chunks.length = 0;
+        chunks = undefined;
+        finish(resolve, Object.freeze({
+          statusCode: response.statusCode,
+          headers: response.headers,
+          body,
+          requestRepresentation,
+          responseRepresentation,
+        }));
+      });
     });
     if (binding) {
       binding.request = request;
@@ -867,7 +904,7 @@ async function callCredentialResource({
   cert,
   key,
   now = Date.now,
-  maxRequestBytes = 1_048_576,
+  maxRequestBytes = httpsCredentialDefaultRequestBytes,
   maxResponseBytes = 1_048_576,
   returnRejectedResponse = false,
   retainRunResponseOriginal = false,

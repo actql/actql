@@ -99,6 +99,48 @@ pub fn original_model_mock_provider(
 }
 
 ///|
+/// Only this live installation can select the no-transport dependency purpose.
+/// The returned DATA remains tied to the same execution and checked Task;
+/// this supplies no physical attachment, permission or resource reservation.
+pub fn read_original_model_mock_dependencies(
+  original : ModelMockInstallation,
+  execution : @environment.ModelExecutionContract,
+  prompt : Bytes?,
+  retry : Bytes?,
+  backoff : Bytes?,
+  limits : @environment.Limits,
+  max_work : Int,
+) -> Result[
+  @environment.SingleAttemptModelDependencies,
+  @environment.ModelDependencyIssue,
+] {
+  if original.closing ||
+    original.require_original() is Err(_) ||
+    !original_mock_provider_matches(
+      original,
+      original.provider.unwrap(),
+      @environment.model_execution_task(execution),
+    ) {
+    return Err(
+      @environment.Body(@environment.ModelPrompt, {
+        kind: @environment.ReferenceMismatch,
+        source: None,
+      }),
+    )
+  }
+  @environment.read_original_mock_model_dependencies(
+    original.profile.unwrap(),
+    original.normalized.unwrap(),
+    execution,
+    prompt,
+    retry,
+    backoff,
+    limits,
+    max_work,
+  )
+}
+
+///|
 fn original_mock_provider_matches(
   original : ModelMockInstallation,
   provider : ModelProvider,
@@ -118,6 +160,21 @@ fn original_mock_provider_matches(
         task,
       )
   })
+}
+
+///|
+// This installed typed-answer purpose consumes opaque, checked input values.
+// Its same live original and Task remain mandatory; no media bytes or egress
+// are supplied by carrying a ContentRef through the bounded request encoder.
+fn original_mock_accepts_opaque_references(
+  provider : ModelProvider,
+  task : @environment.ModelTaskContract,
+) -> Bool {
+  match provider.invocation {
+    OriginalMock(original) =>
+      original_mock_provider_matches(original, provider, task)
+    SynchronousFixture(_) | AsynchronousPhysical => false
+  }
 }
 
 ///|

@@ -58,7 +58,22 @@ pub fn[I] prepare_request_model_provider_binding(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  let prepared = owner.compiled_program.unwrap()
+  let original_phase = owner.phase
+  let prepared : ClientLocalSequenceOwner = match owner.phase {
+    ModelPlanReserved => {
+      guard owner.compiled_program is Some(original) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      Pure(original)
+    }
+    EffectPlanReserved => {
+      guard owner.compiled_effect is Some(original) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      Effect(original)
+    }
+    _ => return Err(Preparation(ForeignOriginal))
+  }
   owner.phase = Selecting
   preparation_module_call(
     () => {
@@ -66,7 +81,7 @@ pub fn[I] prepare_request_model_provider_binding(
         return Err(Preparation(Policy))
       }
       match
-        reserve_request_domain_graph_construction(owner, input, prepared, bytes) {
+        reserve_request_model_graph_construction(owner, input, prepared, bytes) {
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
@@ -78,9 +93,17 @@ pub fn[I] prepare_request_model_provider_binding(
         Ok(value) => value
       }
       owner.program_domain_quote = None
-      owner.phase = ModelPlanReserved
+      owner.phase = original_phase
       Ok(value)
     },
-    () => if owner.phase == Selecting { owner.phase = ProgramBodyFailed },
+    () => {
+      if owner.phase == Selecting {
+        owner.phase = if original_phase == EffectPlanReserved {
+          EffectBodyFailed
+        } else {
+          ProgramBodyFailed
+        }
+      }
+    },
   )
 }

@@ -161,7 +161,10 @@ pub fn begin_prepared_installed_effect_mock_model_managed_run(
     Ok(value) => value
   }
   let run = new_installed_managed_run_owned(
-    PlannedEffectManaged(admission, plan),
+    PlannedEffectManaged(
+      @resources.node_prepared_run_admission(admission),
+      plan,
+    ),
     request,
     ledger,
   )
@@ -261,19 +264,29 @@ fn prepare_planned_installed_effect_ledger(
     plan.transport_bytes != transport_bytes ||
     plan.transport_execution_bytes != transport_execution_bytes ||
     capacities.length() != plan.captures.length() ||
-    value.reads.length() != plan.declarations.length() {
+    value.reads.length() != plan.captures.length() {
     return Err(ForeignOriginal)
   }
   for index, capacity in capacities {
-    if !physical_equal(capacity, plan.captures[index]) ||
-      !capacity.original_input {
+    if !physical_equal(capacity, plan.captures[index]) {
+      return Err(ForeignOriginal)
+    }
+    if !capacity.original_input {
+      if capacity.acquisition is Some(_) ||
+        capacity.provider is Some(_) ||
+        value.reads[index] is Some(_) {
+        return Err(ForeignOriginal)
+      }
+      continue
+    }
+    guard installed_effect_source_row_index(plan, index) is Some(row_index) else {
       return Err(ForeignOriginal)
     }
     guard value.reads[index] is Some(read) &&
       read.declaration is Some(declaration) &&
-      physical_equal(declaration, plan.declarations[index]) &&
+      physical_equal(declaration, plan.declarations[row_index]) &&
       read.acquisition is Some(acquisition) &&
-      physical_equal(acquisition, plan.acquisitions[index]) &&
+      physical_equal(acquisition, plan.acquisitions[row_index]) &&
       read.requirement is Some(requirement) &&
       physical_equal(requirement, capacity.requirement) else {
       return Err(ForeignOriginal)
@@ -292,10 +305,37 @@ fn prepare_planned_installed_effect_ledger(
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
   }
-  if !installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)) {
+  if !installed_effect_managed_limits_fit(value, plan, ledger) {
     return Err(InsufficientCapacity)
   }
   Ok(ledger)
+}
+
+///|
+// Call only after the original admission/current fence. Preparation-owned
+// Runs already retain their actual body and grow each later constructor/task
+// on this same Ledger. Standalone admissions still fund the complete envelope.
+// Usage below is accounting DATA, never an ownership or currentness witness.
+fn installed_effect_managed_limits_fit(
+  owner : ClientInstalledManagedRun,
+  plan : ClientInstalledEffectManagedPlan,
+  ledger : @resources.Ledger,
+) -> Bool {
+  match owner.preparation_retirement {
+    None =>
+      return installed_effect_limits_fit(
+        plan.limits,
+        @resources.ledger_limits(ledger),
+      )
+    Some(PurePreparation(_)) => return false
+    Some(EffectPlanPreparation(original)) => {
+      guard owner.preparation is Some(PlannedEffectManaged(admission, selected)) &&
+        physical_equal(selected, plan) else {
+        return false
+      }
+      preparation_owned_run_limits_fit(original, admission, plan, ledger)
+    }
+  }
 }
 
 ///|

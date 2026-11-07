@@ -390,6 +390,7 @@ fn start_serialization_prefix_provider(
       0L,
       @execution.execution_capacity_retained_bytes(capacity),
       @execution.execution_capacity_execution_bytes(capacity),
+      quantities=@resources.quantity_neutral_amounts(ledger),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))

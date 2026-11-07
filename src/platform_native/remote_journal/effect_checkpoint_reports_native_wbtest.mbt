@@ -58,6 +58,7 @@ test "native Effect checkpoint journal retains original report and exact ACK acr
     open_journal(library, path, 262144L, test_control(test_site())).unwrap()
   }
   let journal = open()
+  assert_true(journal.has_effect_checkpoint_reports() is Ok(false))
   let request = test_request("effect-checkpoint-report")
   let report = checkpoint_report_fixture(request, "review-1")
   assert_true(
@@ -100,7 +101,9 @@ test "native Effect checkpoint journal retains original report and exact ACK acr
     is Err(Physical(@sqlite.NotFound)),
   )
   lock.rollback().unwrap()
+  assert_true(journal.has_effect_checkpoint_reports() is Ok(false))
   journal.retain_effect_checkpoint_report(report).unwrap()
+  assert_true(journal.has_effect_checkpoint_reports() is Ok(true))
   journal.retain_effect_checkpoint_report(report).unwrap()
   let wire = @remote.remote_effect_checkpoint_report_json(report)
   assert_true(
@@ -111,6 +114,7 @@ test "native Effect checkpoint journal retains original report and exact ACK acr
   )
   assert_true(journal.close())
   let restored = open()
+  assert_true(restored.has_effect_checkpoint_reports() is Ok(true))
   let (original, pending) = restored
     .effect_checkpoint_report(request, checkpoint_report_limits())
     .unwrap()
@@ -170,7 +174,9 @@ test "native Effect checkpoint journal retains original report and exact ACK acr
     is Err(StateCollision),
   )
   assert_true(restored.close())
+  assert_true(restored.has_effect_checkpoint_reports() is Err(Closed))
   let again = open()
+  assert_true(again.has_effect_checkpoint_reports() is Ok(true))
   assert_eq(
     again.effect_checkpoint_report(request, checkpoint_report_limits()).unwrap().1,
     Some(@remote.RemoteEffectCheckpointReply::Accepted),

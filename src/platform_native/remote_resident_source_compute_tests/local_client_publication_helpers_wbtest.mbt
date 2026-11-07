@@ -613,7 +613,7 @@ fn local_client_read_result_sink(
     )
     is Err(@client.Journal(@client.Epoch(@client.ScopeMismatch))),
   )
-  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let root = @filesystem.open_root(root_path).unwrap()
   let foreign_name = "native-client-read-foreign-" + @env.now().to_string()
   root.create_directory(foreign_name).unwrap() |> ignore

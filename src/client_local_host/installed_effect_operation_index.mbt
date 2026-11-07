@@ -41,4 +41,13 @@ impl Hash for ClientEffectOperationCoordinate with fn hash_combine(self, hasher)
 priv struct ClientEffectOperationControls {
   reservation : @resources.CapacityReservation
   coordinates : Map[ClientEffectOperationCoordinate, Int]
+  construction_deferred : Bool
+  mut construction_active : Bool
+  mut ledger_codec_active : Bool
+  mut ledger_codec_workspace : Int64
+  mut ledger_codec_retained : Int64
+  // Runtime inventory belongs to this Run, never the reusable immutable Plan.
+  mut captured_rows : Int?
+  // One same-Run Preview input; its existing producer retains wire storage.
+  mut host_input : (String, @execution.ExecutionCapacity)?
 }

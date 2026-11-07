@@ -247,3 +247,15 @@ pub fn issue_page_read_finish(
 pub fn issue_page_read_close(read : IssuePageRead) -> Unit {
   read.closed = true
 }
+
+///|
+// The fixed read-only documents remain the original request-builder inputs.
+pub fn source_read_query_units() -> Int {
+  let mut units = Int::max(issues_query.length(), pull_requests_query.length())
+  for field in ["assignees", "labels"] {
+    for pull_request in [false, true] {
+      units = Int::max(units, issue_field_query(field, pull_request).length())
+    }
+  }
+  Int::max(units, comment_read_query_units())
+}

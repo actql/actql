@@ -8,7 +8,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {archiveFixture, jsonBytes} from './final-archive-fixture.mjs';
-import {storedArchive} from './archive-fixture.mjs';
+import {storedArchive, deflatedArchive} from './archive-fixture.mjs';
 import {hash, gitTree} from './inputs.mjs';
 import {isolatedContract, isolatedExperimentPaths, isolatedExperimentDigest} from './isolated-contract.mjs';
 import {comparisonPlan} from './plan.mjs';
@@ -133,7 +133,11 @@ test('real nested original/acceptance ZIPs satisfy the mixed final consumer and 
   let index = 0;
   const consume = async (members = candidate.members) => {
     const out = join(directory, `consumer-${index++}`); await mkdir(out);
-    const bytes = storedArchive(members), archive = join(out, 'candidate.zip'); await writeFile(archive, bytes);
+    // Compress only the outer transport: nested original ZIP/member bytes stay exact.
+    const bytes = deflatedArchive(members), archive = join(out, 'candidate.zip'); await writeFile(archive, bytes);
+    if (index === 1) t.diagnostic(JSON.stringify({fixture: 'nested-archive-transport',
+      members: members.size, decodedMemberBytes: [...members.values()].reduce((sum, value) => sum + value.length, 0),
+      storedBytes: candidate.original.length, nestedOriginalBytes: b.original.length, deflatedBytes: bytes.length}));
     Object.assign(candidate.artifact, {digest: `sha256:${hash(bytes)}`, size_in_bytes: bytes.length});
     return verifyCurrentFamily({...candidate.options, directory: out, archive, expectedDigest: hash(bytes), token: 'controlled-fixture-only'});
   };

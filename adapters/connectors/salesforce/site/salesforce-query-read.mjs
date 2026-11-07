@@ -1,3 +1,4 @@
+import {types} from 'node:util';
 import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
@@ -183,6 +184,11 @@ export async function readSalesforceQuery(options) {
     ownedLimits.maxLocatorUnits, ownedLimits.maxPages,
     BigInt(ownedLimits.maxTotalRows),
   ));
+  try { options.onQueryRead?.(read); }
+  catch (cause) {
+    moon.salesforceQueryReadInterrupt(read);
+    throw cause;
+  }
   const result = await driveQueryPages({
     ...options, initialAuthorization: context.authorization,
     authorizationForPage: context.callbacks.authorizationForPage,
@@ -252,4 +258,150 @@ export async function readSalesforceManagedQuery(options) {
     interrupt: () => moon.salesforceManagedQueryCancel(query),
   });
   return Object.freeze({...result, currentCatalog});
+}
+
+const own = (value, name) => {
+  if (value === null || typeof value !== 'object' || types.isProxy(value)) fail('InvalidSalesforceSourceRead');
+  const field = Object.getOwnPropertyDescriptor(value, name);
+  if (!field || !Object.hasOwn(field, 'value')) fail('InvalidSalesforceSourceRead');
+  return field.value;
+};
+const method = (value, name) => {
+  const fn = own(value, name);
+  if (typeof fn !== 'function' || types.isProxy(fn)) fail('InvalidSalesforceSourceRead');
+  return fn;
+};
+
+// The existing codec has already selected this immutable invocation. Preserve
+// the Site issuer's original grant/scope for the shared Reader's nominal check;
+// the copied primitive scope in invokeScopedCredentialOperation is DATA only.
+// This projector performs no physical call, Account decision or grant issuance.
+export function readSalesforceSourceChild(context, originalAuthorization, input) {
+  const grant = own(originalAuthorization, 'grant'), scope = own(originalAuthorization, 'scope');
+  const suppliedScope = own(input, 'scope');
+  const originalFields = Object.getOwnPropertyDescriptors(scope);
+  if (own(input, 'grant') !== grant || types.isProxy(suppliedScope) ||
+      Reflect.ownKeys(originalFields).length !== Reflect.ownKeys(suppliedScope).length ||
+      Reflect.ownKeys(originalFields).some(name => !Object.hasOwn(originalFields[name], 'value') ||
+        own(suppliedScope, name) !== originalFields[name].value)) fail('ForeignSalesforceSourceReadChild');
+  const operation = own(scope, 'operation'), operations = own(input, 'operations');
+  if (!(operations instanceof Map) || types.isProxy(operations) || operations.size !== 1 ||
+      !operations.has(operation)) fail('InvalidSalesforceSourceReadChild');
+  const request = operations.get(operation);
+  if (own(request, 'method') !== 'GET' || Object.hasOwn(request, 'body') ||
+      Object.hasOwn(request, 'bodyBytes')) fail('InvalidSalesforceSourceReadChild');
+  const authorization = Object.freeze({grant, scope, useId: own(input, 'useId')});
+  return Reflect.apply(method(context, 'readChild'), context, [{operation, prepare() {
+    return Object.freeze({original: input, originalAuthorization, authorization,
+      request, project(response) {return response;}});
+  }}]);
+}
+
+// Same Salesforce plan/recheck/query codecs, now driven inside ONE admitted
+// shared Reader. Preparing this protocol retains original facts only. The two
+// metadata reads and all query pages happen after its original binding opens.
+export function prepareSalesforceSourceReadSequence(options) {
+  let {moon, queryMoon, site, declaration, preparedRead, originalAuthorization, recover, limits, responseCapacity, currentResponseCapacity} = options;
+  options = undefined;
+  let describe = method(site, 'describeForAcquisition');
+  // The common owner selected this original acquisition before dispatch.
+  // Its complete-input variant is not a QueryRequirement or a Query cast.
+  let recheck = method(moon, preparedRead.wholeInput === true
+    ? 'clientProgramRecheckSalesforceInputProjection'
+    : 'clientProgramRecheckSalesforceRowProjection');
+  let values = method(moon, 'clientProgramSalesforceQueryPageValues');
+  let credential = own(site, 'credential'), apiVersion = own(site, 'apiVersion');
+  const scope = own(originalAuthorization, 'scope');
+  if (typeof recover !== 'function' || scope.operation !== 'salesforce:query:read' ||
+      scope.runInvocationCid !== own(preparedRead, 'runInvocationCid') ||
+      scope.dispatchRequestCid !== own(preparedRead, 'dispatchRequestCid')) fail('ForeignSalesforceSourceRead');
+  if (responseCapacity !== undefined && typeof responseCapacity !== 'function' ||
+      currentResponseCapacity !== undefined && typeof currentResponseCapacity !== 'function') fail('InvalidSalesforceSourceRead');
+  let started = false, pending = false, retired = false, largestResponse = 0, capacity;
+  let activeQuery, metadataBytes = 0;
+  const sequence = Object.freeze({...(currentResponseCapacity === undefined ? {} : {
+    responseCapacity(bytes, body, path, receivedBytes, responseCount) {
+      if (this !== sequence || !pending || retired ||
+          !Number.isSafeInteger(bytes) || bytes < 0 || bytes > limits.maxBytes ||
+          body?.byteLength !== bytes || typeof path !== 'string' ||
+          typeof receivedBytes !== 'bigint' || !Number.isSafeInteger(responseCount)) {
+        fail('InvalidSalesforceSourceResponseExtent');
+      }
+      if (activeQuery === undefined) metadataBytes = Math.max(metadataBytes, bytes);
+      const next = Reflect.apply(currentResponseCapacity, undefined, [{metadataBytes,
+        read: activeQuery, body, path, receivedBytes, responseCount}]);
+      // Reservation growth is monotonic while this reader retains its previous
+      // outputs. Coordinate maxima reuse the same immutable quantity family;
+      // they do not return a page, parser admission or execution authority.
+      if (capacity === undefined) capacity = next;
+      else {
+        const oldBytes = moon.clientProgramSerializationCapacityBytes(capacity);
+        const nextBytes = moon.clientProgramSerializationCapacityBytes(next);
+        if (runtimeField(nextBytes, 0) >= runtimeField(oldBytes, 0) && runtimeField(nextBytes, 1) >= runtimeField(oldBytes, 1)) capacity = next;
+        else {
+          capacity = moon.clientProgramRowSourceProviderCapacity(
+            runtimeField(nextBytes, 0) > runtimeField(oldBytes, 0) ? runtimeField(nextBytes, 0) : runtimeField(oldBytes, 0),
+            runtimeField(nextBytes, 1) > runtimeField(oldBytes, 1) ? runtimeField(nextBytes, 1) : runtimeField(oldBytes, 1));
+          if (capacity === undefined) fail('SalesforceSourceCapacityUnavailable');
+        }
+      }
+      return capacity;
+    },
+  }), ...(responseCapacity === undefined || currentResponseCapacity !== undefined ? {} : {responseCapacity(bytes) {
+    if (this !== sequence || !pending || retired || !Number.isSafeInteger(bytes) || bytes < 0 ||
+        bytes > limits.maxBytes) fail('InvalidSalesforceSourceResponseExtent');
+    if (capacity === undefined || bytes > largestResponse) {
+      largestResponse = Math.max(largestResponse, bytes);
+      capacity = Reflect.apply(responseCapacity, undefined, [largestResponse]);
+    }
+    return capacity;
+  }}), async read(context, initialAuthorization) {
+    if (this !== sequence || started || retired) fail('SalesforceSourceReadAlreadyStarted');
+    started = true;pending = true;
+    try {
+      if (initialAuthorization?.grant !== originalAuthorization.grant ||
+          initialAuthorization.scope !== originalAuthorization.scope) fail('ForeignSalesforceSourceRead');
+      const project = method(context, 'project'), consumeObservation = method(context, 'consumeObservation');
+      const consumeValues = method(context, 'consumeValues');
+      const metadata = async suffix => {
+        const observed = await Reflect.apply(describe, site, [{resource: preparedRead.resource,
+          runInvocationCid: preparedRead.runInvocationCid, dispatchRequestCid: preparedRead.dispatchRequestCid,
+          occurrence: `${preparedRead.nonce}-${suffix}`, approval: preparedRead.approval,
+          signal: preparedRead.signal,
+          readChild: (original, input) => readSalesforceSourceChild(context, original, input)}]);
+        const observation = Reflect.apply(project, context, [recover, undefined,
+          [observed.evidence, preparedRead.runInvocationCid]]);
+        await Reflect.apply(consumeObservation, context, []);
+        return Object.freeze({status: 'observed', observation,
+          observationCid: observed.observationCid, observationJson: observed.evidence.observationJson});
+      };
+      let current = await metadata('plan');
+      const plan = Reflect.apply(project, context, [(...args) => checked(Reflect.apply(recheck, moon, args)),
+        undefined, [declaration, preparedRead.acquisition, current.observation, 4096]]);
+      // The plan retains its original selected fields/binding. Relinquish the
+      // full first Catalog before the independent current Describe begins.
+      current = undefined;
+      await readSalesforceQuery({moon: queryMoon, plan, apiVersion, limits,
+        onQueryRead(read) { activeQuery = read; },
+        initialAuthorization, credential, signal: preparedRead.signal,
+        authorizationForPage: (_path, index) => Object.freeze({...initialAuthorization,
+          useId: `${preparedRead.nonce}-query-${index}`}),
+        refreshCatalog: () => metadata('recheck'),
+        callResource: input => readSalesforceSourceChild(context, originalAuthorization, input),
+        async consumePage(page) {
+          const projected = Reflect.apply(project, context, [values, moon, [page]]);
+          await Reflect.apply(consumeValues, context, [runtimeField(projected, 0), runtimeField(projected, 1)]);
+        }});
+    } finally {pending = false;}
+  }, retire() {
+    if (this !== sequence) fail('ForeignSalesforceSourceRead');
+    if (pending) return false;
+    if (!retired) {
+      moon = queryMoon = site = declaration = preparedRead = originalAuthorization = recover = limits = undefined;
+      describe = recheck = values = credential = responseCapacity = currentResponseCapacity = capacity = activeQuery = undefined;
+      retired = true;
+    }
+    return true;
+  }});
+  return sequence;
 }

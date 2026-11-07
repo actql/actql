@@ -97,7 +97,7 @@ export const signedLiteralRefusals = [
 unaryPlusRefusals.push(...signedLiteralRefusals);
 export const unaryPlusExecutionFailures = [{
   name: 'unary-plus-demanded-operand', format: 'sql',
-  text: 'SELECT +(1 / 0) AS value', resultNames: ['answer'], sourceReadSessionCount: 0,
+  text: 'SELECT +(1 / 0) AS value', resultNames: ['main'], sourceReadSessionCount: 0,
 }];
 
 // GROUP validates the original unary-plus key, then reuses its numeric value.
@@ -146,4 +146,4 @@ unaryPlusSuccesses.push(...groupedUnaryPlusSuccesses);
 unaryPlusRefusals.push(...groupedUnaryPlusRefusals);
 unaryPlusExecutionFailures.push({name: 'unary-plus-group-demanded-key', format: 'sql',
   text: 'SELECT 1 / 0 AS value, COUNT(*) AS n GROUP BY +(1 / 0)',
-  resultNames: ['answer'], sourceReadSessionCount: 0});
+  resultNames: ['main'], sourceReadSessionCount: 0});

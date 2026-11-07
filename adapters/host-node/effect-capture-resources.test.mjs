@@ -7,7 +7,7 @@ import {prepareEffectCaptureResources} from './effect-capture-resources.mjs';
 // phase results are explicit ports, not a matching Common or quota proof.
 const ok = value => ({$tag:1, _0:value});
 function fixture({live = false, beginFailure, reserveFailure, retireFailure,
-  retirementCurrent = false} = {}) {
+  retirementCurrent = false, complete} = {}) {
   const events = [], request = {}, definition = {}, parent = {}, policy = {}, value = {};
   let view, admission, originalInput, retired = 0, failRetire = retireFailure, stopped = false;
   const stop = () => {
@@ -65,6 +65,12 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
       if (reserveFailure !== undefined) throw reserveFailure;
       return ok(undefined);
     },
+    clientProgramCompleteInstalledEffectCaptureRecovery(actual) {
+      assert.equal(this, moon);assert.equal(actual, value);
+      assert.equal(view.status().busy, true);events.push('live-complete');
+      complete?.();
+      return ok(undefined);
+    },
     clientProgramRetireInstalledEffectCaptureRecovery(actual) {
       assert.equal(actual, value); events.push('live-retire');
       if (failRetire !== undefined) {const error = failRetire; failRetire = undefined; throw error;}
@@ -110,6 +116,7 @@ test('live capture uses SAME adopted Run and never opens a second Request Resour
   assert.equal(f.events.includes('initial'), false); assert.equal(f.events.includes('parent'), false);
   assert.equal(f.events.includes('abort'), false);
   assert.deepEqual(f.events.filter(Array.isArray), [['live-grow',123]]);
+  assert.equal(f.events.filter(value => value === 'live-complete').length, 1);
   assert.equal(f.events.filter(value => value === 'live-retire').length, 1);
 });
 
@@ -125,6 +132,7 @@ test('original pending physical child keeps capture reservation until its SAME r
   const child = {status: () => ({pending}), retry() {retries++; return {pending};}};
   const cause = Object.assign(new Error('original schema child'), {cleanupPending:true, cleanupHandle:child});
   view.begin(); view.reserve(128); view.finish(true, cause);
+  assert.equal(f.events.includes('live-complete'), false);
   assert.equal(await view.close(), false); assert.equal(retries, 1);
   assert.equal(f.events.includes('live-retire'), false); assert.equal(f.retired, 0);
   pending = false;
@@ -174,6 +182,7 @@ test('returned decoded owner stays backed through its original failed schema cle
     if (pending) throw cause;
   });
   view.finish(false);
+  assert.equal(f.events.filter(value => value === 'live-complete').length, 1);
   await assert.rejects(view.close(), error => error === cause);
   assert.equal(f.events.includes('live-retire'), false); assert.equal(f.retired, 0);
   pending = false; assert.equal(await view.close(), true);
@@ -187,10 +196,25 @@ test('schema returned during pending close is retained before the SAME reservati
   assert.equal(await view.close(), false);
   view.retainCleanup(() => {cleaned++;});
   assert.throws(() => view.finish(false), {code:'EffectCaptureResourceUnavailable'});
+  assert.equal(f.events.includes('live-complete'), false);
   assert.equal(await view.close(), true);
   assert.equal(cleaned, 1); assert.equal(f.retired, 1);
   assert.throws(() => view.retainCleanup(() => {}), {code:'EffectCaptureResourceUnavailable'});
 });
+
+for (const primary of [new Error('original current refinement refusal'), undefined]) {
+  test(`successful Store return keeps SAME duty on ${primary === undefined ? 'undefined' : 'current'} refinement failure`, async () => {
+    const f = fixture({live:true, complete() {throw primary;}}), view = f.open();
+    view.begin();view.reserve(128);
+    assert.throws(() => view.finish(false), cause => cause === primary);
+    assert.equal(view.status().busy, false);assert.equal(view.status().pending, true);
+    assert.equal(f.retired, 0);
+    assert.deepEqual(f.events.filter(Array.isArray), [['live-grow',128]]);
+    assert.equal(await view.close(), true);assert.equal(f.retired, 1);
+    assert.equal(f.events.filter(value => value === 'live-complete').length, 1);
+    assert.equal(f.events.filter(value => value === 'live-retire').length, 1);
+  });
+}
 
 test('cold capture retirement retains original current until SAME Request settlement and consumed return retry', async () => {
   const cause = new Error('same original consumed settlement return');

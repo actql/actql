@@ -44,17 +44,31 @@ fn prepare_keyed_input_proofs(
       physical_equal(checked, @sourceviews.keyed_join_operation(binding.join)) else {
       raise ForeignOwner
     }
-    let rows = @capacity.target_membership_rows(binding.producer)
+    guard binding.producer is Some(membership) else {
+      guard keyed_execution_producer_matches(
+        binding.bounds,
+        binding.index,
+        binding.join,
+        None,
+      ) else {
+        raise ForeignOwner
+      }
+      // The exact Unit operation and checked join are the runtime obligation.
+      // No capacity signature or reidentified estimate is fabricated.
+      out.push({ execution, source, proof: None, acquired: None, })
+      continue
+    }
+    let rows = @capacity.target_membership_rows(membership)
     guard physical_equal(@step_bounds.target_rows_pipeline(rows), unit.pipeline) &&
       @step_bounds.target_rows_target(rows) ==
       @sourceviews.keyed_join_left(binding.join) else {
       raise ForeignOwner
     }
     if @step_bounds.target_rows_source(rows) is Some(original) {
-      guard @capacity.target_membership_input_coordinates(binding.producer)
+      guard @capacity.target_membership_input_coordinates(membership)
         is Some((visit, input)) &&
         input == @step_bounds.source_input_rows_index(original) &&
-        @capacity.target_membership_coordinates(binding.producer) is None else {
+        @capacity.target_membership_coordinates(membership) is None else {
         raise ForeignOwner
       }
       let key = (binding.stage, visit, input)
@@ -80,7 +94,7 @@ fn prepare_keyed_input_proofs(
       out.push({ execution, source, proof: None, acquired: Some(retained), })
       continue
     }
-    guard @capacity.target_membership_coordinates(binding.producer)
+    guard @capacity.target_membership_coordinates(membership)
       is Some((visit, claim, _)) else {
       raise UnconvertedProofInput
     }
@@ -143,4 +157,24 @@ pub fn keyed_input_proof_acquired(
   value : KeyedInputProof,
 ) -> ReidentifiedSourceInput? {
   value.acquired
+}
+
+///|
+/// The branch without a static estimate retains the exact original execution
+/// and left target. Known estimates also require runtime resource admission;
+/// this accessor identifies only the branch without a signed count proof.
+pub fn keyed_input_runtime_admission(
+  value : KeyedInputProof,
+) -> KeyedExecution? {
+  match value.execution.kind {
+    KeyedRequest(binding) if binding.producer is None => Some(binding)
+    _ => None
+  }
+}
+
+///|
+pub fn keyed_execution_requirement(
+  value : KeyedExecution,
+) -> @sourceviews.LookupRequirement {
+  value.requirement
 }

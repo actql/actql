@@ -24,7 +24,8 @@ class BindingMutationTests(unittest.TestCase):
             root = Path(temporary)
             for path in [ROOT / 'src/client_host_wasm/moon.pkg',
                          *sorted((ROOT / 'src/client_host_wasm').glob('*.mbt')),
-                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt']:
+                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt',
+                         ROOT / 'src/physical_resources/platform_vm_capacity_wasm.mbt']:
                 target = root / path.relative_to(ROOT)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(path.read_bytes())
@@ -80,7 +81,8 @@ class BindingMutationTests(unittest.TestCase):
             root = Path(temporary)
             for path in [ROOT / 'src/client_host_wasm/moon.pkg',
                          *sorted((ROOT / 'src/client_host_wasm').glob('*.mbt')),
-                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt']:
+                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt',
+                         ROOT / 'src/physical_resources/platform_vm_capacity_wasm.mbt']:
                 target = root / path.relative_to(ROOT)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(path.read_bytes())
@@ -105,7 +107,8 @@ class BindingMutationTests(unittest.TestCase):
             root = Path(temporary)
             for path in [ROOT / 'src/client_host_wasm/moon.pkg',
                          *sorted((ROOT / 'src/client_host_wasm').glob('*.mbt')),
-                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt']:
+                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt',
+                         ROOT / 'src/physical_resources/platform_vm_capacity_wasm.mbt']:
                 target = root / path.relative_to(ROOT)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(path.read_bytes())

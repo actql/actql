@@ -41,11 +41,9 @@ test "handed off consumer observes original origin without restoring initial usa
 }
 
 ///|
-fn handed_off_output_fixture() -> (
-  Ledger,
-  FundedReadConsumer[OriginalReadTestOrigin],
-  Reservation,
-) {
+fn handed_off_output_fixture(
+  quantities? : QuantityAmounts? = None,
+) -> (Ledger, FundedReadConsumer[OriginalReadTestOrigin], Reservation) {
   let ledger = create_ledger({
     planning_work: 100,
     attempts: 3,
@@ -54,10 +52,17 @@ fn handed_off_output_fixture() -> (
     retained_bytes: 100L,
     execution_bytes: 100L,
   }).unwrap()
+  if quantities is Some(_) {
+    configure_quantities(ledger, {
+      tokens: 10L,
+      cost_units: 10L,
+      duration_ms: 10L,
+    }).unwrap()
+  }
   let origin = original_read_test_origin()
   let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
   let identity = begin_original_ledger_inventory(ledger, bootstrap, 4, 4, 0).unwrap()
-  let producer = reserve_attempt(ledger, 9L, 10L, 12L).unwrap()
+  let producer = reserve_attempt(ledger, 9L, 10L, 12L, quantities~).unwrap()
   let descriptor = issue_recorded_original_ledger_descriptor(identity, origin).unwrap()
   let claim = fund_original_read(ledger, origin, descriptor, 7L, 5L).unwrap()
   let consumer = claim_funded_read_preparation(claim, origin, 7L, 5L).unwrap()
@@ -142,4 +147,56 @@ test "handed off output recognition does not admit changed initial snapshot or b
   assert_true(original_resource_park_current(park, origin) is Some(_))
   assert_eq(ledger_usage(same), before)
   assert_true(reservation_pending(producer))
+}
+
+///|
+test "handed off neutral quantity producer retains original completed output without readmission" {
+  let (ledger, consumer, producer) = handed_off_output_fixture(
+    quantities=Some(zero_quantities()),
+  )
+  // This is the same DATA selected by the installed Host for a non-Model task
+  // on a Model-limited Ledger, not an absent quantity configuration.
+  assert_eq(producer.quantities, quantity_neutral_amounts(ledger))
+  let output = retain_allocation(ledger, producer, 4L).unwrap()
+  settle_completed_output_reservation(ledger, producer, Some(output), 4L, 7L).unwrap()
+  let before = ledger_usage(ledger)
+  let quantities = quantity_usage(ledger)
+  assert_true(producer.quantities is None)
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is Some(_))
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(quantity_usage(ledger), quantities)
+  settle_execution_reservation(ledger, producer, remaining_execution=7L).unwrap()
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is Some(_))
+  assert_true(output.live)
+  release_allocation(ledger, output).unwrap()
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
+}
+
+///|
+test "handed off completed output refuses nonneutral and uncertain quantity preimages" {
+  for
+    amount in [
+      { tokens: 1L, cost_units: 0L, duration_ms: 0L, },
+      { tokens: 0L, cost_units: 1L, duration_ms: 0L, },
+      { tokens: 0L, cost_units: 0L, duration_ms: 1L, },
+    ] {
+    let (ledger, consumer, producer) = handed_off_output_fixture(
+      quantities=Some(amount),
+    )
+    let output = retain_allocation(ledger, producer, 4L).unwrap()
+    settle_completed_output_reservation(ledger, producer, Some(output), 4L, 7L).unwrap()
+    let before = quantity_usage(ledger)
+    assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
+    assert_eq(quantity_usage(ledger), before)
+    assert_true(output.live)
+  }
+  let (ledger, consumer, producer) = handed_off_output_fixture(
+    quantities=Some(zero_quantities()),
+  )
+  let output = retain_allocation(ledger, producer, 4L).unwrap()
+  mark_quantities_uncertain(ledger, producer).unwrap()
+  settle_completed_output_reservation(ledger, producer, Some(output), 4L, 7L).unwrap()
+  let before = quantity_usage(ledger)
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
+  assert_eq(quantity_usage(ledger), before)
 }

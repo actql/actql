@@ -8,6 +8,8 @@ fn request_model_input_fixture(
   with_query_time? : Bool = false,
   with_serialization? : Bool = false,
   nonterminal? : Bool = false,
+  authored? : String? = None,
+  model_copies? : Int = 1,
   current? : () -> Bool = () => true,
   declaration? : @row_source_host.RowDeclaration? = None,
 ) -> (
@@ -30,6 +32,7 @@ fn request_model_input_fixture(
       #|{"version":"actql/0.1","id":"request-model-values","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":1,"text":"hello"}]},"as":"seed"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
     )
   }
+  let document = authored.unwrap_or(document)
   let document = if with_serialization {
     assert_false(captured)
     assert_false(with_query_time)
@@ -93,7 +96,10 @@ fn request_model_input_fixture(
     retained_bytes: ordinary.retained_bytes,
     execution_bytes: ordinary.execution_bytes,
   }
-  let initial_limits = @resources.add_ledger_limits(ordinary, domain).unwrap()
+  let mut initial_limits = ordinary
+  for _ in 0..<model_copies {
+    initial_limits = @resources.add_ledger_limits(initial_limits, domain).unwrap()
+  }
   let (parent, child, _, input) = registration_parent_fixture(
     current~,
     text=document,
@@ -148,7 +154,14 @@ fn request_model_graph_fixture(
 fn request_model_fixture(
   captured? : Bool = false,
   model_input? : Bool = true,
+  model_copies? : Int = 1,
+  model_limits? : @resources.LedgerLimits = effect_model_plan_limits,
   current? : () -> Bool = () => true,
+  quantities? : @resources.QuantityAmounts? = Some({
+    tokens: 128L,
+    cost_units: 0L,
+    duration_ms: 1000L,
+  }),
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
@@ -158,6 +171,7 @@ fn request_model_fixture(
   let declaration = request_model_module_declaration()
   let (parent, input, prepared) = request_model_input_fixture(
     captured~,
+    model_copies~,
     current~,
     declaration=if model_input && captured { Some(declaration) } else { None },
   )
@@ -170,11 +184,9 @@ fn request_model_fixture(
   let previous = @resources.begin_preparation_io(capacity, input, 2L).unwrap()
   @resources.charge_preparation_io(previous, 1L).unwrap()
   @resources.finish_preparation_io_after_cleanup(previous).unwrap()
-  @resources.configure_quantities(parent.ledger, {
-    tokens: 128L,
-    cost_units: 0L,
-    duration_ms: 1000L,
-  }).unwrap()
+  if quantities is Some(value) {
+    @resources.configure_quantities(parent.ledger, value).unwrap()
+  }
   let contracts = request_program_module_contracts()
   let manifests = request_program_module_manifests()
   let compilation_limits = @publication_host.client_standard_pure_compilation_limits()
@@ -288,8 +300,8 @@ fn request_model_fixture(
       ).unwrap()
     }
     prepare_installed_mock_model_capture_plan_binding(
-      original, compiled, definition, occurrence, graph, effect_model_plan_limits,
-      500L, 700L, 20, 20, 20,
+      original, compiled, definition, occurrence, graph, model_limits, 500L, 700L,
+      20, 20, 20,
     ).unwrap()
   } else {
     let original = if model_input {
@@ -310,8 +322,8 @@ fn request_model_fixture(
       ).unwrap()
     }
     prepare_installed_mock_model_source_free_plan(
-      original, request, compiled, definition, occurrence, graph, effect_model_plan_limits,
-      500L, 700L, 20, 20, 20,
+      original, request, compiled, definition, occurrence, graph, model_limits, 500L,
+      700L, 20, 20, 20,
     ).unwrap()
   }
   assert_eq(factory_calls.val, 1)
@@ -354,6 +366,49 @@ test "Pure Scope funds its new origin and original census before binding for sou
     retire_installed_managed_run(run).unwrap()
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
+}
+
+///|
+test "captured Model adopts the ordinary finite parent without requiring the whole future Plan" {
+  let (parent, input, plan, construction) = request_model_fixture(
+    captured=true,
+    model_copies=0,
+    // Both components may use the same finite ceiling at different times.
+    // Their actual Scope/bootstrap and work still reserve on one parent.
+    model_limits={
+      ..effect_model_plan_limits,
+      retained_bytes: client_local_retained_byte_ceiling(),
+      execution_bytes: client_local_execution_byte_ceiling(),
+    },
+  )
+  let ledger = parent.ledger
+  let limits = @resources.ledger_limits(ledger)
+  assert_false(installed_effect_limits_fit(plan.limits, limits))
+  let scope = prepare_request_model_read_scope(parent, input, plan).unwrap()
+  complete_request_model_preparation(parent, input, plan).unwrap()
+  @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+  let owner = begin_request_model_managed_run(parent, plan.request, scope).unwrap()
+  assert_true(
+    physical_equal(require_installed_managed_run(owner).unwrap(), ledger),
+  )
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    @resources.reserve_capacity(ledger, limits.retained_bytes + 1L, 0L)
+    is Err(@resources.RetentionLimit),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_eq(@resources.ledger_limits(ledger), limits)
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      plan.compiled,
+      plan.definition,
+      plan.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
 
 ///|
@@ -451,11 +506,13 @@ test "Model construction input preserves grown Program backing and funds its act
   let before = calls.val
   let model = borrow_request_model_plan_input(parent, input).unwrap()
   assert_eq(calls.val, before + 1)
-  // Independent record inventory: header16 + nine references72 + three words24.
+  // Independent record inventory: header16 + eleven references88 + three words24.
+  // Prepared, Request, compiled Run, definition, Graph, selected Model partitions,
+  // occurrence, Source-free/Captured alternatives, Content prefix and Limits.
   // No Model Plan, compilation, Scope, provider or IO is constructed here.
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((r + 129L + 112L, e + 257L + 112L)),
+    Ok((r + 129L + 128L, e + 257L + 128L)),
   )
   assert_true(parent.phase == ModelPlanReserved)
   assert_true(parent.program_model is None)
@@ -492,7 +549,8 @@ test "Model construction input foreign and one-byte-short refusal preserves the 
   let program = borrow_request_program_plan_input(parent, input).unwrap()
   let capacity = parent.program_capacity.unwrap()
   let (_, e) = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
-  let r = @resources.ledger_limits(parent.ledger).retained_bytes - 111L
+  // This same record needs128 bytes; preserve exactly one byte of deficit.
+  let r = @resources.ledger_limits(parent.ledger).retained_bytes - 127L
   @resources.reserve_working_preparation_phase(capacity, input, r, e).unwrap()
   let charged = request_preparation_accounting(parent)
   let observed = calls.val
@@ -685,9 +743,7 @@ test "Model Scope closing in adoption current keeps the original Request cleanup
   assert_true(closed.val)
   assert_eq(@resources.ledger_usage(parent.ledger), before)
   assert_true(parent.phase == ProgramBodyReady && parent.input is Some(_))
-  assert_true(
-    @resources.check_node_preparation_input(parent.initial, input) is Ok(_),
-  )
+  assert_true(preparation_initial_input(parent.initial, input) is Ok(_))
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
@@ -724,7 +780,10 @@ fn request_model_ordinary_entry_refusal(captured : Bool) -> Unit raise {
       )
       is Err(WrongPhase),
     )
-    assert_true(parent.program_source_free is None)
+    assert_true(
+      parent.program_source_free is Some(original) &&
+      physical_equal(original, plan.source_free.unwrap()),
+    )
   }
   assert_true(parent.phase == ModelPlanReserved)
   assert_true(
@@ -1056,6 +1115,64 @@ test "Model Scope refuses an independently compiled equivalent instead of replac
     parent.program_domain_compilation_inputs is None &&
     parent.program_artifact_geometry is None,
   )
+  @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+  let run = begin_request_model_managed_run(parent, plan.request, scope).unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      plan.compiled,
+      plan.definition,
+      plan.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Request Model configures original installed quantities once before the same Run binding" {
+  let (parent, input, plan, construction) = request_model_fixture(
+    quantities=None,
+  )
+  assert_true(@resources.quantity_configuration_matches(parent.ledger, None))
+  let expected : @resources.QuantityAmounts = {
+    tokens: 128L,
+    cost_units: 0L,
+    duration_ms: 1000L,
+  }
+  let scope = prepare_request_model_read_scope(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({
+      tokens: 1000L,
+      cost_units: 1000L,
+      duration_ms: 10000L,
+    }),
+  ).unwrap()
+  assert_true(
+    @resources.quantity_configuration_matches(parent.ledger, Some(expected)),
+  )
+  assert_eq(
+    @resources.configure_quantities(parent.ledger, expected),
+    Err(@resources.InvalidCharge),
+  )
+  let before = @resources.quantity_usage(parent.ledger)
+  assert_true(
+    prepare_request_model_read_scope(
+      parent,
+      input,
+      plan,
+      quantity_limits=Some({ tokens: 1L, cost_units: 0L, duration_ms: 1L, }),
+    )
+    is Err(_),
+  )
+  assert_eq(@resources.quantity_usage(parent.ledger), before)
+  assert_true(
+    @resources.quantity_configuration_matches(parent.ledger, Some(expected)),
+  )
+  complete_request_model_preparation(parent, input, plan).unwrap()
   @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
   let run = begin_request_model_managed_run(parent, plan.request, scope).unwrap()
   assert_true(

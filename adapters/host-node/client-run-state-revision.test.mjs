@@ -10,6 +10,7 @@ import {parse} from 'acorn';
 const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledUnpublishedRunState, issueInstalledRunControlObservation} from '../host-common/run-state-observation.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 
@@ -145,13 +146,24 @@ test('Effect cancellation callers share one actual Journal admission for unchang
   }
   visit(ast);
   assert.equal(declarations.size, 2);
-  const prepared = Object.freeze({});
+  const prepared = Object.freeze({}), requestIdentity = Object.freeze({});
+  const managed = Object.freeze({value: Object.freeze({})}), plan = Object.freeze({});
   // Journal storage and contract admission are real; execution/compilation
   // ports isolate the actual Host cancellation consumers from provider work.
   const ports = {
-    journal, control: counted, moon: {...moon,
+    journal, control: counted, checked, moon: {...moon,
       clientProgramEffectCompilationResultNames: () => [],
-      clientProgramEffectCompilationUnitId: () => 'explicit-unit'},
+      clientProgramEffectCompilationUnitId: () => 'explicit-unit',
+      clientProgramInstalledEffectManagedOperationPlan(owner, actualPrepared, actualRequest) {
+        assert.strictEqual(owner, managed.value); assert.strictEqual(actualPrepared, prepared);
+        assert.strictEqual(actualRequest, requestIdentity); return {$tag:1,_0:plan};
+      }},
+    preparation: {effectManagedPlanRun(actualMoon, actualPrepared, actualRequest) {
+      assert.strictEqual(actualMoon, ports.moon);
+      assert.strictEqual(actualPrepared, prepared);
+      assert.strictEqual(actualRequest, requestIdentity);
+      return managed;
+    }},
     checkpoints: {}, installedEffect: undefined,
     dispatchOwner: {track(actual, options) {
       assert.strictEqual(actual, ref);
@@ -162,7 +174,7 @@ test('Effect cancellation callers share one actual Journal admission for unchang
     principalId: 'fixture', sourceProfile: undefined, registry: undefined, values: undefined,
     fragment: undefined, ordered: undefined,
     inferSelections: new WeakMap([[prepared, Object.freeze({graph: {}})]]),
-    selectAcquiredEffectSources: () => [],
+    selectAcquiredEffectSources(options) {assert.strictEqual(options.managedPlan,plan);return [];},
     acquiredEffectContinuation: options => options,
     openAcquiredEffectComputation: async options => options,
     earlyMockEffectPlans: new WeakMap(), localSnapshotConfiguration: undefined,
@@ -173,7 +185,7 @@ test('Effect cancellation callers share one actual Journal admission for unchang
   const execute = compileFunction(`${declarations.get('openEffectTargetReads')}\n` +
     `${declarations.get('executeEffectComputation')}\nreturn executeEffectComputation;`,
   Object.keys(ports))(...Object.values(ports));
-  const facts = Object.freeze({ref, prepared, compilation: {}, preparedExecution: {},
+  const facts = Object.freeze({ref, prepared, identity: requestIdentity, compilation: {}, preparedExecution: {},
     updateTargetSelections: Object.freeze([]), assertUpdateSelectionCurrent() {}});
   selectedReads = 0;
   const first = await execute(facts);

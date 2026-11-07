@@ -36,8 +36,9 @@ fn complete_source_binding(
 
 ///|
 /// Bind the actual Source declarations. The exact completed immutable input
-/// may be forwarded; foreign, changed, pending or stricter-limit inputs use
-/// the same ordinary semantic engine. Usage remains charged by the consumer.
+/// may be forwarded under fitting measured node/text ceilings and unchanged
+/// or relaxed depth. Other inputs use the same ordinary semantic engine.
+/// Usage remains charged by the consumer; failed reads require exact limits.
 pub fn bind(
   source : Source,
   supplied : @decode.Cursor?,

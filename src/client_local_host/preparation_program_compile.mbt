@@ -160,6 +160,7 @@ pub fn[I, P] compile_effect_program_check_preparation(
   update_targets? : @update_targets.UpdateTargetPublication? = None,
   store_targets? : @update_targets.StoreTargetPublication? = None,
   command_targets? : @update_targets.CommandTargetPublication? = None,
+  source_input? : @publication_host.ClientSourceInput? = None,
 ) -> Result[
   @publication_host.PreparedClientEffectComputation,
   ClientProgramCheckPreparationIssue,
@@ -172,20 +173,22 @@ pub fn[I, P] compile_effect_program_check_preparation(
     owner.check_data is Some(data) else {
     return Err(WrongPhase)
   }
-  if owner.effect_targets is Some((update, store, command)) {
+  if owner.effect_targets is Some((update, store, command, source)) {
     if !same_effect_publication(update, update_targets) ||
       !same_effect_publication(store, store_targets) ||
-      !same_effect_publication(command, command_targets) {
+      !same_effect_publication(command, command_targets) ||
+      !same_effect_publication(source, source_input) {
       return Err(ChangedInputs)
     }
   } else {
     owner.effect_targets = Some(
-      (update_targets, store_targets, command_targets),
+      (update_targets, store_targets, command_targets, source_input),
     )
   }
   owner.busy = true
   let result = compile_effect_program_check_preparation_owned(
     owner, input, candidate, data, limits, update_targets, store_targets, command_targets,
+    source_input,
   )
   owner.busy = false
   result
@@ -201,6 +204,7 @@ fn[I, P] compile_effect_program_check_preparation_owned(
   update_targets : @update_targets.UpdateTargetPublication?,
   store_targets : @update_targets.StoreTargetPublication?,
   command_targets : @update_targets.CommandTargetPublication?,
+  source_input : @publication_host.ClientSourceInput?,
 ) -> Result[
   @publication_host.PreparedClientEffectComputation,
   ClientProgramCheckPreparationIssue,
@@ -211,13 +215,32 @@ fn[I, P] compile_effect_program_check_preparation_owned(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  let (result, known) = @publication_host.observe_prepare_checked_client_effect_computation(
-    candidate,
-    limits,
-    update_targets~,
-    store_targets~,
-    command_targets~,
-  )
+  let observed = match source_input {
+    None =>
+      Ok(
+        @publication_host.observe_prepare_checked_client_effect_computation(
+          candidate,
+          limits,
+          update_targets~,
+          store_targets~,
+          command_targets~,
+        ),
+      )
+    Some(source) =>
+      @publication_host.observe_prepare_checked_client_source_effect_computation(
+        source,
+        candidate,
+        limits,
+        update_targets~,
+        store_targets~,
+        command_targets~,
+      ).map_err(issue => ClientProgramCheckPreparationIssue::SourceInput(issue))
+  }
+  let known = match observed {
+    Ok((_, known)) => known
+    // The original Source association is checked before compiler invocation.
+    Err(_) => 0L
+  }
   owner.compilation_known_work = known
   let charged = @resources.spend_preparation_phase_work64(work, known)
   match @resources.finish_preparation_phase_work64(work) {
@@ -233,6 +256,13 @@ fn[I, P] compile_effect_program_check_preparation_owned(
       return Err(Work(issue))
     }
     Ok(_) => ()
+  }
+  let result = match observed {
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      return Err(issue)
+    }
+    Ok((result, _)) => result
   }
   match result {
     Err(issue) => {

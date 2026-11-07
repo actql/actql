@@ -14,7 +14,9 @@ pub fn original_ledger_preparation_available(
 
 ///|
 // Only the accounted Row capture Owner supplies these exact opaque tokens.
-// The initial Direct capture must be the single recorded child/holding. After
+// The completed Direct capture must be the single recorded child/holding.
+// A selected provider can still own live scratch/cleanup backing; borrowing
+// it never settles that reservation. Pending cleanup refuses new use. After
 // the prefix reserves its attempt, even successful cleanup cannot restore this
 // prerequisite. Capacity failure leaves the same original capture retryable.
 pub fn original_captured_prefix_available(
@@ -28,10 +30,12 @@ pub fn original_captured_prefix_available(
   }
   value.reservations.length() == 1 &&
   physical_equal(value.reservations[0], reservation) &&
-  !reservation_open(reservation) &&
+  physical_equal(reservation.owner, ledger) &&
+  !reservation_pending(reservation) &&
   value.holdings.length() == 1 &&
   physical_equal(value.holdings[0], holding) &&
   holding_available(ledger, holding) &&
+  holding.reservation_serial == reservation.serial &&
   value.delegations.is_empty() &&
   ledger.next_capacity_serial == Some(-2) &&
   original_prefix_attempt_count_is(value, 1)
@@ -52,7 +56,8 @@ pub fn original_captured_prefix_reservation_available(
   }
   value.reservations.length() == 2 &&
   physical_equal(value.reservations[0], reservation) &&
-  !reservation.open &&
+  physical_equal(reservation.owner, ledger) &&
+  !reservation_pending(reservation) &&
   value.holdings.length() == 1 &&
   physical_equal(value.holdings[0], holding) &&
   holding_available(ledger, holding) &&
@@ -64,4 +69,214 @@ pub fn original_captured_prefix_reservation_available(
   value.delegations.is_empty() &&
   ledger.next_capacity_serial == Some(-2) &&
   original_prefix_attempt_count_is(value, 2)
+}
+
+///|
+// Borrow exact caller-held originals in census order. This neither reconstructs
+// the census nor turns a count or an equal-state token into capture authority.
+// Cleanup uses identity only because refusal/closing is not physical retirement.
+fn original_captured_inputs_match(
+  ledger : Ledger,
+  originals : Array[(Reservation, Holding)],
+) -> Bool {
+  guard ledger.original_inventory is Some(value) &&
+    !originals.is_empty() &&
+    value.reservations.length() >= originals.length() &&
+    value.holdings.length() >= originals.length() else {
+    return false
+  }
+  for index in 0..<originals.length() {
+    let (reservation, holding) = originals[index]
+    if !physical_equal(value.reservations[index], reservation) ||
+      !physical_equal(value.holdings[index], holding) ||
+      !physical_equal(reservation.owner, ledger) ||
+      !physical_equal(holding.owner, ledger) ||
+      holding.reservation_serial != reservation.serial {
+      return false
+    }
+    // Issuance serials are strictly ordered, so duplicate pairs cannot pass.
+    if index > 0 &&
+      (
+        originals[index - 1].0.serial >= reservation.serial ||
+        originals[index - 1].1.serial >= holding.serial
+      ) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn original_captured_inputs_live(
+  ledger : Ledger,
+  originals : Array[(Reservation, Holding)],
+  settled : Bool,
+) -> Bool {
+  guard original_captured_inputs_match(ledger, originals) else { return false }
+  for pair in originals {
+    let (reservation, holding) = pair
+    if !holding_available(ledger, holding) ||
+      reservation_pending(reservation) ||
+      (settled && reservation.open) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+// Borrow actual captured originals on an already shared Run. Other live
+// preparation/reader/control tokens remain with their own existing owners.
+// Serial DATA only selects; exact token identity authenticates each member.
+// This read-only view issues no capacity, permission or cleanup acknowledgement.
+pub fn original_borrowed_captured_inputs_available(
+  ledger : Ledger,
+  originals : Array[(Reservation, Holding)],
+) -> Bool {
+  guard ledger.original_inventory is Some(inventory) &&
+    original_ledger_inventory_available(inventory.identity) &&
+    !originals.is_empty() else {
+    return false
+  }
+  for index, (reservation, holding) in originals {
+    guard physical_equal(reservation.owner, ledger) &&
+      holding_available(ledger, holding) &&
+      !reservation_pending(reservation) &&
+      holding.reservation_serial == reservation.serial &&
+      inventory.reservations.by_serial(reservation.serial)
+      is Some(actual_reservation) &&
+      physical_equal(actual_reservation, reservation) &&
+      inventory.holdings.by_serial(holding.serial) is Some(actual_holding) &&
+      physical_equal(actual_holding, holding) else {
+      return false
+    }
+    if index > 0 &&
+      (
+        originals[index - 1].0.serial >= reservation.serial ||
+        originals[index - 1].1.serial >= holding.serial
+      ) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+// The shared prefix/assembly keeps its SAME original open reservation. No
+// whole-Ledger purity or replacement census can stand in for this identity.
+pub fn original_borrowed_reservation_available(
+  identity : OriginalLedgerIdentity,
+  ledger : Ledger,
+  reservation : Reservation,
+) -> Bool {
+  guard physical_equal(identity.ledger, ledger) &&
+    original_ledger_inventory_available(identity) &&
+    ledger.original_inventory is Some(inventory) &&
+    physical_equal(reservation.owner, ledger) &&
+    reservation.open &&
+    !reservation.cleanup_pending &&
+    inventory.reservations.by_serial(reservation.serial) is Some(original) else {
+    return false
+  }
+  physical_equal(original, reservation)
+}
+
+///|
+// Exact ordered captured inputs only; live nonpending Source backing may still
+// exist. A spent prefix opportunity is never restored by downstream cleanup.
+pub fn original_captured_inputs_prefix_available(
+  ledger : Ledger,
+  originals : Array[(Reservation, Holding)],
+) -> Bool {
+  guard ledger.original_inventory is Some(value) &&
+    original_ledger_preparation_available(value.identity) &&
+    original_captured_inputs_live(ledger, originals, false) else {
+    return false
+  }
+  value.reservations.length() == originals.length() &&
+  value.holdings.length() == originals.length() &&
+  value.delegations.is_empty() &&
+  ledger.next_capacity_serial == Some(-2) &&
+  original_prefix_attempt_count_is(value, originals.length())
+}
+
+///|
+pub fn original_captured_inputs_prefix_reservation_available(
+  ledger : Ledger,
+  originals : Array[(Reservation, Holding)],
+  prefix : Reservation,
+) -> Bool {
+  guard ledger.original_inventory is Some(value) &&
+    original_ledger_preparation_available(value.identity) &&
+    originals.length() < 2147483647 &&
+    original_captured_inputs_live(ledger, originals, false) else {
+    return false
+  }
+  value.reservations.length() == originals.length() + 1 &&
+  value.holdings.length() == originals.length() &&
+  physical_equal(value.reservations[originals.length()], prefix) &&
+  physical_equal(prefix.owner, ledger) &&
+  prefix.open &&
+  !prefix.cleanup_pending &&
+  value.delegations.is_empty() &&
+  ledger.next_capacity_serial == Some(-2) &&
+  original_prefix_attempt_count_is(value, originals.length() + 1)
+}
+
+///|
+// Cleanup only. Tokens are opaque originals issued by this Ledger; a retired
+// token is no longer in the live-slot index. Keep its immutable owner/serial
+// correspondence, and require physical identity whenever it is still indexed.
+// This does not make a closed capture available for another preparation.
+fn original_captured_inputs_cleanup_match(
+  ledger : Ledger,
+  originals : Array[(Reservation, Holding)],
+) -> Int? {
+  guard ledger.original_inventory is Some(inventory) && !originals.is_empty() else {
+    return None
+  }
+  let base = if original_inventory_preparation_owned(inventory) {
+    inventory.preparation_attempt_base
+  } else {
+    0
+  }
+  if base < 0 || originals.length() > 2147483647 - base {
+    return None
+  }
+  for index, pair in originals {
+    let (reservation, holding) = pair
+    if !physical_equal(reservation.owner, ledger) ||
+      !physical_equal(holding.owner, ledger) ||
+      reservation.serial != base + index ||
+      holding.reservation_serial != reservation.serial ||
+      (index > 0 && originals[index - 1].1.serial >= holding.serial) {
+      return None
+    }
+    match inventory.reservations.by_serial(reservation.serial) {
+      Some(current) => if !physical_equal(current, reservation) { return None }
+      None => if reservation.open || holding.live { return None }
+    }
+    match inventory.holdings.by_serial(holding.serial) {
+      Some(current) => if !physical_equal(current, holding) { return None }
+      None => if holding.live { return None }
+    }
+  }
+  Some(base + originals.length())
+}
+
+///|
+fn original_cleanup_reservation_matches(
+  ledger : Ledger,
+  reservation : Reservation,
+  serial : Int,
+) -> Bool {
+  guard physical_equal(reservation.owner, ledger) &&
+    reservation.serial == serial &&
+    ledger.original_inventory is Some(inventory) else {
+    return false
+  }
+  match inventory.reservations.by_serial(serial) {
+    Some(current) => physical_equal(current, reservation)
+    None => !reservation.open
+  }
 }

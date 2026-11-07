@@ -3,10 +3,12 @@ import { fieldLayout } from './native-extent.mjs';
 // Pinned 64-bit Native allocation requests, reviewed against constructor
 // store instructions. These exclude allocator overhead and shared referents.
 export const parentFields = {
-  owner: Array(6).fill('ref'),
+  // Current execution adds one nullable retained-completion callback slot.
+  // This is conditional source/ABI extent, not a new measured capture.
+  owner: Array(7).fill('ref'),
   state: ['ref','ref','ref','i32','i32','i32','ref'],
-  startEnvironment: [...Array(4).fill('ref'),'i32',...Array(3).fill('ref'),'i32'],
-  advance: ['ref','ref','i32','ref','ref','ref','i32','ref','ref','ref','ref','i32'],
+  startEnvironment: [...Array(3).fill('ref'),'i32',...Array(4).fill('ref'),'i32'],
+  advance: ['ref','ref','i32',...Array(7).fill('ref'),'i32'],
   cancel: Array(4).fill('ref'), stopped: Array(2).fill('ref'),
   cleanup: Array(5).fill('ref'), childWorkIssue: Array(2).fill('ref'),
 };

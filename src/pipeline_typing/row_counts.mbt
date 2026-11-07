@@ -111,7 +111,8 @@ fn sum_counts(
   }
   match @capacity.add(left, right) {
     Ok(total) => Some(count(@capacity.value(total), a.exact && z.exact))
-    Err(_) => fail(source, RowBoundOverflow)
+    // A conservative estimate is optional; overflow is not a type error.
+    Err(_) => None
   }
 }
 
@@ -131,7 +132,8 @@ fn product_counts(
   }
   match @capacity.multiply(left, right) {
     Ok(total) => Some(count(@capacity.value(total), a.exact && z.exact))
-    Err(_) => fail(source, RowBoundOverflow)
+    // A conservative estimate is optional; overflow is not a type error.
+    Err(_) => None
   }
 }
 

@@ -3,7 +3,7 @@ priv enum ControlTerminalClose {
   ControlClientPending
   ControlSlotPending
   ControlSlotUnknown
-  ControlHandlesRetired
+  ControlHandlesRetired(@slot.NativeExecutorSlot)
 }
 
 ///|
@@ -13,15 +13,21 @@ priv enum ControlTerminalClose {
 fn retry_control_terminal_handles(
   original : (@http.Client, @slot.NativeExecutorSlot),
   progress : Ref[ControlTerminalClose],
+  slot_progress : Ref[ControlTerminalClose],
 ) -> Bool {
   if progress.val is ControlClientPending {
     guard original.0.close_checked() is Ok(_) else { return false }
     progress.val = ControlSlotPending
   }
   if progress.val is ControlSlotPending {
-    return retry_control_slot_close(original.1, progress)
+    if retry_control_slot_close(original.1, slot_progress) {
+      progress.val = ControlHandlesRetired(original.1)
+    } else if slot_progress.val is ControlSlotUnknown {
+      progress.val = ControlSlotUnknown
+    }
   }
-  progress.val is ControlHandlesRetired
+  progress.val is ControlHandlesRetired(same) &&
+  physical_equal(same, original.1)
 }
 
 ///|
@@ -34,26 +40,29 @@ fn retry_control_slot_close(
       progress.val = ControlSlotUnknown
       return false
     }
-    progress.val = ControlHandlesRetired
+    progress.val = ControlHandlesRetired(original)
   }
-  progress.val is ControlHandlesRetired
+  progress.val is ControlHandlesRetired(same) && physical_equal(same, original)
 }
 
 ///|
+/// The same caller retains the exact Slot's confirmed close observation for
+/// its later terminal phase. A different Slot cannot consume that observation.
 /// Reclaim's closed Store/Journal cannot stand in for its Slot close. Keep
 /// the same caller stack and original descriptor on missing observation.
 fn retain_control_reclaim_slot_close(
   original : @slot.NativeExecutorSlot,
+  progress : Ref[ControlTerminalClose],
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
 ) -> Unit {
-  let progress = Ref(ControlSlotPending)
-  install_partial_holder_cleanup_signal()
+  install_partial_holder_cleanup_signal(report_progress~)
   ignore(
     retain_holder_cleanup_lifetime(
       original,
       same => retry_control_slot_close(same, progress),
       () => CleanupInputEnded,
-      wait_holder_cleanup_lifetime_signal,
-      (_, _) => report("orphan-slot-cleanup-pending", []),
+      () => wait_holder_cleanup_lifetime_signal_with_report(report_progress~),
+      (_, _) => report_progress("orphan-slot-cleanup-pending", []),
     ),
   )
 }
@@ -64,13 +73,14 @@ fn retain_control_reclaim_slot_close(
 fn retain_control_terminal_handles(
   client : @http.Client,
   slot : @slot.NativeExecutorSlot,
+  slot_progress : Ref[ControlTerminalClose],
 ) -> Unit {
   let progress = Ref(ControlClientPending)
   install_partial_holder_cleanup_signal()
   ignore(
     retain_holder_cleanup_lifetime(
       (client, slot),
-      same => retry_control_terminal_handles(same, progress),
+      same => retry_control_terminal_handles(same, progress, slot_progress),
       () => CleanupInputEnded,
       wait_holder_cleanup_lifetime_signal,
       (_, _) => report("control-terminal-cleanup-pending", []),

@@ -31,7 +31,7 @@ function run(command, args, cwd, environment, timeout = 120000) {
   return result.stdout;
 }
 
-function manifestImports(source) {
+export function manifestImports(source) {
   const list = tokens(source), result = [];
   for (let index = 0; index < list.length; index++) {
     if (list[index].kind !== 'word' || list[index].value !== 'import') continue;

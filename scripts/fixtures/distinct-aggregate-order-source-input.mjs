@@ -64,7 +64,7 @@ export const distinctAggregateOrderRefusals = [
 distinctAggregateOrderRefusals.push({
   name: 'distinct-aggregate-order-refuse-object-range-collision', format: 'aql-text',
   text: "WITH objects AS (SELECT id, 'outer' AS name, @payload AS payload FROM records WHERE id > 0) "
-    + "SELECT STRING_AGG(DISTINCT (payload).name, '|' ORDER BY payload.name) AS names FROM objects AS payload",
+    + "SELECT STRING_AGG(DISTINCT (payload.payload).name, '|' ORDER BY payload.name) AS names FROM objects AS payload",
   parameterDeclarations: {payload: {type: 'object', nullable: true,
     fields: {name: {type: 'string', nullable: true}}}},
   parameters: {payload: {name: 'inner'}},

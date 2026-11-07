@@ -3,7 +3,6 @@
   "declarations": [
     {
       "module": "packages/native-cli/lib/project-template.mjs",
-      "sha256": "bc3a86afe31321b277202fafa9b715c2e84dbf1a0b2afecb4d17eb87ed5d2972",
       "exports": [
         "projectTemplateFiles"
       ],
@@ -99,7 +98,7 @@
             "verification": [
               {
                 "path": "scripts/native-cli-project-scaffold.test.mjs",
-                "anchor": "test('the Quickstart template prepares seven inputs"
+                "anchor": "test('the Quickstart template prepares eight inputs"
               },
               {
                 "path": "scripts/native-cli-project-scaffold.test.mjs",
@@ -108,18 +107,28 @@
               {
                 "path": "scripts/native-cli-project-scaffold.test.mjs",
                 "anchor": "test('deal-review Mock DATA contains only original Opportunity"
+              },
+              {
+                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "anchor": "test('mock template catalogs declare existing typed rows keys aliases and write permissions'"
+              },
+              {
+                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "anchor": "test('deal-review catalog separates physical UTF8 files from logical keyed Content views'"
               }
             ]
           }
         }
-      ]
+      ],
+      "sha256": "92be6a49aa62aa23308fba36ddcab5d9d9d7d4344035bc54cbd0c1ff2754ded5"
     },
     {
       "module": "packages/native-cli/lib/project-scaffold.mjs",
-      "sha256": "74e4f6ec847a939ae9dc49fc7e3cb9c08201d51d02dc118d66a3d9c7cf9956db",
+      "sha256": "6dc7dab61378f8b8fd8e263de4444571af74a4596950c948c0b80a4b0104b2a3",
       "exports": [
         "projectInitArguments",
         "projectInitialAdoptionArguments",
+        "requireProjectInitSupport",
         "scaffoldProject"
       ],
       "operations": [
@@ -153,6 +162,21 @@
           "async": false
         },
         {
+          "name": "requireProjectInitSupport",
+          "parameters": [
+            "executable",
+            "environment",
+            "template",
+            "query"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireProjectInitSupport/unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "same/same",
           "parameters": [
             "a",
@@ -176,6 +200,7 @@
       ],
       "imports": [
         "./project-template.mjs",
+        "node:child_process",
         "node:fs",
         "node:path"
       ],
@@ -296,11 +321,94 @@
             "verification": [
               {
                 "path": "scripts/native-cli-project-scaffold.test.mjs",
-                "anchor": "test('the Quickstart template prepares seven inputs"
+                "anchor": "test('the Quickstart template prepares eight inputs"
               },
               {
                 "path": "scripts/native-cli-project-cleanup.test.mjs",
                 "anchor": "// Inject failures into operations on real, fresh handles."
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "requireProjectInitSupport",
+            "requireProjectInitSupport/unavailable/unavailable"
+          ],
+          "exports": [
+            "requireProjectInitSupport"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// Implementation availability only, observed from the same admitted executable."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "export function requireProjectInitSupport("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// A positive answer cannot adopt a Store or supply runtime/Account authority."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "const child = query(executable, ['project-init-support'],"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "env: {...environment, ACTQL_NATIVE_TIMINGS: '0'}, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "if (child.error || child.signal || child.status !== 0 || child.stderr !== '' ||"
+              },
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "if (child.stdout !== wire && child.stdout !== wire + '\\n') unavailable();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "timeout: 5000, killSignal: 'SIGKILL', maxBuffer: 4096,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "timeout: 5000, killSignal: 'SIGKILL', maxBuffer: 4096,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// No runtime supplier, grant, signer or fallback is selected by this answer."
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('old, malformed, failed, timed out and oversized Native queries refuse before preparation'"
+              },
+              {
+                "path": "src/cmd/native_client/local_project_configuration_wbtest.mbt",
+                "anchor": "test \"project init support is implementation data and acquires no command original\""
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('installed init silences only private query timings and preserves adoption diagnostics'"
               }
             ]
           }

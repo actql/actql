@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {generateKeyPairSync, sign} from 'node:crypto';
-import {EventEmitter} from 'node:events';
+import {Readable, Writable} from 'node:stream';
 import {mkdir, writeFile} from 'node:fs/promises';
 import http from 'node:http';
 import https from 'node:https';
@@ -38,6 +38,8 @@ const stateOf = execution => until(async () => {
 // Capture only the physical HTTPS request. The unchanged common credential
 // owner still signs, claims, authorizes, resolves the synthetic credential and
 // finishes its journal. No socket, real credential or external service is used.
+// Actual Node streams supply readable/body and close events; the explicit
+// transport port does not stand in for a real socket's physical cleanup ACK.
 export function captureFixtureTransport() {
   const originals = {fetch: globalThis.fetch, request: https.request,
     httpsGet: https.get, httpRequest: http.request, httpGet: http.get,
@@ -55,64 +57,76 @@ export function captureFixtureTransport() {
     const read = options.hostname === 'external-read.fixture.invalid';
     const effect = options.hostname === 'external-effect.fixture.invalid';
     if ((!read && !effect) || options.protocol !== 'https:') return forbidden();
-    const request = new EventEmitter();
+    let response, originalBody, finishRequest;
     let ended = false;
-    let settled = false;
     const detach = () => options.signal?.removeEventListener('abort', abort);
-    const error = cause => {
-      if (settled) return;
-      settled = true; detach(); request.emit('error', cause);
-    };
-    const abort = () => error(Object.assign(new Error('The operation was aborted'),
+    const request = new Writable({
+      write(_chunk, _encoding, done) {done();},
+      final(done) {
+        finishRequest = done;
+        queueMicrotask(() => {
+          if (request.destroyed) return;
+          if (options.signal?.aborted) return abort();
+          assert.equal(options.headers.authorization, 'Bearer fixture-only-token');
+          const body = originalBody;
+          state.requests.push({hostname: options.hostname, path: options.path,
+            method: options.method, ...(body === undefined ? {} : {body})});
+          if (read && state.readMode === 'hold') return;
+          let statusCode;
+          let value;
+          if (read) {
+            assert.equal(options.method, 'GET');
+            assert.ok(['/records?page=0', '/records?page=1'].includes(options.path));
+            statusCode = state.readMode === 'provider-error' ? 503 : 200;
+            value = state.readMode === 'provider-error' ? {error: 'unavailable'}
+              : state.readMode === 'invalid-page' ? {items: [{key: 'bad'}], next: null}
+              : options.path.endsWith('=0')
+                ? {items: [{key: 'alpha', amount: 7}, {key: 'beta', amount: 2}], next: 1}
+                : {items: [{key: 'gamma', amount: 11}], next: null};
+          } else {
+            assert.equal(options.method, 'POST');
+            assert.equal(options.path, '/events');
+            const event = JSON.parse(body);
+            state.events.push(event);
+            if (state.effectMode === 'lost-response') {
+              return request.destroy(Object.assign(new Error('FixtureReplyLost'), {code: 'ECONNRESET'}));
+            }
+            statusCode = state.effectMode === 'typed-failure' ? 400 : 201;
+            value = state.effectMode === 'typed-failure' ? {error: 'invalid_note'}
+              : {id: `event-${state.events.length}`, key: event.key};
+          }
+          response = new Readable({read() {}});
+          response.statusCode = statusCode;
+          response.headers = {};
+          response.rawHeaders = [];
+          response.once('close', () => {
+            const finish = finishRequest;
+            finishRequest = undefined;
+            finish?.();
+          });
+          onResponse(response);
+          response.push(Buffer.from(JSON.stringify(value)));
+          response.push(null);
+        });
+      },
+      destroy(cause, done) {
+        detach();
+        finishRequest = undefined;
+        response?.destroy(cause);
+        done(cause);
+      },
+    });
+    const abort = () => request.destroy(Object.assign(new Error('The operation was aborted'),
       {name: 'AbortError', code: 'ABORT_ERR'}));
     options.signal?.addEventListener('abort', abort, {once: true});
-    request.end = body => {
+    request.once('close', detach);
+    const end = request.end;
+    request.end = function (body, ...args) {
+      assert.equal(this, request);
       assert.equal(ended, false);
       ended = true;
-      queueMicrotask(() => {
-        if (options.signal?.aborted) return abort();
-        assert.equal(options.headers.authorization, 'Bearer fixture-only-token');
-        state.requests.push({hostname: options.hostname, path: options.path,
-          method: options.method, ...(body === undefined ? {} : {body})});
-        if (read && state.readMode === 'hold') return;
-        let statusCode;
-        let value;
-        if (read) {
-          assert.equal(options.method, 'GET');
-          assert.ok(['/records?page=0', '/records?page=1'].includes(options.path));
-          statusCode = state.readMode === 'provider-error' ? 503 : 200;
-          value = state.readMode === 'provider-error' ? {error: 'unavailable'}
-            : state.readMode === 'invalid-page' ? {items: [{key: 'bad'}], next: null}
-            : options.path.endsWith('=0')
-              ? {items: [{key: 'alpha', amount: 7}, {key: 'beta', amount: 2}], next: 1}
-              : {items: [{key: 'gamma', amount: 11}], next: null};
-        } else {
-          assert.equal(options.method, 'POST');
-          assert.equal(options.path, '/events');
-          const event = JSON.parse(body);
-          state.events.push(event);
-          if (state.effectMode === 'lost-response') {
-            return error(Object.assign(new Error('FixtureReplyLost'), {code: 'ECONNRESET'}));
-          }
-          statusCode = state.effectMode === 'typed-failure' ? 400 : 201;
-          value = state.effectMode === 'typed-failure' ? {error: 'invalid_note'}
-            : {id: `event-${state.events.length}`, key: event.key};
-        }
-        const response = new EventEmitter();
-        response.statusCode = statusCode;
-        response.headers = {};
-        response.destroy = cause => {
-          if (settled) return;
-          settled = true; detach(); response.emit('error', cause);
-        };
-        onResponse(response);
-        queueMicrotask(() => {
-          if (settled) return;
-          response.emit('data', Buffer.from(JSON.stringify(value)));
-          if (settled) return;
-          settled = true; detach(); response.emit('end');
-        });
-      });
+      originalBody = body;
+      return Reflect.apply(end, request, [body, ...args]);
     };
     return request;
   };

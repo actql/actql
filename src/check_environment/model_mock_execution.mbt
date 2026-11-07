@@ -230,3 +230,30 @@ pub fn model_mock_execution_matches(
   }
   true
 }
+
+///|
+/// The same no-I/O typed-answer profile consumes checked references as opaque
+/// input values. It never transfers their bytes and cannot issue a physical
+/// media dependency. All canonical scalar bodies and execution limits retain
+/// the ordinary reader; only physical media-role validation is inapplicable.
+pub fn read_original_mock_model_dependencies(
+  profile : ModelMockProfile,
+  normalized : NormalizedPublicModelTask,
+  execution : ModelExecutionContract,
+  prompt : Bytes?,
+  retry : Bytes?,
+  backoff : Bytes?,
+  limits : Limits,
+  max_work : Int,
+) -> Result[SingleAttemptModelDependencies, ModelDependencyIssue] {
+  read_model_dependencies_selected(
+    execution,
+    prompt,
+    retry,
+    backoff,
+    limits,
+    max_work,
+    [],
+    Some((profile, normalized)),
+  )
+}

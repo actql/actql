@@ -1,6 +1,6 @@
 ///|
 test "Native authorized metadata lookup preserves original attempt without reopening or read admission" {
-  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let parent = @filesystem.open_root(root).unwrap()
   let name = "lookup-" + @env.now().to_string()
   parent.create_directory(name).unwrap() |> ignore

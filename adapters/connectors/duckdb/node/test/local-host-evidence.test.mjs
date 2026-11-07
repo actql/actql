@@ -334,8 +334,11 @@ test('a failed deletion keeps cleanup ownership and a retry completes it', async
   await chmod(input.objectsDirectory, 0o500);
   const cancelled = await cli(['cancel', other.prepare_attempt_id, '--config', input.config]);
   await chmod(input.objectsDirectory, 0o700);
-  assert.equal(cancelled.code, 0, cancelled.stderr);
+  assert.equal(cancelled.code, 1, cancelled.stderr);
+  assert.equal(cancelled.json.outcome, 'cancelled');
   assert(cancelled.json.retention.pending.length > 0);
+  assert.equal(cancelled.json.retention.cleanup_pending, true);
+  assert.equal(cancelled.json.retention.cleanup_error, 'PublicationStoreCleanupPending');
   const retry = await cli(['retire', '--config', input.config]);
   assert.equal(retry.code, 0, retry.stderr);
   assert.deepEqual(retry.json.pending, []);

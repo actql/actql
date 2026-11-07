@@ -303,3 +303,234 @@ test "original composed entry refuses an unfunded envelope before input then acc
   assert_eq(calls.val, 0)
   original_composed_test_release(ledger, consumer)
 }
+
+///|
+// Produce and readmit actual completed-prefix evidence; these synthetic byte
+// grants qualify owner/identity ordering, not physical installation or IO.
+fn original_restored_composed_test_saved(
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  plan : @publication_host.ClientInferPlanGraph,
+  custody : () -> Bool,
+) -> (
+  @publication_host.ClientInferSavedCallScope,
+  @input.ClientInferRetainedInputExport,
+) raise {
+  let (input, _, scope, binding) = call_identity_fixture(prepared)
+  let completed = @input.client_infer_completed_input(input).unwrap()
+  let exported = @input.export_client_infer_retained_input(completed, binding).unwrap()
+  let saved = @publication_host.read_client_infer_saved_call_scope(
+    compiled,
+    definition,
+    occurrence,
+    plan,
+    @publication_host.client_infer_call_scope_snapshot(scope).unwrap(),
+    "sha256:" + "a".repeat(64),
+    custody,
+  ).unwrap()
+  assert_true(@input.cleanup_client_infer_input(input).unwrap())
+  (saved, exported)
+}
+
+///|
+test "original restored composed entry retains authenticated input on the same one-shot consumer" {
+  let prepared = fixture_prepared()
+  let (occurrence, prefix) = original_composed_test_input(prepared)
+  let plan = call_identity_plan(prepared)
+  let limits = standard_limits()
+  let calls = Ref(0)
+  let provider = original_funded_start_provider(calls)
+  let (compiled, definition, ledger, read) = original_funded_start_read(
+    prepared, plan, limits,
+  )
+  let consumer = @publication_host.claim_client_model_read_preparation(
+    read, compiled, definition, plan, 7L, 5L,
+  ).unwrap()
+  let (saved, exported) = original_restored_composed_test_saved(
+    prepared,
+    compiled,
+    definition,
+    occurrence,
+    plan,
+    () => true,
+  )
+  let before = @resources.ledger_usage(ledger)
+  let active = start_original_restored_composed(
+    occurrence,
+    plan,
+    prefix,
+    provider,
+    @input.client_infer_retained_input_export_binding(exported),
+    @input.client_infer_retained_input_export_descriptor(exported),
+    @input.client_infer_retained_input_export_rows(exported),
+    () => true,
+    saved,
+    limits,
+    compiled,
+    definition,
+    consumer,
+    7L,
+    5L,
+    100L,
+    5L,
+  ).unwrap()
+  guard active.original_preparation.unwrap().read is Claimed(retained) else {
+    abort("same original consumer required")
+  }
+  assert_true(physical_equal(retained, consumer))
+  assert_true(physical_equal(active.saved_call_scope.unwrap(), saved))
+  assert_true(physical_equal(active.run_binding.unwrap().compiled, compiled))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  restrict_model_send_slots(active, [false]).unwrap()
+  for _ in 0..<5000 {
+    if active.rows is Some(_) {
+      break
+    }
+    assert_true(advance(active, 1).unwrap() is Continue(..))
+  }
+  assert_eq(@relation.prepared_infer_rows_count(active.rows.unwrap()), 1)
+  assert_eq(calls.val, 0)
+  assert_true(cancel(active))
+  assert_true(fixture_finish(active, initial_work=active.work) is Stopped(..))
+  assert_true(cleanup(active).unwrap())
+  assert_eq(calls.val, 0)
+  original_composed_test_release(ledger, consumer)
+}
+
+///|
+test "original restored composed entry refuses a foreign saved Run before consuming read" {
+  let prepared = fixture_prepared()
+  let (occurrence, prefix) = original_composed_test_input(prepared)
+  let plan = call_identity_plan(prepared)
+  let limits = standard_limits()
+  let calls = Ref(0)
+  let provider = original_funded_start_provider(calls)
+  let (compiled, definition, ledger, read) = original_funded_start_read(
+    prepared, plan, limits,
+  )
+  let consumer = @publication_host.claim_client_model_read_preparation(
+    read, compiled, definition, plan, 7L, 5L,
+  ).unwrap()
+  let (foreign_compiled, foreign_definition) = original_input_capacity_run(
+    prepared, plan,
+  )
+  let (saved, exported) = original_restored_composed_test_saved(
+    prepared,
+    foreign_compiled,
+    foreign_definition,
+    occurrence,
+    plan,
+    () => true,
+  )
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    start_original_restored_composed(
+      occurrence,
+      plan,
+      prefix,
+      provider,
+      @input.client_infer_retained_input_export_binding(exported),
+      @input.client_infer_retained_input_export_descriptor(exported),
+      @input.client_infer_retained_input_export_rows(exported),
+      () => true,
+      saved,
+      limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+    )
+    is Err(CallScope(ForeignInput)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(
+    @publication_host.client_model_read_consumer_available(
+      consumer, compiled, definition, plan, 7L, 5L,
+    ),
+  )
+  assert_eq(calls.val, 0)
+  original_composed_test_release(ledger, consumer)
+}
+
+///|
+test "original restored composed input refusal retains entered read without replacement or send" {
+  let prepared = fixture_prepared()
+  let (occurrence, prefix) = original_composed_test_input(prepared)
+  let plan = call_identity_plan(prepared)
+  let limits = standard_limits()
+  let calls = Ref(0)
+  let provider = original_funded_start_provider(calls)
+  let (compiled, definition, ledger, read) = original_funded_start_read(
+    prepared, plan, limits,
+  )
+  let consumer = @publication_host.claim_client_model_read_preparation(
+    read, compiled, definition, plan, 7L, 5L,
+  ).unwrap()
+  let (saved, exported) = original_restored_composed_test_saved(
+    prepared,
+    compiled,
+    definition,
+    occurrence,
+    plan,
+    () => true,
+  )
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    start_original_restored_composed(
+      occurrence,
+      plan,
+      prefix,
+      provider,
+      @input.client_infer_retained_input_export_binding(exported),
+      @input.client_infer_retained_input_export_descriptor(exported),
+      @input.client_infer_retained_input_export_rows(exported),
+      () => false,
+      saved,
+      limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+    )
+    is Err(Input(_)),
+  )
+  assert_true(
+    start_original_restored_composed(
+      occurrence,
+      plan,
+      prefix,
+      provider,
+      @input.client_infer_retained_input_export_binding(exported),
+      @input.client_infer_retained_input_export_descriptor(exported),
+      @input.client_infer_retained_input_export_rows(exported),
+      () => true,
+      saved,
+      limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+    )
+    is Err(
+      OriginalCapacity(
+        @publication_host.Read(
+          @publication_host.Resource(@resources.SpentClaim)
+        )
+      )
+    ),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_eq(calls.val, 0)
+  original_composed_test_release(ledger, consumer)
+}

@@ -5,6 +5,8 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import test from 'node:test';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -166,4 +168,119 @@ test('Local STORE projects a Command outcome admitted by actual Common without a
       {code:'ForeignLocalStoreRequest'});
     assert.equal(f.nativeCalls(),0);
   }finally{await child.release();await f.site.close();}
+});
+
+
+test('Local STORE recovery bounds each original row before whole-frame concatenation and encodes it once', () => {
+  const source=readFileSync(new URL('./installed-project-file-effects.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'}),found=[];
+  const visit=node=>{if(!node||typeof node!=='object')return;
+    if(node.type==='Property'&&node.method&&node.key.name==='recoveryEntry')found.push(node.value);
+    for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(visit);else if(value&&typeof value==='object')visit(value);}};
+  visit(tree);assert.equal(found.length,1);
+  const fn=Function('wire','cid','createHash','own','bindingCid','limits','fail',
+    'return (function '+source.slice(found[0].start,found[0].end)+');');
+  const records=[{path:'é\n"',content:{identity_cid:cid('1')}},
+    {path:'😀',content:{identity_cid:cid('2')}}];
+  const entries=records.map(record=>({request:record}));
+  let encodes=0,whole=0,reads=0;
+  const actualWire=value=>{if(value?.requests?.length)whole++;if(records.includes(value))encodes++;return wire(value);};
+  const bind=cid('3'),expected=wire({binding:bind,requests:records});
+  const emit=fn(actualWire,value=>'sha256:'+createHash('sha256').update(wire(value)).digest('hex'),createHash,
+    request=>{reads++;return {record:request};},bind,{maxRequestBytes:100000},code=>{throw Object.assign(new Error(code),{code});});
+  const actual=emit({entries});
+  assert.equal(actual.wire,expected);
+  assert.equal(actual.observationCid,'sha256:'+createHash('sha256').update(expected).digest('hex'));
+  assert.equal(reads,2);assert.equal(encodes,2);assert.equal(whole,0);
+});
+
+
+test('Local STORE recovery preserves original admission order and rejects before encoding an over-limit tail', () => {
+  const source=readFileSync(new URL('./installed-project-file-effects.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'}),found=[];
+  const visit=node=>{if(!node||typeof node!=='object')return;
+    if(node.type==='Property'&&node.method&&node.key.name==='recoveryEntry')found.push(node.value);
+    for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(visit);else if(value&&typeof value==='object')visit(value);}};
+  visit(tree);assert.equal(found.length,1);
+  const fn=Function('wire','cid','createHash','own','bindingCid','limits','fail',
+    'return (function '+source.slice(found[0].start,found[0].end)+');');
+  const bind=cid('3'),records=[{path:'é\n',content:{identity_cid:cid('1')}},
+    {path:'😀',content:{identity_cid:cid('2')}},{path:'tail',content:{identity_cid:cid('4')}}];
+  const entries=records.map(record=>({request:record}));let reads=0,encoded=[];
+  const encode=value=>{if(records.includes(value))encoded.push(records.indexOf(value));return wire(value);};
+  const fail=code=>{throw Object.assign(new Error(code),{code});};
+  const exact=Buffer.byteLength(wire({binding:bind,requests:records.slice(0,2)}));
+  const emit=fn(encode,value=>cid('5'),createHash,request=>{reads++;return {record:request};},bind,
+    {maxRequestBytes:exact-1},fail);
+  assert.throws(()=>emit({entries}),{code:'LocalStoreRecoveryLimit'});
+  assert.equal(reads,3,'every original is admitted before any encoding refusal');
+  assert.deepEqual(encoded,[0,1],'never concatenate the frame or encode its tail after refusal');
+  reads=0;encoded=[];
+  const foreign=fn(encode,value=>cid('5'),createHash,request=>{
+    reads++;if(request===records[2])throw undefined;return {record:request};
+  },bind,{maxRequestBytes:1},fail);
+  let caught=false;try{foreign({entries});}catch(error){caught=true;assert.strictEqual(error,undefined);}
+  assert.equal(caught,true);assert.equal(reads,3);assert.deepEqual(encoded,[]);
+  const accepted=fn(encode,value=>cid('5'),createHash,request=>({record:request}),bind,
+    {maxRequestBytes:exact},fail)({entries:entries.slice(0,2)});
+  assert.equal(Buffer.byteLength(accepted.wire),exact);
+});
+
+test('Local STORE approved send preserves an original undefined failure after confirmed writer close', async () => {
+  const source=readFileSync(new URL('./installed-project-file-effects.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'}),found=[];
+  const visit=node=>{if(!node||typeof node!=='object')return;
+    if(node.type==='Property'&&node.method&&node.key.name==='send')found.push(node.value);
+    for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(visit);else if(value&&typeof value==='object')visit(value);}};
+  visit(tree);assert.equal(found.length,1);
+  const proof={},run={},request={},selected={},authorization={proof,useId:'original'};
+  const observed={runInvocationCid:cid('1'),dispatchRequestCid:cid('2')};
+  const grant={...observed,subjectCid:cid('3'),used:false,decision:{}};
+  const original={cid:cid('4'),record:{value:{path:'out',overwrite:false}},borrow:{},contentOwner:{}};
+  let closes=0,executions=0;
+  const writer={async execute(){executions++;throw undefined;},async close(){closes++;return {pending:false};},
+    status:()=>({pending:false}),retry(){assert.fail('no retry');}};
+  const send=Function('memberCurrent','description','own','grants','decisionCurrent','prepareLocalStoredContentWrite',
+    'nativeFilesystem','entry','randomUUID','limits','runCurrent','cid','wire','fail','writerProfile',
+    'return (async function '+source.slice(found[0].start,found[0].end)+');')(
+    ()=>{},()=>observed,()=>original,new WeakMap([[proof,grant]]),()=>{},()=>writer,{},
+    {rootPath:'/original'},()=> 'temporary',{maxFileBytes:1024,maxResponseBytes:65536},()=>{},
+    value=>cid('5'),wire,code=>{throw Object.assign(new Error(code),{code});});
+  let caught=false;try{await send({member:{},request,current:selected,authorization,runOriginal:run});}
+  catch(error){caught=true;assert.strictEqual(error,undefined);}
+  assert.equal(caught,true);assert.equal(executions,1);assert.equal(closes,1);
+  assert.strictEqual(original.writeChild,writer);assert.equal(grant.used,true);
+});
+
+
+test('Local STORE keeps cleanup pending for an undefined close failure without replacing its original primary', async () => {
+  const source=readFileSync(new URL('./installed-project-file-effects.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'}),found=[];
+  const visit=node=>{if(!node||typeof node!=='object')return;
+    if(node.type==='Property'&&node.method&&node.key.name==='send')found.push(node.value);
+    for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(visit);else if(value&&typeof value==='object')visit(value);}};
+  visit(tree);assert.equal(found.length,1);
+  const construct=Function('memberCurrent','description','own','grants','decisionCurrent','prepareLocalStoredContentWrite',
+    'nativeFilesystem','entry','randomUUID','limits','runCurrent','cid','wire','fail','writerProfile',
+    'return (async function '+source.slice(found[0].start,found[0].end)+');');
+  for(const primaryFailed of [false,true]){
+    const proof={},observed={runInvocationCid:cid('1'),dispatchRequestCid:cid('2')};
+    const grant={...observed,subjectCid:cid('3'),used:false,decision:{}};
+    const original={cid:cid('4'),record:{value:{path:'out'}},borrow:{},contentOwner:{}};
+    let executions=0,closes=0;
+    const writer={async execute(){executions++;if(primaryFailed)throw null;return {path:'out',bytes:0};},
+      async close(){closes++;throw undefined;},status:()=>({pending:true}),retry(){}};
+    const send=construct(()=>{},()=>observed,()=>original,new WeakMap([[proof,grant]]),()=>{},()=>writer,{},
+      {rootPath:'/original'},()=> 'temporary',{maxFileBytes:1024,maxResponseBytes:65536},()=>{},
+      value=>cid('5'),wire,code=>{throw Object.assign(new Error(code),{code});});
+    await assert.rejects(send({member:{},request:{},current:{},authorization:{proof,useId:'original'},runOriginal:{}}),
+      error=>{
+        assert.equal(error.code,'LocalStoreCleanupPending');assert.equal(error.cleanupPending,true);
+        assert.strictEqual(error.cause,primaryFailed?null:undefined);
+        assert.strictEqual(error.cleanupHandle.status,writer.status);
+        assert.strictEqual(error.cleanupHandle.retry,writer.retry);return true;
+      });
+    assert.equal(executions,1);assert.equal(closes,1);assert.strictEqual(original.writeChild,writer);
+    assert.equal(grant.used,true);
+  }
 });

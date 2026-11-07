@@ -67,14 +67,14 @@ const machine = empty => JSON.stringify({version: 'actql/0.1', id: 'fixture.grap
   {from: 'g', graph_diff: {with: empty ? 'empty' : 'g'}, as: 'changes'},
   {from: 'changes', select: ['delta'], as: 'projected'},
 ], results: {out: {from: 'projected', fields: ['delta']}}}], results: {changes: {from: {stage: 'main', result: 'out'}}}});
-const result = delta => ({changes: {rows: delta === undefined ? [] : [{delta}], columns}});
+const result = delta => ({changes: {rows: delta === undefined ? [] : [{delta: {$json: delta}}], columns}});
 const item = (name, format, text, delta) => ({name: 'graph-difference-' + name, format, text, results: result(delta), sourceReadCount: 0});
 export const graphDifferenceSourceSuccesses = [
   item('json-parallel-unchanged', 'json', machine(false), machineDelta(false)),
   item('json-parallel-removed', 'json', machine(true), machineDelta(true)),
   item('terminal-self', 'aql-text', prefix + 'FROM g |> graph_diff(with: g) |> SELECT delta |> RESULT changes', singleDelta),
   item('quoted-alias-normalized', 'aql-text', prefix + ', `peer graph` AS (FROM g) , changes AS (FROM g |> normalize_graph() |> graph_diff(with: `peer graph`)) FROM changes |> SELECT delta |> RESULT changes', singleDelta),
-  item('parallel-removed', 'aql-text', parallelPrefix + ', selected AS (FROM g |> node_rows() |> WHERE FALSE |> SELECT id) , empty AS (FROM g |> subgraph(nodes: {from: selected, id: "id"})) FROM g |> graph_diff(with: empty) |> SELECT delta |> RESULT changes', textParallelDelta(true)),
+  item('parallel-removed', 'aql-text', parallelPrefix + ', selected AS (FROM g |> node_rows() |> WHERE FALSE |> SELECT id) , empty AS (FROM g |> subgraph(nodes: {from: selected, id: `id`})) FROM g |> graph_diff(with: empty) |> SELECT delta |> RESULT changes', textParallelDelta(true)),
   item('empty-typed-relation', 'aql-text', prefix + 'FROM g |> graph_diff(with: g) |> WHERE FALSE |> SELECT delta |> RESULT changes'),
 ];
 export const graphDifferenceSourceRefusals = [

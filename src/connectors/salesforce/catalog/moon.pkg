@@ -11,3 +11,8 @@ import {
   "actql/actql/decode_scalar" @scalar,
   "moonbitlang/core/encoding/utf8",
 }
+
+import {
+  "actql/actql/connectors/salesforce/host" @salesforce_host,
+  "actql/actql/execution_relation" @execution,
+} for "wbtest"

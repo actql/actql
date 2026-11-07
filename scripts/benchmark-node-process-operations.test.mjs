@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
 import {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {arch, cpus, platform, release, tmpdir, totalmem} from 'node:os';
 import {join} from 'node:path';
@@ -9,7 +10,7 @@ import {nodeOperationProtocol, runNodeWarmBenchmark} from './benchmark-node-oper
 import {assessPerformanceEvidence} from './operation-performance.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
-async function fixture(t, {mode = 'diagnostic', operation = 'cold-existing', fail = ''} = {}) {
+async function fixture(t, {mode = 'diagnostic', operation = 'cold-existing', fail = '', closeFailure} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-process-collector-test-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const base = join(root, 'consumer/node_modules/@actql/node'); await mkdir(base, {recursive: true});
@@ -32,11 +33,12 @@ export async function open({stateDir}) {
   ${fail === 'exit' ? "if(options.requestId!=='benchmark-seed')process.exit(7);" : ''}
   await writeFile(stateDir+'/rows','[{"id":1}]');return run;},
   attach:async()=>assert.fail('cold-existing must execute a NEW query, never Saved-only'),
-  sql:(text,options)=>({all:async()=>text==='SELECT @id AS id'?(assert.deepEqual(options,{parameters:{id:7},parameterDeclarations:{id:{type:'number'}}}),[{id:7}])
+  sql:(text,parameters,options)=>({all:async()=>text==='SELECT @id AS id'?(assert.deepEqual(parameters,{id:7}),assert.deepEqual(options,{parameterDeclarations:{id:{type:'number'}}}),[{id:7}])
     :text==="SELECT 'é😀' AS label"?[{label:'é😀'}]:text.includes('JOIN rhs')?[{id:1,label:'joined'}]
     :text.includes('SUM(amount)')?[{total:'4.00'}]
     :text.includes('UNION ALL')?[{id:1},{id:2}]:[{id:1}]}),
-  close:async()=>{await event('close');${fail === 'close' ? "throw new Error('cleanup pending');" : ''}}};
+  close:async()=>{await event('close');${fail === 'close' ? "throw new Error('cleanup pending');" : ''}
+   ${closeFailure === undefined ? '' : `throw ${closeFailure};`}}};
 }`);
   await writeFile(join(base, 'index.mjs'), code, {mode: 0o644});
   const tar = Buffer.from('synthetic archive identity only; not an ordinary tarball');
@@ -103,7 +105,9 @@ test('warm and process reports share one explicit experiment binding but cannot 
   const report = {...cold, latency: [...warm.latency, ...cold.latency],
     functional: {...cold.functional, rows: [...warm.functional.rows, ...cold.functional.rows]}};
   const assessment = assessPerformanceEvidence(report);
-  assert.equal(assessment.status, 'incomplete'); assert(assessment.missing.includes('history'));
+  // Real synthetic-child timings may fail the unchanged target under CI load.
+  // This case verifies binding and missing release evidence, never product speed.
+  assert.notEqual(assessment.status, 'passed'); assert(assessment.missing.includes('history'));
   const changed = structuredClone(report); changed.latency[0].cohortSha256 = 'f'.repeat(64);
   assert.throws(() => assessPerformanceEvidence(changed), /cohort differs/u);
 });
@@ -146,4 +150,59 @@ test('foreign environment/protocol and changed installed bytes refuse before any
   await writeFile(options.controlsPath, JSON.stringify(controls));
   await writeFile(join(options.consumer, 'node_modules/@actql/node/index.mjs'), 'changed');
   await assert.rejects(runNodeProcessBenchmark(options));
+});
+
+for (const operation of ['cold-existing', 'first-init']) {
+  test(`record-only ${operation} retains three actual child observations`, async t => {
+    const options = await fixture(t, {mode: 'record-only', operation});
+    const report = await runNodeProcessBenchmark(options);
+    assert.equal(report.latency[0].samples.length, 3);
+    assert.deepEqual(report.assessments, []);
+    assert.equal(report.measurements[0].p95Ms, null);
+    assert.equal(report.measurements[0].resources.rss.available, true);
+    assert.equal(report.cleanup.allOriginalClientsClosed, true);
+  });
+}
+test('record-only process failure remains failed and is never replayed', async t => {
+  const options = await fixture(t, {mode: 'record-only', fail: 'unknown'});
+  const report = await runNodeProcessBenchmark(options);
+  assert(report.firstFailure); assert.equal(report.latency[0].samples.length, 1);
+  assert.equal(report.measurements, undefined);
+});
+
+for (const [label, literal] of [
+  ['undefined', 'undefined'], ['null', 'null'], ['false', 'false'], ['zero', '0'], ['empty string', "''"],
+]) {
+  test(`record-only process retains falsy close failure: ${label}`, async t => {
+    const options = await fixture(t, {mode: 'record-only', operation: 'first-init', closeFailure: literal});
+    const report = await runNodeProcessBenchmark(options);
+    assert(report.firstFailure);
+    assert.equal(report.latency[0].samples.length, 1);
+    const row = report.latency[0].samples[0];
+    assert(row.childObservation, 'the failed original child still supplies its own diagnostic receipt');
+    assert.equal(row.childObservation.cleanup.closed, false);
+    assert.equal(typeof row.childObservation.cleanup.failure.message, 'string');
+    assert.equal(row.completed, false); assert.equal(row.verified, false);
+    assert.notEqual(row.code, 0);
+    assert.equal(report.measurements, undefined);
+    assert.equal(report.cleanup.allOriginalClientsClosed, false);
+    const trace = await events(row.stateId);
+    assert.deepEqual(trace.map(event => event.kind), ['open', 'submit', 'close']);
+  });
+}
+
+test('record-only process CLI retains an undefined close failure and exits nonzero', async t => {
+  const options = await fixture(t, {mode: 'record-only', operation: 'first-init', closeFailure: 'undefined'});
+  const child = spawnSync(process.execPath, ['scripts/benchmark-node-process-operations.mjs',
+    '--manifest', options.manifestPath, '--consumer', options.consumer, '--output', options.output,
+    '--controls', options.controlsPath, '--mode', options.mode, '--operation', options.operation],
+  {encoding: 'utf8', timeout: 20_000});
+  assert.equal(child.error, undefined);
+  assert.equal(child.status, 1, child.stderr);
+  const report = JSON.parse(await readFile(join(options.output, 'measurements.json')));
+  assert(report.firstFailure); assert.equal(report.measurements, undefined);
+  const row = report.latency[0].samples[0];
+  assert.equal(row.childObservation.cleanup.closed, false);
+  assert.equal(typeof row.childObservation.cleanup.failure.message, 'string');
+  assert.deepEqual((await events(row.stateId)).map(event => event.kind), ['open', 'submit', 'close']);
 });

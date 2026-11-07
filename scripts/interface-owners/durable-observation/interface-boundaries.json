@@ -2449,7 +2449,7 @@
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e9cb2e7f3bd058bee417585a8e89a05da96dea3d24a6143030768e34680ffa14",
+      "sha256": "3300686911206f83dd72542e1c1e55c53a9ec64a6e301a6f66f8887d6dd296fb",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [
@@ -2634,7 +2634,9 @@
         },
         {
           "name": "openNodeInferCaptureCustody/retainCompleted",
-          "parameters": [],
+          "parameters": [
+            "publicationOriginal"
+          ],
           "async": false
         },
         {
@@ -3072,7 +3074,7 @@
               },
               {
                 "path": "adapters/host-node/infer-capture-custody.mjs",
-                "anchor": "operation.reserveOriginalPublicationCapacity?.();"
+                "anchor": "publicationOriginal.reserveOriginalPublicationCapacity?.();"
               }
             ],
             "extension": [
@@ -6373,7 +6375,9 @@
         "closeHttpsCredentialBinding",
         "exchangeHttpsCredentialAuthentication",
         "httpsCredentialAuthorizationPrefix",
+        "httpsCredentialDefaultRequestBytes",
         "httpsCredentialResponseHeaderByteLimit",
+        "httpsCredentialResponseReadQuantum",
         "httpsCredentialResponseWindowBytes",
         "openHttpsCredentialBinding",
         "prepareHttpsCredentialAuthenticationMaterial",
@@ -6852,21 +6856,31 @@
           "async": false
         },
         {
-          "name": "receive/receive/request/request/request",
+          "name": "receive/receive/request/request/readResponseChunk/readResponseChunk",
           "parameters": [
             "chunk"
           ],
           "async": false
         },
         {
+          "name": "receive/receive/request/request/request",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "receive/receive/request/request/request#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "receive/receive/request/request/request#3",
           "parameters": [
             "error"
           ],
           "async": false
         },
         {
-          "name": "receive/receive/request/request/request#3",
+          "name": "receive/receive/request/request/request#4",
           "parameters": [],
           "async": false
         },
@@ -7670,7 +7684,9 @@
           "operations": [
             "<module>"
           ],
-          "exports": [],
+          "exports": [
+            "httpsCredentialDefaultRequestBytes"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -8097,9 +8113,146 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "receive/receive/request/request/readResponseChunk/readResponseChunk",
+            "receive/receive/request/request/request#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Successful original concatenation severs the same copied prefix and reader"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "httpsCredentialResponseReadQuantum"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The managed HTTP response quotation receives its read quantum from the same"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "19f0b1294016fe29a3f4f81f8f06862cecd01bbfeb7cbdd3ae27369cdcfa388e",
+      "sha256": "3b118555698b288977363a87b15ada23a8b84f1477eaaafd74df81a17b06a72e",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",
@@ -8558,7 +8711,7 @@
     {
       "module": "adapters/site-node/sqlite-dispatch-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4161dce5f8e1d197acd47f96a93bd98de9b9e677d97ec622f79b155ebdd19086",
+      "sha256": "601ded2f68d0d6d03fef300aca676be0691c8a0069d882f8ab7f935e4677e104",
       "exports": [
         "openSqliteDispatchJournal"
       ],
@@ -8889,14 +9042,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "transaction",
-          "parameters": [
-            "database",
-            "body"
-          ],
-          "async": false
         }
       ],
       "role": "physical-io",
@@ -8947,8 +9092,7 @@
             "openSqliteDispatchJournal/stateFromRow/stateFromRow",
             "openSqliteDispatchJournal/stateFromRow/stateFromRow/stateFromRow",
             "syncDirectory",
-            "text/text",
-            "transaction"
+            "text/text"
           ],
           "exports": [
             "openSqliteDispatchJournal"
@@ -9087,6 +9231,7 @@
       ],
       "imports": [
         "../host-common/remote-dispatch-wire.mjs",
+        "../host-common/sqlite-transaction.mjs",
         "node:fs",
         "node:path",
         "node:sqlite"

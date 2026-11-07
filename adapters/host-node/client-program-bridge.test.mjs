@@ -28,10 +28,9 @@ import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStateObservation} from './client-run-state.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
-import {installNodeClientEffectProgramPreparation,
-  installNodeClientProgramPreparation} from
-  './client-program-preparation.mjs';
-import {completeCapturedEffectRun, recoverAdmittedEffectRun,
+import {fundedClientPreparation, openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import {adoptCapturedPublicationFixture} from './fixtures/local-publication-original.mjs';
+import {createNodeHostEntry, completeCapturedEffectRun, recoverAdmittedEffectRun,
   runCapturedEffectComputation,
   runCapturedInternalStrategy,
   runCapturedStrategy,
@@ -50,7 +49,12 @@ import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan,
   acquiredEffectPublicationAdmission, acquiredEffectPublicationPlan} from
   './local-values-plan.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {createInstalledDuckDBSource} from './installed-duckdb-source.mjs';
+import {bindInstalledManagedSources} from './installed-managed-source.mjs';
+import {prepareInstalledEffectManagedPlan, captureInstalledEffectPlanRecipe} from './installed-effect-plan.mjs';
+import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun} from './installed-effect-managed-run.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
+import {installStrategyContributions} from '../connectors-builtin/strategy.generated.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
   './captured-duckdb-source.mjs';
 import {fixtureSourceAccess, accountEntry, FIXTURE_CONTEXT, fixtureAuthorization} from './authorization-fixture.mjs';
@@ -234,6 +238,13 @@ async function checkedFixture() {
 
 test('checked acquired source and downstream task emit their input ports',
   async t => {
+    const [queryContract, evidenceContract, twoReceiptContract] =
+      await Promise.all([
+        'actql-query-acquisition.json',
+        'actql-query-process-evidence.json',
+        'actql-query-two-receipt.json',
+      ].map(name => readFile(new URL(`../../spec/contracts/${name}`,
+        import.meta.url), 'utf8')));
     const source = await readFile(new URL(
       '../../src/query_integration/query_amount_catalog_wbtest.mbt',
       import.meta.url), 'utf8');
@@ -260,7 +271,8 @@ test('checked acquired source and downstream task emit their input ports',
     }];
     environmentBody.connector_capabilities = [{...sourceSelector,
       capability_contract_cids: [
-        'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a'],
+        machineCid(JSON.parse(evidenceContract)),
+        machineCid(JSON.parse(twoReceiptContract))],
     }];
     delete environmentBody.evidence_bundle_cid;
     environmentBody.evidence_bundle_cid = machineCid(environmentBody);
@@ -276,11 +288,25 @@ test('checked acquired source and downstream task emit their input ports',
         '../connectors/duckdb/node/examples/parameters.json', import.meta.url),
       'utf8'),
     ]);
-    const outcome = moon.clientProgramPrepareEffectFreeWithParameters(
-      document, 'json', environment, parameters);
-    const prepared = moon.clientProgramPreparationReady(outcome);
-    assert.ok(prepared,
-      String(moon.clientProgramPreparationIssueCode(outcome)));
+    const preparation = await openFundedClientPreparation({moon, environment});
+    const preparationRequest = {kind: 'aql', input: {text: document, format: 'json'},
+      parameters: JSON.parse(parameters)};
+    let prepared, captureRun, captureRequestIdentity;
+    t.after(async () => {
+      if (captureRun !== undefined) {
+        try {checked(moon.clientProgramInstalledManagedRunRetire(captureRun.value));}
+        catch (cause) {
+          if (moon.clientProgramInstalledPreparationPayloadSevered(
+            captureRun.value, captureRequestIdentity) !== true) throw cause;
+        }
+        preparation.retireOriginal(prepared);
+        preparation.manager.severPreparation(prepared, captureRun.original);
+        checked(moon.clientProgramInstalledManagedRunRetire(captureRun.value));
+        preparation.manager.retireSeveredPreparation(captureRun.original);
+      } else if (prepared !== undefined) preparation.retireOriginal(prepared);
+      await preparation.close();
+    });
+    prepared = await preparation.prepare(preparationRequest);
     const acquisition = checked(
       moon.clientProgramPrepareQueryAcquisition(prepared, 0, 0));
     assert.equal(moon.clientProgramQueryAcquisitionSourceIndex(acquisition),
@@ -291,13 +317,14 @@ test('checked acquired source and downstream task emit their input ports',
       moon.clientProgramPrepareQueryAcquisition(prepared, 1, 0)));
     assert.throws(() => checked(
       moon.clientProgramPrepareQueryAcquisition(prepared, 4, 0)));
-    const [registry, contracts] = await Promise.all([
+    const [registryWire, contracts] = await Promise.all([
       readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),
       readFile(new URL('../../spec/contracts/actql-aoa.json',
         import.meta.url), 'utf8'),
     ]);
     const aoa = JSON.parse(contracts);
+    const registry = preparation.installedContracts;
     const requirement = checked(
       moon.clientProgramPrepareLocalQueryRequirement(prepared, 0, 0,
         registry, JSON.stringify(aoa.execution_contracts['REL.values']),
@@ -311,16 +338,11 @@ test('checked acquired source and downstream task emit their input ports',
     assert.equal(
       moon.clientProgramQueryRequirementSourceContractCid(requirement),
       'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3');
-    const [queryContract, evidenceContract, twoReceiptContract] =
-      await Promise.all([
-        'actql-query-acquisition.json',
-        'actql-query-process-evidence.json',
-        'actql-query-two-receipt.json',
-      ].map(name => readFile(new URL(`../../spec/contracts/${name}`,
-        import.meta.url), 'utf8')));
-    const nativeSetup = checked(moon.clientProgramPrepareDuckDBAcquisition(
+    const nativeOutcome = moon.clientProgramPrepareDuckDBAcquisition(
       requirement, 'main', 'records', queryContract, evidenceContract,
-      twoReceiptContract));
+      twoReceiptContract);
+    assert.equal(nativeOutcome.$tag, 1, inspect(nativeOutcome, {depth: 12}));
+    const nativeSetup = checked(nativeOutcome);
     await mkdir(scratch, {recursive: true});
     const directory = await mkdtemp(join(scratch.pathname,
       'checked-source-'));
@@ -346,6 +368,7 @@ test('checked acquired source and downstream task emit their input ports',
         ordered: JSON.stringify(aoa.execution_contracts[
           'REL.derive.ordered']), database: path,
         sourceAccess,
+        acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
         schema: 'main', table: 'records', transportLimits: {
           maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
           maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
@@ -446,6 +469,20 @@ test('checked acquired source and downstream task emit their input ports',
       assert.equal(sourceChecks, 1);
       assert.equal(handedOff.outcome, 'stopped');
       assert.equal(localHostOpens, 0);
+      // The original Request adopts its actual publication Plan before the
+      // successful physical capture, independently of the preceding fault controls.
+      captureRequestIdentity = moon.clientProgramRequestIdentity(prepared,
+        cid('a'), 'acquired-result-request', cid('b'));
+      assert.ok(captureRequestIdentity);
+      captureRun = adoptCapturedPublicationFixture({moon, preparation, prepared,
+        request: preparationRequest, identity: captureRequestIdentity,
+        acquisition: nativeSetup, limits: sourceOptions.transportLimits,
+        installedContracts: registry, contracts: [registryWire,
+          sourceOptions.values, sourceOptions.fragment, sourceOptions.ordered]});
+      assert.ok(captureRun);
+      const publicationPreparation = preparation.manager.publicationPreparation(prepared);
+      assert.strictEqual(publicationPreparation, captureRun.value);
+      const compilationOriginal = preparation.manager.compilationOriginal(prepared);
       const opened = await openCapturedDuckDBSource({...sourceOptions,
         preparedSource});
       const capturedSource = opened.capture.source();
@@ -550,9 +587,21 @@ test('checked acquired source and downstream task emit their input ports',
           completeness: 'complete',
           orderingEvidence: {stable: false, keys: []},
         }));
-        const control = runtimeCore(moon).publicationControl;
+        let invocationOriginals;
+        const observedMoon = Object.freeze({...moon,
+          clientProgramIssueCapturedPublicationInvocation(...args) {
+            assert.equal(invocationOriginals, undefined);
+            invocationOriginals = Object.freeze(args);
+            return moon.clientProgramIssueCapturedPublicationInvocation(...args);
+          },
+        });
+        const control = runtimeCore(observedMoon).publicationControl;
+        const entry = createNodeHostEntry(() => Promise.resolve(observedMoon),
+          installStrategyContributions);
         const authorityScopeCid = cid('a');
         const dataPolicyCid = opened.checkedSource.sourceDataPolicyCid;
+        const publicationDataPolicyCid = moon.clientProgramPublicationDataPolicyCid(prepared);
+        assert.equal(typeof publicationDataPolicyCid, 'string');
         const sourceEvidenceWire = await opened.issueSourceEvidence({
           authorityScopeCid, effectiveDataPolicyCid: dataPolicyCid});
         const {source_evidence_cid: sourceEvidenceCid,
@@ -578,36 +627,57 @@ test('checked acquired source and downstream task emit their input ports',
           effectiveDataPolicyCid: dataPolicyCid,
         }), {code: 'MoonBitHostFailure'});
         const admitted = acquiredTaskRunAdmission({moon, control,
+          publicationPreparation, compilationOriginal, requestIdentity: captureRequestIdentity,
           preparedProgram: prepared, document, format: 'json',
           parameters: JSON.parse(parameters),
           environmentWire: canonicalText(environmentBody),
           environmentCid: environmentBody.evidence_bundle_cid, authorityScopeCid,
           namespaceId: 'local', now: () => '2026-09-26T00:00:02.000Z'});
         const storeAuthorityCid = cid('7');
-        const plan = acquiredTaskPublicationPlan({moon, control,
+        let plan;
+        try { plan = acquiredTaskPublicationPlan({moon, control,
           acquired: admitted, preparedProgram: prepared, captured: opened,
           sourceEvidence: control.admitRunEvidence('source_evidence', sourceEvidenceWire, publicationLimits), authorityScopeCid,
-          effectiveDataPolicyCid: dataPolicyCid,
+          effectiveDataPolicyCid: publicationDataPolicyCid,
           captureStartedAt: '2026-09-26T00:00:00.000Z',
           captureCompletedAt: '2026-09-26T00:00:01.000Z',
           namespaceId: 'local', requestId: 'acquired-result-request',
-          storeAuthorityCid, now: () => '2026-09-26T00:00:02.000Z'});
+          storeAuthorityCid, now: () => '2026-09-26T00:00:02.000Z'}); }
+        catch (cause) {
+          throw Object.assign(new Error(`${cause.message}: ${inspect(cause.cause, {depth: 8})}`,
+            {cause}), {code: cause.code});
+        }
         assert.equal(plan.results.length, 2);
+        // The existing one-Source wire issuer validates complete Source
+        // binding without spending the parent's one-use publication transition.
+        // Its Source-policy output is never published; the actual parent above
+        // binds the complete Result-policy join and original physical capture.
+        const args = invocationOriginals;
+        const validateSourceWire = wire => checked(
+          moon.clientProgramIssueCompiledTaskInvocation(args[2], args[3], wire,
+            moon.strategyRunEvidenceJson(opened.logicalInput),
+            opened.checkedSource.sourceRef, opened.checkedSource.sourceContractCid,
+            args[10], dataPolicyCid, args[12], args[13], ...args.slice(14)));
+        const baseline = validateSourceWire(sourceEvidenceWire);
+        const expectedObservation = {...JSON.parse(plan.observation.wire),
+          data_policy_cid: dataPolicyCid};
+        expectedObservation.observation_set_cid = canonicalHashWithoutSelf(
+          expectedObservation, 'observation_set_cid');
+        assert.deepEqual(JSON.parse(moon.strategyRunEvidenceJson(baseline._0)),
+          expectedObservation);
+        assert.equal(JSON.parse(moon.strategyPublicationContractJson(baseline._1))
+          .observation_set_cid, moon.strategyRunEvidenceIdentity(baseline._0));
         for (const changed of [
           {...sourceEvidenceBody, input_logical_cid: cid('9')},
           {...sourceEvidenceBody, completeness: 'partial'},
         ]) {
           const wire = control.sealRunEvidence('source_evidence',
             JSON.stringify(changed), publicationLimits).wire;
-          assert.throws(() => acquiredTaskPublicationPlan({moon,
-            control, acquired: admitted, preparedProgram: prepared,
-            captured: opened, sourceEvidence: control.admitRunEvidence('source_evidence', wire, publicationLimits),
-            authorityScopeCid, effectiveDataPolicyCid: dataPolicyCid,
-            captureStartedAt: '2026-09-26T00:00:00.000Z',
-            captureCompletedAt: '2026-09-26T00:00:01.000Z',
-            namespaceId: 'local', requestId: 'acquired-result-request',
-            storeAuthorityCid,
-            now: () => '2026-09-26T00:00:02.000Z'}));
+          // The actual parent invocation is single-use. Exercise the existing
+          // full wire validator with its same observed compiler/capture inputs,
+          // rather than mistaking a spent-parent refusal for evidence checking.
+          assert.throws(() => validateSourceWire(wire),
+            {code: 'MoonBitHostFailure'});
         }
         const store = await openLocalPublicationStore({
           directory: join(directory, 'publication'), storeAuthorityCid,
@@ -619,7 +689,7 @@ test('checked acquired source and downstream task emit their input ports',
         let published;
         try {
           let retainedExecution;
-          published = await runPublishedCapturedStrategy(opened.setup,
+          published = await entry.runPublishedCapturedStrategy(opened.setup,
             {store, plan}, {}, undefined, undefined, execution => {
               assert.equal(published, undefined);
               retainedExecution = execution;
@@ -1643,8 +1713,9 @@ test('public submit rejects checker failures before Run admission', async t => {
   const {environment} = await checkedFixture();
   const document = await readFile(new URL('parameter-values.json', fixture),
     'utf8');
-  const prepareSubmit = installNodeClientProgramPreparation({
-    moon, environment});
+  const preparation = await fundedClientPreparation(t, {moon, environment, http: true});
+  assert.equal(typeof preparation.prepareRequest, 'function');
+  const prepareSubmit = preparation.prepareSubmit;
   let admissions = 0;
   let admittedIdentity, admittedRequestId;
   await mkdir(scratch, {recursive: true});
@@ -1667,6 +1738,7 @@ test('public submit rejects checker failures before Run admission', async t => {
     return {ref: accepted.ref, durability: accepted.durability, revision: accepted.revision};
   };
   const submission = installNodeClientSubmission({journal, moon, prepareSubmit,
+    ...preparation.submission,
     submit: submitProgram, lookupRequest, authorizedScope: ({principalId}) =>
       principalId === 'principal-a' ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
   const server = createServer(createClientHttpHandler({
@@ -1682,6 +1754,7 @@ test('public submit rejects checker failures before Run admission', async t => {
         maxRows: 100, maxBatchRows: 10,
         maxBatchRetainedValueBytes: 2048},
     }),
+    prepareRequest: preparation.prepareRequest,
     prepareSubmit, lookupRequest, submit: submitProgram,
     submitIntent: submission.submitAttempt, lookupSubmission: submission.lookupSubmission,
     maxRequestBytes: 100000,
@@ -1737,10 +1810,10 @@ test('public submit rejects checker failures before Run admission', async t => {
     } finally {
       client.close();
     }
-    const prepared = prepareSubmit({kind: 'aql',
+    const prepared = await preparation.prepare({kind: 'aql',
       input: {text: document, format: 'json'}, parameters: {n: 2}});
     assert.equal(moon.clientProgramResultName(prepared, 0), 'answer');
-    const objectPrepared = prepareSubmit({kind: 'program',
+    const objectPrepared = await preparation.prepare({kind: 'program',
       input: JSON.parse(document), parameters: {n: 2}});
     assert.equal(moon.clientProgramSemanticsCid(objectPrepared),
       moon.clientProgramSemanticsCid(prepared));
@@ -1757,6 +1830,32 @@ test('public submit rejects checker failures before Run admission', async t => {
   } finally {
     await new Promise(resolve => server.close(resolve));
   }
+});
+
+test('funded HTTP fixture shares its original Request across aliases and retires it once', async t => {
+  const {environment} = await checkedFixture();
+  const document = await readFile(new URL('parameter-values.json', fixture), 'utf8');
+  const preparation = await fundedClientPreparation(t, {moon, environment, http: true});
+  const request = Object.freeze({kind: 'aql', input: {text: document, format: 'json'},
+    parameters: {n: 2}, principalId: 'principal-a',
+    connection: Object.freeze({mode: 'local', owner: 'local',
+      consentRefs: Object.freeze([]), runners: Object.freeze([])})});
+  const lifetime = preparation.prepareRequest('submit-intent', request);
+  const derived = Object.freeze({...lifetime.body, requestId: 'same-original-request'});
+  lifetime.bindRequest(derived);
+  const intent = preparation.submission.submittedIntentOriginal(derived);
+  assert.ok(intent);
+  const prepared = await preparation.prepareSubmit(derived);
+  assert.equal(moon.clientProgramResultName(prepared, 0), 'answer');
+  assert.strictEqual(preparation.submission.submittedIntentOriginal(derived), intent);
+  assert.throws(() => preparation.prepareSubmit({...derived}),
+    {code: 'InstalledHostPreparationChanged'});
+  lifetime.beforeReply();
+  lifetime.finish('returned');
+  lifetime.finish('returned');
+  await Promise.resolve();
+  assert.throws(() => preparation.prepareSubmit(derived),
+    {code: 'InstalledHostPreparationChanged'});
 });
 
 test('Node publication admission rejects evidence from another checked Program',
@@ -1990,11 +2089,15 @@ for (const retained of [false, true]) test(
   const prepared = moon.clientProgramPrepareEffectFree(
     JSON.stringify(inputStageResultProgram), 'json', environment);
   assert.ok(prepared);
-  const [registry, contract] = await Promise.all([
+  const [registryWire, contract] = await Promise.all([
     readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8'),
     readFile(new URL('../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'),
   ]);
   const bodies = JSON.parse(contract).execution_contracts;
+  const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+    registryWire, JSON.stringify(bodies['REL.values']),
+    JSON.stringify(bodies['ACTQL.expression_fragment/0.1']),
+    JSON.stringify(bodies['REL.derive.ordered'])));
   const openHost = retained ? moon.clientProgramOpenSourceFreeLocalRetainedHost
     : moon.clientProgramOpenSourceFreeLocalHost;
   const setup = openHost(prepared, registry,
@@ -2162,8 +2265,10 @@ test('public Values submit computes and reads its real Local Result',
           maxRetainedValueBytes: 4096, maxRows: 100,
           maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
       });
-      const prepareSubmit = installNodeClientProgramPreparation({
-        moon, environment});
+      const preparation = await openFundedClientPreparation({moon, environment, http: true});
+      t.after(preparation.close);
+      const prepareSubmit = preparation.prepareSubmit;
+      const prepareRequest = preparation.prepareRequest;
       const submit = async ({preparedProgram, requestId, principalId,
         connection}) => {
         const requested = moon.clientProgramRequestIdentity(
@@ -2192,10 +2297,18 @@ test('public Values submit computes and reads its real Local Result',
         return {ref: start.ref, durability: start.durability,
           revision: start.revision};
       };
-      submission = installNodeClientSubmission({journal, moon, prepareSubmit, submit, lookupRequest,
+      const submissionOptions = {journal, moon, submit, lookupRequest,
         authorizedScope: ({principalId}) => principalId === 'principal-before-restart'
-          ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
-      const submitServer = createServer(createClientHttpHandler({
+          ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined};
+      submission = installNodeClientSubmission({...submissionOptions, prepareSubmit,
+        bindOwnedRequest: preparation.submission.bindOwnedRequest,
+        submittedIntentOriginal: preparation.submission.submittedIntentOriginal});
+      // Both ingresses share this Journal and actual preparation manager.
+      // HTTP resolves its registered original; the direct component ingress
+      // captures its own original Request before the same native compiler.
+      const localSubmission = installNodeClientSubmission({...submissionOptions,
+        prepareSubmit: preparation.prepare});
+      const submitServer = createServer(createClientHttpHandler({prepareRequest,
         authenticate: header => header === 'Bearer scoped-token'
           ? 'principal-before-restart' : undefined,
         authorizeConnection: facts => facts.connection.mode === 'local' &&
@@ -2212,8 +2325,8 @@ test('public Values submit computes and reads its real Local Result',
           authenticate: () => 'principal-before-restart',
           authorizeConnection: facts => facts.connection.mode === 'local' &&
             facts.connection.owner === 'local',
-          negotiate, prepareSubmit, lookupRequest, submit,
-          submitIntent: submission.submitAttempt, lookupSubmission: submission.lookupSubmission,
+          negotiate, prepareSubmit: preparation.prepare, lookupRequest, submit,
+          submitIntent: localSubmission.submitAttempt, lookupSubmission: localSubmission.lookupSubmission,
           maxRowBytes: 1024,
         }));
         try {
@@ -2360,7 +2473,7 @@ test('public Values submit computes and reads its real Local Result',
       const runStateObservation = installNodeClientRunStateObservation({
         journal: lookupJournal, requestControl: moon, publicationControl: control,
       });
-      const server = createServer(createClientHttpHandler({
+      const server = createServer(createClientHttpHandler({prepareRequest,
         authenticate: header => header === 'Bearer scoped-token'
           ? 'principal-after-restart' : undefined,
         authorizeConnection: facts => facts.connection.mode === 'local' &&
@@ -2597,6 +2710,9 @@ async function effectFixture({splitSource = false,
     ? canonicalHashWithoutSelf(mapping, 'mapping_contract_cid')
     : hashWithoutSelf(mapping, 'mapping_contract_cid');
   const environmentDocument = JSON.parse(environmentBody);
+  const baseEnvironment = JSON.parse(await readFile(new URL(
+    '../../spec/local-check-environment.json', import.meta.url), 'utf8'));
+  environmentDocument.host_policy_profile.text_time_evaluation = baseEnvironment.host_policy_profile.text_time_evaluation;
   mapping.connector_manifest_cid = withFixtureConnector(environmentDocument,
     mapping.target_ref);
   mapping.mapping_contract_cid = canonicalHashWithoutSelf(mapping,
@@ -2719,11 +2835,29 @@ test('one acquired Effect Program captures and computes from its owner',
     document.stages[1].effects = JSON.parse(effect.document).stages[0].effects;
     document.stages[1].effects.save.update.from.result = 'r';
     document.results = {answer: {from: {stage: 'compute_a', result: 'r'}}};
-    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
-      canonicalJson(document), 'json', environment, undefined, []);
-    const prepared = moon.clientProgramEffectPreparationReady(outcome);
-    assert.ok(prepared,
-      moon.clientProgramEffectPreparationIssueCode(outcome));
+    const preparation = await openFundedClientPreparation({moon, environment, allowEffects: true});
+    const requestInput = {kind: 'program', input: document};
+    const prepared = await preparation.prepare(requestInput);
+    let managedRecord, componentConstruction, adapter;
+    t.after(async () => {
+      if (componentConstruction !== undefined) {
+        assert.equal(checked(moon.clientProgramInstalledEffectOperationRetire(componentConstruction, true)), true);
+      }
+      adapter?.close();
+      if (managedRecord !== undefined) {
+        assert.equal(managedRecord.controlConstruction.retire(), true);
+        try {checked(moon.clientProgramInstalledManagedRunRetire(managedRecord.value));}
+        catch (cause) {
+          if (moon.clientProgramInstalledPreparationPayloadSevered(
+            managedRecord.value, managedRecord.request) !== true) throw cause;
+        }
+        preparation.retireOriginal(prepared);
+        preparation.manager.severPreparation(prepared, managedRecord.original);
+        checked(moon.clientProgramInstalledManagedRunRetire(managedRecord.value));
+        preparation.manager.retireSeveredPreparation(managedRecord.original);
+      } else preparation.retireOriginal(prepared);
+      await preparation.close();
+    });
     checked(moon.clientProgramEffectPrepareQueryAcquisition(prepared, 0, 0));
     const compileOutcome = moon.clientProgramCompileLocalEffects(prepared);
     assert.equal(moon.clientProgramEffectCompilationIssueCode(compileOutcome),
@@ -2731,7 +2865,7 @@ test('one acquired Effect Program captures and computes from its owner',
     const compiled = checked(compileOutcome);
     assert.deepEqual(moon.clientProgramEffectCompilationResultNames(compiled),
       ['answer']);
-    const [registry, contracts] = await Promise.all([
+    const [registryWire, contracts] = await Promise.all([
       readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),
       readFile(new URL('../../spec/contracts/actql-aoa.json',
@@ -2741,6 +2875,7 @@ test('one acquired Effect Program captures and computes from its owner',
     const values = JSON.stringify(aoa['REL.values']);
     const fragment = JSON.stringify(aoa['ACTQL.expression_fragment/0.1']);
     const ordered = JSON.stringify(aoa['REL.derive.ordered']);
+    const registry = preparation.installedContracts;
     await mkdir(scratch, {recursive: true});
     const directory = await mkdtemp(join(scratch.pathname,
       'acquired-effect-'));
@@ -2755,28 +2890,84 @@ test('one acquired Effect Program captures and computes from its owner',
       connection.closeSync();
       database.closeSync();
     }
+    const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
+      compiled, cid('a'), cid('b'), '2099-01-01T00:00:00.000Z'));
+    const definition = checked(moon.clientProgramIssueEffectRunDefinition(
+      allowed, 'namespace-a', 'acquired-effect-run',
+      '2026-09-29T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
+    const bound = checked(moon.clientProgramBindCompiledEffectRun(
+      prepared, allowed, definition));
+    const request = moon.clientProgramEffectRequestIdentity(prepared, cid('a'),
+      'acquired-effect-run', moon.clientProgramSourceFreeInputIntentCid());
+    const authorization = await fixtureAuthorization([accountEntry('component-source-read', 'allow', {
+      principal: FIXTURE_CONTEXT.principal, connection: 'local-database', resource: databasePath, operation: 'read',
+    })]);
+    const sourceAccess = Object.freeze({authorization, connection: 'local-database',
+      resource: databasePath, sourceRef: 'connector://crm/main/r#v'});
     const sourceOptions = {moon, preparedEffect: prepared, registry,
       values, fragment, ordered, database: databasePath,
-      schema: 'main', table: 'records', sourceAccess: {
-        ...fixtureSourceAccess, sourceRef: 'connector://crm/main/r#v',
-      }, transportLimits: {maxRows: 100, maxCells: 1000,
+      schema: 'main', table: 'records', sourceAccess,
+      transportLimits: {maxRows: 100, maxCells: 1000,
         maxTransportBytes: 100000, maxSqlBytes: 10000,
         maxParameters: 10, maxColumns: 10,
         memoryBytes: 128 * 1024 * 1024, threads: 1}};
-    const preparedSource = await prepareCapturedDuckDBSource(sourceOptions);
-    const opened = await openCapturedDuckDBSource({...sourceOptions,
-      preparedSource});
+    adapter = await createInstalledDuckDBSource({...sourceOptions,
+      sourceRef: sourceAccess.sourceRef, environmentWire: wire}, moon,
+    {root: directory, principalId: FIXTURE_CONTEXT.principal});
+    let managedRun;
+    const sourceProfile = bindInstalledManagedSources(adapter, original => {
+      assert.strictEqual(original, prepared);
+      checked(moon.clientProgramInstalledEffectManagedRunCheck(managedRun, prepared, request));
+      return managedRun;
+    });
+    // This component never writes UPDATE. Its actual evidence/capture/export/
+    // recovery constructors use these existing decoder limits on the SAME Run.
+    // No row demand, transport debit or physical Effect attempt is installed.
+    const empty = checked(moon.clientProgramInstalledSourceConstructionCapacity(0n, 0n, 0n, 0n, 0n, 0n));
+    const construction = checked(moon.clientProgramComposeInstalledSourceConstructionCapacity(empty, [
+      moon.clientProgramInstalledJsonEffectRequestConstructionCapacity(empty, 1000000, 100000, 64),
+    ]));
+    const operation = 'component.capture-evidence';
+    const recipe = captureInstalledEffectPlanRecipe(Object.freeze({
+      memberOperations: Object.freeze([Object.freeze({operation,
+        extent: checked(moon.clientProgramInstalledEffectOperationExtentFromCapacity(
+          operation, construction, 0n, false))})]),
+      rowOperations: Object.freeze([]),
+    }), 1);
+    const [queryContract, evidenceContract] = await Promise.all([
+      'actql-query-acquisition.json', 'actql-query-process-evidence.json',
+    ].map(name => readFile(new URL('../../spec/contracts/' + name, import.meta.url), 'utf8')));
+    const runs = new WeakMap(), liveRuns = new Set();
+    const facts = Object.freeze({prepared, identity: request, compilation: compiled, allowed, definition,
+      queryTimePreparation: undefined, modelCompiled: undefined});
+    const selection = Object.freeze({prepareManagedPlan(actual, inputs) {
+      assert.strictEqual(actual, facts);
+      return prepareInstalledEffectManagedPlan({moon, facts, inputs, unit: {stageIndex: 1},
+        members: [{effectId: 'save'}], recipeFor: () => recipe});
+    }});
+    const managedOptions = {runs, liveRuns, runtime: moon, manager: preparation.manager,
+      prepared, request, requestInput, facts, selection, sourceProfile,
+      inputs: {queryContract, evidenceContract, installedContracts: registry, values, fragment, ordered},
+      assertCurrent: preparation.manager.assertResultReadCurrent, checked};
+    managedRun = prepareInstalledEffectManagedPlanRun(managedOptions);
+    managedRecord = readInstalledEffectManagedPlanRun(managedOptions);
+    const occurrence = Object.freeze({stage: 0, input: 0, task: 0});
+    const preparedSource = await sourceProfile.prepare({...sourceOptions, occurrence,
+      requestIdentity: request, managedRun});
+    const capacity = sourceProfile.ledgerCapacity(preparedSource);
+    assert.strictEqual(capacity.managedRun, managedRun);
+    const foreignRequest = moon.clientProgramEffectRequestIdentity(prepared, cid('f'),
+      'acquired-effect-run', moon.clientProgramSourceFreeInputIntentCid());
+    assert.throws(() => checked(moon.clientProgramInstalledEffectManagedDuckDBCapture(
+      managedRun, prepared, foreignRequest, 0)), 'a foreign Request cannot borrow this native capture');
+    const ledger = checked(moon.clientProgramInstalledEffectManagedRunPrepareLedger(managedRun,
+      prepared, request, [capacity.capacity], [capacity.transferBytes], [capacity.executionBytes],
+      registry, values, fragment, ordered));
+    const opened = await sourceProfile.open({...sourceOptions, occurrence, preparedSource, ledger});
     try {
       assert.equal(opened.setup, undefined);
       assert.equal(moon.clientProgramEffectCapturedSourceMatches(prepared,
         opened.capture.source()), true);
-      const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
-        compiled, cid('a'), cid('b'), '2099-01-01T00:00:00.000Z'));
-      const definition = checked(moon.clientProgramIssueEffectRunDefinition(
-        allowed, 'namespace-a', 'acquired-effect-run',
-        '2026-09-29T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
-      const bound = checked(moon.clientProgramBindCompiledEffectRun(
-        prepared, allowed, definition));
       const template = checked(moon.strategyRunEvidenceAdmit(
         'bound_invocation_template',
         moon.clientProgramEffectCompilationTemplateWire(compiled),
@@ -2972,20 +3163,20 @@ test('one acquired Effect Program captures and computes from its owner',
       let retained;
       const instants = ['2026-09-29T00:00:00.000Z',
         '2026-09-29T00:00:01.000Z'];
-      const computed = await openAcquiredEffectComputation({moon,
-        owner: bound, acquired: acquiredEffectPublicationAdmission({moon,
+      const computed = await openAcquiredEffectComputation({moon, managedRun,
+        owner: bound, acquired: acquiredEffectPublicationAdmission({moon, identity: request,
           control: runtimeCore(moon).publicationControl, prepared,
           compilation: compiled, allowed, definition,
           authorityScopeCid: cid('a'), namespaceId: 'namespace-a',
           storeAuthorityCid: cid('7'),
           now: () => '2026-09-29T00:00:02.000Z'}),
-        sourceProfile: {
+        sourceProfile: {...sourceProfile,
           admitsSource: ref => ref === sourceOptions.sourceAccess.sourceRef,
           prepare(options) {
             assert.equal(options.preparedEffect, prepared);
             return preparedSource;
           },
-          open() { return opened; },
+          open(options) {assert.strictEqual(options.ledger, ledger); return opened;},
         }, registry, values, fragment, ordered,
         sourceAccess: sourceOptions.sourceAccess,
         now: () => instants.shift(),
@@ -3011,6 +3202,12 @@ test('one acquired Effect Program captures and computes from its owner',
         assert.equal(pinResult.$tag, 1,
           pinResult.$tag === 0 ? `RunIssue ${pinResult._0.$tag}: ${JSON.stringify(pinResult._0)}` : undefined);
         const pins = checked(pinResult);
+        managedRecord.controlConstruction.retainInputs(pins);
+        componentConstruction = checked(moon.clientProgramInstalledEffectOperationConstructionRetain(
+          managedRun, prepared, request, managedRecord.operationPlan, 0, false, 0, 0, operation));
+        checked(moon.clientProgramInstalledEffectOperationConstructionBegin(componentConstruction));
+        assert.throws(() => checked(moon.clientProgramInstalledEffectOperationStart(componentConstruction)),
+          'pure constructor demand cannot authorize a physical Effect attempt');
         let imported, rootResult;
         try {
           assert.equal(moon.clientProgramEffectLocalResultCount(pins), 2);
@@ -3523,7 +3720,12 @@ test('one acquired Effect Program captures and computes from its owner',
         assert.equal(retained.cleanupPending(), false);
       }
       assert.throws(() => localInvocation(), 'released capture is rejected');
-    } finally { opened.close(); }
+    } finally {
+      opened.close();
+      if (componentConstruction !== undefined) {
+        checked(moon.clientProgramInstalledEffectOperationConstructionComplete(componentConstruction));
+      }
+    }
   });
 
 function effectInputPreview(prepared, evidence, definition, invocation,
@@ -3710,12 +3912,12 @@ test('internal Client bridge retains Effect closure without public apply',
   });
 
 test('installed Effect preparation retains the checked Program owner',
-  async () => {
+  async t => {
     const {document, environment} = await effectFixture();
-    const prepare = installNodeClientEffectProgramPreparation({
-      moon, environment, evidence: [],
+    const prepare = await fundedClientPreparation(t, {
+      moon, environment, allowEffects: true,
     });
-    const owned = prepare({kind: 'program', input: JSON.parse(document),
+    const owned = await prepare({kind: 'program', input: JSON.parse(document),
       parameters: null});
     const direct = moon.clientProgramEffectPreparationReady(
       moon.clientProgramPrepareEffectComputationWithParameters(
@@ -3725,27 +3927,25 @@ test('installed Effect preparation retains the checked Program owner',
       moon.clientProgramEffectDefinitionCid(direct));
     assert.equal(moon.clientProgramEffectEnvironmentCid(owned),
       moon.clientProgramEffectEnvironmentCid(direct));
-    assert.throws(() => prepare({kind: 'aql',
+    await assert.rejects(prepare({kind: 'aql',
       input: {text: document, format: 'auto'}, parameters: null}),
     {code: 'ClientProgramInvalidInput'});
-    assert.throws(() => prepare({kind: 'aql',
+    await assert.rejects(prepare({kind: 'aql',
       input: {text: document.replace('mapping:crm.account.v1',
         'mapping:crm.foreign.v1'), format: 'json'}, parameters: null}),
     {code: 'ClientProgramRejected'});
-    assert.throws(() => installNodeClientProgramPreparation({
-      moon, environment,
-    })({kind: 'program', input: JSON.parse(document), parameters: null}),
+    const pureOnly = await fundedClientPreparation(t, {moon, environment});
+    await assert.rejects(pureOnly({kind: 'program', input: JSON.parse(document), parameters: null}),
     {code: 'ClientProgramUnsupported'});
   });
 
 test('one installed preparation distinguishes Effect and pure owners',
-  async () => {
+  async t => {
     const {document, environment} = await effectFixture();
-    const prepare = installNodeClientProgramPreparation({moon, environment,
-      allowEffects: true});
+    const prepare = await fundedClientPreparation(t, {moon, environment, allowEffects: true});
     const effectRequest = {kind: 'aql', input: {text: document,
       format: 'json'}, parameters: null};
-    const effect = prepare(effectRequest);
+    const effect = await prepare(effectRequest);
     assert.equal(prepare.kindOf(effect), 'effectful');
     prepare.assertOwned(effect);
     assert.equal(moon.clientProgramEffectResultCount(effect), 1);
@@ -3756,12 +3956,12 @@ test('one installed preparation distinguishes Effect and pure owners',
       ['answer']);
     const pureDocument = JSON.parse(document);
     delete pureDocument.stages[0].effects;
-    const pure = prepare({kind: 'program', input: pureDocument,
+    const pure = await prepare({kind: 'program', input: pureDocument,
       parameters: null});
     assert.equal(prepare.kindOf(pure), 'effect_free');
     prepare.assertOwned(pure);
-    const foreign = installNodeClientProgramPreparation({moon,
-      environment, allowEffects: true})(effectRequest);
+    const other = await fundedClientPreparation(t, {moon, environment, allowEffects: true});
+    const foreign = await other(effectRequest);
     assert.throws(() => prepare.kindOf(foreign),
       {message: 'Foreign Client preparation'});
     assert.throws(() => prepare.assertOwned(foreign),
@@ -3910,7 +4110,7 @@ test('Host admits and retains the exact checked Effect Run Definition',
     assert.throws(() => control.bindCheckedClientEffectRun(
       changed, admission, definition),
     /Run Definition differs from checked Effect/u);
-    const [registry, contract] = await Promise.all([
+    const [registryWire, contract] = await Promise.all([
       readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),
       readFile(new URL('../../spec/contracts/actql-aoa.json',
@@ -3918,6 +4118,8 @@ test('Host admits and retains the exact checked Effect Run Definition',
     ]);
     const values = JSON.stringify(
       JSON.parse(contract).execution_contracts['REL.values']);
+    const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+      registryWire, values, undefined, undefined));
     const host = moon.clientProgramOpenSourceFreeLocalEffectHost(
       boundRun, registry, values, 1n, 0n, 0n, 0n);
     assert.ok(host);
@@ -4054,7 +4256,7 @@ test('admitted source-free Effect Run computes through the installed Host',
     assert.ok(foreign);
     assert.equal(moon.clientProgramBindEffectRun(
       foreign, admission, definition), undefined);
-    const [registry, contract] = await Promise.all([
+    const [registryWire, contract] = await Promise.all([
       readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),
       readFile(new URL('../../spec/contracts/actql-aoa.json',
@@ -4062,9 +4264,11 @@ test('admitted source-free Effect Run computes through the installed Host',
     ]);
     const values = JSON.stringify(
       JSON.parse(contract).execution_contracts['REL.values']);
-    assert.equal(moon.clientProgramOpenSourceFreeLocalEffectHost(
-      bound, registry.replace('"REL.values"', '"REL.changed"'),
-      values, 1n, 0n, 0n, 0n), undefined);
+    const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+      registryWire, values, undefined, undefined));
+    assert.throws(() => checked(moon.clientPrepareInstalledSequenceContracts(
+      registryWire.replace('"REL.values"', '"REL.changed"'), values, undefined, undefined)),
+    {code: 'MoonBitHostFailure'});
     const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
       bound, registry, values, 1n, 0n, 0n, 0n);
     assert.ok(owned);
@@ -4920,7 +5124,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
     const bound = moon.clientProgramBindEffectRun(
       prepared, admission, definition);
     assert.ok(bound);
-    const [registry, contract] = await Promise.all([
+    const [registryWire, contract] = await Promise.all([
       readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),
       readFile(new URL('../../spec/contracts/actql-aoa.json',
@@ -4928,6 +5132,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
     ]);
     const values = JSON.stringify(
       JSON.parse(contract).execution_contracts['REL.values']);
+    const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+      registryWire, values, undefined, undefined));
     const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
       bound, registry, values, 1n, 0n, 0n, 0n);
     assert.ok(owned);
@@ -5007,9 +5213,13 @@ test('owned update Plan matches approved rows and rejects altered intent',
       const invocationContract = control.admit('run_invocation',
         moon.strategyPublicationContractJson(invocation),
         publicationLimits);
-      const sourceSet = await preparePinnedEffectSourceSet({
+      // One declared Result, two self probes, one pair probe, then one
+      // Manifest-to-payload match. These are fixture work units, not pins.
+      assert.equal(moon.clientProgramEffectLocalResultCount(inputs), 1);
+      const groupingWork = 5;
+      const sourceOptions = {
         moon, checkedOwner: prepared, execution, inputs,
-        maxMembers: 2, maxGroupingWork: 3,
+        maxMembers: 2, maxGroupingWork: groupingWork,
         limits: moon.clientProgramEffectInputExportLimits(
           ...effectInputExportArgs(outputLimits)),
         store, maxBytes: outputLimits.maxWireBytes, control,
@@ -5017,7 +5227,10 @@ test('owned update Plan matches approved rows and rejects altered intent',
         sourceBindingCid: cid('c'),
         contractLimits: publicationLimits,
         localEvidenceContext,
-      });
+      };
+      await assert.rejects(preparePinnedEffectSourceSet({...sourceOptions,
+        maxGroupingWork: 3}), {message: 'EffectSourceGroupingLimit'});
+      const sourceSet = await preparePinnedEffectSourceSet(sourceOptions);
       sourcePayloads.push(...sourceSet.payloads);
       assert.notEqual(sourcePayloads[0].summary.artifact.identity,
         storedResults.artifacts[0].identity);
@@ -5919,11 +6132,13 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           evidence[0], observation, 100000, 10000, 64));
         const bound = moon.clientProgramBindEffectRun(
           prepared, admission, definition);
-        const registry = await readFile(new URL(
+        const registryWire = await readFile(new URL(
           '../../spec/dependencies/aoa-pipeline-registry.json',
           import.meta.url), 'utf8');
         const contract = JSON.parse(await readFile(new URL(
           '../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
+        const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+          registryWire, JSON.stringify(contract.execution_contracts['REL.values']), undefined, undefined));
         const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(bound,
           registry, JSON.stringify(contract.execution_contracts['REL.values']),
           1n, 0n, 0n, 0n);
@@ -5996,7 +6211,9 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           },
         });
         const options = {moon, checkedOwner: prepared, execution, inputs,
-          maxMembers: 2, maxGroupingWork: privateTableInput ? 5 : 3,
+          // The one-Result fixture needs five work units; distinct Results
+          // need eight, including all three Manifest-to-payload matches.
+          maxMembers: 2, maxGroupingWork: distinctResults ? 8 : 5,
           limits: moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits)),
           store, maxBytes: 100000, control: issuerControl,
@@ -6037,6 +6254,14 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           await assert.rejects(preparePinnedEffectSourceSet({...options,
             maxGroupingWork: 0}), {message: 'EffectSourceGroupingLimit'});
           assert.equal(writers, 0);
+          if (!privateTableInput) {
+            const results = moon.clientProgramEffectLocalResultCount(inputs);
+            assert.equal(results, distinctResults ? 2 : 1);
+            // One short of inventory plus the three pre-export probes.
+            await assert.rejects(preparePinnedEffectSourceSet({...options,
+              maxGroupingWork: results + 2}), {message: 'EffectSourceGroupingLimit'});
+            assert.equal(writers, 0, 'Incomplete grouping stops before the first Store writer');
+          }
           sources = await preparePinnedEffectSourceSet(options);
           assert.equal(sources.payloads.length, distinctResults ? 2 : 1);
           assert.equal(issuedArguments.length, distinctResults ? 2 : 1);
@@ -6485,7 +6710,7 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
   const bound = moon.clientProgramBindEffectRun(
     prepared, admission, definition);
   assert.ok(bound);
-  const [registry, contract] = await Promise.all([
+  const [registryWire, contract] = await Promise.all([
     readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
       import.meta.url), 'utf8'),
     readFile(new URL('../../spec/contracts/actql-aoa.json',
@@ -6493,6 +6718,8 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
   ]);
   const values = JSON.stringify(
     JSON.parse(contract).execution_contracts['REL.values']);
+  const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+    registryWire, values, undefined, undefined));
   const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
     bound, registry, values, 1n, 0n, 0n, 0n);
   assert.ok(owned);
@@ -6608,7 +6835,7 @@ test('Effect sources retain exact physical producers across split Stages',
       const bound = moon.clientProgramBindEffectRun(
         prepared, admission, definition);
       assert.ok(bound);
-      const [registry, contract] = await Promise.all([
+      const [registryWire, contract] = await Promise.all([
         readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
           import.meta.url), 'utf8'),
         readFile(new URL('../../spec/contracts/actql-aoa.json',
@@ -6616,6 +6843,8 @@ test('Effect sources retain exact physical producers across split Stages',
       ]);
       const values = JSON.stringify(
         JSON.parse(contract).execution_contracts['REL.values']);
+      const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+        registryWire, values, undefined, undefined));
       const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
         bound, registry, values, 1n, 0n, 0n, 0n);
       assert.ok(owned);

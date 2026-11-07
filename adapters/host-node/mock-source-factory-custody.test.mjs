@@ -22,7 +22,7 @@ const make=compileFunction(`
   const {sourceManaged,moon,declaration}=input,index=0;
   const records=new Map(input.record ? [[input.record.prepared,input.record]] : []);
   const originalReads=new WeakMap();
-  const effectReads=new Set();
+  const effectReads=new Set(),effectRuns=new WeakMap();
   const current=()=>sourceManaged.assertCurrent();
   const sameRun=prepared=>{current();const run=records.get(prepared);
     if(run===undefined)fail('NodeManagedRunAdmissionUnavailable');return run;};
@@ -52,14 +52,15 @@ test('same Source child and close are held before post-factory current refusal a
   await f.closeSource(0);assert.equal(closes,1);assert.equal(record.reads[0].closed,true);
 });
 
-test('same managed Run original is retained before post-factory current refusal and typed start stays zero',()=>{
-  const failure=new Error('OriginalRunGenerationChanged'),original={};let current=true,starts=0;
-  const sourceManaged={assertCurrent(){if(!current)throw failure;},prepareRun(){current=false;return original;}};
-  const f=make({sourceManaged,moon:{clientProgramNodeManagedRunPrepare(){starts++;assert.fail('No stale start');}}},value=>value,fail);
-  const prepared={},request={};
-  assert.throws(()=>f.prepareManagedRun(prepared,request),error=>error===failure);
-  assert.strictEqual(f.held().original,original);assert.strictEqual(f.held().failure,failure);
-  assert.equal(f.held().admission,undefined);assert.equal(starts,0);
+test('same Host Run is retained before post-factory current refusal and independent typed start stays zero', () => {
+  const failure = new Error('OriginalRunGenerationChanged');
+  let f;
+  f = requestSourceFixture((facts, record) => {
+    f.sourceManaged.assertCurrent = () => {throw failure;};
+    return record;
+  });
+  assert.throws(() => f.run({preparedProgram: f.prepared, requestIdentity: f.request}), error => error === failure);
+  assert.strictEqual(f.effectRuns.get(f.prepared).deref(), f.record);
 });
 
 test('foreign Source occurrence still refuses before acquiring any child',()=>{
@@ -106,7 +107,7 @@ test('retired Mock Effect discriminator cannot enter the Pure Run constructor', 
     prepareEffectRun() {factories++; assert.fail('No legacy Effect Root');}};
   const f = make({sourceManaged, moon: {}}, value => value, fail);
   assert.throws(() => f.prepareManagedRun({}, {}, undefined, true),
-    {code: 'InstalledEffectPlanUnavailable'});
+    {code: 'InvalidInstalledManagedRunRequest'});
   assert.equal(current, 0); assert.equal(factories, 0); assert.equal(f.held(), undefined);
 });
 
@@ -123,7 +124,7 @@ test('foreign Mock Effect read context refuses before acquiring any Source child
 // Same actual Source child and Host retirement bodies. The native retirement
 // and raw close ports are explicit: this counter proves JS alias lifetime,
 // never a real Resource/FD ACK, normal admission or a capacity recipe.
-function effectReadRetirementFixture(count = 1) {
+function effectReadRetirementFixture(count = 1, effectful = true) {
   const hostSource = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   let retirement;
   function find(node) {
@@ -137,13 +138,13 @@ function effectReadRetirementFixture(count = 1) {
   find(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}));
   assert(retirement);
   const prepared = {}, request = {}, native = {}, declaration = {}, events = [];
-  const run = {prepared, request, value: native, preparationKind: 'effect-plan',
+  const run = {prepared, request, value: native, preparationKind: effectful ? 'effect-plan' : undefined,
     preparationFunded: true, original: {}, closed: false};
   const record = {computeRuns: new WeakMap([[prepared, run]]), computeLiveRuns: new Set([run])};
   let nativePending = false, physicalPending = false, severFailure, onNative, payloadSevered = false, observations = 0;
   const pending = Object.assign(new Error('OriginalNativePending'), {code: 'OriginalNativePending'});
   const raws = [];
-  const moon = {clientProgramEffectAcquisitionCount: () => count,
+  const moon = {clientProgramEffectAcquisitionCount: () => count, clientProgramAcquisitionCount: () => count,
     clientProgramInstalledPreparationPayloadSevered() {observations++; return payloadSevered;}};
   run.runtime = moon;
   run.retire = function(value) {
@@ -182,7 +183,7 @@ function effectReadRetirementFixture(count = 1) {
       value => {if (value.$tag !== 1) throw value._0; return value._0;}, () => {},
       code => Object.assign(new Error(code), {code}), () => () => {});
   const originalRead = {};
-  reader.prepareSourceRead({checkedOwner: prepared, effectful: true, declaration,
+  reader.prepareSourceRead({checkedOwner: prepared, effectful, declaration,
     occurrence: {stage: 0, input: 0}, managedRun: native, originalRead});
   const read = run.mockSourceReads[0];
   return {run, record, prepared, request, native, declaration, originalRead, read, raw: raws[0], raws,
@@ -269,7 +270,7 @@ test('Mock Source retirement rejects a replaced Host original without cutting th
   const f = effectReadRetirementFixture();
   await f.reader.closeSourceRead(f.originalRead);
   f.onNative(() => f.record.computeRuns.set(f.prepared, {...f.run}));
-  assert.throws(f.retire, {code: 'InstalledSourcePreparationMismatch'});
+  assert.throws(f.retire, {code: 'ForeignInstalledEffectManagedRun'});
   assert.equal(f.effectReads.size, 1); assert.equal(f.read.raw, f.raw);
   assert.equal(f.originalReads.get(f.originalRead).read, f.read);
   assert.equal(f.effectRuns.get(f.prepared).deref(), f.run);
@@ -302,4 +303,136 @@ test('Mock Source aliases consume only the existing failed-return payload-sever 
   await g.reader.closeSourceRead(g.originalRead); g.retire();
   assert.equal(g.observations(), 0, 'Successful Unit adds no currentness/retirement callback');
   assert.equal(g.effectReads.size, 0);
+});
+
+
+// The installed profile consumes the actual Host record, not a third positional
+// Model argument or another Connector-issued Node admission.
+function requestSourceFixture(prepareRequestSource) {
+  const prepared = {}, request = {}, value = {}, calls = [], effectRuns = new WeakMap();
+  const record = {prepared, request, value, runtime: {}, closed: false};
+  const moon = record.runtime;
+  const sourceManaged = {assertCurrent() {calls.push('current');},
+    prepareRun() {assert.fail('No Connector-owned Root or admission');}};
+  const run = compileFunction(`
+    const current = () => sourceManaged.assertCurrent();
+    const records = new Map();
+    const sameRun = owner => {const selected = effectRuns.get(owner)?.deref();
+      if (selected === undefined || selected.closed) fail('NodeManagedRunAdmissionUnavailable'); return selected;};
+    ${select('FunctionDeclaration', 'prepareManagedRun')}
+    return prepareManagedRun;`, ['sourceManaged', 'moon', 'prepareRequestSource', 'effectRuns', 'fail'])(
+      sourceManaged, moon, facts => prepareRequestSource(facts, record, calls), effectRuns, fail);
+  return {prepared, request, record, value, calls, effectRuns, sourceManaged, run};
+}
+
+test('Mock Source uses the named same-Request Host Run and never issues another admission', () => {
+  const invocation = () => assert.fail('Only the Host may construct the invocation');
+  const f = requestSourceFixture((facts, record, calls) => {
+    assert.deepEqual(Object.keys(facts), ['preparedProgram', 'requestIdentity', 'prepareInvocation']);
+    assert.strictEqual(facts.preparedProgram, record.prepared);
+    assert.strictEqual(facts.requestIdentity, record.request);
+    assert.strictEqual(facts.prepareInvocation, invocation);
+    calls.push('same-host-original'); return record;
+  });
+  const facts = {preparedProgram: f.prepared, requestIdentity: f.request, prepareInvocation: invocation};
+  assert.strictEqual(f.run(facts), f.value);
+  assert.strictEqual(f.effectRuns.get(f.prepared).deref(), f.record);
+  assert.strictEqual(f.run(facts), f.value);
+  assert.equal(f.calls.filter(value => value === 'same-host-original').length, 2);
+});
+
+test('Mock Source preserves the Host refusal and rejects a foreign returned Run', () => {
+  const refusal = new Error('OriginalHostPreparationRefused');
+  const f = requestSourceFixture(() => {throw refusal;});
+  assert.throws(() => f.run({preparedProgram: f.prepared, requestIdentity: f.request}), error => error === refusal);
+  assert.equal(f.effectRuns.get(f.prepared), undefined);
+  const other = requestSourceFixture((facts, record) => ({...record, request: {}}));
+  assert.throws(() => other.run({preparedProgram: other.prepared, requestIdentity: other.request}),
+    {code: 'ForeignInstalledSourcePreparation'});
+  assert.equal(other.effectRuns.get(other.prepared), undefined);
+});
+
+
+test('Request-owned ordinary Mock Source closes and retires through the same existing Host record', async () => {
+  const f = effectReadRetirementFixture(1, false);
+  assert.strictEqual(f.run.mockSourceReads[0].value, f.originalRead);
+  await f.reader.closeSourceRead(f.originalRead);
+  f.retire();
+  assert.equal(f.effectReads.size, 0); assert.equal(f.effectRuns.has(f.prepared), false);
+  assert.equal(f.originalReads.has(f.originalRead), false);
+  assert.deepEqual(f.events, ['physical', 'native', 'parent']);
+});
+
+test('Host-backed Row Source capture capacity retains its checked acquisition and existing bounds', () => {
+  const row = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+  const found = [];
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'FunctionDeclaration' && node.id.name === 'managedProviderCaptureCapacity') found.push(node);
+    for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(visit);
+    else if (child && typeof child === 'object') visit(child);
+  })(parse(row, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(found.length, 1);
+  const requirement = {}, acquisition = {}, capacity = {}, calls = [];
+  const create = compileFunction('return ' + row.slice(found[0].start, found[0].end),
+    ['originalReader', 'prepareSourceRead', 'prepareOriginalAcquisition', 'moon',
+      'maxTransferBytes', 'limits', 'fail']);
+  const invoke = create(undefined, () => assert.fail('Capacity is not a read'), actual => {
+    assert.strictEqual(actual, requirement); calls.push('original-acquisition'); return acquisition;
+  }, {clientProgramInstalledRowCaptureCapacity(actual) {
+    assert.strictEqual(actual, acquisition); calls.push('original-capacity'); return capacity;
+  }}, 1048576n, {maxPageBytes: 1048576}, fail);
+  assert.deepEqual(invoke(requirement), {capacity, transferBytes: 1048576n, executionBytes: 1048576n});
+  assert.deepEqual(calls, ['original-acquisition', 'original-capacity']);
+  assert.throws(() => create(undefined, undefined, () => assert.fail('No unsupported constructor'),
+    {}, 0n, {}, fail)(requirement), {code: 'InstalledSourceCapacityUnavailable'});
+});
+
+
+test('Mock Source keeps an explicit undefined Host failure sticky without publishing its Run', () => {
+  const f = requestSourceFixture((facts, record) => {record.failure = undefined; return record;});
+  let thrown = false;
+  try {f.run({preparedProgram: f.prepared, requestIdentity: f.request});}
+  catch (error) {thrown = true; assert.strictEqual(error, undefined);}
+  assert.equal(thrown, true); assert.equal(f.effectRuns.has(f.prepared), false);
+});
+
+test('actual Mock installer captures the same Host Source method before returning its named profile', async () => {
+  const host = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  let method;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'installMockSources') {
+      assert.equal(method, undefined); method = node;
+    }
+    for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(visit);
+    else if (child && typeof child === 'object') visit(child);
+  })(parse(host, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert(method);
+  const moon = {}, prepared = {}, request = {}, value = {}, profile = {}, invocation = () => {};
+  const run = {prepared, request, value, runtime: moon, sourceProfile: profile, closed: false};
+  const record = {computeRuns: new WeakMap([[prepared, run]])}, installation = {};
+  let supplied, calls = 0;
+  const preparation = {prepareManagedSourceRun(...args) {
+    assert.strictEqual(this, preparation);
+    assert.deepEqual(args, [moon, prepared, request, profile, invocation]); calls++; return value;
+  }};
+  const ports = {moon, mockPreparation: {}, sourceManaged: {}, originals: {}, record,
+    originalInstallation: installation, control: {}, preparation,
+    assertSourceManagedInstallationCurrent() {},
+    installPreparedProjectMockSources(options) {supplied = options.prepareManagedSourceRun; return profile;},
+    readInitialControlInstallationAsset() {assert.fail('No source I/O');},
+    retainInstalledHostInitializationFailure() {assert.fail('No failed initialization');},
+    clientOperationError: code => Object.assign(new Error(code), {code})};
+  const install = compileFunction('return ({' + host.slice(method.start, method.end) + '}).installMockSources;',
+    Object.keys(ports))(...Object.values(ports));
+  assert.strictEqual(await install(moon, '{}', () => {}), profile);
+  assert.strictEqual(record.managedSourceProfile, profile);
+  assert.strictEqual(installation.managedSourceProfile, profile);
+  preparation.prepareManagedSourceRun = () => assert.fail('No changed Host implementation');
+  assert.strictEqual(supplied({preparedProgram: prepared, requestIdentity: request, prepareInvocation: invocation}), run);
+  assert.equal(calls, 1);
+  record.computeRuns.set(prepared, {...run, request: {}});
+  assert.throws(() => supplied({preparedProgram: prepared, requestIdentity: request, prepareInvocation: invocation}),
+    {code: 'ForeignInstalledSourcePreparation'});
 });

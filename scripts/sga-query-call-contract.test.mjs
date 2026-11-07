@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
@@ -55,10 +54,7 @@ function normativeGrammarBody(readBytes) {
   };
 }
 
-const sequenceSnapshotSource = 'c6aa9761c5fb941ef98279b8aa483cf4e8ca43b0';
 const sequenceSnapshotCid = 'sha256:2aa67a52bae3a27fec7397dfa40c0cdc63096cd988e7cfee480477386c53b2ec';
-const historicalSourceBytes = path => execFileSync('git',
-  ['show', `${sequenceSnapshotSource}:${path}`], {maxBuffer: 8 * 1024 * 1024});
 
 test('SGA query grammar pin matches an independent normative preimage', () => {
   const currentBody = normativeGrammarBody(path => readFileSync(path));
@@ -69,10 +65,20 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   const {grammar_manifest_cid: preAbsCid, ...preAbsBody} =
     read('scripts/fixtures/pre-abs-values-identities.json').grammar;
   assert.equal(cid(preAbsBody), preAbsCid);
-  const frozen = JSON.parse(execFileSync('git', ['show',
-    'f503f2afa804a05e58ea430af1782319c007bfc9:spec/manifests/actql-grammar-0.1.json'],
-  {encoding: 'utf8'}));
-  const {grammar_manifest_cid: _frozenCid, ...frozenPreimage} = frozen;
+  // Historical manifests retain the pre-alignment expression law rather than
+  // being relabeled with the new shared membership meaning.
+  // Retain the complete pre-typed-JSON main normative preimage.
+  // Literal predecessor pins are immutable; no current runtime supplies them.
+  const beforeTypedJsonBody = {"version":"actql-grammar-manifest/0.1","source_grammar_cid":"sha256:487b95656a825703baa75f2e108ac94d3d8a38fa113bb2ef12a3532cac2654ae","operations":["analytic","append","apply_graph_delta","asof_join","assert_rows","calendar_bucket","calendar_series","components","cross_join","dedupe_events","dedupe_rows","degree","derive","distinct","drop","edge_rows","events","except","filter","graft_graph","graph","graph_bounds","graph_diff","graphs_equal","group","infer","intersect","interval_join","join","json_pick","lag","match_edges","match_nodes","mean_graphs","merge_rankings","nearest","nest","node_rows","normalize_graph","normalize_vectors","pivot","pool_vectors","property_graph","reach","rename","row_window","score_vectors","search_candidates","select","sequence","serialize","session","shortest_path","sort","subgraph","subtract_graphs","take","text_rank","time_series","to_events","to_vectors","top_k","top_k_by","traverse","union_graphs","unnest","unpivot","values","vectors","watermark_events","watermark_rows","window_events","window_group"],"expression_contract_cid":"sha256:e14e1d9434909f1d0a68dc0441a6260c07476d662d237517d548de4dff0ac50f","expression_text_grammar_sha256":"af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7","expression_text_rules_sha256":"997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2","structural_text_grammar_sha256":"0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56","structural_text_rules_sha256":"209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762","query_text_grammar_sha256":"7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e","query_text_rules_sha256":"d91710b1985ec0156bc9ca905d0ac3d8a86eac24a99ac19a6b5755be091f6561"};
+  // The public pre-sole-Graph normative inputs retain these four differences
+  // from the literal above; no current manifest or product supplies them.
+  const frozenPreimage = {...beforeTypedJsonBody,
+    source_grammar_cid: 'sha256:3b20a88d6009d131def226ea623d38cbba3c5a3929c752de85ceb6fd1ade6938',
+    expression_contract_cid: 'sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67',
+    query_text_grammar_sha256: 'efdf8fd75b20465b57f66ea6db8f6e662441387c4d24ee055d5256160a040e7a',
+    query_text_rules_sha256: '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a'};
+  assert.equal(cid(frozenPreimage),
+    'sha256:e8cb271a8e74c8900258d53c9443bbc6bb78694b313a282a1f2807b3ca5137d5');
   const body = {...frozenPreimage, query_text_grammar_sha256:
     '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71', query_text_rules_sha256:
     '4b2ba4eae5f58ec4834ac3fdea39df0fc636fb385baae0b1e2f5d5475bc2c966'};
@@ -86,11 +92,6 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     '4b2ba4eae5f58ec4834ac3fdea39df0fc636fb385baae0b1e2f5d5475bc2c966');
   assert.equal(body.source_grammar_cid,
     'sha256:3b20a88d6009d131def226ea623d38cbba3c5a3929c752de85ceb6fd1ade6938');
-  // Historical manifests retain the pre-alignment expression law rather than
-  // being relabeled with the new shared membership meaning.
-  // Retain the complete pre-typed-JSON main normative preimage.
-  // Literal predecessor pins are immutable; no current runtime supplies them.
-  const beforeTypedJsonBody = {"version":"actql-grammar-manifest/0.1","source_grammar_cid":"sha256:487b95656a825703baa75f2e108ac94d3d8a38fa113bb2ef12a3532cac2654ae","operations":["analytic","append","apply_graph_delta","asof_join","assert_rows","calendar_bucket","calendar_series","components","cross_join","dedupe_events","dedupe_rows","degree","derive","distinct","drop","edge_rows","events","except","filter","graft_graph","graph","graph_bounds","graph_diff","graphs_equal","group","infer","intersect","interval_join","join","json_pick","lag","match_edges","match_nodes","mean_graphs","merge_rankings","nearest","nest","node_rows","normalize_graph","normalize_vectors","pivot","pool_vectors","property_graph","reach","rename","row_window","score_vectors","search_candidates","select","sequence","serialize","session","shortest_path","sort","subgraph","subtract_graphs","take","text_rank","time_series","to_events","to_vectors","top_k","top_k_by","traverse","union_graphs","unnest","unpivot","values","vectors","watermark_events","watermark_rows","window_events","window_group"],"expression_contract_cid":"sha256:e14e1d9434909f1d0a68dc0441a6260c07476d662d237517d548de4dff0ac50f","expression_text_grammar_sha256":"af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7","expression_text_rules_sha256":"997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2","structural_text_grammar_sha256":"0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56","structural_text_rules_sha256":"209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762","query_text_grammar_sha256":"7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e","query_text_rules_sha256":"d91710b1985ec0156bc9ca905d0ac3d8a86eac24a99ac19a6b5755be091f6561"};
   const beforeMembershipBody = {...beforeTypedJsonBody, expression_contract_cid:
     'sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb'};
   assert.equal(beforeMembershipBody.expression_contract_cid,
@@ -483,13 +484,12 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(cid(sequenceBody), sequenceCid);
   assert.equal(sequenceBody.query_text_grammar_sha256, fileDigest('reviews/2026-10-12-frontend-sequence-predicate-ast/preimages/submitted-query-grammar.ebnf'));
   assert.equal(sequenceBody.query_text_rules_sha256, fileDigest('reviews/2026-10-12-frontend-sequence-predicate-ast/preimages/submitted-query-rules.md'));
-  const {grammar_manifest_cid: currentSequenceCid, ...currentSequenceBody} =
-    JSON.parse(historicalSourceBytes('scripts/fixtures/current-sequence-values-identities.json')).grammar;
-  assert.equal(cid(currentSequenceBody), currentSequenceCid);
-  // This full snapshot belongs to its original merged normative closure.
-  // Current rules remain checked independently against currentBody above.
-  assert.equal(currentSequenceCid, sequenceSnapshotCid);
-  assert.deepEqual(currentSequenceBody, normativeGrammarBody(historicalSourceBytes));
+  const {grammar_manifest_cid: retainedSequenceCid, ...retainedSequenceBody} =
+    read('scripts/fixtures/pre-query-rules-repair-values-identities.json').grammar;
+  assert.equal(cid(retainedSequenceBody), retainedSequenceCid);
+  // This retained full preimage is independent of the current normative inputs.
+  // Current rules remain checked against currentBody above.
+  assert.equal(retainedSequenceCid, sequenceSnapshotCid);
   const {grammar_manifest_cid: seriesCid, ...seriesBody} = read('scripts/fixtures/submitted-time-series-primary-values-identities.json').grammar;
   assert.equal(cid(seriesBody), seriesCid);
   assert.deepEqual(seriesBody, {...joinBody,query_text_grammar_sha256:seriesBody.query_text_grammar_sha256,query_text_rules_sha256:seriesBody.query_text_rules_sha256});
@@ -522,7 +522,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.deepEqual(nearestBody, {...submittedLagBody,
     query_text_grammar_sha256: nearestBody.query_text_grammar_sha256,
     query_text_rules_sha256: nearestBody.query_text_rules_sha256});
-  assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
+  assert.equal(frozenPreimage.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
   assert.equal(beforeInnerBody.query_text_grammar_sha256, '1f305f648cef0e06a22e42d2ad95a09b00596e84344f4c5899f4d72c71e068db');
   assert.equal(preAbsBody.query_text_rules_sha256, "f61c39b0d6160f2a16d70100ce389b698f1c415021a6dcb18ff36dff05d39e33");
   assert.equal(beforeInnerBody.query_text_rules_sha256, "afe794150902368b6fc874ec462122400599ba4cda046899b991ab5c38f9477e");
@@ -702,7 +702,9 @@ test('WITH cutover changes query grammar/rules without changing machine contract
 
 
 test('retained Sequence closure rejects current-rule and partial historical mixtures', () => {
-  const historical = normativeGrammarBody(historicalSourceBytes);
+  const {grammar_manifest_cid: retainedCid, ...historical} =
+    read('scripts/fixtures/pre-query-rules-repair-values-identities.json').grammar;
+  assert.equal(retainedCid, sequenceSnapshotCid);
   assert.equal(cid(historical), sequenceSnapshotCid);
   const current = normativeGrammarBody(path => readFileSync(path));
   assert.notEqual(cid(current), sequenceSnapshotCid);

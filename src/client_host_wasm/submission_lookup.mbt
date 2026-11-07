@@ -128,7 +128,7 @@ fn observe_submission_lookup(
       Err(code) => Err(code)
     }
   }
-  guard record.kind == 4 &&
+  guard (record.kind == 4 || record.kind == 9) &&
     @decode.closed_object(cursor, ["reference"]) is Ok(object) &&
     required_text(object, "reference") is Some(wire) &&
     @host.admit_client_submission_reference_record(wire) is Ok(reference) else {
@@ -177,7 +177,7 @@ fn observe_submission_lookup(
 // fresh target rows, nested admission and cancellation still come from the
 // current physical snapshot. Initial/cold callers keep complete admission.
 fn submission_run_reference_snapshot(
-  namespace : String,
+  run_namespace : String,
   scope : String,
   definition : String,
   original : @host.ClientSavedSubmissionSnapshot?,
@@ -201,7 +201,7 @@ fn submission_run_reference_snapshot(
     if physical_schema == 1 {
       let selected = match
         @host.read_client_saved_run_reference(
-          namespace, scope, definition, read, inspect_run, -31,
+          run_namespace, scope, definition, read, inspect_run, -31,
         ) {
         Ok(value) => value
         Err(code) => return Err(code)
@@ -212,7 +212,7 @@ fn submission_run_reference_snapshot(
       }
     }
     return @host.inspect_client_saved_run_reference(
-      namespace, scope, definition, 1024, scan, read, inspect_run, cancellation,
+      run_namespace, scope, definition, 1024, scan, read, inspect_run, cancellation,
       -31,
     )
   }
@@ -228,7 +228,7 @@ fn submission_run_reference_snapshot(
         @publication.publication_contract_identity(original_definition) ==
         definition &&
         @publication.run_definition_namespace(original_definition) ==
-        Some(namespace) &&
+        Some(run_namespace) &&
         @publication.publication_contract_check_limits(
           original_definition, 65536, 4096, 64,
         )
@@ -268,7 +268,7 @@ fn submission_run_reference_snapshot(
           @publication.publication_contract_identity(run.definition) !=
           definition ||
           @publication.run_definition_namespace(run.definition) !=
-          Some(namespace) {
+          Some(run_namespace) {
           return Err(-32)
         }
         Ok(run)
@@ -319,6 +319,8 @@ fn submission_lookup_wire(
           writer,
           if record.run_admission is Some(_) {
             "ready"
+          } else if record.preparation_problem is Some(_) {
+            "preparation_failed"
           } else {
             "preparing"
           },
@@ -328,6 +330,12 @@ fn submission_lookup_wire(
           writer,
           @host.client_submitted_intent_cid(record.intent),
         )
+        if record.preparation_problem is Some((code, classification)) {
+          @encode.key(writer, "problemCode")
+          @encode.string_value(writer, code)
+          @encode.key(writer, "problemClassification")
+          @encode.string_value(writer, classification)
+        }
         if record.run_admission is Some(_) {
           let admission = match
             @host.client_saved_submission_admission_wire(snapshot) {

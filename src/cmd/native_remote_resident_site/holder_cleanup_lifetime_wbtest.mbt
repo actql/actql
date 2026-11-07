@@ -239,3 +239,79 @@ test "unopened resources do not turn missing process hold into slot release" {
   assert_eq(position.val, 8)
   assert_eq(calls, [0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0])
 }
+
+///|
+test "controller shutdown reuses positive pacing when idle or all configured waits are zero" {
+  assert_eq(control_shutdown_cleanup_interval(0, 50, 200, 50), 200)
+  assert_eq(control_shutdown_cleanup_interval(0, 50, 0, 50), 50)
+  assert_eq(control_shutdown_cleanup_interval(75, 0, 0, 50), 75)
+  assert_eq(control_shutdown_cleanup_interval(0, 0, 0, 50), 50)
+}
+
+///|
+// Explicit caller/Owner fault model. No Native signal, physical peer Slot or
+// Linux Resident is exercised; the original two-control process case owns that.
+test "controller shutdown drives several pending original phases without another external signal" {
+  let original = Ref(17)
+  let ready = Ref(false)
+  let attempts = Ref(0)
+  let input_reads = Ref(0)
+  let pauses : Array[Int] = []
+  let facts = Ref(true)
+  let interval = control_shutdown_cleanup_interval(0, 0, 0, 50)
+  let returned = retain_holder_cleanup_lifetime(
+    original,
+    same => {
+      facts.val = facts.val && physical_equal(same, original) && same.val == 17
+      attempts.val += 1
+      ready.val
+    },
+    () => {
+      input_reads.val += 1
+      CleanupInputEnded
+    },
+    () => {
+      pauses.push(interval)
+      facts.val = facts.val && original.val == 17 && !ready.val
+      // A later peer/internal phase becomes ready. Only the next original
+      // close pass observes this; the pacing call supplies no cleanup ACK.
+      if pauses.length() == 3 {
+        ready.val = true
+      }
+    },
+    (same, _) => {
+      facts.val = facts.val && physical_equal(same, original) && !ready.val
+    },
+  )
+  assert_true(facts.val)
+  assert_true(physical_equal(returned, original))
+  assert_eq(attempts.val, 5)
+  assert_eq(input_reads.val, 1)
+  assert_eq(pauses, [50, 50, 50])
+}
+
+///|
+test "controller shutdown pacing never turns an unconfirmed original close into ACK or repeats prior ACKs" {
+  let original = Ref(29)
+  let position = Ref(0)
+  let calls = [0, 0, 0, 0]
+  let pauses : Array[Int] = []
+  let facts = Ref(true)
+  for _ in 0..<3 {
+    assert_false(
+      advance_holder_cleanup_pass(original, position, 4, (same, step) => {
+        facts.val = facts.val &&
+          physical_equal(same, original) &&
+          same.val == 29
+        calls[step] += 1
+        step != 2
+      }),
+    )
+    pauses.push(control_shutdown_cleanup_interval(0, 50, 200, 50))
+    assert_eq(position.val, 2)
+    assert_eq(original.val, 29)
+  }
+  assert_true(facts.val)
+  assert_eq(calls, [1, 1, 3, 0])
+  assert_eq(pauses, [200, 200, 200])
+}

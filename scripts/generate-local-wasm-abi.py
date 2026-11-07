@@ -254,7 +254,8 @@ def render(root: Path = ROOT) -> str:
     remaining = set(export_map)
     exports, imports, origins, names = {}, {}, {}, {}
     sources = sorted((root / 'src/client_host_wasm').glob('*.mbt'))
-    sources += [root / 'src/physical_resources/imported_child_ledger_wasm.mbt']
+    sources += [root / 'src/physical_resources/imported_child_ledger_wasm.mbt',
+                root / 'src/physical_resources/platform_vm_capacity_wasm.mbt']
     for path in sources:
         text = path.read_text()
         if '#export_name(' in text:

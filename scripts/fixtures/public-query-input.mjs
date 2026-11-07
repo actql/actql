@@ -118,7 +118,7 @@ export const pipeResultSuccesses = [
       active: {rows: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')]},
     }, sourceReadSessionCount: 1},
   {name: 'result-after-set', format: 'aql-text',
-    text: 'FROM records AS old |> SET id = id + 10 |> RESULT changed |> SELECT old.id AS original, id AS current |> ORDER BY original |> RESULT final',
+    text: 'FROM records AS old |> SET id = id + 10 |> RESULT changed |> SELECT old.id AS original, id AS `current` |> ORDER BY original |> RESULT final',
     results: {
       changed: {rows: [{id: 13, amount: 30}, {id: 11, amount: null}, {id: 12, amount: 20}, {id: 13, amount: 30}], columns: sourceColumns, unordered: true},
       final: {rows: [{original: 1, current: 11}, {original: 2, current: 12}, {original: 3, current: 13}, {original: 3, current: 13}], columns: [relationNumber('original'), relationNumber('current')]},
@@ -288,12 +288,12 @@ queryCompositionSuccesses.push(
   [{id:2},{id:1},{id:1}],[optionalNumber('id',true)]),
  optionalCase('identity-star',"SELECT * FROM (SELECT 1 AS id,'x' AS label)",[{id:1,label:'x'}],
   [optionalNumber('id'),{name:'label',contract:{type:'string',nullable:false,max_utf8_bytes:1}}]),
- optionalCase('range-snapshot',"SELECT r.x AS original,x AS current,y FROM ("+optionalRangeHead+") ORDER BY original",
+ optionalCase('range-snapshot',"SELECT r.x AS original,x AS `current`,y FROM ("+optionalRangeHead+") ORDER BY original",
   [{original:1,current:11,y:20},{original:2,current:12,y:10}],
   [optionalNumber('original'),optionalNumber('current'),optionalNumber('y')]),
  optionalCase('range-through-parentheses',"SELECT r.x AS original FROM ((FROM (SELECT 1 AS x UNION ALL SELECT 2) base |> AS r)) ORDER BY original",
   [{original:1},{original:2}],[optionalNumber('original')]),
- optionalCase('explicit-alias-replaces-ranges',"SELECT chosen.x AS current,chosen.y FROM ("+optionalRangeHead+") chosen ORDER BY current",
+ optionalCase('explicit-alias-replaces-ranges',"SELECT chosen.x AS `current`,chosen.y FROM ("+optionalRangeHead+") chosen ORDER BY current",
   [{current:11,y:20},{current:12,y:10}],[optionalNumber('current'),optionalNumber('y')]),
  optionalCase('scalar-value-table',"SELECT element AS value FROM (FROM UNNEST([1,CAST(NULL AS FLOAT64),2,1]) AS element) ORDER BY value DESC NULLS FIRST",
   [{value:null},{value:2},{value:1},{value:1}],[optionalNumber('value',true)]),
@@ -304,7 +304,7 @@ queryCompositionSuccesses.push(
  optionalCase('captured-null',"SELECT amount,id FROM (FROM records |> WHERE amount IS NULL |> SELECT id,amount) ORDER BY id",
   [{amount:null,id:1}],[optionalNumber('amount',true),optionalNumber('id')],
   {sourceReadCount:undefined,sourceReadSessionCount:1}),
- optionalCase('captured-range-snapshot',"SELECT id,r.amount AS original,amount AS current FROM (FROM records |> AS r |> SET amount=99) ORDER BY id",
+ optionalCase('captured-range-snapshot',"SELECT id,r.amount AS original,amount AS `current` FROM (FROM records |> AS r |> SET amount=99) ORDER BY id",
   [{id:1,original:null,current:99},{id:2,original:20,current:99},{id:3,original:30,current:99},{id:3,original:30,current:99}],
   [optionalNumber('id'),optionalNumber('original',true),optionalNumber('current')],
   {sourceReadCount:undefined,sourceReadSessionCount:1}),
@@ -759,12 +759,30 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
   'ClientProgramUnsupported', 'ClientProgramNeedsInputs',
   'ClientProgramRejected']);
 
+// Public text without an explicit RESULT exports main. Explicit text names
+// belong to authored fixture metadata; structured Programs retain their own
+// declared exports. None of these names comes from a product reply.
+export function publicQueryResultOracles(item, primaryResultName = 'main') {
+  if (item.results !== undefined) return item.results;
+  let resultName = item.resultName;
+  if (resultName === undefined && ['json', 'aql-json'].includes(item.format)) {
+    const names = Object.keys(JSON.parse(item.text).results ?? {});
+    assert.equal(names.length, 1,
+      'A structured fixture with multiple exports requires authored result oracles');
+    [resultName] = names;
+  }
+  resultName ??= primaryResultName;
+  assert.equal(typeof resultName, 'string');
+  assert.ok(resultName.length > 0);
+  return {[resultName]: {rows: item.expected, columns: item.columns}};
+}
+
 // Run this unchanged with installed Local and HTTP connect options. The test
 // owner supplies cumulative observations of real Run admission and source
 // I/O, not a replacement provider or a Client-side alias map. This function
 // does not lower source, manufacture schema, or call a test compiler bridge.
 export async function exercisePublicQueryInput(connect, options,
-  {requestPrefix, observe, successes = querySuccesses,
+  {requestPrefix, observe, successes = querySuccesses, primaryResultName = 'main',
     refusals = queryRefusals, executionFailures = [], prepareCase, persistSubmission, completedCase, completedRefusal}) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
@@ -777,7 +795,9 @@ export async function exercisePublicQueryInput(connect, options,
   };
   const client = await connect(options);
   try {
-    for (const {name, text, expected, columns, results, sourceRows, sourceReadCount, sourceReadSessionCount, ...input} of successes) {
+    for (const item of successes) {
+      const {name, text, expected, columns, results, resultName, sourceRows,
+        sourceReadCount, sourceReadSessionCount, ...input} = item;
       await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
       const submissionRef = client.newSubmission({nonce: requestId});
@@ -797,7 +817,7 @@ export async function exercisePublicQueryInput(connect, options,
           sourceReadSessionCount, 'one acquisition session per authored source: ' +
             JSON.stringify((await observe()).sourceReadCommands));
       }
-      const expectedResults = results ?? {answer: {rows: expected, columns}};
+      const expectedResults = publicQueryResultOracles(item, primaryResultName);
       const compare = (actual, expected, unordered) => {
         // An unordered SQL Relation is compared as a multiset. Sorting this
         // test copy preserves duplicates and never changes the product output.
@@ -840,7 +860,8 @@ export async function exercisePublicQueryInput(connect, options,
         beforeSubmit, beforeRead, afterReplay, observedResults});
       console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
-        await assert.rejects(execution.result('answer').all({maxRows: 1}),
+        assert.equal(Object.keys(expectedResults).length, 1);
+        await assert.rejects(execution.result(Object.keys(expectedResults)[0]).all({maxRows: 1}),
           {code: 'ResultRetainedLimit'});
         const attemptId = requestId + '-changed-intent';
         const expectedAttemptRef = {operation: 'submit', attemptId};

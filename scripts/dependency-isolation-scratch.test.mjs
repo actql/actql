@@ -136,6 +136,10 @@ function nodeFixtureInputs(t) {
   put('src/query_integration/moon.pkg', `supported_targets = "+js+wasm+native"
 
 options(
+  targets: {
+    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],
+    "row_stream_current_js_wbtest.mbt": [ "js" ],
+  },
   link: {
     "native": {
       "cc": "./scripts/native-cxx-link-driver.sh",
@@ -145,6 +149,9 @@ options(
   },
 )
 `);
+  for (const name of ['strategy_cleanup_current_js_wbtest.mbt', 'row_stream_current_js_wbtest.mbt']) {
+    put('src/query_integration/' + name, '// JS-only metadata fixture.\n');
+  }
   put('src/connectors_workers_bridge/moon.pkg',
     'import { "actql/actql/connectors/local/driver" @local }');
   put('src/connectors_workers_async_bridge/moon.pkg',
@@ -201,4 +208,26 @@ test('Node fixture input retains the exact native-option refusal before writes',
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /UnexpectedQueryIntegrationOptions/);
   assert.equal(readFileSync(path, 'utf8'), before);
+});
+
+
+test('Node fixture input refuses unreviewed target metadata before writes', t => {
+  const f = nodeFixtureInputs(t);
+  const manifest = join(f.root, 'src/query_integration/moon.pkg');
+  const path = join(f.root, 'src/node_host_conformance/fixture.generated.mbt');
+  const original = readFileSync(manifest, 'utf8');
+  const before = readFileSync(path, 'utf8');
+  for (const altered of [
+    original.replace('strategy_cleanup_current_js_wbtest.mbt', 'unreviewed_wbtest.mbt'),
+    original.replace('row_stream_current_js_wbtest.mbt', 'unreviewed_wbtest.mbt'),
+    original.replace('"row_stream_current_js_wbtest.mbt": [ "js" ]', '"row_stream_current_js_wbtest.mbt": [ "native" ]'),
+    original.replace('[ "js" ]', '[ "native" ]'),
+    original.replace('[ "js" ]', 'selected_targets'),
+  ]) {
+    writeFileSync(manifest, altered);
+    const result = f.run('node-host-fixtures', '--write');
+    assert.notEqual(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stderr, /UnexpectedQueryIntegrationOptions/);
+    assert.equal(readFileSync(path, 'utf8'), before);
+  }
 });

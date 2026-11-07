@@ -8,12 +8,22 @@ import * as loader from './installed-effect.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {createInstalledHostServices, retainInstalledHostServiceInstallation,
-  retireInstalledSourceInitialization, beginInstalledSourceInitialization, finishInstalledSourceInitialization,
+  retireInstalledSourceInitialization, beginInstalledSourceInitialization, finishInstalledSourceInitialization, completeInstalledSourceInitialization,
   assertInstalledSourceConstruction, retainInstalledSourceConstruction, closeInstalledSourceConstruction, reserveInstalledSourceEnvironment, prepareInstalledSourceAcquisitionContracts, installedSourceConfigurationReader, readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {loadInstalledGitHubEffect, INSTALLED_GITHUB_EFFECT_VERSION} from '../connectors/github/host/installed-github-effect.mjs';
+
+// The mandatory common carrier preserves the exact thrown value, including
+// undefined. These domain fixtures must not require bypassing that carrier.
+const sameInitializationFailure = original => failure => {
+  assert.equal(failure.code, 'InstalledHostInitializationFailed');
+  assert.equal(Object.hasOwn(failure, 'primaryFailure'), true);
+  assert.equal(failure.primaryFailure, original);
+  assert.equal(failure.cause, original);
+  return true;
+};
 
 // Exercise the actual bounded reader with real files. Only the physical close
 // call is faulted on the actual imported reader; no parser or Owner is replaced.
@@ -83,13 +93,13 @@ test('Effect load forwards the same registered Host service before the original 
     assert.throws(() => retainInstalledHostServiceInstallation(f.services, options.installation,
       `sha256:${'f'.repeat(64)}`), {code: 'InstalledHostServiceRuntimeChanged'});
   }});
-  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), error => error === f.stop);
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), sameInitializationFailure(f.stop));
   assert.equal(f.calls(), 1);
 });
 
 test('Effect load pins one original runtime and refuses replacement before installer reentry', async t => {
   const f = await serviceFixture(t);
-  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), error => error === f.stop);
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), sameInitializationFailure(f.stop));
   const changed = join(f.root, 'other-runtime-identity.mjs');
   await fs.writeFile(changed, 'export const fixtureIdentityOnly = false;\n');
   await assert.rejects(loader.loadInstalledEffect(f.profilePath,
@@ -118,7 +128,7 @@ test('Effect load keeps the absent-service installer envelope unchanged', async 
     assert.equal(Object.hasOwn(options, 'configurationReader'), false);
   }});
   const {installationServices: _unused, ...options} = f.options;
-  await assert.rejects(loader.loadInstalledEffect(f.profilePath, options), error => error === f.stop);
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, options), sameInitializationFailure(f.stop));
   assert.equal(f.calls(), 1);
 });
 
@@ -197,7 +207,7 @@ async function initialEffectFixture(t, {refuseReservation = false, suspended = f
 
 test('Effect initial material owns profile runtime and installer metadata reads before native Site construction', async t => {
   const f = await initialEffectFixture(t);
-  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), error => error === f.installerFailure);
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), sameInitializationFailure(f.installerFailure));
   assert.deepEqual(f.events.slice(0, 3), ['take', 'continue', 'reserve']);
   // Each small original file has one FD lease, one body read and one EOF
   // read. Read completions do not substitute for the original FD close.
@@ -224,7 +234,9 @@ test('Effect initial material remains live through installer await and thrown un
     assert.equal(retireInstalledSourceInitialization(f.services), false, 'same original load remains pending after its FD reads finish');
     assert.equal(f.events.includes('retire'), false);
   } finally {f.release();}
-  assert.deepEqual(await observed, {ok: false, error: undefined});assert.equal(f.counts().loaded, 1);assert.equal(f.live.size, 0);
+  const result = await observed;
+  assert.equal(result.ok, false);sameInitializationFailure(undefined)(result.error);
+  assert.equal(f.counts().loaded, 1);assert.equal(f.live.size, 0);
   assert.equal(retireInstalledSourceInitialization(f.services), true);
 });
 
@@ -295,7 +307,7 @@ for (const malformed of [false, true]) {
 // Actual loader, initial owner, Mapping/Environment constructor and RowEffect
 // adapter together. Native semantic/Resource and Site ports are explicit:
 // this is not a Common, Account, physical Site or normal public execution.
-async function constructionFixture(t, {refuseMapping = false, beforeAdapter} = {}) {
+async function constructionFixture(t, {refuseMapping = false, beforeAdapter, operation = 'create'} = {}) {
   const root = await fs.mkdtemp(join(tmpdir(), 'actql-effect-initial-construction-'));
   t.after(() => fs.rm(root, {recursive: true, force: true}));
   const version = 'actql-installed-effect-construction-fixture/0.1';
@@ -333,21 +345,28 @@ async function constructionFixture(t, {refuseMapping = false, beforeAdapter} = {
       assert.equal(value, declaration);assert.equal(writes, '{"original":"writes"}');
       assert.equal(resource, 'records');assert.deepEqual(JSON.parse(sources), [{target: 'label', field: 'label', null_behavior: 'reject'}]);
       assert.equal(events.at(-1), 'reserve');events.push('mapping');
-      return JSON.stringify({mapping_ref: 'mapping:construction/create.v1', mapping_cid: cid,
+      return JSON.stringify({mapping_ref: `mapping:construction/${operation}.v1`, mapping_cid: cid,
         body: JSON.stringify({mapping_contract_cid: cid, target_ref: 'connector://construction/records',
-          minimum_approval: 'required', permission_rules: [{effect_kind: 'create', permissions: ['write']}]}),
+          minimum_approval: 'required', permission_rules: [{effect_kind: operation, permissions: ['write']}]}),
         write_fields: ['label'], omittable: []});
     },
   });
+  if (operation === 'update') {
+    moon.clientProgramRowSourcePrepareUpdateMapping = moon.clientProgramRowSourcePrepareMapping;
+    moon.clientProgramRowSourcePrepareMapping = () => assert.fail('UPDATE must not select CREATE');
+  }
   const services = createInstalledHostServices({root, principalId: 'fixture', moon,
     initialPreparation: initial, assertCurrent() {}});
-  const writes = Object.freeze([Object.freeze({resource: 'records', sources: Object.freeze([
+  const writes = Object.freeze([Object.freeze({resource: 'records',
+    ...(operation === 'update' ? {operation} : {}), sources: Object.freeze([
     Object.freeze({target: 'label', field: 'label', null_behavior: 'reject'})])})]);
   const unused = () => assert.fail('No provider/Account operation in this constructor component');
   const site = {issueEffectGrant: unused, issueReadGrant: unused,
     async close() {if (closePending === 'false') return false;if (closePending) throw pendingClose;}};
-  const driver = {kinds: ['create'], prepareRequest: unused, requestFacts: unused,
-    writeOperation: unused, send: unused, project: unused, footprint: unused};
+  const driver = {kinds: [operation], prepareRequest: unused, requestFacts: unused,
+    writeOperation: unused, send: unused, project: unused, footprint: unused,
+    ...(operation === 'update' ? {targetRead: {operation: 'read'}, observeTargets: unused,
+      recoveryEntry: unused, recoverRequests: unused, requestCid: unused} : {})};
   const connectorTable = createInstalledConnectorTable([{name: 'effect_construction_fixture',
     registration: 'effect_construction_fixture', revision: 'effect_construction_fixture/0.1', effect: {
       profileVersion: version, load: async () => ({check: value => value, identityParts: unused,
@@ -390,7 +409,7 @@ test('Effect construction retains original Mapping Environment and adapter until
 
 test('Effect construction refuses Mapping backing before the native Mapping or Site constructor', async t => {
   const f = await constructionFixture(t, {refuseMapping: true});
-  await assert.rejects(f.run(), error => error === f.refusal);
+  await assert.rejects(f.run(), sameInitializationFailure(f.refusal));
   assert.equal(f.events.includes('mapping'), false);assert.equal(f.options(), undefined);
   assert.equal(retireInstalledSourceInitialization(f.services), true);
 });
@@ -415,7 +434,7 @@ test('Effect construction false Site close retains the same original initial bod
 
 test('Effect construction failed Mapping reservation is sticky on the same original context', async t => {
   const f = await constructionFixture(t, {refuseMapping: true});
-  await assert.rejects(f.run(), error => error === f.refusal);
+  await assert.rejects(f.run(), sameInitializationFailure(f.refusal));
   assert.throws(() => f.context().prepareMappings('{"original":"writes"}', f.writes),
     {code: 'ForeignInstalledSourceInitialization'});
   assert.equal(f.events.includes('mapping'), false);
@@ -474,7 +493,7 @@ test('GitHub Effect installer forwards original declaration Mapping and Site con
 // Actual existing Source material/context and Environment assembler. Only
 // native Core capacities/projection and current/retirement ports are explicit;
 // this exercises ownership/order, not numeric backing or a physical ACK.
-function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = [], contractQuantity, contractFailure, repeatedNative = false, retainedNative, failRetainedProjection, missingRetainedProjection = false} = {}) {
+function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = [], contractQuantity, contractFailure, repeatedNative = false, retainedNative, failRetainedProjection, missingRetainedProjection = false, metadataOnly = false} = {}) {
   const ok = value => ({$tag: 1, _0: value});
   const initial = {}, input = {}, unit = {}, capacity = {}, declaration = {}, native = {};
   const installed = Object.freeze({registration: 'sheets', revision: 'sheets/0.1', effect: {}});
@@ -482,7 +501,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
   const base = {catalog_cid: cid, catalog: '{}', contracts: [], view_bodies: [],
     evidence_schemas: [], evidence_capabilities: [], manifest_entry: '{}'};
   const declared = {...base, command_bodies: ['{}']};
-  const events = [], quotes = [], reservedQuotes = [], completions = [], refusal = new Error('original command reservation refused'), contractOriginal={original:'contracts'};
+  const events = [], quotes = [], reservedQuotes = [], completions = [], sourceCompletions = [], refusal = new Error('original command reservation refused'), contractOriginal={original:'contracts'};
   let reserveCalls = 0, retired = 0, context, pending;
   const originalIo=new Set();
   const moon = Object.fromEntries(['ReconcileInstalledSourceConstruction','CompleteInstalledSourceMaterial',
@@ -490,6 +509,10 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     'AbortUncontinuedSourceMaterial','BeginInstalledSourceIo','ChargeInstalledSourceIo',
     'MarkInstalledSourceIoTransferUncertain','FinishInstalledSourceIoAfterCleanup'].map(name => ['clientProgram' + name, () => ok()]));
   Object.assign(moon, {
+    clientProgramCompleteInstalledSourceMaterial(value, original, source, environment, quote) {
+      assert.equal(value, capacity);assert.equal(original, input);assert.equal(source,input);
+      sourceCompletions.push({source,environment,quote});events.push('source-complete');return ok();
+    },
     clientProgramBeginInstalledSourceIo(value,original,bytes) {assert.equal(value,capacity);assert.equal(original,input);assert.equal(typeof bytes,'bigint');const operation=Object.freeze({original:'fixture-io'});originalIo.add(operation);events.push('io-begin');return ok(operation);},
     clientProgramChargeInstalledSourceIo(operation,bytes) {assert(originalIo.has(operation));assert.equal(typeof bytes,'bigint');events.push('io-charge');return ok();},
     clientProgramFinishInstalledSourceIoAfterCleanup(operation) {assert(originalIo.delete(operation));events.push('io-finish');return ok();},
@@ -513,10 +536,10 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
   if (missingRetainedProjection) delete moon.clientProgramInstalledSourceRetainedConstructionCapacity;
   const services = createInstalledHostServices({root: '/unopened-original-command-construction', principalId: 'fixture', moon,
     initialPreparation: initial, assertCurrent() {}});
-  retainInstalledHostServiceInstallation(services, installed, cid);
+  if (!metadataOnly) retainInstalledHostServiceInstallation(services, installed, cid);
   const environment = JSON.stringify({version:'actql-check-environment/0.1',connector_catalogs:[],schema_snapshots:[],
     connector_capabilities:[],mapping_contracts:[],command_contracts:[]});
-  context = beginInstalledSourceInitialization(services, installed, 'sheets', environment, role);
+  if (!metadataOnly) context = beginInstalledSourceInitialization(services, installed, 'sheets', environment, role);
   const projection = Object.freeze({capacity(wire) {
     assert.deepEqual(JSON.parse(wire), base);events.push('native-quantity');return native;
   }, project(wire) {
@@ -525,7 +548,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     if (failProjection === 'async') return new Promise(resolve => {pending = resolve;});
     return Object.freeze({declared, commands, definition: Object.freeze({installed:commands[0]}), wire:JSON.stringify(declared)});
   }});
-  return {context,services,projection,commands,declared,declaration,quotes,reservedQuotes,completions,events,refusal,contractOriginal,installed,moon,native,environment,
+  return {context,services,input,projection,commands,declared,declaration,quotes,reservedQuotes,completions,sourceCompletions,events,refusal,contractOriginal,installed,moon,native,environment,
     prepare:expected=>context.prepareDeclaredCommands('{"views":[]}',projection,expected),
     finish:()=>finishInstalledSourceInitialization(context, undefined, new Error('original unit terminal'), true),
     retire:()=>retireInstalledSourceInitialization(services), retired:()=>retired,originalIo,
@@ -860,4 +883,186 @@ test('closed Command missing retained DATA port refuses before original construc
   assert.throws(()=>f.prepare(),{code:'InstalledSourceInitializationRuntimeUnavailable'});
   assert.deepEqual(f.events,[]);assert.equal(f.completions.length,0);
   f.finish();assert.equal(f.retire(),true);
+});
+
+test('native Source input and original declaration stay on the same pre-reserved initializer',()=>{
+  const f=commandConstructionFixture({role:'source',repeatedNative:true});
+  const events=[];
+  const input=f.context.prepareInputConstruction(Object.freeze({
+    capacity(){events.push('input-quantity');return f.native;},
+    project(){assert.equal(f.events.at(-1),'reserve');events.push('input');return Buffer.from('original');},
+  }));
+  const material=Object.freeze({input,description:Object.freeze({original:'description'})});
+  const prepared=f.context.prepareNativeDeclaration(Object.freeze({
+    capacity(){events.push('declaration-quantity');return f.native;},
+    project(){assert.equal(f.events.at(-1),'reserve');events.push('declaration');
+      return Object.freeze({declaration:f.declaration,material});},
+  }));
+  assert.strictEqual(prepared.declaration,f.declaration);
+  assert.strictEqual(prepared.material,material);
+  assert.equal(typeof prepared.wire, 'string');
+  assert.deepEqual(JSON.parse(prepared.wire), prepared.declared);
+  assert.equal(prepared.environment.wire,JSON.stringify(JSON.parse(prepared.environment.wire)));
+  assert.doesNotThrow(()=>assertInstalledSourceConstruction(f.context,prepared.declaration,
+    prepared.declared,prepared.environment));
+  assert.deepEqual(events,['input-quantity','input','declaration-quantity','declaration']);
+  assert.deepEqual(f.quotes.at(-1).selected,[f.native,f.native]);
+  assert.throws(()=>f.context.prepareNativeDeclaration(Object.freeze({capacity(){return f.native;},project(){assert.fail('no second original');}})),
+    {code:'ForeignInstalledSourceInitialization'});
+  f.finish();assert.equal(f.retire(),true);
+});
+
+test('native Source input reservation refuses before allocation and cannot retry its failed original',()=>{
+  const f=commandConstructionFixture({role:'source',refuseReserve:true,reserveAt:1});
+  let entered=0;
+  const projection=Object.freeze({capacity(){return f.native;},project(){entered++;return Buffer.alloc(8);}});
+  assert.throws(()=>f.context.prepareInputConstruction(projection),cause=>cause===f.refusal);
+  assert.equal(entered,0);
+  assert.throws(()=>f.context.prepareInputConstruction(projection),{code:'ForeignInstalledSourceInitialization'});
+  assert.equal(entered,0);assert.equal(f.retire(),false);
+  f.finish();assert.equal(f.retire(),true);
+});
+
+test('native Source construction preserves thrown undefined and refuses foreign or reentrant entry',()=>{
+  for(const method of ['prepareInputConstruction','prepareNativeDeclaration']){
+    const f=commandConstructionFixture({role:'source'});let entered=0;
+    const projection=Object.freeze({capacity(){return f.native;},project(){entered++;
+      assert.throws(()=>f.context[method](projection),{code:'ForeignInstalledSourceInitialization'});
+      throw undefined;}});
+    assert.throws(()=>Reflect.apply(f.context[method],Object.freeze({}),[projection]),
+      {code:'ForeignInstalledSourceInitialization'});
+    let threw=false;
+    try{f.context[method](projection);}catch(cause){threw=true;assert.equal(cause,undefined);}
+    assert.equal(threw,true);assert.equal(entered,1);
+    assert.throws(()=>f.context[method](projection),{code:'ForeignInstalledSourceInitialization'});
+    f.finish();assert.equal(f.retire(),true);
+  }
+});
+
+test('invalid async native Source construction remains held until original settlement without retry',async()=>{
+  for(const method of ['prepareInputConstruction','prepareNativeDeclaration']){
+    const f=commandConstructionFixture({role:'source'});let settle;
+    const projection=Object.freeze({capacity(){return f.native;},project(){return new Promise(resolve=>{settle=resolve;});}});
+    assert.throws(()=>f.context[method](projection),{code:'InstalledSourceConstructorNotSynchronous'});
+    f.finish();assert.equal(f.retire(),false);
+    assert.throws(()=>f.context[method](projection),{code:'ForeignInstalledSourceInitialization'});
+    settle(Object.freeze({unexpected:'never admitted'}));await Promise.resolve();await Promise.resolve();
+    assert.equal(f.retire(),true);
+  }
+});
+
+// Domain descriptor validation only; this fixture is not lifecycle evidence.
+test('Source Command optional definition must be own DATA when supplied', () => {
+  const f = commandConstructionFixture({role: 'source'});
+  let getterCalls = 0;
+  const projection = Object.freeze({capacity: f.projection.capacity,
+    project(wire) {
+      const original = f.projection.project(wire);
+      const {definition: ignored, ...data} = original;
+      void ignored;
+      return Object.freeze(Object.defineProperty(data, 'definition', {
+        enumerable: true, get() {getterCalls++; return undefined;}}));
+    }});
+  assert.throws(() => f.context.prepareDeclaredCommands('{"views":[]}', projection),
+    {code: 'InvalidInstalledSourceCommandProjection'});
+  assert.equal(getterCalls, 0);
+  assert.equal(f.completions.length, 0, 'invalid output never selects a retained-only quantity');
+  f.finish(); assert.equal(f.retire(), true);
+});
+
+// Native Mapping semantics are covered by Core tests. These cases exercise
+// the existing Host reservation and real adapter custody boundary.
+test('Effect UPDATE construction selects its typed continuation under the same reservation', async t => {
+  const f = await constructionFixture(t, {operation: 'update'}), adapter = await f.run();
+  assert.equal(f.events.filter(value => value === 'mapping').length, 1);
+  assert.match(f.options().mappings[0].mappingRef, /update/);
+  f.allowClose();
+  await adapter.close();
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+test('Effect UPDATE backing refusal never enters either Mapping constructor', async t => {
+  const f = await constructionFixture(t, {operation: 'update', refuseMapping: true});
+  await assert.rejects(f.run(), sameInitializationFailure(f.refusal));
+  assert.equal(f.events.includes('mapping'), false);
+  assert.throws(() => f.context().prepareMappings('{"original":"writes"}', f.writes),
+    {code: 'ForeignInstalledSourceInitialization'});
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+// Metadata precedes a configured connection. Its reader still belongs to the
+// original Source material, never to a fabricated connector context.
+test('metadata native admission uses the original reader before a connection exists', () => {
+  const f = commandConstructionFixture({metadataOnly: true});
+  const reader = installedSourceConfigurationReader(f.services), value = Object.freeze({original: true});
+  const projection = Object.freeze({capacity() {assert.equal(this, projection);return f.native;},
+    project() {assert.equal(this, projection);assert.equal(f.events.at(-1), 'reserve');return value;}});
+  assert.equal(reader.prepareNativeInput(projection), value);
+  assert.equal(f.context, undefined);
+  assert.throws(() => reader.prepareNativeInput(projection), {code: 'ForeignInstalledSourceInitialization'});
+  assert.throws(() => reader.prepareNativeInput.call(Object.freeze({...reader}), projection),
+    {code: 'ForeignInstalledConfigurationReader'});
+  const foreign = installedSourceConfigurationReader(commandConstructionFixture({metadataOnly: true}).services);
+  assert.throws(() => reader.prepareNativeInput.call(foreign, projection), {code: 'ForeignInstalledConfigurationReader'});
+  assert.equal(f.retire(), true);
+});
+
+test('metadata native reservation refusal is once-only and precedes projection', () => {
+  const f = commandConstructionFixture({metadataOnly: true, refuseReserve: true, reserveAt: 1});
+  const reader = installedSourceConfigurationReader(f.services);let called = 0;
+  const projection = Object.freeze({capacity() {return f.native;}, project() {called++;return {};}});
+  assert.throws(() => reader.prepareNativeInput(projection), error => error === f.refusal);
+  assert.equal(called, 0);
+  assert.throws(() => reader.prepareNativeInput(projection), {code: 'ForeignInstalledSourceInitialization'});
+  assert.equal(f.retire(), true);
+});
+
+test('metadata native admission refuses reentry and retains an unsettled failed constructor', async () => {
+  const f = commandConstructionFixture({metadataOnly: true}), reader = installedSourceConfigurationReader(f.services);
+  let settle;const pending = new Promise(resolve => {settle = resolve;});
+  const projection = Object.freeze({capacity() {
+    assert.throws(() => reader.prepareNativeInput(projection), {code: 'ForeignInstalledSourceInitialization'});
+    return f.native;
+  }, project() {return pending;}});
+  assert.throws(() => reader.prepareNativeInput(projection));
+  assert.equal(f.retire(), false);
+  settle(Object.freeze({original: 'settled'}));await pending;await Promise.resolve();
+  assert.equal(f.retire(), true);
+});
+
+test('same Source metadata reader funds strict UTF8 decoding and rejects malformed original bytes', async t => {
+  const directory = await fs.mkdtemp(join(tmpdir(), 'actql-source-utf8-'));
+  t.after(() => fs.rm(directory, {recursive: true, force: true}));
+  const valid = join(directory, 'valid.json'), invalid = join(directory, 'invalid.json');
+  await fs.writeFile(valid, '{"name":"例"}');await fs.writeFile(invalid, Buffer.from([0xc3, 0x28]));
+  const f = commandConstructionFixture({metadataOnly: true}), reader = installedSourceConfigurationReader(f.services);
+  assert.equal(await reader.readUtf8(valid, {maxBytes: 64}), '{"name":"例"}');
+  assert.equal(f.originalIo.size, 0);
+  await assert.rejects(reader.readUtf8(invalid, {maxBytes: 64}), error => error.code === 'ERR_ENCODING_INVALID_ENCODED_DATA');
+  assert.equal(f.originalIo.size, 0);
+  assert.equal(f.retire(), true);
+});
+
+test('final Source handoff retains the built Environment without another parser workspace', () => {
+  function complete(text) {
+    const f = commandConstructionFixture();f.prepare();f.finish();
+    const environment = Object.freeze({original: 'checked Environment'});
+    completeInstalledSourceInitialization(f.services, f.input, environment,
+      JSON.stringify({name: text}));
+    assert.equal(f.sourceCompletions.length, 1);
+    assert.strictEqual(f.sourceCompletions[0].environment, environment);
+    assert.deepEqual(f.reservedQuotes.at(-1).original.values.slice(3), [0n,0n,0n],
+      'The original checked body already exists; completion does not parse it again');
+    assert.deepEqual(f.events.slice(-2), ['reserve','source-complete']);
+    assert.equal(f.retire(), true);
+    return f.sourceCompletions[0].quote.original.values;
+  }
+  const short = complete('x'), long = complete('x'.repeat(100000));
+  assert.equal(long[0], short[0], 'A String retains text bytes, not one Value node per byte');
+  assert.ok(long[1] > short[1]);
+  const f = commandConstructionFixture({refuseReserve:true,reserveAt:4});f.prepare();f.finish();
+  assert.throws(() => completeInstalledSourceInitialization(f.services,f.input,{},'{}'),
+    error => error === f.refusal);
+  assert.equal(f.sourceCompletions.length,0,'Original refusal precedes the existing completion');
+  assert.equal(f.retire(),true);
 });

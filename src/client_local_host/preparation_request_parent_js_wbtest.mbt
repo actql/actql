@@ -1,5 +1,8 @@
 ///|
 /// Actual ordinary Node supplier; no Source, Account, provider or I/O port.
+// Retain the original Array object across this identity boundary. A FixedArray
+// conversion would select a copy instead of the input admitted below.
+#warnings("-deprecated")
 extern "js" fn request_parent_test_original(
   loader : PublicationTestLoader,
   input : Array[Int],
@@ -54,7 +57,10 @@ test "request parent reserves controls then grows its original snapshot reservat
   reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
   let after = @resources.ledger_usage(owner.ledger)
   assert_true(physical_equal(owner.capacity, original))
-  assert_true(physical_equal(owner.initial, initial))
+  assert_true(
+    owner.initial is NodeRequestInitial(original) &&
+    physical_equal(original, initial),
+  )
   assert_true(after.reserved_retention_bytes > before.reserved_retention_bytes)
   assert_true(after.reserved_execution_bytes > 0L)
   assert_eq(after.live_reservations, before.live_reservations)
@@ -192,11 +198,33 @@ test "fixed Request control envelope preserves original upper bound through the 
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,
     ),
-    Some(10368L),
+    Some(10736L),
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((14464L, 0L)),
+    Some((14832L, 0L)),
+  )
+  let growth = @resources.preparation_inventory_growth_entry_construction()
+  assert_eq(
+    @execution.preparation_representation_cost({
+      record_headers: growth.record_headers,
+      reference_slots: growth.reference_slots,
+      scalar_words: growth.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }),
+    Some(368L),
+  )
+  let growth = @resources.preparation_inventory_growth_entry_construction()
+  assert_eq(
+    @execution.preparation_representation_cost({
+      record_headers: growth.record_headers,
+      reference_slots: growth.reference_slots,
+      scalar_words: growth.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }),
+    Some(368L),
   )
   assert_eq(request_preparation_fixed_control_envelope.owned_utf16_units, 0L)
   assert_eq(request_preparation_fixed_control_envelope.owned_wire_bytes, 0L)
@@ -212,7 +240,7 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   ).unwrap()
   let reservation = owner.capacity
   let before = @resources.ledger_usage(owner.ledger)
-  assert_eq(before.reserved_retention_bytes, 14464L)
+  assert_eq(before.reserved_retention_bytes, 14832L)
   reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
   let small = @resources.ledger_usage(owner.ledger)
   reserve_request_snapshot(owner, input, 256L, 32L).unwrap()
@@ -229,8 +257,26 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((14464L, 0L)),
+    Some((14832L, 0L)),
   )
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
+}
+
+///|
+test "Node Request keeps its original full sealed envelope requirement" {
+  let input = [1]
+  let policy = client_local_resource_policy()
+  let ceiling = client_local_preparation_initial_limits(policy).unwrap()
+  let (controls, _) = client_request_preparation_control_capacity(policy).unwrap()
+  let initial = request_parent_fixture(
+    input,
+    initial_limits=Some({
+      ..ceiling,
+      retained_bytes: controls,
+      execution_bytes: 0L,
+    }),
+  )
+  assert_true(begin_request_preparation(initial, input, policy) is Err(Policy))
+  @resources.cleanup_node_preparation_admission(initial).unwrap()
 }

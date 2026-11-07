@@ -1,4 +1,22 @@
 ///|
+// Borrow complete checked record fields from the original carrier. Event
+// payloads in a captured suffix have the same immutable field contracts; they are not converted to
+// Relations or evidence. Their container/clock storage keeps its own provider
+// quote and the existing row/item limits remain unchanged. Source-free closed
+// Carrier paths keep their earlier independent item-count proof selection.
+fn client_local_record_value_schema(
+  carrier : @carrier.Carrier,
+  capture_suffix : Bool,
+) -> @schema.Schema? {
+  match carrier {
+    @carrier.Relation(records) => @carrier.complete_schema(records)
+    @carrier.EventValue(events) if capture_suffix =>
+      @carrier.complete_schema(@carrier.event_records(events))
+    _ => None
+  }
+}
+
+///|
 /// One work-bounded inventory per original prepared owner. Shared task views
 /// reuse checked schema facts, never storage: repeated ports remain counted.
 // `_observed_*` fields retain exact bound observations for white-box tests;
@@ -8,6 +26,8 @@ priv struct ClientLocalSchemaProofInventory {
   _observed_owner_count : Int
   _observed_work_used : Int
   max_node_width : Int64
+  // Same contextual owner: actual per-node cardinalities, not global rows.
+  closed_value_nodes : Int64?
   max_name_width : Int64
   fields : Int
   names : Int
@@ -17,6 +37,9 @@ priv struct ClientLocalSchemaProofInventory {
   // mode selects member Result endpoints ONLY for operation multiplicity;
   // that scoped value must not replace Compute/input demand.
   closed_rows : Int?
+  // Carrier storage is still priced by its original provider. This marks the
+  // separate closed-item proof, not a synthetic Relation schema for that value.
+  carrier_values : Bool
 }
 
 ///|
@@ -47,6 +70,8 @@ fn client_local_schema_proof_inventory(
   leaf_only? : Bool = false,
   workspace? : ClientLocalSchemaProofWorkspace? = None,
   effect_sources? : @strategy.CheckedEffectComputationDAG? = None,
+  closed_carriers? : Bool = false,
+  content? : ClientInstalledEffectContentPreparation? = None,
 ) -> ClientLocalSchemaProofInventory? {
   if sequences.is_empty() || max_work < 1 || sequences.length() > max_work {
     return None
@@ -74,7 +99,34 @@ fn client_local_schema_proof_inventory(
     ) {
     return None
   }
+  if content is Some(selected) &&
+    !(graph is Some(original) &&
+    physical_equal(
+      original,
+      installed_managed_owner_graph(Effect(selected.prepared)),
+    )) {
+    return None
+  }
   let mut remaining = max_work
+  let carrier_bound = if closed_carriers &&
+    graph_offset == 0 &&
+    effect_sources is None &&
+    graph is Some(original) {
+    let work = Ref(remaining)
+    let bound = client_local_closed_carrier_bound(sequences, original, work)
+    remaining = work.val
+    guard bound is Some(_) else { return None }
+    bound
+  } else {
+    None
+  }
+  // Snapshot the original compilation depth once for the optional checked
+  // value proof. This does not change the Run value-depth policy.
+  let value_depth = if leaf_only {
+    client_local_value_node_proof_depth()
+  } else {
+    0
+  }
   let seen : Array[@lower.BoundPrepared] = []
   let mut nodes = 1L
   let mut names_total = 0L
@@ -83,7 +135,13 @@ fn client_local_schema_proof_inventory(
   let mut ports = 0
   let mut bindings = 0
   let mut closed_rows : Int? = Some(0)
+  let mut weighted_total : Int64? = if content is Some(_) && leaf_only {
+    Some(0L)
+  } else {
+    None
+  }
   let mut selected_sources = 0
+  let mut event_records = false
   for index, sequence in sequences {
     if remaining < 1 {
       return None
@@ -115,6 +173,17 @@ fn client_local_schema_proof_inventory(
       actual.owners = Int::max(actual.owners, seen.length())
     }
     let prepared = @lower.bound_preparation(owner)
+    let content_nodes = match content {
+      None => None
+      Some(selected) =>
+        match installed_content_schema_node_bound(selected, owner, remaining) {
+          None => return None
+          Some((contract, nodes, used)) => {
+            remaining -= used
+            Some((contract, nodes))
+          }
+        }
+    }
     let inputs = @lower.preparation_input_count(prepared)
     let rows : Array[Int?] = []
     let mut row_bounds = 0
@@ -127,9 +196,25 @@ fn client_local_schema_proof_inventory(
     let mut output_nodes = 0L
     let mut input_names = 0L
     let mut output_names = 0L
+    let mut weighted_inputs : Int64? = if weighted_total is Some(_) &&
+      inputs == 0 {
+      Some(0L)
+    } else {
+      None
+    }
+    let mut weighted_outputs : Int64? = weighted_inputs
     for input in 0..<inputs {
-      guard @lower.preparation_input_schema(prepared, input) is Some(schema) else {
-        return None
+      let carrier = @lower.preparation_input_carrier(prepared, input)
+      event_records = event_records || carrier is Some(@carrier.EventValue(_))
+      guard carrier.bind(value => {
+          client_local_record_value_schema(value, graph_offset > 0)
+        })
+        is Some(schema) else {
+        if carrier_bound is Some(_) {
+          continue
+        } else {
+          return None
+        }
       }
       let width = @schema.field_count(schema)
       if remaining < 1 || width > remaining - 1 {
@@ -139,8 +224,15 @@ fn client_local_schema_proof_inventory(
       if scalar_only && client_local_scalar_schema_width(schema) is None {
         return None
       }
-      if leaf_only && !client_local_json_leaf_schema(schema) {
-        return None
+      let node_width = if leaf_only {
+        guard client_local_json_schema_nodes(schema, remaining, value_depth)
+          is Some((nodes, used)) else {
+          return None
+        }
+        remaining -= used
+        nodes
+      } else {
+        width.to_int64() + 1L
       }
       let name_bytes = @schema.field_reference_name_bytes(schema)
       if name_bytes < 0 {
@@ -148,16 +240,18 @@ fn client_local_schema_proof_inventory(
       }
       fields = Int::max(fields, width)
       names = Int::max(names, name_bytes)
-      input_nodes += width.to_int64() + 1L
-      output_nodes += width.to_int64() + 1L
+      input_nodes += node_width
+      output_nodes += node_width
       input_names += name_bytes.to_int64()
       output_names += name_bytes.to_int64()
     }
     for node_index in 0..<@lower.node_count(prepared) {
-      guard @lower.node_at(prepared, node_index) is Some(node) &&
-        @lower.node_relation_schema(node) is Some(schema) else {
+      guard @lower.node_at(prepared, node_index) is Some(node) else {
         return None
       }
+      let count = @lower.node_input_count(node)
+      ports = Int::max(ports, count)
+      bindings = Int::max(bindings, count)
       let row_ports = @lower.node_input_count(node)
       if row_ports > remaining {
         return None
@@ -197,32 +291,77 @@ fn client_local_schema_proof_inventory(
           _ => None
         }
       }
-      let width = @schema.field_count(schema)
-      if remaining < 1 || width > remaining - 1 {
-        return None
-      }
-      remaining -= width + 1
-      if scalar_only && client_local_scalar_schema_width(schema) is None {
-        return None
-      }
-      if leaf_only && !client_local_json_leaf_schema(schema) {
-        return None
-      }
-      let name_bytes = @schema.field_reference_name_bytes(schema)
-      if name_bytes < 0 {
-        return None
-      }
-      fields = Int::max(fields, width)
-      names = Int::max(names, name_bytes)
-      output_nodes += width.to_int64() + 1L
-      output_names += name_bytes.to_int64()
-      let count = @lower.node_input_count(node)
-      ports = Int::max(ports, count)
-      bindings = Int::max(bindings, count)
-      for port in 0..<count {
-        guard @lower.node_input_target(node, port) is Some(target) &&
-          @lower.preparation_schema_at(prepared, target) is Some(input_schema) else {
+      let output_carrier = @lower.node_output_carrier(node)
+      event_records = event_records || output_carrier is @carrier.EventValue(_)
+      if client_local_record_value_schema(output_carrier, graph_offset > 0)
+        is Some(schema) {
+        let width = @schema.field_count(schema)
+        if remaining < 1 || width > remaining - 1 {
           return None
+        }
+        remaining -= width + 1
+        if scalar_only && client_local_scalar_schema_width(schema) is None {
+          return None
+        }
+        let node_width = if leaf_only {
+          guard client_local_json_schema_nodes(
+              schema,
+              remaining,
+              value_depth,
+              content=if content is Some(original) &&
+                node_index >= original.component.step {
+                content_nodes
+              } else {
+                None
+              },
+            )
+            is Some((nodes, used)) else {
+            return None
+          }
+          remaining -= used
+          nodes
+        } else {
+          width.to_int64() + 1L
+        }
+        let name_bytes = @schema.field_reference_name_bytes(schema)
+        if name_bytes < 0 {
+          return None
+        }
+        fields = Int::max(fields, width)
+        names = Int::max(names, name_bytes)
+        output_nodes += node_width
+        weighted_outputs = match (weighted_outputs, bound) {
+          (Some(total), Some(count)) =>
+            @execution.checked_preparation_add_product(
+              total,
+              node_width,
+              count.to_int64(),
+            )
+          _ => None
+        }
+        output_names += name_bytes.to_int64()
+      } else if carrier_bound is None {
+        return None
+      } else {
+        // The separate original Carrier proof is not a JSON-node quantity.
+        // Keep the weighted JSON proof unresolved, never fabricate zero.
+        weighted_outputs = None
+      }
+      for port in 0..<count {
+        guard @lower.node_input_target(node, port) is Some(target) else {
+          return None
+        }
+        let carrier = @lower.preparation_carrier_at(prepared, target)
+        event_records = event_records || carrier is Some(@carrier.EventValue(_))
+        guard carrier.bind(value => {
+            client_local_record_value_schema(value, graph_offset > 0)
+          })
+          is Some(input_schema) else {
+          if carrier_bound is Some(_) {
+            continue
+          } else {
+            return None
+          }
         }
         let width = @schema.field_count(input_schema)
         if remaining < 1 || width > remaining - 1 {
@@ -232,16 +371,52 @@ fn client_local_schema_proof_inventory(
         if scalar_only && client_local_scalar_schema_width(input_schema) is None {
           return None
         }
-        if leaf_only && !client_local_json_leaf_schema(input_schema) {
-          return None
+        let node_width = if leaf_only {
+          guard client_local_json_schema_nodes(
+              input_schema,
+              remaining,
+              value_depth,
+              content=if content is Some(original) &&
+                target is @pipeline.Step(input_step) &&
+                input_step >= original.component.step {
+                content_nodes
+              } else {
+                None
+              },
+            )
+            is Some((nodes, used)) else {
+            return None
+          }
+          remaining -= used
+          nodes
+        } else {
+          width.to_int64() + 1L
         }
         let name_bytes = @schema.field_reference_name_bytes(input_schema)
         if name_bytes < 0 {
           return None
         }
-        input_nodes += width.to_int64() + 1L
+        input_nodes += node_width
+        let count = match target {
+          @pipeline.Step(step) => rows.get(step).bind(value => value)
+          _ => None
+        }
+        weighted_inputs = match (weighted_inputs, count) {
+          (Some(total), Some(count)) =>
+            @execution.checked_preparation_add_product(
+              total,
+              node_width,
+              count.to_int64(),
+            )
+          _ => None
+        }
         input_names += name_bytes.to_int64()
       }
+    }
+    weighted_total = match (weighted_total, weighted_inputs, weighted_outputs) {
+      (Some(previous), Some(inputs), Some(outputs)) =>
+        Some(Int64::max(previous, Int64::max(inputs, outputs)))
+      _ => None
     }
     nodes = Int64::max(nodes, Int64::max(input_nodes, output_nodes))
     names_total = Int64::max(names_total, Int64::max(input_names, output_names))
@@ -287,12 +462,17 @@ fn client_local_schema_proof_inventory(
     _observed_owner_count: seen.length(),
     _observed_work_used: max_work - remaining,
     max_node_width: nodes,
+    closed_value_nodes: weighted_total,
     max_name_width: names_total,
     fields,
     names,
     ports,
     bindings,
-    closed_rows,
+    closed_rows: match carrier_bound {
+      Some(bound) => Some(bound)
+      None => closed_rows
+    },
+    carrier_values: carrier_bound is Some(_) || event_records,
   })
 }
 
@@ -301,5 +481,14 @@ fn client_local_inventory_nodes(
   inventory : ClientLocalSchemaProofInventory,
   max_rows : Int,
 ) -> Int? {
-  client_local_scalar_product(inventory.max_node_width, max_rows, 3)
+  let ordinary = client_local_scalar_product(
+    inventory.max_node_width,
+    max_rows,
+    3,
+  )
+  match (ordinary, inventory.closed_value_nodes) {
+    (Some(previous), Some(total)) if total >= 0L && total <= 2147483644L =>
+      Some(Int::min(previous, total.to_int()))
+    _ => ordinary
+  }
 }

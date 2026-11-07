@@ -15,9 +15,14 @@ test('typed JSON capture survives Store commit and fresh-process Host restart', 
   const keys = generateKeyPairSync('ed25519');
   const authorization = {
     accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
-      account_id: 'typed-json-public', entries: [{entry_id: 'write', outcome: 'allow',
-        principal: {all: true}, connection: {all: true}, resource: {all: true},
-        operation: {any_of: ['write']}, exclusions: []}]}),
+      account_id: 'typed-json-public', entries: [
+        {entry_id: 'read-original', outcome: 'allow',
+          principal: {all: true}, connection: {all: true},
+          resource: {any_of: ['result/answer', 'run']},
+          operation: {any_of: ['read']}, exclusions: []},
+        {entry_id: 'write', outcome: 'allow',
+          principal: {all: true}, connection: {all: true}, resource: {all: true},
+          operation: {any_of: ['write']}, exclusions: []}]}),
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer',
       principalId: userInfo().username,
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],

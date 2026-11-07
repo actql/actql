@@ -112,3 +112,46 @@ test "complete Parameter Value phase covers real wide default without changing s
     is Err(ValueIssue(BudgetExceeded, ..)),
   )
 }
+
+///|
+test "same original Contract Value phase shares Parameter syntax construction without rechecking a value" {
+  for
+    (wire, value) in [
+      ("{\"type\":\"number\"}", "42"),
+      ("{\"type\":\"string\"}", "\"source text\""),
+      ("{\"type\":\"decimal\",\"precision\":20,\"scale\":4}", "\"12.3400\""),
+      ("{\"type\":\"array\",\"items\":{\"type\":\"number\"}}", "[1,2,3]"),
+    ] {
+    let syntax = @contract.read_parameter_syntax(json_steps_cursor(wire), {
+      max_nodes: 100,
+      max_depth: 10,
+      max_text_bytes: 1000,
+    }).unwrap()
+    let source = json_steps_cursor(value)
+    let geometry = @decode.observe_subtree_construction_geometry(source)
+    let original = syntax.parameter_type.contract
+    let direct = contract_value_phase_construction_inventory(
+      original, geometry, 2L, 10,
+    ).unwrap()
+    let parameter = parameter_syntax_value_phase_construction_inventory(
+      syntax, geometry, 2L, 10,
+    ).unwrap()
+    assert_eq(direct, parameter)
+    assert_true(
+      admit(original, source, {
+        max_nodes: 100,
+        max_depth: 10,
+        max_text_bytes: 1000,
+      })
+      is Ok(_),
+    )
+    assert_true(
+      contract_value_phase_construction_inventory(original, geometry, -1L, 10)
+      is None,
+    )
+    assert_true(
+      contract_value_phase_construction_inventory(original, geometry, 2L, -1)
+      is None,
+    )
+  }
+}

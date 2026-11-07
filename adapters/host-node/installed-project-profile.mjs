@@ -14,6 +14,7 @@ export function selectInstalledProjectProfile(moon,project,requested,maxWork){
   let configuration=original?.configuration;
   let ports=Object.freeze({select:moon?.clientProjectProfileSelect,
     matches:moon?.clientProjectProfileMatches,name:moon?.clientProjectProfileSelectedName,
+    catalog:moon?.clientProjectProfileMockCatalogFile,
     data:moon?.clientProjectProfileMockDataFile,count:moon?.clientProjectProfileMockAnswerCount,
     task:moon?.clientProjectProfileMockAnswerTask,file:moon?.clientProjectProfileMockAnswerFile,
     retire:moon?.clientProjectProfileRetire});
@@ -51,10 +52,11 @@ export function selectInstalledProjectProfile(moon,project,requested,maxWork){
     },
     mockLocatorsForRuntime(runtime){
       current(runtime,this);
+      const catalogFile=text(checked(call('catalog',selection)));
       const dataFile=text(checked(call('data',selection)));
       const answerCount=checked(call('count',selection));
       if(!Number.isSafeInteger(answerCount)||answerCount<0)fail('InvalidHostRuntimeResult');
-      return Object.freeze({dataFile,answerCount});
+      return Object.freeze({catalogFile,dataFile,answerCount});
     },
     mockAnswerForRuntime(runtime,index){
       current(runtime,this);

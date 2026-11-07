@@ -10,7 +10,6 @@ const ordered = contract.execution_contracts['REL.derive.ordered'];
 const fragment = contract.execution_contracts['ACTQL.expression_fragment/0.1'];
 const property = contract.execution_contracts['BRIDGE.rows.to_graph'];
 const adopted = {
-  source_revision: '9edb5a65db8b822b8629cfa4913fb1097fb99945',
   registry_cid: contract.pipeline_registry_cid,
   values_cid:
     contract.target_registry_requirements['REL.values'].execution_contract.cid,

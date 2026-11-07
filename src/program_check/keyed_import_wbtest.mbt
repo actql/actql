@@ -14,14 +14,17 @@ test "formal keyed acquisition uses producer-only evidence across Result import"
   }
   assert_eq(binding.stage, 1)
   assert_eq(@sourceviews.keyed_join_step(binding.join), 0)
-  let membership = binding.producer
+  let membership = binding.producer.unwrap()
   let (visit, claim, producer) = @capacity.target_membership_coordinates(
     membership,
   ).unwrap()
   assert_true(visit != @capacity.target_membership_consumer_visit(membership))
   assert_eq(claim, 0)
   assert_eq(producer, visit)
-  assert_eq(binding.counts.input_rows, 1L)
+  assert_eq(
+    @sourceviews.lookup_requirement_estimate(binding.requirement).unwrap().input_rows,
+    1L,
+  )
   let policy = publication_source_policy(
     unit_publication_at(program, 1, 0).unwrap(),
   ).unwrap()

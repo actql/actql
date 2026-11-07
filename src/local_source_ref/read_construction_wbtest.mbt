@@ -12,9 +12,11 @@ test "reference reader recipe composes existing Unicode scalar and collection ow
   assert_eq(value.scratch, {
     record_headers: 173L,
     reference_slots: 210L,
-    scalar_words: 1256L,
+    // Sequential ordering/NFC peak: 591 + 27 * 19.
+    scalar_words: 1104L,
   })
-  assert_eq(value.scratch_utf16_units, 994L)
+  // NFC text plus Reference/codec text: 30 * 19 + 44.
+  assert_eq(value.scratch_utf16_units, 614L)
 }
 
 ///|
@@ -38,7 +40,7 @@ test "reference reader recipe follows actual text and preserves checked wide qua
   // Pure quantity arithmetic: no input String, normalization or sized buffer.
   let widest = reference_read_construction_inventory(2147483647).unwrap()
   assert_eq(widest.retained_utf16_units, 4294967294L)
-  assert_eq(widest.scratch_utf16_units, 107374182394L)
+  assert_eq(widest.scratch_utf16_units, 64424509454L)
 }
 
 ///|

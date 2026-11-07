@@ -44,7 +44,9 @@ const tlsKey = await readFile(join(tlsRoot, 'host.key'));
 const tlsCertificate = await readFile(join(tlsRoot, 'host.crt'));
 setDefaultCACertificates([...getCACertificates('default'),
   tlsCertificate.toString('utf8')]);
-test.after(() => rm(tlsRoot, {recursive: true, force: true}));
+test.after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+  ? console.error(`Salesforce Effect Host TLS custody retained: ${tlsRoot}`)
+  : rm(tlsRoot, {recursive: true, force: true}));
 
 // The Host's principal and its one account configuration: the Host and the
 // installed Site decide under the same admitted text.
@@ -68,6 +70,10 @@ function hostConfiguration({commit = 'delegate', read = 'allow', denied = []} = 
       connection: {any_of: ['actql-remote-host']},
       resource: {any_of: ['source-free-values']},
       operation: {any_of: ['write']}, exclusions: []},
+    {entry_id: 'host-observation', outcome: 'allow', principal: {any_of: [owner]},
+      connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['result/answer', 'run']},
+      operation: {any_of: ['read']}, exclusions: []},
   ].sort((a, b) => a.entry_id < b.entry_id ? -1 : 1);
   return canonicalJson({version: 'actql-execution-account-config/0.1',
     account_id: 'salesforce-effect-host', entries});
@@ -92,9 +98,11 @@ async function remoteHost(t, installation, directory, {configuration,
   const effect = await installation.load({
     accountConfigurationWire: configuration});
   const hooks = salesforceEffectSiteHooks(effect);
+  // The real Host's original key installation owns persisted private
+  // evidence across these restarts; an arbitrary fixture Buffer cannot
+  // replace the Result constructor's independently selected original key.
   const site = createInstalledEffectSite({
-    ...(instrument?.hooks?.(hooks) ?? hooks),
-    privateEvidenceKey: Buffer.alloc(32, 7)});
+    ...(instrument?.hooks?.(hooks) ?? hooks)});
   const effectInstallation = {...site,
     async execute(facts) {
       try {
@@ -112,7 +120,9 @@ async function remoteHost(t, installation, directory, {configuration,
       throw error;
     }
   }};
-  const host = await openInstalledRemoteHttpHost({
+  let host;
+  try {
+    host = await openInstalledRemoteHttpHost({
     directory: join(directory, 'state'),
     authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
     beforeDispatch, effectInstallation,
@@ -122,6 +132,16 @@ async function remoteHost(t, installation, directory, {configuration,
         detail: detail?.stack ?? detail?.code ?? detail}),
       reviewReaders: [], resumeAfterAnswer,
       hostKey: {keyId: 'host-key', privateKey: pem(hostKeys.privateKey)}}});
+  } catch (failure) {
+    // Observe only this fresh fixture's original initializer refusal; no
+    // retained input, credential, Store payload or previous state is read.
+    t.diagnostic(JSON.stringify({fixture: 'Salesforce Remote Host original initialization',
+      code: failure?.code, primaryCode: failure?.primaryFailure?.code,
+      primaryStack: failure?.primaryFailure?.stack,
+      causeCode: failure?.cause?.code, cleanupPending: failure?.cleanupPending,
+      cleanup: failure?.cleanupErrors?.map(({owner, error}) => ({owner, code: error?.code}))}));
+    throw failure;
+  }
   let dropped = false;
   const server = createServer({key: tlsKey, cert: tlsCertificate}, (request, response) => {
     if (loseResolveReply && !dropped && request.url === '/actql/client/0.1/resolve') {
@@ -176,7 +196,9 @@ async function setup(t, {targets = ['Test_Record__c'], org = {}, ...options} = {
     // test. Its metadata permission is not retained as a target-read grant.
     principalId: owner, accountConfigurationWire: hostConfiguration({...options, read: 'allow'})});
   const directory = await mkdtemp(join(scratch, 'host-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  t.after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+    ? t.diagnostic(`Retained Salesforce Effect Host fixture: ${directory}`)
+    : rm(directory, {recursive: true, force: true}));
   const effect = await installation.load();
   const program = JSON.stringify(effectProgram(Object.fromEntries(
     effect.mappings.map((mapping, index) => [`save_${index}`, {update: {
@@ -586,7 +608,9 @@ for (const targetRead of ['allow', 'delegate']) {
       org: {writableObjects: ['Other_Record__c'], loseWriteReplyOnce: true},
       principalId: owner, accountConfigurationWire: hostConfiguration()});
     const directory = await mkdtemp(join(scratch, 'host-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+    ? t.diagnostic(`Retained Salesforce Effect Host fixture: ${directory}`)
+    : rm(directory, {recursive: true, force: true}));
     const effect = await installation.load();
     const [mapping] = effect.mappings;
     effect.close();
@@ -709,10 +733,12 @@ function integratedFault(t, selected) {
   };
   const wrapOwner = (owner, name) => {
     const calls = {name, close: 0, cleanup: 0, completed: false};
+    let closeEntered = false;
     state.owners.push(calls);
     return {...owner, async close() {
       calls.close++;
       if (blocked(name)) fail(name);
+      closeEntered = true;
       const result = await owner.close();
       // A Compute close and its reclamation are distinct obligations.
       calls.completed = name !== 'computeClose' && result !== false &&
@@ -721,10 +747,18 @@ function integratedFault(t, selected) {
     }, async cleanup() {
       calls.cleanup++;
       if (blocked(name)) fail(name);
+      // Our injection can refuse before the original close is entered.
+      // Strategy cleanup retries known releases; it does not initiate close.
+      // Retain and enter that SAME original call before claiming its cleanup.
+      if (!closeEntered) {
+        closeEntered = true;
+        await owner.close();
+      }
       const result = await owner.cleanup();
       calls.completed = result !== false && owner.cleanupPending?.() !== true;
       return result;
-    }, cleanupPending: () => owner.cleanupPending?.() ?? !calls.completed};
+    }, cleanupPending: () => !closeEntered ||
+      (owner.cleanupPending?.() ?? !calls.completed)};
   };
   const stageOf = stage => ({...stage,
     ...(stage.releaseInputs === undefined ? {} : {releaseInputs() {
@@ -806,6 +840,26 @@ function exactValueProgram(x) {
   x.program = JSON.stringify(program);
   return ids.map(id => ({id, original}));
 }
+
+test('the injected Compute close owner retries its unentered original close before cleanup',
+  async t => {
+    const fault = integratedFault(t, 'computeClose');
+    let closes = 0, cleanups = 0;
+    const original = {close() {closes++;},
+      cleanup() {cleanups++; return true;},
+      // Strategy cleanup reports pending recoveries, not whether its close
+      // has been entered. The wrapping fault still owns that original call.
+      cleanupPending() {return false;}};
+    const projected = fault.facts({openComputation: () =>
+      ({execution: original})}, 'execute');
+    const {cleanupOwner} = await projected.openComputation({});
+    await assert.rejects(cleanupOwner.close(), {code: 'IntegratedcomputeCloseUnavailable'});
+    assert.equal(closes, 0);
+    fault.armed = false;
+    assert.equal(await cleanupOwner.cleanup(), true);
+    assert.equal(closes, 1);
+    assert.equal(cleanups, 1);
+  });
 
 for (const failed of ['targetClose', 'commitClose', 'inputs', 'computeClose',
   'stage', 'recoveredLedger', 'stopObservation']) {

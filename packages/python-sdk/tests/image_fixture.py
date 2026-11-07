@@ -28,3 +28,16 @@ def descriptor(source, version, module_hash):
         'engine_sha256': hashlib.sha256(json.dumps(ENGINE, sort_keys=True,
             separators=(',', ':')).encode()).hexdigest(), 'file': 'client_host_wasm.cwasm',
         'bytes': len(IMAGE), 'sha256': hashlib.sha256(IMAGE).hexdigest()}
+
+
+def table_module(minimum=64, maximum=64):
+    """Independent metadata-only Wasm; no Core ABI, instance or image evidence."""
+    def u32(value):
+        out = bytearray()
+        while value >= 128:
+            out.append((value & 127) | 128)
+            value >>= 7
+        out.append(value)
+        return bytes(out)
+    table = b'\x01\x70\x01' + u32(minimum) + u32(maximum)
+    return b'\0asm\x01\0\0\0\x04' + u32(len(table)) + table + b'\x05\x05\x01\x01\x01\x80\x02'

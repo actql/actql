@@ -59,6 +59,7 @@ test "Local component keeps composed INFER work deltas and output custody" {
     @connector.ComputeUnsupported
   }
   let child = local_component(active, project).unwrap()
+  assert_eq(active.entry_work, 0L)
   assert_true(local_component(active, project) is Err(InvalidAdvance))
   assert_true(advance_root(active, 1) is Err(InvalidAdvance))
   assert_true(!@local.cleanup_managed_provider(child).unwrap())
@@ -112,6 +113,57 @@ test "Local component keeps composed INFER work deltas and output custody" {
   assert_true(release_output(held))
   assert_true(@local.cleanup_managed_provider(child).unwrap())
   assert_eq(calls.val, 2)
+}
+
+///|
+test "Local component refuses an already advanced original instead of resetting its work history" {
+  let calls = Ref(0)
+  let active = fixture_start(fixture_prepared(), () => calls.val += 1)
+  assert_eq(active.entry_work, 0L)
+  for _ in 0..<1000 {
+    guard advance_root(active, 1).unwrap() is Continue(..) else {
+      abort("the actual input must make progress before Model dispatch")
+    }
+    if active.work > active.entry_work {
+      break
+    }
+  }
+  assert_true(active.phase is Input)
+  let before = active.work
+  assert_true(before > 0L)
+  assert_eq(calls.val, 0)
+  assert_true(
+    local_component(active, _ => @connector.ComputeUnsupported)
+    is Err(InvalidAdvance),
+  )
+  assert_eq(active.work, before)
+  assert_eq(calls.val, 0)
+  assert_true(cancel(active))
+  assert_true(fixture_finish(active, initial_work=active.work) is Stopped(..))
+  assert_true(cleanup(active).unwrap())
+  assert_eq(active.work, before)
+  assert_eq(calls.val, 0)
+}
+
+///|
+test "Local component cancellation before its first poll adds no work or Model call" {
+  let calls = Ref(0)
+  let active = fixture_start(fixture_prepared(), () => calls.val += 1)
+  let child = local_component(active, _ => @connector.ComputeUnsupported).unwrap()
+  let before = active.work
+  assert_true(@local.cancel_managed_provider(child))
+  guard @local.advance_managed_provider(child, 1).unwrap()
+    is @local.Stopped(progress~, work~) else {
+    abort("the original cancelled component must stop on its first poll")
+  }
+  assert_eq(progress, 0L)
+  assert_eq(work, 0L)
+  assert_eq(active.work, before)
+  assert_eq(@local.managed_provider_cumulative_work(child).unwrap(), 0L)
+  assert_eq(calls.val, 0)
+  assert_true(@local.cleanup_managed_provider(child).unwrap())
+  assert_eq(active.work, before)
+  assert_eq(calls.val, 0)
 }
 
 ///|

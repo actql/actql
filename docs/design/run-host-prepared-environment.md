@@ -12,3 +12,17 @@ originals retain their original primary recipe during restoration.
 These handles contain immutable installation metadata. Current authorization,
 acquisition, Preview approval, durable claims and Run outcomes stay with their
 existing operation owners.
+
+## Independently supplied Remote Effects
+
+An explicitly supplied Remote Effect carries its independently published
+Environment. That entrance selects the existing generic Host policy from the
+same original environment image, explicit capacity selection and lookup
+selection. It does not replace the publication's policy identity with the
+Local materialization row profile before composition.
+
+Local installations and ordinary Remote Values/Source materialization retain
+their existing nominal Local Resource row selector. This distinction selects
+an existing policy entrance; it does not issue backing, relax Environment
+equality, change a configured limit or acknowledge cleanup. Installed Effect
+profile-path publication/restoration remains its separate original route.

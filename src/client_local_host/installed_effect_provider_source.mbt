@@ -49,13 +49,23 @@ pub fn begin_installed_effect_managed_source_read(
   }
   // The Run retains this same partially attached read before any later
   // current check can fail. Failure never issues a replacement read or Root.
-  let read = match begin_installed_managed_run_source_read(owner, occurrence) {
+  guard plan.direct_occurrences is Some(selected) &&
+    installed_direct_occurrences_match_owner(selected, Effect(prepared)) &&
+    @publication_host.client_direct_acquisition_occurrence_at(
+      selected, occurrence,
+    )
+    is Some((stage, input, task)) &&
+    task == occurrence else {
+    return Err(ForeignOriginal)
+  }
+  let read = match
+    begin_installed_managed_run_source_read_at(owner, stage, input, task) {
     Err(issue) => return Err(issue)
     Ok(read) => read
   }
   match
     attach_installed_source_read_acquisition(
-      read, declaration, requirement, acquisition, occurrence, 0,
+      read, declaration, requirement, acquisition, stage, input,
     ) {
     Err(_) => return Err(ForeignOriginal)
     Ok(_) => ()

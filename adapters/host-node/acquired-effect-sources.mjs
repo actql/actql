@@ -15,45 +15,71 @@ export function selectAcquiredEffectPlanInputs({moon, preparedEffect, requestIde
   if (count === 0) return undefined;
   const select = moon.clientProgramSelectInstalledEffectSourceInput;
   if (typeof select !== 'function') throw new TypeError('InstalledEffectPlanRuntimeUnavailable');
-  const declarations = [], providers = [], transferBytes = [], executionBytes = [];
+  const originals = [], declarations = [], providers = [], transferBytes = [], executionBytes = [];
   for (let task = 0; task < count; task++) {
     const selected = checked(Reflect.apply(select, moon, [preparedEffect, requestIdentity, task, 0]));
     if (moon.clientProgramSelectedSourceInputKind(selected) !== 'query') {
       throw new TypeError('UnsupportedEffectSourceRealization');
     }
-    const adapter = installedSourceFor(sourceProfile, moon.clientProgramSelectedSourceInputRef(selected));
+    const sourceRef = moon.clientProgramSelectedSourceInputRef(selected);
+    const adapter = installedSourceFor(sourceProfile, sourceRef);
     const prepare = Object.getOwnPropertyDescriptor(adapter, 'managedEffectPlanSelection')?.value;
     if (typeof prepare !== 'function') throw new TypeError('InstalledEffectPlanInputsUnavailable');
     const original = Reflect.apply(prepare, adapter, []);
-    if (original?.declaration === undefined || typeof original.transferBytes !== 'bigint' ||
+    const native = original?.nativeSource;
+    if ((original?.declaration === undefined) === (native === undefined) ||
+        typeof original.transferBytes !== 'bigint' ||
         typeof original.executionBytes !== 'bigint' || original.transferBytes < 0n || original.executionBytes < 0n) {
       throw new TypeError('InstalledSourceCapacityUnavailable');
     }
+    if (native !== undefined && (native === null || !Object.isFrozen(native) ||
+        native.sourceRef !== sourceRef || ![native.sourceRef, native.schema, native.table].every(
+          value => typeof value === 'string' && value.length > 0) ||
+        !Array.isArray(native.contracts) || !Object.isFrozen(native.contracts) || native.contracts.length !== 3 ||
+        native.contracts.some(value => typeof value !== 'string' || value.length === 0) ||
+        original.provider !== undefined)) throw new TypeError('InstalledSourceCapacityUnavailable');
+    originals.push(original);
     declarations.push(original.declaration); providers.push(original.provider);
     transferBytes.push(original.transferBytes); executionBytes.push(original.executionBytes);
   }
-  if (providers.some(value => value === undefined) && providers.some(value => value !== undefined)) {
+  let inputs;
+  if (originals.some(value => value.nativeSource !== undefined)) {
+    // Nominal inert Source inputs preserve the original occurrence order.
+    // Only the SAME Core Plan later prepares each Query/capture once.
+    inputs = originals.map(original => {
+      const native = original.nativeSource;
+      const construct = native === undefined ? moon.clientProgramInstalledEffectRowSourceInputPrepare
+        : moon.clientProgramInstalledEffectDuckDBSourceInputPrepare;
+      if (typeof construct !== 'function') throw new TypeError('InstalledEffectPlanRuntimeUnavailable');
+      return checked(Reflect.apply(construct, moon, native === undefined
+        ? [original.declaration, original.provider]
+        : [native.sourceRef, native.schema, native.table, ...native.contracts]));
+    });
+  } else if (providers.some(value => value === undefined) && providers.some(value => value !== undefined)) {
     throw new TypeError('InstalledSourceCapacityUnavailable');
   }
-  return Object.freeze({declarations: Object.freeze(declarations),
-    ...(providers[0] === undefined ? {} : {providers: Object.freeze(providers)}),
+  return Object.freeze({...(inputs === undefined ? {declarations: Object.freeze(declarations),
+    ...(providers[0] === undefined ? {} : {providers: Object.freeze(providers)})}
+    : {inputs: Object.freeze(inputs)}),
     queryContract, evidenceContract, transferBytes: Object.freeze(transferBytes),
     executionBytes: Object.freeze(executionBytes)});
 }
 
 export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,
-  registry, values, fragment, ordered, queryTimePreparation, requestIdentity, managedPlan}) {
+  registry, values, fragment, ordered, queryTimePreparation, requestIdentity, managedPlan, managedRun,
+  onUnsupportedSelection}) {
   const count = moon.clientProgramEffectAcquisitionCount(preparedEffect);
   if (![0, 1, 2].includes(count)) {
     throw new TypeError('UnsupportedEffectSourceCount');
   }
   const selected = [];
   const owners = new Set();
+  let firstRef;
   for (let task = 0; task < count; task++) {
     let sourceRef;
-    if (managedPlan === undefined && requestIdentity !== undefined) {
-      // Preadmission reads the original checked Requests. The Plan, not this
-      // installation selection, later prepares the Query requirement once.
+    if (requestIdentity !== undefined) {
+      // Select the adapter from the original checked Request. Its current
+      // native/row getter below verifies the SAME retained Plan requirement.
       const selection = checked(moon.clientProgramSelectInstalledEffectSourceInput(
         preparedEffect, requestIdentity, task, 0));
       if (moon.clientProgramSelectedSourceInputKind(selection) !== 'query') {
@@ -71,13 +97,37 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
       sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);
     }
     const adapter = installedSourceFor(sourceProfile, sourceRef);
+    if (managedPlan !== undefined && managedRun !== undefined) {
+      // Native captures have no RowDeclaration/RowAcquisition. Borrow the
+      // original nominal capture from this SAME current parent and Plan.
+      const plan = checked(moon.clientProgramInstalledEffectManagedOperationPlan(
+        managedRun, preparedEffect, requestIdentity));
+      if (plan !== managedPlan) throw new TypeError('ForeignInstalledEffectManagedRun');
+      const requirement = adapter.realizationKey === 'duckdb-acquired'
+        ? runtimeField(checked(moon.clientProgramInstalledEffectManagedDuckDBCapture(
+          managedRun, preparedEffect, requestIdentity, task)), 0)
+        : runtimeField(checked(moon.clientProgramInstalledEffectManagedPlanSource(managedPlan, task)), 1);
+      if (moon.clientProgramQueryRequirementSourceRef(requirement) !== sourceRef) {
+        throw new TypeError('ForeignInstalledEffectManagedRun');
+      }
+    }
     if (typeof adapter.prepare !== 'function' || typeof adapter.open !== 'function') {
       throw new TypeError('InvalidAcquiredEffectComputationPort');
     }
-    if (count === 2 && !['duckdb-acquired', 'row-source-acquired'].includes(adapter.realizationKey)) {
-      throw new TypeError('UnsupportedEffectSourceRealization');
+    const realization = count === 2 ? adapter.realizationKey : undefined;
+    if (count === 2 && !['duckdb-acquired', 'row-source-acquired'].includes(realization)) {
+      const error = new TypeError('UnsupportedEffectSourceRealization');
+      onUnsupportedSelection?.(error, Object.freeze({reason: 'unsupported-realization', count,
+        sourceRef, adapter, realization, previousRef: firstRef, previousAdapter: selected[0]?.adapter}));
+      throw error;
     }
-    if (owners.has(adapter)) throw new TypeError('DuplicateEffectSourceOwner');
+    if (owners.has(adapter)) {
+      const error = new TypeError('DuplicateEffectSourceOwner');
+      onUnsupportedSelection?.(error, Object.freeze({reason: 'duplicate-owner', count,
+        sourceRef, adapter, realization, previousRef: firstRef, previousAdapter: selected[0]?.adapter}));
+      throw error;
+    }
+    if (selected.length === 0) firstRef = sourceRef;
     owners.add(adapter);
     selected.push(Object.freeze({adapter,
       occurrence: Object.freeze({stage: task, input: 0, task})}));

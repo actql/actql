@@ -12,13 +12,15 @@ pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> 
 
 pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String
 
+pub fn sheets_append_request_construction_profile(Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
+
 pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]
 
 pub fn sheets_append_request_json(String, String, Int, Int, Int, Int, Int) -> String
 
 pub fn sheets_clear_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.ClearRangeBinding, @catalog.RangeFailure]
 
-pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?
+pub fn sheets_clear_capture_construction_profile(@catalog.ClearRangeBinding, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?
 
 pub fn sheets_clear_command_json(String, String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
 
@@ -50,7 +52,7 @@ pub fn sheets_project_tabs(Bytes, String, Int, Int, Int, Int, Int, Int) -> Resul
 
 pub fn sheets_range_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.RangeBinding, @catalog.RangeFailure]
 
-pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?
+pub fn sheets_range_capture_construction_profile(@catalog.RangeBinding, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?
 
 pub fn sheets_range_catalog_json(String, String, Int, Int, Int, Int) -> Result[String, @catalog.RangeFailure]
 

@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFileSync} from 'node:child_process';
-import {readFile, readdir, writeFile} from 'node:fs/promises';
+import {writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import * as sdk from '../../packages/sdk/index.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openReadOpeningFixture, connectOpeningHost, openingProgram} from './client-read-opening.fixture.mjs';
+import {attemptBytes} from './client-read-run-capacity.fixture.mjs';
 
 // Authored independently: a generic new read has no row-count resume cursor.
 const firstRows = [{id: 1}, {id: 2}];
@@ -51,9 +52,7 @@ for (const entrance of ['local', 'https']) {
           const received = await Array.fromAsync(fresh);
           await host.settled();
           const delivered = await result.deliveryAttempt(fresh.attemptId);
-          const root = join(scratch.path, 'publication', 'deliveries');
-          const births = await Promise.all((await readdir(root)).filter(name => /^[0-9a-f]{64}$/u.test(name))
-            .sort().map(async name => JSON.parse(await readFile(join(root, name, 'attempt.json'), 'utf8'))));
+          const births = (await attemptBytes(scratch.path)).map(wire => JSON.parse(wire));
           // Retain real Store/Owner and caller observations before the oracle.
           await writeFile(join(scratch.path, 'reordered-read-observation.json'), JSON.stringify({
             entrance, consumer, ref: run.ref, prefix, received, counts: fixture.counts,

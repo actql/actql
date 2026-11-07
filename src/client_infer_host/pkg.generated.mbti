@@ -77,6 +77,8 @@ pub fn bind_quantity_capacity(Execution, @model_execution.ModelQuantityCapacity)
 
 pub fn bind_run(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, InvocationBindingIssue]
 
+pub fn borrow_original_restored_host_output(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> (@execution_relation.CompletedOutput, @model_execution.ModelExecution)?
+
 pub fn call_scope(Execution) -> @run_publication_host.ClientInferCallScope?
 
 pub fn call_settlement(Execution) -> @model_execution.ModelCallSettlement?
@@ -209,6 +211,8 @@ pub fn start(@run_publication_host.PreparedClientProgram, Int, @client_local_hos
 
 pub fn start_complete_observation_issuance(Array[Execution], @physical_resources.Ledger, ObservationIssuanceLimits, generations? : Array[@run_publication_host.ClientSerializationGeneration]) -> Result[ObservationIssuance, Issue]
 
+pub fn start_complete_original_observation_issuance(Array[Execution], @model_execution.OriginalModelPublicationCapacity, ObservationIssuanceLimits, generations? : Array[@run_publication_host.ClientSerializationGeneration]) -> Result[ObservationIssuance, Issue]
+
 pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?, root? : (@execution_relation.GeneratedSequence?, @physical_resources.Ledger)?) -> Result[Execution, Issue]
 
 pub fn start_generated(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, Limits) -> Result[Execution, Issue]
@@ -234,6 +238,8 @@ pub fn start_original_model_current_state_write(Execution, @run_publication_host
 pub fn start_original_model_preparation(@run_publication_host.PreparedClientProgram, Int, @client_local_host.ClientInstalledSequenceContracts, String, @model_execution.ModelProvider, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
 pub fn start_original_observation_issuance(Execution, @model_execution.OriginalModelPublicationCapacity, ObservationIssuanceLimits, generations? : Array[@run_publication_host.ClientSerializationGeneration]) -> Result[ObservationIssuance, Issue]
+
+pub fn start_original_restored_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, Array[String], () -> Bool, @run_publication_host.ClientInferSavedCallScope, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[Execution, Issue]
 
 pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, @client_local_host.ClientInstalledSequenceContracts, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
@@ -302,6 +308,7 @@ pub struct Execution {
   composed_sources : @run_publication_host.ClientInferComposedSources?
   mut serialized_output : @execution_relation.CompletedOutput?
   mut serialized_generation : @run_publication_host.ClientSerializationGeneration?
+  // private fields
 }
 
 type ExecutionRunBinding

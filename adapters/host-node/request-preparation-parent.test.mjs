@@ -4,6 +4,7 @@ import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-manage
 import resources from './ordinary-node-resource-runtime.cjs';
 import {openRequestPreparation, cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 // Actual normal manager/adapter/Resource originals; Core phase/shape results
 // are explicit ports. This does not certify a matching Common or body tariff.
@@ -1067,7 +1068,9 @@ test('installed Effect caller consumes actual Request manager adoption and same 
   const facts = Object.freeze({prepared: selected.prepared, identity: f.identity, compilation: {}, allowed: {},
     definition: {}, queryTimePreparation: undefined, modelCompiled: undefined}), runs = new WeakMap(), liveRuns = new Set();
   f.moon.clientProgramInstalledManagedRunRetire = () => ok(undefined);
-  f.moon.clientProgramInstalledEffectOperationControlsBegin = () => ok(f.plan);
+  f.moon.clientProgramInstalledEffectOperationControlsRetain = () => ok(f.plan);
+  f.moon.clientProgramInstalledEffectOperationControlConstructionBegin = () => ok(undefined);
+  f.moon.clientProgramInstalledEffectOperationControlConstructionComplete = () => ok(undefined);
   f.moon.clientProgramInstalledEffectManagedOperationPlan = function(value, prepared, identity) {
     assert.equal(this, f.moon); assert.equal(value, f.parent); assert.equal(prepared, f.prepared); assert.equal(identity, f.identity); return ok(f.plan);
   };
@@ -1459,6 +1462,18 @@ async function originalEffectModelRequest(options = {}) {
     assert.equal(outer.original, f.original); assert.equal(outer.modelScope, undefined);
     f.events.push('scope'); return ok(scope);
   };
+  if (options.quantityCapacity !== undefined) {
+    outer.modelSelection = Object.freeze({quantityCapacity: options.quantityCapacity});
+    f.moon.clientProgramPrepareRequestEffectModelReadScopeWithQuantities = function(parent, receipt, plan, tokens, cost, duration) {
+      assert.equal(this, f.moon); assert.equal(parent, f.requestParent);
+      assert.equal(receipt, f.receipt); assert.equal(plan, f.plan);
+      const limits = options.quantityCapacity.limits;
+      assert.deepEqual([tokens, cost, duration], [limits.tokens, limits.costUnits, limits.durationMs]);
+      assert.equal(outer.original, f.original); assert.equal(outer.modelScope, undefined);
+      f.events.push('original quantities then scope'); return ok(scope);
+    };
+    f.moon.clientProgramPrepareRequestEffectModelReadScope = () => assert.fail('No unconfigured physical Model scope');
+  }
   f.moon.clientProgramCompleteRequestEffectPreparation = function(...args) {
     assert.equal(this, f.moon); assert.equal(outer.modelScope, scope);
     if (options.phase === 'complete') {f.events.push('complete-failed'); throw options.failure;}
@@ -1705,7 +1720,7 @@ async function originalCheckFixture(project) {
 }
 
 const originalReportMetadata = Object.freeze(['visible', 'context', 'program', 'revision', 17,
-  undefined, 0, undefined, 0, 'correlation', undefined]);
+  undefined, 0, undefined, 0, 'correlation', undefined, undefined, 'null']);
 
 test('original Request Check projection retains exact result receiver and receipt without another preparation', async () => {
   let f, calls = 0;
@@ -1802,4 +1817,333 @@ test('original Request availability keeps the same state across metadata await a
     await assert.rejects(pending, {code: 'ForeignInstalledSourceProducer'});
   } finally {release(); await pending.catch(() => {}); await f.view.close();}
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+
+test('physical Effect Model configures its SAME selected quantity limits before original Scope completion and adoption', async () => {
+  const quantityCapacity = Object.freeze({limits: Object.freeze({tokens: 33n, costUnits: 0n, durationMs: 500n}),
+    perAttempt: Object.freeze({tokens: 33n, costUnits: 0n, durationMs: 500n})});
+  const f = await originalEffectModelRequest({quantityCapacity});
+  await f.view.fundedPreparation(f.sdkRequest, undefined);
+  f.moon.clientProgramPrepareRequestEffectModelReadScopeWithQuantities = () => assert.fail('Use captured same-original constructor');
+  const actual = f.view.adoptEffectModelPreparation(f.prepared, f.sdkRequest, f.identity, f.plan, f.outer);
+  assert.equal(f.outer.modelSelection.quantityCapacity, quantityCapacity);
+  assert.equal(actual.original, f.original); assert.equal(actual.value, f.parent);
+  assert.deepEqual(f.events, ['check', 'compile', 'borrow', 'original quantities then scope', 'complete', 'adopt-model']);
+  f.finishScope(); f.outer.modelScope = undefined;
+  f.markRetiring(); f.view.severPreparation(f.prepared, f.original);
+  f.finishPhysicalRetirement(); f.view.retireSeveredPreparation(f.original);
+  f.view.finishSourceProducer(f.receipt, 'returned'); await f.view.close();
+});
+
+// Actual manager/Request registration with explicit Core material/selection
+// ports. This admits no Source read, Model dispatch or normal backing claim.
+async function restoredModelRecoveryFixture(options) {
+  const f = await fixture(options), moon = f.context.runtime;
+  const request = {}, identity = {}, nativeDefinition = {name: 'run_definition', wire: '{}'}, prepared = {},
+    compiled = {}, graph = {}, selected = {}, events = [];
+  moon.strategyPublicationAdmit = () => ok(nativeDefinition);
+  moon.strategyPublicationContractName = original => {assert.equal(original,nativeDefinition);return original.name;};
+  moon.strategyPublicationContractIdentityField = original => {assert.equal(original,nativeDefinition);return 'run_definition_cid';};
+  moon.strategyPublicationContractIdentity = original => {assert.equal(original,nativeDefinition);return 'fixture-definition';};
+  moon.strategyPublicationContractJson = original => {assert.equal(original,nativeDefinition);return original.wire;};
+  moon.strategyRemoteManagedOutputEvidenceKind = () => 'unused explicit fixture metadata';
+  const control = runtimeCore(moon).publicationControl;
+  const definition = control.admit('run_definition', '{}', {maxWireBytes:2,maxNodes:1,maxDepth:1});
+  assert.notEqual(definition,nativeDefinition);
+  const original = Object.freeze({materialsWire: '{"original":"saved-model"}',
+    resultPolicyOriginal: Object.freeze({kind: 'data_policy', cid: 'fixture', wire: '{}'})});
+  const restored = Object.freeze({prepared, compiled, graph, runDefinition: definition});
+  moon.clientProgramReserveRequestModelRecoveryMaterials = function(parent, receipt, actualRequest, actualDefinition, count, wireAt, containers) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(receipt, recovery.receipt);
+    assert.equal(actualRequest, identity); assert.equal(actualDefinition, nativeDefinition);
+    events.push(['before constructor', count, Array.from({length: count}, (_, index) => wireAt(index)), containers]);
+    return ok(undefined);
+  };
+  moon.clientProgramSelectInstalledSourceInput = function(actual, pair, stage, sourceIndex) {
+    assert.equal(this, moon); assert.equal(actual, prepared); assert.equal(pair, identity);
+    assert.equal(stage, 3); assert.equal(sourceIndex, 1); events.push('same Source occurrence');
+    return ok(selected);
+  };
+  const recovery = f.view.retainModelRecovery(request, identity, definition,
+    () => {events.push('original recovery current'); options?.assertRecoveryCurrent?.();}, () => false);
+  try {assert.equal(f.view.restoreModelOriginal(request, original, definition, identity, () => restored), restored);}
+  catch (cause) {f.view.finishSourceProducer(recovery.receipt,'failed');await f.view.close();throw cause;}
+  return {...f, moon, recovery, request, identity, definition, nativeDefinition, control, prepared, compiled, graph, selected, original, restored, events};
+}
+
+test('cold Model Source selection consumes the same restored Request without an ordinary preparation holder', async () => {
+  const f = await restoredModelRecoveryFixture();
+  assert.equal(f.view.selectDomainSourceInput(f.prepared, f.request, f.identity, 3, 1), f.selected);
+  assert.equal(f.events.filter(value => value === 'same Source occurrence').length, 1);
+  assert.equal(f.events.filter(Array.isArray).length, 2, 'saved material then Source construction each funded before its callback');
+  const quote = f.events.filter(Array.isArray).at(-1);
+  assert.deepEqual(quote[2], [f.original.materialsWire]);
+  f.view.finishSourceProducer(f.recovery.receipt, 'returned');
+  await f.view.close();
+});
+
+async function recoveryReadFixture({readFailure, failRead = false, afterScopes, validate, validateRetained, assertRecoveryCurrent, finishScope, ledgerFloor = [7n,9n], expectedModel = [11n,13n]} = {}) {
+  const f = await restoredModelRecoveryFixture({validate, validateRetained, assertRecoveryCurrent}), scope = {}, read = {}, bounds = {}, savedScope = {}, events = [];
+  const budget = Object.freeze({modelRetainedBytes: 11n, modelExecutionBytes: 13n,
+    readRetainedBytes: 7n, readExecutionBytes: 5n, maxReservations: 20, maxHoldings: 20, maxDelegations: 20});
+  f.moon.clientProgramComposedInferModelLedgerBytes = original => {assert.equal(original,bounds);return ledgerFloor;};
+  const selection = Object.freeze({graph: f.graph, restoredRun: f.restored});
+  const control = {
+    reserveCheckedClientRequestModelRecoveryMaterials: f.control.reserveCheckedClientRequestModelRecoveryMaterials,
+    prepareCheckedClientRequestModelRecoveryReadScopes(...args) {
+      assert.deepEqual(args, [f.parent, f.recovery.receipt, f.identity, f.definition, f.prepared, f.compiled,
+        [f.graph], [bounds], [expectedModel[0]], [expectedModel[1]], [7n], [5n], 20, 20, 20, undefined]);
+      events.push('same parent Scope'); return [scope];
+    },
+    prepareCheckedClientInferOriginalRead(compiled, definition, graph, actualScope, actualBudget) {
+      assert.equal(compiled, f.compiled); assert.equal(definition, f.definition); assert.equal(graph, f.graph);
+      assert.equal(actualScope, scope); assert.equal(actualBudget, budget); events.push('same Scope Read');
+      if (failRead) throw readFailure;
+      return read;
+    },
+    startCheckedClientOriginalRestoredComposedInferExecution() {},
+    stopCheckedClientInferOriginalReadPreparation(c, d, g, s, r) {
+      assert.equal(r, read); assert.equal(s, scope); events.push('stop original Read');
+    },
+    settleCheckedClientInferOriginalReadPreparation(c, d, g, r, complete) {
+      assert.equal(r, read); assert.equal(complete, true); events.push('settle original Read');
+    },
+    finishCheckedClientInferOriginalReadScope(c, d, g, s, complete) {
+      assert.equal(s, scope); assert.equal(complete, true); events.push('finish original Scope');
+      return finishScope === undefined ? true : finishScope();
+    },
+  };
+  const model = {prepared: f.prepared, selection, graph: f.graph, compiled: f.compiled,
+    runDefinition: f.definition, selectedBounds: bounds, budget, control,
+    publicationCapacity: () => 'original publication capacity'};
+  if (afterScopes) Object.defineProperty(model, 'scopes', {configurable: true,
+    set(value) {Object.defineProperty(model, 'scopes', {value, writable: true, configurable: true}); afterScopes(f, model, value);}});
+  return {...f, model, selection, control, scope, read, savedScope, readEvents: events,
+    prepare() {return f.view.prepareModelRecoveryPlan(f.prepared, f.request,
+      {compiled: f.compiled, runDefinition: f.definition}, selection, model);}};
+}
+
+test('cold Model recovery view retains original Scope before current and restores one original Read', async () => {
+  const f = await recoveryReadFixture();
+  const original = f.prepare(); assert.equal(f.model.scope, f.scope); assert.equal(f.model.scopes[0], f.scope);
+  assert.equal(f.prepare(), original, 'Same original preparation is not issued twice');
+  original.retain(); assert.throws(() => original.restoreRead({}), {code: 'InstalledModelRecoveryRuntimeUnavailable'});
+  const result = original.restoreRead({savedScope: f.savedScope});
+  assert.equal(result.read, f.read); assert.equal(result.scope, f.scope);
+  assert.equal(result.publicationCapacity(), 'original publication capacity');
+  assert.throws(() => original.prepareRead(), {code: 'ForeignInstalledModelRecoveryScope'});
+  assert.equal(await original.retire(), true); assert.equal(await original.retire(), true);
+  assert.deepEqual(f.readEvents, ['same parent Scope', 'same Scope Read', 'stop original Read', 'settle original Read', 'finish original Scope']);
+  f.view.finishSourceProducer(f.recovery.receipt, 'returned'); await f.view.close();
+});
+
+test('cancelled cold Model retains only same Read retirement through ingress closure and pending Scope cleanup', async () => {
+  const cancelled = new Error('ClientRunCancellationRequested'), ingressClosed = new Error('ingress closed');
+  let cancelling = false, closing = false, finish = false, retainedChecks = 0;
+  const f = await recoveryReadFixture({
+    validate() {if (closing) throw ingressClosed;},
+    validateRetained() {retainedChecks++;},
+    assertRecoveryCurrent() {if (cancelling) throw cancelled;},
+    finishScope() {return finish;},
+  });
+  const original = f.prepare(); original.retain(); original.restoreRead({savedScope: f.savedScope});
+  cancelling = true;
+  assert.throws(() => original.assertRuntimeCurrent(), cause => cause === cancelled);
+  assert.throws(() => original.prepareRead(), cause => cause === cancelled);
+  closing = true;
+  assert.equal(await original.retire(), false, 'Pending original Scope is not acknowledged');
+  assert.equal(f.model.closed, undefined); assert.equal(f.model.scopeFinished, undefined);
+  f.model.scope = {};
+  await assert.rejects(original.retire(), {code: 'ForeignInstalledModelRecoveryScope'});
+  f.model.scope = f.scope; finish = true;
+  assert.equal(await original.retire(), true); assert.equal(await original.retire(), true);
+  assert.ok(retainedChecks >= 2);
+  assert.equal(f.readEvents.filter(value => value === 'same Scope Read').length, 1);
+  assert.equal(f.readEvents.filter(value => value === 'stop original Read').length, 1);
+  assert.equal(f.readEvents.filter(value => value === 'settle original Read').length, 1);
+  assert.equal(f.readEvents.filter(value => value === 'finish original Scope').length, 2);
+  f.view.finishSourceProducer(f.recovery.receipt, 'failed'); await f.view.close();
+});
+
+test('cold Model recovery keeps thrown undefined sticky and cannot replace its original Scope', async () => {
+  const f = await recoveryReadFixture({failRead: true, readFailure: undefined});
+  const original = f.prepare(); original.retain();
+  for (let index = 0; index < 2; index++) {
+    let caught = false;
+    try {original.restoreRead({savedScope: f.savedScope});} catch (cause) {caught = true; assert.equal(cause, undefined);}
+    assert.equal(caught, true);
+  }
+  assert.equal(f.readEvents.filter(event => event === 'same Scope Read').length, 1);
+  assert.equal(await original.retire(), true);
+  f.view.finishSourceProducer(f.recovery.receipt, 'failed'); await f.view.close();
+});
+
+test('cold Model recovery retains returned Scope through current reentry failure', async () => {
+  const failure = new Error('original current failed'); let failing = false;
+  const f = await recoveryReadFixture({validate() {if (failing) throw failure;}, afterScopes(f, model, scopes) {
+    assert.equal(scopes.length, 1); failing = true;
+  }});
+  assert.throws(() => f.prepare(), cause => cause === failure);
+  assert.equal(f.model.scopes[0], f.scope); assert.equal(f.model.scope, f.scope);
+  // Explicit original native child cleanup: the failed constructor retained it.
+  f.control.finishCheckedClientInferOriginalReadScope(f.compiled, f.definition, f.graph, f.scope, true);
+  failing = false;
+  f.view.finishSourceProducer(f.recovery.receipt, 'failed'); await f.view.close();
+});
+
+
+test('cold Model recovery opens captured Local host and observes cleanup on the same original ledger', async () => {
+  const f = await recoveryReadFixture(), ledger = {}, capture = {}, provider = {}, dag = {}, setup = {}, admission = {};
+  const contracts = Object.freeze({values: 'values', expression: 'fragment', ordered: 'ordered'});
+  f.originals.installation = {sequenceContractOriginal: {moon: f.moon, admission, contracts}};
+  f.moon.clientProgramAcquisitionCount = actual => {assert.equal(actual, f.prepared); return 1;};
+  let coordinates = 0;
+  f.control.checkedClientRequestModelRecoverySourceCoordinates = function(...args) {
+    assert.equal(this, f.control); assert.deepEqual(args, [f.parent,f.recovery.receipt,f.identity,f.definition,f.prepared]);
+    coordinates++; return [[3,1,0]];
+  };
+  f.control.checkedClientRequestModelRecoveryLedger = function(...args) {
+    assert.equal(this, f.control); assert.deepEqual(args,[f.parent,f.recovery.receipt,f.identity,f.definition]);return ledger;
+  };
+  f.control.openCheckedClientRequestModelRecoveryHost = function(...args) {
+    assert.equal(this, f.control); assert.deepEqual(args,[f.parent,f.recovery.receipt,f.identity,f.definition,f.prepared,
+      [capture],admission,'values','fragment','ordered',[provider]]); return setup;
+  };
+  f.control.checkedClientRequestModelRecoveryUsageIsolated = function(...args) {
+    assert.equal(this, f.control); assert.deepEqual(args,[f.parent,f.recovery.receipt,f.identity,f.definition,dag]);return true;
+  };
+  const original = f.prepare(); original.retain();
+  assert.deepEqual(original.sourceCoordinates, [[3,1,0]]); assert.equal(Object.isFrozen(original.sourceCoordinates),true);
+  assert.equal(coordinates,1);assert.equal(original.sourceLedger(),ledger);
+  assert.equal(original.openCapturedHost([{capture: {source: () => capture}}],[provider]),setup);
+  assert.throws(() => original.openCapturedHost([{capture: {source: () => capture}}],[provider]),{code:'ForeignInstalledModelRecoveryScope'});
+  assert.equal(await original.retire(),true);assert.equal(original.setupUsageIsolated(dag),true);
+  f.view.finishSourceProducer(f.recovery.receipt,'returned');await f.view.close();
+});
+
+
+test('cold Model recovery coordinates and ledger precede Model Plan construction on the same cached control', async () => {
+  const {readFileSync} = await import('node:fs');
+  const source = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
+  const moon = {}, parent = {}, receipt = {}, prepared = {}, request = {}, identity = {}, definition = {}, ledger = {};
+  const recovery = {request: identity, definition, restored: {prepared}, original: {materialsWire: '{}'}, assertCurrent() {}};
+  const state = {context: {runtime: moon}, parent, prepared, recovery};
+  const producer = {receipt, preparation: state}; let projections = 0, reservations = 0, cacheReads = 0;
+  const control = {
+    checkedClientRequestModelRecoverySourceCoordinates(...args) {
+      assert.equal(this, control); assert.deepEqual(args,[parent,receipt,identity,definition,prepared]);
+      projections++; return [[3,1,0]];
+    },
+    checkedClientRequestModelRecoveryLedger(...args) {
+      assert.equal(this, control); assert.deepEqual(args,[parent,receipt,identity,definition]);return ledger;
+    },
+  };
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const load = (name, next) => {
+    const begin = source.indexOf('    '+name+'('), end = source.indexOf('    '+next+'(',begin);
+    assert.ok(begin >= 0 && end > begin);
+    // Execute these exact existing method bodies. Only their lexical original
+    // runtime/current/parent ports are supplied; no installed ABI is claimed.
+    return Function('current','producerForRequest','reserveModelRecovery','constructRequestDomain',
+      'runtimeCore','fail','checked', 'return ({'+source.slice(begin,end)+'}).'+name)(
+        () => {}, actual => {assert.equal(actual,request);return producer;},
+        (p,s,count,wireAt,containers) => {
+          assert.equal(p,producer);assert.equal(s,state);assert.equal(count,1);assert.equal(wireAt(0),'{}');
+          assert.equal(containers,1);reservations++;
+        }, (s,construct) => {assert.equal(s,state);return construct();},
+        actual => {assert.equal(actual,moon);cacheReads++;return {publicationControl:control};}, fail, value => value);
+  };
+  const coordinates = load('modelSourceCoordinates','selectDomainSourceInput');
+  const originalLedger = load('modelRecoveryLedger','prepareModelRecoveryPlan');
+  assert.equal(recovery.model,undefined,'No Model Plan/Scope exists at this original Request ordering');
+  const selected = coordinates(prepared,request);
+  assert.deepEqual(selected,[[3,1,0]]);assert.equal(coordinates(prepared,request),selected);
+  assert.equal(originalLedger(prepared,request),ledger);
+  assert.equal(projections,1);assert.equal(reservations,1);assert.equal(cacheReads,2);
+  assert.equal(recovery.model,undefined,'Metadata/Ledger projection does not construct a Model Plan');
+});
+
+
+test('cold Model recovery reserves and projects the same original native Definition behind its facade', async () => {
+  const f = await restoredModelRecoveryFixture(), ledger = {};
+  f.moon.clientProgramRequestModelRecoverySourceCoordinates = function(parent,input,identity,definition,prepared) {
+    assert.equal(this,f.moon); assert.equal(parent,f.parent);assert.equal(input,f.recovery.receipt);
+    assert.equal(identity,f.identity);assert.equal(definition,f.nativeDefinition);assert.equal(prepared,f.prepared);
+    return ok([[3,1,0]]);
+  };
+  f.moon.clientProgramRequestModelRecoveryLedger = function(parent,input,identity,definition) {
+    assert.equal(this,f.moon);assert.equal(parent,f.parent);assert.equal(input,f.recovery.receipt);
+    assert.equal(identity,f.identity);assert.equal(definition,f.nativeDefinition);return ok(ledger);
+  };
+  assert.notEqual(f.definition,f.nativeDefinition,'Presentation facade is not a native publication issuer');
+  try {
+    assert.deepEqual(f.view.modelSourceCoordinates(f.prepared,f.request),[[3,1,0]]);
+    assert.equal(f.view.modelRecoveryLedger(f.prepared,f.request),ledger);
+    assert.equal(f.events.filter(Array.isArray).length,2,'Reserve material and coordinates with the same native Definition');
+  } finally {f.view.finishSourceProducer(f.recovery.receipt,'returned');await f.view.close();}
+});
+
+
+test('cold Model recovery retains stored Model ledger floor separately from unchanged legacy read allowances', async () => {
+  const f = await recoveryReadFixture({ledgerFloor:[17n,19n],expectedModel:[17n,19n]});
+  try {
+    const original = f.prepare(); original.retain();
+    assert.equal(original.modelRetainedBytes,11n,'Existing read-side Model allowance stays unchanged');
+    assert.equal(original.modelExecutionBytes,13n);
+    assert.equal(f.model.budget.modelRetainedBytes,11n);
+    assert.equal(f.model.budget.modelExecutionBytes,13n);
+    assert.equal(await original.retire(),true);
+  } finally {f.view.finishSourceProducer(f.recovery.receipt,'returned');await f.view.close();}
+});
+
+test('cold Model Source metadata stays on its same recovery parent before the original readonly constructor', async () => {
+  const f = await recoveryReadFixture(), occurrence = Object.freeze({stage: 3, input: 1, task: 0});
+  let reserved = false, constructions = 0;
+  f.control.checkedClientRequestModelRecoverySourceCoordinates = (...args) => {
+    assert.deepEqual(args, [f.parent, f.recovery.receipt, f.identity, f.definition, f.prepared]);
+    return [[3, 1, 0]];
+  };
+  f.control.reserveCheckedClientRequestModelRecoveryMaterials = (...args) => {
+    assert.deepEqual(args.slice(0, 4), [f.parent, f.recovery.receipt, f.identity, f.definition]);
+    assert.equal(args[4], 1); assert.equal(args[5](0), f.original.materialsWire); assert.equal(args[6], 1);
+    reserved = true;
+  };
+  const original = f.prepare();
+  try {
+    assert.throws(() => original.prepareSource(occurrence, () => assert.fail('Not retained')),
+      {code: 'ForeignInstalledModelRecoveryScope'});
+    original.retain();
+    const preparedSource = Object.freeze({readonly: true});
+    assert.equal(original.prepareSource(occurrence, selected => {
+      assert(reserved, 'Backing precedes Source metadata construction');
+      assert.equal(selected, f.selected); constructions++; return preparedSource;
+    }), preparedSource);
+    assert.equal(constructions, 1);
+    assert.equal(f.readEvents.includes('same Scope Read'), false, 'No Model Read before Source authorization');
+    assert.throws(() => original.prepareSource({...occurrence, task: 1}, () => assert.fail('Foreign coordinates')),
+      {code: 'ForeignInstalledModelRecoveryScope'});
+    assert.equal(await original.retire(), true);
+    assert.throws(() => original.prepareSource(occurrence, () => assert.fail('Retired')),
+      {code: 'ForeignInstalledModelRecoveryScope'});
+  } finally {f.view.finishSourceProducer(f.recovery.receipt, 'returned'); await f.view.close();}
+});
+
+test('cold Model Source metadata failures keep the same primary and cannot rerun the constructor', async () => {
+  for (const failure of [undefined, new Error('Original metadata constructor')]) {
+    const f = await recoveryReadFixture(), occurrence = {stage: 3, input: 1, task: 0};
+    f.control.checkedClientRequestModelRecoverySourceCoordinates = () => [[3, 1, 0]];
+    f.control.reserveCheckedClientRequestModelRecoveryMaterials = () => {};
+    const original = f.prepare(); original.retain(); let calls = 0;
+    try {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        let rejected = false;
+        try {original.prepareSource(occurrence, () => {calls++; throw failure;});}
+        catch (cause) {rejected = true; assert.equal(cause, failure);}
+        assert.equal(rejected, true);
+      }
+      assert.equal(calls, 1); assert.equal(f.model.scope, f.scope);
+      assert.equal(await original.retire(), true);
+    } finally {f.view.finishSourceProducer(f.recovery.receipt, 'failed'); await f.view.close();}
+  }
 });

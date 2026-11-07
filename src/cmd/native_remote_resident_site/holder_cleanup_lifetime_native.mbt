@@ -13,10 +13,17 @@ extern "C" fn park_holder_cleanup_unconfirmed_ffi() -> Int = "actql_executor_slo
 
 ///|
 fn wait_holder_cleanup_lifetime_signal() -> Unit {
+  wait_holder_cleanup_lifetime_signal_with_report()
+}
+
+///|
+fn wait_holder_cleanup_lifetime_signal_with_report(
+  report_progress? : (String, Array[(String, String)]) -> Unit = report,
+) -> Unit {
   if wait_holder_cleanup_signal_ffi() != 0 {
     // A failed mask/wait does not discard custody or start an immediate retry
     // loop. This fallback waits for a later signal and remains unconfirmed.
-    report("cleanup-pending", [("step", "holder-signal-wait")])
+    report_progress("cleanup-pending", [("step", "holder-signal-wait")])
     ignore(park_holder_cleanup_unconfirmed_ffi())
   }
 }

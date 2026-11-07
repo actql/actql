@@ -1,6 +1,7 @@
 /* Native command-capture component only: no MoonBit Runtime, Site or Store. */
 #include "../../src/cmd/native_remote_resident_site/initial_control_capture.h"
 #include <assert.h>
+#include <stdio.h>
 #include <sys/wait.h>
 
 #if defined(ACTQL_RESIDENT_INITIAL_CONTROL_HEADER)
@@ -14,16 +15,22 @@ static void *foreign_thread(void *unused) {
 int main(int argc, char **argv) {
 #if !defined(ACTQL_RESIDENT_INITIAL_CONTROL_HEADER)
     (void)argc; (void)argv;
+    assert(!selected_recipe());
     assert(!capture_entry(&original_entry));
     assert(!entry_current(&original_entry));
     puts("PASS unselected entry refuses without capture");
     return 0;
 #else
     if (argc == 2 && strcmp(argv[1], "loader-refusal") == 0) {
-        assert(setenv("DYLD_ACTQL_RESIDENT_COMPONENT", "1", 1) == 0);
+#if defined(__linux__)
+        const char *key = "LD_ACTQL_RESIDENT_COMPONENT";
+#else
+        const char *key = "DYLD_ACTQL_RESIDENT_COMPONENT";
+#endif
+        assert(setenv(key, "1", 1) == 0);
         assert(!capture_entry(&original_entry));
         assert(!entry_current(&original_entry));
-        assert(unsetenv("DYLD_ACTQL_RESIDENT_COMPONENT") == 0);
+        assert(unsetenv(key) == 0);
         assert(!capture_entry(&original_entry));
         puts("PASS unsupported loader selection stays refused");
         return 0;

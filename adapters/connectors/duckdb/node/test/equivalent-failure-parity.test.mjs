@@ -137,15 +137,20 @@ test('both legs let a later invalid value precede a deferred record guard',
 test('both legs enforce the complete source row guard before filtering',
   async () => {
     const fixture = retainedCase(workloads[0], 'narrow', 100);
-    const directory = await mkdtemp(join(tmpdir(), 'actql-failure-parity-'));
-    try {
-      const database = await source(directory, fixture);
-      // The extra row would pass the predicate. The source occurrence ceiling,
-      // not the smaller eventual capture, is the applicable admission scope.
-      await update(database, 'INSERT INTO records VALUES (100, 100)');
-      await assertBothReject(fixture, database, directory);
-    } finally {
-      await rm(directory, {recursive: true, force: true});
+    for (const id of [100, -1]) {
+      const directory = await mkdtemp(join(tmpdir(), 'actql-failure-parity-'));
+      try {
+        const database = await source(directory, fixture);
+        // Both a selected and an excluded extra row exceed the same complete
+        // Source occurrence ceiling before the native predicate may run.
+        await update(database, `INSERT INTO records VALUES (${id}, 100)`);
+        await assertBothReject(fixture, database, directory, {
+          product: error => error.code === 'ExecutionFailed' &&
+            error.cause?.code === 'SourceRows' && error.examplePhase === 'execute',
+        });
+      } finally {
+        await rm(directory, {recursive: true, force: true});
+      }
     }
   });
 

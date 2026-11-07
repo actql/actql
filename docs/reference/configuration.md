@@ -25,6 +25,7 @@ cannot change.
   "state_dir": "./.actql",
   "profile": "mock",
   "mock": {
+    "catalog": "./mock/catalog.json",
     "data": "./mock/data.json",
     "answers": {"model-task:churn-risk.v1": "./mock/churn-risk.v1.answers.yaml"}
   }
@@ -39,7 +40,15 @@ cannot change.
 | `lock` | path | The [lock file](#lock-file) that pins Connector and model task contracts. | none |
 | `state_dir` | path | The Store: Runs, observations, Results, Checkpoints, keys. Keep it out of version control. | `./.actql` |
 | `profile` | string | A named profile such as `mock`, applied unless `--profile` says otherwise. | none |
-| `mock` | object | Fixtures for the mock profile: `data`, the records each mock Connector serves (with each source's `key`), and `answers`, one answer file per model task. Nothing is discovered by file name. | none; the mock profile then has no records and no answers |
+| `mock` | object | Inputs for the mock profile: `catalog`, the explicit Connector declarations; `data`, the records each mock Connector serves (with each source's `key`); and `answers`, one answer file per model task. Nothing is discovered by file name. | none; no declaration, record or answer file is selected |
+
+`mock.catalog` is an optional nonempty path, resolved relative to the project
+file like `mock.data`. It selects declarations using the existing Relation,
+SourceView and Mapping contracts; it does not infer schemas from sample rows,
+select a scenario-specific runtime or grant Host authority. An absent locator
+selects no catalog file. Explicit null, empty paths and unknown `mock` fields
+are rejected. The locator is retained with the original project and is exposed
+only when the selected profile is `mock`.
 
 ## Host configuration
 

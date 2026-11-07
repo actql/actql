@@ -1,7 +1,15 @@
 ///|
 fn typed_json_page(wire : String) -> RowSourceProjectedJsonPage {
   project_row_source_typed_json_page(
-    @utf8.encode(wire), ["items"], true, ["next"], 4096, 256, 16, 4, 64,
+    @utf8.encode(wire),
+    ["items"],
+    true,
+    ["next"],
+    4096,
+    256,
+    16,
+    4,
+    64,
   ).unwrap()
 }
 
@@ -47,7 +55,8 @@ test "typed JSON page retains signed64 strings and rejects numeric substitution 
   ]
   for index in 0..<expected.length() {
     guard @execution.captured_presence_cell(captured, index, 0)
-      is Ok(@execution.Present(value)) && value is @admitted.Signed64(actual) else {
+      is Ok(@execution.Present(value)) &&
+      value is @admitted.Signed64(actual) else {
       abort("original signed64 cell")
     }
     assert_eq(actual, expected[index])
@@ -55,8 +64,10 @@ test "typed JSON page retains signed64 strings and rejects numeric substitution 
   let (_, refused) = signed64_row_read()
   assert_true(
     accept_row_source_projected_page(
-      refused, typed_json_page("{\"items\":[{\"id\":9223372036854775807}]}"),
-    ) is Err(_),
+      refused,
+      typed_json_page("{\"items\":[{\"id\":9223372036854775807}]}"),
+    )
+    is Err(_),
   )
   assert_false(refused.open)
 }
@@ -65,10 +76,8 @@ test "typed JSON page retains signed64 strings and rejects numeric substitution 
 test "typed JSON page admission preserves schema byte row and cancelled-read refusals" {
   for
     rows in [
-      "[{\"id\":1,\"payload\":{},\"é\":null}]",
-      "[{\"id\":1,\"payload\":{},\"é\":null,\"extra\":1}]",
-      "[{\"id\":1,\"payload\":null,\"é\":null}]",
-      "[{\"id\":1,\"payload\":{},\"é\":null},{\"id\":2,\"payload\":{},\"é\":null},{\"id\":3,\"payload\":{},\"é\":null},{\"id\":4,\"payload\":{},\"é\":null}]",
+      "[{\"id\":1,\"payload\":{},\"é\":null}]", "[{\"id\":1,\"payload\":{},\"é\":null,\"extra\":1}]",
+      "[{\"id\":1,\"payload\":null,\"é\":null}]", "[{\"id\":1,\"payload\":{},\"é\":null},{\"id\":2,\"payload\":{},\"é\":null},{\"id\":3,\"payload\":{},\"é\":null},{\"id\":4,\"payload\":{},\"é\":null}]",
     ] {
     let read = physical_row_json_read()
     let page = typed_json_page("{\"items\":" + rows + "}")
@@ -91,7 +100,9 @@ test "typed JSON page and legacy transform projection share the exact parsed ori
   let rows = "[ {\"id\":1,\"payload\":{},\"é\":null} ]"
   let projected = json_page_test("{\"items\":" + rows + ",\"next\":\"later\"}").unwrap()
   let original = row_source_json_page_original(projected)
-  assert_true(physical_equal(original, row_source_json_page_original(projected)))
+  assert_true(
+    physical_equal(original, row_source_json_page_original(projected)),
+  )
   assert_eq(row_source_json_page_rows_wire(projected), rows)
   assert_eq(row_source_typed_json_page_row_count(original), 1)
   assert_eq(row_source_typed_json_page_next_cursor(original).unwrap(), "later")
@@ -102,9 +113,11 @@ test "typed JSON page and legacy transform projection share the exact parsed ori
 ///|
 test "typed JSON page namespace provenance refuses a foreign original without wire fallback" {
   let page = typed_json_page("{\"items\":[]}")
-  let foreign = { ..page, origin: Ref(()) }
+  let foreign = { ..page, origin: Ref(()), }
   let read = physical_row_json_read()
-  assert_true(accept_row_source_projected_page(read, foreign) is Err(InvalidPage))
+  assert_true(
+    accept_row_source_projected_page(read, foreign) is Err(InvalidPage),
+  )
   assert_false(read.open)
   let original = physical_row_json_read()
   assert_eq(accept_row_source_projected_page(original, page).unwrap(), 0)

@@ -7,6 +7,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 function fixture({sourceFree = false, missing = false} = {}) {
   const prepared = {}, request = {}, environment = {}, graph = {}, raw = {}, definitionToken = {};
   const restoredPrepared = {}, restoredGraph = {}, restoredRaw = {}, materials = {};
+  const restoredGraphs = [restoredGraph, {}], restoredExecutions = [{}, {}];
   const policy = Object.freeze({kind: 'data_policy', cid: sourceFree ? 'legacy-policy' : 'original-source-policy',
     wire: sourceFree ? '{"unknown_provenance":true}' : '{"classification":"internal","original_source":true}'});
   const tuple = value => value === undefined ? undefined : {_0: value.kind, _1: value.cid, _2: value.wire};
@@ -68,7 +69,8 @@ function fixture({sourceFree = false, missing = false} = {}) {
   const restore = saved => control.admitStoredClientInferRunOriginal(saved, definition, request, evidence,
     [false, false, true, false, false, false, false], limits);
   return {control, moon, policy, original, capture, restore, definition, request, prepared, compiled,
-    restoredPrepared, restoredGraph, evidence, counts: () => ({issues, restores, strictReads, binds})};
+    raw, definitionToken, restoredPrepared, restoredGraph, restoredGraphs, restoredExecutions, restoredRaw, evidence,
+    counts: () => ({issues, restores, strictReads, binds})};
 }
 
 test('Source-backed Infer captures and restores the original complete checked policy without source-free admission', () => {
@@ -124,4 +126,138 @@ test('policy projection still refuses copied compilation and foreign original re
   const saved = f.control.originalInferRunAdmissionEvidence(selected, f.definition, f.request, f.evidence);
   assert.throws(() => f.control.admitStoredClientInferRunOriginal(saved, f.definition, {}, f.evidence,
     [false, false, true, false, false, false, false], {maxWireBytes: 10000, maxNodes: 1000, maxDepth: 64}), /Foreign/u);
+});
+
+test('plural saved Infer preserves each opaque graph and execution in a copied ordered inventory', () => {
+  const f = fixture();
+  f.moon.clientProgramInferRunMaterialsGraphs = () => f.restoredGraphs;
+  f.moon.clientProgramCompiledInferOriginals = (raw, prepared) => {
+    assert.strictEqual(raw, f.restoredRaw);
+    return prepared === f.restoredPrepared
+      ? {$tag: 1, _0: f.restoredGraphs.map((graph, index) => ({_0: graph, _1: f.restoredExecutions[index]}))}
+      : {$tag: 0};
+  };
+  const restored = f.restore(f.original());
+  assert.ok(Object.isFrozen(restored.graph));
+  assert.notStrictEqual(restored.graph, f.restoredGraphs);
+  assert.deepEqual(restored.graph, f.restoredGraphs);
+  const originals = f.control.checkedClientCompiledInferOriginals(
+    restored.compiled, f.restoredPrepared, f.definition);
+  assert.ok(Object.isFrozen(originals));
+  originals.forEach((original, index) => {
+    assert.ok(Object.isFrozen(original));
+    assert.strictEqual(original.graph, f.restoredGraphs[index]);
+    assert.strictEqual(original.execution, f.restoredExecutions[index]);
+  });
+  f.restoredGraphs.push({});
+  assert.equal(restored.graph.length, 2, 'the Core projection cannot mutate retained outer membership');
+  assert.equal(originals.length, 2);
+  assert.throws(() => f.control.checkedClientCompiledInferOriginals(
+    {...restored.compiled}, f.restoredPrepared, f.definition), /Foreign/u);
+  assert.throws(() => f.control.checkedClientCompiledInferOriginals(
+    restored.compiled, {}, f.definition), /Foreign/u);
+});
+
+test('plural original Infer projection refuses None, bare arrays and malformed boxed inventories', () => {
+  const f = fixture(), restored = f.restore(f.original());
+  const tuple = {_0: f.restoredGraphs[0], _1: f.restoredExecutions[0]};
+  for (const invalid of [{$tag: 0}, undefined, [tuple], {$tag: 1},
+    {$tag: 1, _0: []}, {$tag: 1, _0: Array(129).fill(tuple)},
+    {$tag: 1, _0: [{_0: tuple._0}]}, {$tag: 1, _0: [{_1: tuple._1}]}]) {
+    f.moon.clientProgramCompiledInferOriginals = () => invalid;
+    assert.throws(() => f.control.checkedClientCompiledInferOriginals(
+      restored.compiled, f.restoredPrepared, f.definition),
+    /Foreign Client original Infer preparation/u);
+  }
+});
+
+test('saved Infer rejects missing, empty and oversized graph inventories before retaining a restored owner', () => {
+  const f = fixture(), saved = f.original();
+  for (const graphs of [undefined, [], [undefined], [null], Array(129).fill({})]) {
+    f.moon.clientProgramInferRunMaterialsGraphs = () => graphs;
+    assert.throws(() => f.restore(saved), /Foreign Client original Infer materials/u);
+  }
+});
+
+test('recovered Model Scope forwards the same Request and opaque compiler originals with and without quantity limits', () => {
+  const f = fixture(), parent = {}, input = {}, graphs = [{}, {}], bounds = [{}, {}], scopes = [{}, {}];
+  const modelR = [10n, 20n], modelE = [3n, 4n], readR = [5n, 6n], readE = [7n, 8n];
+  let entered = 0;
+  const args = [parent, input, f.request, f.definition, f.prepared, f.compiled,
+    graphs, bounds, modelR, modelE, readR, readE, 21, 22, 23];
+  const expected = [parent, input, f.request, f.definitionToken, f.prepared, f.raw,
+    graphs, bounds, modelR, modelE, readR, readE, 21, 22, 23];
+  const assertCall = (actual, quantities = []) => {
+    entered++; assert.equal(actual.length, expected.length + quantities.length);
+    [...expected, ...quantities].forEach((value, index) => assert.strictEqual(actual[index], value));
+    return {$tag: 1, _0: scopes};
+  };
+  f.moon.clientProgramPrepareRequestModelRecoveryReadScopes = (...actual) => assertCall(actual);
+  f.moon.clientProgramPrepareRequestModelRecoveryReadScopesWithQuantities = (...actual) => assertCall(actual, [30n, 40n, 50n]);
+  assert.strictEqual(f.control.prepareCheckedClientRequestModelRecoveryReadScopes(...args), scopes);
+  assert.strictEqual(f.control.prepareCheckedClientRequestModelRecoveryReadScopes(...args,
+    {tokens: 30n, costUnits: 40n, durationMs: 50n}), scopes);
+  for (const [index, replacement] of [[5, {...f.compiled}], [4, {}], [3, {...f.definition}]]) {
+    const foreign = [...args]; foreign[index] = replacement;
+    assert.throws(() => f.control.prepareCheckedClientRequestModelRecoveryReadScopes(...foreign), /Foreign/u);
+  }
+  assert.equal(entered, 2, 'foreign wrappers never reach a native Scope issuer');
+});
+
+test('recovery Host and usage bindings unwrap only the retained Definition and preserve refusal or pending results', () => {
+  const f = fixture(), parent = {}, input = {}, sources = [{}, {}], contracts = {}, providers = [{}, {}], dag = {};
+  const ledger = {}, coordinates = Object.freeze([[0, 0, 0], [1, 0, 1]]);
+  const nativeIssue = Object.freeze({issue: 'OriginalRequestRefused'});
+  let open = 0, current = true;
+  f.moon.clientProgramOpenRequestModelRecoveryHost = (...actual) => {
+    open++;
+    [parent, input, f.request, f.definitionToken, f.prepared, sources, contracts, 'values', 'fragment', 'ordered', providers]
+      .forEach((value, index) => assert.strictEqual(actual[index], value));
+    return open === 1 ? {$tag: 1, _0: undefined} : {$tag: 0, _0: nativeIssue};
+  };
+  f.moon.clientProgramRequestModelRecoveryUsageIsolated = (...actual) => {
+    [parent, input, f.request, f.definitionToken, dag]
+      .forEach((value, index) => assert.strictEqual(actual[index], value));
+    return current;
+  };
+  f.moon.clientProgramRequestModelRecoveryLedger = (...actual) => {
+    [parent, input, f.request, f.definitionToken]
+      .forEach((value, index) => assert.strictEqual(actual[index], value));
+    return {$tag: 1, _0: ledger};
+  };
+  f.moon.clientProgramRequestModelRecoverySourceCoordinates = (...actual) => {
+    [parent, input, f.request, f.definitionToken, f.prepared]
+      .forEach((value, index) => assert.strictEqual(actual[index], value));
+    return {$tag: 1, _0: coordinates};
+  };
+  const args = [parent, input, f.request, f.definition, f.prepared, sources, contracts, 'values', 'fragment', 'ordered', providers];
+  assert.strictEqual(f.control.openCheckedClientRequestModelRecoveryHost(...args), undefined);
+  assert.throws(() => f.control.openCheckedClientRequestModelRecoveryHost(...args), error =>
+    error.code === 'MoonBitHostFailure' && error.cause === nativeIssue);
+  assert.equal(f.control.checkedClientRequestModelRecoveryUsageIsolated(parent, input, f.request, f.definition, dag), true);
+  current = false;
+  assert.equal(f.control.checkedClientRequestModelRecoveryUsageIsolated(parent, input, f.request, f.definition, dag), false);
+  assert.strictEqual(f.control.checkedClientRequestModelRecoveryLedger(parent, input, f.request, f.definition), ledger);
+  assert.strictEqual(f.control.checkedClientRequestModelRecoverySourceCoordinates(
+    parent, input, f.request, f.definition, f.prepared), coordinates);
+  assert.throws(() => f.control.openCheckedClientRequestModelRecoveryHost(...args.map((value, index) =>
+    index === 3 ? {...f.definition} : value)), /Foreign/u);
+  assert.equal(open, 2);
+});
+
+test('recovery material reservation binds the same native Definition used by later ledger and Scope calls', () => {
+  const f = fixture(), parent = {}, input = {}, wireAt = () => 'same original material';
+  let reservations = 0;
+  f.moon.clientProgramReserveRequestModelRecoveryMaterials = (...actual) => {
+    reservations++;
+    [parent, input, f.request, f.definitionToken, 1, wireAt, 2]
+      .forEach((value, index) => assert.strictEqual(actual[index], value));
+    assert.notStrictEqual(actual[3], f.definition, 'the JS facade is not the physical original');
+    return {$tag: 1, _0: undefined};
+  };
+  assert.equal(f.control.reserveCheckedClientRequestModelRecoveryMaterials(
+    parent, input, f.request, f.definition, 1, wireAt, 2), undefined);
+  assert.throws(() => f.control.reserveCheckedClientRequestModelRecoveryMaterials(
+    parent, input, f.request, {...f.definition}, 1, wireAt, 2), /Foreign/u);
+  assert.equal(reservations, 1);
 });

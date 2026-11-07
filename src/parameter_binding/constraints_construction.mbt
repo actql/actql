@@ -24,10 +24,12 @@ fn parameter_constraints_construction_extent(
   // Fixed Limits/results/numeric/duration/next-lookup families11H7R15W,
   // original work-pop Some1H1R1W and elements projection closure1H1R, plus
   // shared Parameter issue carriers5H7R5W are included here.
+  // The same successful Value/usage tuple now stays live through constraints:
+  // one header, one borrowed CheckedValue reference and two measured scalars.
   let constraints : @shape.CollectionConstructionInventory = {
-    records: 2L * n + objects + 18L,
-    record_references: 4L * n + 2L * objects + 16L,
-    record_words: n + 21L,
+    records: 2L * n + objects + 19L,
+    record_references: 4L * n + 2L * objects + 17L,
+    record_words: n + 23L,
     reference_arrays: 1L + arrays + objects,
     reference_items: n + children + names,
     scalar_arrays: 0L,

@@ -69,7 +69,9 @@ test('WITH Graph row JOIN retirement preserves independent values, controls and 
     }
   }
   assert.deepEqual(graphRowsJoinRefusals.map(({text, expectedCode, ...item}) => item), old.graphRowsJoinRefusals.map(({text, expectedCode, ...item}) => item));
-  assert.deepEqual(graphRowsJoinExecutionFailures.map(({text, ...item}) => item), old.graphRowsJoinExecutionFailures.map(({text, ...item}) => item));
+  const retainedFailures = old.graphRowsJoinExecutionFailures.map(({text, ...item}) =>
+    item.name === 'graph-rows-join-explicit-bound-exceeded' ? {...item, resultNames: ['main']} : item);
+  assert.deepEqual(graphRowsJoinExecutionFailures.map(({text, ...item}) => item), retainedFailures);
   assert.equal(graphRowsJoinSuccesses.length, 10);
   assert.equal(graphRowsJoinRefusals.length, 5);
   assert.equal(graphRowsJoinExecutionFailures.length, 1);

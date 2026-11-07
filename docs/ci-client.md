@@ -1,23 +1,42 @@
 # Client CI groups
 
+The Host job retains `check:local-node-source-assets`: source input/type checks,
+clean prepack from an empty producer, and external connector compositions. These
+construct different inputs and do not consume the normal shared tarballs. The
+local `check:local-node-assets` command still includes the normal asset consumer
+and its existing Sheets postcheck. CI schedules those consumers in `client-packed`
+instead, without making the source-backed Host job wait for package production.
+
 The `client` required check remains the aggregate result for all Client
 acceptance. The workflow now schedules these independent workloads:
 
 - `client-packages` packs the same five Client distributions once
-- `client-distribution` runs the unchanged distribution gate, including source
-  fixtures, packed Node/Checkpoint acceptance and native Client verification
-- `client-packed` runs the unchanged Embedded Checkpoint, single INFER,
+- `client-distribution` runs the source-backed distribution contract tests
+- `client-distribution-callers` runs the existing Host preparation and resource callers
+- `client-distribution-mutations` runs the four original mutation commands
+- `client-distribution-packed` uses the shared tarballs for Delivery, dependency-free
+  Local, Node, Workspace, Graph and Checkpoint acceptance without a source runtime build
+- `client-distribution-native` builds and tests the original Native Client transport
+- `client-packed` uses the shared tarballs for normal Local asset and Sheets
+  consumers, and runs the unchanged Embedded Checkpoint, single INFER,
   public SQL/Pipe and Result description acceptance, with existing evidence uploads
 - `client-salesforce` runs the unchanged Salesforce and recovery gates, including
   both Compute-count probes and all nine process-death boundaries
 
-Distribution and packed-public jobs need only the package producer. Salesforce
-starts independently. Its source-backed recovery imports require the Local
-runtime bridges; it prepares these in its own checkout before the existing gates.
-Each workload retains the previous 30-minute limit. The five-minute `client`
-aggregate runs even if a dependency fails and rejects failure, cancellation and
-unexpected skip. The existing global `check` still requires `client`. Performance
-and diagnostic-probe modes retain their original conditional behavior, as does
+The package consumers and source-backed distribution jobs depend on the exact
+package producer. Native Client transport and Salesforce start independently.
+Salesforce's source-backed recovery imports require the Local runtime bridges;
+it prepares these in its own checkout before the existing gates.
+Each workload retains the previous 30-minute limit. The old 53-command
+`check:distribution-client` local umbrella is unchanged. Its independent CI
+workloads retain all 49 remaining commands once; the four common source
+preparation commands repeat only in the three source-backed jobs. Each job has
+private installation, mutation and compiler state. After successful preparation,
+independent cases continue after a sibling failure and respect cancellation.
+The five-minute `client` aggregate requires every workload and rejects failure,
+cancellation and unexpected skip. The existing global `check` still requires
+`client`. Performance and diagnostic-probe modes retain their original
+conditional behavior, as does
 the optional macOS gate.
 
 ## Immutable package handoff
@@ -52,9 +71,11 @@ Run the narrow scheduling and artifact fixtures while editing:
 node --test scripts/client-ci.test.mjs scripts/packed-client-packages.test.mjs
 ```
 
-The independent acceptance commands remain available through
-`node scripts/local-checks.mjs run client-distribution`, `client-packed` and
-`client-salesforce`. Local execution does not emulate Actions artifact transport;
+Each independent workload remains available through
+`node scripts/local-checks.mjs run <job>`, including the five
+`client-distribution*` jobs, `client-packed` and `client-salesforce`.
+`npm run check:distribution-client` retains the complete original local sequence.
+Local execution does not emulate Actions artifact transport;
 without `ACTQL_PACKED_CLIENT_PACKAGES`, scripts retain their existing normal-pack
 fallback. To reuse distributions locally, first commit all source changes, run
 `node scripts/packed-client-packages.mjs <outside-checkout-directory>` and point
@@ -219,3 +240,30 @@ only 26–35s. Different source/runner/load and failed/incomplete runs are not
 controlled successful comparisons. Independent retry scope and reduced per-job
 timeout exposure are the immediate goals. Pipeline evidence remains a separate,
 longer critical path; this split does not establish a whole-workflow speedup.
+
+## Main performance observations
+
+Every public `main` push runs `main-performance` on Linux with the normal
+`client-packages` artifact from that same run. It does not rebuild packages or
+start the heavy performance matrix. The existing ordinary consumer preparer,
+`benchmark-node-operations.mjs`, and `benchmark-node-process-operations.mjs`
+run in explicit `record-only` mode. Diagnostic/final acceptance modes and their
+thresholds are unchanged.
+
+The fixed small SQL fixtures collect three repetitions of warm query/Run,
+original Saved Result reread and status, plus actual new-process first-init and
+cold-existing operations. Cold-existing submits a new Run; it is **not** a
+cross-process Saved benchmark, and no OS cache eviction is performed. These
+small fixtures do not establish large-data throughput. Correctness, protocol,
+package-integrity and cleanup failures fail the job; elapsed time alone does not.
+
+The job summary shows median/max and process high-water RSS. Three samples do
+not establish a meaningful p95; that field remains null. Warm RSS includes
+setup and earlier operations in the same process. Child RSS covers only that
+actual process, not other workers or subprocesses, and is not per-operation
+allocation. Raw wall/CPU samples, child public spans, fixed fixture and protocol
+hashes, source/tarball/installed-payload identities, producer artifact/run IDs,
+Node/OS/CPU configuration and runner image are retained for 90 days. Compare
+like protocols and environments; hosted-runner variance is not a regression
+verdict. Full acceptance and larger campaigns remain separate, manually selected
+existing performance tooling.

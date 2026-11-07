@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import test_local_artifact_producer as originals
 import test_local_installed_image as native
-from image_fixture import PROVIDER, ORIGINAL
+from image_fixture import PROVIDER, ORIGINAL, table_module
 from actql_sdk._local_distribution import LocalInstallationError
 from actql_sdk._local_image_recipe import _recipe_from_original
 from actql_sdk._local_native_holding import NativeHoldingScopeError
@@ -47,6 +47,19 @@ class ImageCompilerTests(unittest.TestCase):
         original = compiler.verify(self.case.module_file, self.case.head) if original is None else original
         return compiler._CompilerRuntime(original['source'], original['recipe'], self.preparation_root,
             compiler._runtime_files(self.preparation_root, original['recipe']))
+
+    def test_original_module_table_geometry_enters_the_same_compiler_configuration(self):
+        self.case.module.write_bytes(table_module(1952, 1956))
+        original = compiler.assembly.record_original_module(self.case.source, self.case.head,
+            self.case.head, self.case.module, self.case.link_response, self.case.moon_home)
+        self.case.module_file.write_text(json.dumps(original))
+        checked = compiler.verify(self.case.module_file, self.case.head)
+        engine = json.loads(checked['recipe'].engine_body)
+        self.assertEqual(engine['pooling']['table_elements'], 1956)
+        self.assertEqual(engine['memory_reservation'], 16777216)
+        header = compiler._compiler_configuration_header(checked['recipe'])
+        self.assertIn(b'wasmtime_pooling_allocation_config_table_elements_set(pool, 1956ULL);', header)
+        self.assertIn(b'16777216ULL', header)
 
     def test_c_configuration_preparation_uses_original_verifier_without_native_import(self):
         with patch.object(compiler, 'import_module', side_effect=AssertionError('Native import')):

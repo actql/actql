@@ -21,8 +21,10 @@ export const pipeJoinRangesProgram = {version: 'actql/0.1', id: 'fixture.pipe_jo
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const prefix = 'FROM records |> AS l |> SET id = id + 10 ';
 const join = '|> JOIN (SELECT 2 AS k) AS r ON l.id = r.k MAX_OUTPUT_ROWS 10 ';
-const projection = '|> SELECT id AS current, l.id AS original, amount, r.k AS matched |> ORDER BY original';
+const originalProjection = '|> SELECT id AS current, l.id AS original, amount, r.k AS matched |> ORDER BY original';
+const projection = '|> SELECT id AS `current`, l.id AS original, amount, r.k AS matched |> ORDER BY original';
 const source = prefix + join + projection;
+const originalSource = prefix + join + originalProjection;
 // Independent post-JOIN control: the authored edit changes a current column
 // while the range's original id still denotes the evaluated JOIN input slot.
 export const postJoinSetProgram = {version: 'actql/0.1', id: 'fixture.post_join_set',
@@ -50,7 +52,7 @@ export const postJoinDropProgram = {version: 'actql/0.1', id: 'fixture.post_join
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const postJoin = 'FROM records AS l |> JOIN (SELECT 2 AS k) AS r '
   + 'ON l.id = r.k MAX_OUTPUT_ROWS 10 ';
-const postJoinProjection = '|> SELECT id AS current, l.id AS original, l.amount AS amount, r.k AS matched '
+const postJoinProjection = '|> SELECT id AS `current`, l.id AS original, l.amount AS amount, r.k AS matched '
   + '|> ORDER BY original';
 const postJoinSetSource = postJoin + '|> SET id = id + 10 ' + postJoinProjection;
 // Ordinary EXTEND changes the current row without extending an old range.
@@ -64,7 +66,7 @@ export const extendRangeProgram = {version: 'actql/0.1', id: 'fixture.extend_ran
       results: {rows: {from: 'out', fields: ['original', 'current', 'amount']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const extendSource = 'FROM records AS old |> EXTEND id + 10 AS z |> WHERE z > 0 '
-  + '|> SELECT old.id AS original, z AS current, old.amount AS amount |> ORDER BY original';
+  + '|> SELECT old.id AS original, z AS `current`, old.amount AS amount |> ORDER BY original';
 const extendColumns = [{name: 'original', contract: number}, {name: 'current', contract: number},
   {name: 'amount', contract: nullable}];
 const extendRows = [{original: 1, current: 11, amount: null},
@@ -82,16 +84,16 @@ export const pipeJoinRangesSuccesses = [
   success('post-set-left-nullable', postJoinSetSource.replace('|> JOIN', '|> LEFT JOIN'),
     {columns: [...columns.slice(0, 3), {name: 'matched', contract: nullable}],
       expected: [{current: 11, original: 1, amount: null, matched: null}, ...expected]}),
-  success('post-extend-current-slot', postJoin + '|> EXTEND id + 10 AS current '
-    + postJoinProjection.replace('id AS current', 'current')),
-  success('post-extend-fresh-range', postJoin + '|> EXTEND id + 10 AS current |> AS fresh '
-    + '|> SELECT fresh.current AS current, fresh.id AS original, fresh.amount AS amount, fresh.k AS matched '
+  success('post-extend-current-slot', postJoin + '|> EXTEND id + 10 AS `current` '
+    + postJoinProjection.replace('id AS `current`', 'current')),
+  success('post-extend-fresh-range', postJoin + '|> EXTEND id + 10 AS `current` |> AS fresh '
+    + '|> SELECT fresh.current AS `current`, fresh.id AS original, fresh.amount AS amount, fresh.k AS matched '
     + '|> ORDER BY original'),
   success('post-drop-independent-json', JSON.stringify(postJoinDropProgram), {format: 'json',
     expected: [{current: 2, original: 2, amount: 20, matched: 2},
       {current: 2, original: 2, amount: 20, matched: 2}]}),
   success('post-drop-original-slot', postJoin + '|> DROP id '
-    + postJoinProjection.replace('id AS current', 'r.k AS current'),
+    + postJoinProjection.replace('id AS `current`', 'r.k AS `current`'),
     {expected: [{current: 2, original: 2, amount: 20, matched: 2},
       {current: 2, original: 2, amount: 20, matched: 2}]}),
   success('independent-json', JSON.stringify(pipeJoinRangesProgram), {format: 'json'}),
@@ -103,12 +105,12 @@ export const pipeJoinRangesSuccesses = [
       {name: 'k', contract: number}],
     expected: [{amount: 20, id: 12, k: 2}, {amount: 20, id: 12, k: 2}]}),
   success('drop-original-key', 'FROM records |> AS l |> DROP id ' + join
-    + projection.replace('id AS current', 'amount AS current'),
+    + projection.replace('id AS `current`', 'amount AS `current`'),
   {columns: [{name: 'current', contract: nullable}, ...columns.slice(1)],
     expected: [{current: 20, original: 2, amount: 20, matched: 2},
       {current: 20, original: 2, amount: 20, matched: 2}]}),
   success('rename-original-key', 'FROM records |> AS l |> RENAME id AS current ' + join
-    + projection.replace('id AS current', 'current'),
+    + projection.replace('id AS `current`', 'current'),
   {expected: [{current: 2, original: 2, amount: 20, matched: 2},
     {current: 2, original: 2, amount: 20, matched: 2}]}),
   success('quoted-range', source.replaceAll('AS l', 'AS `L`').replaceAll('l.id', '`L`.id')),
@@ -119,7 +121,7 @@ export const pipeJoinRangesSuccesses = [
     ['extend-quoted-range', extendSource.replace('AS old', 'AS `old`')
       .replaceAll('old.id', '`OLD`.`ID`').replaceAll('old.amount', '`old`.`AMOUNT`'), {}],
     ['extend-fresh-range', extendSource.replace('|> WHERE', '|> AS fresh |> WHERE')
-      .replace('old.id', 'fresh.id').replace('z AS current', 'fresh.z AS current')
+      .replace('old.id', 'fresh.id').replace('z AS `current`', 'fresh.z AS `current`')
       .replace('old.amount', 'fresh.amount'), {}],
     ['extend-empty-typed', extendSource, {sourceRows: [], expected: []}],
   ].map(([name, text, extra]) => success(name, text,
@@ -133,7 +135,7 @@ export const pipeJoinRangesSuccesses = [
     + projection),
   success('shared-source', 'FROM records |> AS l |> SET id = id + 10 '
     + '|> WHERE l.id = 2 |> CROSS JOIN (SELECT id AS k FROM records) AS r MAX_OUTPUT_ROWS 10 '
-    + '|> SELECT id AS current, l.id AS original, l.amount AS amount, r.k AS matched '
+    + '|> SELECT id AS `current`, l.id AS original, l.amount AS amount, r.k AS matched '
     + '|> ORDER BY matched', {expected: [
     {current: 12, original: 2, amount: 20, matched: 1}, {current: 12, original: 2, amount: 20, matched: 1},
     {current: 12, original: 2, amount: 20, matched: 2}, {current: 12, original: 2, amount: 20, matched: 2},
@@ -144,10 +146,10 @@ export const pipeJoinRangesRefusals = [
   {name: 'post-extend-old-range', text: postJoin + '|> EXTEND id + 10 AS current |> SELECT l.current'},
   {name: 'post-set-missing-target', text: postJoin + '|> SET missing = 1 |> SELECT l.id'},
   {name: 'post-extend-duplicate', text: postJoin + '|> EXTEND id + 10 AS amount |> SELECT l.id'},
-  {name: 'dropped-current', text: 'FROM records |> AS l |> DROP id ' + join.replace('l.id', 'id') + projection},
-  {name: 'renamed-current', text: 'FROM records |> AS l |> RENAME id AS current ' + join.replace('l.id', 'id') + projection},
-  {name: 'displaced-range', text: source.replace('SET id = id + 10', 'SET id = id + 10 |> AS fresh')},
-  {name: 'authored-cte-range', text: 'WITH chosen AS (FROM records |> AS l |> SET id = id + 10) FROM chosen ' + join + projection},
+  {name: 'dropped-current', text: 'FROM records |> AS l |> DROP id ' + join.replace('l.id', 'id') + originalProjection},
+  {name: 'renamed-current', text: 'FROM records |> AS l |> RENAME id AS current ' + join.replace('l.id', 'id') + originalProjection},
+  {name: 'displaced-range', text: originalSource.replace('SET id = id + 10', 'SET id = id + 10 |> AS fresh')},
+  {name: 'authored-cte-range', text: 'WITH chosen AS (FROM records |> AS l |> SET id = id + 10) FROM chosen ' + join + originalProjection},
 ].map(item => ({format: 'aql-text', expectedCode: 'ClientProgramInvalidInput', ...item,
   name: 'pipe-join-ranges-refuse-' + item.name}));
 pipeJoinRangesRefusals.push(...[
@@ -184,11 +186,11 @@ pipeJoinRangesSuccesses.push(...[
   ['rename-unrelated-duplicates', renameJoin + '|> RENAME amount AS current ' + renameProjection, {}],
   ['rename-quoted-target', renameJoin + '|> RENAME `AMOUNT` AS current ' + renameProjection, {}],
   ['rename-new-ambiguity', renameJoin + '|> RENAME amount AS id '
-    + renameProjection.replace('SELECT current', 'SELECT l.amount AS current'), {}],
+    + renameProjection.replace('SELECT current', 'SELECT l.amount AS `current`'), {}],
   ['rename-empty-typed', renameJoin + '|> RENAME amount AS current ' + renameProjection,
     {sourceRows: [], expected: []}],
   ['rename-nullable', 'FROM records AS old |> RENAME id AS amount '
-    + '|> SELECT old.amount AS current, old.id AS original, old.id AS matched |> ORDER BY original',
+    + '|> SELECT old.amount AS `current`, old.id AS original, old.id AS matched |> ORDER BY original',
   {expected: [{current: null, original: 1, matched: 1}, ...renameRows]}],
 ].map(([name, text, extra]) => success(name, text,
   {columns: renameColumns, expected: renameRows, ...extra})));
@@ -217,7 +219,7 @@ export const editCollisionProgram = {version: 'actql/0.1', id: 'fixture.pipe_edi
 const editColumns = [{name: 'current', contract: number}, {name: 'amount', contract: nullable}];
 const editRows = [{current: 99, amount: null}, {current: 99, amount: 20}, {current: 99, amount: 20}];
 const editSource = 'FROM records AS id |> SET id = @replacement, amount = id.amount '
-  + '|> SELECT id.id AS current, amount |> ORDER BY amount';
+  + '|> SELECT id.id AS `current`, amount |> ORDER BY amount';
 pipeJoinRangesSuccesses.push(...[
   ['edit-independent-json', JSON.stringify(editCollisionProgram), {format: 'json'}],
   ['edit-object-current', editSource, {parameterDeclarations: {replacement}}],

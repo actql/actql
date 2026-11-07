@@ -420,6 +420,13 @@ test('Source evidence preparation failure preserves the exact capture cleanup ow
 });
 
 
+function originalSourceSnapshotEntry(context) {
+  // Keep the extracted entry connected to its actual lexical producer helper.
+  const beginProducer = get('./ordinary-source-managed.mjs', 'beginProducer', context);
+  return get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot',
+    {...context, beginProducer}, true);
+}
+
 function originalSourcePreparationCallbacks(entry, readContext, retire, originals) {
   const callbacks = {explicitStartup: false, assertSourceManagedHostPreparation: value => assert.equal(value, originals),
     assertRetainedSourceManagedHost: value => assert.equal(value, originals),
@@ -434,19 +441,34 @@ function originalSourcePreparationCallbacks(entry, readContext, retire, original
     }, prepareOrdinaryProjectSourceManagedInstallation(value, bag) {
       assert.equal(value, originals); return bag;
     }};
+  // Capture the actual same-owner borrow helper as well as its consumer.
+  // The explicit constructor port is exercised only if the selected manager
+  // borrows it; this fixture never substitutes an unfunded initialization.
+  callbacks.apply = Reflect.apply;
+  callbacks.unavailable = () => fail('SourceManagedPreparationUnavailable');
+  callbacks.borrowSourceInitializationMaterial = get('./node-source-managed-installation.mjs',
+    'borrowSourceInitializationMaterial', callbacks);
   return get('./node-source-managed-installation.mjs', entry, callbacks)(originals);
 }
 
 test('both actual Source entries open the same Request before snapshot and retain its original retirement', () => {
   for (const entry of ['prepareSourceManagedInstallation', 'prepareProjectSourceManagedInstallation']) {
     for (const kind of ['program', 'aql']) {
-      const originals = {}, context = {}, connection = {}, parent = {}, prepared = {}, holder = {}, events = [];
+      const originals = {}, context = {runtime: {}}, connection = {}, parent = {}, prepared = {}, holder = {}, events = [];
       const callbacks = originalSourcePreparationCallbacks(entry, value => {
         assert.equal(value, originals); events.push('context'); return context;
       }, (value, body) => {assert.equal(value, originals); assert.equal(body, prepared); events.push('retire');}, originals);
       const receipts = new WeakMap(), producers = new Set();
-      const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
+      const retainSourceInitializationMaterial = get('./ordinary-source-managed.mjs',
+        'retainSourceInitializationMaterial', {
+          closing: false, closed: false, receipts, fail,
+          // This Request-order fixture has no installed Source material.
+          // Use the actual helper's unselected branch, not a replacement.
+          borrowSourceInitialization: undefined,
+        });
+      const before = originalSourceSnapshotEntry({
         current() {}, callbacks, originals, receipts, producers, closed: false, fail,
+        retainSourceInitializationMaterial,
         requestPreparationAvailable: value => {assert.equal(value, context); return true;},
         assertRequestPreparationControl: value => {assert.equal(value, context); events.push('control');},
         beginRequestInput(state, receipt, actualConnection) {
@@ -454,7 +476,7 @@ test('both actual Source entries open the same Request before snapshot and retai
           assert.equal(actualConnection, connection); assert.equal(producers.size, 1);
           state.parent = parent; events.push('begin'); return true;
         }, cleanupRequestInput() {assert.fail('successful opening has no early cleanup');},
-      }, true);
+      });
       const receipt = before(kind, kind === 'program' ? {} : 'SELECT @original AS n',
         {parameters: {original: 9}}, connection);
       const producer = receipts.get(receipt);
@@ -486,12 +508,12 @@ test('Source context refuses unavailable original capability before producer all
     const originals = {}, context = {}, receipts = new WeakMap(), producers = new Set();
     const callbacks = originalSourcePreparationCallbacks(entry, () => context,
       () => assert.fail('no prepared input to retire'), originals);
-    const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
+    const before = originalSourceSnapshotEntry({
       current() {}, callbacks, originals, receipts, producers, fail,
       requestPreparationAvailable: value => {assert.equal(value, context); return false;},
       assertRequestPreparationControl() {assert.fail('no available original');},
       beginRequestInput() {assert.fail('no allocation after original refusal');},
-    }, true);
+    });
     assert.throws(() => before('aql', 'SELECT 9 AS n', {}, {}),
       {code: 'NodeLocalPreparationAdmissionUnavailable'});
     assert.equal(producers.size, 0);
@@ -505,11 +527,11 @@ test('Source context original refusal cannot allocate or select an unfunded snap
       const originals = {}, receipts = new WeakMap(), producers = new Set();
       const callbacks = originalSourcePreparationCallbacks(entry, () => {throw issue;},
         () => assert.fail('no preparation was acquired'), originals);
-      const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
+      const before = originalSourceSnapshotEntry({
         current() {}, callbacks, originals, receipts, producers,
         requestPreparationAvailable() {assert.fail('no returned context');},
         beginRequestInput() {assert.fail('no allocation after original refusal');},
-      }, true);
+      });
       let failed = false;
       try {before('program', {}, {}, {});}
       catch (actual) {failed = true; assert.equal(actual, issue);}
@@ -658,6 +680,7 @@ function sourceRouteCallerFixture({kind = 'whole-input', queryFailure, wrapAdapt
       identityCalls++; return requested;
     },
     clientProgramSourceFreeInputIntentCid() {return 'original-input-intent';},
+    clientProgramMatchesRequestIdentity(body, identity) {return body === prepared && identity === requested;},
     clientProgramSelectInstalledSourceInput(body, request, stage, input) {
       assert.equal(body, prepared); assert.equal(request, requested);
       assert.deepEqual([stage, input], [0, 0]); events.push('typed-selection'); return ok(sourceSelection);
@@ -685,9 +708,12 @@ function sourceRouteCallerFixture({kind = 'whole-input', queryFailure, wrapAdapt
     checkpoints: undefined, ExecutionAuthorizationError: class extends Error {},
   };
   context.originalSourceFreeRequest = sourceRouteBinding('originalSourceFreeRequest', context, true);
+  const retainRestored = sourceRouteBinding('retainRestoredSourceFreeRequest', context);
+  context.modelSourceOccurrence = sourceRouteBinding('modelSourceOccurrence', context);
   const requestOf = sourceRouteBinding('requestOf', context);
   const prepareAcquisition = sourceRouteBinding('prepareAcquisition', context);
   return {prepared, requested, preparedSource, events, identities,
+    retainRestored: (requestId = 'original-request', identity = requested) => retainRestored(prepared, requestId, identity),
     request: id => requestOf({preparedProgram: prepared, requestId: id ?? 'original-request'}),
     prepare: () => prepareAcquisition(prepared),
     counts: () => ({identityCalls, queryCalls})};
@@ -701,6 +727,27 @@ test('whole-input Host request and acquisition keep one original identity withou
   assert.equal(await f.prepare(), f.preparedSource);
   assert.deepEqual(f.counts(), {identityCalls: 1, queryCalls: 0});
   assert.deepEqual(f.events, ['typed-selection', 'typed-selection', 'typed-selection', 'same-adapter']);
+});
+
+test('restored Host request retains the actual Journal identity before Source selection without issuing an equal replacement', async () => {
+  const f = sourceRouteCallerFixture();
+  assert.strictEqual(f.retainRestored(), f.requested);
+  assert.strictEqual(f.request().requested, f.requested);
+  assert.strictEqual(await f.prepare(), f.preparedSource);
+  assert.deepEqual(f.counts(), {identityCalls: 0, queryCalls: 0});
+  assert.strictEqual(f.retainRestored(), f.requested);
+  assert.throws(() => f.retainRestored('different-request'), {code: 'ForeignInstalledComputeRun'});
+  assert.throws(() => f.retainRestored('original-request', {}), {code: 'ForeignInstalledComputeRun'});
+  assert.deepEqual(f.counts(), {identityCalls: 0, queryCalls: 0});
+});
+
+test('restored Host request refuses a conflicting cached original even if its request ID agrees', () => {
+  const f = sourceRouteCallerFixture();
+  const foreign = Object.freeze({requestId: 'original-request', requested: {}});
+  f.identities.set(f.prepared, foreign);
+  assert.throws(() => f.retainRestored(), {code: 'ForeignInstalledComputeRun'});
+  assert.strictEqual(f.identities.get(f.prepared), foreign);
+  assert.deepEqual(f.counts(), {identityCalls: 0, queryCalls: 0});
 });
 
 test('whole-input caller controls preserve Query refusal and reject a changed request identity', () => {
@@ -796,4 +843,140 @@ test('failed Host initialization cannot lend retained publication identity while
   assert.equal(failure.cleanupHandle.status().pending, false);
   assert.throws(() => registry.assertRetainedPreparation(host, installation, host),
     /InstalledHostPreparationChanged/);
+});
+
+
+test('DuckDB original evidence transfer retains the same issuer value and rejects pending or retired access', async () => {
+  const original = {}, options = {}, seen = [];
+  let live = true, complete;
+  class Failure extends Error {constructor(code) {super(code); this.code = code;}}
+  const create = get('../connectors/duckdb/node/host.mjs', 'sourceEvidenceOriginalAccess', {
+    DuckDBTransportError: Failure,
+  });
+  const access = create(() => {if (!live) throw new Failure('ClosedSourceCapture');}, value => {
+    assert.equal(value, options); seen.push(value);
+    return new Promise(resolve => {complete = resolve;});
+  });
+  const preparing = access.prepare(options);
+  assert.equal(access.pending(), true);
+  assert.throws(() => access.retire(), {code: 'SourceEvidencePending'});
+  assert.throws(() => access.take(), {code: 'SourceEvidenceUnavailable'});
+  await assert.rejects(access.prepare(options), {code: 'SourceEvidencePending'});
+  complete(original); await preparing;
+  assert.equal(access.pending(), false);
+  assert.equal(access.take(), original);
+  assert.throws(() => access.take(), {code: 'SourceEvidenceUnavailable'});
+  const next = access.prepare(options);
+  live = false; complete(original);
+  await assert.rejects(next, {code: 'ClosedSourceCapture'});
+  assert.throws(() => access.take(), {code: 'ClosedSourceCapture'});
+  // No successful physical retirement was inferred from the failed prepare.
+  live = true;
+  const retained = access.prepare(options); complete(original); await retained;
+  access.retire();
+  assert.throws(() => access.take(), {code: 'SourceEvidenceUnavailable'});
+  assert.equal(seen.length, 3);
+});
+
+test('DuckDB captured Source prepares evidence on the same original physical capture without wire fallback', async () => {
+  for (const broad of [false, true]) {
+    const preparedProgram = {}, preparedSource = {checkedSource: {sourceRef: 'original'}},
+      registry = {}, sourceAccess = {}, requirement = {}, evidenceContext = {}, identity = {},
+      logicalInput = {}, capturedSource = {}, acquisition = {}, ledger = {}, options = {};
+    const capture = Object.freeze({source: () => capturedSource, close() {},
+      document() {assert.fail('No observation wire required for evidence preparation');}});
+    const owner = {moon: undefined, checkedOwner: preparedProgram, effectful: false,
+      occurrence: {stage: 0, input: 0, task: 0}, registry, values: 'values', fragment: 'fragment',
+      ordered: 'ordered', database: 'unopened', schema: 'main', table: 'records', sourceAccess,
+      transportLimits: {}, acquisitionPlanning: undefined, acquisition, broad,
+      requirement, evidenceContext, selection: undefined};
+    const moon = owner.moon = {
+      clientProgramCapturedTaskSourceMatches: (actual, source, task) => {
+        assert.equal(actual, preparedProgram); assert.equal(source, capturedSource); assert.equal(task, 0); return true;
+      },
+      clientProgramIdentifyCapturedSourceRelation: source => {assert.equal(source, capturedSource); return identity;},
+      clientProgramIssueCapturedTaskSourceLogical: (...values) => {
+        assert.deepEqual(values, [preparedProgram, capturedSource, identity, requirement, 0]); return logicalInput;
+      },
+    };
+    const prepareNativeSourceEvidenceOriginal = async (original, selected) => {
+      assert.equal(original, capture);
+      assert.deepEqual(selected, {...options, context: evidenceContext, identity, logicalInput});
+    };
+    const native = {session: {authorizeLocalDatabase: async () => ({})}, host: {
+      runNativeHostQuery() {assert.fail('The original parent Ledger must be retained');},
+      runStrategyNativeHostQuery: async () => {assert.equal(broad, false); return capture;},
+      runBroadHostQuery: async () => {assert.equal(broad, true); return capture;},
+      nativeSourceIdentityMatches: (actual, selected) => actual === capture && selected === identity,
+      prepareNativeSourceEvidenceOriginal,
+      issueNativeSourceEvidence() {assert.fail('No evidence wire or readmission');},
+    }};
+    const open = get('./captured-duckdb-source.mjs', 'openCapturedDuckDBSource', {
+      preparations: new WeakMap([[preparedSource, owner]]), admittedTransportPolicy: () => ({}),
+      transportLimitKeys: [], currentReadDecision: async () => ({action: 'dispatch'}),
+      loadDuckDBNativeRuntime: async () => native, checked: value => value,
+      runtimeIsOk: () => false, runtimeField() {assert.fail('No synthetic runtime tuple');},
+      acquisitionFailure() {assert.fail('Unexpected physical failure');},
+      ExecutionAuthorizationError: class extends Error {},
+    });
+    const result = await open({moon, preparedProgram, registry, values: 'values', fragment: 'fragment',
+      ordered: 'ordered', database: 'unopened', schema: 'main', table: 'records', sourceAccess,
+      preparedSource, transportLimits: {}, ledger});
+    assert.equal(result.capture, capture);
+    await result.prepareSourceEvidenceOriginal(options);
+    await result.close();
+  }
+});
+
+test('Native and Broad original close retain pending evidence custody before physical retirement', () => {
+  const source = readFileSync(new URL('../connectors/duckdb/node/host.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const walk = (node, visit) => {
+    if (!node || typeof node !== 'object') return;
+    visit(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(child => walk(child, visit));
+      else if (value && typeof value === 'object') walk(value, visit);
+    }
+  };
+  for (const name of ['runHostNativeQuery', 'runBroadHostQuery']) {
+    let original, close;
+    walk(ast, node => {if (node.type === 'FunctionDeclaration' && node.id?.name === name) original = node;});
+    assert(original, name);
+    walk(original, node => {
+      if (node.type !== 'VariableDeclarator' || node.id?.name !== 'result') return;
+      const object = node.init?.arguments?.[0];
+      if (object?.type !== 'ObjectExpression' ||
+          !object.properties.some(property => property.key?.name === 'takeSourceEvidenceOriginal')) return;
+      close = object.properties.find(property => property.key?.name === 'close')?.value;
+    });
+    assert(close, name);
+    const calls = [];
+    let pending = true;
+    class Failure extends Error {constructor(code) {super(code); this.code = code;}}
+    const context = {
+      evidenceOriginal: {pending: () => pending, retire: () => calls.push('evidence')},
+      captured: {close: () => calls.push('physical')},
+      body: {close: () => calls.push('body')}, store: {close: () => calls.push('store')},
+      retainedComputations: {delete: () => calls.push('retained')}, retainedOutput: {},
+      DuckDBTransportError: Failure,
+    };
+    // Execute each actual close body with explicit physical/current ports.
+    // No original capture, database or resource ACK is fabricated here.
+    const make = new Function(...Object.keys(context),
+      `let closed=false,captureReleased=false,sourceCapture={};
+       const close=function()${source.slice(close.body.start, close.body.end)};
+       return {close,status:()=>({closed,captureReleased})};`);
+    const actual = make(...Object.values(context));
+    assert.throws(actual.close, {code: 'SourceEvidencePending'});
+    assert.deepEqual(calls, []);
+    assert.deepEqual(actual.status(), {closed: true, captureReleased: false});
+    pending = false;
+    actual.close();
+    assert.equal(calls.filter(value => value === 'physical').length, 1);
+    assert.equal(calls.at(-1), 'evidence');
+    assert.deepEqual(actual.status(), {closed: true, captureReleased: true});
+    actual.close();
+    assert.equal(calls.filter(value => value === 'physical').length, 1);
+  }
 });

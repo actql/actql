@@ -91,7 +91,7 @@ test "Request-owned Parameters preserve the original invalid default and failed 
       @publication_host.client_standard_program_preparation_limits(),
       @publication_host.client_standard_effect_computation_limits(),
     )
-    guard result is Err(ParameterDeclarations(original)) else {
+    guard result is Err(ParameterDeclarations(_original)) else {
       fail(
         "Original invalid numeric default must not become a generic check phase failure",
       )

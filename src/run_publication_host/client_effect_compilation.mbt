@@ -114,6 +114,7 @@ pub fn issue_prepared_client_effect_compilation(
   max_nodes : Int,
   max_depth : Int,
   infer? : ClientInferPlanGraph? = None,
+  infers? : Array[ClientInferPlanGraph] = [],
   normalization? : ClientEffectNormalization? = None,
   source_free_policy? : @publication.CapturedEffectDependencyBody? = None,
 ) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue] {
@@ -136,6 +137,7 @@ pub fn issue_prepared_client_effect_compilation(
     max_depth,
     normalization.map(fn(original) { original.inventory }),
     infer~,
+    infers~,
     source_free_policy~,
   )
 }
@@ -155,9 +157,11 @@ fn issue_client_effect_compilation_internal(
   max_depth : Int,
   normalization_profile : ClientEffectNormalizationInventory?,
   infer? : ClientInferPlanGraph? = None,
+  infers? : Array[ClientInferPlanGraph] = [],
   source_free_policy? : @publication.CapturedEffectDependencyBody? = None,
 ) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue] {
-  if source_free_policy is Some(_) && infer is Some(_) {
+  if (infer is Some(_) && !infers.is_empty()) ||
+    (source_free_policy is Some(_) && (infer is Some(_) || !infers.is_empty())) {
     return Err(Serialization(UnsupportedGraph))
   }
   if normalization_profile is Some(inventory) &&
@@ -211,8 +215,33 @@ fn issue_client_effect_compilation_internal(
   // This private compiler view contains the same graph, source and Effects.
   // It is never returned as an Effect-free preparation or checked again.
   let value = match infer {
+    None if !infers.is_empty() => {
+      let first = infers[0]
+      guard prepared_client_composed_infer_occurrences(first.owner)
+        is Some(expected) &&
+        expected.length() == infers.length() &&
+        infers.length() > 1 else {
+        return Err(ForeignInferOwner)
+      }
+      for index, component in infers {
+        if !physical_equal(component.owner, first.owner) ||
+          !physical_equal(component.owner.graph, graph) ||
+          !physical_equal(component.owner.source, owner.source) ||
+          component.owner.check_environment_cid != owner.check_environment_cid ||
+          !client_infer_occurrence_matches_plan(expected[index], component) {
+          return Err(ForeignInferOwner)
+        }
+      }
+      first.owner
+    }
     None => client_effect_program_view(owner)
     Some(infer) => {
+      guard prepared_client_composed_infer_occurrences(infer.owner)
+        is Some(expected) &&
+        expected.length() == 1 &&
+        client_infer_occurrence_matches_plan(expected[0], infer) else {
+        return Err(ForeignInferOwner)
+      }
       if !physical_equal(infer.owner.graph, graph) ||
         !physical_equal(infer.owner.source, owner.source) ||
         infer.owner.check_environment_cid != owner.check_environment_cid {
@@ -221,7 +250,7 @@ fn issue_client_effect_compilation_internal(
       infer.owner
     }
   }
-  let serialization = if infer is Some(_) {
+  let serialization = if infer is Some(_) || !infers.is_empty() {
     None
   } else {
     match
@@ -238,7 +267,17 @@ fn issue_client_effect_compilation_internal(
     }
   }
   let required_profiles = match infer {
-    None => []
+    None => {
+      let profiles = []
+      for component in infers {
+        for profile in client_infer_required_profiles(component) {
+          if !profiles.contains(profile) {
+            profiles.push(profile)
+          }
+        }
+      }
+      profiles
+    }
     Some(component) => client_infer_required_profiles(component)
   }
   if serialization is Some(_) {
@@ -352,6 +391,7 @@ fn issue_client_effect_compilation_internal(
       true,
       roots,
       infer~,
+      infers~,
       serialization~,
     ) {
     Ok(graph) => graph
@@ -411,6 +451,7 @@ fn issue_client_effect_compilation_internal(
       max_nodes,
       max_depth,
       infer~,
+      infers~,
       serialization=match infer {
         Some(component) => component.serialization
         None => serialization.map(component => component.serialization)
@@ -573,8 +614,7 @@ pub fn client_effect_allowed_infer_run_with_policy_body(
   max_depth : Int,
 ) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
   let compilation = value.compilation
-  guard compilation.compiled.infer is Some(plan) &&
-    physical_equal(plan.owner, compilation.compiled.owner) else {
+  guard client_effect_compilation_infer_originals(compilation) is Some(_) else {
     return Err(ForeignOwner)
   }
   let graph = @strategy.checked_effect_computation_graph(
@@ -787,4 +827,59 @@ pub fn client_effect_compilation_unit_id(
 ) -> String {
   let stages = @syntax.stages(value.owner.source)
   stages[stages.length() - 1].id
+}
+
+///|
+/// Copy only the outer inventory; each member remains the original checked
+/// component/occurrence. A subset, reorder or equal graph cannot qualify.
+pub fn client_effect_compilation_infer_originals(
+  value : ClientEffectCompilation,
+) -> Array[(ClientInferPlanGraph, ClientInferOccurrence)]? {
+  guard prepared_client_composed_infer_occurrences(value.compiled.owner)
+    is Some(expected) &&
+    !expected.is_empty() &&
+    expected.length() == value.compiled.infers.length() else {
+    return None
+  }
+  let originals = []
+  for index, component in value.compiled.infers {
+    let occurrence = expected[index]
+    if !physical_equal(component.owner, value.compiled.owner) ||
+      !client_infer_occurrence_matches_effect(occurrence, value.owner) ||
+      !client_infer_occurrence_matches_plan(occurrence, component) {
+      return None
+    }
+    originals.push((component, component.occurrence))
+  }
+  Some(originals)
+}
+
+///|
+/// The original Effect compilation supplies its retained graph Array in place;
+/// the caller funds only the same two read-partition projection arrays.
+pub fn bind_client_effect_model_read_scopes(
+  compilation : ClientEffectCompilation,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  ledger : @resources.Ledger,
+  identity : @resources.OriginalLedgerIdentity,
+  retained_bytes : Array[Int64],
+  execution_bytes : Array[Int64],
+) -> Result[Array[ClientModelReadScope], ClientModelReadPreparationIssue] {
+  if !client_compiled_run_matches_effect(
+      compiled,
+      compilation.owner,
+      compilation,
+    ) {
+    return Err(ForeignRun)
+  }
+  bind_client_model_read_scopes(
+    compiled,
+    definition,
+    compilation.compiled.infers,
+    ledger,
+    identity,
+    retained_bytes,
+    execution_bytes,
+  )
 }

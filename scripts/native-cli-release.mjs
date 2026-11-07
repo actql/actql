@@ -68,11 +68,30 @@ export function nativeReleaseMetadata(original, selected) {
 }
 
 export async function prepareNativeCliRelease(destination, artifacts, selected) {
+  return prepareNativeCliProfile(destination, artifacts, selected, false);
+}
+
+// Profile selection after original artifact admission, not another receipt or
+// a substitute for installed acceptance. Generic/Remote preparation is intact.
+export function requireLinuxLocalReleaseArtifacts(records) {
+  assert(Array.isArray(records));
+  const linux = records.filter(record => record.platform === 'linux-x64-gnu');
+  assert.equal(linux.length, 1, 'Local release selection requires one Linux x64 artifact');
+  assert(linux[0].localRuntime && typeof linux[0].localRuntime === 'object',
+    'Local release selection cannot use a Remote-only Linux artifact');
+}
+
+export async function prepareNativeCliLocalRelease(destination, artifacts, selected) {
+  return prepareNativeCliProfile(destination, artifacts, selected, true);
+}
+
+async function prepareNativeCliProfile(destination, artifacts, selected, requireLinuxLocal) {
   const cohort = admitNativeReleaseCohort(selected);
   const source = checkoutState(repository); assert(source.clean, 'CLI release requires clean source HEAD');
   const checkedSource = await checkInterfaceOwners(repository, {manifests: ['packages/native-cli/package.json']});
   const records = await Promise.all(artifacts.map(path => admitNativeArtifact(resolve(path), source.revision)));
   assert(records.length > 0 && records.length <= 2); assert.equal(new Set(records.map(v => v.platform)).size, records.length);
+  if (requireLinuxLocal) requireLinuxLocalReleaseArtifacts(records);
   const pinDigest = hash(await readFile(join(repository, 'toolchain.json')));
   for (const record of records) assert.equal(record.toolchainPinSha256, pinDigest);
   for (const record of records) {
@@ -209,13 +228,15 @@ export async function verifyNativeCliRelease(directory) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [command, input, ...tail] = process.argv.slice(2);
-  assert(input && ['prepare', 'verify', 'plan', '--publish'].includes(command),
-    'usage: native-cli-release.mjs prepare <new-directory> <explicit-cohort-json> <artifact-directories...> | verify|plan <directory>');
+  assert(input && ['prepare', 'prepare-local', 'verify', 'plan', '--publish'].includes(command),
+    'usage: native-cli-release.mjs prepare|prepare-local <new-directory> <explicit-cohort-json> <artifact-directories...> | verify|plan <directory>');
   if (command === '--publish') refuseUnconfiguredPublication();
-  assert(command === 'prepare' ? tail.length >= 2 : tail.length === 0,
+  const preparation = command === 'prepare' || command === 'prepare-local';
+  assert(preparation ? tail.length >= 2 : tail.length === 0,
     'Native preparation requires an explicit cohort file and artifact directories');
   const directory = resolve(input);
-  const manifest = command === 'prepare' ? await prepareNativeCliRelease(directory, tail.slice(1),
+  const prepare = command === 'prepare-local' ? prepareNativeCliLocalRelease : prepareNativeCliRelease;
+  const manifest = preparation ? await prepare(directory, tail.slice(1),
     JSON.parse(await readFile(resolve(tail[0]), 'utf8'))) : await verifyNativeCliRelease(directory);
   if (command === '--publish') {
     execFileSync('npm', ['whoami', '--registry', manifest.cohort.registry, '--fetch-timeout=15000', '--fetch-retries=0'], {stdio: 'inherit', timeout: 20_000});

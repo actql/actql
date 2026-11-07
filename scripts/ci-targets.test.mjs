@@ -6,12 +6,62 @@ import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs} from './ci-targets.mjs';
-import {policyPaths} from './ci-main-base.mjs';
+import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs, pythonWheelAcceptanceRequired, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
+import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
 const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const {jobs} = workflow;
+
+function nativeScratchSourceFixture(t) {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-scratch-source-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const repository = join(root, 'checkout'), runner = join(root, 'runner-temp');
+  mkdirSync(repository);mkdirSync(runner);
+  const git = args => {
+    const result = spawnSync('git', args, {cwd: repository, encoding: 'utf8', timeout: 5000});
+    assert.equal(result.error, undefined);assert.equal(result.status, 0, result.stderr);
+    return result.stdout;
+  };
+  git(['init', '--quiet']);
+  writeFileSync(join(repository, 'source.txt'), 'Original tracked Source\n');
+  git(['add', 'source.txt']);
+  git(['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+    '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Original Source']);
+  const afterSourceAdmission = new Error('Source admitted before compiler selection');
+  const prepare = () => prepareNativeRuntimeBundle(repository, join(root, 'bundle'), {
+    platform: 'linux', arch: 'x64', moonHome: root,
+    execute(command, args) {
+      if (command === 'git') return git(args);
+      assert.equal(command, 'sh');assert.deepEqual(args, ['-c', 'command -v clang']);
+      // Stop before any compiler, producer, prepared artifact or Native Runtime.
+      throw afterSourceAdmission;
+    },
+  });
+  return {repository, runner, git, prepare, afterSourceAdmission};
+}
+
+test('Linux Native scratch output leaves Source clean for delayed bundle admission', t => {
+  const f = nativeScratchSourceFixture(t);
+  const step = jobs.native.steps.find(row => row.name === 'Test Node-free native storage publication and control');
+  const scratch = step.env.ACTQL_TEST_SCRATCH_ROOT
+    .replaceAll('${{ github.workspace }}', f.repository)
+    .replaceAll('${{ runner.temp }}', f.runner);
+  mkdirSync(scratch, {recursive: true});
+  const original = mkdtempSync(join(scratch, 'native-http-'));
+  writeFileSync(join(original, 'original-fixture-output.txt'), 'Retained original output\n');
+  assert.throws(f.prepare, error => error === f.afterSourceAdmission);
+  assert.equal(f.git(['status', '--porcelain']), '');
+  assert.equal(readFileSync(join(original, 'original-fixture-output.txt'), 'utf8'), 'Retained original output\n');
+});
+
+test('Native bundle Source admission still refuses untracked checkout scratch output', t => {
+  const f = nativeScratchSourceFixture(t);
+  mkdirSync(join(f.repository, '.native-tests'));
+  writeFileSync(join(f.repository, '.native-tests', 'original-output.txt'), 'Retained output\n');
+  assert.throws(f.prepare, /Clean fixed bundle build Source required/u);
+  assert.equal(f.git(['status', '--porcelain']), '?? .native-tests/\n');
+});
 
 test('preflight checks Native counter assignments before the build toolchain', () => {
   const steps = jobs.preflight.steps;
@@ -21,6 +71,77 @@ test('preflight checks Native counter assignments before the build toolchain', (
   assert.equal(steps[index].run, 'python3 scripts/test_native_timings.py CommandCounterMap');
   assert.ok(index < steps.findIndex(row => row.name === 'Install pinned MoonBit'));
   assert.ok(jobs.native.needs.includes('preflight'));
+});
+
+test('Linux Native profile compilers retain their commands and existing stack prerequisite', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-profile-stack-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const npm = join(root, 'npm');
+  writeFileSync(npm, '#!/bin/sh\nprintf "%s:%s\\n" "$ACTQL_FIXTURE_STACK_KIB" "$*"\nexit "$ACTQL_FIXTURE_NPM_EXIT"\n');
+  chmodSync(npm, 0o755);
+  writeFileSync(join(root, 'node'), readFileSync(npm));
+  chmodSync(join(root, 'node'), 0o755);
+  for (const [job, name, command] of [
+    ['native', 'Test Node-free native storage publication and control', 'scripts/test-native-http-client.mjs'],
+    ['native-separated-network', 'Verify native direct and outbound-only Store profiles', 'check:native-separated-network'],
+  ]) {
+    assert.equal(jobs[job]['runs-on'], 'ubuntu-24.04');
+    const step = jobs[job].steps.find(row => row.name === name);
+    assert.ok(step);
+    assert.equal(step.if, job === 'native' ? "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}" : undefined);
+    assert.equal(step['continue-on-error'], undefined);
+    assert.match(step.run, /ulimit -S -s 65536\s+?(?:node |npm run )/u);
+    // Observe exact shell ordering and child inheritance without starting a
+    // Native compiler or changing the host shell's hard resource limit.
+    const observe = 'ulimit() { test "$*" = "-S -s 65536" || return 93; ' +
+      'export ACTQL_FIXTURE_STACK_KIB="$3"; }\n';
+    for (const status of [0, 7]) {
+      const result = spawnSync('bash', ['-eo', 'pipefail', '-c', observe + step.run], {
+        cwd: root, encoding: 'utf8', timeout: 5000,
+        env: {...process.env, PATH: root + ':' + process.env.PATH,
+          ACTQL_FIXTURE_NPM_EXIT: String(status)},
+      });
+      assert.equal(result.error, undefined);
+      assert.equal(result.signal, null);
+      assert.equal(result.status, status, result.stderr);
+      assert.equal(result.stdout.trim(), `65536:${job === 'native' ? command : `run ${command}`}`);
+    }
+  }
+});
+
+test('Native consumers keep all original commands and collect independent failures after preparation', t => {
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const expected = manifest.scripts['check:native-http-client'].split(' && ');
+  const condition = "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}";
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-independent-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const log = join(root, 'calls');
+  writeFileSync(join(root, 'node'), '#!/bin/sh\nprintf "%s\\n" "$*" >> "$ACTQL_CALL_LOG"\n' +
+    'exit "$ACTQL_FIXTURE_EXIT"\n');
+  chmodSync(join(root, 'node'), 0o755);
+  for (const name of ['native', 'native-macos']) {
+    const steps = jobs[name].steps.filter(step => step.id?.startsWith('native-') &&
+      step.id !== 'native-preparation');
+    assert.deepEqual(steps.map(step => step.run.trim().split('\n').at(-1)), expected);
+    assert.equal(new Set(steps.map(step => step.env.ACTQL_TEST_SCRATCH_ROOT)).size, expected.length);
+    const results = steps.map((step, index) => {
+      assert.equal(step.if, condition);
+      assert.equal(step['continue-on-error'], undefined, 'a failed case must still fail the job');
+      return spawnSync('bash', ['-eo', 'pipefail', '-c',
+        (name === 'native' ? 'ulimit() { test \"$*\" = \"-S -s 65536\"; }\n' : '') + step.run], {
+        cwd: root, encoding: 'utf8', timeout: 5000,
+        env: {...process.env, PATH: root + ':' + process.env.PATH,
+          ACTQL_CALL_LOG: log, ACTQL_FIXTURE_EXIT: index === 0 ? '7' : '0'},
+      });
+    });
+    assert.equal(results[0].status, 7, results[0].stderr);
+    assert(results.slice(1).every(result => result.status === 0));
+    assert(jobs[name].steps.find(step => step.id === 'native-preparation').run
+      .includes('prepare-native-runtime-bundle-fixture.mjs'));
+  }
+  assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, expected.length * 2);
+  for (const id of ['packed-materials', 'packed-redelivery', 'packed-output-report'])
+    assert.equal(jobs.native.steps.find(step => step.id === id).if, condition);
 });
 
 test('normal lint executes behavioral operation performance assessment tests', () => {
@@ -34,7 +155,7 @@ test('normal lint executes behavioral operation performance assessment tests', (
   assert.ok(jobs.host.steps.some(row => row.run === 'npm run check:checkpoint-runtime'));
   const observed = jobs.host.steps.find(row =>
     row.name === 'Test operation authorization and unchanged Run observations');
-  assert.equal(observed.run, 'node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/mock-effect-host-original.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/installed-managed-source.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-common/observation.test.mjs adapters/host-node/in-process-result-observation.test.mjs');
+  assert.equal(observed.run, 'node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/local-run-authorization.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/mock-effect-host-original.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/installed-managed-source.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-common/observation.test.mjs adapters/host-node/in-process-result-observation.test.mjs');
   assert.ok(jobs.host.steps.indexOf(observed) > jobs.host.steps.findIndex(row =>
     row.run === 'npm run check:retained-boundary'));
 });
@@ -58,6 +179,18 @@ test('normal Host CI executes bounded Journal preparation and cursor regressions
     row.run === 'npm run check:retained-boundary'));
 });
 
+test('normal Host CI checks real connector initialization after its ordinary runtime build', () => {
+  const steps = jobs.host.steps;
+  const build = steps.findIndex(row => row.name === 'Build runtime packages without prebuilt bundles');
+  const index = steps.findIndex(row => row.name === 'Test actual bound connector initialization and cleanup');
+  assert.ok(build >= 0 && index > build);
+  assert.equal(steps[index].run, 'node --test adapters/host-node/installed-bound-construction.actual.test.mjs adapters/host-node/installed-bound-construction-failures.actual.test.mjs adapters/host-node/installed-source-construction-geometry.test.mjs');
+  assert.equal(steps[index].if, undefined);
+  assert.equal(steps[index]['continue-on-error'], undefined);
+  // These cases use actual Core/Resource/registration and temporary SQLite,
+  // not live provider credentials or another runtime build/cleanup substitute.
+});
+
 test('manual integration keeps full core and explicit macOS opt-in', () => {
   assert.deepEqual(selectTargets(['README.md'], {event: 'push'}).targets, all);
   assert.equal(selectTargets(['README.md'], {event: 'push'}).macos, true);
@@ -69,7 +202,7 @@ test('portable PR paths choose JS and explain deferred macOS coverage', () => {
   for (const path of ['README.md', 'src/source_span/span.mbt', 'scripts/worktree-inventory.mjs']) {
     const result = validateSelection(selectTargets([path]));
     assert.deepEqual(result.targets, ['js'], path); assert.equal(result.macos, false, path);
-    assert.match(result.reason, /full targets and optional macOS require a manual integration checkpoint/u);
+    assert.match(result.reason, /full targets run on main integration; optional macOS can be requested manually/u);
   }
 });
 test('platform, per-file target, runtime ownership, identities and build retain every target', () => {
@@ -121,11 +254,12 @@ test('ordinary filename cannot hide target-specific syntax changes', () => {
     assert.equal(result.targetSensitiveDiff, true, line);
   }
 });
-test('only main pushes and explicit dispatch trigger CI; PRs stay local', () => {
-  assert.deepEqual(Object.keys(workflow.on).sort(), ['push', 'workflow_dispatch']);
+test('read-only PR lifecycle, main pushes and explicit dispatch trigger CI', () => {
+  assert.deepEqual(Object.keys(workflow.on).sort(), ['pull_request', 'push', 'schedule', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.push.branches, ['main']);
-  assert.equal(workflow.on.pull_request, undefined);
-  assert.equal(workflow.on.schedule, undefined);
+  assert.deepEqual(workflow.on.pull_request.types, ['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft']);
+  assert.equal(workflow.on.pull_request_target, undefined);
+  assert.deepEqual(workflow.on.schedule, [{cron: '23 3 * * 1'}]);
   assert.equal(workflow.on.workflow_run, undefined);
   assert.equal(workflow.on.merge_group, undefined);
   assert.equal(workflow.concurrency['cancel-in-progress'], "${{ !inputs.performance_matrix && github.ref != 'refs/heads/main' }}");
@@ -137,8 +271,10 @@ test('manual normal dispatch retains all full-family obligations, separate from 
   const selection = validateSelection(selectTargets([], {event: 'workflow_dispatch'}));
   assert.equal(selection.profile, 'full');
   assert.deepEqual(selection.targets, all);
-  assert.equal(selection.mainBaseline, null);
+  assert.equal(Object.hasOwn(selection, 'mainBaseline'), false);
   const results = Object.fromEntries(gateJobs.map(name => [name, {result: 'success'}]));
+  results['main-performance'] = {result: 'skipped'};
+  results['health-quick'] = {result: 'skipped'};
   results['focused-tests'] = {result: 'skipped'};
   results['native-macos'] = {result: 'skipped'};
   verifyGate({sourceRevision: 'a'.repeat(40), selection}, results, {event: 'workflow_dispatch', sourceRevision: 'a'.repeat(40)});
@@ -158,11 +294,67 @@ test('active main finishes while pending work coalesces; branches and performanc
     }
   }
 });
+for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of [
+  ['native', 'all', 4, 900, 45],
+  ['native-macos', 'all', 4, 1200, 45],
+  ['native-separated-network', 'bundle', 2, 900, 25],
+]) {
+  test(`Native preparation outer budgets retain every producer and consumer window (${name})`, () => {
+    const job = jobs[name];
+    assert.equal(job['runs-on'], name === 'native-macos' ? 'macos-15' : 'ubuntu-24.04');
+    const preparation = job.steps.find(step =>
+      step.name === 'Prepare exact-source scoped Native commands and components once');
+    assert.equal(preparation.run, 'node scripts/prepare-native-runtime-bundle-fixture.mjs ' +
+      '--destination "${{ runner.temp }}/native-scoped-preparation" --entries ' + entries + ' --seconds 900' +
+      (entries === 'all' ? ' --http-jobs 2' : '') +
+      (residentSeconds === 900 ? '' : ' --resident-seconds ' + residentSeconds));
+    assert.equal(preparation.if, undefined);
+    assert.equal(preparation['continue-on-error'], undefined);
+    // Only the macOS Resident cold build selects 1200 seconds; all other
+    // producers retain 900 seconds. Each has its own 30-second
+    // enclosing-call allowance. Keep three minutes for metadata and cleanup,
+    // rounded up to a finite five-minute workflow window. This is not a
+    // runtime capacity, a runtime test timeout, or a cleanup acknowledgment.
+    const producerSeconds = producerCount * 900 + (entries === 'all' ? residentSeconds - 900 : 0);
+    const preparationMinutes = Math.ceil((producerSeconds + producerCount * 30 + 180) / 300) * 5;
+    assert.equal(preparation['timeout-minutes'], preparationMinutes);
+    assert.equal(job['timeout-minutes'], preparationMinutes + remainingMinutes,
+      'the existing non-preparation window survives the outer scheduling correction');
+  });
+}
+
+test('ordinary Read activation regressions run on the selected Native toolchain', () => {
+  const steps = jobs.native.steps;
+  const setup = steps.findIndex(step => step.uses === './.github/actions/setup-toolchain');
+  const process = steps.findIndex(step => step.name ===
+    'Test selected Linux x64 process-provider ABI and original physical custody');
+  const index = steps.findIndex(step => step.name ===
+    'Test original Read slab activation custody on selected Linux x64');
+  assert.ok(setup >= 0 && setup < process && process < index);
+  assert.equal(steps[index].run, 'python3 -B scripts/test_native_read_activation.py');
+  assert.equal(steps[index]['timeout-minutes'], 3);
+  assert.equal(steps[index].if, undefined);
+  assert.equal(steps[index]['continue-on-error'], undefined);
+  assert.equal(steps[index].env, undefined, 'inherit the original selected compiler and MoonBit');
+  const retained = steps.find(step => step.name ===
+    'Retain Linux x64 process-provider original controls');
+  assert.equal(retained.if, 'always()');
+  assert.deepEqual(retained.with.path.trim().split('\n'),
+    ['_build/linux-x64-owned-process/', '_build/native-read-activation/']);
+});
+
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
+  assert.equal(jobs['session-evidence']['timeout-minutes'], 60);
   assert.deepEqual(jobs.core.needs, ['select-targets', 'preflight']);
   assert.equal(jobs.core.strategy['fail-fast'], false);
+  for (const target of ['js', 'wasm', 'native']) {
+    assert.equal(runInNewContext(jobs.core['timeout-minutes'].slice(3, -2),
+      {matrix: {target}}, {timeout: 100}), target === 'native' ? 90 : 30);
+  }
   assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(jobs['native-macos'].needs, ['select-targets', 'preflight']);
+  assert.equal(jobs['native-macos']['timeout-minutes'], 115);
+  assert.equal(jobs.native['timeout-minutes'], 110);
   assert.match(jobs['native-macos'].if, /needs\.select-targets\.outputs\.macos == 'true'/u);
   for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']) {
     assert.match(jobs[name].if, /needs\.select-targets\.outputs\.profile == 'full'/u);
@@ -181,8 +373,7 @@ const head = 'b'.repeat(40);
 const plan = selection => ({sourceRevision: head, selection});
 const context = {event: 'pull_request', sourceRevision: head};
 const results = selection => Object.fromEntries(gateJobs.map(name => [name, {result:
-  ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || selection.profile === 'full' && name !== 'focused-tests' &&
-    (name !== 'native-macos' || selection.macos) ? 'success' : 'skipped'}]));
+  gateJobRequired(selection, name) ? 'success' : 'skipped'}]));
 const changes = paths => paths.map(path => ({path, before: {mode: '100644', object: 'c'.repeat(40)},
   after: {mode: '100644', object: 'd'.repeat(40)}}));
 const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: changes(paths)});
@@ -190,7 +381,7 @@ const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: 
 test('required aggregate rejects failed, cancelled, skipped and missing selected jobs', () => {
   const selection = selectTargets(['src/unregistered/engine.mbt']);
   assert.equal(verifyGate(plan(selection), results(selection), context).length, gateJobs.length);
-  for (const name of gateJobs.filter(name => name !== 'focused-tests')) {
+  for (const name of gateJobs.filter(name => gateJobRequired(selection, name))) {
     for (const result of ['failure', 'cancelled', 'skipped', 'in_progress', undefined]) {
       const candidate = results(selection); candidate[name] = {result};
       assert.throws(() => verifyGate(plan(selection), candidate, context), undefined, `${name}: ${result}`);
@@ -295,8 +486,8 @@ test('CI selection follows the owned contract baseline without a legacy exceptio
 
 
 test('maintenance inventory is exact and every existing reviewed modification qualifies', () => {
-  assert.equal(maintenanceFiles.length, 15);
-  assert.equal(new Set(maintenanceFiles).size, 15);
+  assert.equal(maintenanceFiles.length, 17);
+  assert.equal(new Set(maintenanceFiles).size, 17);
   for (const path of maintenanceFiles) {
     const selection = validateSelection(maintenanceSelection([path]));
     assert.equal(selection.profile, 'maintenance', path);
@@ -380,19 +571,35 @@ test('maintenance N/A is explicit and cannot hide execution or selected check fa
 });
 
 // Exercise the real GitHub job expressions, including always() behavior.
-const scheduled = (name, needs, inputs = {}) => {
+const scheduled = (name, needs, inputs = {}, isCancelled = false) => {
   const expression = jobs[name].if.slice(3, -3).replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
-  return Function('needs', 'inputs', 'always', 'vars', 'github', 'toJSON', `return (${expression});`)(needs, inputs, () => true,
-    {ACTQL_MAIN_CI_ENABLED: 'true'}, {event: {repository: {visibility: 'public', private: false}}}, JSON.stringify);
+  return Function('needs', 'inputs', 'always', 'cancelled', 'vars', 'github', 'toJSON', `return (${expression});`)(needs, inputs, () => true, () => isCancelled,
+    {}, {event: {repository: {visibility: 'public', private: false}}}, JSON.stringify);
 };
+test('pipeline evidence aggregates dependency failures but stops on workflow cancellation', () => {
+  const names = jobs['pipeline-evidence'].needs;
+  const healthy = Object.fromEntries(names.map(name => [name, {result: 'success'}]));
+  for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
+    const needs = {...healthy, 'pipeline-capacity': {result}};
+    assert.equal(scheduled('pipeline-evidence', needs), true, `dependency ${result} must be aggregated`);
+    assert.equal(scheduled('pipeline-evidence', needs, {}, true), false,
+      `workflow cancellation must stop evidence work after dependency ${result}`);
+  }
+  const selection = selectTargets(['src/unregistered/engine.mbt']);
+  for (const result of ['failure', 'cancelled', 'skipped']) {
+    const candidate = results(selection);
+    candidate['pipeline-evidence'] = {result};
+    assert.throws(() => verifyGate(plan(selection), candidate, context), /pipeline-evidence/u);
+  }
+});
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
-  for (const [name, groups] of [['client', ['client-packages', 'client-distribution', 'client-packed', 'client-salesforce']],
+  for (const [name, groups] of [['client', ['client-packages', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce']],
     ['pipeline-evidence', ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']]]) {
     assert.deepEqual(jobs[name].needs, groups);
     assert.match(jobs[name].if, /always\(\)/u);
     const skipped = Object.fromEntries(groups.map(group => [group, {result: 'skipped'}]));
     assert.equal(scheduled(name, skipped), false);
-    for (const group of groups) for (const result of ['success', 'failure', 'cancelled', undefined]) {
+    for (const group of groups.filter(group => group !== 'pipeline-validation')) for (const result of ['success', 'failure', 'cancelled', undefined]) {
       assert.equal(scheduled(name, {...skipped, [group]: {result}}), true, `${name}/${group}/${result}`);
     }
     assert.equal(scheduled(name, Object.fromEntries(groups.map(group => [group, {result: 'success'}]))), true);
@@ -406,13 +613,14 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 });
 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
-    'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos',
+  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-distribution-callers',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce',
+    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of heavy) {
     assert(jobs[name].needs.includes('select-targets'));
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'maintenance', macos: 'false'}}}), false);
-    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'full', macos: 'true'}}}), true);
+    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'full', python_wheels: 'true', deep_proofs: 'true', macos: 'true'}}}), true);
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', macos: 'true'}}}), false);
   }
   assert.deepEqual(jobs.check.needs, gateJobs);
@@ -425,6 +633,18 @@ test('every heavy primitive is selected as one complete job and lint/spec always
     assert(reporter.includes(`import './${file}';`), `Missing retained reporter suite ${file}`);
   }
   assert(jobs.spec.steps.some(step => step.run?.includes('npm run check:spec')));
+});
+
+test('full integration cannot skip, omit or fail either actual CLI acceptance job', () => {
+  const selection = selectTargets(['README.md'], {event: 'workflow_dispatch', mainIntegration: true, nativeMacos: false});
+  for (const name of ['native-cli-installed', 'native-cli-linux-local']) {
+    for (const result of ['missing', 'failure', 'cancelled', 'skipped']) {
+      const needs = results(selection);
+      if (result === 'missing') delete needs[name];
+      else needs[name].result = result;
+      assert.throws(() => verifyGate(plan(selection), needs, {...context, event: 'workflow_dispatch'}), new RegExp(name));
+    }
+  }
 });
 
 test('actual final gate command fails closed for missing or corrupted plans', t => {
@@ -512,30 +732,17 @@ test('normal workflow has no historical declaration admission or artifact requir
   }
 });
 
-const checkpoint = () => ({baseSha: 'a'.repeat(40), testedSha: head, runId: 42, runAttempt: 1, workflowId: 7,
-  policy: policyPaths.map(path => ({path, object: 'd'.repeat(40)})), reason: 'Verified full main checkpoint'});
 test('main cumulative product changes retain all backend coverage even for portable PR paths', () => {
   for (const paths of [['proofs/relation-pipeline/new-record.json', 'src/source_span/span.mbt'], ['src/source_span/span.mbt'], ['README.md']]) {
-    const selected = validateSelection(selectTargets(paths, {event: 'push', mainIntegration: false, mainBaseline: checkpoint()}));
+    const selected = validateSelection(selectTargets(paths, {event: 'push', mainIntegration: false}));
     assert.equal(selected.profile, 'full'); assert.deepEqual(selected.targets, all); assert.equal(selected.macos, true);
   }
 });
-test('main uses verified base for every raw, text, mode and path diff, never push.before', () => {
-  const calls = [], baseRevision = 'a'.repeat(40), before = 'c'.repeat(40);
-  const changed = readChanges({before}, args => {
-    calls.push(args); if (args[0] === 'rev-parse') return head;
-    if (args.includes('--name-only')) return 'src/source_span/span.mbt\0';
-    if (args[0] === 'show') return 'ordinary';
-    return '+ordinary';
-  }, {baseRevision});
-  assert.deepEqual(changed.paths, ['src/source_span/span.mbt']);
-  for (const args of calls.filter(args => args[0] === 'diff')) { assert(args.includes(baseRevision)); assert(!args.includes(before)); }
-});
-test('main API permission is read-only and scoped to selection with no persistent token', () => {
+test('normal selection needs no Actions token or history API permission', () => {
   assert.deepEqual(workflow.permissions, {contents: 'read'});
-  assert.deepEqual(jobs['select-targets'].permissions, {contents: 'read', actions: 'read'});
+  assert.deepEqual(jobs['select-targets'].permissions, {contents: 'read'});
   const select = jobs['select-targets'].steps.find(step => step.id === 'select');
-  assert.equal(select.env.GITHUB_TOKEN, '${{ github.token }}');
+  assert.equal(select.env.GITHUB_TOKEN, undefined);
   assert(jobs.lint.steps.some(step => step.run?.includes('scripts/ci-main-base.test.mjs')));
 });
 
@@ -569,10 +776,11 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
   assert.equal(selectTargets(product, {event: 'workflow_dispatch', draft: true}).profile, 'full');
 });
 
-test('Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
-    'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
-    'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'native-separated-network',
+test('Unrelated Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
+  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-distribution-callers',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce',
+    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
+    'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
     'workers', 'connector-addition', 'duckdb-node'];
   for (const profile of ['draft', 'draft-focused']) {
     const needs = {'select-targets': {outputs: {profile, macos: 'false'}}};
@@ -598,7 +806,9 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
   const preflight = commands('preflight');
   assert.deepEqual(preflight.filter(command => !command.includes('setup-moonbit')), [
     'node --test scripts/pure-operation-inventory.test.mjs',
-    'python3 scripts/test_native_timings.py CommandCounterMap', 'npm ci', 'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
+    'python3 scripts/test_native_timings.py CommandCounterMap', 'npm ci',
+    `node --input-type=module -e 'import {runFocusedTests} from "./scripts/test-execution.mjs"; process.exitCode=runFocusedTests("node",["--test-name-pattern","^check:.* retains its exact registered commands", "scripts/build-runtime-packages.test.mjs"],{cwd:process.cwd()});'`,
+    'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
     'npm run check:metadata', 'moon fmt --check', 'git diff --exit-code', 'node scripts/ci-preflight.mjs']);
   assert.deepEqual(commands('lint'), ['npm ci', 'npm run check:client-types',
     'node --test scripts/ci-preflight.test.mjs', 'node --test scripts/ci-focused-tests.test.mjs',
@@ -615,38 +825,34 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
   }
 });
 
-test('every job fails closed before runner allocation until public and explicitly enabled', () => {
-  const guard = "vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false'";
-  const performance = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
-  const probe = parse(readFileSync(new URL('../.github/workflows/packed-query-evidence-probe.yml', import.meta.url), 'utf8'));
-  assert.deepEqual(Object.keys(probe.on), ['workflow_call']);
-  for (const [name, job] of Object.entries({...jobs, ...performance.jobs, ...probe.jobs})) {
+test('public jobs do not require an activation variable; private and unknown repositories stay excluded', () => {
+  const guard = "github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false'";
+  const workflows = ['ci', 'performance-matrix', 'packed-query-evidence-probe', 'health-monitor']
+    .map(name => parse(readFileSync(new URL(`../.github/workflows/${name}.yml`, import.meta.url), 'utf8')));
+  for (const workflow of workflows) for (const [name, job] of Object.entries(workflow.jobs)) {
     assert(job.if.startsWith('${{ ' + guard), name);
-    // Evaluate the actual prefix, independently of job-specific applicability.
+    assert(!job.if.includes('vars.'), name);
     const expression = job.if.slice(4, 4 + guard.length);
-    for (const [enabled, visibility, privateFlag, expected] of [
-      [undefined, 'public', false, false], ['', 'public', false, false],
-      ['false', 'public', false, false], ['true', 'private', true, false],
-      ['true', 'public', true, false], ['true', undefined, false, false],
-      ['true', 'public', undefined, false], ['true', 'public', null, false],
-      ['true', 'public', 0, false], ['true', 'public', 'false', false],
-      ['true', 'public', false, true],
+    for (const [visibility, privateFlag, expected] of [
+      ['public', false, true], ['private', true, false], ['public', true, false],
+      [undefined, false, false], ['public', undefined, false], ['public', null, false],
+      ['public', 0, false], ['public', 'false', false],
     ]) {
-      assert.equal(runInNewContext(expression, {vars: {ACTQL_MAIN_CI_ENABLED: enabled},
+      assert.equal(runInNewContext(expression, {
         github: {event: {repository: {visibility, private: privateFlag}}}, toJSON: JSON.stringify}, {timeout: 100}), expected, name);
     }
   }
   for (const name of ['check', 'client', 'pipeline-evidence']) assert(jobs[name].if.includes('always()'), name);
 });
 
-test('automatic main integration remains full even with valid narrow cumulative evidence', () => {
+test('automatic main integration remains full without cumulative evidence', () => {
   const cases = [
     {paths: ['proofs/relation-pipeline/new-record.json']},
     {paths: ['docs/development.md'], maintenanceChanges: changes(['docs/development.md'])},
     {paths: []},
   ];
   for (const inputs of cases) {
-    const selected = validateSelection(selectTargets(inputs.paths, {...inputs, event: 'push', mainBaseline: checkpoint()}));
+    const selected = validateSelection(selectTargets(inputs.paths, {...inputs, event: 'push'}));
     assert.equal(selected.profile, 'full');
     assert.deepEqual(selected.targets, all); assert.equal(selected.macos, true);
     const lines = verifyGate(plan(selected), results(selected), {...context, event: 'push'});
@@ -659,6 +865,10 @@ test('normal distribution keeps original Request resource and cleanup regression
     .scripts['check:distribution-client'];
   const selected = command.split(/\s+/u);
   for (const file of [
+  "adapters/host-node/metadata-capacity-public.test.mjs",
+  "adapters/host-node/installed-duckdb-source-owner.test.mjs",
+  "adapters/host-node/table-owned-site-retirement.test.mjs",
+  "adapters/host-node/table-original-metadata.test.mjs",
   "adapters/host-node/content-pre-record-retirement.test.mjs",
   "adapters/host-node/effect-capture-connection.test.mjs",
   "adapters/host-node/effect-capture-resources.test.mjs",
@@ -672,4 +882,230 @@ test('normal distribution keeps original Request resource and cleanup regression
 ]) {
     assert.equal(selected.filter(value => value === file).length, 1, file);
   }
+});
+
+
+test('main CLI selects full checks from a fresh checkout without API token or previous run history', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-ci-main-direct-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const command = (args) => {
+    const result = spawnSync('git', args, {cwd: root, encoding: 'utf8'});
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  command(['init', '-q']); command(['config', 'user.name', 'CI fixture']);
+  command(['config', 'user.email', 'fixture@example.invalid']);
+  writeFileSync(join(root, 'fixture.txt'), 'current source\n');
+  command(['add', 'fixture.txt']); command(['commit', '-qm', 'fixture']);
+  const revision = command(['rev-parse', 'HEAD']);
+  const payloadPath = join(root, 'event.json'), output = join(root, 'output');
+  writeFileSync(payloadPath, JSON.stringify({ref: 'refs/heads/main', after: revision}));
+  const result = spawnSync(process.execPath, [new URL('./ci-targets.mjs', import.meta.url).pathname], {
+    cwd: root, encoding: 'utf8', env: {...process.env, GITHUB_EVENT_NAME: 'push',
+      GITHUB_REF: 'refs/heads/main', GITHUB_SHA: revision, GITHUB_EVENT_PATH: payloadPath,
+      GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: '', GITHUB_TOKEN: '', GH_TOKEN: ''},
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const plan = JSON.parse(readFileSync(output, 'utf8').split('\n').find(row => row.startsWith('plan=')).slice(5));
+  assert.equal(plan.sourceRevision, revision);
+  assert.match(readFileSync(output, 'utf8'), /^python_wheels=true$/mu);
+  assert.equal(plan.selection.profile, 'full');
+  assert.deepEqual(plan.selection.targets, ['js', 'wasm', 'native']);
+  assert.equal(plan.selection.macos, true);
+  assert.equal(Object.hasOwn(plan.selection, 'mainBaseline'), false);
+  assert.deepEqual(plan.selection.paths, []);
+});
+
+test('normal Python wheels are mandatory for full profiles independently of optional native macOS', () => {
+  const job = jobs['python-wheels'];
+  assert.equal(job['runs-on'], 'macos-15');
+  assert.deepEqual(job.needs, ['select-targets', 'preflight']);
+  assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {profile: 'full', python_wheels: 'true', macos: 'false'}}}), true);
+  assert(job.steps.some(step => step.run?.includes('test "$(uname -m)" = arm64')));
+  assert(job.steps.some(step => step.run === 'python3 -B scripts/ci-python-wheels.py --destination "$RUNNER_TEMP/python-wheel-acceptance"'));
+  assert(jobs.lint.steps.some(step => step.run === 'python3 -B scripts/test_ci_python_wheels.py'));
+  const selection = selectTargets(['README.md'], {event: 'workflow_dispatch', mainIntegration: true, nativeMacos: false});
+  for (const result of ['failure', 'cancelled', 'skipped']) {
+    const needs = results(selection); needs['python-wheels'].result = result;
+    assert.throws(() => verifyGate(plan(selection), needs, {...context, event: 'workflow_dispatch'}), /python-wheels/);
+  }
+});
+
+test('Draft normal Python and CI changes automatically select real wheel acceptance without Ready', () => {
+  for (const path of ['.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
+    'scripts/ci-targets.mjs', 'scripts/ci-preflight.mjs', 'scripts/ci-focused-tests.mjs',
+    'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
+    'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',
+    'scripts/fixtures/ci-python-installed-run.py',
+    'scripts/fixtures/python-product-installed.py', 'scripts/fixtures/python-local-duckdb-physical.py',
+    'scripts/build-python-product-wheels.py', 'scripts/produce-python-local-runtime.py',
+    'scripts/compile-python-local-image.py', 'scripts/prepare-python-local-runtime.py',
+    'scripts/python_release_cohort.py', 'scripts/python_interface_inventory.py',
+    'scripts/generate-local-wasm-abi.py', 'scripts/release-version.mjs',
+    'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json',
+    'packages/python-sdk/src/example.py', 'packages/python-product/pyproject.toml',
+    'packages/python-local-runtime/new.py']) {
+    const selection = selectTargets([path], {draft: true});
+    assert.equal(pythonWheelAcceptanceRequired(selection), true, path);
+    assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {
+      profile: 'draft', python_wheels: String(pythonWheelAcceptanceRequired(selection)), macos: 'false'}}}), true);
+    assert.throws(() => verifyGate(plan(selection), results(selection), {...context, draft: true}), /awaiting ready_for_review/);
+    for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+      const needs = results(selection); needs['python-wheels'].result = result;
+      assert.throws(() => verifyGate(plan(selection), needs, {...context, draft: true}), /python-wheels: expected success/);
+    }
+  }
+  for (const path of ['README.md', 'docs/development.md', 'src/source_span/span.mbt',
+    'packages/node-sdk/index.mjs', 'scripts/unrelated.mjs', 'packages/python-sdk-other/test.py']) {
+    assert.equal(pythonWheelAcceptanceRequired(selectTargets([path], {draft: true})), false, path);
+  }
+  for (const paths of [[], null, ['../invalid']]) {
+    assert.equal(pythonWheelAcceptanceRequired(selectTargets(paths, {draft: true})), true);
+  }
+  assert.equal(pythonWheelAcceptanceRequired(maintenanceSelection(['docs/development.md'])), false);
+});
+
+test('deleted or renamed Python inputs remain in the tested merge diff and select acceptance', () => {
+  for (const paths of [['scripts/ci-python-wheels.py'],
+    ['scripts/ci-python-wheels.py', 'scripts/renamed-wheel-acceptance.py'],
+    ['scripts/old.py', 'packages/python-sdk/new.py']]) {
+    const git = args => {
+      if (args[0] === 'rev-parse') return head;
+      assert(args.includes('--no-renames'));
+      return args.includes('--name-only') ? paths.join('\0') + '\0' : '-deleted old input\n+new input\n';
+    };
+    const changed = readChanges({pull_request: {base: {sha: 'a'.repeat(40)}}}, git);
+    assert.deepEqual(changed.paths, paths);
+    assert.equal(pythonWheelAcceptanceRequired(selectTargets(changed.paths, {draft: true})), true);
+  }
+});
+
+test('deep proof scheduling covers its complete snapshot and safety inputs without narrowing runtime', async () => {
+  const {snapshotDirectories, snapshotFiles} = await import('../proofs/relation-pipeline/inventory.mjs');
+  for (const path of [...snapshotFiles, ...snapshotDirectories.map(root => `${root}/new-input`),
+    'adapters/store-local/new-owner.mjs', 'packages/sdk/resource-control.mjs',
+    'proofs/ci-evidence/receipts.mjs', 'scripts/new-tool.mjs', 'unknown/config']) {
+    assert.equal(deepProofRequired(selectTargets([path])), true, path);
+  }
+  for (const path of ['README.md', 'LICENSE', 'CONTRIBUTING.md']) {
+    const selection = selectTargets([path], {event: 'push'});
+    assert.equal(selection.profile, 'full'); assert.deepEqual(selection.targets, all);
+    assert.equal(deepProofRequired(selection), false, path);
+    assert.equal(gateJobRequired(selection, 'pipeline-validation'), true);
+    assert.equal(gateJobRequired(selection, 'main-performance'), true);
+  }
+  for (const options of [{failure: 'unavailable'}, {event: 'schedule'}, {event: 'workflow_dispatch'}])
+    assert.equal(deepProofRequired(selectTargets(['README.md'], options)), true);
+  assert.equal(deepProofRequired(selectTargets([])), true);
+});
+
+test('unclassified adapter and package safety inputs retain deep campaigns', () => {
+  const duckdbWitness = 'adapters/connectors/duckdb/node/test/standard-host.test.mjs';
+  const nest = JSON.parse(readFileSync(new URL('../proofs/bounded-session/nest-obligations.json', import.meta.url), 'utf8'));
+  assert(nest.retainedSuites.includes(duckdbWitness), 'Use the actual retained Nest proof input');
+  for (const path of [
+    'adapters/host-node/infer-original-installation.mjs',
+    'packages/python-sdk/src/actql_sdk/_local_core.py',
+    'adapters/workers/wrangler.toml',
+    'packages/sdk/tsconfig.json',
+    duckdbWitness,
+    'packages/sdk/format.mjs',
+    'adapters/connectors/rest/format.test.mjs',
+  ]) for (const event of ['pull_request', 'push']) {
+    const selection = selectTargets([path], {event});
+    assert.equal(selection.profile, 'full', path);
+    assert.deepEqual(selection.targets, all, path);
+    assert.equal(selection.macos, true, path);
+    assert.equal(deepProofRequired(selection), true, `${event}/${path}`);
+  }
+});
+
+test('unclassified safety changes require proof success while reviewed shallow changes require skips', () => {
+  for (const event of ['pull_request', 'push']) for (const [path, deep] of [
+    ['adapters/host-node/infer-original-installation.mjs', true],
+    ['README.md', false],
+  ]) {
+    const selection = selectTargets([path], {event});
+    const needs = results(selection);
+    for (const name of ['session-evidence', 'pipeline-evidence']) needs[name].result = deep ? 'success' : 'skipped';
+    const lines = verifyGate(plan(selection), needs, {...context, event});
+    for (const name of ['session-evidence', 'pipeline-evidence']) {
+      assert(lines.some(line => line.startsWith(`${deep ? 'PASS' : 'NOT APPLICABLE'} ${name}:`)));
+      assert.throws(() => verifyGate(plan(selection), {...needs,
+        [name]: {result: deep ? 'skipped' : 'success'}}, {...context, event}), undefined, `${event}/${path}/${name}`);
+    }
+    const scheduleNeeds = {'select-targets': {outputs: {profile: 'full', deep_proofs: String(deepProofRequired(selection))}}};
+    for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants']) {
+      assert.equal(scheduled(name, scheduleNeeds), deep, `${event}/${path}/${name}`);
+    }
+  }
+});
+
+test('shallow and deep aggregate expectations reject every wrong status, including cheap validation', () => {
+  for (const event of ['pull_request', 'push', 'schedule', 'workflow_dispatch']) {
+    for (const paths of [['README.md'], ['src/bounded_execution/session.mbt'], []]) {
+      const selection = selectTargets(paths, {event});
+      const env = {...context, event};
+      assert.doesNotThrow(() => verifyGate(plan(selection), results(selection), env));
+      for (const name of gateJobs) {
+        const correct = gateJobRequired(selection, name) ? 'success' : 'skipped';
+        for (const wrong of ['success', 'skipped', 'failure', 'cancelled', undefined].filter(value => value !== correct)) {
+          const candidate = results(selection); candidate[name] = {result: wrong};
+          assert.throws(() => verifyGate(plan(selection), candidate, env), undefined, `${event}/${name}/${wrong}`);
+        }
+      }
+    }
+  }
+  const needs = Object.fromEntries(jobs['pipeline-evidence'].needs.map(name => [name, {result: 'skipped'}]));
+  needs['pipeline-validation'].result = 'success';
+  assert.equal(scheduled('pipeline-evidence', needs), false, 'cheap checks alone do not start deep assembly');
+});
+
+test('existing push-only health result is required by the same aggregate that schedules it', () => {
+  assert(jobs.check.needs.includes('health-quick'));
+  assert(gateJobs.includes('health-quick'));
+  assert.equal(jobs['health-quick'].uses, './.github/workflows/health-monitor.yml');
+  const runs = (event, ref = 'refs/heads/main', inputs = {}) => runInNewContext(
+    jobs['health-quick'].if.slice(3, -3), {inputs, always: () => true, toJSON: JSON.stringify,
+      github: {event_name: event, ref, event: {repository: {visibility: 'public', private: false}}}});
+  for (const event of ['push', 'pull_request', 'schedule', 'workflow_dispatch']) {
+    const selection = selectTargets(['README.md'], {event});
+    const required = event === 'push';
+    assert.equal(runs(event), required, event);
+    assert.equal(gateJobRequired(selection, 'health-quick'), required, event);
+    const env = {...context, event};
+    verifyGate(plan(selection), results(selection), env);
+    for (const result of required ? ['failure', 'cancelled', 'skipped', undefined] : ['success']) {
+      assert.throws(() => verifyGate(plan(selection),
+        {...results(selection), 'health-quick': {result}}, env), /health-quick/);
+    }
+  }
+  assert.equal(runs('push', 'refs/heads/feature'), false);
+  for (const mode of ['performance_matrix', 'packed_query_evidence_probe'])
+    assert.equal(runs('push', 'refs/heads/main', {[mode]: true}), false);
+});
+
+test('push applicability reads only exact authenticated endpoints and keeps deleted/renamed paths', () => {
+  const before = 'c'.repeat(40), payload = {ref: 'refs/heads/main', before, after: head};
+  const calls = [];
+  const git = args => { calls.push(args); return args[0] === 'rev-parse' ? head : 'src/deleted.mbt\0packages/sdk/renamed.mjs\0'; };
+  assert.deepEqual(readPushChanges(payload, head, git).paths, ['src/deleted.mbt', 'packages/sdk/renamed.mjs']);
+  assert.deepEqual(calls, [['rev-parse', 'HEAD'], ['diff', '--no-renames', '--name-only', '-z', before, head, '--']]);
+  for (const patch of [{before: null}, {before: '0'.repeat(40)}, {before: 'bad'}, {after: before}, {ref: 'refs/heads/other'}])
+    assert.throws(() => readPushChanges({...payload, ...patch}, head, git));
+  assert.throws(() => readPushChanges(payload, head, args => args[0] === 'rev-parse' ? head : 'truncated'));
+  assert.throws(() => readPushChanges(payload, head, () => { throw Error('missing base object'); }));
+});
+
+test('same-environment duplicate checks retain one explicit owner without weakening platform evidence', () => {
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert(pkg.scripts['check:retained-boundary'].includes('adapters/store-local/publication-commit-owner.test.mjs'));
+  assert(!jobs.host.steps.some(step => step.run?.startsWith('node --test adapters/store-local/publication-commit-owner.test.mjs')));
+  assert(pkg.scripts['check:distribution-client'].includes('scripts/owned-scratch.test.mjs'));
+  const scratch = jobs.lint.steps.find(step => step.run === 'node --test scripts/owned-scratch.test.mjs');
+  assert.match(scratch.if, /profile != 'full'/u);
+  assert(jobs.lint.steps.some(step => step.run === 'node --test scripts/dependency-isolation-scratch.test.mjs'));
+  // Operation inventory remains fail-fast before fan-out: deleting that safety
+  // admission is not justified merely because spec also checks the inventory.
+  assert(jobs.preflight.steps.some(step => step.run === 'node --test scripts/pure-operation-inventory.test.mjs' && !step.if));
 });

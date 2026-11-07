@@ -268,6 +268,17 @@ pub fn client_program_composed_infer_retained_limits(
 }
 
 ///|
+/// The legacy suffix above describes its read allowances. A physical Request
+/// Plan separately requires the SAME selected Model ledger floor. Read only
+/// those stored amounts; do not select bounds, quote, reserve or issue again.
+#export_name("clientProgramComposedInferModelLedgerBytes")
+pub fn client_program_composed_infer_model_ledger_bytes(
+  selected : @infer_host.Limits,
+) -> Array[Int64] {
+  [selected.model.ledger.retained_bytes, selected.model.ledger.execution_bytes]
+}
+
+///|
 #export_name("clientProgramInstalledManagedCaptureRunRequirements")
 pub fn client_program_installed_managed_capture_run_requirements(
   prepared : @publication_host.PreparedClientProgram,
@@ -367,6 +378,31 @@ pub fn client_program_installed_managed_keyed_source_read(
 }
 
 ///|
+#export_name("clientProgramInstalledManagedModelKeyedSourceRead")
+pub fn client_program_installed_managed_model_keyed_source_read(
+  value : @client_local_host.ClientInstalledManagedRun,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  request : @publication_host.ClientKeyedRequest,
+  declaration : @client_row_source_host.RowDeclaration,
+  max_page_bytes : Int,
+  max_text_bytes : Int,
+  max_work : Int,
+) -> Result[
+  @client_local_host.ClientInstalledKeyedSourceRead,
+  @client_local_host.ClientInstalledSourceReadIssue,
+] {
+  @client_local_host.begin_installed_managed_model_keyed_source_read(
+    value,
+    keyed,
+    request,
+    declaration,
+    @client_local_host.installed_keyed_row_limits(
+      max_page_bytes, max_text_bytes, max_work,
+    ),
+  )
+}
+
+///|
 #export_name("clientProgramInstalledKeyedSourceReadCheckCurrent")
 pub fn client_program_installed_keyed_source_read_check_current(
   value : @client_local_host.ClientInstalledKeyedSourceRead,
@@ -432,4 +468,14 @@ pub fn client_program_installed_managed_run_issue_is_unsupported(
     @client_local_host.Unsupported => true
     _ => false
   }
+}
+
+///|
+/// Complete only the same Run's original child/control phase. The original
+/// Scope and preparation parent keep their separate cleanup obligations.
+#export_name("clientProgramInstalledManagedRunQuiesce")
+pub fn client_program_installed_managed_run_quiesce(
+  value : @client_local_host.ClientInstalledManagedRun,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.quiesce_installed_managed_run(value)
 }

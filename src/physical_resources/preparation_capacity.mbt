@@ -35,6 +35,7 @@ struct PreparationCapacity[I, P] {
   mut borrowers : Int
   max_borrowers : Int
   mut retirement_claimed : Bool
+  mut inventory_growth_active : Bool
   mut active_phase_work : Ref[PreparationWorkState]?
   mut last_work_phase : Int
 }
@@ -93,6 +94,7 @@ fn[I, P] make_preparation_capacity(
     borrowers: 0,
     max_borrowers,
     retirement_claimed: false,
+    inventory_growth_active: false,
     active_phase_work: None,
     last_work_phase: -1,
   }
@@ -445,6 +447,16 @@ pub fn retire_transferred_preparation(
 }
 
 ///|
+// Closed operations on the same retained body adapter. Publication keeps its
+// existing API; Run census growth cannot be confused with a publication call.
+priv enum PreparationBodyGrowth {
+  Publication
+  EnterRunningInventory
+  LeaveRunningInventory
+  RunningInventory(OriginalLedgerIdentity, Int, Int, Int)
+}
+
+///|
 /// An erased input-type adapter over one original Core borrower. The fixed
 /// closures capture the borrower token, never a separately retained raw body.
 /// Returning it clears that token's body and decrements the same owner once.
@@ -461,7 +473,7 @@ struct PreparationBodyBorrow[P] {
     PreparationCapacityIssue,
   ]
   isolated_usage_original : (Ledger) -> Bool
-  reserve_publication_original : (P, Int64, Int64) -> Result[
+  reserve_phase_original : (P, Int64, Int64, PreparationBodyGrowth) -> Result[
     Unit,
     PreparationCapacityIssue,
   ]
@@ -513,10 +525,23 @@ fn[I, P] make_preparation_body_borrow(
       !value.returned &&
       preparation_capacity_usage_isolated(value.owner, ledger)
     },
-    reserve_publication_original: (body, retained, execution) => {
-      reserve_original_preparation_publication_phase(
-        value, body, retained, execution,
-      )
+    reserve_phase_original: (body, retained, execution, inventory) => {
+      match inventory {
+        Publication =>
+          reserve_original_preparation_publication_phase(
+            value, body, retained, execution,
+          )
+        EnterRunningInventory =>
+          enter_preparation_inventory_growth(value.owner, body, Some(value))
+        LeaveRunningInventory => {
+          value.owner.inventory_growth_active = false
+          Ok(())
+        }
+        RunningInventory(identity, reservations, holdings, delegations) =>
+          grow_original_preparation_body_inventory(
+            value, body, identity, retained, execution, reservations, holdings, delegations,
+          )
+      }
     },
   }
 }
@@ -573,8 +598,11 @@ fn[I, P] preparation_capacity_usage_isolated(
   if ledger.original_inventory is Some(inventory) && inventory.park is Some(_) {
     return false
   }
-  if ledger.quantity_usage.reserved != zero_quantities() ||
-    ledger.quantity_usage.uncertain != zero_quantities() {
+  // Undispatched quantities still belong to a live reservation. Dispatched
+  // unknown usage is cumulative history even after its original physical
+  // child has settled; retaining it must not pin this preparation forever.
+  // The exact live reservation/holding/delegation census below stays required.
+  if ledger.quantity_usage.reserved != zero_quantities() {
     return false
   }
   // Zero-byte children still occupy original identities. Byte equality alone
@@ -588,6 +616,9 @@ fn[I, P] preparation_capacity_usage_isolated(
       return false
     }
   }
+  // Transferred and uncertain transfer bytes are cumulative budget history,
+  // including after physical cleanup. Actual open children and outstanding
+  // reserved bytes remain the original cleanup responsibility.
   let usage = ledger.usage
   usage.live_reservations == 1 &&
   usage.live_delegations == 0 &&
@@ -597,7 +628,6 @@ fn[I, P] preparation_capacity_usage_isolated(
   usage.reserved_execution_bytes == token.execution &&
   usage.held_bytes == 0L &&
   usage.reserved_transfer_bytes == 0L &&
-  usage.uncertain_transfer_bytes == 0L &&
   ledger.delegated_planning == 0 &&
   ledger.delegated_attempts == 0 &&
   ledger.delegated_holdings == 0

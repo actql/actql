@@ -123,8 +123,32 @@ pub fn start_client_acquired_infer_input(
       fragment_body~,
       ordered_body~,
     )
-    is Some(prefix) &&
-    @execution.select_generated_sequence_range(prefix, capture + 1, step - 1)
+    is Some(prefix) else {
+    return Err(UnsupportedProgram)
+  }
+  start_client_captured_infer_input_sequence(
+    owner, prefix, capture, step, source, execution, measurement, mapping,
+  )
+}
+
+///|
+/// Consume the original capture with the supplied immutable prefix. Selecting
+/// its suffix neither regenerates a sequence nor replays the acquired scan.
+fn start_client_captured_infer_input_sequence(
+  owner : @lower.BoundPrepared,
+  prefix : @execution.GeneratedSequence,
+  capture : Int,
+  step : Int,
+  source : @query.CapturedInputSource,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  mapping : @execution.InferPreparationLimits,
+) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
+  guard @execution.select_generated_sequence_range(
+      prefix,
+      capture + 1,
+      step - 1,
+    )
     is Some(sequence) else {
     return Err(UnsupportedProgram)
   }
@@ -240,6 +264,10 @@ pub fn start_client_composed_infer_input(
   measurement : @execution.FixedInputGuardMeasureLimits,
   mapping : @execution.InferPreparationLimits,
   keyed? : @publication_host.ClientKeyedLookupInput? = None,
+  captured? : (
+    @publication_host.PreparedClientProgram,
+    @query.CapturedInputSource,
+  )? = None,
 ) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
   let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
     occurrence,
@@ -257,14 +285,68 @@ pub fn start_client_composed_infer_input(
       return Err(UnsupportedProgram)
     }
   }
+  if captured is Some((prepared, source)) {
+    guard inputs.is_empty() &&
+      keyed is None &&
+      @publication_host.client_infer_occurrence_matches(occurrence, prepared) &&
+      @publication_host.client_acquired_infer_prefix_owner(prepared, 0, step)
+      is Some(owner) &&
+      @publication_host.prepare_client_query_acquisition(prepared, 0, 0)
+      is Ok(query) &&
+      @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) &&
+      capture + 1 < step else {
+      return Err(UnsupportedProgram)
+    }
+    return start_client_captured_infer_input_sequence(
+      owner, sequence, capture, step, source, execution, measurement, mapping,
+    )
+  }
   if keyed is Some(lookup) {
+    let composed = @publication_host.client_composed_keyed_lookup_sources(
+      lookup, occurrence,
+    )
+    let originals_match = match composed {
+      None => inputs.is_empty()
+      Some(sources) => {
+        guard inputs.length() == sources.length() + 1 &&
+          @publication_host.client_composed_keyed_lookup_input_slot(
+            lookup, occurrence,
+          )
+          is Some(slot) &&
+          slot == sources.length() &&
+          @publication_host.finish_client_keyed_lookup_input(lookup)
+          is Ok(original) else {
+          return Err(UnsupportedProgram)
+        }
+        let mut matched = true
+        for index, input in inputs {
+          match input {
+            @local.RelationInput(read) if index < sources.length() =>
+              if !@query.captured_source_matches_segment_input(
+                  sources[index],
+                  read,
+                ) {
+                matched = false
+              }
+            @local.SuppliedRelationInput(read) if index == slot =>
+              if !@execution.supplied_relation_read_same_binding(read, original) ||
+                !@execution.supplied_relation_read_available(read) {
+                matched = false
+              }
+            _ => matched = false
+          }
+        }
+        matched
+      }
+    }
+
     // The existing lookup owns both admitted inputs. Execute only the suffix
     // after its acquired filter/select prefix; never replay a Source scan.
     let acquisition = @publication_host.client_keyed_lookup_acquisition(lookup)
     let (task, stage, _) = @publication_host.client_infer_occurrence_coordinates(
       occurrence,
     )
-    guard inputs.is_empty() &&
+    guard originals_match &&
       @publication_host.client_keyed_acquisition_coordinates(acquisition)
       is Some((source_stage, source_task, join)) &&
       source_stage == stage &&
@@ -282,6 +364,16 @@ pub fn start_client_composed_infer_input(
       is Some(selected) else {
       return Err(UnsupportedProgram)
     }
+    let prior_work = if composed is Some(_) {
+      @publication_host.client_composed_keyed_lookup_prefix_work(
+        lookup, occurrence,
+      ).unwrap()
+    } else {
+      0L
+    }
+    if prior_work < 0L || prior_work > execution.max_work.to_int64() {
+      return Err(InvalidLimits)
+    }
     return start_client_infer_input_sequence(
       selected,
       step,
@@ -289,10 +381,13 @@ pub fn start_client_composed_infer_input(
         @local.managed_provider_relation_input(left),
         @local.managed_provider_supplied_relation_input(right),
       ],
-      execution,
+      { ..execution, max_work: execution.max_work - prior_work.to_int(), },
       measurement,
       mapping,
-    )
+    ).map(active => {
+      active.work = prior_work
+      active
+    })
   }
   start_client_infer_input_sequence(
     sequence, step, inputs, execution, measurement, mapping,

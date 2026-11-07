@@ -7,17 +7,18 @@ fn local_source_authority_fixture(
   let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let root = @filesystem.open_private_root(path).unwrap()
   let entries : Array[String] = []
-  if submit {
-    entries.push(
-      (
-        #|{"entry_id":"submit","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["submit"]},"exclusions":[]}
-      ),
-    )
-  }
+  // Account wire entries must ascend by entry_id: source-read before submit.
   if read {
     entries.push(
       (
         #|{"entry_id":"source-read","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["connector://crm/main/r#v"]},"operation":{"any_of":["read"]},"exclusions":[]}
+      ),
+    )
+  }
+  if submit {
+    entries.push(
+      (
+        #|{"entry_id":"submit","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["submit"]},"exclusions":[]}
       ),
     )
   }

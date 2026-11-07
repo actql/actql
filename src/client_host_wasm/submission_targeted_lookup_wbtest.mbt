@@ -272,7 +272,7 @@ test "retained selection keeps exact scope definition and cancellation refusal" 
   let rows = targeted_snapshot_rows()
   let original = targeted_original(rows)
   for
-    (namespace, scope, definition) in [
+    (run_namespace, scope, definition) in [
       (
         "foreign",
         "sha256:" + "b".repeat(64),
@@ -287,7 +287,7 @@ test "retained selection keeps exact scope definition and cancellation refusal" 
     ] {
     assert_true(
       submission_run_reference_snapshot(
-        namespace,
+        run_namespace,
         scope,
         definition,
         Some(original),

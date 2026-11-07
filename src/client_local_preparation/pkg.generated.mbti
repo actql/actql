@@ -7,6 +7,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
   "actql/actql/program_check",
+  "actql/actql/query_syntax",
   "actql/actql/relation_schema",
   "actql/actql/run_publication_host",
   "actql/actql/source_frontend",
@@ -14,6 +15,7 @@ import {
   "actql/actql/sourceview_input",
   "actql/actql/stage_parameters",
   "actql/actql/stage_syntax",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
@@ -29,6 +31,8 @@ pub fn bind_local_published_input_context(@program_check.CheckEnvironment, Strin
 pub fn client_program_check_compiler_identity() -> String
 
 pub fn client_program_check_context_identity(@program_check.CheckEnvironment) -> String
+
+pub fn client_program_check_prepared_source_selector_range(@program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@program_check.CheckEnvironment]) -> ClientCheckSourceSelectorRange?
 
 pub fn client_program_check_program(String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, ClientCheckSourceSelectorNamespace?) -> String
 
@@ -46,7 +50,9 @@ pub fn client_program_check_source_selector_range(@program_check.CheckEnvironmen
 
 pub fn client_program_check_unavailable(String) -> String
 
-pub fn client_program_project_original_check_outcome(@stage_syntax.Program, @stage_parameters.Source, @decode_core.Cursor?, @sourceview_input.Inputs?, @program_check.CheckOutcome, @program_check.CheckEnvironment, String, String, String, String, Int, String?, Int, String?, Int, String, ClientCheckSourceSelectorNamespace?) -> String
+pub fn client_program_project_original_check_outcome(@stage_syntax.Program, @stage_parameters.Source, @decode_core.Cursor?, @sourceview_input.Inputs?, @program_check.CheckOutcome, @program_check.CheckEnvironment, String, String, String, String, Int, String?, Int, String?, Int, String, ClientCheckSourceSelectorNamespace?, original_parameters? : String?) -> String
+
+pub fn client_program_project_original_query_issue(@source_frontend.Issue, @program_check.CheckEnvironment?, @client_source_publication.PreparedPublishedQueryEnvironment?, String, String, String, Int, String?, Int, String?, Int, String, ClientCheckSourceNamespace?, query_original? : @query_syntax.Query?, binding_original? : @parameter_binding.BindingReadInput?, binding_declarations? : @parameter_binding.Declarations?, binding_supplied? : @decode_core.Cursor?, binding_limits? : @value_admission.Limits?, original_parameters? : String?) -> String
 
 pub fn local_parameter_input_limits() -> (@source_value.ParseLimits, @decode_core.Limits)
 
@@ -68,11 +74,15 @@ pub fn local_source_computation_request(@run_publication_host.ClientSourcePrepar
 
 pub fn local_source_computation_source(@run_publication_host.ClientSourcePreparation) -> (String, String, String?)
 
+pub fn local_source_pure_submitted_preparation(@run_publication_host.ClientSourcePreparation, @run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment) -> LocalSubmittedPreparation?
+
 pub fn local_submitted_preparation_input(LocalSubmittedPreparation) -> LocalPreparedInput
 
 pub fn local_submitted_preparation_intent(LocalSubmittedPreparation) -> @run_publication_host.ClientSubmittedIntent
 
 pub fn local_submitted_preparation_parameters_wire(LocalSubmittedPreparation) -> Result[String?, @run_publication_host.ClientSubmittedIntentIssue]
+
+pub fn local_submitted_preparation_request(LocalSubmittedPreparation, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
 pub fn prepare_local_input(LocalInput, @program_check.CheckEnvironment, @decode_core.Cursor?, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[@run_publication_host.PreparedClientProgram, LocalPreparationIssue]
 

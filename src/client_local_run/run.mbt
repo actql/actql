@@ -131,6 +131,7 @@ pub fn prepare_source_free_local_run(
   run_id : String,
   created_at : String,
   valid_until : String,
+  submitted? : @input.LocalSubmittedPreparation? = None,
 ) -> Result[LocalRunPlan, LocalRunIssue] {
   prepare_local_run_profile(
     input,
@@ -147,6 +148,7 @@ pub fn prepare_source_free_local_run(
     valid_until,
     source_free_profile,
     None,
+    submitted~,
   )
 }
 
@@ -167,6 +169,7 @@ pub fn prepare_source_free_local_publication_run(
   created_at : String,
   valid_until : String,
   result_policy : (String, String),
+  submitted? : @input.LocalSubmittedPreparation? = None,
 ) -> Result[LocalRunPlan, LocalRunIssue] {
   prepare_local_run_profile(
     input,
@@ -183,6 +186,7 @@ pub fn prepare_source_free_local_publication_run(
     valid_until,
     source_free_profile,
     Some(result_policy),
+    submitted~,
   )
 }
 
@@ -202,6 +206,7 @@ pub fn prepare_captured_source_local_run(
   run_id : String,
   created_at : String,
   valid_until : String,
+  submitted? : @input.LocalSubmittedPreparation? = None,
 ) -> Result[LocalRunPlan, LocalRunIssue] {
   prepare_local_run_profile(
     input,
@@ -218,6 +223,7 @@ pub fn prepare_captured_source_local_run(
     valid_until,
     captured_source_profile,
     None,
+    submitted~,
   )
 }
 
@@ -237,6 +243,7 @@ fn prepare_local_run_profile(
   valid_until : String,
   profile : (@host.PreparedClientProgram) -> Bool,
   result_policy : (String, String)?,
+  submitted? : @input.LocalSubmittedPreparation? = None,
 ) -> Result[LocalRunPlan, LocalRunIssue] {
   let prepared = @input.local_prepared_program(input)
   if !authorized_input(prepared, permit, current, tuple, execution_context_cid) {
@@ -246,8 +253,8 @@ fn prepare_local_run_profile(
     return Err(UnsupportedCapability)
   }
   let request = match
-    @host.prepare_source_free_client_request_identity(
-      prepared, authority_scope_cid, caller_request_id,
+    local_run_request_original(
+      input, authority_scope_cid, caller_request_id, submitted,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Request(issue))
@@ -544,5 +551,36 @@ pub fn confirm_local_run_physical_start(
     Ok(true) => Ok({ plan, })
     Ok(false) => Err(StartNotPermitted)
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Omission preserves the original source-free request domain. Published
+/// Source callers retain their existing exact submitted carrier instead of
+/// replacing its input intent with the source-free constant.
+fn local_run_request_original(
+  input : @input.LocalPreparedInput,
+  authority_scope_cid : String,
+  request_id : String,
+  submitted : @input.LocalSubmittedPreparation?,
+) -> Result[@host.ClientRequestIdentity, @host.ClientRequestIdentityIssue] {
+  match submitted {
+    None =>
+      @host.prepare_source_free_client_request_identity(
+        @input.local_prepared_program(input),
+        authority_scope_cid,
+        request_id,
+      )
+    Some(original) => {
+      if !physical_equal(
+          input,
+          @input.local_submitted_preparation_input(original),
+        ) {
+        return Err(@host.IdentityMismatch)
+      }
+      @input.local_submitted_preparation_request(
+        original, authority_scope_cid, request_id,
+      )
+    }
   }
 }

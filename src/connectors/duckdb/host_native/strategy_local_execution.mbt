@@ -211,7 +211,10 @@ fn execute_native_strategy_local_owner(
   guard owner.operations.output is Some(output) else {
     return Err(MissingOutput)
   }
-  match (output.install)(() => owner.file.release_confirmed()) {
+  // These callbacks outlive this call. Retain the original file only: the
+  // owner itself retains the installed callbacks and output representation.
+  let file = owner.file
+  match (output.install)(() => file.release_confirmed()) {
     Ok(_) => ()
     Err(_) => return Err(InvalidState)
   }
@@ -255,7 +258,7 @@ fn execute_native_strategy_local_owner(
     Err(issue) => return Err(NativeStrategyLocalIssue::RetainedFile(issue))
   }
   owner.representation = Some(
-    match (content.bind)(() => owner.file.available()) {
+    match (content.bind)(() => file.available()) {
       Ok(value) => value
       Err(_) => return Err(InvalidState)
     },

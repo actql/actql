@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import {installModelProviders} from './installed-model.mjs';
-import {selectedInferOriginalCurrentStateCodec, bindInferOriginalReadRecipe} from './infer-original-installation.mjs';
+import {installedEffectModelPreparation} from './installed-effect-managed-run.mjs';
+import {selectedInferOriginalCurrentStateCodec, bindInferOriginalReadRecipe, inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {selectedInferOriginalMetadataLimits} from './infer-original-installation.mjs';
 
@@ -28,6 +30,7 @@ const originalInstallation = () => ({
       barrier_cid: 'barrier', prepared_rows: 3n, retained_bytes: 7n, execution_bytes: 5n}}});
 
 const nativeRecipeLimits = [11n, 12n, 70n, 30n, 90n, 40n, 9n, 10n, 11n];
+const nativeModelLedgerBytes = [90n, 40n];
 
 const originalRecipe = () => {
   const value = originalInstallation();
@@ -36,6 +39,62 @@ const originalRecipe = () => {
   }
   return value;
 };
+
+test('installed Request recipe retains the actual Model ledger floor separately from legacy read allowances', () => {
+  const {moon, entry} = fixture(), graph = {}, occurrence = {}, selected = {};
+  const physical = installModelProviders(moon, () => [{...entry, originalReadRecipe: originalRecipe()}])
+    .get(entry.providerId);
+  const calls = [], id = letter => `sha256:${letter.repeat(64)}`;
+  const legacy = [11n, 12n, 70n, 30n, 7n, 13n, 9n, 10n, 11n];
+  const model = [200n, 300n];
+  moon.clientProgramPreparedComposedInferBounds = (o, g) => {
+    assert.equal(o, occurrence); assert.equal(g, graph); calls.push('bounds'); return selected;
+  };
+  moon.clientProgramComposedInferRetainedLimits = value => {
+    assert.equal(value, selected); calls.push('legacy'); return legacy;
+  };
+  moon.clientProgramComposedInferModelLedgerBytes = function(value) {
+    assert.equal(this, moon); assert.equal(value, selected); calls.push('model'); return model;
+  };
+  moon.clientProgramInferPlanProgramCid = value => {assert.equal(value, graph); return id('a');};
+  moon.clientProgramInferPlanParametersCid = value => {assert.equal(value, graph); return id('b');};
+  moon.clientProgramInferPlanBoundary = value => {assert.equal(value, graph); return {_3: id('c')};};
+  const text = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const start = text.indexOf('const selectedBounds = physical.originalReadRecipe');
+  const end = text.indexOf("admissionBoundary = 'provider_binding';", start);
+  assert(start >= 0 && end > start);
+  const bind = Function('physical', 'moon', 'occurrence', 'graph', 'checked', 'bindInferOriginalReadRecipe',
+    'clientOperationError', text.slice(start, end) + '\nreturn {selectedBounds, originalReadInstallation};');
+  const bound = bind(physical, moon, occurrence, graph, value => value, bindInferOriginalReadRecipe,
+    code => Object.assign(new Error(code), {code}));
+  assert.equal(bound.selectedBounds, selected);
+  assert.deepEqual(calls, ['bounds', 'model', 'legacy']);
+  assert.equal(bound.originalReadInstallation.modelRetainedBytes, 300n);
+  assert.equal(bound.originalReadInstallation.modelExecutionBytes, 305n);
+  assert.equal(bound.originalReadInstallation.nodeInstallation.layout.retained_bytes, 77n);
+  assert.deepEqual(legacy, [11n, 12n, 70n, 30n, 7n, 13n, 9n, 10n, 11n]);
+  delete moon.clientProgramComposedInferModelLedgerBytes;
+  calls.length = 0;
+  assert.throws(() => bind(physical, moon, occurrence, graph, value => value, bindInferOriginalReadRecipe,
+    code => Object.assign(new Error(code), {code})), {code: 'NodeManagedRunRuntimeUnavailable'});
+  assert.deepEqual(calls, ['bounds'], 'missing new original projection cannot use the legacy suffix');
+});
+
+test('installed read recipe refuses absent or malformed actual Model ledger amounts before identity getters', () => {
+  const {moon, entry} = fixture(), graph = {}, id = letter => `sha256:${letter.repeat(64)}`;
+  let calls = 0;
+  moon.clientProgramInferPlanProgramCid = () => {calls++; return id('a');};
+  moon.clientProgramInferPlanParametersCid = () => {calls++; return id('b');};
+  moon.clientProgramInferPlanBoundary = () => {calls++; return {_3: id('c')};};
+  const recipe = installModelProviders(moon, () => [{...entry, originalReadRecipe: originalRecipe()}])
+    .get(entry.providerId).originalReadRecipe;
+  for (const model of [undefined, [], [200n], [200n, 300n, 1n], [200, 300n], [-1n, 300n],
+    [200n, -1n], [9223372036854775808n, 300n]]) {
+    assert.throws(() => bindInferOriginalReadRecipe(moon, recipe, graph, nativeRecipeLimits, model),
+      {code: 'InferOriginalReadRecipeUnavailable'});
+  }
+  assert.equal(calls, 0);
+});
 
 test('installed read recipe binds only the same selected Graph identities without another preparation', () => {
   const {moon, entry, counts} = fixture(), recipe = originalRecipe(), graph = {};
@@ -46,7 +105,7 @@ test('installed read recipe binds only the same selected Graph identities withou
   const physical = installModelProviders(moon, () => [{...entry, originalReadRecipe: recipe}]).get(entry.providerId);
   const profile = recipe.nodeInstallation.layout.response_profile;
   recipe.nodeInstallation.layout.retained_bytes = 999n;
-  const bound = bindInferOriginalReadRecipe(moon, physical.originalReadRecipe, graph, nativeRecipeLimits);
+  const bound = bindInferOriginalReadRecipe(moon, physical.originalReadRecipe, graph, nativeRecipeLimits, nativeModelLedgerBytes);
   assert.deepEqual(calls, ['program', 'parameters', 'boundary']);
   assert.equal(bound.nodeInstallation.layout.response_profile, profile);
   assert.equal(bound.nodeInstallation.layout.retained_bytes, 77n);
@@ -60,9 +119,9 @@ test('installed read recipe binds only the same selected Graph identities withou
   assert.equal(physical.originalReadInstallation, undefined);
   assert.ok(Object.isFrozen(bound.nodeInstallation.layout));
   assert.deepEqual(counts(), {installations: 1, sends: 0, lookups: 0});
-  assert.throws(() => bindInferOriginalReadRecipe(moon, {...physical.originalReadRecipe}, graph, nativeRecipeLimits),
+  assert.throws(() => bindInferOriginalReadRecipe(moon, {...physical.originalReadRecipe}, graph, nativeRecipeLimits, nativeModelLedgerBytes),
     {code: 'InferOriginalReadRecipeUnavailable'});
-  assert.throws(() => bindInferOriginalReadRecipe(moon, bound, graph, nativeRecipeLimits),
+  assert.throws(() => bindInferOriginalReadRecipe(moon, bound, graph, nativeRecipeLimits, nativeModelLedgerBytes),
     {code: 'InferOriginalReadRecipeUnavailable'});
 });
 
@@ -89,11 +148,16 @@ test('installed read recipe preserves native census work and refuses additive ov
   moon.clientProgramInferPlanProgramCid = () => id('a');
   moon.clientProgramInferPlanParametersCid = () => id('b');
   moon.clientProgramInferPlanBoundary = () => ({_3: id('c')});
-  const bound = bindInferOriginalReadRecipe(moon, recipe, graph, nativeRecipeLimits);
+  const bound = bindInferOriginalReadRecipe(moon, recipe, graph, nativeRecipeLimits, nativeModelLedgerBytes);
   assert.equal(bound.currentStateCodec.comparisonWork, 2 + 9 + 10 + 11);
-  for (const index of [0, 1, 2, 3, 4, 5]) {
+  for (const index of [0, 1, 2, 3]) {
     const limits = [...nativeRecipeLimits]; limits[index] = 9223372036854775807n;
-    assert.throws(() => bindInferOriginalReadRecipe(moon, recipe, graph, limits),
+    assert.throws(() => bindInferOriginalReadRecipe(moon, recipe, graph, limits, nativeModelLedgerBytes),
+      {code: 'InferOriginalReadRecipeUnavailable'});
+  }
+  for (const index of [0, 1]) {
+    const model = [...nativeModelLedgerBytes]; model[index] = 9223372036854775807n;
+    assert.throws(() => bindInferOriginalReadRecipe(moon, recipe, graph, nativeRecipeLimits, model),
       {code: 'InferOriginalReadRecipeUnavailable'});
   }
 });
@@ -102,11 +166,11 @@ test('installed read recipe refuses missing or malformed original getters withou
   const {moon, entry} = fixture(), graph = {};
   const original = installModelProviders(moon, () => [{...entry, originalReadRecipe: originalRecipe()}])
     .get(entry.providerId).originalReadRecipe;
-  assert.throws(() => bindInferOriginalReadRecipe(moon, original, graph, nativeRecipeLimits), {code: 'InferOriginalReadRecipeUnavailable'});
+  assert.throws(() => bindInferOriginalReadRecipe(moon, original, graph, nativeRecipeLimits, nativeModelLedgerBytes), {code: 'InferOriginalReadRecipeUnavailable'});
   moon.clientProgramInferPlanProgramCid = () => 'copied';
   moon.clientProgramInferPlanParametersCid = () => `sha256:${'b'.repeat(64)}`;
   moon.clientProgramInferPlanBoundary = () => ({_3: `sha256:${'c'.repeat(64)}`});
-  assert.throws(() => bindInferOriginalReadRecipe(moon, original, graph, nativeRecipeLimits), {code: 'InferOriginalReadRecipeUnavailable'});
+  assert.throws(() => bindInferOriginalReadRecipe(moon, original, graph, nativeRecipeLimits, nativeModelLedgerBytes), {code: 'InferOriginalReadRecipeUnavailable'});
 });
 
 test('metadata declaration is captured only by the retained original installation and exact selection', () => {
@@ -324,4 +388,52 @@ test('provider without an original-response hook acquires no reconciliation capa
   delete entry.reconcileResponse;
   assert.equal(installModelProviders(moon, () => [entry]).get('models/fixture').reconcileResponse, undefined);
   assert.deepEqual(counts(), {installations: 1, sends: 0, lookups: 0});
+});
+
+
+test('bound original recipe keeps startup controls separate from its complete Model allowance', () => {
+  const {moon, entry}=fixture(), graph={}, id=letter=>`sha256:${letter.repeat(64)}`;
+  const physical=installModelProviders(moon,()=>[{...entry,originalReadRecipe:originalRecipe()}]).get(entry.providerId);
+  moon.clientProgramInferPlanProgramCid=()=>id('a');
+  moon.clientProgramInferPlanParametersCid=()=>id('b');
+  moon.clientProgramInferPlanBoundary=()=>({_3:id('c')});
+  const bound=bindInferOriginalReadRecipe(moon,physical.originalReadRecipe,graph,nativeRecipeLimits,nativeModelLedgerBytes);
+  const startup=inferOriginalReadStartupCapacity(bound);
+  assert(Object.isFrozen(startup));
+  assert.deepEqual([startup.modelRetainedBytes,startup.modelExecutionBytes],[100n,5n]);
+  assert.deepEqual([bound.modelRetainedBytes,bound.modelExecutionBytes],[190n,45n]);
+  assert.equal(inferOriginalReadStartupCapacity(bound),startup);
+  const copy={...bound}; assert.equal(inferOriginalReadStartupCapacity(copy),copy,
+    'copied DATA never acquires the original startup association');
+  assert.equal(inferOriginalReadStartupCapacity(physical.originalReadRecipe),physical.originalReadRecipe,
+    'unbound and legacy declarations keep their original path');
+});
+
+
+test('actual Effect preparation passes original recipe startup controls while its Plan keeps the total Model allowance', () => {
+  const {moon, entry}=fixture(), graph={}, id=letter=>`sha256:${letter.repeat(64)}`;
+  const installed=installModelProviders(moon,()=>[{...entry,originalReadRecipe:originalRecipe()}]).get(entry.providerId);
+  moon.clientProgramInferPlanProgramCid=()=>id('a');
+  moon.clientProgramInferPlanParametersCid=()=>id('b');
+  moon.clientProgramInferPlanBoundary=()=>({_3:id('c')});
+  const physical=bindInferOriginalReadRecipe(moon,installed.originalReadRecipe,graph,nativeRecipeLimits,nativeModelLedgerBytes);
+  const compiled={},definition={},scope={},parent={},demand={},read={};let reads=0;
+  const control={prepareCheckedClientInferNodeReadLayout(...args) {
+    assert.deepEqual(args,[compiled,definition,graph,scope,physical.nodeInstallation]);reads++;return read;
+  }};
+  const runtime={clientProgramInstalledEffectModelReadWindow(value) {
+    assert.equal(this,runtime);assert.equal(value,demand);return [23n,29n];
+  }};
+  const run={model:{compiled,graph},publicationControl:control,modelRunDefinition:definition,
+    modelScope:scope,value:parent,modelDemand:demand,runtime,
+    modelSelection:{originalReadInstallation:physical}};
+  const preparation=installedEffectModelPreparation(run,()=>({}),()=>{});
+  assert.deepEqual([physical.modelRetainedBytes,physical.modelExecutionBytes],[190n,45n]);
+  assert.deepEqual([preparation.modelRetainedBytes,preparation.modelExecutionBytes],[100n,5n]);
+  assert.equal(preparation.metadataInstallation,physical);
+  preparation.retain();const selected=preparation.prepareRead();
+  assert.equal(selected.read,read);assert.equal(selected.scope,scope);assert.equal(selected.compiled,compiled);
+  assert.deepEqual([selected.modelRetainedBytes,selected.modelExecutionBytes],[100n,5n]);
+  assert.equal(reads,1);
+  assert.throws(()=>preparation.prepareRead(),{code:'ForeignInstalledEffectModelScope'});
 });

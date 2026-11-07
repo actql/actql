@@ -13,7 +13,9 @@ pub fn model_private_holding_cid(
     return None
   }
   match role {
-    "source_evidence" => if slot < 0 || slot >= 2 { return None }
+    // Source coordinates address the original caller's complete inventory.
+    // The address neither limits its cardinality nor authorizes an observation.
+    "source_evidence" => if slot < 0 { return None }
     "model_capture_bundle" | "observation_set" | "run_invocation" =>
       if slot != -1 {
         return None

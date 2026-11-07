@@ -111,10 +111,10 @@ void *actql_native_process_image_open_reader(int64_t max_bytes) {
 }
 
 MOONBIT_FFI_EXPORT
-bool actql_native_process_image_reader_ready(
+int32_t actql_native_process_image_reader_ready(
   actql_native_process_image_reader *reader
 ) {
-  return reader != NULL && reader->descriptor >= 0;
+  return reader != NULL && reader->descriptor >= 0 ? 1 : 0;
 }
 
 MOONBIT_FFI_EXPORT
@@ -172,11 +172,18 @@ moonbit_bytes_t actql_native_process_image_reader_chunk(
 }
 
 MOONBIT_FFI_EXPORT
-bool actql_native_process_image_reader_eof(
+int32_t actql_native_process_image_reader_eof(
   actql_native_process_image_reader *reader
 ) {
-  return reader == NULL || reader->eof;
+  return reader == NULL || reader->eof ? 1 : 0;
 }
+
+/* Moon's generated Native C declarations return int32_t for Bool. A C _Bool
+ * only defines the low byte on x86-64 and can turn false into apparent EOF. */
+_Static_assert(sizeof(actql_native_process_image_reader_ready(NULL)) == sizeof(int32_t),
+  "MoonBit reader_ready Bool FFI requires a full int32_t return");
+_Static_assert(sizeof(actql_native_process_image_reader_eof(NULL)) == sizeof(int32_t),
+  "MoonBit reader_eof Bool FFI requires a full int32_t return");
 
 MOONBIT_FFI_EXPORT
 int32_t actql_native_process_image_reader_close(

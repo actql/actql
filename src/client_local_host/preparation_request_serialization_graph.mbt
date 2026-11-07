@@ -84,6 +84,7 @@ pub fn[I] prepare_request_serialization_graph(
   contracts : ClientInstalledSequenceContracts,
   manifests~ : @publication_host.ClientCompilationManifests,
   compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+  model_occurrence? : @publication_host.ClientInferOccurrence? = None,
 ) -> Result[
   @publication_host.ClientSerializationPlanGraph,
   ClientRequestProgramPlanIssue,
@@ -100,6 +101,7 @@ pub fn[I] prepare_request_serialization_graph(
     contracts,
     manifests~,
     compilation_limits~,
+    model_occurrence~,
   )
 }
 
@@ -117,6 +119,7 @@ pub fn[I] prepare_request_acquired_serialization_graph(
   contracts : ClientInstalledSequenceContracts,
   manifests~ : @publication_host.ClientCompilationManifests,
   compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+  model_occurrence? : @publication_host.ClientInferOccurrence? = None,
 ) -> Result[
   @publication_host.ClientSerializationPlanGraph,
   ClientRequestProgramPlanIssue,
@@ -133,6 +136,7 @@ pub fn[I] prepare_request_acquired_serialization_graph(
     contracts,
     manifests~,
     compilation_limits~,
+    model_occurrence~,
   )
 }
 
@@ -149,21 +153,58 @@ fn[I] prepare_request_serialization_graph_owned(
   contracts : ClientInstalledSequenceContracts,
   manifests~ : @publication_host.ClientCompilationManifests,
   compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+  model_occurrence~ : @publication_host.ClientInferOccurrence?,
 ) -> Result[
   @publication_host.ClientSerializationPlanGraph,
   ClientRequestProgramPlanIssue,
 ] {
-  guard (owner.phase == ContentPlanReserved || owner.phase == ModelPlanReserved) &&
+  guard (
+      owner.phase == ContentPlanReserved ||
+      owner.phase == ModelPlanReserved ||
+      owner.phase == EffectPlanReserved
+    ) &&
     owner.input is Some(original) &&
     physical_equal(original, input) &&
-    owner.compiled_program is Some(prepared) &&
-    owner.program_capacity is Some(_) &&
     owner.program_domain_compilation_inputs is None &&
     owner.program_domain_quote is None &&
     owner.program_compilation is None &&
     !owner.program_body_attempted else {
     return Err(Preparation(ForeignOriginal))
   }
+  let selected : (
+    ClientLocalSequenceOwner,
+    @publication_host.PreparedClientProgram,
+  ) = match owner.phase {
+    ContentPlanReserved | ModelPlanReserved => {
+      guard model_occurrence is None &&
+        owner.compiled_program is Some(prepared) &&
+        owner.program_capacity is Some(_) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      (Pure(prepared), prepared)
+    }
+    EffectPlanReserved => {
+      // This is only the original Effect's intermediate Content component.
+      // It cannot issue a standalone pure Result or an Effect-free owner.
+      guard !include_results &&
+        owner.compiled_effect is Some(effect) &&
+        owner.effect_capacity is Some(_) &&
+        owner.effect_plan is None &&
+        model_occurrence is Some(occurrence) &&
+        @publication_host.client_infer_occurrence_matches_effect(
+          occurrence, effect,
+        ) &&
+        task ==
+        @publication_host.client_infer_occurrence_coordinates(occurrence).1 &&
+        step <
+        @publication_host.client_infer_occurrence_coordinates(occurrence).2 else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      (Effect(effect), occurrence.owner)
+    }
+    _ => return Err(Preparation(ForeignOriginal))
+  }
+  let (sequence_owner, prepared) = selected
   guard (
       source_free_policy is Some(_) &&
       @publication_host.prepared_client_acquisition_count(prepared) == 0
@@ -218,8 +259,8 @@ fn[I] prepare_request_serialization_graph_owned(
         return Err(Preparation(Policy))
       }
       match
-        reserve_request_domain_graph_construction(
-          owner, input, prepared, storage,
+        reserve_request_model_graph_construction(
+          owner, input, sequence_owner, storage,
         ) {
         Err(issue) => return Err(issue)
         Ok(_) => ()
@@ -256,7 +297,9 @@ fn[I] prepare_request_serialization_graph_owned(
         return Err(Preparation(Policy))
       }
       match
-        reserve_request_domain_graph_construction(owner, input, prepared, bytes) {
+        reserve_request_model_graph_construction(
+          owner, input, sequence_owner, bytes,
+        ) {
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
@@ -353,6 +396,14 @@ fn[I] prepare_request_serialization_graph_owned(
       owner.phase = previous
       Ok(selected)
     },
-    () => if owner.phase == Selecting { owner.phase = ProgramBodyFailed },
+    () => {
+      if owner.phase == Selecting {
+        owner.phase = if previous == EffectPlanReserved {
+          EffectBodyFailed
+        } else {
+          ProgramBodyFailed
+        }
+      }
+    },
   )
 }

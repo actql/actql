@@ -251,8 +251,9 @@ pub fn client_captured_content_workspace_capacity(
   let trees = 256L * 64L
   let control_slots = 32L * 8L
   // Original wire, admitted reference, index entry and snapshot copy overlap
-  // until the existing Model input receipt commits. Bound the inventory from
-  // declared distinct-key capacity, not observed rows or allocation success.
+  // until the existing Model input receipt commits. This is the inventory
+  // capacity being admitted now, not a declaration that unseen keys exist.
+  // The original workspace grows before each new retained entry is built.
   let inventory = inventory_count.to_int64() * (wires + trees + 1024L)
   Some(
     (

@@ -89,7 +89,7 @@ async function operationFixture(t,{reply=()=>({body:'{}'})}={}){
   const create=(invoke=send,overrides={})=>implementation.prepareInstalledEffectCredentialChild({run,memberIndex:0,rowIndex:0,operationIndex:2,operation:'create',
     originalSite:site,originalAuthorization:raw,useId:'use',resource:'rows',purpose:'effect',runInvocationCid:'run',dispatchRequestCid:'dispatch',
     maxRequestBytes:1024,maxResponseBytes:64,assertCurrent(){},observeCurrent:async()=>{},requestsRetired:()=>controls.retiredAliases,invoke,...overrides});
-  return {server,run,raw,runtime,controls,create,send,site};
+  return {server,run,raw,runtime,controls,create,send,site,token};
 }
 
 test('physical atomic borrow owns current without a preceding callbackful Plan getter', async t => {
@@ -311,7 +311,8 @@ test('response backing shortage refuses the original physical extent before borr
 test('response backing checks the same installed HTTP header bound before borrowing its original occurrence', async t => {
   const f = await operationFixture(t);
   let checks = 0;
-  f.runtime.clientProgramInstalledEffectOperationResponseBackingFits = (original, bytes, headerBytes) => {
+  f.runtime.clientProgramInstalledEffectOperationResponseBackingFits = (original, bytes, headerBytes, readQuantum) => {
+    assert.equal(readQuantum, 16384);
     assert.strictEqual(original, f.runtime.clientProgramInstalledEffectManagedPlanOperation()._0);
     assert.equal(bytes, 64); assert.equal(headerBytes, maxHeaderSize); checks++;
     return true;
@@ -321,4 +322,133 @@ test('response backing checks the same installed HTTP header bound before borrow
   assert.equal(f.controls.bindings, 0); assert.equal(f.controls.starts, 0);
   f.controls.retiredAliases = true;
   assert.equal(await child.release(), true);
+});
+
+// A Describe is a member occurrence, even when a member contains many rows.
+// Its original Plan selector and atomic borrower must select the SAME domain.
+test('member credential occurrence selects and borrows its original member slot before TLS', async t => {
+  const f = await operationFixture(t), selections = [], borrows = [];
+  const select = f.runtime.clientProgramInstalledEffectManagedPlanOperation;
+  const borrow = f.runtime.clientProgramInstalledEffectOperationBorrow;
+  f.runtime.clientProgramInstalledEffectManagedPlanOperation = function (...args) {
+    assert.equal(this, f.runtime);
+    selections.push(args);
+    assert.deepEqual(args.slice(1), [2, false, 3, 'create']);
+    return Reflect.apply(select, this, args);
+  };
+  f.runtime.clientProgramInstalledEffectOperationBorrow = function (...args) {
+    assert.equal(this, f.runtime);
+    borrows.push(args);
+    assert.deepEqual(args.slice(4), [2, false, 3, 0, 'create']);
+    return Reflect.apply(borrow, this, args);
+  };
+  const children = [];
+  let child;
+  try {
+    const response = await prepareInstalledRowCaptureChild({children, create() {
+      child = f.create(f.send, {memberIndex: 2, perRow: false, operationIndex: 3});
+      return child;
+    }});
+    assert.equal(response.body.toString(), '{}');
+    assert.equal(selections.length, 1);
+    assert.equal(borrows.length, 1);
+    assert.equal(f.controls.bindings, 1);
+    assert.equal(f.controls.starts, 1);
+    assert.equal(f.server.seen().length, 1);
+    assert.equal(await child.release(), false);
+    assert.equal(f.controls.settles, 0);
+  } finally {
+    f.controls.retiredAliases = true;
+    if (child !== undefined) assert.equal(await child.retry(), true);
+  }
+  assert.equal(f.controls.settles, 1);
+  assert.equal(child.status().pending, false);
+});
+
+test('invalid credential occurrence domain refuses before selection, borrow or binding', async t => {
+  const f = await operationFixture(t);
+  let selections = 0;
+  f.runtime.clientProgramInstalledEffectManagedPlanOperation = () => {selections++; throw new Error('must not select');};
+  for (const perRow of [undefined, null, 0, 'member', {}]) {
+    // Omission preserves the existing row default; explicit undefined shares
+    // the JS default and is covered by the old row operation tests instead.
+    if (perRow === undefined) continue;
+    assert.throws(() => f.create(f.send, {perRow}), {code: 'InvalidInstalledEffectCredentialOperation'});
+  }
+  assert.equal(selections, 0);
+  assert.equal(f.controls.borrows, 0);
+  assert.equal(f.controls.bindings, 0);
+  assert.equal(f.server.seen().length, 0);
+});
+
+test('same original TLS response grows before decoding and keeps its failed child until original retirement',async t=>{
+  for(const refused of [false,true]){
+    const f=await operationFixture(t,{reply:()=>({body:'{"ok":true}'})}),extent={},events=[],failure=new Error('actual body capacity refused');
+    f.runtime.clientProgramInstalledEffectOperationInputBegin=function(token,input){
+      assert.equal(this,f.runtime);assert.equal(input,extent);events.push('grow');
+      if(refused)throw failure;return {$tag:1,_0:undefined};
+    };
+    f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=function(original){
+      assert.strictEqual(this,f.runtime);assert.strictEqual(original,f.token);
+      assert.equal(f.controls.settles,0);events.push('projection-complete');return {$tag:1,_0:undefined};
+    };
+    const child=f.create(async context=>{
+      const response=await f.send(context);events.push('decode');return response;
+    },{responseExtent(bytes,originalBody){assert.equal(bytes,11);assert(Buffer.isBuffer(originalBody));assert.equal(originalBody.toString(),'{"ok":true}');events.push('input');return extent;}});
+    if(refused)await assert.rejects(child.prepare(),error=>error===failure);
+    else assert.equal((await child.prepare()).body.toString(),'{"ok":true}');
+    assert.deepEqual(events,refused?['input','grow']:['input','grow','decode','projection-complete']);
+    assert.equal(f.controls.starts,1);assert.equal(f.controls.borrows,1);
+    assert.deepEqual(f.controls.charges,[2n,11n]);assert.equal(f.server.seen().length,1);
+    assert.equal(await child.release(),false);
+    f.controls.retiredAliases=true;assert.equal(await child.release(),true);
+    assert.equal(f.controls.settles,1);
+  }
+});
+
+
+test('physical projection workspace waits for same flight and refuses failed output without cleanup ACK',async t=>{
+  for(const mode of ['unjoined','refused','completion-refused']){
+    let releaseResponse,observedResponse;
+    const seen=new Promise(yes=>{observedResponse=yes;});
+    const f=await operationFixture(t,{reply:async()=>{observedResponse();await new Promise(yes=>{releaseResponse=yes;});return {body:'{}'};}});
+    const failure=new Error('original projection failure');let completions=0;
+    f.runtime.clientProgramInstalledEffectOperationInputBegin=()=>({$tag:1,_0:undefined});
+    f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=function(original){
+      assert.equal(this,f.runtime);assert.equal(original,f.token);completions++;
+      if(mode==='completion-refused')throw failure;return {$tag:1,_0:undefined};
+    };
+    const child=f.create(async context=>{
+      if(mode==='unjoined'){void f.send(context);await seen;return {sameFlightPending:true};}
+      const response=await f.send(context);if(mode==='refused')throw failure;return response;
+    },{responseExtent:()=>({})});
+    let terminal=false;
+    const prepared=child.prepare().then(value=>({value}),error=>({error})).finally(()=>{terminal=true;});
+    try{await seen;await new Promise(setImmediate);assert.equal(terminal,false);assert.equal(completions,0);
+      assert.equal(child.status().pending,true);assert.equal(f.controls.settles,0);
+    }finally{releaseResponse();}
+    const result=await prepared;
+    if(mode==='unjoined'){assert.ifError(result.error);assert.equal(result.value.sameFlightPending,true);}
+    else assert.strictEqual(result.error,failure);
+    assert.equal(completions,mode==='refused'?0:1);
+    assert.equal(child.status().pending,true);assert.equal(f.controls.settles,0);
+    assert.equal(await child.release(),false);
+    f.controls.retiredAliases=true;assert.equal(await child.retry(),true);
+    assert.equal(f.controls.settles,1);
+  }
+});
+
+
+test('response projection completion keeps the original preparing latch through reentrant release',async t=>{
+  const f=await operationFixture(t);let child,returned,completions=0;
+  f.runtime.clientProgramInstalledEffectOperationInputBegin=()=>({$tag:1,_0:undefined});
+  f.runtime.clientProgramInstalledEffectOperationResponseProjectionComplete=function(original){
+    assert.equal(this,f.runtime);assert.equal(original,f.token);completions++;
+    f.controls.retiredAliases=true;returned=child.release();assert.equal(returned,false);
+    assert.equal(f.controls.settles,0);return {$tag:1,_0:undefined};
+  };
+  child=f.create(undefined,{responseExtent:()=>({})});
+  await child.prepare();assert.equal(completions,1);assert.equal(returned,false);
+  assert.equal(f.controls.settles,0);assert.equal(child.status().pending,true);
+  assert.equal(await child.retry(),true);assert.equal(f.controls.settles,1);
 });

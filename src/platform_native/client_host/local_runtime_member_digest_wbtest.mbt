@@ -14,7 +14,7 @@ fn runtime_digest_writer(
 
 ///|
 test "Native Runtime reads digest-only members and retains exact collected metadata" {
-  let path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let root = @filesystem.open_private_root(path).unwrap()
   let runtime = local_runtime_empty(None)
   runtime.roots.push(root)
@@ -52,7 +52,7 @@ test "Native Runtime reads digest-only members and retains exact collected metad
 
 ///|
 test "Native Runtime refuses a wrong member digest without accepting a witness" {
-  let path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let root = @filesystem.open_private_root(path).unwrap()
   let runtime = local_runtime_empty(None)
   runtime.roots.push(root)
@@ -81,7 +81,7 @@ test "Native Runtime refuses a wrong member digest without accepting a witness" 
 // Independent SHA-256 vectors, not expectations computed by the product Hasher.
 // The binary case crosses sixteen 64 KiB reads, including a final short read.
 test "Native Runtime shared digest handles empty binary and chunk-boundary members repeatedly" {
-  let path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let root = @filesystem.open_private_root(path).unwrap()
   let runtime = local_runtime_empty(None)
   runtime.roots.push(root)
@@ -142,7 +142,7 @@ test "Native Runtime shared digest handles empty binary and chunk-boundary membe
 
 ///|
 test "Native Runtime shared digest preserves empty and metadata collection limits" {
-  let path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let root = @filesystem.open_private_root(path).unwrap()
   let runtime = local_runtime_empty(None)
   runtime.roots.push(root)
@@ -209,7 +209,7 @@ test "Native Runtime shared digest preserves empty and metadata collection limit
 
 ///|
 test "Native Runtime shared digest rejects wrong length and digest without witnesses" {
-  let path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let root = @filesystem.open_private_root(path).unwrap()
   let runtime = local_runtime_empty(None)
   runtime.roots.push(root)

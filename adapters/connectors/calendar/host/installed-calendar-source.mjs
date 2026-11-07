@@ -87,6 +87,28 @@ function captureProvider(provider){
   })));
 }
 
+// The selected connector owns its complete profile projection. These are the
+// same original page/row/cursor bounds consumed by its page reader; the shared
+// Host receives only its existing standard JSON recipe and original capacity.
+function calendarReaderLimits(original, policy){
+  const total=BigInt(original.maxResponseBytes)*BigInt(original.maxPages);
+  const cursor=4n*BigInt(original.maxCursorUnits);
+  if(original.perPage>policy.pageSize||original.maxRows>policy.maxTotalRows||
+    total>BigInt(policy.maxTotalResponseBytes)||cursor>BigInt(policy.maxCursorBytes)){
+    fail('InstalledSourceReaderImplementationBoundsExceeded');
+  }
+  return Object.freeze({
+    maxResponseBytes:original.maxResponseBytes,maxTotalResponseBytes:Number(total),
+    maxNodes:original.maxNodes,maxDepth:original.maxDepth,
+    maxRows:Math.min(original.perPage,original.maxRows),maxTotalRows:original.maxRows,
+    maxPages:original.maxPages,pageSize:original.perPage,maxCursorBytes:Number(cursor),
+    maxIdentityBytes:original.maxValueTextBytes,maxTargetBytes:policy.maxTargetBytes,
+    maxValueNodes:original.maxValueNodes,maxValueTextBytes:original.maxValueTextBytes,
+    maxRowsWireBytes:original.maxRowsWireBytes,maxRowsWireNodes:original.maxRowsWireNodes,
+    maxRowsWireDepth:original.maxRowsWireDepth,maxSecretBytes:original.maxSecretBytes,
+  });
+}
+
 export async function loadInstalledCalendarSource(profile,{moon,providerMoon,runtimeBundleCid,
   resolveSecret,configurationReader,sourceInitialization,installationServices,installation}={}){
   if(!sourceInitialization||typeof sourceInitialization!=='object'||nodeTypes.isProxy(sourceInitialization)||
@@ -106,7 +128,8 @@ export async function loadInstalledCalendarSource(profile,{moon,providerMoon,run
   if(limits.maxDeclarationBytes>implementationProfile.maxDeclarationBytes||
     limits.maxDeclarationNodes>implementationProfile.maxDeclarationNodes)fail('InstalledCalendarImplementationBoundsExceeded');
   const implementation=services('sourceReaderImplementation',{
-    installation,sourceInitialization,limits,columnCount:provider.calendarListColumnNames().length});
+    installation,sourceInitialization,limits:calendarReaderLimits(limits,implementationProfile),
+    columnCount:provider.calendarListColumnNames().length});
   const wire=checked(provider.calendarListSchemaWire(limits.maxDeclarationBytes,limits.maxDeclarationNodes,limits.maxDepth));
   const{declaration,declared,environment}=Reflect.apply(prepareDeclaration,sourceInitialization,
     [[{resource,resource_kind:'calendar_list',schema_wire:wire,schema_cid:sha(wire),

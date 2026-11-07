@@ -39,7 +39,7 @@ function source(v) {
 export const sequenceSourceSuccesses=variants.flatMap(v=>{
  const shared={results:{answer:{rows:v.rows,columns}},sourceReadCount:0,sourceReadSessionCount:0,...(v.parameters?{parameters:{tag:1,span:20,cap:2}}:{})};
  return [{name:'sequence-json-'+v.name,format:'json',text:JSON.stringify(program(v)),...shared},
- ...['sql','aql-text'].map(format=>({name:'sequence-'+format+'-'+v.name,format,text:source(v),...shared,...(v.parameters?{parameterDeclarations:declarations}:{})}))];
+ ...['sql','aql-text'].map(format=>({name:'sequence-'+format+'-'+v.name,format,text:source(v),...shared,results:{main:shared.results.answer},...(v.parameters?{parameterDeclarations:declarations}:{})}))];
 });
 const valid=source(variants[0]);
 // The v0.1 authored contract defaults grouping/overlap/contiguity. Retain the
@@ -47,7 +47,7 @@ const valid=source(variants[0]);
 const defaultResults={results:{answer:{rows:[first(2)],columns}},
  sourceReadCount:0,sourceReadSessionCount:0};
 sequenceSourceSuccesses.push({name:'sequence-implicit-overlap',format:'aql-text',
- text:valid.replace(", overlap: 'disallow'",''),...defaultResults});
+ text:valid.replace(", overlap: 'disallow'",''),...defaultResults,results:{main:defaultResults.results.answer}});
 const omittedProgram=program(variants[0]);
 const omittedBody=omittedProgram.stages[0].steps.find(step=>step.sequence).sequence;
 for(const key of ['by','overlap','contiguity']) delete omittedBody[key];
@@ -55,7 +55,7 @@ sequenceSourceSuccesses.push({name:'sequence-json-omitted-defaults',format:'json
  text:JSON.stringify(omittedProgram),...defaultResults},
  ...['sql','aql-text'].map(format=>({name:'sequence-'+format+'-omitted-defaults',format,
  text:valid.replace('by: [], ','').replace(", overlap: 'disallow'",'')
-  .replace(", contiguity: 'adjacent'",''),...defaultResults})));
+  .replace(", contiguity: 'adjacent'",''),...defaultResults,results:{main:defaultResults.results.answer}})));
 export const sequenceSourceRefusals=[
  ['string-predicate',valid.replace('e.kind = 1',"'e.kind = 1'")],
  ['prior-label-input',valid.replace('e.kind = 2','first_id = 1')],

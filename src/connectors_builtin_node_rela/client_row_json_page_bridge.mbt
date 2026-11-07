@@ -116,5 +116,7 @@ pub fn client_program_row_source_accept_charged_projected_page(
   charge : @client_row_source_host.RowPageCharge,
   page : @client_row_source_host.RowSourceProjectedJsonPage,
 ) -> Result[Int, @client_row_source_host.RowHostIssue] {
-  @client_row_source_host.accept_charged_row_run_projected_page(run, charge, page)
+  @client_row_source_host.accept_charged_row_run_projected_page(
+    run, charge, page,
+  )
 }

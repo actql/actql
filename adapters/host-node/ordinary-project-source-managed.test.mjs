@@ -62,6 +62,7 @@ async function fixture() {
   originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
   const view = await sources.prepareOrdinaryProjectSourceManagedInstallation(originals, {
     validator(value) {assert.strictEqual(value, originals); current();},
+    retainedValidator(value) {assert.strictEqual(value, originals); current();},
     async prepare() {}, read: () => bundle,
     request(value, owner) {assert.strictEqual(owner, prepared); return request;},
     preparationContext: () => context, retireInitialPreparation() {},

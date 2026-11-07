@@ -132,6 +132,22 @@ pub fn captured_effect_local_unit_result_matches_source(
 }
 
 ///|
+/// The original Unit inventory retains this exact acquisition. This supplies
+/// provenance only; a later computed Result must keep its own live export.
+pub fn captured_effect_local_unit_acquired_source_matches(
+  inputs : CapturedEffectLocalUnitInputs,
+  identity : @query.CapturedSourceRelationIdentity,
+) -> Bool {
+  inputs.live &&
+  captured_effect_original_acquisition_matches(
+    inputs.run.captured,
+    inputs.unit,
+    identity,
+  ) &&
+  inputs.live
+}
+
+///|
 pub fn release_captured_effect_local_unit_inputs(
   inputs : CapturedEffectLocalUnitInputs,
 ) -> Bool {

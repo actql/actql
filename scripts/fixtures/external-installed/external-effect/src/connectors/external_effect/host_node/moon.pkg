@@ -4,4 +4,6 @@ pkgtype(kind: "foreign_library")
 
 import {
   "actql/actql/source_value" @source,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/encode_core" @encode,
 }

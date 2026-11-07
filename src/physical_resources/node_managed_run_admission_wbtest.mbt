@@ -369,3 +369,81 @@ test "closed managed controls share the one original boundary without a dummy bo
   settle_capacity(ledger, control).unwrap()
   cleanup_node_managed_run_admission(admission).unwrap()
 }
+
+///|
+// Actual Resource accounting with the existing original imported-child fixture.
+// Model quantity observations and final settlement are explicit fixture ports,
+// not an ordinary provider, Effect authorization or physical cleanup ACK.
+test "non Model prepared physical operation preserves configured consumed and uncertain Model quantities" {
+  for configured in [true, false] {
+    let calls = Ref(0)
+    let (admission, prepared, ledger) = atomic_managed_run_reservation_fixture(() => {
+      calls.val += 1
+    })
+    if configured {
+      configure_quantities(ledger, {
+        tokens: 3L,
+        cost_units: 2L,
+        duration_ms: 1L,
+      }).unwrap()
+      let model = reserve_attempt(
+        ledger,
+        0L,
+        0L,
+        0L,
+        quantities=Some({ tokens: 3L, cost_units: 2L, duration_ms: 1L, }),
+      ).unwrap()
+      mark_quantities_uncertain(ledger, model).unwrap()
+      observe_quantities(ledger, model, tokens=Some(3L)).unwrap()
+      settle_reservation(ledger, model).unwrap()
+      assert_eq(quantity_usage(ledger).consumed.tokens, 3L)
+      assert_eq(quantity_usage(ledger).uncertain.cost_units, 2L)
+      assert_eq(quantity_usage(ledger).uncertain.duration_ms, 1L)
+    }
+    let quantities = quantity_usage(ledger)
+    let limits = ledger.quantity_limits
+    let before = ledger_usage(ledger)
+    let observations = calls.val
+    let (control, body) = reserve_node_managed_run_operation(
+      admission,
+      prepared,
+      ledger,
+      () => (Ok(()) : Result[Unit, Unit]),
+      None,
+      3L,
+      2L,
+      true,
+      5L,
+      7L,
+      9L,
+    ).unwrap()
+    guard body.unwrap() is Physical(physical) else {
+      fail(
+        "selected non Model Effect must keep its original physical reservation",
+      )
+    }
+    assert_eq(calls.val, observations + 1)
+    assert_eq(quantity_usage(ledger), quantities)
+    assert_true(ledger.quantity_limits == limits)
+    assert_eq(
+      ledger_usage(ledger).reserved_attempts,
+      before.reserved_attempts + 1,
+    )
+    assert_eq(
+      ledger_usage(ledger).reserved_transfer_bytes,
+      before.reserved_transfer_bytes + 5L,
+    )
+    consume_reserved_attempt(ledger, physical).unwrap()
+    charge_transfer(ledger, physical, 2L).unwrap()
+    settle_reservation(ledger, physical).unwrap()
+    settle_capacity(ledger, control).unwrap()
+    assert_eq(ledger_usage(ledger).attempts, before.attempts + 1)
+    assert_eq(
+      ledger_usage(ledger).transferred_bytes,
+      before.transferred_bytes + 2L,
+    )
+    assert_eq(quantity_usage(ledger), quantities)
+    assert_true(ledger.quantity_limits == limits)
+    cleanup_node_managed_run_admission(admission).unwrap()
+  }
+}

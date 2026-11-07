@@ -4,7 +4,7 @@ import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 
 // Physical supervisor boundary only. Common Checkpoint/Store admissions are
 // explicit doubles; this does not establish public Model approval acceptance.
-function fixture({checkpoint, failClose = false} = {}) {
+function fixture({checkpoint, failClose = false, changeObservation = false} = {}) {
   const ref = {runDefinitionCid: 'infer-definition'};
   const runDefinition = {wire: 'definition'};
   const stopped = [];
@@ -12,7 +12,9 @@ function fixture({checkpoint, failClose = false} = {}) {
   let waiting = checkpoint;
   let closes = 0;
   let recover = !failClose;
-  let physicalCloseConfirmed = false;
+  let frame = Object.freeze({runDefinition, revision: 1,
+    cancellationRequested: false, physicalCloseConfirmed: false});
+  let stopInspections = 0, changedAtStore = false;
   const owner = installNodeClientDispatchOwner({
     moon: {}, control: {runDefinitionRunId: definition => {
         assert.equal(definition, runDefinition);
@@ -24,26 +26,28 @@ function fixture({checkpoint, failClose = false} = {}) {
           modelFenced: false, unresolvedModelCalls: false,
           unresolvedEffects: false, reconciliationRequired: false,
           publicationCommitted: false, physicalStopConfirmed: true,
-          cleanupConfirmed: true, revisionUnchanged: true,
+          cleanupConfirmed: true,
+          revisionUnchanged: !changeObservation || stopInspections > 0,
         });
+        stopInspections++;
         return false;
       }},
     journal: {
       reservePhysicalStart: () => true,
       lookupRunDefinition(ownerRef) {
         assert.equal(ownerRef, ref);
-        return {runDefinition, revision: 1, cancellationRequested: false,
-          physicalCloseConfirmed};
+        return frame;
       },
       lookupReconciliationState(ownerRef) {
         assert.equal(ownerRef, ref);
         return undefined;
       },
-      markPhysicalClose(ownerRef, outcome) {
+      markPhysicalClose(ownerRef, outcome, originalFrame) {
         assert.equal(ownerRef, ref);
-        assert.equal(physicalCloseConfirmed, false);
+        assert.strictEqual(originalFrame, frame);
+        assert.equal(frame.physicalCloseConfirmed, false);
         stopped.push(outcome);
-        physicalCloseConfirmed = true;
+        frame = Object.freeze({...frame, physicalCloseConfirmed: true});
       },
       markPreDispatchFailure: () => assert.fail('preparation already started'),
     },
@@ -64,7 +68,13 @@ function fixture({checkpoint, failClose = false} = {}) {
         assert.equal(definitionCid, ref.runDefinitionCid);
         return waiting;
       }},
-    store: {confirmCommittedIndex: async () => undefined},
+    store: {async confirmCommittedIndex() {
+      if (changeObservation && !changedAtStore) {
+        changedAtStore = true;
+        frame = Object.freeze({...frame, revision: frame.revision + 1});
+      }
+      return undefined;
+    }},
     startRun: async () => ({kind: 'reserved', ref}),
     hostConnection: () => true,
     planFor: () => ({kind: 'infer', runDefinition}),
@@ -126,4 +136,18 @@ test('Model wait retains physical cleanup responsibility until recovery', async 
   await f.owner.drain();
   assert.deepEqual(f.stopped, [null]);
   assert.equal(f.events.includes('computed'), false);
+});
+
+test('a changed Model stop observation retains cleanup until a fresh original inspection', async () => {
+  const f = fixture({checkpoint: undefined, changeObservation: true});
+  await f.start();
+  const originalOperation = f.owner.operation(f.ref);
+  await originalOperation;
+  assert.deepEqual(f.stopped, [], 'a changed Journal frame cannot acknowledge stop');
+  assert.equal(f.owner.live(f.ref), false, 'the operation settled, but cleanup is retained');
+  assert.strictEqual(f.owner.operation(f.ref), originalOperation);
+  await f.owner.drain();
+  assert.deepEqual(f.stopped, ['failed']);
+  assert.equal(f.events.includes('computed'), false);
+  assert.equal(f.owner.operation(f.ref), undefined, 'only the confirmed stop retires the entry');
 });

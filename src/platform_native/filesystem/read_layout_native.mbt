@@ -8,6 +8,8 @@ pub fn native_filesystem_read_layout() -> NativeFilesystemReadLayout? {
   Some({
     root_payload_bytes: read_layout_field_ffi(0),
     reader_payload_bytes: read_layout_field_ffi(1),
+    observation_payload_bytes: read_layout_field_ffi(3),
+    acquisition_payload_bytes: read_layout_field_ffi(4),
     external_object_overhead_bytes: read_layout_field_ffi(2),
   })
 }

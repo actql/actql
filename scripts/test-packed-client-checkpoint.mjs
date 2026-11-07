@@ -127,6 +127,12 @@ await writeFile(join(root, 'values.json'), document);
 const expected = JSON.parse(document).stages[0].steps[0].values.rows;
 await writeFile(join(root, 'expected.json'), JSON.stringify(expected));
 
+// Retain one explicit policy from this exact installed package for both the
+// published Source environment and every restarted Host installation.
+const sourceBaseEnvironment = JSON.parse(await readFile(join(root, 'node_modules',
+  '@actql', 'local-node', 'spec', 'local-check-environment.json'), 'utf8'));
+const hostCapacityPolicy = sourceBaseEnvironment.host_policy_profile.capacity;
+
 // The installed DuckDB source for Programs with real input: a real table,
 // its checked Catalog view and the source's own read account (delegate).
 await writeFile(join(root, 'source-program.json'), await readFile(join(
@@ -134,9 +140,7 @@ await writeFile(join(root, 'source-program.json'), await readFile(join(
 {
   const environment = JSON.parse(await readFile(join(repository,
     'adapters/host-node/fixtures/query-amount-environment.json'), 'utf8'));
-  const base = JSON.parse(await readFile(join(root, 'node_modules', '@actql',
-    'local-node', 'spec', 'local-check-environment.json'), 'utf8'));
-  environment.host_policy_profile = base.host_policy_profile;
+  environment.host_policy_profile = sourceBaseEnvironment.host_policy_profile;
   delete environment.evidence_bundle_cid;
   environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
     .update(canonicalText(environment)).digest('hex');
@@ -198,10 +202,15 @@ const canonical = value => Array.isArray(value)
     : JSON.stringify(value);
 const configuration = outcome === 'missing' ? undefined : canonical({
   version: 'actql-execution-account-config/0.1', account_id: 'remote-account',
-  entries: [{entry_id: 'run-acceptance', exclusions: [],
-    connection: {any_of: ['actql-remote-host']},
-    operation: {any_of: ['write']}, outcome, principal: {all: true},
-    resource: {any_of: ['duckdb-acquired', 'source-free-values']}}]});
+  entries: [{entry_id: 'owner-run-result-read', exclusions: [],
+      connection: {any_of: ['actql-remote-host']},
+      operation: {any_of: ['read']}, outcome: 'allow',
+      principal: {any_of: [userInfo().username]},
+      resource: {any_of: ['result/answer', 'run']}},
+    {entry_id: 'run-acceptance', exclusions: [],
+      connection: {any_of: ['actql-remote-host']},
+      operation: {any_of: ['write']}, outcome, principal: {all: true},
+      resource: {any_of: ['duckdb-acquired', 'source-free-values']}}]});
 const tokens = new Map([['owner-token', userInfo().username],
   ['reviewer-token', 'reviewer-principal'],
   ['reader-token', 'reader-principal'],
@@ -234,6 +243,7 @@ const decide = process.env.DECIDE === 'none' ? undefined : view => {
 };
 const installation = {
   directory: process.env.STATE,
+  hostCapacityPolicy: ${JSON.stringify(hostCapacityPolicy)},
   ...(process.env.ACQUIRED === '1' ?
     {sourceProfilePath: new URL('source-profile.json',
       'file://' + process.cwd() + '/').pathname} : {}),
@@ -443,7 +453,14 @@ const steps = {
       assert.equal(Object.hasOwn(outcome, 'admission'), false);
       return true;
     });
-    assert.deepEqual(await owner.lookupSubmission(submissionRef), outcome);
+    if (process.env.LOOKUP === 'denied') {
+      // Missing Account configuration also withholds the independent Run read.
+      // The original preparation failure never grants a later Journal lookup.
+      await assert.rejects(owner.lookupSubmission(submissionRef),
+        {code: 'ClientConnectionDenied'});
+    } else {
+      assert.deepEqual(await owner.lookupSubmission(submissionRef), outcome);
+    }
     assert.deepEqual((await owner.checkpoints()).items, []);
   },
   async hold() { save('held-' + requestId, await held()); },
@@ -794,10 +811,11 @@ if (!recoveryOnly) {
   await withHost('epoch-replay', {OUTCOME: 'allow'}, started =>
     client(started, 'replayed', ['epoch-replay']));
   assert.deepEqual(await counts('epoch-replay'), ran());
-  for (const [outcome, code] of [['deny', 'ACTQL_E_ACCOUNT_DENIED'],
-    ['missing', 'ACTQL_E_ACCOUNT_CONFIG_INVALID']]) {
+  for (const [outcome, code, lookup] of [
+    ['deny', 'ACTQL_E_ACCOUNT_DENIED', 'allowed'],
+    ['missing', 'ACTQL_E_ACCOUNT_CONFIG_INVALID', 'denied']]) {
     await withHost(outcome, {OUTCOME: outcome}, started =>
-      client(started, 'refused', [`${outcome}-a`], {CODE: code}));
+      client(started, 'refused', [`${outcome}-a`], {CODE: code, LOOKUP: lookup}));
     assert.deepEqual(await counts(outcome), none, outcome);
   }
 

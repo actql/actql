@@ -30,7 +30,7 @@ export function originalInitialControlClose(original) {
 }
 
 export async function retainInstalledHostInitializationFailure(cause,
-  {journal, closeJournal, closeInitializationJournal, store, checkpoints, dispatchOwner, sourceReader, sourceProfile, authorization,
+  {journal, closeJournal, closeInitializationJournal, store, checkpoints, dispatchOwner, sourceReader, sourceProfile, authorization, secretMaterial,
     installedEffect, observation, ownerViews, initialControl, publicationOwnership}) {
   const closeInitialControl = initialControl === undefined ? undefined :
     originalInitialControlClose(initialControl);
@@ -65,6 +65,7 @@ export async function retainInstalledHostInitializationFailure(cause,
   if (sourceReader !== undefined) pending.add('source-reader');
   if (sourceProfile !== undefined) pending.add('source-profile');
   if (authorization !== undefined) pending.add('authorization');
+  if (secretMaterial !== undefined) pending.add('secret-material');
   if (installedEffect !== undefined) pending.add('effect-profile');
   if (checkpoints !== undefined) pending.add('checkpoints');
   if (journal !== undefined) pending.add('journal');
@@ -210,6 +211,9 @@ export async function retainInstalledHostInitializationFailure(cause,
               }
               authorization = originalAuthorizationClose = undefined;
             });
+            if (!pending.has('authorization')) {
+              await attempt('secret-material', () => secretMaterial.close());
+            }
           }
         }
         await attempt('effect-profile', () => installedEffect.close());

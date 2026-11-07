@@ -1,13 +1,6 @@
 {
   "version": "actql-effect-target-selection-vectors/0.1",
   "scope": "Independent DELETE and mixed selection preimages. Purpose belongs to the original checked Header, not these eight fields or a CID. No physical execution or grant.",
-  "current_schema_pins": {
-    "source": "c895678274948cafe18f9cb451776e5f8e1707d8",
-    "scope": "Adopted Command input-key extension 76e04b4ff55678dfd499b966c8be0b376bedcf82 changed the containing Plan. DELETE changes no structural schema bytes. Older UPDATE and published-STORE pins remain unchanged historical qualifications.",
-    "executable_plan": "sha256:a7bc82a9adfff2a8325e9dd025980a6b55aafe5e9ace96da99696dad81355b43",
-    "plan_document": "sha256:e236aadb266e99f56388df74ae79e194c2b1ba63271325affc6ef5cfa7aa4032",
-    "artifact_registry": "sha256:04ff93c9501c780c8f5d25a2a5c450977b82486897424c2ddbf775f6c17139cf"
-  },
   "cases": [
     {
       "id": "delete-original",

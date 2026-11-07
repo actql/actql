@@ -13,13 +13,16 @@ fn expected_request_model_scope_controls(
     holdings,
     delegations,
   ).unwrap()
-  // Independent field inventory: Model origin has five borrowed references;
-  // Scope has three. Neither copies Program/Graph/CID backing. Resource owns
-  // its census-slot shape; its existing projection supplies that delta.
+  // Independent field inventory: Model origin has six borrowed references;
+  // Scope has four references and four partition/lifecycle words. Its later
+  // read record adds one reference/two words, and Resource's resident claim
+  // group slot adds one reference. Neither copies Program/Graph/CID backing.
+  // The selected Model allowance Some adds one H/R/W; Resource owns its
+  // census-slot shape and supplies only that slot delta.
   @execution.preparation_representation_cost({
-    record_headers: 2L + selected.0 - initial.0,
-    reference_slots: 8L + selected.1 - initial.1,
-    scalar_words: selected.2 - initial.2,
+    record_headers: 3L + selected.0 - initial.0,
+    reference_slots: 13L + selected.1 - initial.1,
+    scalar_words: 7L + selected.2 - initial.2,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -29,6 +32,7 @@ fn expected_request_model_scope_controls(
 fn request_effect_model_plan_fixture(
   current? : () -> Bool = () => true,
   model_initial? : Bool = true,
+  configure_quantities? : Bool = true,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
@@ -72,11 +76,13 @@ fn request_effect_model_plan_fixture(
   let operation = @resources.begin_preparation_io(capacity, input, 2L).unwrap()
   @resources.charge_preparation_io(operation, 1L).unwrap()
   @resources.finish_preparation_io_after_cleanup(operation).unwrap()
-  @resources.configure_quantities(parent.ledger, {
-    tokens: 128L,
-    cost_units: 0L,
-    duration_ms: 1000L,
-  }).unwrap()
+  if configure_quantities {
+    @resources.configure_quantities(parent.ledger, {
+      tokens: 128L,
+      cost_units: 0L,
+      duration_ms: 1000L,
+    }).unwrap()
+  }
   let construction = borrow_request_effect_plan_input(parent, input).unwrap()
   let (_, request, contracts, model) = effect_model_plan_for_prepared(prepared)
   let calls = Ref(0)
@@ -220,20 +226,49 @@ test "Effect Scope one-short growth retains one absolute quote and original Plan
 }
 
 ///|
-test "ordinary initial quote still refuses the selected Model work before Scope construction" {
-  let (parent, input, plan, _, construction) = request_effect_model_plan_fixture(
+test "ordinary initial Model keeps actual work history and refuses exhausted work before allocation" {
+  let (parent, input, plan, request, construction) = request_effect_model_plan_fixture(
     model_initial=false,
   )
+  let ledger = parent.ledger
+  let limits = @resources.ledger_limits(ledger)
+  assert_false(installed_effect_limits_fit(plan.limits, limits))
+  @resources.charge_planning(ledger, 1).unwrap()
   let before = @resources.ledger_usage(parent.ledger)
-  assert_true(
-    prepare_request_effect_model_read_scope(parent, input, plan)
-    is Err(InsufficientCapacity),
+  let scope = prepare_request_effect_model_read_scope(parent, input, plan).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).planning_work, before.planning_work)
+  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    before.transferred_bytes,
   )
-  assert_eq(@resources.ledger_usage(parent.ledger), before)
-  assert_true(parent.effect_plan is None && parent.phase == EffectPlanReserved)
+  complete_request_effect_preparation(parent, input, plan).unwrap()
   @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
-  abort_request_preparation_after_cleanup(parent).unwrap()
-  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  let owner = begin_request_effect_model_managed_run(parent, request, scope).unwrap()
+  assert_true(
+    physical_equal(require_installed_managed_run(owner).unwrap(), ledger),
+  )
+  assert_eq(@resources.ledger_limits(ledger), limits)
+  @resources.charge_planning(
+    ledger,
+    limits.planning_work - before.planning_work,
+  ).unwrap()
+  let exhausted = @resources.ledger_usage(ledger)
+  assert_true(@resources.charge_planning(ledger, 1) is Err(PlanningLimit))
+  assert_eq(@resources.ledger_usage(ledger), exhausted)
+  let selected = plan.model.unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      selected.compiled,
+      selected.definition,
+      selected.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).planning_work, limits.planning_work)
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
 
 ///|
@@ -302,7 +337,7 @@ test "same Request Effect Model retains original Scope Plan input history and bo
   )
   assert_true(parent.phase == Selected && parent.effect_plan is None)
   assert_true(
-    @resources.check_node_preparation_input(parent.initial, input)
+    preparation_initial_input(parent.initial, input)
     is Err(@resources.AlreadyConsumed),
   )
   let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
@@ -486,10 +521,171 @@ test "Model Scope closing inside original adoption current leaves the same Reque
   )
   assert_true(acknowledged.val)
   assert_true(parent.phase == EffectBodyReady && parent.input is Some(_))
-  assert_true(
-    @resources.check_node_preparation_input(parent.initial, input) is Ok(_),
-  )
+  assert_true(preparation_initial_input(parent.initial, input) is Ok(_))
   assert_eq(@resources.ledger_usage(parent.ledger), before)
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Effect Model configures selected quantities on its original preparation before read binding without resetting input work" {
+  let declarations : Array[@resources.QuantityAmounts] = [
+    { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+    { tokens: 1000L, cost_units: 1000L, duration_ms: 2000L, },
+  ]
+  for installed in declarations {
+    let (parent, input, plan, request, construction) = request_effect_model_plan_fixture(
+      configure_quantities=false,
+    )
+    let selected = plan.model.unwrap()
+    let before = @resources.ledger_usage(parent.ledger)
+    assert_true(@resources.quantity_configuration_matches(parent.ledger, None))
+    let scope = prepare_request_effect_model_read_scope(
+      parent,
+      input,
+      plan,
+      quantity_limits=Some(installed),
+    ).unwrap()
+    assert_true(
+      @resources.quantity_configuration_matches(
+        parent.ledger,
+        Some({
+          tokens: Int64::min(installed.tokens, 128L),
+          cost_units: 0L,
+          duration_ms: Int64::min(installed.duration_ms, 1000L),
+        }),
+      ),
+    )
+    assert_eq(@resources.ledger_usage(parent.ledger).attempts, before.attempts)
+    assert_eq(
+      @resources.ledger_usage(parent.ledger).transferred_bytes,
+      before.transferred_bytes,
+    )
+    assert_true(before.attempts > 0 && before.transferred_bytes > 0L)
+    complete_request_effect_preparation(parent, input, plan).unwrap()
+    @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+    let run = begin_request_effect_model_managed_run(parent, request, scope).unwrap()
+    assert_true(
+      @publication_host.finish_client_model_read_scope(
+        scope,
+        selected.compiled,
+        selected.definition,
+        selected.graph,
+        true,
+      ).unwrap(),
+    )
+    retire_installed_managed_run(run).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    assert_eq(@resources.ledger_usage(parent.ledger).attempts, before.attempts)
+  }
+}
+
+///|
+test "plural Effect Scopes bind and adopt complete order on the same finite Request with input history" {
+  let (environment, document) = effect_model_plan_source(plural=true)
+  let (parent, child, _, input) = registration_parent_fixture(
+    text=document,
+    environment=Some(environment),
+    effect_limits=Some(
+      @publication_host.client_standard_effect_computation_limits(),
+    ),
+  )
+  finish_effect_program_check_preparation(child).unwrap() |> ignore
+  let prepared = compile_effect_program_check_preparation(child).unwrap()
+  continue_request_effect_preparation(parent, input).unwrap() |> ignore
+  let operation = @resources.begin_preparation_io(
+    parent.effect_capacity.unwrap(),
+    input,
+    2L,
+  ).unwrap()
+  @resources.charge_preparation_io(operation, 1L).unwrap()
+  @resources.finish_preparation_io_after_cleanup(operation).unwrap()
+  let construction = borrow_request_effect_plan_input(parent, input).unwrap()
+  let (request, contracts, model, _) = effect_models_plan_for_prepared(prepared)
+  let plan = effect_model_plan_fixture(
+    prepared,
+    request,
+    contracts,
+    model,
+    Ref(0),
+    stage_index=3,
+  )
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    prepare_request_effect_model_read_scope(parent, input, plan)
+    is Err(ForeignOriginal),
+  )
+  let scopes = prepare_request_effect_models_read_scopes(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({ tokens: 128L, cost_units: 0L, duration_ms: 1000L, }),
+  ).unwrap()
+  assert_eq(scopes.length(), 2)
+  assert_true(
+    @resources.quantity_configuration_matches(
+      parent.ledger,
+      Some({ tokens: 128L, cost_units: 0L, duration_ms: 1000L, }),
+    ),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, before.attempts)
+  assert_eq(
+    @resources.ledger_usage(parent.ledger).transferred_bytes,
+    before.transferred_bytes,
+  )
+  complete_request_effect_preparation(parent, input, plan).unwrap()
+  @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+  for invalid in [[scopes[0]], [scopes[0], scopes[0]], [scopes[1], scopes[0]]] {
+    assert_true(
+      begin_request_effect_model_managed_run(
+        parent,
+        request,
+        invalid[0],
+        scopes=Some(invalid),
+      )
+      is Err(ForeignOriginal),
+    )
+  }
+  let run = begin_request_effect_model_managed_run(
+    parent,
+    request,
+    scopes[0],
+    scopes=Some(scopes),
+  ).unwrap()
+  let second = @publication_host.prepare_client_model_read(
+    scopes[1],
+    500L,
+    700L,
+  ).unwrap()
+  let first = @publication_host.prepare_client_model_read(scopes[0], 500L, 700L).unwrap()
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  @publication_host.settle_client_model_read(first, true).unwrap()
+  assert_false(
+    @publication_host.finish_client_model_read_scope(
+      scopes[0],
+      model.compiled,
+      model.definition,
+      model.components.unwrap()[0].graph,
+      true,
+    ).unwrap(),
+  )
+  let pending_usage = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    @publication_host.settle_client_model_read(second, false)
+    is Err(@publication_host.Resource(@resources.CleanupPending)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), pending_usage)
+  @publication_host.settle_client_model_read(second, true).unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scopes[1],
+      model.compiled,
+      model.definition,
+      model.components.unwrap()[1].graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, before.attempts)
 }

@@ -13,7 +13,8 @@ function observation(c, target) {
   const arrayCapacity = Object.fromEntries(Object.entries(b).map(([k, v]) => [k, Number(v)]));
   const maps = mapBounds(c, registry);
   return { faults: [{ kind: 'capacity observation', event: 'checkpoint', arrayCapacity,
-    metadataPreparation: { stepped: false, lookup: false, source: false, generatedField: -1, generatedSeen: 0, termColumn: false, nameCharge: false, snapshotEntries: 0, sourceEntries: 0 },
+    metadataPreparation: { stepped: false, lookup: false, source: false, generatedField: -1, generatedSeen: 0, termColumn: false, nameCharge: false, snapshotEntries: 0, sourceEntries: 0,
+      portPreparation: true, pendingPortNames: 0, completedPortNames: 0 },
     mapCapacity: maps.capacity, mapEntries: maps.entries,
     ...(target === 'native' ? { nativeMaps: nativeUnitFixture(maps), nativeArrays: nativeArrayUnitFixture(b) } : {}),
     mapAliases: { inputBinding: false, inputProjection: false, bindingProjection: false },
@@ -52,5 +53,37 @@ test('new retained metadata work is not silently admitted into the small DISTINC
     const o = observation(c, 'native');
     o.faults[0].metadataPreparation[field] = field === 'generatedField' ? 0 : field === 'generatedSeen' || field.endsWith('Entries') ? 1 : true;
     assert.throws(() => inspectPipelineBacking(c, o, registry, 'native', 'native'), /outside the admitted DISTINCT pilot/);
+  }
+});
+
+
+test('completion-port name telemetry retains the separately reviewed width and transfer bounds', () => {
+  const c = cases.find(c => pipelineBounds(c, registry, 'js').outputNames > 1n);
+  assert(c);
+  const width = Number(pipelineBounds(c, registry, 'js').outputNames);
+  for (let names = 0; names <= width; names++) {
+    const o = observation(c, 'js');
+    o.faults[0].metadataPreparation.pendingPortNames = names;
+    inspectPipelineBacking(c, o, registry, 'js', 'js');
+  }
+  const finished = observation(c, 'js');
+  Object.assign(finished.faults[0].metadataPreparation,
+    {portPreparation: false, pendingPortNames: 0, completedPortNames: width});
+  inspectPipelineBacking(c, finished, registry, 'js', 'js');
+  for (const change of [
+    m => delete m.portPreparation,
+    m => { m.portPreparation = 'true'; },
+    m => { m.pendingPortNames = -1; },
+    m => { m.pendingPortNames = 0.5; },
+    m => { m.pendingPortNames = width + 1; },
+    m => { m.completedPortNames = width + 1; },
+    m => { m.completedPortNames = width; },
+    m => { m.portPreparation = false; m.pendingPortNames = 1; },
+    m => { m.portPreparation = false; m.completedPortNames = width - 1; },
+    m => { m.unreviewedMetadataOwner = 0; },
+  ]) {
+    const o = observation(c, 'js');
+    change(o.faults[0].metadataPreparation);
+    assert.throws(() => inspectPipelineBacking(c, o, registry, 'js', 'js'));
   }
 });

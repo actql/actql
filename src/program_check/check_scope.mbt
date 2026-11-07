@@ -81,6 +81,7 @@ pub fn check_parsed_scoped(
               let diagnostic : CheckDiagnostic = {
                 cause,
                 category: classify_diagnostic_cause(cause),
+                independent_supplied: None,
               }
               if diagnostic.category == InvalidInput {
                 TemplateOnly(Rejected(diagnostic))
@@ -99,6 +100,7 @@ pub fn check_parsed_scoped(
           let diagnostic : CheckDiagnostic = {
             cause,
             category: classify_diagnostic_cause(cause),
+            independent_supplied: None,
           }
           if diagnostic.category == InvalidInput {
             TemplateOnly(Rejected(diagnostic))

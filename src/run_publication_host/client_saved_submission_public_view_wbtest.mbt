@@ -182,3 +182,66 @@ test "saved admission namespace projection uses the public UTF16 bound without c
     assert_eq(record.run_admission.unwrap().2, 0L)
   }
 }
+
+///|
+test "accepted failure candidate preserves same intent and refuses terminal or foreign originals" {
+  let rows = saved_snapshot_rows(saved_submission_preparing)
+  let snapshot = read_client_saved_submission(
+      saved_snapshot_reference(),
+      (table, key) => inventory_read(rows, table, key),
+      _ => Err("must-not-validate-Run"),
+      "custody",
+    )
+    .unwrap()
+    .unwrap()
+  let expected = saved_submission_preparing.replace(
+    old="\"phase\":\"preparing\",\"reference\":",
+    new="\"phase\":\"preparation_failed\",\"preparation_problem_classification\":\"invalid_input\",\"preparation_problem_code\":\"ClientProgramInvalidInput\",\"reference\":",
+  )
+  assert_eq(
+    client_saved_submission_preparation_failure_body(
+      snapshot,
+      snapshot.record.intent,
+      ("ClientProgramInvalidInput", "invalid_input"),
+    ),
+    Ok(@utf8.encode(expected)),
+  )
+  let changed = prepare_client_submitted_intent(
+    "{\"kind\":\"aql\",\"input\":{\"format\":\"sql\",\"text\":\"SELECT 2 AS n\"},\"parameters\":null}",
+    65536, 8192, 64,
+  ).unwrap()
+  assert_eq(
+    client_saved_submission_preparation_failure_body(
+      snapshot,
+      changed,
+      ("ClientProgramInvalidInput", "invalid_input"),
+    ),
+    Err(CustodyLost),
+  )
+  let terminal = decode_client_submitted_journal_row(@utf8.encode(expected)).unwrap()
+  assert_eq(
+    client_saved_submission_preparation_failure_body(
+      { ..snapshot, record: terminal, },
+      terminal.intent,
+      ("OtherFailure", "operation_failed"),
+    ),
+    Err(CustodyLost),
+  )
+  let ready = public_admission_snapshot("0")
+  assert_eq(
+    client_saved_submission_preparation_failure_body(
+      ready,
+      ready.record.intent,
+      ("OtherFailure", "operation_failed"),
+    ),
+    Err(CustodyLost),
+  )
+  assert_eq(
+    client_saved_submission_preparation_failure_body(
+      snapshot,
+      snapshot.record.intent,
+      ("", "invalid_input"),
+    ),
+    Err(Encoding),
+  )
+}

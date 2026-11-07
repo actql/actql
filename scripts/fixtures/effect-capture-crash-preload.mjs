@@ -23,9 +23,9 @@ const storeUrl = new URL('../../adapters/store-local/publication-store.mjs',
   import.meta.url).href;
 const actual = await import(storeUrl);
 mock.module(storeUrl, {namedExports: {...actual,
-  async openLocalPublicationStore(options, control, durability) {
+  async openLocalPublicationStore(options, ...args) {
     configuration = options;
-    const store = await actual.openLocalPublicationStore(options, control, durability);
+    const store = await actual.openLocalPublicationStore(options, ...args);
     return Object.freeze({...store, async commitPhysicalHolding(record, ...args) {
       const stop = () => {
         // Only fixture-generated values are written into this local scratch

@@ -153,7 +153,7 @@ fn issue_source_free_client_serialization_plan_graph(
   if @strategy.graph_task_count(owner.graph) != 1 ||
     task != 0 ||
     !@strategy.graph_source_free_inputs_complete(owner.graph) ||
-    @strategy.graph_program_has_effects(owner.graph) {
+    (include_results && @strategy.graph_program_has_effects(owner.graph)) {
     return Err(UnsupportedGraph)
   }
   // The explicit Host unknown-provenance policy original is admitted through
@@ -224,8 +224,18 @@ pub fn issue_prepared_client_acquired_serialization_plan_component(
   max_depth : Int,
 ) -> Result[ClientSerializationPlanGraph, ClientSerializationPlanGraphIssue] {
   issue_acquired_client_serialization_plan_graph(
-    owner, task, step, max_rows, max_bytes, max_preparation_work, sequence_limits,
-    max_wire_bytes, max_nodes, max_depth, false,
+    owner,
+    task,
+    step,
+    max_rows,
+    max_bytes,
+    max_preparation_work,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    false,
+    effect_component=@strategy.graph_program_has_effects(owner.graph),
   )
 }
 

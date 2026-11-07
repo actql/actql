@@ -65,3 +65,20 @@ These consuming changes do not establish ordinary public transport adoption or
 Decision execution support. Physical installation must preserve the same
 original Owners, retired cursor backing, Slot-to-success indirection, output
 uses and pending cleanup responsibility.
+
+The composed caller seals its one original Observation before Local transfers
+completed output; its synchronous completion callback does not await an external
+observer. Response settlement and the retained Observation/Invocation Store
+writers keep their existing asynchronous failure boundaries. Each writer is
+retained before the fallible observer and cleanup retries that same writer.
+Per-attempt captures use the original scoped holding identity rather than a
+second whole-Run capture bundle. These phase observations neither reconstruct
+an issuer nor establish successful publication or physical cleanup.
+
+After a composed task fails, a stopped Model may still own an accepted response
+whose original Store writer has not completed. The caller first requests stop
+through that same operation, confirms its physical stopped state, and retires
+that capture's publication custody before reading the durable Saved/Unknown
+classification. A pending retirement or live child remains uncertain. Completing
+an accepted writer does not rerun Compute, resend a request, or turn a genuinely
+unknown physical response into a known failure.
