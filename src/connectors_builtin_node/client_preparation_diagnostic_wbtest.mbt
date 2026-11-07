@@ -824,3 +824,107 @@ test "Request checked Source ARRAY refusal reaches existing public rejection wit
     @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
   }
 }
+
+///|
+// Read the retained original only; no replacement error or checker call.
+fn request_unpivot_original_lowering_cause(
+  issue : @client_local_host.ClientRequestQueryLoweringIssue,
+) -> String {
+  match issue {
+    WithBinding(original, _)
+    | BindingFailure(original, _)
+    | BindingException(original, _) =>
+      request_unpivot_original_lowering_cause(original)
+    Publication(Frontend(QueryLowering(UnsupportedProjection))) =>
+      "unsupported_projection"
+    _ => "other"
+  }
+}
+
+///|
+extern "js" fn request_unpivot_original_fixture_source(
+  loader : RequestDiagnosticTestLoader,
+  safe : Bool,
+) -> NativeJsonValue =
+  #|(loader,safe)=>{const {unpivotRowLabelRefusals}=loader('../../../../../scripts/fixtures/unpivot-row-label-source-input.mjs');const value=unpivotRowLabelRefusals.find(item=>item.name==='unpivot-row-label-refusal-exact-integer-gap');return {format:value.format,text:safe?value.text.replace('9223372036854775807','9007199254740991'):value.text,parameterDeclarations:value.parameterDeclarations};}
+
+///|
+extern "js" fn request_unpivot_original_fixture_parameters(
+  loader : RequestDiagnosticTestLoader,
+) -> NativeJsonValue =
+  #|(loader)=>loader('../../../../../scripts/fixtures/unpivot-row-label-source-input.mjs').unpivotRowLabelRefusals.find(item=>item.name==='unpivot-row-label-refusal-exact-integer-gap').parameters
+
+///|
+// Pass the SAME Unit result through the actual exported String-result bridge
+// exactly as JS does. No Result adaptation or error/tag reconstruction.
+extern "js" fn request_unpivot_original_fixture_public_error(
+  loader : RequestDiagnosticTestLoader,
+  result : Result[Unit, @client_local_host.ClientRequestTerminalIssue],
+  project : (Result[String, @client_local_host.ClientRequestTerminalIssue]) -> String?,
+  safe : Bool,
+) -> Bool =
+  #|(loader,result,project,safe)=>{const {checkedRequestProgramPreparation}=loader('../../../../../adapters/host-node/client-program-preparation.mjs');const {runtimeField}=loader('../../../../../adapters/host-common/compiler-binding.generated.mjs');const {unpivotRowLabelRefusals}=loader('../../../../../scripts/fixtures/unpivot-row-label-source-input.mjs');const fixture=unpivotRowLabelRefusals.find(item=>item.name==='unpivot-row-label-refusal-exact-integer-gap');let calls=0;try{checkedRequestProgramPreparation({clientProgramRequestPreparationIssueCode(value){calls++;if(value!==result)throw new Error('SubstitutedResult');return project(value);}},result);return false;}catch(error){return calls===1&&error.code===(safe?'ClientProgramImplementationLimit':fixture.expectedCode)&&error.cause===runtimeField(result,0);}}
+
+///|
+test "Request exact UNPIVOT integer fixture keeps original unsafe syntax and safe implementation refusal distinct" {
+  let loader = request_diagnostic_test_loader(request_diagnostic_test_url())
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  for safe in [false, true] {
+    let (parent, receipt) = request_diagnostic_test_parent()
+    let result = client_program_prepare_request_source_computation(
+      parent,
+      receipt,
+      request_unpivot_original_fixture_source(loader, safe),
+      request_unpivot_original_fixture_parameters(loader),
+      environment,
+      publication,
+      None,
+    )
+    if safe {
+      let cause = match result {
+        Err(QueryLowering(original)) =>
+          request_unpivot_original_lowering_cause(original)
+        _ => "not_query_lowering"
+      }
+      assert_eq(cause, "unsupported_projection")
+      assert_eq(
+        request_diagnostic_checked_issue_code(result),
+        Some("source_implementation_limit"),
+      )
+    } else {
+      assert_true(
+        result
+        is Err(
+          QuerySyntax(
+            Frontend(
+              QuerySyntax(
+                {
+                  issue: Syntax(
+                    "UNPIVOT row alias requires a String or integer literal"
+                  ),
+                  span: Some(_),
+                }
+              )
+            )
+          )
+        ),
+      )
+      assert_eq(
+        request_diagnostic_checked_issue_code(result),
+        Some("source_invalid_input"),
+      )
+    }
+    assert_true(
+      request_unpivot_original_fixture_public_error(
+        loader, result, client_program_request_preparation_issue_code, safe,
+      ),
+    )
+    @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}
