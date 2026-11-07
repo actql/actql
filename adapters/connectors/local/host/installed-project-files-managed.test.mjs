@@ -412,6 +412,13 @@ async function effectSourceFixture({pending = false, changedAfterRead = false} =
     clientProgramInstalledSourceReadCheckCurrent: () => assert.fail('No repeated current before binding'),
     clientProgramInstalledSourceReadBindProgram: () => assert.fail('No Pure input'),
     clientProgramInstalledSourceReadAttachAcquisition: () => assert.fail('No replacement acquisition'),
+    clientProgramEffectDirectSourceCoordinates(checkedOwner) {
+      assert.strictEqual(checkedOwner, owner); return ok([[0, 0, 0, 0]]);
+    },
+    clientProgramInstalledEffectManagedSourceInputKind(run, checkedOwner, intent, index) {
+      assert.strictEqual(run, parent); assert.strictEqual(checkedOwner, owner);
+      assert.strictEqual(intent, request); assert.equal(index, 0); return ok('query');
+    },
     clientProgramInstalledEffectManagedRunCheck(run, checkedOwner, intent) {
       assert.strictEqual(run, parent); assert.strictEqual(checkedOwner, owner);
       if (intent !== request) throw new Error('OriginalEffectRequestMismatch');
