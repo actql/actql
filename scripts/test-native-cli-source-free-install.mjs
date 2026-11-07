@@ -194,7 +194,9 @@ export async function observeNativeNumericOperatorScale({project, cli, assets, l
   await writeFile(join(lowProject, 'low.json'), JSON.stringify(small), {flag: 'wx', mode: 0o600});
   const refused = await lowCli(['run', 'low.json', '--format', 'json', '--json'], 1);
   assert.equal(refused.stdout, ''); assert.equal(refused.signal, null);
-  assert.equal(JSON.parse(refused.stderr).code, 'ACTQL_E_PREPARATION_FAILED');
+  // Statically excessive Values rows are RowsExceeded/InvalidInput in the
+  // existing checker; this is distinct from an unclassified preparation failure.
+  assert.equal(JSON.parse(refused.stderr).code, 'ACTQL_E_PROGRAM_INVALID');
   return {...result, operator: {environmentCid: selected.environmentCid, maxRows: selected.maxRows,
     lowPolicyRows: low.maxRows, lowPolicyRefused: true}};
 }
