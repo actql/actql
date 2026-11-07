@@ -157,6 +157,7 @@ struct NativeHostBootstrap[T] {
   backing : Backing
   mut control : @resources.SharedAllocation?
   mut growth : @resources.SharedCapacityGrowth?
+  mut root_control : NativeRootControl[T]?
   children : Array[NativeBootstrapAllocation[T]]
   delegations : Array[NativeBootstrapDelegation[T]]
   mut claimed : Bool
@@ -234,6 +235,7 @@ fn[T] NativeInstalledArenaSupplier::acquire_original(
     backing,
     control: None,
     growth: None,
+    root_control: None,
     children: [],
     delegations: [],
     claimed: false,
@@ -670,6 +672,15 @@ pub fn[T] NativeHostBootstrap::try_close(
       Ok(_) => ()
     }
   }
+  // Every original child has now acknowledged physical and logical retirement.
+  // Drop only these completed internal aliases before asking the enclosing Read
+  // to close. Escaped child wrappers remain live and still block its real ACK.
+  self.children.clear()
+  self.children.shrink_to_fit()
+  match self.close_root_control(original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if !self.physical_closed {
     let status = close_ffi(self.backing)
     if status != 0 {
@@ -710,7 +721,6 @@ pub fn[T] NativeHostBootstrap::try_close(
     Err(issue) => return Err(Resource(issue))
     Ok(_) => self.closed = true
   }
-  self.children.clear()
   self.delegations.clear()
   Ok(())
 }

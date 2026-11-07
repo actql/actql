@@ -37,6 +37,34 @@ class ScopedReadCommandTests(unittest.TestCase):
 
 
 class CurrentProviderClosureTests(unittest.TestCase):
+    def test_default_darwin_binaries_are_not_replaced_by_local_linux_inputs(self):
+        manifest = json.loads((CANDIDATE / 'scoped-read-source.json').read_bytes())
+        self.assertEqual(manifest['target'], 'aarch64-apple-darwin')
+        # Independent pins for the existing selected compiler, not this host's
+        # toolchain. Linux overrides must remain confined to source_targets.
+        expected = {
+            'lib/libmoonbitrun.o': {'bytes': 188920, 'sha256':
+                'd9db2413e755c00ab374901211a03a9551222fe779022bc3648235747ed2bd96'},
+            'lib/libbacktrace.a': {'bytes': 281872, 'sha256':
+                'a0ed98ead4be023f2840063c0e1c016fe581895c936759e68fd6e0e23dfaf9b7'},
+        }
+        selected = PREPARE._select_target(manifest, 'aarch64-apple-darwin')
+        for path, pin in expected.items():
+            with self.subTest(path=path):
+                item = next(item for item in selected['inputs']
+                            if item['root'] == 'moonbit' and item['path'] == path)
+                self.assertEqual({key: item[key] for key in ('bytes', 'sha256')}, pin)
+                self.assertEqual(selected['outputs'][item['output']], pin)
+        for target in ('aarch64-unknown-linux-gnu', 'x86_64-unknown-linux-gnu'):
+            selected = PREPARE._select_target(manifest, target)
+            for path, pin in manifest['source_targets'][target]['binary_inputs'].items():
+                with self.subTest(target=target, path=path):
+                    item = next(item for item in selected['inputs']
+                                if item['root'] == 'moonbit' and item['path'] == path)
+                    self.assertEqual({key: item[key] for key in ('bytes', 'sha256')}, pin)
+                    self.assertEqual(selected['outputs'][item['output']], pin)
+                    self.assertNotEqual(pin, expected[path])
+
     def test_existing_linux_process_recipe_keeps_current_source_identities(self):
         root = CANDIDATE.parents[3]
         manifest = json.loads((CANDIDATE / 'linux-x64-process-source.json').read_bytes())

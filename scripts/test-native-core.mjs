@@ -194,6 +194,7 @@ if (full) {
     console.log(`Native Core scoped profile: ${selection.profiles.scoped.cases} required cases`);
     const scopedDeadline = Date.now() + 3600000;
     const scopedReviewSources = ['src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt',
+      'src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt',
       'src/platform_native/installed_arena_control/',
       'src/platform_native/row_source/'];
     // Local keeps ordinary copied Moon values on the runtime. The explicitly
