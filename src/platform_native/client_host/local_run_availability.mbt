@@ -255,6 +255,10 @@ fn NativeClientRunJournal::retain_run_availability_observation(
       }
       let body = match
         submitted_intent_body(
+          before_construction=submitted_encode_construction(
+            self.database,
+            Some(operations),
+          ),
           submission.reference,
           submission.intent,
           run_admission=submission.run_admission,

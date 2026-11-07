@@ -209,3 +209,20 @@ fn read_client_journal_evidence_usage(
     _ => Err(@sqlite.Collision)
   }
 }
+
+///|
+// The same entered Read pays every emission of its original submitted row,
+// including admission and saved-state CAS. Without an operation, keep the
+// legacy finite codec; a foreign Database cannot lend this reservation.
+fn submitted_encode_construction(
+  database : @sqlite.Database,
+  access : NativeClientJournalOperationAccess?,
+) -> ((Int, Int, Int) -> Result[Unit, @host.ClientJournalEncodingIssue])? {
+  access.bind(original => {
+    if physical_equal(database, original.reads.database) {
+      original.before_construction
+    } else {
+      Some((_, _, _) => Err(@host.ClientJournalEncodingIssue::Encoding))
+    }
+  })
+}
