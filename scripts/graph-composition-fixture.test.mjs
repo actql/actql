@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
 import {installNodeClientEffectRun} from '../adapters/host-node/client-effect-run.mjs';
 import {modelConfiguration} from './fixtures/composed-infer-effect-input.mjs';
 import {graphCompositionProgram, graphCompositionTemplates,
@@ -220,4 +222,67 @@ test('NULL refusal asserts a guaranteed nullable property without changing Graph
   assert.deepEqual(program.stages[1].steps.slice(1), graphCompositionTemplates.node.stages[1].steps);
   assert.deepEqual(program.stages[0].steps[0].values.schema.note, {type:'number',nullable:true});
   assert.equal(program.stages[0].steps[0].values.rows[0].note, null);
+});
+
+async function graphCleanupObservation(events, {offset = 0} = {}) {
+  const source = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  const marker = '      if (graphFamily) {\n        assert.equal(submission.installedSourceProfiles';
+  const start = source.indexOf(marker);
+  assert(start >= 0);
+  const end = source.indexOf('\n      }\n      await appendFile(join(root, \'composition-acceptance.jsonl\')', start);
+  assert(end > start);
+  const body = source.slice(start + '      if (graphFamily) {'.length, end);
+  // Run the actual packed consumer's Graph assertions with explicit DATA ports.
+  // No Host, Ledger, normal artifact, provider, state directory or Run is opened.
+  const helperStart = source.indexOf('function assertReleasedComputationCleanup(');
+  const helper = helperStart < 0 ? '' : source.slice(helperStart, source.indexOf('\n}\n', helperStart) + 2);
+  const observation = {}, root = 'fixture-root', reference = 'fixture-original';
+  const ports = {assert, join, root, observation, custodyBefore: offset,
+    submission: {installedSourceProfiles: 0},
+    normalResult: {retainedNamedResults: [{name:'classified', rows:2}, {name:'updates', rows:1}]},
+    graphResultDataPolicy: savedResultPolicy,
+    ref: {runDefinitionCid: reference}, rceEnvironment: {ACTQL_LOCAL_STATE_DIR: 'not-opened'},
+    async readFile(path, encoding) {
+      assert.equal(path, join(root, 'composition-custody.jsonl'));
+      assert.equal(encoding, 'utf8');
+      return events.map(event => JSON.stringify(event)).join('\n') + '\n';
+    },
+    readTwoSourceJournal(directory) {
+      assert.equal(directory, 'not-opened');
+      return [{run_definition_cid: reference,
+        run_admission_evidence_json: JSON.stringify({resultPolicyOriginal: savedResultPolicy})}];
+    }};
+  await new Function(...Object.keys(ports), helper + '\nreturn (async () => {' + body + '\n})();')(...Object.values(ports));
+  return observation;
+}
+
+const graphCleanupEvents = () => [
+  {name:'effect_computation_completed', resourceUsage: {heldBytes:'64',
+    reservedTransferBytes:'0', reservedRetentionBytes:'58260148', reservedExecutionBytes:'2048',
+    transferredBytes:'3', planningWork:'7'}},
+  {name:'effect_computation_cleanup_completed', resourceUsage: {heldBytes:'0',
+    reservedTransferBytes:'0', reservedRetentionBytes:'58260148', reservedExecutionBytes:'2048',
+    transferredBytes:'4', planningWork:'8'}},
+];
+
+test('packed Graph cleanup preserves the shared Request reservation after temporary holdings retire', async () => {
+  const events = graphCleanupEvents();
+  const result = await graphCleanupObservation(events);
+  assert.deepEqual(result.temporaryRetention.resourceUsage, events[1].resourceUsage,
+    'keep the complete original snapshot without a baseline subtraction or zeroing');
+  assert.deepEqual(result.namedResultRetention, [{name:'classified', rows:2}, {name:'updates', rows:1}]);
+  assert.deepEqual(result.resultPolicyOriginal, savedResultPolicy);
+});
+
+test('packed Graph cleanup rejects live holdings, missing current owner release and refunded work', async () => {
+  const held = graphCleanupEvents(); held[1].resourceUsage.heldBytes = '1';
+  await assert.rejects(graphCleanupObservation(held));
+  await assert.rejects(graphCleanupObservation(graphCleanupEvents().slice(0, 1)));
+  await assert.rejects(graphCleanupObservation([...graphCleanupEvents(), graphCleanupEvents()[0]], {offset:2}),
+    /original owner confirms cleanup/);
+  await assert.rejects(graphCleanupObservation(graphCleanupEvents().slice(1)));
+  for (const field of ['transferredBytes', 'planningWork']) {
+    const refunded = graphCleanupEvents(); refunded[1].resourceUsage[field] = '0';
+    await assert.rejects(graphCleanupObservation(refunded), /must not be refunded/);
+  }
 });
