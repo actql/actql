@@ -7,6 +7,7 @@ priv struct LocalProjectMockSourceDeclaration {
   _retained_scope_cid : String
   _retained_declaration : @row_host.RowDeclaration
   _retained_files : Array[LocalProjectMockFileBinding]
+  _retained_writes : Array[LocalProjectMockWriteDeclaration]
 }
 
 ///|
@@ -174,6 +175,14 @@ fn LocalProjectMockDeclarations::prepare_source_declarations(
         return Err(Source(issue))
       }
     }
+    let writes = match
+      local_project_mock_write_declarations(entry, declaration) {
+      Ok(value) => value
+      Err(issue) => {
+        self.model_failure = Some(Mapping(issue))
+        return Err(Mapping(issue))
+      }
+    }
     // Keep the same declaration before constructing the next sibling. These
     // are contracts, not installation members, physical Sources or read grants.
     self.sources.push({
@@ -182,6 +191,7 @@ fn LocalProjectMockDeclarations::prepare_source_declarations(
       _retained_scope_cid: scope,
       _retained_declaration: declaration,
       _retained_files: files,
+      _retained_writes: writes,
     })
   }
   Ok(())

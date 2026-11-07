@@ -9,6 +9,12 @@ priv struct LocalProjectMockDeclarations {
   models : Array[LocalProjectMockModelOriginal]
   sources : Array[LocalProjectMockSourceDeclaration]
   mut sources_started : Bool
+  mut writes_started : Bool
+  mut write_runtime : @local_host.NativeLocalPackagedRuntime?
+  mut write_capture : @local_host.NativeLocalJournalCapture?
+  mut write_principal : String?
+  mut _retained_write_manifest : @run_host.ClientNativeLocalRuntime?
+  mut write_installations : Array[LocalProjectMockWriteInstallation]?
   mut source_environment : (
     @checked.CheckEnvironment,
     @checked.CheckEnvironment,
@@ -220,6 +226,12 @@ fn local_project_read_mock_declarations(
     models: [],
     sources: [],
     sources_started: false,
+    writes_started: false,
+    write_runtime: None,
+    write_capture: None,
+    write_principal: None,
+    _retained_write_manifest: None,
+    write_installations: None,
     source_environment: None,
     publication: None,
     model_started: false,
@@ -273,6 +285,10 @@ priv enum LocalProjectMockModelIssue {
   Environment
   Publication(@source_publication.PublicationIssue)
   Source(@row_host.RowHostIssue)
+  Mapping(@row_host.RowMappingIssue)
+  Runtime(@local_host.NativeLocalPackagedRuntimeIssue)
+  WriteHost(@local_host.NativeLocalAdoptionIssue)
+  WriteInstallation(@run_host.ClientEffectUpdateTargetIssue)
   Task(@compiler_environment.ModelTaskIssue)
   Answers(@model.ModelMockAnswerIssue)
   Installation(@model.ModelMockInstallationIssue)
@@ -376,6 +392,11 @@ fn LocalProjectMockDeclarations::retire_originals(
     return Ok(true)
   }
   self.closing = true
+  self.write_installations = None
+  self._retained_write_manifest = None
+  self.write_runtime = None
+  self.write_capture = None
+  self.write_principal = None
   self.publication = None
   self.model_environment = None
   self.source_environment = None

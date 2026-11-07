@@ -75,9 +75,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   let settings = configuration.settings
   let environment_name = configuration.environment_name
   let environment_body = configuration.environment_body
-  let environment = local_command_project_environment(
-    configuration.checked_environment(),
-  )
+  let base_environment = configuration.checked_environment()
   let account = local_host_result(capture.configuration_in_original_read())
   if account.account_id() != settings.account_id {
     stop("LocalConfigurationChanged")
@@ -101,6 +99,10 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       "runtime.json",
     ),
   )
+  // Select the actual Runtime/Host originals before publishing Project write
+  // targets to the SAME Request. Static catalogue strings cannot supply them.
+  self.bind_project_mock_writes(runtime.physical, capture, settings.principal)
+  let environment = local_command_project_environment(base_environment)
   let producer : LocalCommandBusinessInput = {
     root: input_root,
     operation,
