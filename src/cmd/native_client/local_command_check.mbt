@@ -94,6 +94,57 @@ fn command_preparation_read_cleanup_kind(
 }
 
 ///|
+// Disclose only closed constructor labels from the already retained failure.
+// This does not inspect a path, retry acquisition, or replace cleanup custody.
+fn command_adoption_capture_cause(
+  issue : @local_host.NativeLocalAdoptionCaptureIssue,
+) -> String {
+  match issue {
+    AdoptionOriginal(Filesystem(cause)) => {
+      let tag = match cause {
+        UnsupportedTarget => "UnsupportedTarget"
+        InvalidName => "InvalidName"
+        InvalidLimit => "InvalidLimit"
+        RootOpen(_) => "RootOpen"
+        Lock(_) => "Lock"
+        WriterCreate(_) => "WriterCreate"
+        CapacityExceeded => "CapacityExceeded"
+        WriterClosed => "WriterClosed"
+        Write(_) => "Write"
+        Conflict => "Conflict"
+        GenerationMismatch => "GenerationMismatch"
+        InvalidReadSize => "InvalidReadSize"
+        IncompleteRead => "IncompleteRead"
+        ReaderClosed => "ReaderClosed"
+        Read(_) => "Read"
+        Seal(_) => "Seal"
+        Cleanup(_) => "Cleanup"
+      }
+      "AdoptionOriginal:Filesystem:" + tag
+    }
+    AdoptionOriginal(Crypto(cause)) => {
+      let tag = match cause {
+        UnsupportedTarget => "UnsupportedTarget"
+        InvalidInput => "InvalidInput"
+        LibraryLoad(_) => "LibraryLoad"
+        InvalidPublicKey(_) => "InvalidPublicKey"
+        InvalidPrivateKey(_) => "InvalidPrivateKey"
+        UnsupportedKey(_) => "UnsupportedKey"
+        Verification(_) => "Verification"
+        Signing(_) => "Signing"
+        CleanupPending => "CleanupPending"
+        CloseUnconfirmed(_) => "CloseUnconfirmed"
+      }
+      "AdoptionOriginal:Crypto:" + tag
+    }
+    AdoptionOriginal(cause) =>
+      "AdoptionOriginal:" +
+      command_preparation_cleanup_cause(CommandAdoption(cause))
+    other => command_preparation_cleanup_cause(CommandCapture(other))
+  }
+}
+
+///|
 fn[T] command_preparation_result(
   result : Result[T, LocalCommandPreparationIssue],
   stage? : String? = None,
@@ -117,6 +168,8 @@ fn[T] command_preparation_result(
           command_preparation_cleanup_kind(issue)
       }
       let disclosed = match issue {
+        CommandCapture(original) =>
+          message + ":" + command_adoption_capture_cause(original)
         CommandFilesystem(original) =>
           local_bounded_file_diagnostic_message(message, original)
         _ => message
