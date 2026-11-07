@@ -2346,6 +2346,8 @@ pub fn client_program_kintone_delete_response(@actql/actql/connectors/kintone/ca
 
 pub fn client_program_kintone_delete_response_request(@actql/actql/connectors/kintone/catalog.RecordDeleteAcknowledgement) -> @actql/actql/connectors/kintone/catalog.RecordDeleteRequest
 
+pub fn client_program_kintone_finalize_update_request(@actql/actql/connectors/kintone/host.RecordUpdateProposal, @actql/actql/connectors/kintone/host.RecordUpdatePreview, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
+
 pub fn client_program_kintone_form_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.FormFieldLimits
 
 pub fn client_program_kintone_form_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
@@ -2448,6 +2450,12 @@ pub fn client_program_kintone_prepare_delete_preview(@actql/actql/connectors/kin
 
 pub fn client_program_kintone_prepare_read(@actql/actql/connectors/kintone/host.RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@actql/actql/connectors/kintone/host.PreparedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_prepare_update_mapping(@actql/actql/connectors/kintone/host.RecordDeclaration, String, Array[@client_row_source_host.RowMappingSource], String, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordUpdateMapping, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_kintone_prepare_update_preview(@actql/actql/connectors/kintone/host.RecordUpdateProposal, Bytes, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordUpdatePreview, @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
+
+pub fn client_program_kintone_prepare_update_proposal(@actql/actql/connectors/kintone/host.RecordUpdateMapping, String, Bytes, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordUpdateProposal, @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
+
 pub fn client_program_kintone_project_form(Bytes, String, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[@actql/actql/connectors/kintone/catalog.FormFieldCatalog, @actql/actql/connectors/kintone/catalog.FormFieldIssue]
 
 pub fn client_program_kintone_project_record_page(Bytes, @actql/actql/connectors/kintone/catalog.FormFieldCatalog, Array[String], @actql/actql/connectors/kintone/catalog.RecordPageLimits) -> Result[@actql/actql/connectors/kintone/catalog.OriginalRecordPage, @actql/actql/connectors/kintone/catalog.RecordPageIssue]
@@ -2468,7 +2476,11 @@ pub fn client_program_kintone_record_declaration(@actql/actql/connectors/kintone
 
 pub fn client_program_kintone_restore_create_execution_proposal(@actql/actql/connectors/kintone/host.RecordCreateMapping, Bytes, String, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordCreateRequest, @actql/actql/connectors/kintone/host.RecordCreateExecutionIssue]
 
+pub fn client_program_kintone_restore_update_execution(@actql/actql/connectors/kintone/host.RecordUpdateMapping, String, Bytes, Bytes, String, Int, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[(@actql/actql/connectors/kintone/host.RecordUpdateProposal, @actql/actql/connectors/kintone/host.RecordUpdatePreview, @actql/actql/connectors/kintone/catalog.RecordUpdateRequest), @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
+
 pub fn client_program_kintone_retire_read(@actql/actql/connectors/kintone/host.RecordRead) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_update_add_construction_capacity(@execution_relation.ExecutionCapacity, @execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_kintone_update_app_id(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> String
 
@@ -2476,15 +2488,69 @@ pub fn client_program_kintone_update_body(@actql/actql/connectors/kintone/catalo
 
 pub fn client_program_kintone_update_count(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> Int
 
+pub fn client_program_kintone_update_effect_outcome(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/catalog.RecordUpdateAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordUpdateEffectOutcome, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_update_effect_outcome_matches_request(@actql/actql/connectors/kintone/catalog.RecordUpdateEffectOutcome, @actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> Bool
+
+pub fn client_program_kintone_update_effect_outcome_response_sha256(@actql/actql/connectors/kintone/catalog.RecordUpdateEffectOutcome) -> String
+
+pub fn client_program_kintone_update_effect_outcome_wire(@actql/actql/connectors/kintone/catalog.RecordUpdateEffectOutcome) -> String
+
+pub fn client_program_kintone_update_execution_matches(@actql/actql/connectors/kintone/host.RecordUpdateProposal, @actql/actql/connectors/kintone/host.RecordUpdatePreview, @actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> Bool
+
+pub fn client_program_kintone_update_finalization_construction_capacity(@actql/actql/connectors/kintone/host.RecordUpdateMapping, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_update_form_construction_capacity(@actql/actql/connectors/kintone/host.RecordUpdateMapping, Int, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_update_installation_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_update_mapping_body(@actql/actql/connectors/kintone/host.RecordUpdateMapping) -> Result[String, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_kintone_update_mapping_cid(@actql/actql/connectors/kintone/host.RecordUpdateMapping) -> Result[String, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_kintone_update_mapping_construction_capacity(@actql/actql/connectors/kintone/host.RecordDeclaration, Int, Int64, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_update_mapping_matches_declaration(@actql/actql/connectors/kintone/host.RecordUpdateMapping, @actql/actql/connectors/kintone/host.RecordDeclaration) -> Bool
+
+pub fn client_program_kintone_update_mapping_matches_request(@actql/actql/connectors/kintone/host.RecordUpdateMapping, @actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> Bool
+
+pub fn client_program_kintone_update_mapping_recheck_form(@actql/actql/connectors/kintone/host.RecordUpdateMapping, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
+
+pub fn client_program_kintone_update_mapping_ref(@actql/actql/connectors/kintone/host.RecordUpdateMapping) -> Result[String, @client_row_source_host.RowMappingIssue]
+
 pub fn client_program_kintone_update_observation(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_update_preview_before_wire(@actql/actql/connectors/kintone/host.RecordUpdatePreview) -> String
+
+pub fn client_program_kintone_update_preview_identity(@actql/actql/connectors/kintone/host.RecordUpdatePreview) -> String
+
+pub fn client_program_kintone_update_preview_revision(@actql/actql/connectors/kintone/host.RecordUpdatePreview) -> String
+
+pub fn client_program_kintone_update_preview_version_cid(@actql/actql/connectors/kintone/host.RecordUpdatePreview) -> String
+
+pub fn client_program_kintone_update_proposal_app(@actql/actql/connectors/kintone/host.RecordUpdateProposal) -> String
+
+pub fn client_program_kintone_update_proposal_construction_capacity(@actql/actql/connectors/kintone/host.RecordUpdateMapping, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_update_proposal_identity(@actql/actql/connectors/kintone/host.RecordUpdateProposal) -> String
+
+pub fn client_program_kintone_update_proposal_value_wire(@actql/actql/connectors/kintone/host.RecordUpdateProposal) -> String
+
+pub fn client_program_kintone_update_recipe_capacities(Array[@execution_relation.ExecutionCapacity], Array[Int], @execution_relation.ExecutionCapacity?, Array[Int], Int64, Int, Int, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_kintone_update_request(Array[(@actql/actql/connectors/kintone/catalog.OriginalRecordTarget, @actql/actql/connectors/kintone/catalog.RecordWriteValues)], @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
 pub fn client_program_kintone_update_response(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, Int, Bytes, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordUpdateAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
+pub fn client_program_kintone_update_response_construction_capacity(@actql/actql/connectors/kintone/host.RecordUpdateMapping, Int, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_kintone_update_response_records(@actql/actql/connectors/kintone/catalog.RecordUpdateAcknowledgement) -> Array[(String, String)]
 
 pub fn client_program_kintone_update_response_request(@actql/actql/connectors/kintone/catalog.RecordUpdateAcknowledgement) -> @actql/actql/connectors/kintone/catalog.RecordUpdateRequest
+
+pub fn client_program_kintone_update_target_construction_capacity(@actql/actql/connectors/kintone/host.RecordUpdateMapping, Int, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_update_target_read_body(@actql/actql/connectors/kintone/host.RecordUpdateProposal, Int, Int, Int, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
 
 pub fn client_program_kintone_value_limits(Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordValueLimits
 

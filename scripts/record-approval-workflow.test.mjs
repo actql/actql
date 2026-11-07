@@ -6,19 +6,21 @@ import {copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promise
 import {spawnSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {salesforceUpdateCase, hubspotUpdateCase} from './fixtures/record-approval/cases.mjs';
+import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase} from './fixtures/record-approval/cases.mjs';
 import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
 import {mockProjectFiles as salesforceMock} from './fixtures/salesforce-approval/mock-project.mjs';
 import {mockProjectFiles as hubspotMock} from './fixtures/hubspot-approval/mock-project.mjs';
 import {runSalesforceApprovalPhase} from './fixtures/salesforce-approval/workflow.mjs';
 import {runHubSpotApprovalPhase} from './fixtures/hubspot-approval/workflow.mjs';
+import {mockProjectFiles as kintoneMock} from './fixtures/kintone-approval/mock-project.mjs';
+import {runKintoneApprovalPhase} from './fixtures/kintone-approval/workflow.mjs';
 
 const cid = mark => 'sha256:' + mark.repeat(64);
 const selection = {recordId: 'record-1', previousName: 'before', nextName: 'after'};
 async function definition(connector) {
   const files = await Promise.all(['update.aql', 'read.aql'].map(name =>
     readFile(new URL(`./fixtures/${connector}-approval/${name}`, import.meta.url), 'utf8')));
-  return (connector === 'salesforce' ? salesforceUpdateCase : hubspotUpdateCase)(
+  return ({salesforce: salesforceUpdateCase, hubspot: hubspotUpdateCase, kintone: kintoneUpdateCase}[connector])(
     {update: files[0], read: files[1]}, selection);
 }
 function publicDouble(value) {
@@ -69,7 +71,7 @@ async function phase(which, value, f, changes = {}) {
   return runRecordUpdateApprovalPhase({phase: which, definition: value, ...f, ...changes});
 }
 
-for (const connector of ['salesforce', 'hubspot']) {
+for (const connector of ['salesforce', 'hubspot', 'kintone']) {
   test(`shared ${connector} fixture preserves original reference, explicit approval and Saved-first order`, async () => {
     const value = await definition(connector), f = publicDouble(value);
     await phase('capture', value, f);
@@ -131,6 +133,7 @@ test('shared fixture keeps original and cleanup failures separately even for und
 for (const [connector, builder, resource, idField, valueField] of [
   ['salesforce', salesforceMock, 'Account', 'Id', 'Name'],
   ['hubspot', hubspotMock, 'companies', 'id', 'name'],
+  ['kintone', kintoneMock, 'inquiries', '$id', 'Subject'],
 ]) test(`shared ${connector} mock supplies explicit unchanged Program aliases and required approval`, () => {
   const files = builder(selection), catalog = JSON.parse(files['mock/catalog.json']).connections[connector];
   assert.equal(catalog.writes[0].approval, 'required');
@@ -143,6 +146,7 @@ for (const [connector, builder, resource, idField, valueField] of [
 
 for (const [connector, runPhase] of [
   ['salesforce', runSalesforceApprovalPhase], ['hubspot', runHubSpotApprovalPhase],
+  ['kintone', runKintoneApprovalPhase],
 ]) {
   for (const [name, invalid] of [
     ['missing record', {...selection, recordId: undefined}],
@@ -189,7 +193,8 @@ for (const [connector, runPhase] of [
       for (const name of ['run.mjs', 'update.aql', 'read.aql']) {
         await copyFile(new URL(name, folder), join(root, name));
       }
-      const exportName = connector === 'salesforce' ? 'runSalesforceApprovalPhase' : 'runHubSpotApprovalPhase';
+      const exportName = {salesforce: 'runSalesforceApprovalPhase', hubspot: 'runHubSpotApprovalPhase',
+        kintone: 'runKintoneApprovalPhase'}[connector];
       await writeFile(join(root, 'workflow.mjs'),
         "import assert from 'node:assert/strict';" +
         `export async function ${exportName}({phase,client,approve}){` +
@@ -222,4 +227,16 @@ test('shared case construction preserves an undefined primary through failing cl
     assert.equal(error.cause, undefined);
     return true;
   });
+});
+
+test('kintone fixture retains a system record id above the exact Number range', async () => {
+  const selected = {...selection, recordId: '9007199254740993'};
+  const programs = Object.fromEntries(await Promise.all(['update', 'read'].map(async name =>
+    [name, await readFile(new URL(`./fixtures/kintone-approval/${name}.aql`, import.meta.url), 'utf8')])));
+  const value = kintoneUpdateCase(programs, selected);
+  assert.equal(value.effect.parameters.record_id, '9007199254740993');
+  assert.equal(value.effect.expectedRows[0].id, '9007199254740993');
+  assert.equal(value.review.identity, '9007199254740993');
+  const files = kintoneMock(selected);
+  assert.equal(JSON.parse(files['mock/data.json']).kintone.inquiries.rows[0].$id, '9007199254740993');
 });
