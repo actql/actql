@@ -30,6 +30,16 @@ test('historical typed-value binding independently matches the same Local materi
   const baseWire = readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8');
   const {evidence_bundle_cid: ignored, ...raw} = JSON.parse(baseWire); void ignored;
   const fixtureBody = compileFunction(capacity + '; return environmentBody;', ['environmentBody'])(structuredClone(raw));
+  // Authored current-policy preimage, independent of the selected function's
+  // output. Optional file listing uses the SAME 512MiB/256 nominal row ceiling.
+  const expectedCapacity = {max_graph_construction_edges: 1000,
+    max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
+    ...raw.host_policy_profile.capacity,
+    max_relation_output_rows: 536870912 / 256,
+    max_artifact_rows: 536870912 / 256,
+    max_file_listing_items: 536870912 / 256,
+    max_model_request_bytes_per_item: 65536};
+  assert.deepEqual(fixtureBody.host_policy_profile.capacity, expectedCapacity);
   // Explicit component ports for the SAME fixed Local policy, not funding or
   // an executed CheckEnvironment/Core claim. These are the existing service windows.
   const original = Object.freeze({});
@@ -45,10 +55,16 @@ test('historical typed-value binding independently matches the same Local materi
     : Array.isArray(value) ? '[' + value.map(wire).join(',') + ']'
       : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + wire(value[key])).join(',') + '}';
   const cid = value => 'sha256:' + createHash('sha256').update(wire(value)).digest('hex');
+  assert.equal(cid(fixtureBody), 'sha256:cd9f929c74c3b55f40e94b9edf46e248f6c30e4fa970683e762e768fd5cc7470');
+  const previousEnvironment = structuredClone(fixtureBody);
+  delete previousEnvironment.host_policy_profile.capacity.max_file_listing_items;
+  assert.notEqual(cid(previousEnvironment), cid(fixtureBody),
+    'an original Environment without the optional policy keeps its distinct binding');
   const ownerPrincipal = 'fixture-owner', account = {account_id: 'fixture-account'}, configurationCid = 'sha256:' + 'a'.repeat(64);
   const siteKey = 'actql-remote-host', realizationKey = 'source-free-values', authorityScopeCid = 'sha256:' + 'b'.repeat(64);
-  const authored = compileFunction('const ' + variable(fixture, 'binding') + '; return binding;',
-    ['environmentBody', 'cid', 'principalId', 'account', 'configurationCid', 'siteKey', 'realizationKey', 'authorityScopeCid'])(
+  const fixtureBinding = compileFunction('const ' + variable(fixture, 'binding') + '; return binding;',
+    ['environmentBody', 'cid', 'principalId', 'account', 'configurationCid', 'siteKey', 'realizationKey', 'authorityScopeCid']);
+  const authored = fixtureBinding(
     fixtureBody, cid, ownerPrincipal, account, configurationCid, siteKey, realizationKey, authorityScopeCid);
   const current = compileFunction('const ' + variable(host, 'binding') + '; return binding;',
     ['contentCid', 'ownerPrincipal', 'gate', 'sourceGate', 'effectTargetGate', 'effectTargets', 'sources',
@@ -57,6 +73,11 @@ test('historical typed-value binding independently matches the same Local materi
     siteKey, realizationKey, contentCid(actualBody), authorityScopeCid);
   assert.equal(authored.authorization_context_cid, current.authorizationContextCid);
   assert.equal(authored.environment_binding_cid, current.environmentBindingCid);
+  const previous = fixtureBinding(previousEnvironment, cid, ownerPrincipal, account,
+    configurationCid, siteKey, realizationKey, authorityScopeCid);
+  assert.equal(previous.authorization_context_cid, current.authorizationContextCid);
+  assert.notEqual(previous.environment_binding_cid, current.environmentBindingCid,
+    'the prior Environment binding cannot be relabeled as the current one');
   const changed = structuredClone(fixtureBody); changed.host_policy_profile.capacity.max_artifact_rows--;
   assert.notEqual(cid(changed), cid(actualBody), 'changed policy remains a distinct Environment preimage');
 });
