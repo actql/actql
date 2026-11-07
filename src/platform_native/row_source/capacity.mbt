@@ -6,8 +6,8 @@
 // * Original acquisition selector: H1/R4/S1. The managed-input arm retains
 //   acquisition/read/selected-capacity/provider; managed Query arms borrow
 //   acquisition/read/provider (R3), within the same R4 peak; ordinary arms borrow one.
-// * Capture holder: H1/R24/S7 (23 optional references plus borrowed limits;
-//   offset, three progression flags, phase, two listing clock observations). Its Some wrappers: H23/R23/S23.
+// * Capture holder: H1/R25/S7 (24 optional references plus borrowed limits;
+//   offset, three progression flags, phase, two listing clock observations). Its Some wrappers: H24/R24/S24.
 // * Selection snapshot: record + two path arrays + optional key path Some,
 //   H4/R(7 + path lengths)/S1. Strings/limits/declarations remain borrowed.
 // * First failure chain: carrier, owner Some, outer issue, inner issue,
@@ -27,6 +27,11 @@
 //   plus two tuple projections (source identity and capture progress), and
 //   the managed start's Some(original Ledger): H11/R13/S11. Common's own variable parser/execution frontiers are quoted by
 //   their existing inventories, not duplicated or replaced by this census.
+//
+// * Keyed document/page/retention entry, refusal and return products: H10/R14/S10.
+//   Its original RowKeyedAcquisition/read/provider/issuer arm uses the same
+//   four borrowed selector slots. Its separate raw-provider capacity is added
+//   before reservation; checked keyed-row response storage remains RowRun-owned.
 //
 // The reservation retains this complete peak until final close. No phase/GC
 // credit is claimed. Fixed VM stack frames belong to the installed baseline.
@@ -54,7 +59,7 @@ fn file_capture_metadata_capacity(
     )
     is Some(paths) &&
     @execution.checked_preparation_add_product(
-      4L + 24L + 23L + 7L + 10L + 3L + 3L + 1L + 4L + 2L + 2L + 1L + 6L + 13L,
+      4L + 25L + 24L + 7L + 10L + 3L + 3L + 1L + 4L + 2L + 2L + 1L + 6L + 13L,
       paths,
       1L,
     )
@@ -68,7 +73,7 @@ fn file_capture_metadata_capacity(
     @execution.preparation_representation_cost({
       record_headers: 1L +
       1L +
-      23L +
+      24L +
       4L +
       9L +
       3L +
@@ -84,11 +89,12 @@ fn file_capture_metadata_capacity(
       1L +
       1L +
       6L +
-      11L,
-      reference_slots: references,
+      11L +
+      10L,
+      reference_slots: references + 14L,
       scalar_words: 1L +
       7L +
-      23L +
+      24L +
       1L +
       8L +
       3L +
@@ -99,7 +105,8 @@ fn file_capture_metadata_capacity(
       2L +
       2L +
       6L +
-      11L,
+      11L +
+      10L,
       // Two Root and two Reader diagnostics, each decoded with an additional
       // builder/copy allowance. Each byte produces at most one UTF16 unit.
       owned_utf16_units: diagnostics,

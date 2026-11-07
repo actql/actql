@@ -57,6 +57,8 @@ fn original_composed_keyed_consumer(
   parallel? : Bool = false,
   whole? : Bool = false,
   restored? : Bool = false,
+  native_keyed? : Bool = false,
+  keyed_start_observer? : ((ClientInstalledKeyedSourceRead) -> Unit)? = None,
 ) -> Unit raise {
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
@@ -769,31 +771,77 @@ fn original_composed_keyed_consumer(
   let request_value = @publication_host.client_keyed_request_value(
     request, keyed,
   ).unwrap()
-  let acquisition = @row_source_host.prepare_keyed_row_acquisition(
-    @publication_host.client_keyed_acquisition_owner(keyed),
-    @publication_host.client_keyed_acquisition_facts(keyed),
-    request_value,
-    declaration,
-    original_keyed_child_limits(),
-    input_available=Some(() => {
-      @publication_host.client_composed_keyed_request_retained_model_parent(
-        request,
-        model.compiled,
-        model.definition,
-        model.graph,
-        ledger,
+  let (native_read, acquisition, child) = if native_keyed {
+    guard managed is Some((owner, _)) else {
+      fail("original managed keyed parent")
+    }
+    let read = begin_installed_managed_model_keyed_source_read(
+      owner,
+      keyed,
+      request,
+      declaration,
+      original_keyed_child_limits(),
+    ).unwrap()
+    let acquisition = installed_keyed_source_read_acquisition(read).unwrap()
+    assert_true(
+      installed_keyed_source_read_acquisition_matches(read, acquisition),
+    )
+    assert_false(
+      installed_keyed_source_read_acquisition_matches({ ..read, }, acquisition),
+    )
+    @row_source_host.check_row_keyed_acquisition_original(
+      acquisition, declaration,
+    ).unwrap()
+    let (foreign_declaration, _) = original_keyed_declaration_environment(
+      relation_versions=true,
+    )
+    assert_true(
+      @row_source_host.check_row_keyed_acquisition_original(
+        acquisition, foreign_declaration,
       )
-    }),
-  ).unwrap()
-  let child = @row_source_host.start_accounted_keyed_row_acquisition(
-    acquisition,
-    "same-keyed-child",
-    _ => true,
-    ledger,
-    8192L,
-    4096L,
-    _ => true,
-  ).unwrap()
+      is Err(@row_source_host.ForeignDeclaration),
+    )
+    if keyed_start_observer is Some(observe) {
+      observe(read)
+    }
+    let child = start_installed_keyed_source_read_rows(
+      read,
+      acquisition,
+      "same-native-keyed-child",
+      _ => true,
+      8192L,
+      4096L,
+      _ => true,
+    ).unwrap()
+    (Some(read), acquisition, child)
+  } else {
+    let acquisition = @row_source_host.prepare_keyed_row_acquisition(
+      @publication_host.client_keyed_acquisition_owner(keyed),
+      @publication_host.client_keyed_acquisition_facts(keyed),
+      request_value,
+      declaration,
+      original_keyed_child_limits(),
+      input_available=Some(() => {
+        @publication_host.client_composed_keyed_request_retained_model_parent(
+          request,
+          model.compiled,
+          model.definition,
+          model.graph,
+          ledger,
+        )
+      }),
+    ).unwrap()
+    let child = @row_source_host.start_accounted_keyed_row_acquisition(
+      acquisition,
+      "same-keyed-child",
+      _ => true,
+      ledger,
+      8192L,
+      4096L,
+      _ => true,
+    ).unwrap()
+    (None, acquisition, child)
+  }
   let response = @utf8.encode("[" + original_keyed_child_expected_row(0) + "]")
   @publication_host.observe_client_keyed_request_attempt(
     request,
@@ -804,6 +852,18 @@ fn original_composed_keyed_consumer(
     0L,
   ).unwrap()
   @row_source_host.begin_keyed_row_run(child, reference_issuer=Some(issuer)).unwrap()
+  if native_keyed {
+    let before = @resources.ledger_usage(ledger)
+    @row_source_host.begin_keyed_row_run_response_attempt(child, acquisition).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts + 1)
+    // The original latch never spends a second attempt on a repeated entrance.
+    @row_source_host.begin_keyed_row_run_response_attempt(child, acquisition).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts + 1)
+    assert_eq(
+      @resources.ledger_usage(ledger).transferred_bytes,
+      before.transferred_bytes,
+    )
+  }
   @publication_host.observe_client_keyed_response(
     request,
     response.length().to_int64(),
@@ -1337,6 +1397,16 @@ fn original_composed_keyed_consumer(
   }
   assert_true(cleanup_client_infer_input(input).unwrap())
   @row_source_host.close_accounted_row_run(child).unwrap()
+  if native_read is Some(read) {
+    assert_true(
+      @row_source_host.begin_keyed_row_run_response_attempt(child, acquisition)
+      is Err(_),
+    )
+    retire_installed_keyed_source_read(read).unwrap()
+    assert_false(
+      installed_keyed_source_read_acquisition_matches(read, acquisition),
+    )
+  }
   assert_true(
     @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
   )

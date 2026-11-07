@@ -243,6 +243,13 @@ priv struct ClientInstalledModelKeyedSource {
 }
 
 ///|
+priv enum InstalledKeyedSourceStart {
+  Unstarted
+  Constructing
+  Started
+}
+
+///|
 struct ClientInstalledKeyedSourceRead {
   mut original : ClientInstalledKeyedSourceRead?
   mut parent : ClientInstalledManagedRun?
@@ -251,7 +258,7 @@ struct ClientInstalledKeyedSourceRead {
   request : @publication_host.ClientKeyedRequest?
   mut acquisition : @row_source_host.RowKeyedAcquisition?
   mut run : @row_source_host.RowRun?
-  mut started : Bool
+  mut start : InstalledKeyedSourceStart
   mut retired : Bool
 }
 
@@ -335,7 +342,7 @@ pub fn begin_installed_managed_keyed_source_read(
     request: Some(request),
     acquisition: Some(acquisition),
     run: None,
-    started: false,
+    start: Unstarted,
     retired: false,
   }
   read.original = Some(read)
@@ -475,7 +482,7 @@ pub fn begin_installed_managed_model_keyed_source_read(
     request: Some(request),
     acquisition: Some(acquisition),
     run: None,
-    started: false,
+    start: Unstarted,
     retired: false,
   }
   read.original = Some(read)
@@ -571,18 +578,24 @@ pub fn start_installed_keyed_source_read_rows(
     physical_equal(original, acquisition) else {
     return Err(ForeignOriginal)
   }
-  if value.started {
+  if !(value.start is Unstarted) {
     return Err(AlreadyStarted)
   }
-  value.started = true
+  value.start = Constructing
   match
     @row_source_host.start_accounted_keyed_row_acquisition(
       acquisition, nonce, original_stop, ledger, transfer_bytes, execution_bytes,
       cleanup_confirmed,
     ) {
-    Err(issue) => Err(Acquisition(issue))
+    Err(issue) => {
+      value.start = Started
+      Err(Acquisition(issue))
+    }
     Ok(run) => {
+      // Retain the actual child before another callback or returning to the
+      // caller. Reentrant retirement cannot acknowledge an in-flight start.
       value.run = Some(run)
+      value.start = Started
       Ok(run)
     }
   }
@@ -597,6 +610,9 @@ pub fn retire_installed_keyed_source_read(
   }
   if value.retired {
     return Ok(())
+  }
+  if value.start is Constructing {
+    return Err(CleanupPending)
   }
   if value.run is Some(run) {
     match @row_source_host.close_accounted_row_run(run) {
@@ -705,4 +721,25 @@ fn prepare_retained_installed_keyed_content_ledger(
     return Err(ForeignOriginal)
   }
   Ok(ledger)
+}
+
+///|
+/// Retained original-only fence after the caller observed parent currentness.
+/// Equal declaration DATA cannot replace this selected keyed occurrence.
+/// No callback, Ledger getter, attempt or cleanup acknowledgement is supplied.
+pub fn installed_keyed_source_read_acquisition_matches(
+  value : ClientInstalledKeyedSourceRead,
+  acquisition : @row_source_host.RowKeyedAcquisition,
+) -> Bool {
+  value.original is Some(original) &&
+  physical_equal(original, value) &&
+  !value.retired &&
+  value.parent is Some(parent) &&
+  parent.original is Some(original_parent) &&
+  physical_equal(original_parent, parent) &&
+  parent.ledger is Some(_) &&
+  parent.preparation is Some(_) &&
+  parent.keyed_reads.any(read => physical_equal(read, value)) &&
+  value.acquisition is Some(selected) &&
+  physical_equal(selected, acquisition)
 }

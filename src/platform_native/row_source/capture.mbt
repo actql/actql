@@ -41,6 +41,12 @@ pub(all) enum NativeRelationFileIssue {
 priv enum NativeRelationFileAcquisition {
   FileQueryAcquisition(@rows.RowAcquisition)
   FileInputAcquisition(@rows.RowInputAcquisition)
+  ManagedFileKeyedAcquisition(
+    @rows.RowKeyedAcquisition,
+    @local.ClientInstalledKeyedSourceRead,
+    NativeRelationFilePreparedProvider,
+    @admitted.ReferenceIssuer
+  )
   ManagedFileQueryAcquisition(
     @rows.RowAcquisition,
     @local.ClientInstalledSourceRead,
@@ -71,6 +77,8 @@ priv enum FileCapturePhase {
   Reading
   Received
   Listing
+  ContentReady
+  KeyedPage
   Parsed
   Capturing
   Captured
@@ -106,6 +114,7 @@ struct NativeRelationFileCapture {
   mut document : @rows.RelationDocument?
   mut target : @rows.RelationTargetDocument?
   mut charge : @rows.RowPageCharge?
+  mut keyed_result : @rows.RowKeyedSourceCapture?
   mut result : @rows.RowSourceCapture?
   mut offset : Int
   mut listing_started_ms : Int64
@@ -163,6 +172,11 @@ fn NativeRelationFileCapture::fail(
   match self.failure {
     Some(failure) => failure
     None => {
+      // Successful original close already severed every physical child. A
+      // reentrant late error must not revive a retired native cleanup owner.
+      if !self.same() {
+        return { issue, owner: None, }
+      }
       let failure = { issue, owner: Some(self), }
       self.failure = Some(failure)
       self.phase = Failed
@@ -190,6 +204,23 @@ fn NativeRelationFileCapture::current(self : Self) -> Bool {
   guard arena.borrow_domain_retained_execution_ledger(execution) is Ok(original) &&
     physical_equal(original, ledger) else {
     return false
+  }
+  if self.acquisition
+    is Some(ManagedFileKeyedAcquisition(acquisition, read, _, _)) {
+    guard @local.check_installed_keyed_source_read_ledger(read, ledger) is Ok(_) else {
+      return false
+    }
+    return self.same() &&
+      self.failure is None &&
+      !(self.phase is Closing) &&
+      !(self.phase is Closed) &&
+      self.ledger is Some(retained) &&
+      physical_equal(retained, ledger) &&
+      self.acquisition
+      is Some(ManagedFileKeyedAcquisition(actual, original_read, _, _)) &&
+      physical_equal(actual, acquisition) &&
+      physical_equal(original_read, read) &&
+      @local.installed_keyed_source_read_acquisition_matches(read, acquisition)
   }
   if self.acquisition
     is Some(ManagedFileQueryAcquisition(acquisition, read, provider)) {
@@ -684,8 +715,30 @@ fn prepare_native_relation_file_capture_original(
     Some(value) => value
     None => return Err({ issue: Capacity, owner: None, })
   }
+  // Keyed RowRun funds its checked response; this same owner separately
+  // retains the actual raw physical file/decoder provider until final close.
+  let (metadata_retained, metadata_execution) = match original {
+    ManagedFileKeyedAcquisition(_, _, provider, _) => {
+      guard @execution.checked_preparation_add_product(
+          metadata_bytes,
+          @execution.execution_capacity_retained_bytes(provider.capacity),
+          1L,
+        )
+        is Some(retained) &&
+        @execution.checked_preparation_add_product(
+          metadata_bytes,
+          @execution.execution_capacity_execution_bytes(provider.capacity),
+          1L,
+        )
+        is Some(execution) else {
+        return Err({ issue: Capacity, owner: None, })
+      }
+      (retained, execution)
+    }
+    _ => (metadata_bytes, metadata_bytes)
+  }
   let metadata = match
-    @resources.reserve_capacity(ledger, metadata_bytes, metadata_bytes) {
+    @resources.reserve_capacity(ledger, metadata_retained, metadata_execution) {
     Ok(value) => value
     Err(issue) => return Err({ issue: Resource(issue), owner: None, })
   }
@@ -719,6 +772,7 @@ fn prepare_native_relation_file_capture_original(
     document: None,
     target: None,
     charge: None,
+    keyed_result: None,
     result: None,
     offset: 0,
     listing_started_ms: -1L,
@@ -732,6 +786,8 @@ fn prepare_native_relation_file_capture_original(
   owner.original = Some(owner)
   try {
     let public_resource = match original {
+      ManagedFileKeyedAcquisition(acquisition, _, _, _) =>
+        @rows.row_keyed_acquisition_resource(acquisition)
       ManagedFileListingAcquisition(_, _, _, listing)
       | ManagedFileQueryListingAcquisition(_, _, listing) => listing.resource
       _ => selected.resource
@@ -741,6 +797,7 @@ fn prepare_native_relation_file_capture_original(
       raise FileCaptureStop(ForeignOriginal)
     }
     let capacity = match original {
+      ManagedFileKeyedAcquisition(_, _, provider, _) => provider.capacity
       ManagedFileListingAcquisition(_, _, _, listing)
       | ManagedFileQueryListingAcquisition(_, _, listing) => listing.capacity
       _ =>
@@ -763,6 +820,18 @@ fn prepare_native_relation_file_capture_original(
         }
     }
     let run = match original {
+      ManagedFileKeyedAcquisition(acquisition, read, _, _) =>
+        file_require(
+          @local.start_installed_keyed_source_read_rows(
+            read,
+            acquisition,
+            nonce,
+            attempt => owner.verify(attempt),
+            limits.page.max_bytes.to_int64(),
+            limits.page.max_bytes.to_int64(),
+            _ => owner.transport_retired && owner.transient_retired,
+          ).map_err(issue => ManagedRead(issue)),
+        )
       FileQueryAcquisition(acquisition) =>
         file_require(
           @rows.start_accounted_provider_row_acquisition(
@@ -847,36 +916,51 @@ fn prepare_native_relation_file_capture_original(
         )
     }
     owner.run = Some(run)
-    file_require(
-      @rows.begin_row_run_with_page_limits(
-        run,
-        limits.page,
-        limits.page.max_rows,
-        reference_issuer=match original {
-          ManagedFileListingAcquisition(_, _, _, listing)
-          | ManagedFileQueryListingAcquisition(_, _, listing) =>
-            Some(listing.issuer)
-          _ => None
-        },
-      ).map_err(issue => Row(issue)),
-    )
-    let borrowed = match original {
-      FileQueryAcquisition(acquisition)
-      | ManagedFileQueryAcquisition(acquisition, _, _)
-      | ManagedFileQueryListingAcquisition(acquisition, _, _) =>
-        @rows.borrow_row_run_responses(run, acquisition)
-      FileInputAcquisition(acquisition)
-      | ManagedFileInputAcquisition(acquisition, _, _, _)
-      | ManagedFileListingAcquisition(acquisition, _, _, _) =>
-        @rows.borrow_row_input_run_responses(run, acquisition)
+    // An original Resource callback may have entered cleanup during start.
+    // Keep the returned child for that cleanup; never revive normal work.
+    if !owner.same() || !(owner.phase is Prepared) || owner.failure is Some(_) {
+      raise FileCaptureStop(Unavailable)
     }
-    let responses = file_require(borrowed.map_err(issue => Row(issue)))
-    owner.responses = Some(responses)
-    file_require(
-      @rows.bind_row_run_response_borrow_cleanup(responses, () => {
-        owner.transport_retired && owner.transient_retired
-      }).map_err(issue => Row(issue)),
-    )
+    if original is ManagedFileKeyedAcquisition(_, _, _, issuer) {
+      file_require(
+        @rows.begin_keyed_row_run(run, reference_issuer=Some(issuer)).map_err(issue => {
+          Row(issue)
+        }),
+      )
+    } else {
+      file_require(
+        @rows.begin_row_run_with_page_limits(
+          run,
+          limits.page,
+          limits.page.max_rows,
+          reference_issuer=match original {
+            ManagedFileListingAcquisition(_, _, _, listing)
+            | ManagedFileQueryListingAcquisition(_, _, listing) =>
+              Some(listing.issuer)
+            _ => None
+          },
+        ).map_err(issue => Row(issue)),
+      )
+      let borrowed = match original {
+        ManagedFileKeyedAcquisition(_, _, _, _) =>
+          raise FileCaptureStop(InvalidInput)
+        FileQueryAcquisition(acquisition)
+        | ManagedFileQueryAcquisition(acquisition, _, _)
+        | ManagedFileQueryListingAcquisition(acquisition, _, _) =>
+          @rows.borrow_row_run_responses(run, acquisition)
+        FileInputAcquisition(acquisition)
+        | ManagedFileInputAcquisition(acquisition, _, _, _)
+        | ManagedFileListingAcquisition(acquisition, _, _, _) =>
+          @rows.borrow_row_input_run_responses(run, acquisition)
+      }
+      let responses = file_require(borrowed.map_err(issue => Row(issue)))
+      owner.responses = Some(responses)
+      file_require(
+        @rows.bind_row_run_response_borrow_cleanup(responses, () => {
+          owner.transport_retired && owner.transient_retired
+        }).map_err(issue => Row(issue)),
+      )
+    }
     if listing {
       let clock = match original {
         ManagedFileListingAcquisition(_, _, _, provider)
@@ -908,11 +992,21 @@ fn NativeRelationFileCapture::open_file(
   self : Self,
 ) -> Unit raise FileCaptureStop {
   let selection = self.selection.unwrap()
-  file_require(
-    @rows.begin_row_run_response_attempt(self.responses.unwrap()).map_err(issue => {
-      Row(issue)
-    }),
-  )
+  match self.acquisition {
+    Some(ManagedFileKeyedAcquisition(acquisition, _, _, _)) =>
+      file_require(
+        @rows.begin_keyed_row_run_response_attempt(
+          self.run.unwrap(),
+          acquisition,
+        ).map_err(issue => Row(issue)),
+      )
+    _ =>
+      file_require(
+        @rows.begin_row_run_response_attempt(self.responses.unwrap()).map_err(issue => {
+          Row(issue)
+        }),
+      )
+  }
   let root = match
     @files.open_root_in_current_read_context_with_custody(
       selection.directory,
@@ -983,12 +1077,18 @@ fn NativeRelationFileCapture::read_chunk(
         ),
       )
   }
-  file_require(
-    @rows.check_row_run_response_borrow_current(self.responses.unwrap()).map_err(issue => {
-        Row(issue)
-      },
-    ),
-  )
+  match self.responses {
+    Some(original) =>
+      file_require(
+        @rows.check_row_run_response_borrow_current(original).map_err(issue => {
+          Row(issue)
+        }),
+      )
+    None =>
+      if !self.retained_keyed_original() {
+        raise FileCaptureStop(Unavailable)
+      }
+  }
   if chunk.bytes.length() > buffer.length() - self.offset ||
     (chunk.bytes.is_empty() && !chunk.eof) {
     raise FileCaptureStop(FileLimit)
@@ -1026,12 +1126,18 @@ fn NativeRelationFileCapture::admit_response(
 ) -> Unit raise FileCaptureStop {
   let run = self.run.unwrap()
   let bytes = self.bytes.unwrap()
-  file_require(
-    @rows.check_row_run_response_borrow_current(self.responses.unwrap()).map_err(issue => {
-        Row(issue)
-      },
-    ),
-  )
+  match self.responses {
+    Some(original) =>
+      file_require(
+        @rows.check_row_run_response_borrow_current(original).map_err(issue => {
+          Row(issue)
+        }),
+      )
+    None =>
+      if !self.retained_keyed_original() {
+        raise FileCaptureStop(Unavailable)
+      }
+  }
   // Every Reader chunk extended this same original ticket. Its complete byte
   // count must match the completed document; admission never charges it again.
   guard self.charge is Some(_) else { raise FileCaptureStop(Unavailable) }
@@ -1042,6 +1148,12 @@ fn NativeRelationFileCapture::admit_response(
     ),
   )
   self.document = Some(document)
+  if self.acquisition is Some(ManagedFileKeyedAcquisition(_, _, _, _)) {
+    // The SAME Source resolves its nominal Resource, projects exact bytes and
+    // confirms original Store custody before returning its typed Content page.
+    self.phase = ContentReady
+    return
+  }
   match self.acquisition {
     Some(ManagedFileListingAcquisition(_, _, _, listing))
     | Some(ManagedFileQueryListingAcquisition(_, _, listing)) => {
@@ -1119,7 +1231,8 @@ fn NativeRelationFileCapture::admit_response(
         self.limits.max_work,
       )
     ManagedFileListingAcquisition(_, _, _, _)
-    | ManagedFileQueryListingAcquisition(_, _, _) =>
+    | ManagedFileQueryListingAcquisition(_, _, _)
+    | ManagedFileKeyedAcquisition(_, _, _, _) =>
       raise FileCaptureStop(InvalidInput)
   }
   file_require(accepted.map_err(issue => Row(issue))) |> ignore
@@ -1238,6 +1351,30 @@ fn NativeRelationFileCapture::advance_original(
       Prepared => self.open_file()
       Reading => self.read_chunk()
       Received => self.admit_response(elapsed_ms)
+      ContentReady => ()
+      KeyedPage =>
+        match
+          file_require(
+            @rows.advance_row_run_keyed_page(self.run.unwrap(), quantum).map_err(issue => {
+                Row(issue)
+              },
+            ),
+          ) {
+          @rows.KeyedPageContinue(..) => ()
+          @rows.KeyedPageComplete(..) => {
+            file_require(
+              @rows.finish_row_run(self.run.unwrap()).map_err(issue => {
+                Row(issue)
+              }),
+            )
+            if !@rows.discard_relation_document_original(self.document.unwrap()) {
+              raise FileCaptureStop(ForeignOriginal)
+            }
+            self.document = None
+            self.bytes = None
+            self.phase = Parsed
+          }
+        }
       Listing => {
         let poll = file_require(
           @rows.advance_row_run_listing_page(
@@ -1265,10 +1402,23 @@ fn NativeRelationFileCapture::advance_original(
       }
       Parsed => {
         self.transient_retired = true
-        file_require(
-          @rows.begin_row_capture(self.run.unwrap()).map_err(issue => Row(issue)),
-        )
-        self.phase = Capturing
+        if self.acquisition is Some(ManagedFileKeyedAcquisition(_, _, _, _)) {
+          self.keyed_result = Some(
+            file_require(
+              @rows.retain_keyed_row_run(self.run.unwrap()).map_err(issue => {
+                Row(issue)
+              }),
+            ),
+          )
+          self.phase = Captured
+        } else {
+          file_require(
+            @rows.begin_row_capture(self.run.unwrap()).map_err(issue => {
+              Row(issue)
+            }),
+          )
+          self.phase = Capturing
+        }
       }
       Capturing => {
         let (done, _) = file_require(
@@ -1353,6 +1503,12 @@ pub fn NativeRelationFileCapture::close(
     self.buffer = None
     self.transient_retired = true
     match self.acquisition {
+      Some(ManagedFileKeyedAcquisition(_, read, _, _)) =>
+        file_require(
+          @local.retire_installed_keyed_source_read(read).map_err(issue => {
+            ManagedRead(issue)
+          }),
+        )
       Some(ManagedFileInputAcquisition(_, read, _, _))
       | Some(ManagedFileListingAcquisition(_, read, _, _))
       | Some(ManagedFileQueryAcquisition(_, read, _))
@@ -1370,6 +1526,7 @@ pub fn NativeRelationFileCapture::close(
         }
     }
     self.run = None
+    self.keyed_result = None
     self.result = None
     self.charge = None
     self.responses = None
