@@ -98,6 +98,8 @@ struct NativeRelationFileCapture {
   mut charge : @rows.RowPageCharge?
   mut result : @rows.RowSourceCapture?
   mut offset : Int
+  mut listing_started_ms : Int64
+  mut listing_last_ms : Int64
   mut transport_complete : Bool
   mut transport_retired : Bool
   mut transient_retired : Bool
@@ -458,8 +460,8 @@ pub fn prepare_native_managed_relation_file_input_capture(
 ///|
 /// Consume the SAME checked listing read and Plan provider. The Source's
 /// issuer is retained by its installation owner, not manufactured from rows.
-/// Use advance_listing with the actual elapsed time from the original Host
-/// monotonic clock; the ordinary untimed advance cannot execute this branch.
+/// A bound Host clock drives ordinary advance. Without one, the explicit
+/// advance_listing protocol requires elapsed DATA from the original Host clock.
 pub fn prepare_native_managed_relation_file_listing_capture(
   arena : @arena.InstalledArenaHost,
   execution : @arena.InstalledArenaRetainedExecution,
@@ -566,6 +568,8 @@ fn prepare_native_relation_file_capture_original(
     charge: None,
     result: None,
     offset: 0,
+    listing_started_ms: -1L,
+    listing_last_ms: -1L,
     transport_complete: false,
     transport_retired: false,
     transient_retired: false,
@@ -692,6 +696,15 @@ fn prepare_native_relation_file_capture_original(
       }).map_err(issue => Row(issue)),
     )
     if listing {
+      if original is ManagedFileListingAcquisition(_, _, _, provider) &&
+        provider.now_ms is Some(now_ms) {
+        let now = now_ms()
+        if now < 0L {
+          raise FileCaptureStop(Unavailable)
+        }
+        owner.listing_started_ms = now
+        owner.listing_last_ms = now
+      }
       file_require(
         @rows.begin_row_run_listing_request(run, None, 0L).map_err(issue => {
           Row(issue)
@@ -943,6 +956,32 @@ pub fn NativeRelationFileCapture::advance(
   self : Self,
   quantum : Int,
 ) -> Result[Bool, NativeRelationFileFailure] {
+  if !self.same() {
+    return Err({ issue: ForeignOriginal, owner: None, })
+  }
+  if self.failure is Some(failure) {
+    return Err(failure)
+  }
+  if self.acquisition is Some(ManagedFileListingAcquisition(_, _, _, provider)) &&
+    provider.now_ms is Some(now_ms) {
+    let now = now_ms()
+    // A clock is a trusted Host port, but its callback may still reenter.
+    // Never mutate an original that was closed/failed during that boundary.
+    if !self.same() {
+      return Err({ issue: ForeignOriginal, owner: None, })
+    }
+    if self.failure is Some(failure) {
+      return Err(failure)
+    }
+    if now < 0L || self.listing_started_ms < 0L || now < self.listing_last_ms {
+      return Err(self.fail(Unavailable))
+    }
+    if self.phase is Closing || self.phase is Closed {
+      return Err(self.fail(Unavailable))
+    }
+    self.listing_last_ms = now
+    return self.advance_original(quantum, Some(now - self.listing_started_ms))
+  }
   self.advance_original(quantum, None)
 }
 
@@ -954,6 +993,17 @@ pub fn NativeRelationFileCapture::advance_listing(
   quantum : Int,
   elapsed_ms : Int64,
 ) -> Result[Bool, NativeRelationFileFailure] {
+  if !self.same() {
+    return Err({ issue: ForeignOriginal, owner: None, })
+  }
+  if self.failure is Some(failure) {
+    return Err(failure)
+  }
+  // A bound original clock cannot be replaced by caller-supplied elapsed DATA.
+  if self.acquisition is Some(ManagedFileListingAcquisition(_, _, _, provider)) &&
+    provider.now_ms is Some(_) {
+    return Err(self.fail(InvalidInput))
+  }
   self.advance_original(quantum, Some(elapsed_ms))
 }
 

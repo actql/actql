@@ -42,6 +42,8 @@ import {
   "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/decode_core" @decode,
   "actql/actql/parameter_binding" @parameters,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @admitted,
   "moonbitlang/core/argparse",
   "moonbitlang/core/json",
   "moonbitlang/core/string",

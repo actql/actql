@@ -101,7 +101,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   )
   // Select the actual Runtime/Host originals before publishing Project write
   // targets to the SAME Request. Static catalogue strings cannot supply them.
-  self.bind_project_mock_writes(runtime.physical, capture, settings.principal)
+  self.bind_project_mock_runtime(runtime.physical, capture, settings.principal)
   let environment = local_command_project_environment(base_environment)
   let producer : LocalCommandBusinessInput = {
     root: input_root,

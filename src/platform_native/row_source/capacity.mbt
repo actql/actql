@@ -5,8 +5,8 @@
 //
 // * Original acquisition selector: H1/R4/S1. The managed-input arm retains
 //   acquisition/read/selected-capacity/provider; ordinary arms borrow one.
-// * Capture holder: H1/R24/S5 (23 optional references plus borrowed limits;
-//   offset, three progression flags, phase). Its Some wrappers: H23/R23/S23.
+// * Capture holder: H1/R24/S7 (23 optional references plus borrowed limits;
+//   offset, three progression flags, phase, two listing clock observations). Its Some wrappers: H23/R23/S23.
 // * Selection snapshot: record + two path arrays + optional key path Some,
 //   H4/R(7 + path lengths)/S1. Strings/limits/declarations remain borrowed.
 // * First failure chain: carrier, owner Some, outer issue, inner issue,
@@ -86,7 +86,7 @@ fn file_capture_metadata_capacity(
       11L,
       reference_slots: references,
       scalar_words: 1L +
-      5L +
+      7L +
       23L +
       1L +
       8L +

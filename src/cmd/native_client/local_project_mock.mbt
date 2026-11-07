@@ -15,6 +15,7 @@ priv struct LocalProjectMockDeclarations {
   mut write_principal : String?
   mut _retained_write_manifest : @run_host.ClientNativeLocalRuntime?
   mut write_installations : Array[LocalProjectMockWriteInstallation]?
+  mut file_sources : Array[LocalProjectMockFileSource]?
   mut source_environment : (
     @checked.CheckEnvironment,
     @checked.CheckEnvironment,
@@ -232,6 +233,7 @@ fn local_project_read_mock_declarations(
     write_principal: None,
     _retained_write_manifest: None,
     write_installations: None,
+    file_sources: None,
     source_environment: None,
     publication: None,
     model_started: false,
@@ -392,6 +394,12 @@ fn LocalProjectMockDeclarations::retire_originals(
     return Ok(true)
   }
   self.closing = true
+  if self.file_sources is Some(sources) {
+    for source in sources {
+      source.retire()
+    }
+    self.file_sources = None
+  }
   self.write_installations = None
   self._retained_write_manifest = None
   self.write_runtime = None

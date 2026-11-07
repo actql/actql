@@ -80,6 +80,7 @@ fn native_project_mock_model_backed_read(
   file_bindings? : Bool = false,
   file_facts? : Bool = false,
   write_mapping? : Bool = false,
+  file_references? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -134,7 +135,9 @@ fn native_project_mock_model_backed_read(
       fail("actual metadata Read pending")
   }
   host.enter_domain_original_read(read).unwrap()
-  if write_mapping {
+  if file_references {
+    native_project_mock_file_references_in_original_read()
+  } else if write_mapping {
     native_project_mock_write_mapping_in_original_read()
   } else if file_facts {
     native_project_mock_file_facts_in_original_read()
@@ -683,4 +686,126 @@ fn native_project_mock_write_mapping_in_original_read() -> Unit raise {
 ///|
 test "Native Project Mock original UPDATE Mapping and selected metadata preserve full README lowering" {
   native_project_mock_model_backed_read(false, write_mapping=true)
+}
+
+///|
+fn native_project_mock_file_references_in_original_read() -> Unit raise {
+  let project = native_project_mock_model_fixture("deal-review-missing")
+  defer project.retire()
+  project.prepare_source_declarations().unwrap()
+  let declaration = project.sources[1]
+  let binding = declaration._retained_files[0]
+  // Explicit immutable authority metadata for this component only. The
+  // production caller obtains it from the original adopted Journal Read.
+  let source = local_project_mock_file_source(
+    declaration,
+    "sha256:" + "8".repeat(64),
+  ).unwrap()
+  project.file_sources = Some([source])
+  assert_eq(source.references.known.unwrap().length(), 0)
+  let (provider, selected_binding) = source._retained_listings[0]
+  assert_true(physical_equal(selected_binding, binding))
+  assert_true(
+    @execution.execution_capacity_retained_bytes(provider.capacity()) > 0L,
+  )
+  let raw = @env.get_env_var("ACTQL_TEST_NATIVE_MOCK_FILE_DATA").unwrap()
+  let document = @row_host.admit_relation_document(
+    @utf8.encode(raw),
+    binding._retained_limits.page,
+    binding._retained_limits.max_work,
+  ).unwrap()
+  let fields : @row_file.NativeRelationFileListingFields = {
+    name: binding._retained_name,
+    version: binding._retained_version,
+    media_type: binding._retained_media_type,
+    path: binding._retained_path,
+  }
+  let calls = Ref(0)
+  let page = @row_file.project_native_relation_file_listing_page(
+    binding._retained_provider,
+    document,
+    fields,
+    identity => {
+      calls.val += 1
+      source.references.observe_identity(
+        source._retained_issuer,
+        source._retained_contract,
+        binding,
+        identity,
+      )
+    },
+  ).unwrap()
+  assert_eq(calls.val, 2)
+  assert_eq(source.references.known.unwrap().length(), 2)
+  let first = source.references.known.unwrap()[0].value.unwrap()
+  guard first.value is @admitted.Reference(reference) else {
+    fail("original file reference")
+  }
+  assert_eq(
+    @admitted.reference_identity_cid(reference),
+    @env.get_env_var("ACTQL_TEST_NATIVE_MOCK_FIRST_RESOURCE_CID").unwrap(),
+  )
+  assert_eq(
+    (source._retained_resolve_identity)(binding, reference),
+    Some("file-acme-notes"),
+  )
+  assert_true(@admitted.reference_available(reference))
+  let repeated = source.references
+    .observe_identity(
+      source._retained_issuer,
+      source._retained_contract,
+      binding,
+      "file-acme-notes",
+    )
+    .unwrap()
+  assert_true(physical_equal(first, repeated))
+  assert_eq(source.references.known.unwrap().length(), 2)
+  assert_true(@utf8.decode(page).contains(@admitted.reference_wire(reference)))
+  // Equal wire and an independent issuer are not this Source's occurrence.
+  let foreign = @admitted.issue_reference(
+    @admitted.bind_reference_issuer((_, _) => true, _ => true),
+    first.contract,
+    @admitted.reference_wire(reference),
+    { max_bytes: 4096, max_nodes: 64, max_depth: 4, max_text_units: 4096, },
+  ).unwrap()
+  guard foreign.value is @admitted.Reference(foreign_ref) else {
+    fail("foreign fixture reference")
+  }
+  assert_eq((source._retained_resolve_identity)(binding, foreign_ref), None)
+  let copied = { ..binding, }
+  assert_eq((source._retained_resolve_identity)(copied, reference), None)
+  // This Source may not mint an unknown reference through its raw issuer.
+  let unknown = @admitted.reference_wire(reference).replace(
+    old=@admitted.reference_identity_cid(reference),
+    new="sha256:" + "9".repeat(64),
+  )
+  assert_true(
+    @admitted.issue_reference(
+      source._retained_issuer,
+      first.contract,
+      unknown,
+      { max_bytes: 4096, max_nodes: 64, max_depth: 4, max_text_units: 4096, },
+    )
+    is Err(IssuerRejected),
+  )
+  assert_true(@row_host.discard_relation_document_original(document))
+  project.retire_originals().unwrap() |> ignore
+  assert_true(project.file_sources is None)
+  assert_true(source.references.known is None)
+  assert_true(!@admitted.reference_available(reference))
+  assert_eq((source._retained_resolve_identity)(binding, reference), None)
+  assert_true(
+    source.references.observe_identity(
+      source._retained_issuer,
+      source._retained_contract,
+      binding,
+      "file-acme-notes",
+    )
+    is Err(ForeignOriginal),
+  )
+}
+
+///|
+test "Native Project Mock original file listing issuer resolves only its observed identities and retires escaped refs" {
+  native_project_mock_model_backed_read(false, file_references=true)
 }
