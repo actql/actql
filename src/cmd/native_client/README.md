@@ -70,6 +70,16 @@ still requires its physical project/catalog/Source/Model bindings, original
 Effect authority supplier, and same-Run approval/continuation to be connected.
 The source-free and Remote installed checks do not establish this workflow.
 
+Native Project declaration preparation uses the original connection's connector,
+complete catalogue wire and resolved payload locator for the declared-file scope
+identity. File listing and correlated Content capability facts bind the original
+public schema CIDs and the selected physical reader bounds. Common restores the
+completed declaration; public listing/content view holders are then rebound to
+those final originals while retaining the same physical provider and limits.
+The authored correlation cardinality and exact-stored-byte representation remain
+unchanged. These static identities are distinct from adopted Account authority,
+reference issuance, a physical read, Content custody and runtime availability.
+
 ## Static Local explanation
 
 The source-level `explain` command accepts the same `--program-file`, explicit

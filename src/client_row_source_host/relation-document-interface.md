@@ -100,7 +100,12 @@ source mirror, not another schema, parser, compiler or authority issuer.
   self Option references. Clearing them permits ordinary reference-counted
   reclamation only after remaining aliases disappear; it does not prove it.
 - Extension: this pair covers separately constructed raw and target documents.
-  It does not retire RelationTargetRow marks or the hidden backing produced by
+  The separate `discard_relation_target_row_original` severs one observation's
+  self mark after its consumer returns, including after parent invalidation.
+  It refuses copies and repeated discard, without retiring a sibling or changing
+  already returned immutable DATA. It acknowledges neither read nor physical
+  cleanup. Hosts still own those lifetimes and every escaped alias.
+  These entries do not retire the hidden backing produced by
   `admit_relation_target_document`, including that convenience entry's failed
   projection path. Those existing caller boundaries remain separate; this is
   not complete retirement of the relation-document family or Effect handles.

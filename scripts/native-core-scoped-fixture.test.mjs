@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {nativeCoreOrdinaryProcessFixture, nativeCoreScopedFixture, nativeRelationFileCaptureFixture, nativeCoreModelFrameFixture} from './native-core-scoped-fixture.mjs';
+import {nativeRelationCaptureTestFiles, nativeScopedTestFiles, nativeCoreScopedAllocationProfile} from './native-core-test-selection.mjs';
 
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-scoped-case-fixture-')));
@@ -95,11 +96,19 @@ test('case fixture refuses to adopt or reset initialized backing and refuses an 
 });
 
 test('relation capture has independent exact real-file inputs and never resets an existing namespace', t => {
+  assert.deepEqual(nativeRelationCaptureTestFiles, [
+    'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt',
+    'src/platform_native/row_source/listing_capture_physical_scoped_wbtest.mbt',
+  ]);
+  for (const source of nativeRelationCaptureTestFiles) {
+    assert(nativeScopedTestFiles.includes(source));
+    assert.equal(nativeCoreScopedAllocationProfile(source), 'scoped-review-values');
+  }
   const namespace = fixture(t), env = nativeRelationFileCaptureFixture(namespace);
   const root = join(namespace, 'installed-process');
   assert.deepEqual(env, {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root});
   assert.equal(statSync(root).mode & 0o777, 0o700);
-  const sizes = {'row-source-input':62, 'row-source-large-input':70062, 'row-source-malformed':10,
+  const sizes = {'row-source-input':62, 'row-source-large-input':70062, 'row-source-files':242, 'row-source-malformed':10,
     'row-source-oversized':8193, 'row-source-backing':384*1024**2};
   assert.deepEqual(readdirSync(root).sort(), Object.keys(sizes).sort());
   for (const [name, size] of Object.entries(sizes)) {
@@ -114,6 +123,10 @@ test('relation capture has independent exact real-file inputs and never resets a
   assert(large.subarray(62).every(byte => byte === 0x20));
   assert.deepEqual(JSON.parse(large.toString('utf8')),
     {items:[{id:'first',value:1},{id:'second',value:2}]});
+  assert.deepEqual(JSON.parse(readFileSync(join(root,'row-source-files'),'utf8')), {items:[
+    {id:'first',name:'Acme🌱',version:'label',media_type:'text/plain',body:'first\nnotes',path:null},
+    {id:'second',name:'Globex',version:'label',media_type:'text/plain',body:'second notes',path:'notes/globex'},
+  ]});
   assert.equal(readFileSync(join(root,'row-source-malformed'),'utf8'), '{"items":[');
   const backing = join(root,'row-source-backing');
   const fd = openSync(backing,2);

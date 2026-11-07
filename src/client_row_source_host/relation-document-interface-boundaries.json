@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_document_target.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "57bfc1e0dca953ec20f0887ddc46045817f0676069903dfdd33b83030a5198d1",
+      "sha256": "9da67e818a8af7e1db841798dfb4d2d52fad1dff7fad8724704b0d512c71843a",
       "role": "common-semantics",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -36,6 +36,10 @@
         {
           "name": "discard_relation_target_document_original",
           "declaration": "discard_relation_target_document_original ( document : RelationTargetDocument , ) - > Bool"
+        },
+        {
+          "name": "discard_relation_target_row_original",
+          "declaration": "discard_relation_target_row_original ( row : RelationTargetRow ) - > Bool"
         },
         {
           "name": "emit_relation_document_value",
@@ -215,7 +219,8 @@
         {
           "operations": [
             "discard_relation_document_original",
-            "discard_relation_target_document_original"
+            "discard_relation_target_document_original",
+            "discard_relation_target_row_original"
           ],
           "exports": [],
           "attributes": {

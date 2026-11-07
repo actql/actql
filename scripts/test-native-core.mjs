@@ -14,7 +14,7 @@ import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreTestSelection, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
-  nativeRelationWorkTestFile, nativeCorePartitionProfiles} from './native-core-test-selection.mjs';
+  nativeRelationWorkTestFile, nativeRelationCaptureTestFiles, nativeCorePartitionProfiles} from './native-core-test-selection.mjs';
 import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
 import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
@@ -241,7 +241,7 @@ if (full) {
         mkdirSync(caseNamespace, {mode: 0o700});
         const physical = test.source === nativeRelationWorkTestFile
           ? await relationFixture(caseNamespace, relationRuntime)
-          : test.source === 'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt'
+          : nativeRelationCaptureTestFiles.includes(test.source)
           ? nativeRelationFileCaptureFixture(caseNamespace)
           : test.source === 'src/platform_native/installed_arena_control/model_read_frame_physical_scoped_wbtest.mbt'
           ? nativeCoreModelFrameFixture(caseNamespace)

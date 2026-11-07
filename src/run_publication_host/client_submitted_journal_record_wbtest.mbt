@@ -359,3 +359,76 @@ test "observed submitted row keeps nonintent string profile unchanged" {
     decode_client_submitted_journal_row_profile(body, true) is Err(CustodyLost),
   )
 }
+
+///|
+test "observed submitted row quotes one incremental emission from actual progress" {
+  let original = decode_client_submitted_journal_row(
+    @utf8.encode(saved_submission_preparing),
+  ).unwrap()
+  let reference = client_submission_reference_record_wire(original.reference)
+  let wire = "{\"input\":{\"text\":\"" +
+    "x".repeat(300000) +
+    "\"},\"kind\":\"aql\",\"parameters\":null}"
+  let intent = prepare_client_submitted_intent(wire, 400000, 64, 8).unwrap()
+  let mut calls = 0
+  let mut maximum = 0
+  let mut valid_quotes = true
+  let body = client_submitted_intent_journal_row_body(
+    reference,
+    intent,
+    before_construction=Some((bytes, nodes, depth) => {
+      valid_quotes = valid_quotes &&
+        bytes >= maximum &&
+        nodes == 16 &&
+        depth == 2
+      maximum = bytes
+      calls += 1
+      Ok(())
+    }),
+  ).unwrap()
+  assert_true(valid_quotes)
+  assert_true(calls > 1)
+  assert_true(maximum >= body.length())
+  // The actual ASCII emission plus one finite next batch, not six times the
+  // entire original intent. No measuring/second serialization precedes it.
+  assert_true(maximum < body.length() * 2)
+  let decoded = decode_client_submitted_journal_row_profile(body, true).unwrap()
+  assert_eq(client_submitted_intent_wire(decoded.intent), wire)
+  let legacy = client_submitted_intent_journal_row_body(
+    reference,
+    original.intent,
+  ).unwrap()
+  let observed = client_submitted_intent_journal_row_body(
+    reference,
+    original.intent,
+    before_construction=Some((_, _, _) => Ok(())),
+  ).unwrap()
+  assert_eq(legacy, @utf8.encode(saved_submission_preparing))
+  assert_eq(observed, legacy)
+}
+
+///|
+test "observed submitted row stops at refused next batch without a completed body" {
+  let original = decode_client_submitted_journal_row(
+    @utf8.encode(saved_submission_preparing),
+  ).unwrap()
+  let wire = "{\"input\":{\"text\":\"" +
+    "x".repeat(300000) +
+    "\"},\"kind\":\"aql\",\"parameters\":null}"
+  let intent = prepare_client_submitted_intent(wire, 400000, 64, 8).unwrap()
+  let mut calls = 0
+  let result = client_submitted_intent_journal_row_body(
+    client_submission_reference_record_wire(original.reference),
+    intent,
+    before_construction=Some((_, _, _) => {
+      calls += 1
+      if calls == 2 {
+        Err(CapacityExceeded)
+      } else {
+        Ok(())
+      }
+    }),
+  )
+  assert_eq(result, Err(CapacityExceeded))
+  assert_eq(calls, 2)
+}

@@ -33,6 +33,7 @@ fn file_capture_metadata_capacity(
   selection : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
   prepared_provider? : NativeRelationFilePreparedProvider? = None,
+  listing? : Bool = false,
 ) -> Int64? {
   let mapped = match prepared_provider {
     Some(_) => 0L
@@ -119,8 +120,26 @@ fn file_capture_metadata_capacity(
   } else {
     0L
   }
+  let listing_control = if listing {
+    // Original issuer Some (H1/R1/W1), projection callback closing over the
+    // SAME owner/provider (H1/R2), two typed error projections (H2/R2), and
+    // the elapsed-call Option/frontier (H1/R3/W3). The Source owns its provider
+    // record, original issuer and issuance construction separately.
+    @execution.preparation_representation_cost({
+      record_headers: 5L,
+      reference_slots: 8L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
+  } else {
+    0L
+  }
   @execution.checked_preparation_add_product(mapped, controls, 1L).bind(total => {
-    @execution.checked_preparation_add_product(total, prepared_control, 1L)
+    @execution.checked_preparation_add_product(total, prepared_control, 1L).bind(total => {
+        @execution.checked_preparation_add_product(total, listing_control, 1L)
+      },
+    )
   })
 }
 

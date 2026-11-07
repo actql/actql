@@ -19,6 +19,13 @@ test "Native transport quote rejects each invalid layout fact and overflow" {
     file_capture_transport_capacity(selected, limits, layout) is Some(_),
   )
   assert_true(file_capture_metadata_capacity(selected, limits) is Some(_))
+  // Independently counted listing-only issuer/callback/error/elapsed frontier:
+  // H5/R8/W4 at the existing central 16/8/8 representation tariff.
+  assert_eq(
+    file_capture_metadata_capacity(selected, limits, listing=true).unwrap() -
+    file_capture_metadata_capacity(selected, limits).unwrap(),
+    176L,
+  )
   // These are negative quote DATA, never synthetic physical originals.
   for
     invalid in [

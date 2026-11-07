@@ -9,6 +9,7 @@ import {
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/installed_arena_control",
   "actql/actql/query_planning",
+  "actql/actql/value_admission",
 }
 
 // Values
@@ -22,21 +23,30 @@ pub fn native_relation_file_input_capture_limits(@client_row_source_host.RowDecl
 
 pub fn native_relation_file_input_valid(NativeRelationFileSelection, NativeRelationFileLimits) -> Bool
 
+pub fn native_relation_file_listing_construction_inventory(NativeRelationFilePreparedProvider) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn native_relation_file_provider_capacity(@client_row_source_host.RowDeclaration, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[@execution_relation.ExecutionCapacity, NativeRelationFileIssue]
 
 pub fn prepare_native_managed_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledWholeSourceCapacity, @execution_relation.ExecutionCapacity, String, NativeRelationFileSelection, NativeRelationFileLimits, prepared_provider? : NativeRelationFilePreparedProvider?) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
+
+pub fn prepare_native_managed_relation_file_listing_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledWholeSourceCapacity, NativeRelationFileListingProvider, String) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
 pub fn prepare_native_relation_file_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
 pub fn prepare_native_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_row_source_host.RowInputAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
+pub fn prepare_native_relation_file_listing_provider(@client_row_source_host.RowDeclaration, String, NativeRelationFilePreparedProvider, NativeRelationFileListingFields, @value_admission.ReferenceIssuer, (String) -> Result[@value_admission.CheckedValue, NativeRelationFileIssue]) -> Result[NativeRelationFileListingProvider, NativeRelationFileIssue]
+
 pub fn prepare_native_relation_file_provider(@client_row_source_host.RowDeclaration, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFilePreparedProvider, NativeRelationFileIssue]
+
+pub fn project_native_relation_file_listing_page(NativeRelationFilePreparedProvider, @client_row_source_host.RelationDocument, NativeRelationFileListingFields, (String) -> Result[@value_admission.CheckedValue, NativeRelationFileIssue]) -> Result[Bytes, NativeRelationFileIssue]
 
 // Errors
 
 // Types and methods
 type NativeRelationFileCapture
 pub fn NativeRelationFileCapture::advance(Self, Int) -> Result[Bool, NativeRelationFileFailure]
+pub fn NativeRelationFileCapture::advance_listing(Self, Int, Int64) -> Result[Bool, NativeRelationFileFailure]
 pub fn NativeRelationFileCapture::capture(Self) -> Result[@client_row_source_host.RowSourceCapture, NativeRelationFileIssue]
 pub fn NativeRelationFileCapture::close(Self) -> Result[Bool, NativeRelationFileIssue]
 
@@ -65,6 +75,16 @@ pub(all) struct NativeRelationFileLimits {
   chunk_bytes : Int
   diagnostic_ceiling : Int
 }
+
+pub(all) struct NativeRelationFileListingFields {
+  name : String
+  version : String
+  media_type : String
+  path : String?
+}
+
+type NativeRelationFileListingProvider
+pub fn NativeRelationFileListingProvider::capacity(Self) -> @execution_relation.ExecutionCapacity
 
 type NativeRelationFilePreparedProvider
 pub fn NativeRelationFilePreparedProvider::capacity(Self) -> @execution_relation.ExecutionCapacity

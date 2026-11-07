@@ -47,6 +47,12 @@ priv enum NativeRelationFileAcquisition {
     @local.ClientInstalledWholeSourceCapacity,
     @execution.ExecutionCapacity
   )
+  ManagedFileListingAcquisition(
+    @rows.RowInputAcquisition,
+    @local.ClientInstalledSourceRead,
+    @local.ClientInstalledWholeSourceCapacity,
+    NativeRelationFileListingProvider
+  )
 }
 
 ///|
@@ -54,6 +60,7 @@ priv enum FileCapturePhase {
   Prepared
   Reading
   Received
+  Listing
   Parsed
   Capturing
   Captured
@@ -200,6 +207,39 @@ fn NativeRelationFileCapture::current(self : Self) -> Bool {
       physical_equal(original_provider, provider) &&
       @local.installed_whole_source_read_capacity_matches(
         read, selected, acquisition, provider,
+      )
+  }
+  if self.acquisition
+    is Some(
+      ManagedFileListingAcquisition(acquisition, read, selected, provider)
+    ) {
+    guard @local.check_installed_source_read_ledger(read, ledger) is Ok(_) else {
+      return false
+    }
+    return self.same() &&
+      self.failure is None &&
+      !(self.phase is Closing) &&
+      !(self.phase is Closed) &&
+      self.ledger is Some(retained) &&
+      physical_equal(retained, ledger) &&
+      self.acquisition
+      is Some(
+        ManagedFileListingAcquisition(
+          actual,
+          original_read,
+          original_capacity,
+          original_provider
+        )
+      ) &&
+      physical_equal(actual, acquisition) &&
+      physical_equal(original_read, read) &&
+      physical_equal(original_capacity, selected) &&
+      physical_equal(original_provider, provider) &&
+      @local.installed_whole_source_read_capacity_matches(
+        read,
+        selected,
+        acquisition,
+        provider.capacity,
       )
   }
   true
@@ -416,6 +456,53 @@ pub fn prepare_native_managed_relation_file_input_capture(
 }
 
 ///|
+/// Consume the SAME checked listing read and Plan provider. The Source's
+/// issuer is retained by its installation owner, not manufactured from rows.
+/// Use advance_listing with the actual elapsed time from the original Host
+/// monotonic clock; the ordinary untimed advance cannot execute this branch.
+pub fn prepare_native_managed_relation_file_listing_capture(
+  arena : @arena.InstalledArenaHost,
+  execution : @arena.InstalledArenaRetainedExecution,
+  read : @local.ClientInstalledSourceRead,
+  selected : @local.ClientInstalledWholeSourceCapacity,
+  provider : NativeRelationFileListingProvider,
+  nonce : String,
+) -> Result[NativeRelationFileCapture, NativeRelationFileFailure] {
+  let acquisition = @local.installed_whole_source_acquisition(selected)
+  if !file_capture_text(nonce, 128) ||
+    !@rows.row_input_acquisition_is_listing(acquisition) {
+    return Err({ issue: InvalidInput, owner: None, })
+  }
+  if !@local.installed_whole_source_read_capacity_matches(
+      read,
+      selected,
+      acquisition,
+      provider.capacity,
+    ) {
+    return Err({ issue: ForeignOriginal, owner: None, })
+  }
+  match
+    @rows.check_row_input_acquisition_declaration(
+      acquisition,
+      provider.declaration,
+    ) {
+    Err(issue) => return Err({ issue: Row(issue), owner: None, })
+    Ok(_) => ()
+  }
+  prepare_native_relation_file_capture_original(
+    arena,
+    execution,
+    provider.declaration,
+    @rows.row_input_acquisition_facts(acquisition).source_ref,
+    ManagedFileListingAcquisition(acquisition, read, selected, provider),
+    nonce,
+    provider.physical.selection,
+    provider.physical.limits,
+    prepared_provider=Some(provider.physical),
+  )
+}
+
+///|
 fn prepare_native_relation_file_capture_original(
   arena : @arena.InstalledArenaHost,
   execution : @arena.InstalledArenaRetainedExecution,
@@ -431,8 +518,14 @@ fn prepare_native_relation_file_capture_original(
     Ok(value) => value
     Err(issue) => return Err({ issue: Execution(issue), owner: None, })
   }
+  let listing = original is ManagedFileListingAcquisition(_, _, _, _)
   let metadata_bytes = match
-    file_capture_metadata_capacity(selection, limits, prepared_provider~) {
+    file_capture_metadata_capacity(
+      selection,
+      limits,
+      prepared_provider~,
+      listing~,
+    ) {
     Some(value) => value
     None => return Err({ issue: Capacity, owner: None, })
   }
@@ -481,26 +574,34 @@ fn prepare_native_relation_file_capture_original(
   }
   owner.original = Some(owner)
   try {
+    let public_resource = match original {
+      ManagedFileListingAcquisition(_, _, _, listing) => listing.resource
+      _ => selected.resource
+    }
     guard @rows.row_declaration_view(declaration, source_ref) is Some(view) &&
-      view.resource == selected.resource else {
+      view.resource == public_resource else {
       raise FileCaptureStop(ForeignOriginal)
     }
-    let capacity = match prepared_provider {
-      Some(original) => original.capacity
-      None => {
-        let contract = file_require(
-          @rows.relation_document_projection_contract(
-            declaration,
-            selected.resource,
-            selected.primary_identity,
-            limits.page,
-          ).map_err(issue => Mapping(issue)),
-        )
-        let capacity = file_capture_provider_capacity(
-          selected, limits, contract,
-        ).unwrap_or_else(() => raise FileCaptureStop(Capacity))
-        capacity
-      }
+    let capacity = match original {
+      ManagedFileListingAcquisition(_, _, _, listing) => listing.capacity
+      _ =>
+        match prepared_provider {
+          Some(original) => original.capacity
+          None => {
+            let contract = file_require(
+              @rows.relation_document_projection_contract(
+                declaration,
+                selected.resource,
+                selected.primary_identity,
+                limits.page,
+              ).map_err(issue => Mapping(issue)),
+            )
+            let capacity = file_capture_provider_capacity(
+              selected, limits, contract,
+            ).unwrap_or_else(() => raise FileCaptureStop(Capacity))
+            capacity
+          }
+        }
     }
     let run = match original {
       FileQueryAcquisition(acquisition) =>
@@ -549,6 +650,18 @@ fn prepare_native_relation_file_capture_original(
           ).map_err(issue => ManagedRead(issue)),
         )
       }
+      ManagedFileListingAcquisition(acquisition, read, _, _) =>
+        file_require(
+          @local.start_installed_whole_source_read_rows(
+            read,
+            acquisition,
+            nonce,
+            attempt => owner.verify(attempt),
+            limits.page.max_bytes.to_int64(),
+            limits.page.max_bytes.to_int64(),
+            expected_ledger=Some(ledger),
+          ).map_err(issue => ManagedRead(issue)),
+        )
     }
     owner.run = Some(run)
     file_require(
@@ -556,13 +669,19 @@ fn prepare_native_relation_file_capture_original(
         run,
         limits.page,
         limits.page.max_rows,
+        reference_issuer=match original {
+          ManagedFileListingAcquisition(_, _, _, listing) =>
+            Some(listing.issuer)
+          _ => None
+        },
       ).map_err(issue => Row(issue)),
     )
     let borrowed = match original {
       FileQueryAcquisition(acquisition) =>
         @rows.borrow_row_run_responses(run, acquisition)
       FileInputAcquisition(acquisition)
-      | ManagedFileInputAcquisition(acquisition, _, _, _) =>
+      | ManagedFileInputAcquisition(acquisition, _, _, _)
+      | ManagedFileListingAcquisition(acquisition, _, _, _) =>
         @rows.borrow_row_input_run_responses(run, acquisition)
     }
     let responses = file_require(borrowed.map_err(issue => Row(issue)))
@@ -572,6 +691,13 @@ fn prepare_native_relation_file_capture_original(
         owner.transport_retired && owner.transient_retired
       }).map_err(issue => Row(issue)),
     )
+    if listing {
+      file_require(
+        @rows.begin_row_run_listing_request(run, None, 0L).map_err(issue => {
+          Row(issue)
+        }),
+      )
+    }
     Ok(owner)
   } catch {
     FileCaptureStop(issue) => Err(owner.fail(issue))
@@ -697,6 +823,7 @@ fn NativeRelationFileCapture::read_chunk(
 ///|
 fn NativeRelationFileCapture::admit_response(
   self : Self,
+  elapsed_ms : Int64?,
 ) -> Unit raise FileCaptureStop {
   let run = self.run.unwrap()
   let bytes = self.bytes.unwrap()
@@ -716,6 +843,45 @@ fn NativeRelationFileCapture::admit_response(
     ),
   )
   self.document = Some(document)
+  if self.acquisition is Some(ManagedFileListingAcquisition(_, _, _, listing)) {
+    guard elapsed_ms is Some(elapsed) else {
+      raise FileCaptureStop(InvalidInput)
+    }
+    let body = file_require(
+      project_native_relation_file_listing_page(
+        listing.physical,
+        document,
+        listing.fields,
+        identity => {
+          let issued = (listing.issue_resource)(identity)
+          // No normal work follows an issuer refusal. Keep that first Result;
+          // a later current failure must not replace or rebox the original.
+          if issued is Err(_) {
+            return issued
+          }
+          if !self.current() {
+            return Err(Unavailable)
+          }
+          issued
+        },
+      ),
+    )
+    if !self.current() {
+      raise FileCaptureStop(Unavailable)
+    }
+    file_require(
+      @rows.begin_charged_row_run_listing_page(
+        run,
+        self.charge.unwrap(),
+        body,
+        elapsed,
+      ).map_err(issue => Row(issue)),
+    )
+    self.charge = None
+    self.bytes = Some(body)
+    self.phase = Listing
+    return
+  }
   let selected = self.selection.unwrap()
   let target = file_require(
     @rows.project_relation_target_document(
@@ -748,6 +914,8 @@ fn NativeRelationFileCapture::admit_response(
         self.target.unwrap(),
         self.limits.max_work,
       )
+    ManagedFileListingAcquisition(_, _, _, _) =>
+      raise FileCaptureStop(InvalidInput)
   }
   file_require(accepted.map_err(issue => Row(issue))) |> ignore
   self.charge = None
@@ -775,11 +943,37 @@ pub fn NativeRelationFileCapture::advance(
   self : Self,
   quantum : Int,
 ) -> Result[Bool, NativeRelationFileFailure] {
+  self.advance_original(quantum, None)
+}
+
+///|
+/// Actual elapsed milliseconds from the original Host monotonic observation.
+/// This is protocol DATA, not currentness, permission or a replacement clock.
+pub fn NativeRelationFileCapture::advance_listing(
+  self : Self,
+  quantum : Int,
+  elapsed_ms : Int64,
+) -> Result[Bool, NativeRelationFileFailure] {
+  self.advance_original(quantum, Some(elapsed_ms))
+}
+
+///|
+fn NativeRelationFileCapture::advance_original(
+  self : Self,
+  quantum : Int,
+  elapsed_ms : Int64?,
+) -> Result[Bool, NativeRelationFileFailure] {
   if !self.same() {
     return Err({ issue: ForeignOriginal, owner: None, })
   }
   if self.failure is Some(failure) {
     return Err(failure)
+  }
+  let listing = self.acquisition
+    is Some(ManagedFileListingAcquisition(_, _, _, _))
+  if listing != (elapsed_ms is Some(_)) ||
+    (elapsed_ms is Some(elapsed) && elapsed < 0L) {
+    return Err(self.fail(InvalidInput))
   }
   if quantum <= 0 || !self.current() {
     return Err(self.fail(Unavailable))
@@ -788,7 +982,32 @@ pub fn NativeRelationFileCapture::advance(
     match self.phase {
       Prepared => self.open_file()
       Reading => self.read_chunk()
-      Received => self.admit_response()
+      Received => self.admit_response(elapsed_ms)
+      Listing => {
+        let poll = file_require(
+          @rows.advance_row_run_listing_page(
+            self.run.unwrap(),
+            quantum,
+            elapsed_ms.unwrap(),
+          ).map_err(issue => Row(issue)),
+        )
+        match poll {
+          @rows.ListingPageContinue(_) => ()
+          @rows.ListingPageComplete(..) => {
+            file_require(
+              @rows.finish_row_run(self.run.unwrap()).map_err(issue => {
+                Row(issue)
+              }),
+            )
+            if !@rows.discard_relation_document_original(self.document.unwrap()) {
+              raise FileCaptureStop(ForeignOriginal)
+            }
+            self.document = None
+            self.bytes = None
+            self.phase = Parsed
+          }
+        }
+      }
       Parsed => {
         self.transient_retired = true
         file_require(
@@ -879,7 +1098,8 @@ pub fn NativeRelationFileCapture::close(
     self.buffer = None
     self.transient_retired = true
     match self.acquisition {
-      Some(ManagedFileInputAcquisition(_, read, _, _)) =>
+      Some(ManagedFileInputAcquisition(_, read, _, _))
+      | Some(ManagedFileListingAcquisition(_, read, _, _)) =>
         file_require(
           @local.retire_installed_source_read(read).map_err(issue => {
             ManagedRead(issue)
