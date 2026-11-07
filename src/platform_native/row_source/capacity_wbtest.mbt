@@ -200,6 +200,10 @@ test "Source caller preparation inventory matches independent constructor vector
   let limits = capture_fixture_limits()
   // Independently expanded original mapping recipes plus the named Source
   // control frontier. Expected values are not emitted by the product helper.
+  // The mapping acquisition selector and the caller's Query/whole-Source
+  // selector each retain one header, reference and scalar: +2H/+2R/+2S.
+  // At the existing 16/8/8-byte tariff this adds 64 bytes; neither selector
+  // owns text/wire or changes the preceding inventory-evaluation frontier.
   for
     (page, path_count, key_count, h, r, s, text, wire, bytes, evaluator_bytes) in [
       (
@@ -211,12 +215,12 @@ test "Source caller preparation inventory matches independent constructor vector
         },
         1,
         0,
-        4928L,
-        4273L,
-        13391L,
+        4930L,
+        4275L,
+        13393L,
         997L,
         297L,
-        222451L,
+        222515L,
         23832L,
       ),
       (
@@ -228,12 +232,12 @@ test "Source caller preparation inventory matches independent constructor vector
         },
         1,
         0,
-        250528L,
-        590739L,
-        1582529L,
+        250530L,
+        590741L,
+        1582531L,
         836435L,
         8488L,
-        23075950L,
+        23076014L,
         23832L,
       ),
       (
@@ -245,12 +249,12 @@ test "Source caller preparation inventory matches independent constructor vector
         },
         16,
         16,
-        3937964L,
-        9394543L,
-        18054025L,
+        3937966L,
+        9394545L,
+        18054027L,
         6874451L,
         65832L,
-        296410702L,
+        296410766L,
         26312L,
       ),
     ] {

@@ -30,6 +30,8 @@ pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisi
 
 pub fn accept_charged_relation_document(RowRun, RowPageCharge, RowAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]
 
+pub fn accept_charged_relation_input_document(RowRun, RowPageCharge, RowInputAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]
+
 pub fn accept_charged_row_run_page(RowRun, RowPageCharge, Bytes) -> Result[Int, RowHostIssue]
 
 pub fn accept_charged_row_run_projected_page(RowRun, RowPageCharge, RowSourceProjectedJsonPage) -> Result[Int, RowHostIssue]

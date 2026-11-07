@@ -108,3 +108,10 @@ source mirror, not another schema, parser, compiler or authority issuer.
   copied-carrier refusal, immutable retained DATA, sibling isolation and child
   discard after parent invalidation. Source callers must still demonstrate real
   original retained-execution closure; these references do not establish it.
+
+Whole-Source response admission uses the same original document/ticket path as
+Query-backed rows. `accept_charged_relation_input_document` matches the original
+`RowInputAcquisition` after consuming the response ticket, preserves its declared
+schema/view and page limits, and uses the existing whole-input value funding
+before append. It does not turn a Query requirement into a whole Source, issue a
+read grant, refund physical attempts/bytes or acknowledge transport cleanup.

@@ -36,6 +36,12 @@ pub(all) enum NativeRelationFileIssue {
 }
 
 ///|
+priv enum NativeRelationFileAcquisition {
+  FileQueryAcquisition(@rows.RowAcquisition)
+  FileInputAcquisition(@rows.RowInputAcquisition)
+}
+
+///|
 priv enum FileCapturePhase {
   Prepared
   Reading
@@ -61,7 +67,7 @@ struct NativeRelationFileCapture {
   mut selection : NativeRelationFileSelection?
   limits : NativeRelationFileLimits
   mut declaration : @rows.RowDeclaration?
-  mut acquisition : @rows.RowAcquisition?
+  mut acquisition : NativeRelationFileAcquisition?
   mut contract : @contract.Contract?
   mut run : @rows.RowRun?
   mut responses : @rows.RowRunResponseBorrow?
@@ -250,14 +256,72 @@ pub fn prepare_native_relation_file_capture(
     @rows.row_acquisition_is_listing(acquisition) {
     return Err({ issue: InvalidInput, owner: None, })
   }
-  let ledger = match arena.borrow_domain_retained_execution_ledger(execution) {
-    Ok(value) => value
-    Err(issue) => return Err({ issue: Execution(issue), owner: None, })
-  }
   match
     @rows.check_row_acquisition_original(acquisition, declaration, requirement) {
     Err(issue) => return Err({ issue: Row(issue), owner: None, })
     Ok(_) => ()
+  }
+  prepare_native_relation_file_capture_original(
+    arena,
+    execution,
+    declaration,
+    @planning.query_requirement_source(requirement).0,
+    FileQueryAcquisition(acquisition),
+    nonce,
+    selection,
+    limits,
+  )
+}
+
+///|
+/// Open the original whole-Source acquisition on the SAME entered Native
+/// execution/Ledger. Its owner retains every partial file/response through ACK.
+/// The caller still supplies its actual checked Plan and current read authority.
+pub fn prepare_native_relation_file_input_capture(
+  arena : @arena.InstalledArenaHost,
+  execution : @arena.InstalledArenaRetainedExecution,
+  declaration : @rows.RowDeclaration,
+  acquisition : @rows.RowInputAcquisition,
+  nonce : String,
+  selection : NativeRelationFileSelection,
+  limits : NativeRelationFileLimits,
+) -> Result[NativeRelationFileCapture, NativeRelationFileFailure] {
+  if !file_capture_text(nonce, 128) ||
+    !native_relation_file_input_valid(selection, limits) ||
+    @rows.row_input_acquisition_is_listing(acquisition) {
+    return Err({ issue: InvalidInput, owner: None, })
+  }
+  match
+    @rows.check_row_input_acquisition_declaration(acquisition, declaration) {
+    Err(issue) => return Err({ issue: Row(issue), owner: None, })
+    Ok(_) => ()
+  }
+  prepare_native_relation_file_capture_original(
+    arena,
+    execution,
+    declaration,
+    @rows.row_input_acquisition_facts(acquisition).source_ref,
+    FileInputAcquisition(acquisition),
+    nonce,
+    selection,
+    limits,
+  )
+}
+
+///|
+fn prepare_native_relation_file_capture_original(
+  arena : @arena.InstalledArenaHost,
+  execution : @arena.InstalledArenaRetainedExecution,
+  declaration : @rows.RowDeclaration,
+  source_ref : String,
+  original : NativeRelationFileAcquisition,
+  nonce : String,
+  selection : NativeRelationFileSelection,
+  limits : NativeRelationFileLimits,
+) -> Result[NativeRelationFileCapture, NativeRelationFileFailure] {
+  let ledger = match arena.borrow_domain_retained_execution_ledger(execution) {
+    Ok(value) => value
+    Err(issue) => return Err({ issue: Execution(issue), owner: None, })
   }
   let metadata_bytes = match file_capture_metadata_capacity(selection, limits) {
     Some(value) => value
@@ -282,7 +346,7 @@ pub fn prepare_native_relation_file_capture(
     selection: Some(selected),
     limits,
     declaration: Some(declaration),
-    acquisition: Some(acquisition),
+    acquisition: Some(original),
     contract: None,
     run: None,
     responses: None,
@@ -306,7 +370,6 @@ pub fn prepare_native_relation_file_capture(
   }
   owner.original = Some(owner)
   try {
-    let (source_ref, _) = @planning.query_requirement_source(requirement)
     guard @rows.row_declaration_view(declaration, source_ref) is Some(view) &&
       view.resource == selected.resource else {
       raise FileCaptureStop(ForeignOriginal)
@@ -325,17 +388,29 @@ pub fn prepare_native_relation_file_capture(
       limits,
       owner.contract.unwrap(),
     ).unwrap_or_else(() => raise FileCaptureStop(Capacity))
-    let run = file_require(
-      @rows.start_accounted_provider_row_acquisition(
-        acquisition,
-        Some(capacity),
-        nonce,
-        attempt => owner.verify(attempt),
-        ledger,
-        limits.page.max_bytes.to_int64(),
-        limits.page.max_bytes.to_int64(),
-      ).map_err(issue => Row(issue)),
-    )
+    let started = match original {
+      FileQueryAcquisition(acquisition) =>
+        @rows.start_accounted_provider_row_acquisition(
+          acquisition,
+          Some(capacity),
+          nonce,
+          attempt => owner.verify(attempt),
+          ledger,
+          limits.page.max_bytes.to_int64(),
+          limits.page.max_bytes.to_int64(),
+        )
+      FileInputAcquisition(acquisition) =>
+        @rows.start_accounted_row_input_acquisition(
+          acquisition,
+          Some(capacity),
+          nonce,
+          attempt => owner.verify(attempt),
+          ledger,
+          limits.page.max_bytes.to_int64(),
+          limits.page.max_bytes.to_int64(),
+        )
+    }
+    let run = file_require(started.map_err(issue => Row(issue)))
     owner.run = Some(run)
     file_require(
       @rows.begin_row_run_with_page_limits(
@@ -344,11 +419,13 @@ pub fn prepare_native_relation_file_capture(
         limits.page.max_rows,
       ).map_err(issue => Row(issue)),
     )
-    let responses = file_require(
-      @rows.borrow_row_run_responses(run, acquisition).map_err(issue => {
-        Row(issue)
-      }),
-    )
+    let borrowed = match original {
+      FileQueryAcquisition(acquisition) =>
+        @rows.borrow_row_run_responses(run, acquisition)
+      FileInputAcquisition(acquisition) =>
+        @rows.borrow_row_input_run_responses(run, acquisition)
+    }
+    let responses = file_require(borrowed.map_err(issue => Row(issue)))
     owner.responses = Some(responses)
     file_require(
       @rows.bind_row_run_response_borrow_cleanup(responses, () => {
@@ -512,16 +589,25 @@ fn NativeRelationFileCapture::admit_response(
     ).map_err(issue => Document(issue)),
   )
   self.target = Some(target)
-  file_require(
-    @rows.accept_charged_relation_document(
-      run,
-      self.charge.unwrap(),
-      self.acquisition.unwrap(),
-      self.target.unwrap(),
-      self.limits.max_work,
-    ).map_err(issue => Row(issue)),
-  )
-  |> ignore
+  let accepted = match self.acquisition.unwrap() {
+    FileQueryAcquisition(acquisition) =>
+      @rows.accept_charged_relation_document(
+        run,
+        self.charge.unwrap(),
+        acquisition,
+        self.target.unwrap(),
+        self.limits.max_work,
+      )
+    FileInputAcquisition(acquisition) =>
+      @rows.accept_charged_relation_input_document(
+        run,
+        self.charge.unwrap(),
+        acquisition,
+        self.target.unwrap(),
+        self.limits.max_work,
+      )
+  }
+  file_require(accepted.map_err(issue => Row(issue))) |> ignore
   self.charge = None
   file_require(@rows.finish_row_run(run).map_err(issue => Row(issue)))
   // Only this adapter's private construction originals are discarded. The
