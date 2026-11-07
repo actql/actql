@@ -227,3 +227,10 @@ fn local_project_mock_file_bindings(
   }
   Ok(result)
 }
+
+///|
+// One selected declared-file protocol duration, shared by listing facts and
+// the Host's keyed lookup policy. Actual admission/current/cleanup is separate.
+fn local_project_mock_file_duration_ms() -> Int64 {
+  30000L
+}

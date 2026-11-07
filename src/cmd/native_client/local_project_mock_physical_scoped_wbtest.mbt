@@ -82,6 +82,7 @@ fn native_project_mock_model_backed_read(
   write_mapping? : Bool = false,
   file_references? : Bool = false,
   readme_request? : Bool = false,
+  lookup_policy? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -149,6 +150,8 @@ fn native_project_mock_model_backed_read(
     request_issue = native_mock_readme_request_in_metadata_read(
       host, read, facility,
     )
+  } else if lookup_policy {
+    native_mock_lookup_policy_in_original_read()
   } else if file_references {
     native_project_mock_file_references_in_original_read()
   } else if write_mapping {

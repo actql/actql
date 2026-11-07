@@ -355,6 +355,14 @@ fn native_mock_readme_request_in_metadata_read(
 ) -> String? raise {
   let original = native_project_mock_model_fixture("deal-review-missing")
   original.prepare_source_declarations().unwrap()
+  // SAME selected Native file implementation, with the explicit immutable
+  // authority metadata port already disclosed for this source component.
+  original.file_sources = Some([
+    local_project_mock_file_source(
+      original.sources[1],
+      "sha256:" + "8".repeat(64),
+    ).unwrap(),
+  ])
   // Exact metadata-only ports of the existing installation projection. This
   // does not qualify Runtime/Account observations or authorize any operation.
   original.write_installations = Some(
@@ -402,4 +410,77 @@ fn native_mock_readme_request_in_metadata_read(
 ///|
 test "Native original whole README checks through the same retained Request and returns its original Effect body" {
   native_project_mock_model_backed_read(false, readme_request=true)
+}
+
+///|
+fn native_mock_lookup_policy_in_original_read() -> Unit raise {
+  let original = native_project_mock_model_fixture("deal-review-missing")
+  defer original.retire()
+  original.prepare_source_declarations().unwrap()
+  assert_true(original.file_lookup_policy() is None)
+  original.file_sources = Some([
+    local_project_mock_file_source(
+      original.sources[1],
+      "sha256:" + "8".repeat(64),
+    ).unwrap(),
+  ])
+  let selected = original.file_lookup_policy().unwrap()
+  guard selected is Object(fields) else {
+    fail("selected Native lookup policy")
+  }
+  let limits = @local_values.client_local_preparation_initial_limits(
+    @local_values.client_local_resource_policy(),
+  ).unwrap()
+  assert_eq(
+    fields.get("max_total_decoded_response_bytes"),
+    Some(
+      Json::number(
+        Int64::min(limits.retained_bytes, limits.execution_bytes).to_double(),
+      ),
+    ),
+  )
+  assert_eq(
+    fields.get("max_request_bytes_per_attempt"),
+    Some(
+      Json::number(local_project_mock_file_limits().page.max_bytes.to_double()),
+    ),
+  )
+  assert_eq(
+    fields.get("max_total_duration_ms"),
+    Some(Json::number(local_project_mock_file_duration_ms().to_double())),
+  )
+  // An already selected Host policy remains exact, even if tighter. The
+  // Source does not replace it with its implementation's default envelope.
+  fields["max_total_duration_ms"] = Json::number(100)
+  let base = explain_fixture_environment()
+  let writer = @encode.writer(4000000, 400000, 64)
+  @compiler_environment.emit(@checked.checking_environment_wire(base), writer)
+  guard local_project_mock_json(@encode.finish(writer)) is Object(body) &&
+    body.get("host_policy_profile") is Some(Object(policy)) else {
+    fail("original Host policy")
+  }
+  policy["lookup_execution"] = selected
+  ignore(body.remove("evidence_bundle_cid"))
+  let preimage = local_project_mock_relation_wire(Json::object(body)).unwrap()
+  let cid = "sha256:" + @sha.hex(@utf8.encode(preimage))
+  body["evidence_bundle_cid"] = Json::string(cid)
+  let supplied = local_admitted_check_environment(
+    local_project_mock_relation_wire(Json::object(body)).unwrap(),
+    cid,
+  ).unwrap()
+  let prepared = original.prepare_source_environment(supplied).unwrap()
+  let out = @encode.writer(4000000, 400000, 64)
+  @compiler_environment.emit(@checked.checking_environment_wire(prepared), out)
+  guard local_project_mock_json(@encode.finish(out)) is Object(merged) &&
+    merged.get("host_policy_profile") is Some(Object(actual)) else {
+    fail("prepared Host policy")
+  }
+  assert_eq(actual.get("lookup_execution"), Some(selected))
+  original.retire_originals().unwrap() |> ignore
+  assert_true(original.file_lookup_policy() is None)
+}
+
+///|
+test "Native Mock lookup policy requires selected file originals and preserves explicit Host bounds" {
+  native_project_mock_model_backed_read(false, lookup_policy=true)
 }
