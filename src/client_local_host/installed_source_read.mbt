@@ -13,7 +13,7 @@ struct ClientInstalledSourceRead {
   mut acquisition : @row_source_host.RowAcquisition?
   mut whole_input : ClientInstalledWholeSourceCapacity?
   mut run : @row_source_host.RowRun?
-  mut started : Bool
+  mut start : InstalledSourceReadStart
 }
 
 ///|
@@ -56,7 +56,7 @@ pub fn begin_installed_source_read(
     acquisition: None,
     whole_input: None,
     run: None,
-    started: false,
+    start: Unstarted,
   }
   value.original = Some(value)
   Ok(value)
@@ -66,7 +66,7 @@ pub fn begin_installed_source_read(
 fn require_installed_source_read_original(
   value : ClientInstalledSourceRead,
 ) -> Result[Unit, ClientInstalledSourceReadIssue] {
-  if value.original is None && value.started && value.ledger is None {
+  if value.original is None && value.start is Started && value.ledger is None {
     return Err(Retired)
   }
   guard value.original is Some(original) && physical_equal(original, value) else {
@@ -418,10 +418,10 @@ fn claim_installed_source_read_start(
     physical_equal(original, acquisition) else {
     return Err(ForeignOriginal)
   }
-  if value.started {
+  if !(value.start is Unstarted) {
     return Err(AlreadyStarted)
   }
-  value.started = true
+  value.start = Constructing
   Ok(ledger)
 }
 
@@ -431,9 +431,15 @@ fn retain_installed_source_read_run(
   result : Result[@row_source_host.RowRun, @row_source_host.RowHostIssue],
 ) -> Result[@row_source_host.RowRun, ClientInstalledSourceReadIssue] {
   match result {
-    Err(issue) => Err(Acquisition(issue))
+    Err(issue) => {
+      value.start = Started
+      Err(Acquisition(issue))
+    }
     Ok(run) => {
+      // The same original keeps its actual returned child before the
+      // construction latch opens for any subsequent retirement.
       value.run = Some(run)
+      value.start = Started
       Ok(run)
     }
   }
@@ -492,14 +498,17 @@ pub fn start_installed_source_read_listing_rows(
 pub fn retire_installed_source_read(
   value : ClientInstalledSourceRead,
 ) -> Result[Unit, ClientInstalledSourceReadIssue] {
-  // The existing consumed bit and absent original/Ledger are set only after
+  // The consumed start state and absent original/Ledger are set only after
   // this opaque consumer's actual cleanup below. No new use is admitted.
-  if value.original is None && value.started && value.ledger is None {
+  if value.original is None && value.start is Started && value.ledger is None {
     return Ok(())
   }
   match require_installed_source_read_original(value) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if value.start is Constructing {
+    return Err(CleanupPending)
   }
   if value.ledger is None {
     return Ok(())
@@ -524,7 +533,7 @@ pub fn retire_installed_source_read(
   value.ledger = None
   value.child = None
   value.managed_run = None
-  value.started = true
+  value.start = Started
   value.original = None
   Ok(())
 }

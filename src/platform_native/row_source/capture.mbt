@@ -191,8 +191,19 @@ fn NativeRelationFileCapture::same(self : Self) -> Bool {
 }
 
 ///|
+// Reuse the actual RowRun's normal-use state after callbacks. Pending native
+// cleanup can retain a stopped RowRun/Reader; that is never a new I/O permit.
+fn NativeRelationFileCapture::normal_original(self : Self) -> Bool {
+  self.same() &&
+  (match self.run {
+    Some(run) => @rows.row_run_normal_available(run)
+    None => self.phase is Prepared
+  })
+}
+
+///|
 fn NativeRelationFileCapture::current(self : Self) -> Bool {
-  guard self.same() &&
+  guard self.normal_original() &&
     self.failure is None &&
     !(self.phase is Closing) &&
     !(self.phase is Closed) &&
@@ -210,7 +221,7 @@ fn NativeRelationFileCapture::current(self : Self) -> Bool {
     guard @local.check_installed_keyed_source_read_ledger(read, ledger) is Ok(_) else {
       return false
     }
-    return self.same() &&
+    return self.normal_original() &&
       self.failure is None &&
       !(self.phase is Closing) &&
       !(self.phase is Closed) &&
@@ -227,7 +238,7 @@ fn NativeRelationFileCapture::current(self : Self) -> Bool {
     guard @local.check_installed_source_read_ledger(read, ledger) is Ok(_) else {
       return false
     }
-    return self.same() &&
+    return self.normal_original() &&
       self.failure is None &&
       !(self.phase is Closing) &&
       !(self.phase is Closed) &&
@@ -247,7 +258,7 @@ fn NativeRelationFileCapture::current(self : Self) -> Bool {
     guard @local.check_installed_source_read_ledger(read, ledger) is Ok(_) else {
       return false
     }
-    return self.same() &&
+    return self.normal_original() &&
       self.failure is None &&
       !(self.phase is Closing) &&
       !(self.phase is Closed) &&
@@ -277,7 +288,7 @@ fn NativeRelationFileCapture::current(self : Self) -> Bool {
     }
     // Parent currentness can synchronously retire the Native holder. This
     // final fence observes retained references only, without another callback.
-    return self.same() &&
+    return self.normal_original() &&
       self.failure is None &&
       !(self.phase is Closing) &&
       !(self.phase is Closed) &&
@@ -307,7 +318,7 @@ fn NativeRelationFileCapture::current(self : Self) -> Bool {
     guard @local.check_installed_source_read_ledger(read, ledger) is Ok(_) else {
       return false
     }
-    return self.same() &&
+    return self.normal_original() &&
       self.failure is None &&
       !(self.phase is Closing) &&
       !(self.phase is Closed) &&
@@ -333,7 +344,7 @@ fn NativeRelationFileCapture::current(self : Self) -> Bool {
         provider.capacity,
       )
   }
-  true
+  self.normal_original()
 }
 
 ///|

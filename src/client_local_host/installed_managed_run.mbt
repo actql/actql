@@ -1188,7 +1188,7 @@ fn begin_installed_managed_run_source_read_owned(
     acquisition: None,
     whole_input: None,
     run: None,
-    started: false,
+    start: Unstarted,
   }
   read.original = Some(read)
   value.reads[occurrence] = Some(read)

@@ -998,6 +998,16 @@ pub fn finish_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
 }
 
 ///|
+/// Existing normal-use state only, never a current observation, acquisition
+/// grant or cleanup ACK. Retained/complete states remain usable; a stopped
+/// original cannot drive another physical provider read while cleanup waits.
+pub fn row_run_normal_available(run : RowRun) -> Bool {
+  !run.closed &&
+  !(run.attempt.state is Failed) &&
+  !(run.attempt.state is InputFailed(_))
+}
+
+///|
 pub fn abort_row_run(run : RowRun) -> Unit {
   cancel_row_input_progress(run)
   if run.residual is Some(residual) {

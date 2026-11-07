@@ -2,7 +2,7 @@
 // Callback-free post-current/charge fence. Entry observes the actual parent;
 // local handoffs retain that observation instead of rechecking it in helpers.
 fn NativeRelationFileCapture::retained_keyed_original(self : Self) -> Bool {
-  self.same() &&
+  self.normal_original() &&
   self.failure is None &&
   !(self.phase is Closing) &&
   !(self.phase is Closed) &&

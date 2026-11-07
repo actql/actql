@@ -404,6 +404,8 @@ pub fn row_run_attempt(RowRun) -> RowAttempt
 
 pub fn row_run_listing_complete(RowRun) -> Bool
 
+pub fn row_run_normal_available(RowRun) -> Bool
+
 pub fn row_run_response_selection(RowRunResponseBorrow) -> Result[RowResponseSelection, RowHostIssue]
 
 pub fn row_source_columns(RowSourcePreparation) -> Array[String]

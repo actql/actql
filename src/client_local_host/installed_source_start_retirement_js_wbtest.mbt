@@ -20,7 +20,7 @@ test "Source provider start retains its original child when current reenters ret
     0,
   ).unwrap()
   observe.val = Some(() => {
-    if read.started && read.run is None {
+    if !(read.start is Unstarted) && read.run is None {
       attempts.val += 1
       pending.val = pending.val &&
         retire_installed_source_read(read) is Err(CleanupPending)

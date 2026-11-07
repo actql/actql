@@ -243,7 +243,7 @@ priv struct ClientInstalledModelKeyedSource {
 }
 
 ///|
-priv enum InstalledKeyedSourceStart {
+priv enum InstalledSourceReadStart {
   Unstarted
   Constructing
   Started
@@ -258,7 +258,7 @@ struct ClientInstalledKeyedSourceRead {
   request : @publication_host.ClientKeyedRequest?
   mut acquisition : @row_source_host.RowKeyedAcquisition?
   mut run : @row_source_host.RowRun?
-  mut start : InstalledKeyedSourceStart
+  mut start : InstalledSourceReadStart
   mut retired : Bool
 }
 
