@@ -1,12 +1,14 @@
 ///|
 // Existing observed JSON Request preparation and explicit selected row profile.
 // No Native Host, Account, Store, durable Run or physical backing is supplied.
-fn native_publication_workspace_fixture() -> (
+fn native_publication_workspace_fixture(
+  rows : Int,
+) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
   @publication_host.PreparedClientProgram,
 ) raise {
-  let document = request_native_numeric_public_program(20000)
+  let document = request_native_numeric_public_program(rows)
   let input = [1]
   let parent = begin_request_preparation(
     request_parent_fixture(input),
@@ -20,7 +22,7 @@ fn native_publication_workspace_fixture() -> (
   ).unwrap()
   let wire = request_numeric_local_environment(
     @publication_host.client_local_product_assets().environment,
-    20000,
+    rows,
   )
   let environment = @publication_host.admit_client_check_environment(
     wire,
@@ -73,8 +75,11 @@ fn native_publication_workspace_fixture() -> (
 }
 
 ///|
-test "Native publication row indices use original quoted workspace independently of evidence entries" {
-  let (parent, _input, prepared) = native_publication_workspace_fixture()
+fn native_publication_workspace_component(
+  rows : Int,
+  check_legacy : Bool,
+) -> Unit raise {
+  let (parent, _input, prepared) = native_publication_workspace_fixture(rows)
   let assets = @publication_host.client_local_product_assets()
   let contracts = parent.program_source_free.unwrap().installed_contracts
   let requirements = prepare_source_free_local_requirements(
@@ -93,7 +98,7 @@ test "Native publication row indices use original quoted workspace independently
   let (row_limits, limits) = requirements
     .publication_limits(prepared, 16777216)
     .unwrap()
-  assert_true(limits.max_result_workspace_entries >= 20000)
+  assert_true(limits.max_result_workspace_entries >= rows)
   assert_eq(requirements.maximum_limits(), before)
   // Use the existing prepared managed route selected by the ordinary caller;
   // the legacy raw Host would retain another output allowance alongside this
@@ -161,26 +166,86 @@ test "Native publication row indices use original quoted workspace independently
   }
   // The old, tighter request refuses the projection without revoking the
   // existing completed output. No business operation is replayed below.
-  let old = { ..limits, max_result_workspace_entries: evidence_entries, }
-  assert_true(
-    execution.prepare_result_export(0, row_limits, bridge_entries, 65536, old)
-    is Err(
-      Export(@publication_host.Output(@execution.ResultView(@execution.Limit)))
-    ),
-  )
+  if check_legacy {
+    let old = { ..limits, max_result_workspace_entries: evidence_entries, }
+    assert_true(
+      execution.prepare_result_export(0, row_limits, bridge_entries, 65536, old)
+      is Err(
+        Export(
+          @publication_host.Output(@execution.ResultView(@execution.Limit))
+        )
+      ),
+    )
+  }
   let output = execution
     .prepare_result_export(0, row_limits, bridge_entries, 65536, limits)
     .unwrap()
   let stream = output.output_export()
-  while stream.next().unwrap() is Some(_) {
-    ()
+  let mut streamed_bytes = 0
+  while true {
+    match stream.next() {
+      Ok(Some(chunk)) => streamed_bytes += @utf8.encode(chunk).length()
+      Ok(None) => break
+      Err(issue) => {
+        let cause = match issue {
+          @publication_host.Output(
+            @execution.Wire(@execution.Encoding(@encode.OutputLimit))
+          ) => "Wire.Encoding.OutputLimit"
+          @publication_host.Output(@execution.Wire(@execution.InvalidLimits)) =>
+            "Wire.InvalidLimits"
+          @publication_host.Output(@execution.ResultView(@execution.Limit)) =>
+            "ResultView.Limit"
+          _ => "OtherCompletedExport"
+        }
+        output.close()
+        let closed = execution.close()
+        retire_installed_managed_run(run) |> ignore
+        fail(
+          "Same completed-output stream: " +
+          cause +
+          "; emitted=" +
+          streamed_bytes.to_string() +
+          "; payload bytes/nodes=" +
+          limits.payload_wire.max_bytes.to_string() +
+          "/" +
+          limits.payload_wire.max_nodes.to_string() +
+          "; logical bytes/nodes=" +
+          limits.logical_wire.max_bytes.to_string() +
+          "/" +
+          limits.logical_wire.max_nodes.to_string() +
+          "; managed close=" +
+          closed.to_string(),
+        )
+      }
+    }
   }
-  stream.finish().unwrap() |> ignore
-  assert_eq(stream.row_count().unwrap(), 20000)
+  streamed_bytes += @utf8.encode(stream.finish().unwrap()).length()
+  assert_eq(stream.row_count().unwrap(), rows)
+  if !check_legacy {
+    // Native persistence reopens the exact identified stream. This is a
+    // second physical traversal, not re-execution or another submission.
+    let replay = stream.replay().unwrap()
+    let mut replayed_bytes = 0
+    while replay.next().unwrap() is Some(chunk) {
+      replayed_bytes += @utf8.encode(chunk).length()
+    }
+    replayed_bytes += @utf8.encode(replay.finish().unwrap()).length()
+    assert_eq(replayed_bytes, streamed_bytes)
+  }
   output.close()
   assert_true(execution.close())
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Native publication row indices use original quoted workspace independently of evidence entries" {
+  native_publication_workspace_component(20000, true)
+}
+
+///|
+test "same original 100000 completed output streams under its unchanged publication plan" {
+  native_publication_workspace_component(100000, false)
 }
 
 ///|
