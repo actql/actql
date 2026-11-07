@@ -1,0 +1,3 @@
+SELECT r.id AS id, r.name AS name
+FROM hubspot.companies AS r
+WHERE r.id = @record_id;

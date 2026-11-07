@@ -1,0 +1,3 @@
+SELECT r.Id AS Id, r.Name AS Name
+FROM salesforce.accounts AS r
+WHERE r.Id = @record_id;
