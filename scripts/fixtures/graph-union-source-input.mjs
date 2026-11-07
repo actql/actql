@@ -90,7 +90,7 @@ export const graphUnionSourceRefusals = [
 ].map((body, index) => ({name: 'graph-union-refuse-' + index, format: 'aql-text',
   text: data + definition + body,
   expectedCode: index === 7 ? 'ClientProgramInvalidInput' :
-    [1, 5].includes(index) ? 'ClientProgramImplementationLimit' : undefined})).concat([
+    [1, 5].includes(index) ? 'ClientProgramInvalidInput' : undefined})).concat([
   ['duplicate-node-policy', "{node_properties: {}, NODE_PROPERTIES: {}}"],
   ['duplicate-edge-policy', "{edge_properties: {}, `Edge_Properties`: {}}"],
   ['strategy-value-is-not-vocabulary', "{NODE_PROPERTIES: {p: 'NUMBER_SUM'}}"],
