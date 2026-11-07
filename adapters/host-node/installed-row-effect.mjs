@@ -92,7 +92,7 @@ import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {installedEffectSavedControlEntryLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedEffectSavedControlEntryLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
@@ -1586,11 +1586,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const prepareCredentialOperation = async ({member, rowIndex, phase, operation,
     site, originalAuthorization, useId, resource, purpose, invoke,
     managedEffect, requestChildren, retireRequestAliases, runInvocationCid,
-    dispatchRequestCid, assertCurrent, signal, maxResponseBytes, constructChild}) => {
+    dispatchRequestCid, assertCurrent, signal, maxResponseBytes, constructChild, credentialSlot}) => {
     const recipe = recipeOf(member);
     const ownedRead = recipe?.ownedReadOperations?.find(entry => entry.phase === phase);
     if (ownedRead !== undefined) {
-      if (recipe.rowOperations[ownedRead.operationIndex].operation !== operation ||
+      if (credentialSlot !== undefined || recipe.rowOperations[ownedRead.operationIndex].operation !== operation ||
           managedEffect?.runtime !== moon || !Array.isArray(requestChildren) ||
           typeof retireRequestAliases !== 'function' || typeof constructChild !== 'function') {
         fail('InstalledEffectPhysicalPlanUnavailable');
@@ -1602,7 +1602,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     }
     if (recipe?.physicalWrite !== undefined) {
       const selected = recipe.physicalWrite;
-      if (phase !== 'write' || recipe.rowOperations[selected.operationIndex].operation !== operation ||
+      if (credentialSlot !== undefined || phase !== 'write' || recipe.rowOperations[selected.operationIndex].operation !== operation ||
           managedEffect?.runtime !== moon || !Array.isArray(requestChildren) ||
           typeof retireRequestAliases !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
       return prepareInstalledRowCaptureChild({children: requestChildren,
@@ -1611,11 +1611,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           transferBytes: selected.transferBytes, invoke, requestsRetired: retireRequestAliases}),
         assertCurrent, signal});
     }
-    const selected = recipe?.credentialOperations?.find(entry => entry.phase === phase);
+    const selected = selectInstalledEffectCredentialOperation(recipe, phase, credentialSlot);
     const perRow = selected?.perRow ?? true;
     const operations = perRow ? recipe?.rowOperations : recipe?.memberOperations;
     const responseBytes = maxResponseBytes ?? selected?.maxResponseBytes;
     if (selected === undefined || operations[selected.operationIndex]?.operation !== operation ||
+        selected.resource !== undefined && (resource !== selected.resource || purpose !== 'read') ||
         !Number.isSafeInteger(responseBytes) || responseBytes < 1 || responseBytes > selected.maxResponseBytes ||
         managedEffect?.runtime !== moon || !Array.isArray(requestChildren) ||
         typeof retireRequestAliases !== 'function' || typeof assertCurrent !== 'function') {
@@ -1642,7 +1643,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   };
 
   const managedReadChild = ({member, phase, physicalOperations, runInvocationCid,
-    dispatchRequestCid, assertCurrent, signal}) => {
+    dispatchRequestCid, assertCurrent, signal, originalTargetAuthorization}) => {
     const recipe = recipeOf(member);
     const ownedRead = recipe?.ownedReadOperations?.find(entry => entry.phase === phase);
     if (ownedRead !== undefined) {
@@ -1656,23 +1657,38 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           constructChild, assertCurrent, signal});
       }});
     }
-    const selected = recipe?.credentialOperations?.find(entry => entry.phase === phase);
-    if (selected === undefined) return undefined;
+    if (!recipe?.credentialOperations?.some(entry => entry.phase === phase)) return undefined;
     if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
     const {site} = ownerOf(member);
-    const operation = (selected.perRow === false ? recipe.memberOperations : recipe.rowOperations)
-      [selected.operationIndex].operation;
-    return (originalAuthorization, input, rowIndex = 0) => {
+    return (authorization, input, rowIndex = 0, slot, project) => {
+      if (project !== undefined && (typeof project !== 'function' || nodeTypes.isProxy(project) ||
+          nodeTypes.isAsyncFunction(project))) fail('ForeignInstalledEffectReadChild');
+      const selected = selectInstalledEffectCredentialOperation(recipe, phase, slot);
+      if (selected === undefined) fail('ForeignInstalledEffectReadChild');
+      const operation = (selected.perRow === false ? recipe.memberOperations : recipe.rowOperations)
+        [selected.operationIndex].operation;
+      // Only a target occurrence consumes this same row's retained approval
+      // grant. Metadata slots require their OWN Account read authorization;
+      // that original is validated again by the existing Credential child.
+      const originalAuthorization = selected.resource === undefined && selected.perRow !== false &&
+          originalTargetAuthorization !== undefined
+        ? originalTargetAuthorization(authorization, rowIndex) : authorization;
       if (input?.grant !== originalAuthorization?.grant || input.useId === undefined ||
           !Number.isSafeInteger(input.maxResponseBytes) || input.maxResponseBytes < 1 ||
           input.maxResponseBytes > selected.maxResponseBytes) fail('ForeignInstalledEffectReadChild');
       return physicalOperations({member, rowIndex, phase, operation, site, originalAuthorization,
-        useId: input.useId, resource: member.resource,
-        purpose: selected.perRow === false ? 'read' : 'target-read',
+        useId: input.useId, resource: selected.resource ?? member.resource,
+        purpose: selected.perRow === false || selected.resource !== undefined ? 'read' : 'target-read',
+        credentialSlot: slot,
         runInvocationCid, dispatchRequestCid, assertCurrent, signal,
         maxResponseBytes: input.maxResponseBytes,
-        invoke: ({authorization, credential, callResource}) => callResource({...input,
-          ...credential, ...authorization, maxRequestBytes: selected.maxRequestBytes})});
+        invoke: async ({authorization, credential, callResource}) => {
+          const response = await callResource({...input,
+            ...credential, ...authorization, maxRequestBytes: selected.maxRequestBytes});
+          // Native decoding must finish INSIDE the original physical child.
+          // Its response workspace cannot shrink while projection is pending.
+          return project === undefined ? response : requireSynchronousEffectResource(project(response));
+        }});
     };
   };
   const describeMember = async ({member, physicalOperations, operationPhase, runInvocationCid,
@@ -1779,11 +1795,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const {owned} = ownerOf(member);
     assertCurrent?.();
     const readChild = managedReadChild({member, phase: `${operationPhase}-target`,
-      physicalOperations, runInvocationCid, dispatchRequestCid, assertCurrent, signal});
+      physicalOperations, runInvocationCid, dispatchRequestCid, assertCurrent, signal,
+      originalTargetAuthorization: read.consumeOriginal});
     const observed = await owned.observeTargets({member, entries, current,
       authorizationForRow: read.authorizationForRow, signal,
       ...(readChild === undefined ? {} : typeof readChild === 'function' ? {
-        readChild: (authorization, input, rowIndex) => readChild(read.consumeOriginal(authorization, rowIndex), input, rowIndex)
+        readChild
       } : {ownedReadChild: readChild.owned}),
       ...resourceFields(member)});
     assertCurrent?.();

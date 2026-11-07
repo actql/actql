@@ -23,6 +23,25 @@ export class HubSpotAccountObservationFailure extends Error {
   }
 }
 
+// Same Native identity decoder for Source and installed Effect reads. HTTP
+// acceptance, original current/accounting and response custody stay with the
+// invoking physical owner; this pure projection grants no access.
+export function projectHubSpotAccountIdentity({moon, body, originalPortalId, limits}) {
+  const projected = JSON.parse(moon.hubspotRecheckAccountIdentityJson(body, originalPortalId,
+    limits.maxResponseBytes, limits.maxNodes, limits.maxDepth));
+  if (projected.refused !== undefined) {
+    throw Object.assign(new Error('HubSpotAccountIdentityRefused'), {
+      code: 'HubSpotAccountIdentityRefused', refusal: projected.refused});
+  }
+  if (projected.account === null || typeof projected.account !== 'object' ||
+      Object.keys(projected.account).sort().join(',') !== 'portalId,responseSha256' ||
+      projected.account.portalId !== originalPortalId ||
+      !/^[0-9a-f]{64}$/u.test(projected.account.responseSha256 ?? '')) {
+    fail('InvalidHubSpotAccountProjection');
+  }
+  return Object.freeze(projected.account);
+}
+
 export async function observeHubSpotAccount({moon, originalPortalId,
   authorization, credential, limits, current, chargeResponse, consumeObservation,
   signal, callResource = callHttpsCredentialResource}) {
@@ -64,23 +83,12 @@ export async function observeHubSpotAccount({moon, originalPortalId,
     if (!accepted) {
       fail('HubSpotAccountObservationRejected');
     }
-    const projected = JSON.parse(project(response.body, originalPortalId,
-      context.limits.maxResponseBytes, context.limits.maxNodes, context.limits.maxDepth));
-    if (projected.refused !== undefined) {
-      const cause = Object.assign(new Error('HubSpotAccountIdentityRefused'), {
-        code: 'HubSpotAccountIdentityRefused', refusal: projected.refused});
-      throw cause;
-    }
-    if (projected.account === null || typeof projected.account !== 'object' ||
-        Object.keys(projected.account).sort().join(',') !== 'portalId,responseSha256' ||
-        typeof projected.account.portalId !== 'string' ||
-        !/^[0-9a-f]{64}$/u.test(projected.account.responseSha256 ?? '')) {
-      fail('InvalidHubSpotAccountProjection');
-    }
+    const identity = projectHubSpotAccountIdentity({moon: {hubspotRecheckAccountIdentityJson: project},
+      body: response.body, originalPortalId, limits: context.limits});
     await context.callbacks.consumeObservation(charge);
     await context.callbacks.current();
     signal?.throwIfAborted();
-    return Object.freeze({identity: Object.freeze(projected.account), response});
+    return Object.freeze({identity, response});
   } catch (cause) {
     throw new HubSpotAccountObservationFailure(cause, response);
   }

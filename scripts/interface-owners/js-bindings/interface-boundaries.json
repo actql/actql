@@ -77482,7 +77482,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3ecfe7ba11a760c4b8dadc3bc145da31248371d50443b1fb34538f5278c8c7f1",
+      "sha256": "ab8ccde03641b8bc52369426f7529eabdad684268ab3286e557f9ea3daad2497",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -78678,7 +78678,8 @@
             "runInvocationCid",
             "dispatchRequestCid",
             "assertCurrent",
-            "signal"
+            "signal",
+            "originalTargetAuthorization"
           ],
           "async": false
         },
@@ -78693,9 +78694,7 @@
         {
           "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
           "parameters": [
-            "originalAuthorization",
-            "input",
-            "rowIndex"
+            "entry"
           ],
           "async": false
         },
@@ -78706,17 +78705,21 @@
             "credential",
             "callResource"
           ],
-          "async": false
+          "async": true
         },
         {
-          "name": "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild#2",
           "parameters": [
-            "entry"
+            "authorization",
+            "input",
+            "rowIndex",
+            "slot",
+            "project"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/managedReadChild/managedReadChild/selected/selected",
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
           "parameters": [
             "entry"
           ],
@@ -78776,15 +78779,6 @@
             "dispatchRequestCid"
           ],
           "async": true
-        },
-        {
-          "name": "createRowEffectStage/observeRows/observeRows/observed/observed",
-          "parameters": [
-            "authorization",
-            "input",
-            "rowIndex"
-          ],
-          "async": false
         },
         {
           "name": "createRowEffectStage/observeRows/observeRows/observeRows",
@@ -79067,7 +79061,8 @@
             "assertCurrent",
             "signal",
             "maxResponseBytes",
-            "constructChild"
+            "constructChild",
+            "credentialSlot"
           ],
           "async": true
         },
@@ -79096,13 +79091,6 @@
         {
           "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
-          "parameters": [
-            "entry"
-          ],
           "async": false
         },
         {
@@ -80758,7 +80746,6 @@
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#3",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
-            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
             "createRowEffectStage/prepareManagedPlan/prepareManagedPlan",
             "deriveInstalledRowWrite/init:checkRequest/init:checkRequest"
           ],
@@ -81852,7 +81839,6 @@
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
             "createRowEffectStage/managedReadChild/managedReadChild/ownedRead/ownedRead",
-            "createRowEffectStage/managedReadChild/managedReadChild/selected/selected",
             "createRowEffectStage/memberDispatch/memberDispatch",
             "createRowEffectStage/membersOf/membersOf",
             "createRowEffectStage/membersOf/membersOf/members/members",
@@ -81860,7 +81846,6 @@
             "createRowEffectStage/membersOf/membersOf/membersOf#2",
             "createRowEffectStage/observeRows/observeRows",
             "createRowEffectStage/observeRows/observeRows/observeRows",
-            "createRowEffectStage/observeRows/observeRows/observed/observed",
             "createRowEffectStage/openLedger/openLedger",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
@@ -86872,6 +86857,74 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
                 "anchor": "test \"recovered input control vector follows actual members independently of future row operations\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Verification:"
               }
             ]
           }

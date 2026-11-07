@@ -4,14 +4,15 @@
   "declarations": [
     {
       "module": "adapters/connectors/hubspot/site/hubspot-account-read.mjs",
-      "sha256": "0160982a25c49430385f0f5f66aea70527c81e22130e569e774ef66e10501133",
+      "sha256": "f3cd2b2cca9a68948158173424b751ab45d74a4c99b171564f6bafcd2208b0d4",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing HubSpot Source/Decode projection and Credential/Account/RowRun owners",
       "exports": [
         "HUBSPOT_ACCOUNT_DETAILS_OPERATION",
         "HubSpotAccountObservationFailure",
-        "observeHubSpotAccount"
+        "observeHubSpotAccount",
+        "projectHubSpotAccountIdentity"
       ],
       "operations": [
         {
@@ -70,6 +71,16 @@
           "name": "positive/positive",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectHubSpotAccountIdentity",
+          "parameters": [
+            "moon",
+            "body",
+            "originalPortalId",
+            "limits"
           ],
           "async": false
         }
@@ -185,8 +196,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "projectHubSpotAccountIdentity"
+          ],
+          "exports": [
+            "projectHubSpotAccountIdentity"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../site-node/https-credential-resource.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/hubspot/site/hubspot-object-read.mjs",
@@ -1512,6 +1599,644 @@
             "verification": [
               {
                 "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/hubspot/host/hubspot-update-request.mjs",
+      "sha256": "ea9e82c940b34119f1fa729fb79ee24be49f1115677e44df219ab3a6962c01d4",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing HubSpot Native request/target decoders and common installed row Effect",
+      "exports": [
+        "createHubSpotUpdateRequestAdapter"
+      ],
+      "operations": [
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter",
+          "parameters": [
+            "moon",
+            "origin",
+            "portalId",
+            "connectorId",
+            "installedFor",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/assertFinalized/assertFinalized",
+          "parameters": [
+            "request",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#2",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#3",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#4",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#5",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#6",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/finalize/finalize",
+          "parameters": [
+            "request",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/get/get",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/init:requestFacts/init:requestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/init:restore/init:restore",
+          "parameters": [
+            "member",
+            "wire",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/installed/installed",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/installed/installed/installed",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/native/native",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/prepare/prepare",
+          "parameters": [
+            "member",
+            "value",
+            "selector"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/savedWire/savedWire",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "encode/encode",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "exact/exact",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "method/method",
+          "parameters": [
+            "receiver",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "method/method/method",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own/own",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own/own#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "cid/cid",
+            "createHubSpotUpdateRequestAdapter",
+            "createHubSpotUpdateRequestAdapter/assertFinalized/assertFinalized",
+            "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter",
+            "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#2",
+            "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#3",
+            "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#4",
+            "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#5",
+            "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#6",
+            "createHubSpotUpdateRequestAdapter/finalize/finalize",
+            "createHubSpotUpdateRequestAdapter/get/get",
+            "createHubSpotUpdateRequestAdapter/init:requestFacts/init:requestFacts",
+            "createHubSpotUpdateRequestAdapter/init:restore/init:restore",
+            "createHubSpotUpdateRequestAdapter/installed/installed",
+            "createHubSpotUpdateRequestAdapter/installed/installed/installed",
+            "createHubSpotUpdateRequestAdapter/native/native",
+            "createHubSpotUpdateRequestAdapter/prepare/prepare",
+            "createHubSpotUpdateRequestAdapter/savedWire/savedWire",
+            "encode/encode",
+            "exact/exact",
+            "fail/fail",
+            "method/method",
+            "method/method/method",
+            "own/own",
+            "own/own/own",
+            "own/own/own#2"
+          ],
+          "exports": [
+            "createHubSpotUpdateRequestAdapter"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/hubspot/host/hubspot-update-observations.mjs",
+      "sha256": "b148ac6d0d9a07087c9cd962ef9ef3fa61edd604b854181ae98a9f9db08bf1f2",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing HubSpot Native request/target decoders and common installed row Effect",
+      "exports": [
+        "HubSpotUpdateObservationFailure",
+        "createHubSpotUpdateObservationAdapter"
+      ],
+      "operations": [
+        {
+          "name": "capture/capture",
+          "parameters": [
+            "object",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "capture/capture/capture",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter",
+          "parameters": [
+            "moon",
+            "portalId",
+            "installedFor",
+            "requests",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/account/account",
+          "parameters": [
+            "read",
+            "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/account/account/account",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/catalog/catalog",
+          "parameters": [
+            "read",
+            "slot",
+            "original",
+            "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/catalog/catalog/catalog",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter#3",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/init:describe/init:describe",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/init:observeTargets/init:observeTargets",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/init:observeTargets/init:observeTargets/observed/observed",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/scope/scope",
+          "parameters": [
+            "authorizationFor",
+            "readChild",
+            "verify",
+            "signal",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/scope/scope/current/current",
+          "parameters": [
+            "slot"
+          ],
+          "async": true
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope/input/input",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope/result/result",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope#2",
+          "parameters": [
+            "slot",
+            "operation",
+            "method",
+            "path",
+            "body",
+            "rowIndex",
+            "project"
+          ],
+          "async": true
+        },
+        {
+          "name": "createHubSpotUpdateObservationAdapter/selected/selected",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "encode/encode",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "HubSpotUpdateObservationFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment/segment",
+          "parameters": [
+            "unit"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/http-exchange.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../site/hubspot-account-read.mjs",
+        "../site/hubspot-object-read.mjs",
+        "../site/hubspot-target-read.mjs",
+        "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capture/capture",
+            "capture/capture/capture",
+            "cid/cid",
+            "createHubSpotUpdateObservationAdapter",
+            "createHubSpotUpdateObservationAdapter/account/account",
+            "createHubSpotUpdateObservationAdapter/account/account/account",
+            "createHubSpotUpdateObservationAdapter/catalog/catalog",
+            "createHubSpotUpdateObservationAdapter/catalog/catalog/catalog",
+            "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter",
+            "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter#2",
+            "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter#3",
+            "createHubSpotUpdateObservationAdapter/init:describe/init:describe",
+            "createHubSpotUpdateObservationAdapter/init:observeTargets/init:observeTargets",
+            "createHubSpotUpdateObservationAdapter/init:observeTargets/init:observeTargets/observed/observed",
+            "createHubSpotUpdateObservationAdapter/scope/scope",
+            "createHubSpotUpdateObservationAdapter/scope/scope/current/current",
+            "createHubSpotUpdateObservationAdapter/scope/scope/scope",
+            "createHubSpotUpdateObservationAdapter/scope/scope/scope/input/input",
+            "createHubSpotUpdateObservationAdapter/scope/scope/scope/result/result",
+            "createHubSpotUpdateObservationAdapter/scope/scope/scope#2",
+            "createHubSpotUpdateObservationAdapter/selected/selected",
+            "encode/encode",
+            "fail/fail",
+            "HubSpotUpdateObservationFailure/constructor:constructor/constructor:constructor",
+            "segment/segment",
+            "segment/segment/segment"
+          ],
+          "exports": [
+            "HubSpotUpdateObservationFailure",
+            "createHubSpotUpdateObservationAdapter"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Verification:"
               }
             ]
