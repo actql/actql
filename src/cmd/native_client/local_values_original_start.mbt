@@ -105,6 +105,9 @@ fn local_execute_original_publish_values(
   let (row_limits, limits) = work
     .publication_limits(payload_limit)
     .unwrap_or_else(() => stop("LocalValuesPublicationLimit"))
+  let (bridge_entries, evidence_entries) = work
+    .publication_entry_limits()
+    .unwrap_or_else(() => stop("LocalValuesPublicationLimit"))
   work
   .publication_invocation(65536, 8192, 64)
   .unwrap_or_else(() => stop("LocalValuesPublicationEvidenceUnavailable"))
@@ -130,18 +133,8 @@ fn local_execute_original_publish_values(
   business._retained_publication_service = Some(service)
   let pending = match
     work.prepare_local_publication(
-      service,
-      results,
-      authoring,
-      intent,
-      occurrence,
-      row_limits,
-      limits.max_result_workspace_entries,
-      65536,
-      limits,
-      65536,
-      8192,
-      64,
+      service, results, authoring, intent, occurrence, row_limits, bridge_entries,
+      65536, limits, 65536, 8192, 64,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -179,7 +172,7 @@ fn local_execute_original_publish_values(
         publisher,
         pending,
         local_utc_now(),
-        limits.max_result_workspace_entries,
+        evidence_entries,
         16,
         1000,
       ) {

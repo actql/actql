@@ -468,3 +468,13 @@ pub fn NativeClientValuesWork::close(self : NativeClientValuesWork) -> Bool {
   self.requirements = None
   true
 }
+
+///|
+/// Borrow the same Plan's bridge and evidence metadata limits separately from
+/// Result row workspace. This issues no Start, Read or publication authority.
+pub fn NativeClientValuesWork::publication_entry_limits(
+  self : NativeClientValuesWork,
+) -> (Int, Int)? {
+  guard self.requirements is Some(original) else { return None }
+  original.publication_entry_limits(self.prepared)
+}
