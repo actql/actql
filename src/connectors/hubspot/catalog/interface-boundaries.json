@@ -110,6 +110,91 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/hubspot/catalog/mapping_initialization_construction.mbt",
+      "sha256": "9d9f838ffdae4cd542100f54201db127cbb83ec30dafede538f657f5eb74fff7",
+      "exports": [],
+      "operations": [
+        {
+          "name": "execution_mapping_construction_capacity",
+          "declaration": "execution_mapping_construction_capacity ( field_count : Int , source_count : Int , input_units : Int64 , limits : MappingLimits , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing HubSpot Catalog/Mapping constructor and same Common Resource issuer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "execution_mapping_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

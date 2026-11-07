@@ -1116,6 +1116,56 @@ function createInstalledSourceContext(original, material, installation, connecto
       scope.borrowedDeclaration = source.scope;
       return prepared;
     },
+    // Native connector producers already own and fund complete canonical
+    // Mapping DATA. Retain those exact originals beside this SAME Common
+    // declaration; Common still admits every Mapping at Program preparation.
+    prepareNativeMappings(declared, mappingOriginals) {
+      if (this !== context || scope.role !== 'effect' || !scope.active ||
+          scope.prepared?.declaration === undefined || scope.source !== undefined ||
+          scope.prepared.declared !== declared ||
+          scope.mappingsAttempted || scope.prepared.mappings !== undefined ||
+          scope.prepared.commands !== undefined || material.phase !== 'working' || material.busy ||
+          !Array.isArray(mappingOriginals) || nodeTypes.isProxy(mappingOriginals) ||
+          !Object.isFrozen(mappingOriginals) || mappingOriginals.length === 0) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      const prepared = scope.prepared;
+      for (let index = 0; index < mappingOriginals.length; index++) {
+        const entry = Object.getOwnPropertyDescriptor(mappingOriginals, String(index));
+        const value = entry?.value;
+        if (!entry || !Object.hasOwn(entry, 'value') || !nativeInputOriginals.has(value) ||
+            !Object.isFrozen(value)) fail('ForeignInstalledSourceInitialization');
+        const fields = Object.getOwnPropertyDescriptors(value);
+        for (const key of ['resource', 'mappingRef', 'mappingCid', 'body']) {
+          const field = fields[key];
+          if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'string') {
+            fail('InvalidInstalledEffectMappings');
+          }
+        }
+      }
+      scope.mappingsAttempted = true;
+      const mappingNodes = 1n + 6n * BigInt(mappingOriginals.length);
+      reserveSource(original, material, mappingNodes);
+      if (!scope.active || scope.prepared !== prepared || scope.source !== undefined ||
+          material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      let mappings;
+      material.busy = true;
+      try {
+        mappings = Object.freeze(Array.prototype.map.call(mappingOriginals, value => Object.freeze({
+          resource: value.resource, mappingRef: value.mappingRef,
+          mappingCid: value.mappingCid, body: value.body})));
+        material.inputs.push(mappingOriginals, mappings);
+        material.nodes += mappingNodes;
+      } finally {material.busy = false;}
+      const environment = prepareSourceEnvironment(prepared.declared,
+        Array.prototype.map.call(mappingOriginals, value => value.body));
+      if (!scope.active || scope.prepared !== prepared || scope.source !== undefined ||
+          material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      scope.prepared = Object.freeze({...prepared, mappings, environment});
+      material.inputs.push(scope.prepared);
+      reconcileSource(original, material);
+      return scope.prepared;
+    },
     prepareMappings(writesJson, writes) {
       if (this !== context || !scope.active || scope.prepared === undefined ||
           scope.role !== 'effect' || scope.source !== undefined || scope.mappingsAttempted ||
@@ -1502,6 +1552,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
     prepareAuthoredDeclaration: prepare('prepareAuthoredDeclaration'),
     prepareBorrowedDeclaration: prepare('prepareBorrowedDeclaration'),
     prepareMappings: prepare('prepareMappings'),
+    prepareNativeMappings: prepare('prepareNativeMappings'),
     prepareDeclaredCommands: prepare('prepareDeclaredCommands'),
     prepareAuthoredCommands: prepare('prepareAuthoredCommands'),
     prepareDerivedDeclaredCommands: prepare('prepareDerivedDeclaredCommands'),

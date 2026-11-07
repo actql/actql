@@ -1374,6 +1374,150 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/hubspot/host/hubspot-effect-mappings.mjs",
+      "sha256": "9f90e8c6ab24bda39678f40e85a2bbd9723be9b5253e4f5b15e011db0f770dc1",
+      "exports": [
+        "prepareInstalledHubSpotUpdateMappings"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "method/method",
+          "parameters": [
+            "receiver",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "method/method/method",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledHubSpotUpdateMappings",
+          "parameters": [
+            "construction",
+            "moon",
+            "providerMoon",
+            "connectorId",
+            "declared",
+            "catalogFor",
+            "writes",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledHubSpotUpdateMappings/bounds/bounds",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledHubSpotUpdateMappings/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledHubSpotUpdateMappings/prepareInstalledHubSpotUpdateMappings",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Source/Effect initialization and HubSpot Mapping producer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "method/method",
+            "method/method/method",
+            "prepareInstalledHubSpotUpdateMappings",
+            "prepareInstalledHubSpotUpdateMappings/bounds/bounds",
+            "prepareInstalledHubSpotUpdateMappings/init:project/init:project",
+            "prepareInstalledHubSpotUpdateMappings/prepareInstalledHubSpotUpdateMappings"
+          ],
+          "exports": [
+            "prepareInstalledHubSpotUpdateMappings"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

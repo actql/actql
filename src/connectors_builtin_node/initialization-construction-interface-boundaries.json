@@ -3,12 +3,16 @@
   "declarations": [
     {
       "module": "src/connectors_builtin_node/client_hubspot_initialization_bridge.mbt",
-      "sha256": "4f42a64712a1ad8cb5010c18d89929cfb9b09e863cd699bb3b80ad9e30a078af",
+      "sha256": "3bd0fc6e9609efe997d938d5214123b3619a0e87fe8f0c02b00480a338f22d56",
       "exports": [],
       "operations": [
         {
           "name": "client_program_hubspot_account_construction_capacity",
           "declaration": "client_program_hubspot_account_construction_capacity ( body_bytes : Int , encoded_units : Int , portal_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_hubspot_mapping_construction_capacity",
+          "declaration": "client_program_hubspot_mapping_construction_capacity ( fields : Int , sources : Int , input_units : Int64 , max_properties : Int , max_fields : Int , max_name_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_hubspot_object_construction_capacity",
@@ -23,6 +27,7 @@
           "operations": [
             "<module>",
             "client_program_hubspot_account_construction_capacity",
+            "client_program_hubspot_mapping_construction_capacity",
             "client_program_hubspot_object_construction_capacity"
           ],
           "exports": [],

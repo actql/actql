@@ -5,6 +5,34 @@
 // capacity, declaration, account or observation crosses this bridge.
 
 ///|
+#export_name("clientProgramHubSpotMappingConstructionCapacity")
+pub fn client_program_hubspot_mapping_construction_capacity(
+  fields : Int,
+  sources : Int,
+  input_units : Int64,
+  max_properties : Int,
+  max_fields : Int,
+  max_name_bytes : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  @hubspot_catalog.execution_mapping_construction_capacity(
+    fields,
+    sources,
+    input_units,
+    {
+      max_properties,
+      max_fields,
+      max_name_bytes,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    },
+  )
+}
+
+///|
 #export_name("clientProgramHubSpotAccountConstructionCapacity")
 pub fn client_program_hubspot_account_construction_capacity(
   body_bytes : Int,

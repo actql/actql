@@ -127610,7 +127610,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "ba6eba0f710ef5f0ff4eae835ecde613fabf8685982989f9c6817bd862da38e4",
+      "sha256": "e59c81c82eeceafc63c983f42cce210d54a11079446e48652af6b12a66eda680",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -128290,6 +128290,28 @@
           "name": "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput",
           "parameters": [
             "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings",
+          "parameters": [
+            "declared",
+            "mappingOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/environment/environment",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/init:prepareNativeMappings",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -130312,6 +130334,76 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Normal Table same-Request reader"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings",
+            "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/environment/environment",
+            "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/init:prepareNativeMappings"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Verification:"
               }
             ]
           }
