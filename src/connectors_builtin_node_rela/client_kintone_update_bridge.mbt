@@ -298,3 +298,68 @@ pub fn client_program_kintone_update_effect_outcome_response_sha256(
 ) -> String {
   @kintone_catalog.record_update_effect_outcome_response_sha256(value)
 }
+
+// Same Common issuer's native UPDATE constructor quantities. These private
+// DATA ports do not reserve, authorize, admit a target or acknowledge cleanup.
+
+///|
+#export_name("clientProgramKintoneUpdateProposalConstructionCapacity")
+pub fn client_program_kintone_update_proposal_construction_capacity(
+  mapping : @kintone_host.RecordUpdateMapping,
+  max_input_bytes : Int,
+  write : @kintone_catalog.RecordWriteLimits,
+  request : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_update_proposal_construction_capacity(
+    mapping, max_input_bytes, write, request,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneUpdateFormConstructionCapacity")
+pub fn client_program_kintone_update_form_construction_capacity(
+  mapping : @kintone_host.RecordUpdateMapping,
+  body_bytes : Int,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_update_form_construction_capacity(
+    mapping, body_bytes, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneUpdateTargetConstructionCapacity")
+pub fn client_program_kintone_update_target_construction_capacity(
+  mapping : @kintone_host.RecordUpdateMapping,
+  body_bytes : Int,
+  pages : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_update_target_construction_capacity(
+    mapping, body_bytes, pages, values, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneUpdateFinalizationConstructionCapacity")
+pub fn client_program_kintone_update_finalization_construction_capacity(
+  mapping : @kintone_host.RecordUpdateMapping,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_update_finalization_construction_capacity(
+    mapping, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneUpdateResponseConstructionCapacity")
+pub fn client_program_kintone_update_response_construction_capacity(
+  mapping : @kintone_host.RecordUpdateMapping,
+  body_bytes : Int,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_update_response_construction_capacity(
+    mapping, body_bytes, limits,
+  )
+}

@@ -9319,6 +9319,147 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_update_construction.mbt",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
+      "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
+      "sha256": "2523a5ff74598dc3dc43abe5d84a0e7697b4888f1d0b439307ec66cf0bb26755",
+      "exports": [],
+      "operations": [
+        {
+          "name": "record_update_finalization_construction_capacity",
+          "declaration": "record_update_finalization_construction_capacity ( mapping : RecordUpdateMapping , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_update_finalization_construction_inventory",
+          "declaration": "record_update_finalization_construction_inventory ( mapping : RecordUpdateMapping , limits : @ catalog . RecordMutationLimits , ) - > RecordUpdateConstructionInventory ?"
+        },
+        {
+          "name": "record_update_form_construction_capacity",
+          "declaration": "record_update_form_construction_capacity ( mapping : RecordUpdateMapping , body_bytes : Int , limits : @ catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_update_form_construction_inventory",
+          "declaration": "record_update_form_construction_inventory ( mapping : RecordUpdateMapping , body_bytes : Int , limits : @ catalog . FormFieldLimits , ) - > RecordUpdateConstructionInventory ?"
+        },
+        {
+          "name": "record_update_proposal_construction_capacity",
+          "declaration": "record_update_proposal_construction_capacity ( mapping : RecordUpdateMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_update_proposal_construction_inventory",
+          "declaration": "record_update_proposal_construction_inventory ( mapping : RecordUpdateMapping , max_input_bytes : Int , write : @ catalog . RecordWriteLimits , request : @ catalog . RecordMutationLimits , ) - > RecordUpdateConstructionInventory ?"
+        },
+        {
+          "name": "record_update_response_construction_capacity",
+          "declaration": "record_update_response_construction_capacity ( mapping : RecordUpdateMapping , body_bytes : Int , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_update_response_construction_inventory",
+          "declaration": "record_update_response_construction_inventory ( mapping : RecordUpdateMapping , body_bytes : Int , limits : @ catalog . RecordMutationLimits , ) - > RecordUpdateConstructionInventory ?"
+        },
+        {
+          "name": "record_update_target_construction_capacity",
+          "declaration": "record_update_target_construction_capacity ( mapping : RecordUpdateMapping , body_bytes : Int , pages : @ catalog . RecordPageLimits , values : @ catalog . RecordValueLimits , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_update_target_construction_inventory",
+          "declaration": "record_update_target_construction_inventory ( mapping : RecordUpdateMapping , body_bytes : Int , pages : @ catalog . RecordPageLimits , values : @ catalog . RecordValueLimits , limits : @ catalog . RecordMutationLimits , ) - > RecordUpdateConstructionInventory ?"
+        },
+        {
+          "name": "update_construction_capacity",
+          "declaration": "update_construction_capacity ( inventory : RecordUpdateConstructionInventory , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "update_construction_empty",
+          "declaration": "update_construction_empty ( ) - > @ execution . PreparationRepresentationUnits"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "record_update_finalization_construction_capacity",
+            "record_update_finalization_construction_inventory",
+            "record_update_form_construction_capacity",
+            "record_update_form_construction_inventory",
+            "record_update_proposal_construction_capacity",
+            "record_update_proposal_construction_inventory",
+            "record_update_response_construction_capacity",
+            "record_update_response_construction_inventory",
+            "record_update_target_construction_capacity",
+            "record_update_target_construction_inventory",
+            "update_construction_capacity",
+            "update_construction_empty"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

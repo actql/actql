@@ -187,6 +187,61 @@ Form/target drift, metadata versus target grants, response correlation, lost
 reply and cancellation custody, original Checkpoint binding and cold tampering.
 Explicit component ports do not establish ordinary approval or provider sends.
 
+## UPDATE constructor quantities
+
+Quantities responsibility: the native provider describes its actual proposal,
+Form, target, final PUT and response constructor families. The existing execution
+owner prices representation units; it remains the sole reservation owner.
+
+Quantities inputs and outputs: each phase consumes the same original Mapping
+and its existing parser, value, comparison and writer bounds. Form, target and
+response quantities use the actual received byte count. Returned immutable
+material and construction workspace are separate outputs of the inventory.
+
+Quantities identity: copied Mappings refuse before quotation. Counts do not
+admit values, prove a target, replace a revision or authorize a physical use.
+
+Quantities ownership: the installed Catalog, Mapping, prior proposal/Preview and
+charged physical input remain borrowed. A successful Form recheck returns Unit
+and has zero retained native output. Target output keeps its complete immutable
+index, borrowed String/Span family, original page, checked Values and before wire.
+Its parser/key/ancestry work is separate. Finalization retains its request and
+document; response projection retains only its exact acknowledged result material.
+
+Quantities synchronization: quotation is synchronous DATA inspection, without
+parsing, a new target observation, I/O, current decision or successful admission.
+The original native constructors still execute all their checks afterward.
+
+Quantities failure: invalid limits, copied originals, oversized actual bodies and
+batch substitution refuse. The full failed parse/closed-object prefix remains
+covered; a successful small acknowledgement does not bound malformed input.
+
+Quantities cancellation: these helpers issue no release, cancellation or ACK.
+Running and failed construction retains its complete reserved peak. The existing
+caller may reconcile completed workspace only after the actual original phase
+and its output/fences finish; pending physical custody remains separate.
+
+Quantities resources: CREATE and UPDATE share their existing mapped-write Value
+admission inventory. UPDATE co-counts its unused CREATE writer as workspace,
+never continuing output. Existing Source retained-String/Span and decoder-index
+inventories exclude parser/key-admission scratch from the target output. Encoded
+before/result demand uses bounded source escaping/normalization envelopes while
+the original semantic limits remain unchanged. Execution already includes
+retained material; the two byte quantities must not be added as disjoint use.
+These are logical bounds, not measured heap, RSS, latency or physical funding.
+
+Quantities extension: the same Common issuer's Node and generated RelA ports
+forward the five native phase capacities. Host JSON, saved envelopes, request
+identity, physical response/secret, driver/Mapping installation and operation
+recipe quantities still belong to their respective existing callers. These
+native quantities alone do not complete the standard installed factory.
+
+Quantities verification: focused actual native constructor controls pair each
+phase with its original Form/value/target/request/acknowledgement admission and
+exact wire. Separate invalid/copied/batch/body-bound cases refuse; an unused byte
+ceiling stays neutral without treating wider depth or field bounds as inactive.
+Affected CREATE callers retain their original wire and refusal controls.
+
 ## Original Common acquisition and checked-contract handoff
 
 The connector's record declaration retains the original Form projection and
