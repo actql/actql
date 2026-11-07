@@ -196,7 +196,7 @@ fn request_intent_construction_bytes(
       {
         record_headers: hash.record_headers + 3L,
         reference_slots: hash.reference_slots + 2L,
-        scalar_words: hash.scalar_words + 2L,
+        scalar_words: hash.scalar_words + 3L,
         owned_utf16_units: hash.owned_utf16_units + bytes.to_int64() + 71L,
         owned_wire_bytes: hash.owned_wire_bytes,
       },
@@ -336,7 +336,7 @@ pub fn[I] finish_request_submitted_intent(
   guard @execution.preparation_representation_cost({
       record_headers: 3L,
       reference_slots: 2L,
-      scalar_words: 2L,
+      scalar_words: 3L,
       owned_utf16_units: @publication_host.client_submitted_intent_wire(intent)
       .length()
       .to_int64() +

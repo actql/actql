@@ -146,7 +146,7 @@ pub fn client_submitted_intent_journal_row_body(
   let wire = client_submitted_intent_wire(intent)
   // This physical profile is explicitly finite. Capacity does not classify
   // the caller's Program as invalid or provide permission to retry it.
-  if @utf8.encode(wire).length() > 65536 {
+  if intent.wire_bytes > 65536 {
     return Err(CapacityExceeded)
   }
   if run_state_original is Some(original) &&

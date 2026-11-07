@@ -168,9 +168,7 @@ pub fn[E] prepare_client_submitted_journal_append(
   if validity != @request_scope.Admissible {
     return Err(EpochRejected(validity))
   }
-  let bytes = @utf8.encode(client_submitted_intent_wire(intent))
-    .length()
-    .to_int64()
+  let bytes = intent.wire_bytes.to_int64()
   if count == max_records || bytes > 67108864L - retained_bytes {
     return Err(CapacityExceeded)
   }
