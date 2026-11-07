@@ -910,3 +910,77 @@ test "default Source JSON carries the original input selection through Effect co
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "actual default JSON numeric 100000 keeps its original Request resource cause" {
+  // Use the actual default Local row projection. The generic Query fixture's
+  // independent 1000-row Environment must still refuse larger Values input.
+  let wire = request_numeric_local_environment(
+    @publication_host.client_local_product_assets().environment,
+    client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap(),
+  )
+  let environment = @publication_host.admit_client_check_environment(
+    wire,
+    request_numeric_environment_cid(wire),
+    { text_time: true, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let document = request_native_numeric_public_program(100000)
+  let observed = Ref(0)
+  let (parent, input) = default_document_parent(document, observed)
+  let result = prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(document, "json"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  )
+  match result {
+    Ok(_) => ()
+    Err(Preparation(ProgramJson(Capacity(Resource(issue))))) => {
+      let child = parent.program_json.unwrap()
+      let phase = match child.phase {
+        Preflight => "Preflight"
+        Ready => "Ready"
+        Indexed => "Indexed"
+        RetainedIndex => "RetainedIndex"
+        Inspected => "Inspected"
+        Constructed => "Constructed"
+        RetainedProgram => "RetainedProgram"
+        Transferred => "Transferred"
+        Failed => "Failed"
+        Retired => "Retired"
+      }
+      let held = @resources.ledger_usage(parent.ledger)
+      fail(
+        "same original JSON100000 Resource " +
+        @debug.to_string(issue) +
+        "; phase=" +
+        phase +
+        "; baseR=" +
+        child.base_retained.to_string() +
+        "; baseE=" +
+        child.base_execution.to_string() +
+        "; heldR=" +
+        held.reserved_retention_bytes.to_string() +
+        "; heldE=" +
+        held.reserved_execution_bytes.to_string() +
+        "; nodesObserved=" +
+        observed.val.to_string(),
+      )
+    }
+    Err(_) => fail("same original JSON100000 changed typed failure family")
+  }
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

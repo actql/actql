@@ -40634,7 +40634,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_json_source_layout.mbt",
-      "sha256": "73b4998b5fe4021dce98271475f858b45dba7e6a8cf40c0dc85b0092996327b6",
+      "sha256": "0e607bae4e641c4cabd22fd58ca0d13075f6f9ed4e766ce560752fda98532e83",
       "exports": [],
       "operations": [
         {
@@ -40731,6 +40731,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_document_js_wbtest.mbt",
+                "anchor": "test \"actual default JSON numeric 100000"
               }
             ]
           }
@@ -82263,7 +82267,7 @@
     {
       "module": "src/source_value/json_construction_extent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "503872d2c42455544ddf29581ed0a3bd2bfe2f54155ff8e36eb92e05cd469800",
+      "sha256": "4272ac222041579c34f4c7ef02348b8bbe8a2870dc52df716c350b4432d291bd",
       "role": "common-semantics",
       "owner": "Existing Source Parser and logical constructor inventory",
       "exports": [],
@@ -82281,8 +82285,16 @@
           "declaration": "json_shaped_construction_extent ( max_input_bytes : Int , max_nodes : Int , max_depth : Int , fields : Int , containers : Int , objects : Int , largest_object : Int , strings : Int , normalize_keys ~ : Bool , ) - > JsonConstructionExtent ?"
         },
         {
+          "name": "json_source_geometry_construction_extent",
+          "declaration": "json_source_geometry_construction_extent ( geometry : JsonSourceGeometry , max_nodes : Int , max_depth : Int , ) - > JsonConstructionExtent ?"
+        },
+        {
           "name": "json_source_grammar_construction_extent",
           "declaration": "json_source_grammar_construction_extent ( max_input_bytes : Int , max_nodes : Int , max_depth : Int , ) - > JsonConstructionExtent ?"
+        },
+        {
+          "name": "json_source_grammar_controls",
+          "declaration": "json_source_grammar_controls ( grammar : JsonConstructionExtent , ) - > JsonConstructionExtent"
         }
       ],
       "contracts": [
@@ -82290,9 +82302,11 @@
           "operations": [
             "<module>",
             "json_construction_extent",
-            "json_source_grammar_construction_extent",
             "json_construction_extent_owned",
-            "json_shaped_construction_extent"
+            "json_shaped_construction_extent",
+            "json_source_geometry_construction_extent",
+            "json_source_grammar_construction_extent",
+            "json_source_grammar_controls"
           ],
           "exports": [],
           "attributes": {
@@ -82390,6 +82404,10 @@
               {
                 "path": "src/source_value/json_literal_construction_extent_test.mbt",
                 "anchor": "test \"literal construction bound is pre-read DATA and preserves original parser refusals\""
+              },
+              {
+                "path": "src/source_value/json_observed_construction_wbtest.mbt",
+                "anchor": "test \"observed Source quote keeps canonical Unicode"
               }
             ]
           }
