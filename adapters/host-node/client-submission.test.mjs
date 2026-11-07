@@ -1086,6 +1086,10 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
       prepare() {assert.fail('No Source preparation');}, open() {assert.fail('No Source I/O');}};
     sourceProfile.sources = effectSelection === 'duplicate-owner' ? [adapter] : [adapter, second];
     Object.assign(runtime, {clientProgramEffectAcquisitionCount: () => 2,
+      clientProgramEffectDirectSourceCoordinates(value) {
+        assert.strictEqual(value, prepared);
+        return {$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]};
+      },
       clientProgramSelectInstalledEffectSourceInput(value, request, stage, input) {
         assert.strictEqual(value, prepared); assert.strictEqual(request, requested); assert.equal(input, 0);
         return {$tag: 1, _0: stage === 0 ? sourceRef : secondRef};
