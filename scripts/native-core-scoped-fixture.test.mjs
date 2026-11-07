@@ -5,7 +5,7 @@ import {closeSync, fstatSync, mkdirSync, mkdtempSync, openSync, readSync,
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {nativeCoreOrdinaryProcessFixture, nativeCoreScopedFixture, nativeRelationFileCaptureFixture} from './native-core-scoped-fixture.mjs';
+import {nativeCoreOrdinaryProcessFixture, nativeCoreScopedFixture, nativeRelationFileCaptureFixture, nativeCoreModelFrameFixture} from './native-core-scoped-fixture.mjs';
 
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-scoped-case-fixture-')));
@@ -13,6 +13,26 @@ function fixture(t) {
   return root;
 }
 const libraries = {cryptoLibrary: '/actual/crypto.dylib', sqliteLibrary: '/usr/lib/libsqlite3.dylib'};
+
+test('Model frame fixtures retain real private backings without selecting unused components', t => {
+  const root = fixture(t), environment = nativeCoreModelFrameFixture(root);
+  const path = join(root, 'installed-process');
+  assert.deepEqual(environment, {ACTQL_TEST_INSTALLED_PROCESS_ROOT: path});
+  assert.deepEqual(readdirSync(path).sort(), ['source-frame-left.backing',
+    'source-frame-original.backing', 'source-frame-right.backing']);
+  const page = Number(execFileSync('/usr/bin/getconf', ['PAGESIZE'], {encoding: 'utf8'}).trim());
+  for (const name of readdirSync(path)) {
+    const fd = openSync(join(path, name), 2);
+    try {
+      assert.equal(fstatSync(fd).mode & 0o777, 0o600);
+      assert.equal(fstatSync(fd).size, 64 * page);
+      const original = Buffer.alloc(128, 1);
+      assert.equal(readSync(fd, original, 0, original.length, 0), original.length);
+      assert.deepEqual(original, Buffer.alloc(128));
+    } finally {closeSync(fd);}
+  }
+  assert.throws(() => nativeCoreModelFrameFixture(root), {code: 'EEXIST'});
+});
 
 test('selected physical case inputs use actual pages, exact private backing sizes and original library selections', t => {
   const root = fixture(t);

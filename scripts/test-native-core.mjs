@@ -198,7 +198,7 @@ if (full) {
     const scopedScratch = await createOwnedScratch({parent: join(root, '_build', 'native-core-scoped'),
       prefix: 'profile-', label: 'Native Core scoped compiler', preserve: true});
     const {prepareNativeCoreScopedProfile} = await import('./native-core-scoped-profile.mjs');
-    const {nativeCoreScopedFixture, nativeRelationFileCaptureFixture} = await import('./native-core-scoped-fixture.mjs');
+    const {nativeCoreScopedFixture, nativeRelationFileCaptureFixture, nativeCoreModelFrameFixture} = await import('./native-core-scoped-fixture.mjs');
     const {prepareNativeRuntimeBundleLibraries} = await import('./native-runtime-bundle-fixture.mjs');
     // The scoped component entrance binds its owned API to this executable's
     // provider. Raw system SQLite/OpenSSL remain the ordinary fixture inputs.
@@ -243,6 +243,8 @@ if (full) {
           ? await relationFixture(caseNamespace, relationRuntime)
           : test.source === 'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt'
           ? nativeRelationFileCaptureFixture(caseNamespace)
+          : test.source === 'src/platform_native/installed_arena_control/model_read_frame_physical_scoped_wbtest.mbt'
+          ? nativeCoreModelFrameFixture(caseNamespace)
           : nativeCoreScopedFixture(caseNamespace, {
           cryptoLibrary: components.cryptoLibrary,
           sqliteLibrary: components.sqliteLibrary,

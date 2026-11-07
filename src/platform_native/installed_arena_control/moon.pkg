@@ -14,6 +14,9 @@ import {
 
 import {
   "moonbitlang/core/env",
+  "actql/actql/run_publication_host" @host,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/lowering_relation" @lower,
   "actql/actql/client_local_host" @client,
   "actql/actql/platform_native/client_host" @native_client,
   "actql/actql/platform_native/publication_store" @store,
