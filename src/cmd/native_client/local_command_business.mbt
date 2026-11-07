@@ -52,9 +52,7 @@ priv struct LocalCommandBusinessOriginal {
   mut request_parent : @local_values.ClientRequestPreparation[
     LocalCommandBusinessInput,
   ]?
-  mut request_body : @initial_resources.PreparationBodyBorrow[
-    @run_host.PreparedClientProgram,
-  ]?
+  mut request_body : @local_host.NativeClientSubmittedRequestBody?
   mut request_run : @local_values.ClientInstalledManagedRun?
   mut request_retiring : Bool
   mut operation : @local_host.NativeLocalStoreOperation?

@@ -62,6 +62,10 @@ fn LocalCommandBusinessPreparation::open_values_work(
     !self.original.closed else {
     stop("LocalBusinessOriginalUnavailable")
   }
+  guard @local_host.native_client_submitted_preparation(self.preparation)
+    is Computation(prepared) && self.requirements is Some(requirements) else {
+    stop("LocalValuesExecutionProfileNotSupported")
+  }
   let installed = run.source_free.unwrap_or_else(() => {
     stop("LocalValuesInstallationRequired")
   })
@@ -71,7 +75,7 @@ fn LocalCommandBusinessPreparation::open_values_work(
       self.principal,
       self.connection,
       request,
-      self.prepared,
+      prepared,
       compiled,
       definition,
       self.installed_contracts,
@@ -80,7 +84,7 @@ fn LocalCommandBusinessPreparation::open_values_work(
       installed.ordered_body,
       16,
       1000,
-      requirements=Some(self.requirements),
+      requirements=Some(requirements),
       managed=business.request_run,
     ) {
     Ok(work) => {
@@ -232,7 +236,7 @@ fn LocalCommandPreparationOriginal::close_business_children(
       }
     }
     if business.request_body is Some(holder) {
-      match @initial_resources.return_preparation_body_borrow(holder) {
+      match @local_host.return_native_client_submitted_request_body(holder) {
         Err(_) => return Err(CommandBusinessChildren)
         Ok(_) => business.request_body = None
       }
