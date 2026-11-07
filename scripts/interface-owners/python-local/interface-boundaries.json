@@ -27040,7 +27040,7 @@
           ]
         }
       ],
-      "sha256": "29a6f7b8fef28a03cfb2cc4ad72237150b04e68b8717a108fd432bfa05e50f8e",
+      "sha256": "c6e9868dfe3160c669db65ffff85bfe4df0f02dc0f109c6b5b623c8e7515d42c",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -27204,7 +27204,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "inputsOutputs": [
@@ -27218,7 +27218,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "identity": [
@@ -27236,7 +27236,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "ownership": [
@@ -27254,7 +27254,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "synchronization": [
@@ -27268,7 +27268,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "failure": [
@@ -27286,7 +27286,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "cancellation": [
@@ -27300,7 +27300,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "resources": [
@@ -27318,7 +27318,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "extension": [
@@ -27332,7 +27332,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "verification": [
@@ -27350,7 +27350,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               },
               {
                 "path": "packages/python-sdk/tests/test_local_host_binding.py",
@@ -27371,6 +27371,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_host_binding.py",
                 "anchor": "def test_incomplete_owned_inventory_port_refuses_before_core_binding("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_storage_closed_inventory.py",
+                "anchor": "class ClosedInventoryTests(unittest.TestCase):"
               }
             ]
           }
@@ -27633,7 +27637,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "inputsOutputs": [
@@ -27647,7 +27651,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "identity": [
@@ -27661,7 +27665,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "ownership": [
@@ -27675,7 +27679,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "synchronization": [
@@ -27689,7 +27693,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "failure": [
@@ -27703,7 +27707,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "cancellation": [
@@ -27717,7 +27721,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "resources": [
@@ -27731,7 +27735,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "extension": [
@@ -27745,7 +27749,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "verification": [
@@ -27759,7 +27763,7 @@
               },
               {
                 "path": "docs/design/python-local-abi.md",
-                "anchor": "The installed Host's own adoption/settings inventories use that same direct"
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               },
               {
                 "path": "packages/python-sdk/tests/test_local_host_binding.py",
@@ -27780,6 +27784,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_host_binding.py",
                 "anchor": "def test_incomplete_owned_inventory_port_refuses_before_core_binding("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_storage_closed_inventory.py",
+                "anchor": "class ClosedInventoryTests(unittest.TestCase):"
               }
             ]
           }
@@ -51405,7 +51413,7 @@
           ]
         }
       ],
-      "sha256": "a1153a248a20e73cc0d308c8434216656480907c1c0f98136f36a83cccf68588",
+      "sha256": "e50d2ab49d8d54666ead50c238e125324c79c923d398c09e78c542c4b076366b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -51573,6 +51581,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "inputsOutputs": [
@@ -51611,6 +51623,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "identity": [
@@ -51653,6 +51669,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "ownership": [
@@ -51695,6 +51715,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "synchronization": [
@@ -51733,6 +51757,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "failure": [
@@ -51775,6 +51803,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "cancellation": [
@@ -51813,6 +51845,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "resources": [
@@ -51855,6 +51891,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "extension": [
@@ -51893,6 +51933,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "verification": [
@@ -51963,6 +52007,18 @@
               {
                 "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
                 "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_storage_closed_inventory.py",
+                "anchor": "class ClosedInventoryTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_product_store_observation.py",
+                "anchor": "def test_bounded_observation_quantum_retains_owner_until_core_is_ready("
               }
             ]
           }
@@ -60170,6 +60226,21 @@
         },
         {
           "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/check_inventory",
+          "parameters": [
+            "view",
+            "namespace",
+            "expected",
+            "required_current"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/check_inventory/inventory_fence",
+          "parameters": []
+        },
+        {
+          "async": false,
           "name": "LocalByteStore/_inspect_namespace_locked/current_snapshot",
           "parameters": []
         },
@@ -60204,7 +60275,8 @@
             "after",
             "consume",
             "scan",
-            "required_current"
+            "required_current",
+            "inventory_only"
           ]
         },
         {
@@ -60834,7 +60906,7 @@
           "parameters": []
         }
       ],
-      "sha256": "8637d0d9b4b95c3b859d67ebe13369e6e9e2ca9baa2f00dcc0564be989ec9d60",
+      "sha256": "a797c35410cf0821eefe9ea6d65587479c6b26ac66312d0ff6f54df4824c268a",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -61393,6 +61465,8 @@
             "LocalByteStore/_inspect_namespace_locked/check_fences",
             "LocalByteStore/_inspect_namespace_locked/check_fences_and_current",
             "LocalByteStore/_inspect_namespace_locked/check_frame",
+            "LocalByteStore/_inspect_namespace_locked/check_inventory",
+            "LocalByteStore/_inspect_namespace_locked/check_inventory/inventory_fence",
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
             "LocalByteStore/_inspect_namespace_locked/journal_schema",
@@ -61483,6 +61557,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The borrowed namespace reader reuses shape and bound admission only for the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "inputsOutputs": [
@@ -61501,6 +61579,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "identity": [
@@ -61523,6 +61605,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "ownership": [
@@ -61545,6 +61631,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "synchronization": [
@@ -61567,6 +61657,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The physical connection selects its existing `temp_store = FILE` configuration"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "failure": [
@@ -61589,6 +61683,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "cancellation": [
@@ -61607,6 +61705,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "resources": [
@@ -61629,6 +61731,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "extension": [
@@ -61647,6 +61753,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
               }
             ],
             "verification": [
@@ -61749,6 +61859,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_snapshot_transport.py",
                 "anchor": "def test_same_original_fences_cannot_select_prewrite_facts_in_successor_read("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_storage_closed_inventory.py",
+                "anchor": "class ClosedInventoryTests(unittest.TestCase):"
               }
             ]
           }
