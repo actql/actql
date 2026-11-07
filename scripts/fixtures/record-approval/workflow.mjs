@@ -72,10 +72,17 @@ async function readOriginal(client, value, phase, save) {
 // the separate processes, fresh installation/state, provider snapshot and alive
 // FD observations. This helper does not infer cleanup ACK from process exit.
 export async function runRecordUpdateApprovalPhase({phase, client,
-  definition, load, save, approve}) {
+  definition, createDefinition, load, save, approve}) {
   let failed = false, primary;
   try {
     assert(['capture', 'approve', 'recover'].includes(phase));
+    // A connected consumer can still reject its authored case. Keep that
+    // synchronous construction inside the same failure/close lifetime.
+    if (createDefinition !== undefined) {
+      assert.equal(typeof createDefinition, 'function');
+      assert.equal(definition, undefined, 'Supply one original case entrance');
+      definition = createDefinition();
+    }
     const value = retainCase(definition), originalBinding = binding(value);
     if (phase === 'capture') {
       const program = value.effect;

@@ -2,11 +2,16 @@
 // failure preservation, not provider authentication or ordinary Run acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {spawnSync} from 'node:child_process';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
 import {salesforceUpdateCase, hubspotUpdateCase} from './fixtures/record-approval/cases.mjs';
 import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
 import {mockProjectFiles as salesforceMock} from './fixtures/salesforce-approval/mock-project.mjs';
 import {mockProjectFiles as hubspotMock} from './fixtures/hubspot-approval/mock-project.mjs';
+import {runSalesforceApprovalPhase} from './fixtures/salesforce-approval/workflow.mjs';
+import {runHubSpotApprovalPhase} from './fixtures/hubspot-approval/workflow.mjs';
 
 const cid = mark => 'sha256:' + mark.repeat(64);
 const selection = {recordId: 'record-1', previousName: 'before', nextName: 'after'};
@@ -134,4 +139,87 @@ for (const [connector, builder, resource, idField, valueField] of [
   const rows = JSON.parse(files['mock/data.json'])[connector][resource].rows;
   assert.deepEqual(rows[0], {[idField]: selection.recordId, [valueField]: 'before'});
   assert.equal(rows.length, 2);assert.notEqual(rows[1][idField], selection.recordId);
+});
+
+for (const [connector, runPhase] of [
+  ['salesforce', runSalesforceApprovalPhase], ['hubspot', runHubSpotApprovalPhase],
+]) {
+  for (const [name, invalid] of [
+    ['missing record', {...selection, recordId: undefined}],
+    ['unchanged values', {...selection, nextName: selection.previousName}],
+  ]) test(`shared ${connector} case ${name} closes its connected Client without submission`, async () => {
+    const value = await definition(connector), f = publicDouble(value);
+    await assert.rejects(runPhase({phase: 'capture', ...f, selection: invalid,
+      programs: {update: value.effect.document, read: value.read.document}}), TypeError);
+    assert.deepEqual(f.events, ['close']);
+    assert.equal(f.saved.size, 0);
+  });
+
+  test(`shared ${connector} invalid case retains primary and cleanup failure separately`, async () => {
+    const cleanup = new Error('Original close pending');
+    let closes = 0;
+    await assert.rejects(runPhase({phase: 'capture', selection: {}, programs: {},
+      client: {async close() {closes++; throw cleanup;}}}), error => {
+      assert(error instanceof AggregateError);
+      assert(error.errors[0] instanceof TypeError);
+      assert.strictEqual(error.cause, error.errors[0]);
+      assert.strictEqual(error.errors[1], cleanup);
+      return true;
+    });
+    assert.equal(closes, 1);
+  });
+
+  for (const phase of ['capture', 'recover']) {
+    test(`shared ${connector} ${phase} entry does not load its configured absent approval key`, async t => {
+      // Exercise the exact public-consumer entry in a fresh process. Only its
+      // Client and phase implementation are explicit doubles: no Host, state,
+      // provider, signature, approval or ordinary acceptance is claimed here.
+      const root = await mkdtemp(join(tmpdir(), 'actql-approval-entry-'));
+      t.after(() => rm(root, {recursive: true, force: true}));
+      await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');
+      const dependency = join(root, 'node_modules/@actql/node');
+      await mkdir(dependency, {recursive: true});
+      await writeFile(join(dependency, 'package.json'),
+        '{"name":"@actql/node","type":"module","exports":"./index.mjs"}\n');
+      await writeFile(join(dependency, 'index.mjs'),
+        "import {writeFile} from 'node:fs/promises';" +
+        "export async function connect(){return {async close(){" +
+        "await writeFile(process.env.ACTQL_FIXTURE_CLOSE_MARKER,'closed',{flag:'wx'});}};}\n");
+      const folder = new URL(`./fixtures/${connector}-approval/`, import.meta.url);
+      for (const name of ['run.mjs', 'update.aql', 'read.aql']) {
+        await copyFile(new URL(name, folder), join(root, name));
+      }
+      const exportName = connector === 'salesforce' ? 'runSalesforceApprovalPhase' : 'runHubSpotApprovalPhase';
+      await writeFile(join(root, 'workflow.mjs'),
+        "import assert from 'node:assert/strict';" +
+        `export async function ${exportName}({phase,client,approve}){` +
+        `assert.equal(phase,${JSON.stringify(phase)});assert.equal(typeof approve,'function');` +
+        "await client.close();}\n");
+      await writeFile(join(root, 'consumer.json'), JSON.stringify({selection,
+        connect: {mode: 'local'}, signer: {keyId: 'operator', reviewerId: 'reviewer',
+          privateKeyPath: join(root, 'absent-approval.key')}}));
+      const marker = join(root, 'close-returned');
+      const child = spawnSync(process.execPath, [join(root, 'run.mjs'), phase,
+        join(root, 'consumer.json'), join(root, 'receipt')], {cwd: root,
+        env: {...process.env, NODE_OPTIONS: '', NODE_PATH: '', ACTQL_FIXTURE_CLOSE_MARKER: marker},
+        encoding: 'utf8', timeout: 10000, maxBuffer: 64 * 1024});
+      assert.equal(child.error, undefined);
+      assert.equal(child.status, 0, child.stderr);
+      assert.equal(child.signal, null);
+      assert.equal(await readFile(marker, 'utf8'), 'closed');
+      assert.deepEqual(JSON.parse(child.stdout), {phase, status: 'passed', publicClientClose: 'returned'});
+    });
+  }
+}
+
+test('shared case construction preserves an undefined primary through failing close', async () => {
+  const cleanup = new Error('Original close still pending');
+  await assert.rejects(runRecordUpdateApprovalPhase({phase: 'capture',
+    createDefinition() {throw undefined;}, client: {async close() {throw cleanup;}}}), error => {
+    assert(error instanceof AggregateError);
+    assert.deepEqual(error.errors, [undefined, cleanup]);
+    assert(Object.hasOwn(error, 'cause'));
+    assert.equal(error.cause, undefined);
+    return true;
+  });
 });
