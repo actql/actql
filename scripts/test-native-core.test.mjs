@@ -1888,7 +1888,17 @@ test('full Native Core provisions exact current relation Work inputs and rejects
     assert.equal(result.status === 0, !zero, result.stdout + result.stderr);
     const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
     const physical = calls.slice(3);
-    assert.equal(physical.length, 5);
+    // Preserve the three original root-control cases alongside relation Work.
+    assert.deepEqual(physical.map(call => [call.args.find(arg => arg.startsWith('src/')),
+      call.args[call.args.indexOf('--index') + 1]]), [
+      ['src/cmd/native_client/local_command_business_wbtest.mbt', '0'],
+      ['src/cmd/native_client/local_command_business_cleanup_wbtest.mbt', '0'],
+      ...['0', '1', '2'].map(index =>
+        ['src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt', index]),
+      ['src/platform_native/installed_arena_control/original_read_consumer_scoped_wbtest.mbt', '0'],
+      ['src/platform_native/row_source/capture_physical_scoped_wbtest.mbt', '0'],
+      ['src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt', '0'],
+    ]);
     const selected = physical.find(call => call.args.includes(
       'src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt'));
     assert(selected);
@@ -1902,9 +1912,9 @@ test('full Native Core provisions exact current relation Work inputs and rejects
       assert.equal(call.relationRuntime, undefined);
     }
     assert.deepEqual(physical.map(call => call.profile), ['runtime-values', 'runtime-values',
-      'scoped-review-values', 'scoped-review-values', 'scoped-review-values']);
+      ...Array(6).fill('scoped-review-values')]);
     assert.equal((result.stdout.match(/CURRENT_RELATION_COMPONENT_INPUTS_REQUIRED/gu) ?? []).length, 1);
-    assert.match(result.stdout, /"scoped":5,"physical":4,"repeatedGeometry":1/u);
+    assert.match(result.stdout, /"scoped":8,"physical":7,"repeatedGeometry":1/u);
     assert.equal(existsSync(selected.relationRoot), zero, 'failure preserves originals; no reset or reuse');
     f.verifyExternal();
   }
