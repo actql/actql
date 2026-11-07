@@ -1415,15 +1415,18 @@ const recordCohort = (mode, directory, cohort, authorization) => {
 };
 try {
 if (transport === undefined || transport === 'local') {
-let localAcceptedRuns = 0;
+let localAcceptedRuns = 0, submissionCause;
+try {
+  submissionCause = await observePackedSubmissionCause({boundary: 'local-500', sourceURL: new URL(
+    './adapters/host-node/in-process-client.mjs', import.meta.resolve('@actql/local-node'))});
+} catch { /* A missing diagnostic cannot replace the original test outcome. */ }
+try {
 for (const [index, cohort] of cohorts.entries()) {
   const directory = cohortDirectory(localDirectory, index);
   const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
     ? createRetainedGraphAuthorization() : undefined;
   const physicalDispatches = [];
   const retainedLeases = [];
-  let submissionCause;
-  try {
   await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
     durability: 'durable', installation: {directory,
       sourceProfilePath, hostCapacityPolicy,
@@ -1432,19 +1435,7 @@ for (const [index, cohort] of cohorts.entries()) {
         authorization: observeInputStageStore(
           observeRetainedGraphDispatch(authorization, physicalDispatches),retainedLeases)})}}, {requestPrefix: 'packed-local',
     observe: observe(directory), prepareCase,
-    completedRefusal: async ({name}) => {
-      if (name === 'event-dedupe-exact-direction') {
-        try {
-          submissionCause = await observePackedSubmissionCause({sourceURL: new URL(
-            './adapters/host-node/in-process-client.mjs', import.meta.resolve('@actql/local-node'))});
-        } catch { /* A missing diagnostic cannot replace the original test outcome. */ }
-      } else if (name === 'event-dedupe-missing-null-placement') {
-        await submissionCause?.close();
-        submissionCause = undefined;
-      }
-    },
     completedCase: recordCohort('local', directory, cohort, authorization), ...cohort});
-  } finally {await submissionCause?.close();}
   if (authorization !== undefined) assert.ok(physicalDispatches.includes('physical_start_reserved'),
     'Initial retained execution proves the actual dispatch hook is live');
   verifyInputStageStore(retainedLeases);
@@ -1456,10 +1447,16 @@ for (const [index, cohort] of cohorts.entries()) {
 assert.equal(localAcceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedSourceReads);
 console.log(`packed raw SQL/Pipe Embedded Local ${profileName} acceptance passed`);
+} finally {await submissionCause?.close();}
 }
 if (transport === undefined || transport === 'remote') {
 const beforeRemote = sourceIo;
-let remoteAcceptedRuns = 0;
+let remoteAcceptedRuns = 0, submissionCause;
+try {
+  submissionCause = await observePackedSubmissionCause({boundary: 'http-500', sourceURL: new URL(
+    './adapters/host-node/client-http.mjs', import.meta.resolve('@actql/local-node'))});
+} catch { /* A missing diagnostic cannot replace the original test outcome. */ }
+try {
   for (const [index, cohort] of cohorts.entries()) {
     const directory = cohortDirectory(remoteDirectory, index);
     const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
@@ -1503,6 +1500,7 @@ let remoteAcceptedRuns = 0;
   assert.equal(remoteAcceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
   console.log(`packed raw SQL/Pipe HTTP ${profileName} acceptance passed`);
+} finally {await submissionCause?.close();}
 }
   if (!scopeOnly && profileName === 'standard' &&
       (transport === undefined || transport === 'tail')) await exerciseExactPhysicalTargets();
