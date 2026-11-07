@@ -36450,7 +36450,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "627f265ad9dd5b394b6018402b2484620c04a310e670366f54732bd98d8589d0"
+      "sha256": "1cf4fb93f0edf1a2dde5bf87654afcf746e13d26c794f3ca042f4ed99d39324b"
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
@@ -36881,7 +36881,7 @@
     {
       "module": "src/client_local_host/installed_source_read.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "83ec77509f18947b55e2d91d8f19009223e823552ddf356c633ed745da8eafea",
+      "sha256": "09898b7e5515c33b9c07629f52ac0d1419aa859d658c5453198d5f018e514f5d",
       "exports": [],
       "operations": [
         {
@@ -36909,8 +36909,20 @@
           "declaration": "check_installed_source_read_current ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
         },
         {
+          "name": "check_installed_source_read_frame",
+          "declaration": "check_installed_source_read_frame ( value : ClientInstalledSourceRead , frame : @ resources . ImportedChildLedger , ) - > Result [ ClientInstalledSourceReadFrame , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "check_installed_source_read_frame_retained",
+          "declaration": "check_installed_source_read_frame_retained ( observation : ClientInstalledSourceReadFrame , value : ClientInstalledSourceRead , frame : @ resources . ImportedChildLedger , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
           "name": "check_installed_source_read_ledger",
           "declaration": "check_installed_source_read_ledger ( value : ClientInstalledSourceRead , expected : @ resources . Ledger , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "check_installed_source_read_retained_ledger",
+          "declaration": "check_installed_source_read_retained_ledger ( value : ClientInstalledSourceRead , ledger : @ resources . Ledger , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
         },
         {
           "name": "claim_installed_source_read_start",
@@ -37964,7 +37976,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "c4f37af9a15aab839994a3f1d3131e4f32ce1e0d126f38f7e8722dedf94a994b",
+      "sha256": "fbced7b66830e168287f5bb9bbaa8be0aa365f40b9b160260616f3806e5c6dd9",
       "exports": [],
       "operations": [
         {
@@ -38008,6 +38020,10 @@
           "declaration": "installed_whole_source_original ( value : ClientInstalledWholeSourceCapacity , ) - > @ sourceviews . SourceAcquisition"
         },
         {
+          "name": "installed_whole_source_read_capacity_matches",
+          "declaration": "installed_whole_source_read_capacity_matches ( read : ClientInstalledSourceRead , value : ClientInstalledWholeSourceCapacity , acquisition : @ row_source_host . RowInputAcquisition , provider : @ execution . ExecutionCapacity , ) - > Bool"
+        },
+        {
           "name": "prepare_installed_managed_whole_source_plan",
           "declaration": "prepare_installed_managed_whole_source_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
         },
@@ -38037,7 +38053,7 @@
         },
         {
           "name": "start_installed_whole_source_read_rows",
-          "declaration": "start_installed_whole_source_read_rows ( read : ClientInstalledSourceRead , acquisition : @ row_source_host . RowInputAcquisition , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+          "declaration": "start_installed_whole_source_read_rows ( read : ClientInstalledSourceRead , acquisition : @ row_source_host . RowInputAcquisition , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , expected_ledger ? : @ resources . Ledger ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -38062,7 +38078,8 @@
             "select_installed_source_input_graph",
             "start_installed_whole_source_read_rows",
             "installed_row_input_policy",
-            "installed_source_listing_policy"
+            "installed_source_listing_policy",
+            "installed_whole_source_read_capacity_matches"
           ],
           "exports": [],
           "attributes": {
@@ -64905,7 +64922,8 @@
             "[P]preparation_body_usage_isolated",
             "[P]return_preparation_body_borrow",
             "preparation_capacity_phase_is_working",
-            "retire_transferred_preparation"
+            "retire_transferred_preparation",
+            "completed_preparation_retirement"
           ],
           "exports": [],
           "attributes": {
@@ -65256,7 +65274,7 @@
           }
         }
       ],
-      "sha256": "03ba9ade4e089e10b49256a510678b3711e1f6c1f6df080efbe442bb503f485b",
+      "sha256": "27b5cdf686c2c3c7ecdba1ee05861a7decabb7f7dd00b076daa4c949c3372174",
       "exports": [],
       "operations": [
         {
@@ -65366,6 +65384,10 @@
         {
           "name": "[P]return_preparation_body_borrow",
           "declaration": "[ P ] return_preparation_body_borrow ( value : PreparationBodyBorrow [ P ] , ) - > Result [ Bool , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "completed_preparation_retirement",
+          "declaration": "completed_preparation_retirement ( ) - > Result [ Bool , PreparationCapacityIssue ]"
         },
         {
           "name": "preparation_capacity_phase_is_working",
@@ -66126,7 +66148,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "4d441d952b39eab0c06754326ac632e635ab6317698a1b5c160bf779510992c5",
+      "sha256": "d0d821431792a5320363750e08b7a3d7582e28f59f9de52b12ae49dfc4d4d6d6",
       "exports": [],
       "operations": [
         {
@@ -74775,7 +74797,7 @@
     },
     {
       "module": "src/client_local_host/preparation_owned_run.mbt",
-      "sha256": "f496d127d3d87966fbbf9280c9a3681530f789cd0d11ffd29e4ea71c87ddbac1",
+      "sha256": "e6bbfb7cf7666e27a30e904899e41d945a1971082ef47a7585dcc02d1e4fb405",
       "exports": [],
       "operations": [
         {

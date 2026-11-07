@@ -204,6 +204,8 @@ test "Source caller preparation inventory matches independent constructor vector
   // selector each retain one header, reference and scalar: +2H/+2R/+2S.
   // At the existing 16/8/8-byte tariff this adds 64 bytes; neither selector
   // owns text/wire or changes the preceding inventory-evaluation frontier.
+  // Managed input additionally borrows its original read, selected capacity
+  // and provider in the same selector: +3R, or 24 bytes, in every vector.
   for
     (page, path_count, key_count, h, r, s, text, wire, bytes, evaluator_bytes) in [
       (
@@ -216,11 +218,11 @@ test "Source caller preparation inventory matches independent constructor vector
         1,
         0,
         4930L,
-        4275L,
+        4278L,
         13393L,
         997L,
         297L,
-        222515L,
+        222539L,
         23832L,
       ),
       (
@@ -233,11 +235,11 @@ test "Source caller preparation inventory matches independent constructor vector
         1,
         0,
         250530L,
-        590741L,
+        590744L,
         1582531L,
         836435L,
         8488L,
-        23076014L,
+        23076038L,
         23832L,
       ),
       (
@@ -250,11 +252,11 @@ test "Source caller preparation inventory matches independent constructor vector
         16,
         16,
         3937966L,
-        9394545L,
+        9394548L,
         18054027L,
         6874451L,
         65832L,
-        296410766L,
+        296410790L,
         26312L,
       ),
     ] {

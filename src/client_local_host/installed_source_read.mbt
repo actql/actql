@@ -66,6 +66,9 @@ pub fn begin_installed_source_read(
 fn require_installed_source_read_original(
   value : ClientInstalledSourceRead,
 ) -> Result[Unit, ClientInstalledSourceReadIssue] {
+  if value.original is None && value.started && value.ledger is None {
+    return Err(Retired)
+  }
   guard value.original is Some(original) && physical_equal(original, value) else {
     return Err(ForeignOriginal)
   }
@@ -487,6 +490,11 @@ pub fn start_installed_source_read_listing_rows(
 pub fn retire_installed_source_read(
   value : ClientInstalledSourceRead,
 ) -> Result[Unit, ClientInstalledSourceReadIssue] {
+  // The existing consumed bit and absent original/Ledger are set only after
+  // this opaque consumer's actual cleanup below. No new use is admitted.
+  if value.original is None && value.started && value.ledger is None {
+    return Ok(())
+  }
   match require_installed_source_read_original(value) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -514,5 +522,7 @@ pub fn retire_installed_source_read(
   value.ledger = None
   value.child = None
   value.managed_run = None
+  value.started = true
+  value.original = None
   Ok(())
 }

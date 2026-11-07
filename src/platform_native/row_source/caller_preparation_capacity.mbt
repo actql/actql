@@ -36,9 +36,9 @@ pub fn native_relation_file_caller_preparation_inventory(
   @execution.compose_preparation_representation([
     mapping,
     {
-      // Original Query/whole-Source selector before metadata reservation.
+      // The managed selector also borrows its read, capacity and provider.
       record_headers: 3158L + 11L * nodes + 4L * paths,
-      reference_slots: 1223L + 26L * nodes + 4L * paths,
+      reference_slots: 1226L + 26L * nodes + 4L * paths,
       scalar_words: 7285L + 11L * nodes + 8L * paths,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
