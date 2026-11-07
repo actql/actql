@@ -67,7 +67,18 @@ fn local_values_failure_tags(
       )
       7L
     }
-    Export(_) => 8L
+    Export(original) => {
+      emit(
+        12,
+        match original {
+          MissingOutput => 1L
+          UnknownResult => 2L
+          Bridge(_) => 3L
+          Export(cause) => 100L + local_publication_export_tag(cause)
+        },
+      )
+      8L
+    }
     OriginalOperation(_, original) => {
       emit(
         12,
