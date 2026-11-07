@@ -182,28 +182,16 @@ fn begin_row_source_read(
     page_limits.max_rows <= 0 {
     return Err(InvalidPage)
   }
-  let listing = match preparation.file_listing {
-    None => None
-    Some(profile) => {
-      if reference_issuer is None {
-        return Err(Value("resource"))
-      }
-      if listing_rows is None {
-        return Err(ListingLimitUnresolved("max_listing_items"))
-      }
-      let selection = match
-        prepare_row_file_selection(preparation.request, page_limits.max_bytes) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      Some(
-        new_row_listing_progress(
-          @environment.file_listing_limit_candidates(profile),
-          resolved_rows=listing_rows,
-          selection=Some(selection),
-        ),
-      )
-    }
+  let listing = match
+    prepare_row_listing_progress(
+      preparation.file_listing,
+      preparation.request,
+      page_limits.max_bytes,
+      reference_issuer,
+      listing_rows,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   new_row_source_read(
     preparation.owner,
@@ -410,6 +398,7 @@ fn admit_row_source_object(
   item : @decode.Cursor,
   values : @admitted.Limits,
   references? : (@admitted.ReferenceIssuer, @admitted.ReferenceLimits)? = None,
+  listing_retention? : RowListingRetention? = None,
 ) -> Result[Array[@admitted.CheckedValue?], RowSourceIssue] {
   guard @decode.object_field_names(item) is Ok(names) &&
     @decode.open_object(item) is Ok(object) else {
@@ -432,16 +421,54 @@ fn admit_row_source_object(
         cells.push(None)
       }
       Some(cell) => {
-        // Only the trusted Host may supply this capability. Connector JSON
-        // never creates provenance or current authorization by its shape.
-        let admitted = match references {
-          Some((issuer, limits)) =>
-            @admitted.admit_host(issuer, field.contract, cell, values, limits)
-          None => @admitted.admit(field.contract, cell, values)
+        // Restrict construction before admission, including excluded rows.
+        // Both paths call the same original typed owner exactly once.
+        let remaining = match listing_retention {
+          None => values
+          Some(budget) =>
+            {
+              ..values,
+              max_nodes: Int::min(
+                values.max_nodes,
+                budget.max_nodes - budget.nodes,
+              ),
+              max_text_bytes: Int::min(
+                values.max_text_bytes,
+                budget.max_text - budget.text,
+              ),
+            }
         }
-        let checked = match admitted {
+        let admitted = match references {
+          Some((issuer, limits)) => {
+            let reference_limits = match listing_retention {
+              None => limits
+              Some(_) =>
+                {
+                  ..limits,
+                  max_nodes: Int::min(limits.max_nodes, remaining.max_nodes),
+                  max_text_units: Int::min(
+                    limits.max_text_units,
+                    remaining.max_text_bytes,
+                  ),
+                }
+            }
+            @admitted.admit_host_usage(
+              issuer,
+              field.contract,
+              cell,
+              remaining,
+              reference_limits,
+            )
+          }
+          None => @admitted.admit_usage(field.contract, cell, remaining)
+        }
+        let (checked, nodes, text) = match admitted {
           Ok(value) => value
           Err(_) => return Err(Value(name))
+        }
+        if listing_retention is Some(budget) {
+          budget.nodes += nodes
+          budget.text += text
         }
         cells.push(Some(checked))
       }

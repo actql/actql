@@ -1368,7 +1368,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
-      "sha256": "4e6c27d3ce00e8e64a72ea10d5e626cd698b2fe3c6af17dc7374c631d3f0a7fc",
+      "sha256": "37a6bbf7b292b86bdc9783672050b62b2016feba63eeb5a6410fa6433c8cbad3",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -1587,6 +1587,11 @@
           "async": false
         },
         {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/captured/init:originalCapturedInput/init:originalCapturedInput",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectContinuation/init:restore/init:restore/close/close",
           "parameters": [],
           "async": true
@@ -1775,7 +1780,8 @@
             "acquiredEffectContinuation/init:restore/init:restore/custodyAvailable/custodyAvailable",
             "acquiredEffectContinuation/init:restore/init:restore/init:restore#2",
             "acquiredEffectContinuation/init:restore/init:restore/init:restore#3",
-            "acquiredEffectContinuation/init:restore/init:restore/init:restore#4"
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#4",
+            "acquiredEffectContinuation/init:restore/init:restore/captured/init:originalCapturedInput/init:originalCapturedInput"
           ],
           "exports": [
             "acquiredEffectContinuation"

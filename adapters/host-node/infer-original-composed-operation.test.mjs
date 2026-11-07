@@ -668,6 +668,39 @@ test('restored Source projection preserves actual evidence originals in the priv
 });
 
 
+test('Whole composed Source admission forwards original capacities and evidence without Query conversion', () => {
+  const f = fixture(), scope = {}, pin = {};
+  const originals = [{identity: 'source-a', wire: 'source-a-wire'}, {identity: 'source-b', wire: 'source-b-wire'}];
+  const logicals = [{}, {}], sources = [{}, {}], identities = [{}, {}], capacities = [{}, {}], keyed = {}, admitted = {};
+  f.moon.clientProgramRestoredInferSourceOriginals = () => ({$tag: 1,
+    _0: originals.map((source, index) => ({_0: source, _1: logicals[index]}))});
+  f.moon.strategyRunEvidenceIdentity = value => value.identity;
+  f.moon.strategyRunEvidenceJson = value => value.wire;
+  const p = f.originalPreparation;
+  const evidence = p.control.restoredInferSourceOriginals(p.compiled, p.runDefinition, scope, f.occurrence, pin)
+    .map(value => value.source);
+  let calls = 0;
+  f.moon.clientProgramAdmitComposedInferSources = () => {assert.fail('Whole input cannot become a Query requirement');};
+  f.moon.clientProgramAdmitComposedInferWholeSources = (...args) => {
+    calls++;
+    assert.deepEqual(args, [f.occurrence, sources, identities, capacities, logicals, originals, 'scope', 'start', 'end', keyed]);
+    return {$tag: 1, _0: admitted};
+  };
+  const captures = sources.map((source, index) => ({inputKind: 'whole-input', identity: identities[index],
+    wholeCapacity: capacities[index], logicalInput: logicals[index], capture: {source: () => source}}));
+  assert.strictEqual(p.control.admitComposedInferSources(f.occurrence, captures, evidence, 'scope', 'start', 'end', keyed), admitted);
+  assert.equal(calls, 1);
+  const refusal = {};
+  f.moon.clientProgramAdmitComposedInferWholeSources = () => {calls++; return {$tag: 0, _0: refusal};};
+  assert.throws(() => p.control.admitComposedInferSources(f.occurrence, captures, evidence, 'scope', 'start', 'end', keyed),
+    error => error.code === 'MoonBitHostFailure' && error.cause === refusal);
+  assert.equal(calls, 2);
+  delete captures[1].inputKind;
+  assert.throws(() => p.control.admitComposedInferSources(f.occurrence, captures, evidence, 'scope', 'start', 'end', keyed),
+    /Unsupported mixed original Model Source inputs/);
+  assert.equal(calls, 2);
+});
+
 test('restored composed async driver keeps the existing original IO notification through stop and cleanup', async () => {
   const f = originalRestoredFixture(), poll = {}, output = {};
   let retained, advances = 0;

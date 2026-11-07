@@ -8,7 +8,7 @@ import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 const ok = value => ({$tag: 1, _0: value});
 
 function fixture() {
-  const prepared = {}, capacity = {}, ledger = {}, owner = {}, input = {}, read = {}, identity = {}, dag = {};
+  const prepared = {}, capacity = {}, ledger = {}, owner = {}, input = {}, read = {}, identity = {}, dag = {}, borrowedInput = {};
   const sourceIdentity = ['original-program', 'original-parameters', '0', '1', '1', 'original-source'];
   const rows = ['{"id":3}'];
   const calls = [], records = new Map();
@@ -63,6 +63,9 @@ function fixture() {
       assert.strictEqual(originalIdentity, identity); assert.strictEqual(selected, capacity); return ok({});
     },
     clientProgramSourceCaptureOriginalRead(actual) { assert.strictEqual(actual, owner); return read; },
+    clientProgramRestoredWholeSourceCaptureInput(actual) {
+      assert.strictEqual(actual, owner); return ok(borrowedInput);
+    },
     clientProgramSourceCaptureRetainInput(actual, selected, task) {
       assert.strictEqual(actual, owner); assert.strictEqual(selected, dag); assert.equal(task, 0);
       calls.push('retain-input'); return ok();
@@ -93,7 +96,7 @@ function fixture() {
     await restored.prepared([source]);
     return {restored, record: (await restored.beforeRead(source)).retained};
   };
-  return {source, ledger, dag, read, captured, calls, records, save, cold,
+  return {source, capacity, ledger, dag, read, borrowedInput, captured, calls, records, save, cold,
     setWhole(value) {wholeCapacity = value;}, setMissingSource() {missingSource = true;},
     setPending(value) {pendingClose = value;}, revoke() {current = false;},
     retainedCurrent: () => retainedCurrent()};
@@ -107,7 +110,10 @@ test('Whole continuation forwards its original input and receiving Ledger withou
   const {restored, record: retained} = await f.cold(saved);
   const {captured} = restored.restore(f.source, retained, f.ledger);
   assert.equal(captured.inputKind, 'whole-input'); assert(!Object.hasOwn(captured, 'requirement'));
+  assert.strictEqual(captured.wholeCapacity, f.capacity);
   assert.strictEqual(captured.capture.originalRead(), f.read);
+  assert.strictEqual(captured.capture.originalCapturedInput(), f.borrowedInput);
+  assert.throws(() => ({...captured.capture}).originalCapturedInput(), {code: 'SourceCaptureCustodyUnavailable'});
   captured.capture.retainTask(f.dag, 0);
   assert.deepEqual(f.calls, ['export-whole', 'current-authorize', 'restore-whole', 'retain-input']);
   assert.equal(f.retainedCurrent(), true); f.revoke(); assert.equal(f.retainedCurrent(), false);
