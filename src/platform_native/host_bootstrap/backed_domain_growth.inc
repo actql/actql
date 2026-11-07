@@ -29,8 +29,17 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_working_request_status(
 static bool bootstrap_checked_read_current(actql_bootstrap_backing *root,
     actql_bootstrap_domain *domain) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
-    return bootstrap_growth_original(root, domain) && domain->read_context != NULL &&
-        domain->read_user && domain->read_active != 0 &&
+    /* Placement on an existing FD-backed span does not require the anonymous
+     * whole-view growth contract. Bind its actual original mapping/current
+     * Read here; the separate growth entry points keep their own eligibility. */
+    return root != NULL && root->lease != NULL && domain != NULL &&
+        domain->lease != NULL && domain->view != NULL &&
+        domain->view->loan != NULL && domain->view->loan->owner == root &&
+        domain->view->loan->extent != NULL &&
+        domain->view->loan->extent->owner == root &&
+        actql_native_owned_domain_matches_view(domain->lease,
+            &domain->view->view, (int64_t)getpid()) == ACTQL_OWNED_OK &&
+        domain->read_context != NULL && domain->read_user && domain->read_active != 0 &&
         actql_read_context_current() == domain->read_context &&
         actql_native_owned_current() == domain->lease;
 #else
