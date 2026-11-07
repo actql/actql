@@ -542,7 +542,8 @@ export function openRowSourceCredentialCustody({profile, principalId,
       assertCurrent();
       original.binding = openHttpsCredentialBinding({scope: authorization.scope,
         control, journal, resolveSecret, maxSecretBytes: acquisitionLimits.maxSecretBytes,
-        assertCurrent, ...(secretPresentation === undefined ? {} : {secretPresentation})});
+        assertCurrent, ...(secretPresentation === undefined ? {} : {secretPresentation}),
+        ...(resourceParent === undefined ? {} : {originalSecretBinding: resourceParent.credential.binding})});
       issued.state = 'bound';issued.acquisition = original;
     } catch (cause) {
       // No physical binding was returned. Keep the original grant with its
@@ -637,6 +638,8 @@ export function openRowSourceCredentialCustody({profile, principalId,
   }
   // A separately authorized Resource gets its own real binding, never an
   // exemption from readChildCredential's strict same-Resource sharing rule.
+  // Its SAME parent Credential owns the original static-secret pin; separate
+  // grants, current callbacks and child retirement remain mandatory.
   function readResourceParent(acquisition) {
     ensureOpen();
     const retained = runAcquisitions.get(acquisition);
