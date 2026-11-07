@@ -58,6 +58,7 @@ fn local_publication_primary_tags(
         13,
         match original {
           InvalidOutputConfiguration => 1L
+          Preparation(_) => 4L
           Output(cause) | OutputCleanup(cause, _) =>
             100L + local_persisted_export_issue_tag(cause)
           Payload(_) => 2L
@@ -73,6 +74,7 @@ fn local_publication_primary_tags(
         13,
         match original {
           InvalidAssembly => 1L
+          Preparation(_) => 5L
           Manifest(_) => 2L
           Receipt(_) => 3L
           Capture(_) => 4L
@@ -102,6 +104,7 @@ fn local_publication_failure_tags(
     Policy(_) => 2L
     BindingMismatch => 3L
     Invocation(_) => 4L
+    Preparation(_) => 7L
     Service(_) => 5L
     Publication(original) => {
       let cause = match original {

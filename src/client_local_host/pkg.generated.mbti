@@ -1678,6 +1678,7 @@ pub(all) enum LocalValuesResultExportIssue {
   UnknownResult
   Bridge(@execution_relation.ManagedProducerBridgeIssue)
   Export(@run_publication_host.PublicationOutputExportIssue)
+  Transformation(@run_publication_host.CapturedClientResultTransformationIssue)
 }
 
 #external

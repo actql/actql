@@ -146,6 +146,7 @@ pub fn prepare_exported_effect_free_run_publication_native(
   results : Array[NativeCapturedResultPublicationContext],
   intent : NativeRunPublicationIntent,
   occurrence : NativeRunPublicationOccurrence,
+  publication? : @local.ClientProgramPublication? = None,
 ) -> Result[
   NativePreparedCapturedRunPublication,
   NativeCapturedRunPublicationPreparationIssue,
@@ -233,6 +234,7 @@ pub fn prepare_exported_effect_free_run_publication_native(
         service.max_wire_bytes,
         service.max_nodes,
         service.max_depth,
+        publication~,
       ) {
       Ok(value) => published.push(value)
       Err(issue) => {
@@ -258,6 +260,7 @@ pub fn prepare_exported_effect_free_run_publication_native(
       service.max_wire_bytes,
       service.max_nodes,
       service.max_depth,
+      publication~,
     ) {
     Ok(value) => value
     Err(issue) =>

@@ -78,6 +78,7 @@ fn native_publication_workspace_fixture(
 fn native_publication_workspace_component(
   rows : Int,
   check_legacy : Bool,
+  snapshot? : Bool = false,
 ) -> Unit raise {
   let (parent, _input, prepared) = native_publication_workspace_fixture(rows)
   let assets = @publication_host.client_local_product_assets()
@@ -109,6 +110,37 @@ fn native_publication_workspace_component(
     "publication-workspace-component",
   ).unwrap()
   let run = begin_request_program_managed_run(parent, request).unwrap()
+  if snapshot {
+    let plan = run.source_free_preparation.unwrap()
+    let compiled = match plan.compilation.unwrap() {
+      @publication_host.Values(artifact) =>
+        @publication_host.issue_client_values_compiled_run(
+          prepared,
+          artifact,
+          "sha256:" + "a".repeat(64),
+          "sha256:" + "b".repeat(64),
+          "2099-01-01T00:00:00.000Z",
+        ).unwrap()
+      @publication_host.Tasks(artifact) =>
+        @publication_host.issue_client_task_compiled_run(
+          prepared,
+          artifact,
+          "sha256:" + "a".repeat(64),
+          "sha256:" + "b".repeat(64),
+          "2099-01-01T00:00:00.000Z",
+        ).unwrap()
+      _ => fail("pure original compilation required")
+    }
+    let definition = @publication_host.issue_client_compiled_run_definition(
+      compiled, "snapshot-component", "publication-workspace-component", "2026-10-30T00:00:00.000Z",
+      "2099-01-01T00:00:00.000Z",
+    ).unwrap()
+    issue_program_publication_invocation(
+      run, prepared, compiled, definition, "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+      65536, 8192, 64,
+    ).unwrap()
+    |> ignore
+  }
   let setup = open_installed_managed_source_free_host(
       run,
       prepared,
@@ -223,7 +255,7 @@ fn native_publication_workspace_component(
   assert_eq(stream.row_count().unwrap(), rows)
   if !check_legacy {
     // Native persistence reopens the exact identified stream. This is a
-    // second physical traversal, not re-execution or another submission.
+    // second stream traversal, not re-execution or another submission.
     let replay = stream.replay().unwrap()
     let mut replayed_bytes = 0
     while replay.next().unwrap() is Some(chunk) {
@@ -231,6 +263,76 @@ fn native_publication_workspace_component(
     }
     replayed_bytes += @utf8.encode(replay.finish().unwrap()).length()
     assert_eq(replayed_bytes, streamed_bytes)
+  }
+  if snapshot {
+    let publication = reserve_program_publication(run, prepared).unwrap()
+    stream
+    .issue_result_evidence(
+      "sha256:" + "1".repeat(64),
+      [],
+      @publication.publication_contract_identity(
+        run.publication_definition.unwrap(),
+      ),
+      "sha256:" + "4".repeat(64),
+      "sha256:" + "5".repeat(64),
+      65536,
+      8192,
+      64,
+    )
+    .unwrap()
+    |> ignore
+    let retention = @publication.seal_publication_contract(
+      "result_retention_policy",
+      "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"sha256:" +
+      "8".repeat(64) +
+      "\",\"effective_data_policy_cid\":\"sha256:" +
+      "4".repeat(64) +
+      "\",\"available_until\":\"2099-01-01T00:00:00.000Z\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"extension_ceiling_at\":\"2099-01-03T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"sha256:" +
+      "9".repeat(64) +
+      "\",\"metadata_delete_by\":\"2099-01-04T00:00:00.000Z\",\"clock_contract_cid\":\"sha256:" +
+      "a".repeat(64) +
+      "\"}",
+      65536,
+      8192,
+      64,
+    ).unwrap()
+    stream
+    .issue_artifact(
+      run.publication_invocation.unwrap(),
+      retention,
+      65536,
+      8192,
+      64,
+    )
+    .unwrap()
+    |> ignore
+    // Metadata bounds are not a full-row snapshot allowance. Refusal leaves
+    // the same identified original available to its funded continuation.
+    assert_true(stream.admit_captured_snapshot(65536, 8192, 64) is Err(_))
+    let cursor = match begin_program_snapshot(publication, stream) {
+      Ok(value) => value
+      Err(issue) => {
+        let detail = match issue {
+          ForeignOriginal => "ForeignOriginal"
+          WrongPhase => "WrongPhase"
+          Policy => "Policy"
+          Capacity(_) => "Capacity"
+          PublicationSnapshot(InvalidState) => "Snapshot.InvalidState"
+          PublicationSnapshot(Output(_)) => "Snapshot.Output"
+          _ => "Other"
+        }
+        fail("Original funded snapshot: " + detail)
+      }
+    }
+    let mut done = false
+    while !done {
+      let (ready, work) = advance_program_snapshot(cursor, 256).unwrap()
+      assert_true(work <= 256)
+      done = ready
+    }
+    let captured = finish_program_snapshot(cursor).unwrap()
+    assert_true(physical_equal(publication.completed_snapshots[0], captured))
+    assert_true(begin_program_snapshot(publication, stream) is Err(WrongPhase))
   }
   output.close()
   assert_true(execution.close())
@@ -275,4 +377,9 @@ test "Native publication phase entry bounds refuse foreign preparation without c
     is None,
   )
   assert_eq(requirements.maximum_limits(), before)
+}
+
+///|
+test "same original 100000 Result snapshot uses its funded continuation instead of metadata limits" {
+  native_publication_workspace_component(100000, false, snapshot=true)
 }
