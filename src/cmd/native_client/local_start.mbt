@@ -295,15 +295,18 @@ fn local_submission_start(
             @env.now().to_double(),
           ) {
           Ok(value) => value
-          Err(
-            @local_host.Journal(TransactionUnknown)
-            | @local_host.Journal(Epoch(TransactionUnknown))
-            | @local_host.InstallationReadTransactionFailure(
-              _,
-              TransactionUnknown
-            )
-          ) => stop("LocalSubmissionAcceptanceUnknown")
-          Err(_) => stop("LocalSubmissionAcceptanceUnavailable")
+          Err(issue) => {
+            local_report_submission_failure(issue)
+            match issue {
+              @local_host.Journal(TransactionUnknown)
+              | @local_host.Journal(Epoch(TransactionUnknown))
+              | @local_host.InstallationReadTransactionFailure(
+                _,
+                TransactionUnknown
+              ) => stop("LocalSubmissionAcceptanceUnknown")
+              _ => stop("LocalSubmissionAcceptanceUnavailable")
+            }
+          }
         }
       }
     }
