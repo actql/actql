@@ -289,9 +289,24 @@ test "Local Values Effect export keeps original row and field bounds without los
 test "Local Values ordinary Named Result export preserves its canonical payload after shared bridge extraction" {
   let (captured, inputs, execution) = values_effect_export_fixture()
   let (rows, limits) = values_effect_export_test_limits()
-  let value = execution
-    .prepare_result_export(0, rows, 100, 10000, limits)
-    .unwrap()
+  let value = match
+    execution.prepare_result_export(0, rows, 100, 10000, limits) {
+    Ok(value) => value
+    Err(issue) => {
+      let cause = match issue {
+        MissingOutput => "MissingOutput"
+        UnknownResult => "UnknownResult"
+        Bridge(_) => "Bridge"
+        Export(Retain(_)) => "Retain"
+        Export(Output(_)) => "Output"
+        Export(_) => "Export"
+        Transformation(ForeignSelection) => "Transformation.ForeignSelection"
+        Transformation(InvalidState) => "Transformation.InvalidState"
+        Transformation(_) => "Transformation.Other"
+      }
+      fail("Original ordinary Named Result export: " + cause)
+    }
+  }
   let stream = value.output_export()
   let mut wire = ""
   while stream.next().unwrap() is Some(batch) {

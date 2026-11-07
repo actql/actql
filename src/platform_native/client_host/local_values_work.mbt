@@ -399,7 +399,12 @@ pub fn NativeClientValuesWork::prepare_result_export(
   }
   let output = match
     self.execution.prepare_result_export(
-      result_index, row_limits, max_entries, max_name_bytes, limits,
+      result_index,
+      row_limits,
+      max_entries,
+      max_name_bytes,
+      limits,
+      publication=self.publication,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Export(issue))
