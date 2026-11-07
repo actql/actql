@@ -43,7 +43,7 @@ def unit(symbol: str, name: str) -> str:
     if name in {'max_slots', 'attempts', 'holdings', 'count',
                 'reserved_attempts', 'live_reservations', 'live_delegations'}:
         return 'count in ' + symbol + '; original named collection/chunk bounds'
-    if name == 'offset':
+    if name == 'offset' or name.endswith('_offset'):
         return 'private bounded wasm32 payload offset; synchronous same-instance memory borrow only'
     if name in {'start', 'index', 'byte'}:
         return ('byte value0..255' if name == 'byte' else

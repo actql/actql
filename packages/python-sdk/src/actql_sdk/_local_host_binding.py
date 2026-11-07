@@ -135,7 +135,8 @@ class _InvocationObservation:
                  'epoch', 'source', 'state', 'installation', 'selected', 'expected',
                  'fences', 'thread', 'operation', 'failure', 'suspended', 'active',
                  'admitted', 'disabled', 'checking_physical', 'platform', 'publisher',
-                 'publisher_buffer', 'publisher_received')
+                 'publisher_buffer', 'publisher_received', 'wasm_export', 'closed_import',
+                 'statement_epoch')
 
     def __init__(self, binding: 'OriginalHostBinding', reader: _NamespaceReader,
                  connection: _TrackedSQLiteConnection) -> None:
@@ -152,6 +153,9 @@ class _InvocationObservation:
         self.publisher: _OriginalPublisherPort | None = None
         self.publisher_buffer: bytearray | None = None
         self.publisher_received = 0
+        self.wasm_export: tuple[Any, str, Any, Any] | None = None
+        self.closed_import = False
+        self.statement_epoch = connection._closed_statement_epoch
         self.failure: BaseException | None = None
         self.suspended = False
         self.active = True
@@ -175,8 +179,30 @@ class _InvocationObservation:
                     or self.binding._store._connection is not self.connection
                     or not self.connection._closed_eligible()):
                 raise ValueError('Original closed SQLite invocation changed or retired')
+            if self.wasm_export is not None:
+                if self.connection._closed_statement_epoch != self.statement_epoch:
+                    raise LocalStorageError('Closed Local SQLite statement changed')
+                receipt, name, export, handle = self.wasm_export
+                if not receipt._matches(name, export) or export._func is not handle:
+                    raise ValueError('Original closed Wasmtime export changed')
         except BaseException as error:
             raise self._fail(error)
+
+    def _guard_wasm_methods(self) -> None:
+        if self.wasm_export is not None:
+            receipt, name, export, _ = self.wasm_export
+            if not receipt._matches(name, export, full=True):
+                raise self._fail(ValueError('Original closed Wasmtime methods changed'))
+
+    def _reuse_sql_snapshot(self) -> bool:
+        # Only an audited import called by the retained actual Wasm export can
+        # exclude arbitrary Python between its checks. Effects and physical
+        # boundaries always observe the complete main/TEMP schema and rows.
+        if (self.wasm_export is None or not self.closed_import or self.suspended
+                or self.checking_physical or not self.admitted):
+            return False
+        self._guard_sql()
+        return True
 
     def _guard_originals(self) -> None:
         try:
@@ -286,6 +312,8 @@ class _InvocationObservation:
         try:
             if self.checking_physical:
                 raise ValueError('Reentrant closed Local physical observation')
+            if physical:
+                self._guard_wasm_methods()
             self._guard_originals()
             self.checking_physical = physical
             observe = self.reader._invocation_check
@@ -337,6 +365,8 @@ class _InvocationObservation:
     def leave(self) -> None:
         self.suspended = True
         self.active = False
+        self.closed_import = False
+        self.wasm_export = None
         self.publisher = None
         self.publisher_buffer = None
         self.publisher_received = 0

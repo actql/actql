@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "284d8a5f01c3bbee87cc515089c76aaf90745cb867832621fb7fbcac9cdcaee9",
+  "syntaxProjectionSha256": "d076cd5a9d0e58b3168ee76400cb037a40182d8b79c9358c60b4967d6ee04409",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -5126,6 +5126,7 @@
         "RLock",
         "TYPE_CHECKING",
         "annotations",
+        "byref",
         "c_void_p",
         "cast",
         "contextmanager",
@@ -5133,6 +5134,7 @@
         "hashlib",
         "import_module",
         "json",
+        "pack_into",
         "secrets",
         "sys"
       ],
@@ -5159,6 +5161,7 @@
         "json",
         "os",
         "secrets",
+        "struct",
         "sys",
         "threading",
         "types",
@@ -5216,6 +5219,14 @@
             "family",
             "name",
             "*arguments"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_capture_closed_wasm_exports",
+          "parameters": [
+            "self",
+            "runtime"
           ]
         },
         {
@@ -5378,6 +5389,19 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_journal_copy_row",
+          "parameters": [
+            "self",
+            "caller",
+            "ticket",
+            "key_offset",
+            "key_bytes",
+            "body_offset",
+            "body_bytes"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_journal_current",
           "parameters": [
             "self",
@@ -5394,11 +5418,37 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_journal_input_current",
+          "parameters": [
+            "self",
+            "ticket",
+            "physical",
+            "callbacks",
+            "reader",
+            "memory",
+            "store",
+            "current"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_journal_length",
           "parameters": [
             "self",
             "ticket",
             "field"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_journal_memory_range",
+          "parameters": [
+            "self",
+            "caller",
+            "memory",
+            "offset",
+            "length",
+            "limit"
           ]
         },
         {
@@ -5433,6 +5483,21 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_journal_query_header",
+          "parameters": [
+            "self",
+            "caller",
+            "ticket",
+            "mode",
+            "namespace_offset",
+            "namespace_bytes",
+            "key_offset",
+            "key_bytes",
+            "header_offset"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_journal_release",
           "parameters": [
             "self",
@@ -5449,11 +5514,28 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_journal_row_current",
+          "parameters": [
+            "self",
+            "ticket",
+            "callbacks",
+            "original",
+            "ready",
+            "started"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_journal_schema",
           "parameters": [
             "self",
             "ticket"
           ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_journal_transfer_bytes",
+          "parameters": []
         },
         {
           "async": false,
@@ -5797,6 +5879,13 @@
             "result",
             "operation",
             "*arguments"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_retire_closed_wasm_exports",
+          "parameters": [
+            "self"
           ]
         },
         {
@@ -7926,6 +8015,62 @@
         },
         {
           "async": false,
+          "name": "_ClosedWasmExports",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_ClosedWasmExports/__init__",
+          "parameters": [
+            "self",
+            "core",
+            "runtime"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_ClosedWasmExports/_matches",
+          "parameters": [
+            "self",
+            "name",
+            "export",
+            "full"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_ClosedWasmExports/_method_identity",
+          "parameters": [
+            "owner",
+            "name"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_ClosedWasmExports/_qualify",
+          "parameters": [
+            "self",
+            "name",
+            "export"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_ClosedWasmExports/_retained_bytes",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_ClosedWasmExports/_supported",
+          "parameters": [
+            "core",
+            "runtime"
+          ]
+        },
+        {
+          "async": false,
           "name": "_Compute",
           "parameters": []
         },
@@ -8015,7 +8160,7 @@
           ]
         }
       ],
-      "sha256": "8152d1a6882d474afe740197bd971e145f84112fb34868edc9c7e414cd2deeb8",
+      "sha256": "0f96891e415ff7ac07fa46b6eddda6cf073bc04146fe190285b42741eb5a65b3",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -8024,6 +8169,7 @@
             "LocalCore",
             "LocalCore/__init__",
             "LocalCore/_call",
+            "LocalCore/_capture_closed_wasm_exports",
             "LocalCore/_check",
             "LocalCore/_cleanup",
             "LocalCore/_close_core",
@@ -8038,13 +8184,19 @@
             "LocalCore/_journal_begin",
             "LocalCore/_journal_byte",
             "LocalCore/_journal_callbacks",
+            "LocalCore/_journal_copy_row",
             "LocalCore/_journal_current",
+            "LocalCore/_journal_input_current",
             "LocalCore/_journal_length",
+            "LocalCore/_journal_memory_range",
             "LocalCore/_journal_query",
             "LocalCore/_journal_query_byte",
+            "LocalCore/_journal_query_header",
             "LocalCore/_journal_release",
             "LocalCore/_journal_revision",
+            "LocalCore/_journal_row_current",
             "LocalCore/_journal_schema",
+            "LocalCore/_journal_transfer_bytes",
             "LocalCore/_native_cleaned",
             "LocalCore/_native_fact",
             "LocalCore/_native_scope",
@@ -8074,6 +8226,7 @@
             "LocalCore/_reserve_bootstrap",
             "LocalCore/_reserve_invocation_output",
             "LocalCore/_result_operation",
+            "LocalCore/_retire_closed_wasm_exports",
             "LocalCore/_sdk_start_material_current",
             "LocalCore/_stopped",
             "LocalCore/_task_operation",
@@ -8284,7 +8437,14 @@
             "LocalCore/validate_sdk_publication_binding",
             "LocalCore/validate_sdk_start_step",
             "LocalCore/validate_submission_append",
-            "LocalCore/validate_submitted_run_rows"
+            "LocalCore/validate_submitted_run_rows",
+            "_ClosedWasmExports",
+            "_ClosedWasmExports/__init__",
+            "_ClosedWasmExports/_matches",
+            "_ClosedWasmExports/_method_identity",
+            "_ClosedWasmExports/_qualify",
+            "_ClosedWasmExports/_retained_bytes",
+            "_ClosedWasmExports/_supported"
           ],
           "exports": [
             "LocalCore"
@@ -9474,6 +9634,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -10668,6 +10836,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "identity": [
@@ -10698,6 +10874,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -10736,6 +10920,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "synchronization": [
@@ -10762,6 +10954,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -10800,6 +11000,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "cancellation": [
@@ -10826,6 +11034,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -10864,6 +11080,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "extension": [
@@ -10890,6 +11114,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -10980,6 +11212,22 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_publisher.py",
                 "anchor": "class ClosedPublisherTests(unittest.TestCase):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_journal_row_transport.py",
+                "anchor": "class JournalRowTransportTests(unittest.TestCase):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "class ClosedWasmSqlTests(unittest.TestCase):"
               }
             ]
           }
@@ -13672,7 +13920,9 @@
             "json",
             "secrets",
             "sys",
-            "MethodType"
+            "MethodType",
+            "byref",
+            "pack_into"
           ],
           "attributes": {
             "responsibility": [
@@ -14328,6 +14578,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "    def _bulk_memory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "inputsOutputs": [
@@ -14338,6 +14592,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "    def _bulk_memory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "identity": [
@@ -14348,6 +14606,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "    def _bulk_memory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "ownership": [
@@ -14358,6 +14620,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "    def _bulk_memory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "synchronization": [
@@ -14368,6 +14634,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "    def _bulk_memory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "failure": [
@@ -14378,6 +14648,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "    def _bulk_memory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "cancellation": [
@@ -14388,6 +14662,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "    def _bulk_memory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "resources": [
@@ -14398,6 +14676,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "    def _bulk_memory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "extension": [
@@ -14408,6 +14690,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "    def _bulk_memory("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "verification": [
@@ -14426,6 +14712,14 @@
               {
                 "path": "src/client_host_wasm/original_bulk_output_wbtest.mbt",
                 "anchor": "test \"original bulk output keeps exact range and cleanup guards without copying or reissuing\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_journal_row_transport.py",
+                "anchor": "class JournalRowTransportTests(unittest.TestCase):"
               }
             ]
           }
@@ -27188,11 +27482,25 @@
         },
         {
           "async": false,
+          "name": "_InvocationObservation/_guard_wasm_methods",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_InvocationObservation/_publisher_result",
           "parameters": [
             "self",
             "name",
             "result"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_InvocationObservation/_reuse_sql_snapshot",
+          "parameters": [
+            "self"
           ]
         },
         {
@@ -27319,7 +27627,7 @@
           ]
         }
       ],
-      "sha256": "35308ddf21ebe67f04ccf2be7b943d5deb60456cf99db5bf56ba8f22281fca1b",
+      "sha256": "7df26641b0fada50507a4294bc9389339f932ab45dc28a07503209e8275e44a4",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -27474,7 +27782,9 @@
             "_InvocationObservation/_guard_originals",
             "_InvocationObservation/_guard_publisher",
             "_InvocationObservation/_guard_sql",
+            "_InvocationObservation/_guard_wasm_methods",
             "_InvocationObservation/_publisher_result",
+            "_InvocationObservation/_reuse_sql_snapshot",
             "_InvocationObservation/_select_publisher",
             "_InvocationObservation/check",
             "_InvocationObservation/enter",
@@ -27510,6 +27820,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "inputsOutputs": [
@@ -27524,6 +27838,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -27550,6 +27868,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "ownership": [
@@ -27568,6 +27890,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -27594,6 +27920,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "failure": [
@@ -27616,6 +27946,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "cancellation": [
@@ -27630,6 +27964,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -27656,6 +27994,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "extension": [
@@ -27670,6 +28012,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -27748,6 +28094,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_publisher.py",
                 "anchor": "class ClosedPublisherTests(unittest.TestCase):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "class ClosedWasmSqlTests(unittest.TestCase):"
               }
             ]
           }
@@ -30714,13 +31068,15 @@
       "exports": [
         "Callable",
         "LocalByteStore",
+        "NamedTuple",
         "StoredBytes",
         "dataclass"
       ],
       "imports": [
         "._local_storage",
         "collections.abc",
-        "dataclasses"
+        "dataclasses",
+        "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
       "responsibilityFacet": "primary",
@@ -30841,9 +31197,14 @@
           "parameters": [
             "self"
           ]
+        },
+        {
+          "async": false,
+          "name": "_JournalRowTransfer",
+          "parameters": []
         }
       ],
-      "sha256": "78ec4eaa1ccbda1709c0c354d4907ea5a71a6a3a1001b3dbf4f6ffd28e50a71e",
+      "sha256": "eab36cc253c84cdad3ffdd9dc43ea0517bb02a427a6f4ecc03349c6906b389a8",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -30861,7 +31222,8 @@
             "_JournalCallbacks/release",
             "_JournalCallbacks/revision",
             "_JournalCallbacks/row_byte",
-            "_JournalCallbacks/schema"
+            "_JournalCallbacks/schema",
+            "_JournalRowTransfer"
           ],
           "exports": [],
           "attributes": {
@@ -30877,6 +31239,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "inputsOutputs": [
@@ -30891,6 +31257,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "identity": [
@@ -30909,6 +31279,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "ownership": [
@@ -30927,6 +31301,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "synchronization": [
@@ -30941,6 +31319,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "failure": [
@@ -30959,6 +31341,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "cancellation": [
@@ -30973,6 +31359,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "resources": [
@@ -30991,6 +31381,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "extension": [
@@ -31005,6 +31399,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "verification": [
@@ -31039,6 +31437,14 @@
               {
                 "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
                 "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_journal_row_transport.py",
+                "anchor": "class JournalRowTransportTests(unittest.TestCase):"
               }
             ]
           }
@@ -31051,7 +31457,8 @@
             "Callable",
             "LocalByteStore",
             "StoredBytes",
-            "dataclass"
+            "dataclass",
+            "NamedTuple"
           ],
           "attributes": {
             "responsibility": [
@@ -31161,6 +31568,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "    def query_copy("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "inputsOutputs": [
@@ -31171,6 +31582,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "    def query_copy("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "identity": [
@@ -31181,6 +31596,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "    def query_copy("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "ownership": [
@@ -31191,6 +31610,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "    def query_copy("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "synchronization": [
@@ -31201,6 +31624,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "    def query_copy("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "failure": [
@@ -31211,6 +31638,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "    def query_copy("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "cancellation": [
@@ -31221,6 +31652,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "    def query_copy("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "resources": [
@@ -31231,6 +31666,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "    def query_copy("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "extension": [
@@ -31241,6 +31680,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_journal_port.py",
                 "anchor": "    def query_copy("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
               }
             ],
             "verification": [
@@ -31259,6 +31702,14 @@
               {
                 "path": "src/client_host_wasm/original_bulk_output_wbtest.mbt",
                 "anchor": "test \"original bulk output keeps exact range and cleanup guards without copying or reissuing\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_journal_row_transport.py",
+                "anchor": "class JournalRowTransportTests(unittest.TestCase):"
               }
             ]
           }
@@ -59401,12 +59852,14 @@
         "Protocol",
         "annotations",
         "cast",
+        "get_ident",
         "sqlite3"
       ],
       "imports": [
         "__future__",
         "collections.abc",
         "sqlite3",
+        "threading",
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_storage_physical.py",
@@ -59946,7 +60399,7 @@
           ]
         }
       ],
-      "sha256": "1f5d1627a5bbcc77ea25d276246ab8da7ef315424327649c86fe756fc837783c",
+      "sha256": "e3376f6d6b7ddabdfe0c16dd0810b30e9c42f1e1a29cbfef83958e3093adfe97",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60410,6 +60863,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "inputsOutputs": [
@@ -60428,6 +60885,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -60458,6 +60919,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "ownership": [
@@ -60480,6 +60945,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -60510,6 +60979,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "failure": [
@@ -60536,6 +61009,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "cancellation": [
@@ -60554,6 +61031,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -60584,6 +61065,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "extension": [
@@ -60602,6 +61087,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -60700,6 +61189,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
                 "anchor": "def test_zero_parameters_cannot_dispatch_an_adapter_registered_after_the_guard("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "class ClosedWasmSqlTests(unittest.TestCase):"
               }
             ]
           }
@@ -60714,7 +61211,8 @@
             "cast",
             "sqlite3",
             "Any",
-            "Callable"
+            "Callable",
+            "get_ident"
           ],
           "attributes": {
             "responsibility": [
@@ -61023,6 +61521,14 @@
         },
         {
           "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/check_invocation_snapshot",
+          "parameters": [
+            "span",
+            "snapshot"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalByteStore/_inspect_namespace_locked/check_unchanged",
           "parameters": [
             "view"
@@ -61065,7 +61571,8 @@
           "parameters": [
             "view",
             "observer",
-            "span"
+            "span",
+            "metadata"
           ]
         },
         {
@@ -61722,7 +62229,7 @@
           "parameters": []
         }
       ],
-      "sha256": "fb7c2929ef84753ef6c0b175af0b9b00f37b654879c2ff828832ee08e9aaa4d4",
+      "sha256": "e5aeaa88293ee28c097d36afd3867a4482908b7cfdf8d77bfc3fb89dd8447f5d",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62283,6 +62790,7 @@
             "LocalByteStore/_inspect_namespace_locked/check_frame",
             "LocalByteStore/_inspect_namespace_locked/check_inventory",
             "LocalByteStore/_inspect_namespace_locked/check_inventory/inventory_fence",
+            "LocalByteStore/_inspect_namespace_locked/check_invocation_snapshot",
             "LocalByteStore/_inspect_namespace_locked/check_unchanged",
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
@@ -62385,6 +62893,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "inputsOutputs": [
@@ -62407,6 +62919,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -62441,6 +62957,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "ownership": [
@@ -62467,6 +62987,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -62505,6 +63029,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "failure": [
@@ -62535,6 +63063,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "cancellation": [
@@ -62557,6 +63089,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -62591,6 +63127,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "extension": [
@@ -62613,6 +63153,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -62755,6 +63299,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_prewrite_invocation.py",
                 "anchor": "class PrewriteInvocationTests(unittest.TestCase):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "class ClosedWasmSqlTests(unittest.TestCase):"
               }
             ]
           }
@@ -65447,7 +65999,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "03a14b23a482ccb33c967b523b753e7da47c1d729889f632693e64452ace20bc",
+      "sha256": "a74717fb8e8ca4195ca6b918628e15007ee31041899e3b361cd3dea43bab0e6b",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [

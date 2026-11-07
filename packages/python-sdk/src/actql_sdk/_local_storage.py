@@ -963,12 +963,25 @@ class LocalByteStore:
         original_control_epoch = (original_snapshot[0]._transaction_epoch
             if original_snapshot is not None
             and type(original_snapshot[0]) is _TrackedSQLiteConnection else None)
+        original_statement_epoch = (original_snapshot[0]._closed_statement_epoch
+            if original_snapshot is not None
+            and type(original_snapshot[0]) is _TrackedSQLiteConnection else None)
         last_fenced_snapshot: tuple[object, int, int, tuple[int, int]] | None = None
 
         def metadata_fence(*, reuse_snapshot: bool) -> None:
             nonlocal last_fenced_snapshot
             if self._physical is not database:
                 raise LocalStorageError('Original Local physical reader changed')
+            if reuse_snapshot and original_snapshot is not None:
+                connection = original_snapshot[0]
+                span = (connection._closed_invocation
+                        if type(connection) is _TrackedSQLiteConnection else None)
+                if span is not None and span._reuse_sql_snapshot():
+                    invocation_frame(reader, current, span, metadata=True)
+                    check_invocation_snapshot(span, original_snapshot)
+                    if last_fenced_snapshot != original_snapshot:
+                        raise LocalStorageError('Closed Local metadata baseline is unavailable')
+                    return
             # Only the exact stdlib adapter supplies SQLite's own mutation
             # counter. Other existing physical suppliers keep full SQL checks.
             snapshot = (database._snapshot_identity()
@@ -999,7 +1012,8 @@ class LocalByteStore:
                 observing_current = None
             metadata_fence(reuse_snapshot=reuse_snapshot)
 
-        def invocation_frame(view: _NamespaceReader, observer: Callable[[], object], span: object) -> None:
+        def invocation_frame(view: _NamespaceReader, observer: Callable[[], object] | None,
+                             span: object, *, metadata: bool = False) -> None:
             from ._local_host_binding import _InvocationObservation
             if (type(span) is not _InvocationObservation or type(view) is not _NamespaceReader
                     or view is not reader or type(self) is not LocalByteStore
@@ -1015,7 +1029,7 @@ class LocalByteStore:
                     or view._invocation_check is not invocation_check
                     or span.reader is not view or span.binding._current_observer is not observer
                     or span.core._invocation_observation is not span or not span.core._invoking
-                    or reading and observing_current is not observer):
+                    or reading and observing_current is not observer and not metadata):
                 raise ValueError('Foreign or reentrant closed Local observation')
 
         def invocation_candidate(view: _NamespaceReader, observer: Callable[[], object], span: object) -> bool:
@@ -1050,7 +1064,11 @@ class LocalByteStore:
                 # during this unadmitted probe must not admit a closed span.
                 return (connection._closed_eligible()
                         and snapshot[2] == original_snapshot[2]
-                        and connection._transaction_epoch == original_control_epoch)
+                        and connection._transaction_epoch == original_control_epoch
+                        and (span.wasm_export is None or (
+                            type(original_statement_epoch) is int
+                            and 0 <= original_statement_epoch < 2**63
+                            and connection._closed_statement_epoch == original_statement_epoch)))
             except BaseException as error:
                 if failure is None:
                     failure = error
@@ -1062,6 +1080,21 @@ class LocalByteStore:
                 if entered:
                     observing_invocation = False
 
+        def check_invocation_snapshot(span: object, snapshot: tuple[object, int, int, tuple[int, int]]) -> None:
+            if failure is not None:
+                raise failure
+            if (original_snapshot is None or self._physical is not database
+                    or self._connection is not original_snapshot[0]
+                    or database._connection is not original_snapshot[0]
+                    or snapshot[0] is not original_snapshot[0]
+                    or snapshot[1:] != original_snapshot[1:]
+                    or self._connection.total_changes != original_snapshot[2]
+                    or not self._connection.in_transaction
+                    or self._connection._outer_transaction_epoch != original_snapshot[1]
+                    or self._connection._transaction_epoch != original_control_epoch):
+                raise LocalStorageError('Closed Local observation snapshot changed')
+            span._guard_sql()
+
         def invocation_check(view: _NamespaceReader, observer: Callable[[], object], span: object) -> None:
             nonlocal failure, observing_invocation
             entered = False
@@ -1071,23 +1104,17 @@ class LocalByteStore:
                 invocation_frame(view, observer, span)
                 observing_invocation = entered = True
                 span._guard_sql()
-                # The exact current callback is already enclosed by fence's
-                # before/after metadata/schema checks. Do not add another pair
-                # of PRAGMAs there; standalone entry/exit checks still observe
-                # the complete live snapshot.
-                snapshot = (original_snapshot if observing_current is observer and not span.checking_physical
-                            else database._snapshot_identity())
-                if failure is not None:
-                    raise failure
-                if (original_snapshot is None or self._physical is not database
-                        or self._connection is not original_snapshot[0]
-                        or snapshot[0] is not original_snapshot[0]
-                        or snapshot[1:] != original_snapshot[1:]
-                        or self._connection.total_changes != original_snapshot[2]
-                        or not self._connection.in_transaction
-                        or self._connection._transaction_epoch != original_control_epoch):
-                    raise LocalStorageError('Closed Local observation snapshot changed')
-                span._guard_sql()
+                # A closed real Wasm import has no arbitrary Python exits. All
+                # scalar/custom exports retain live schema reads. Exact current
+                # callbacks inside fence already have its before/after checks.
+                snapshot = (original_snapshot if not span.checking_physical and (
+                    observing_current is observer or span._reuse_sql_snapshot())
+                    else database._snapshot_identity())
+                check_invocation_snapshot(span, snapshot)
+                if span.checking_physical and span.wasm_export is not None:
+                    # Force actual metadata at entry/effect/return, even if the
+                    # preceding full check saw identical mutation counters.
+                    metadata_fence(reuse_snapshot=False)
             except BaseException as error:
                 if failure is None:
                     failure = error

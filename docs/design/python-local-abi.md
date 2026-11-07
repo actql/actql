@@ -1684,6 +1684,32 @@ wire, CID, schema, pool allowance, fuel or Run/Read law. The block-size bound is
 a transfer bound and is not a claim about whole Python/SQLite memory or normal
 latency.
 
+### Bounded Journal row exchange
+
+Private ABI87 replaces the small-step Journal row transport with two bounded
+imports. `journal_query_header` receives the original ticket, mode and bounded
+namespace/key ranges, executes the existing physical query once, and writes a
+16-byte little-endian header: unsigned 32-bit key length, unsigned 32-bit body
+length and the exact nonnegative signed-64-bit revision. A confirmed miss is a
+distinct result and retires only its successful transient query state. Malformed
+or failed observations never become absence.
+
+Core then allocates its original exact-sized key/body destinations and calls
+`journal_copy_row` for that same retained row. The Host checks the same physical
+input, reader, ticket, row and fixed memory, copies in pieces of at most 16384
+bytes, and checks each complete write and original identity before proceeding.
+Only a complete successful copy releases the transient query. Header readiness
+and one-shot copy state prevent reentry or replay after partial copying. Failure
+keeps the original transfer record and parent loans available for their existing
+explicit cleanup; cleanup does not acknowledge a query or durable write.
+
+The physical helper keeps its current observations before the query and after
+the completed exchange. Actual Store queries, complete row/EOF observations,
+query/copy budgets, Account decisions and cumulative work/fuel remain unchanged.
+The header, bounded block and transfer controls are charged by the existing
+Journal/current reservations before use. No maximum-sized row preallocation,
+new execution Owner, authority cache or fallback to an older artifact is added.
+
 ## Physical publication metadata transactions
 
 The separately selected raw diagnostic ABI retains the ABI81 transport of up to
@@ -3324,6 +3350,25 @@ global Python adapter registration from introducing an unguarded callback. Text
 literals preserve the exact UTF-8 bytes through a hexadecimal BLOB-to-TEXT cast;
 no caller-supplied SQL fragment is accepted. The owned connection disables its
 statement cache so changing literal values cannot accumulate retained plans.
+Within an exact audited import of a genuine standard Wasmtime export, the
+same original SQL snapshot may supply schema and metadata baselines between
+full entry, effect and return checks. A constructor-installed receipt is funded
+by an ordinary bounded workspace before allocation; the workspace retains its
+cleanup duty through failed construction or retirement. The selected function
+must match the same retained native instance, and the runtime methods used by
+copying must remain original. Scalar or customized exports keep complete SQL
+observations. The receipt grants no operation or authority.
+
+A retained SQLite trace advances a separate sticky statement epoch for mutation,
+control and unrecognized statements, including raw cursor/base-class execution
+and DDL whose schema version is later restored. Only exact short read-only
+PRAGMA templates and SELECT avoid that marker. The admitted computation also
+checks connection, reader, transaction, total changes, thread and lifetime at
+each reduced observation. A changed marker refuses; it cannot refresh a baseline
+or clear an earlier failure. Before admission, prior legal unrelated mutations
+may select the legacy route without changing the reader's original snapshot.
+The ordinary reader contract is not replaced by this optional optimization.
+
 Temporary SQL encoding, the bounded reader admission closures and invocation
 metadata are included in the original current transfer allowance. The original
 publisher port and its bound callbacks are included in its own allowance. SQLite

@@ -7,6 +7,7 @@ callback loans and failure custody. These observations issue none of those.
 from __future__ import annotations
 
 import sqlite3
+from threading import get_ident
 from collections.abc import Callable
 from typing import Any, Protocol, cast
 
@@ -22,13 +23,15 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
     removed. User trace exceptions retain SQLite's normal callback handling.
     """
     __slots__ = ('_transaction_epoch', '_outer_transaction_epoch', '_user_trace', '_trace_depth',
-                 '_observation_eligible', '_encoding_eligible', '_closed_invocation')
+                 '_observation_eligible', '_encoding_eligible', '_closed_invocation',
+                 '_closed_statement_epoch')
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._transaction_epoch = 0
         self._outer_transaction_epoch = 0
         self._trace_depth = 0
+        self._closed_statement_epoch = 0
         self._user_trace: Callable[[str], object] | None = None
         self._closed_invocation: Any = None
         detect_types = kwargs.get('detect_types', args[2] if len(args) > 2 else 0)
@@ -161,6 +164,21 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
                   else statement)
         words = self._transaction_tokens(actual)
         command = words[0] if words else ''
+        # Only the new genuine-Wasm closed scope uses this sticky epoch. The
+        # retained trace also sees raw cursors/base-class execute, including
+        # main/TEMP DDL and schema_version restoration which total_changes
+        # cannot observe. Do not throw from trace: SQLite swallows exceptions.
+        # Never normalize expanded write payloads. Only these short, exact
+        # getter templates need case/whitespace normalization (at most 64 chars).
+        read_only = (command == 'SELECT' or command == 'PRAGMA' and len(actual) <= 64
+            and actual.strip().rstrip(';').strip().upper() in (
+                'PRAGMA SCHEMA_VERSION', 'PRAGMA TEMP.SCHEMA_VERSION', 'PRAGMA ENCODING',
+                'PRAGMA MAIN.APPLICATION_ID', 'PRAGMA MAIN.USER_VERSION'))
+        span = self._closed_invocation
+        foreign_closed = (span is not None and span.wasm_export is not None
+                          and span.admitted and get_ident() != span.thread)
+        if not read_only or foreign_closed:
+            self._closed_statement_epoch += 1
         if command in {'BEGIN', 'COMMIT', 'END', 'ROLLBACK', 'SAVEPOINT', 'RELEASE'}:
             self._transaction_epoch += 1
             rollback_to = (command == 'ROLLBACK' and (

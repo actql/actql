@@ -16,8 +16,14 @@ static bool signature(const actql_compiler_signature *item, const char *paramete
 }
 int main(void) {
     bool cases[] = {
-        ACTQL_COMPILER_CORE_ABI == 86,
-        ACTQL_COMPILER_IMPORTS_COUNT == 28,
+        ACTQL_COMPILER_CORE_ABI == 87,
+        ACTQL_COMPILER_IMPORTS_COUNT == 23,
+        signature(find(actql_compiler_imports, ACTQL_COMPILER_IMPORTS_COUNT, "journal_query_header"),
+                  "i32 i32 i32 i32 i32 i32 i32", "i32"),
+        signature(find(actql_compiler_imports, ACTQL_COMPILER_IMPORTS_COUNT, "journal_copy_row"),
+                  "i32 i32 i32 i32 i32", "i32"),
+        find(actql_compiler_imports, ACTQL_COMPILER_IMPORTS_COUNT, "journal_query_copy") == NULL,
+        find(actql_compiler_imports, ACTQL_COMPILER_IMPORTS_COUNT, "journal_revision") == NULL,
         signature(find(actql_compiler_imports, ACTQL_COMPILER_IMPORTS_COUNT, "input_byte"),
                   "i32 i32", "i32"),
         signature(find(actql_compiler_imports, ACTQL_COMPILER_IMPORTS_COUNT, "execution_child_report"),

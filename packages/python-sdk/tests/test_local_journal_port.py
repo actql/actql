@@ -339,8 +339,11 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
         self.assertEqual(_JOURNAL_SIGNATURES, {
             'reserve': ('i64 i32 i32 i32 i64', 'i32'), 'inspect': ('i64 i32', 'i32'),
             'revision': ('i64 i32 i32', 'i64'), 'admission_length': ('i64 i32', 'i32'), 'close': ('i64 i32', 'i32')})
-        self.assertEqual(_IMPORT_SIGNATURES['journal_revision'], ('i32', 'i64'))
-        self.assertEqual(_IMPORT_SIGNATURES['journal_begin'], ('i32 i32 i32 i32', 'i32'))
+        self.assertEqual(_IMPORT_SIGNATURES['journal_query_header'],
+                         ('i32 i32 i32 i32 i32 i32 i32', 'i32'))
+        self.assertEqual(_IMPORT_SIGNATURES['journal_copy_row'], ('i32 i32 i32 i32 i32', 'i32'))
+        self.assertNotIn('journal_revision', _IMPORT_SIGNATURES)
+        self.assertNotIn('journal_begin', _IMPORT_SIGNATURES)
 
     def admission_bridge(self):
         core, material, calls, code = self.bridge()

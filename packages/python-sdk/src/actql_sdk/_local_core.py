@@ -7,9 +7,10 @@ from dataclasses import dataclass
 import hashlib
 import json
 import os as _os
-from ctypes import c_void_p, cast
+from ctypes import byref, c_void_p, cast
 from importlib import import_module
 import secrets
+from struct import pack_into
 import sys
 from threading import RLock
 from types import MethodType
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
     from ._local_worker_child_control import _OriginalChildControlPipe
     from ._local_distribution import LocalComponents
 
-from ._local_journal_port import _JournalCallbacks
+from ._local_journal_port import _JournalCallbacks, _JournalRowTransfer
 from ._local_storage import _NamespaceReader, LocalByteStore
 from ._local_native_holding import _NativeHoldingLease
 
@@ -329,6 +330,134 @@ def _validate_core_module(wasmtime: Any, module: Any) -> None:
         raise ValueError('Unbounded Local Core linear memory')
 
 
+# Fixed receipt, 20 method records, one selected export/name/native lookup,
+# and the workspace's physical-control callbacks. No export-map copy exists.
+_CLOSED_WASM_RECEIPT_BYTES = 4096
+
+
+class _ClosedWasmExports:
+    """Funded constructor receipt for the validated, wrapped-import instance.
+
+    This does not admit an operation. It only identifies standard Wasmtime
+    exports whose Python exits are all enclosed by _observation_import.
+    Scalar/custom exports never inherit this receipt from platform memory.
+    """
+    __slots__ = ('core', 'platform', 'runtime', 'exports_type', 'ffi',
+                 'mapping', 'sequence', 'instance_handle', 'instance_key', 'methods')
+
+    @staticmethod
+    def _supported(core: 'LocalCore', runtime: Any) -> bool:
+        return (getattr(runtime, '__name__', None) == 'wasmtime'
+                and core._platform_vm_original is not None
+                and type(core._store) is runtime.Store
+                and type(core._instance) is runtime.Instance
+                and type(core._exports) is import_module('wasmtime._instance').InstanceExports)
+
+    def __init__(self, core: 'LocalCore', runtime: Any) -> None:
+        if not self._supported(core, runtime) or core._closed_wasm_workspace is None:
+            raise ValueError('Original closed Wasmtime receipt is not funded')
+        core._owned(core._closed_wasm_workspace)
+        self.core, self.platform, self.runtime = core, core._platform_vm_original, runtime
+        self.exports_type = import_module('wasmtime._instance').InstanceExports
+        self.ffi = import_module('wasmtime._ffi')
+        self.mapping, self.sequence = core._exports._extern_map, core._exports._extern_seq
+        self.instance_handle = core._instance._instance
+        self.instance_key = (self.instance_handle.store_id, getattr(self.instance_handle, '__private'))
+        self.methods = tuple((owner, name, self._method_identity(owner, name)) for owner, names in (
+            (runtime.Func, ('__call__', 'type')),
+            (runtime.Instance, ('exports',)),
+            (self.exports_type, ('__getitem__', 'get')),
+            (runtime.Store, ('_context',)),
+            (runtime.Memory, ('read', 'write', 'data_len', 'data_ptr', 'get_buffer_ptr',
+                              '_from_raw', '__new__')),
+            (runtime.Caller, ('get', '_context', '__init__', '_invalidate', '__new__')),
+            (import_module('wasmtime._func'), ('wrap_extern',)),
+            (self.ffi, ('wasmtime_instance_export_get',)),
+        ) for name in names)
+        # Keep the receipt even if a later constructor step fails; its original
+        # workspace owns cleanup until explicit close or actual Store retirement.
+        core._closed_wasm_exports = self
+        if self._retained_bytes() + 2048 > _CLOSED_WASM_RECEIPT_BYTES:
+            raise ValueError('Original closed Wasmtime receipt exceeds its reservation')
+
+    @staticmethod
+    def _method_identity(owner: Any, name: str) -> Any:
+        # Inspect the retained class/module dictionaries without invoking a
+        # replacement descriptor. Class factories retain their actual function,
+        # not the fresh bound-method wrapper normally produced by getattr.
+        if isinstance(owner, type):
+            for base in owner.__mro__:
+                if name in vars(base):
+                    method = vars(base)[name]
+                    return (method.__func__ if type(method) in (classmethod, staticmethod)
+                            else method)
+            return None
+        return vars(owner).get(name)
+
+    def _matches(self, name: str, export: Any, *, full: bool = False) -> bool:
+        core, runtime, original = self.core, self.runtime, self.platform
+        if (original is None or getattr(core, '_closed_wasm_exports', None) is not self
+                or core._platform_vm_original is not original
+                or core._store is not original[3] or core._instance is not original[4]
+                or core._exports is not original[5]
+                or type(core._store) is not runtime.Store
+                or type(core._instance) is not runtime.Instance
+                or type(core._exports) is not self.exports_type
+                or type(export) is not runtime.Func
+                or type(export).__getattribute__ is not object.__getattribute__
+                or type(core._instance).__getattribute__ is not object.__getattribute__
+                or type(core._exports).__getattribute__ is not object.__getattribute__
+                or type(core._store).__getattribute__ is not object.__getattribute__
+                or runtime.Caller.__getattribute__ is not object.__getattribute__
+                or core._instance._instance is not self.instance_handle
+                or core._instance._exports is not core._exports
+                or core._exports._extern_map is not self.mapping
+                or core._exports._extern_seq is not self.sequence
+                or type(self.mapping) is not dict or self.mapping.get(name) is not export):
+            return False
+        if not full:
+            return True
+        memory = original[6]
+        return (vars(export).keys() == {'_func'}
+                and type(export._func) is self.ffi.wasmtime_func_t
+                and vars(core._instance).keys() == {'_instance', '_exports'}
+                and vars(core._exports).keys() == {'_extern_map', '_extern_seq'}
+                and type(self.sequence) is tuple
+                and '_context' not in vars(core._store)
+                and type(memory) is runtime.Memory
+                and type(memory).__getattribute__ is object.__getattribute__
+                and not any(name in vars(memory) for name in (
+                    'read', 'write', 'data_len', 'data_ptr', 'get_buffer_ptr'))
+                and self.instance_key == (self.instance_handle.store_id,
+                                          getattr(self.instance_handle, '__private'))
+                and all(self._method_identity(owner, member) is method
+                        for owner, member, method in self.methods))
+
+    def _qualify(self, name: str, export: Any) -> bool:
+        if (type(name) is not str or len(name) > 128 or not name.isascii()
+                or not self._matches(name, export, full=True)):
+            return False
+        # Read this one export from the retained native instance, not a copied
+        # or replaceable Python mapping. The bounded result is invocation-local.
+        encoded = name.encode('utf-8')
+        actual = self.ffi.wasmtime_extern_t()
+        if not self.ffi.wasmtime_instance_export_get(self.core._store._context(),
+                byref(self.instance_handle), encoded, len(encoded), byref(actual)):
+            return False
+        return (actual.kind == self.ffi.WASMTIME_EXTERN_FUNC.value
+                and actual.of.func.store_id == export._func.store_id
+                and getattr(actual.of.func, '__private') == getattr(export._func, '__private'))
+
+    def _retained_bytes(self) -> int:
+        # All runtime objects/maps remain owned by the original platform VM.
+        # The additional 2048-byte construction/lookup envelope covers the
+        # workspace loan, physical slot, two callback closures, selected name
+        # (at most 128 characters), UTF-8 copy and fixed C export result.
+        return (sys.getsizeof(self) + sys.getsizeof(self.instance_key)
+                + sum(sys.getsizeof(item) for item in self.instance_key)
+                + sys.getsizeof(self.methods) + sum(sys.getsizeof(item) for item in self.methods))
+
+
 def _valid_core_limits(transfer_capacity: int, slots: int, fuel: int,
                        resources: LocalCoreResources, host_capacity_bytes: int = 0) -> bool:
     return (type(transfer_capacity) is int and 0 < transfer_capacity <= 2**63 - 1
@@ -452,6 +581,8 @@ class LocalCore:
         self._linker: Any = None
         self._instance: Any = None
         self._platform_vm_original: tuple[Any, ...] | None = None
+        self._closed_wasm_exports: _ClosedWasmExports | None = None
+        self._closed_wasm_workspace: _Workspace | None = None
         self._platform_vm_type: Any = None
         self._physical_vm_type: Any = None
         self._physical_vm_span: tuple[int, int] | None = None
@@ -535,12 +666,7 @@ class LocalCore:
                                        ('publisher_finish', self._publisher_finish),
                                        ('journal_current', self._journal_current),
                                        ('journal_current_operation', self._journal_current_operation),
-                                       ('journal_schema', self._journal_schema),
-                                       ('journal_begin', self._journal_begin),
-                                       ('journal_query', self._journal_query),
-                                       ('journal_length', self._journal_length),
-                                       ('journal_revision', self._journal_revision),
-                                       ('journal_release', self._journal_release)]:
+                                       ('journal_schema', self._journal_schema)]:
                     params = [wasmtime.ValType.i32()
                               for _ in _IMPORT_SIGNATURES[name][0].split()]
                     self._linker.define_func('actql_host', name,
@@ -549,8 +675,8 @@ class LocalCore:
                         self._observation_import(name, callback))
                 for name, callback in [('input_copy', self._input_copy),
                                        ('publisher_copy', self._publisher_copy),
-                                       ('journal_query_copy', self._journal_query_copy),
-                                       ('journal_copy', self._journal_copy)]:
+                                       ('journal_query_header', self._journal_query_header),
+                                       ('journal_copy_row', self._journal_copy_row)]:
                     params = [wasmtime.ValType.i32()
                               for _ in _IMPORT_SIGNATURES[name][0].split()]
                     self._linker.define_func('actql_host', name,
@@ -601,6 +727,7 @@ class LocalCore:
                                                 resources.attempts, resources.holdings,
                                                 resources.transfer_bytes, resources.retained_bytes,
                                                 resources.execution_bytes, _host_capacity_bytes))
+                self._capture_closed_wasm_exports(wasmtime)
                 self._host_fuel_phase = None
         except BaseException as error:
             self._retired = True
@@ -610,6 +737,18 @@ class LocalCore:
             except Exception:
                 raise LocalCoreInitializationError(self) from error
             raise
+
+    def _capture_closed_wasm_exports(self, runtime: Any) -> None:
+        if not _ClosedWasmExports._supported(self, runtime):
+            return
+        if self._closed_wasm_workspace is not None or self._closed_wasm_exports is not None:
+            raise ValueError('Original closed Wasmtime receipt already exists')
+        # Called only after open_platform admits the original Resource Owner.
+        # Keep its issued workspace before any fallible receipt construction.
+        self._closed_wasm_workspace = self.reserve_workspace(
+            _CLOSED_WASM_RECEIPT_BYTES, stopped=lambda: True,
+            cleanup=self._retire_closed_wasm_exports)
+        self._closed_wasm_exports = _ClosedWasmExports(self, runtime)
 
     def _platform_vm_observation(self, caller: Any, nonce: int, ordinal: int) -> int:
         """Fixed original platform port, never execution-child permission.
@@ -787,13 +926,17 @@ class LocalCore:
                     observation._require_core_current()
                 if platform is not None:
                     self._require_platform_vm_current()
+                export_name = f'actql_{family}_{name}'
+                export = self._exports[export_name]
                 binding = getattr(self, '_host_current_binding', None)
                 if binding is not None:
                     span = binding._new_invocation_observation()
                     if span is not None:
                         self._invocation_observation = span
-                result = self._exports[f'actql_{family}_{name}'](
-                    self._store, self._nonce, *arguments)
+                        receipt = getattr(self, '_closed_wasm_exports', None)
+                        if type(receipt) is _ClosedWasmExports and receipt._qualify(export_name, export):
+                            span.wasm_export = (receipt, export_name, export, export._func)
+                result = export(self._store, self._nonce, *arguments)
                 if platform is not None:
                     if self._platform_vm_original is not platform:
                         raise ValueError('Original platform VM changed during its invocation')
@@ -840,8 +983,10 @@ class LocalCore:
                 publisher = None
                 if name in ('journal_current', 'journal_current_operation', 'journal_schema',
                             'journal_begin', 'journal_query', 'journal_length', 'journal_revision',
-                            'journal_release', 'journal_query_copy', 'journal_copy'):
-                    index = 1 if name in ('journal_query_copy', 'journal_copy') else 0
+                            'journal_release', 'journal_query_copy', 'journal_copy',
+                            'journal_query_header', 'journal_copy_row'):
+                    index = 1 if name in ('journal_query_copy', 'journal_copy',
+                                          'journal_query_header', 'journal_copy_row') else 0
                     journal = self._journal_callbacks(args[index])
                     pure = (type(journal) is _JournalCallbacks and journal.reader is span.reader
                             and journal.current is span.binding._current_observer)
@@ -876,6 +1021,9 @@ class LocalCore:
                             and getattr(self, '_physical_holding', None) is None
                             and getattr(self, '_physical_child_control', None) is None
                             and getattr(self, '_physical_vm_observation', None) is None)
+                method_name = {'input_byte': '_read', 'input_copy': '_input_copy'}.get(name, '_' + name)
+                pure = (pure and type(callback) is MethodType and callback.__self__ is self
+                        and callback.__func__ is getattr(LocalCore, method_name, None))
                 if not pure:
                     return span.interrupt(callback, *args)
                 if publisher is not None:
@@ -890,7 +1038,17 @@ class LocalCore:
                     span._guard_publisher()
                 if span.admitted:
                     span._guard_sql()
-                result = callback(*args)
+                    if name in ('input_copy', 'publisher_copy', 'journal_query_copy',
+                                'journal_copy', 'journal_query_header', 'journal_copy_row',
+                                'platform_vm_observation'):
+                        span._guard_wasm_methods()
+                if span.closed_import:
+                    raise ValueError('Reentrant closed Local import')
+                span.closed_import = True
+                try:
+                    result = callback(*args)
+                finally:
+                    span.closed_import = False
                 if journal is not None and journal.failure is not None:
                     raise journal.failure
                 if publisher is not None:
@@ -1107,6 +1265,184 @@ class LocalCore:
                 raise LocalCoreError('projection_block', -5)
             return raw
 
+    @staticmethod
+    def _journal_transfer_bytes() -> int:
+        # Prior original-ticket reservation covers the identity descriptor,
+        # 64-byte Wasm header/control envelope, Python's literal 16-byte header,
+        # and the bounded immutable/mutable block overlap. This is separate
+        # from the unchanged fixed VM capacity and existing exact row charges.
+        # Referenced inputs/readers/rows remain charged to their existing owners.
+        return (sys.getsizeof((None,) * 10) + 64 + 16
+                + 2 * sys.getsizeof(bytearray()) + sys.getsizeof(b'') + 2 * 16384
+                + sys.getsizeof((None, None)) + 2 * sys.getsizeof((None, None, None)))
+
+    def _journal_memory_range(self, caller: Any, memory: Any, offset: int,
+                              length: int, limit: int) -> None:
+        self._bulk_memory_current(memory)
+        if getattr(self, '_platform_vm_original', None) is not None:
+            self._require_platform_vm_current(caller=caller, nonce=self._nonce)
+        size = memory.data_len(caller)
+        if (type(offset) is not int or offset < 0 or type(length) is not int
+                or not 0 <= length <= limit or type(size) is not int
+                or not 0 <= size <= _MEMORY_LIMIT or offset > size or length > size - offset):
+            raise ValueError('Invalid original Local journal memory range')
+
+    def _journal_input_current(self, ticket: int, physical: _PhysicalInput,
+                               callbacks: _JournalCallbacks, reader: _NamespaceReader,
+                               memory: Any, store: LocalByteStore,
+                               current: Callable[[], object]) -> None:
+        self._bulk_memory_current(memory)
+        if (callbacks.failure is not None or self._inputs.get(ticket) is not physical
+                or physical.journal is not callbacks or callbacks.reader is not reader
+                or callbacks.store is not store or callbacks.current is not current
+                or reader is None or reader.owner is not store):
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            raise ValueError('Original Local journal transfer inputs changed')
+
+    def _journal_row_current(self, ticket: int, callbacks: _JournalCallbacks,
+                             original: _JournalRowTransfer, *, ready: bool, started: bool) -> None:
+        # The caller captures this immutable tuple before any callback. Do not
+        # reload a baseline from mutable callback/descriptor fields on return.
+        self._journal_input_current(ticket, original.physical, callbacks, original.reader,
+                                    original.memory, original.store, original.current)
+        if (original.ticket != ticket or callbacks.transfer is not original
+                or callbacks.row is not original.row or callbacks.queried is not True
+                or callbacks.store is not original.store or original.reader.owner is not original.store
+                or callbacks.current is not original.current
+                or original.row[0] is not original.key or original.row[1].payload is not original.body
+                or type(original.row[1].generation) is not int
+                or original.row[1].generation != original.generation
+                or callbacks.transfer_ready is not ready or callbacks.transfer_started is not started):
+            raise ValueError('Original Local journal row transfer changed')
+
+    def _journal_query_header(self, caller: Any, ticket: int, mode: int,
+                              namespace_offset: int, namespace_bytes: int,
+                              key_offset: int, key_bytes: int, header_offset: int) -> int:
+        if type(ticket) is not int or ticket <= 0:
+            return -41
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None or callbacks.failure is not None:
+            return -41
+        transfer = None
+        try:
+            physical, reader = self._inputs[ticket], callbacks.reader
+            store, current = callbacks.store, callbacks.current
+            if (type(mode) is not int or mode not in (0, 1)
+                    or type(namespace_bytes) is not int or not 0 < namespace_bytes <= 4096
+                    or type(key_bytes) is not int or not 0 <= key_bytes <= 4096
+                    or (mode == 1 and key_bytes == 0)):
+                raise ValueError('Invalid original Local journal header request')
+            memory = self._bulk_memory(caller, header_offset, 16)
+            for offset, length in ((namespace_offset, namespace_bytes), (key_offset, key_bytes)):
+                self._journal_memory_range(caller, memory, offset, length, 4096)
+                if length and offset < header_offset + 16 and header_offset < offset + length:
+                    raise ValueError('Original Local journal header overlaps request')
+            self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+            if callbacks.begin(mode, namespace_bytes, key_bytes) != 0:
+                return -41
+            request = callbacks.request
+            index = 0
+            for offset, length in ((namespace_offset, namespace_bytes), (key_offset, key_bytes)):
+                if not length:
+                    continue
+                self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+                if self._bulk_memory(caller, offset, length) is not memory:
+                    raise ValueError('Original Local journal query memory changed')
+                raw = bytes(memory.read(caller, offset, offset + length))
+                if self._bulk_memory(caller, offset, length) is not memory:
+                    raise ValueError('Original Local journal query memory changed')
+                self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+                if callbacks.request is not request:
+                    raise ValueError('Original Local journal request changed')
+                if len(raw) != length or callbacks.query_copy(index, raw) != length:
+                    raise ValueError('Incomplete original Local journal query copy')
+                index += length
+                del raw
+            # The callback still owns the same complete request. Drop only this
+            # comparison alias before the actual query allocates its row.
+            del request
+            code = callbacks.query()
+            if code == 1:
+                self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+                if callbacks.row is not None or not callbacks.queried or callbacks.release() != 0:
+                    raise ValueError('Invalid original Local journal miss')
+                return 1
+            if code != 0 or callbacks.row is None:
+                raise ValueError('Original Local journal query did not produce a row')
+            # Pin all returned identities and immutable payload DATA before
+            # the next memory/current callback can change either compared side.
+            row = callbacks.row
+            transfer = _JournalRowTransfer(physical, reader, memory, row, ticket,
+                store, current, row[0], row[1].payload, row[1].generation)
+            callbacks.transfer = transfer
+            callbacks.transfer_ready = callbacks.transfer_started = False
+            self._journal_row_current(ticket, callbacks, transfer, ready=False, started=False)
+            header = bytearray(16)
+            pack_into('<IIq', header, 0, len(transfer.key), len(transfer.body), transfer.generation)
+            if self._bulk_memory(caller, header_offset, 16) is not memory:
+                raise ValueError('Original Local journal header memory changed')
+            copied = memory.write(caller, header, header_offset)
+            if (self._bulk_memory(caller, header_offset, 16) is not memory
+                    or type(copied) is not int or copied != 16):
+                raise ValueError('Incomplete original Local journal header copy')
+            self._journal_row_current(ticket, callbacks, transfer, ready=False, started=False)
+            callbacks.transfer_ready = True
+            return 0
+        except BaseException as error:
+            if transfer is not None:
+                # Preserve the same failed receipt even if a callback replaced
+                # the slot. This is custody only, never a new query or recovery.
+                callbacks.transfer = transfer
+            return callbacks._fail(error)
+
+    def _journal_copy_row(self, caller: Any, ticket: int, key_offset: int,
+                          key_bytes: int, body_offset: int, body_bytes: int) -> int:
+        if type(ticket) is not int or ticket <= 0:
+            return -41
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None or callbacks.failure is not None:
+            return -41
+        transfer = callbacks.transfer
+        try:
+            if (type(transfer) is not _JournalRowTransfer or callbacks.transfer_ready is not True
+                    or callbacks.transfer_started is not False
+                    or type(key_bytes) is not int or key_bytes != len(transfer.key)
+                    or type(body_bytes) is not int or body_bytes != len(transfer.body)):
+                raise ValueError('Invalid original Local journal row copy')
+            # Set the one-shot control before the first callback. Every return
+            # must retain these exact booleans and the same immutable receipt.
+            callbacks.transfer_started = True
+            self._journal_row_current(ticket, callbacks, transfer, ready=True, started=True)
+            memory = transfer.memory
+            self._journal_memory_range(caller, memory, key_offset, key_bytes, 4096)
+            self._journal_memory_range(caller, memory, body_offset, body_bytes, 262144)
+            if body_bytes and key_offset < body_offset + body_bytes and body_offset < key_offset + key_bytes:
+                raise ValueError('Original Local journal row fields overlap')
+            for field, offset, length in ((0, key_offset, key_bytes), (1, body_offset, body_bytes)):
+                for index in range(0, length, 16384):
+                    count = min(16384, length - index)
+                    self._journal_row_current(ticket, callbacks, transfer, ready=True, started=True)
+                    if self._bulk_memory(caller, offset + index, count) is not memory:
+                        raise ValueError('Original Local journal row memory changed')
+                    # Memory.write accepts this bytearray without another copy.
+                    raw = bytearray(callbacks.row_copy(field, index, count))
+                    self._journal_row_current(ticket, callbacks, transfer, ready=True, started=True)
+                    copied = memory.write(caller, raw, offset + index)
+                    if (self._bulk_memory(caller, offset + index, count) is not memory
+                            or type(copied) is not int or copied != count or len(raw) != count):
+                        raise ValueError('Incomplete original Local journal row copy')
+                    self._journal_row_current(ticket, callbacks, transfer, ready=True, started=True)
+                    del raw
+            self._journal_row_current(ticket, callbacks, transfer, ready=True, started=True)
+            # Successful transport alone retires this transient row. It does
+            # not retire the ticket, authorize a decision or acknowledge COMMIT.
+            return callbacks.release()
+        except BaseException as error:
+            if type(transfer) is _JournalRowTransfer:
+                callbacks.transfer = transfer
+            return callbacks._fail(error)
+
     def _journal_query_copy(self, caller: Any, ticket: int, index: int,
                             offset: int, length: int) -> int:
         callbacks = self._journal_callbacks(ticket)
@@ -1280,8 +1616,10 @@ class LocalCore:
             from ._local_host_binding import _InvocationObservation
             from ._local_storage_physical import _CLOSED_SQL_BYTES
             allowance = (2 * limit + 2 * 262144 + 4096 + sys.getsizeof(callbacks)
+                         + self._journal_transfer_bytes()
                          + sys.getsizeof(self._inputs[ticket])
                          + sys.getsizeof(object.__new__(_InvocationObservation))
+                         + sys.getsizeof((None,) * 4)
                          # Bounded pre-admission reader slot and two closure
                          # records/cell arrays; referenced originals stay owned.
                          + 4096
@@ -1405,6 +1743,7 @@ class LocalCore:
             # Concurrent raw row/key and request/decode copies, bounded before
             # the physical query; this is not a global Python/SQLite memory claim.
             allowance = (2 * limit + 4096 + sys.getsizeof(callbacks)
+                         + self._journal_transfer_bytes()
                          + sys.getsizeof(self._inputs[ticket]))
             handle = self._call('journal', 'reserve', material.handle,
                                 current_configuration, ticket, allowance)
@@ -4268,6 +4607,10 @@ class LocalCore:
         with self._host_cleanup():
             return self._close_core()
 
+    def _retire_closed_wasm_exports(self) -> bool:
+        self._closed_wasm_exports = None
+        return True
+
     def _close_core(self) -> bool:
         """Keep the same instance on pending cleanup; do not cancel a Run."""
         with self._lock:
@@ -4275,6 +4618,11 @@ class LocalCore:
                 return True
             self._closing = True
             if not self._retired:
+                workspace = getattr(self, '_closed_wasm_workspace', None)
+                if workspace is not None:
+                    if not self.close_workspace(workspace):
+                        return False
+                    self._closed_wasm_workspace = None
                 code = self._call('buffer', 'close_pool')
                 if code == -9:
                     return False
@@ -4314,6 +4662,8 @@ class LocalCore:
                     self._physical_vm_span = None
                     self._instance = None
                     self._platform_vm_original = None
+                    self._closed_wasm_exports = None
+                    self._closed_wasm_workspace = None
         holding: _NativeHoldingLease | None = getattr(self, '_physical_holding', None)
         if holding is not None:
             # Store success retires the executable Wasm Root. A final native

@@ -30,7 +30,7 @@ class LocalDistributionTests(unittest.TestCase):
         self.enterContext(patch('actql_sdk._local_distribution.sys.platform', 'darwin'))
         self.enterContext(patch('actql_sdk._local_distribution.platform.machine', return_value='arm64'))
         self.body = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0',
-                     'platform': 'darwin-arm64', 'core_abi': 86, 'wasmtime_version': '38.0.0',
+                     'platform': 'darwin-arm64', 'core_abi': 87, 'wasmtime_version': '38.0.0',
                      'duckdb_version': 'v1.4.3', 'notices': {}}
         for name, key in [('client_host_wasm.wasm', 'module'), ('libduckdb.dylib', 'duckdb')]:
             value = b'fixture component ' + name.encode()
@@ -178,7 +178,7 @@ class LocalDistributionTests(unittest.TestCase):
     def test_manifest_cohort_abi_and_closed_fields_reject(self):
         original = dict(self.body)
         for field, value in [('source_sha', 'a' * 39), ('package_version', 'other'),
-                             ('core_abi', 43), ('core_abi', 44), ('core_abi', 45), ('core_abi', 46), ('core_abi', 47), ('core_abi', 48), ('core_abi', 49), ('core_abi', 50), ('core_abi', 51), ('core_abi', 52), ('core_abi', 53), ('core_abi', 54), ('core_abi', 55), ('core_abi', 56), ('core_abi', 57), ('core_abi', 58), ('core_abi', 64), ('core_abi', 65), ('core_abi', 66), ('core_abi', 67), ('core_abi', 68), ('core_abi', 69), ('core_abi', 70), ('core_abi', 71), ('core_abi', 72), ('core_abi', 73), ('core_abi', 74), ('core_abi', 75), ('core_abi', 76), ('core_abi', 77), ('core_abi', 83), ('core_abi', 84), ('core_abi', 85), ('core_abi', True), ('platform', 'linux-x64'),
+                             ('core_abi', 43), ('core_abi', 44), ('core_abi', 45), ('core_abi', 46), ('core_abi', 47), ('core_abi', 48), ('core_abi', 49), ('core_abi', 50), ('core_abi', 51), ('core_abi', 52), ('core_abi', 53), ('core_abi', 54), ('core_abi', 55), ('core_abi', 56), ('core_abi', 57), ('core_abi', 58), ('core_abi', 64), ('core_abi', 65), ('core_abi', 66), ('core_abi', 67), ('core_abi', 68), ('core_abi', 69), ('core_abi', 70), ('core_abi', 71), ('core_abi', 72), ('core_abi', 73), ('core_abi', 74), ('core_abi', 75), ('core_abi', 76), ('core_abi', 77), ('core_abi', 83), ('core_abi', 84), ('core_abi', 85), ('core_abi', 86), ('core_abi', True), ('platform', 'linux-x64'),
                              ('wasmtime_version', '37.0.0'), ('duckdb_version', 'unknown'),
                              ('extra', 'ignored')]:
             with self.subTest(field=field, value=value):
@@ -271,7 +271,7 @@ class LocalDistributionTests(unittest.TestCase):
                 installed_local_components()
 
     def test_installed_resolver_uses_matching_cohort_and_optional_dependency(self):
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 86,
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 87,
                    'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
                    'host_capacity_sha256': 'c' * 64}
         (self.directory / '_local_release_binding.json').write_text(json.dumps(binding))
@@ -294,7 +294,7 @@ class LocalDistributionTests(unittest.TestCase):
     def test_runtime_manifest_cannot_rebind_same_version_sdk_and_missing_binding_has_no_fallback(self):
         versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0',
                     'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 86,
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 87,
                    'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
                    'host_capacity_sha256': 'c' * 64}
         path = self.directory / '_local_release_binding.json'
@@ -323,7 +323,7 @@ class LocalDistributionTests(unittest.TestCase):
         self.body['engine_recipe'].update(bytes=len(encoded), sha256=hashlib.sha256(encoded).hexdigest())
         self.body['compiled_image'].update(runtime_allocation='platform', provider_library_sha256=None)
         self.write_manifest()
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 86,
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 87,
                    'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
                    'runtime_allocation': 'platform'}
         path = self.directory / '_local_release_binding.json'
