@@ -4,15 +4,16 @@
 // constructors in the SAME original Read, never a new resource/permission.
 fn journal_submitted_retained(
   bytes : Int,
+  text_units : Int64,
 ) -> @execution.PreparationRepresentationUnits {
   {
     // Row/intent/reference/admission/state projection and optional carriers.
     record_headers: 32L,
     reference_slots: 64L,
     scalar_words: 32L,
-    // Decoded original fields plus the restored canonical intent wire.
-    // Their total text cannot exceed twice the complete physical row bytes.
-    owned_utf16_units: 2L * bytes.to_int64() + 71L,
+    // Body copy during parsing; only the actual accepted output text survives
+    // canonical comparison. Parser/source/builder alternatives belong to E.
+    owned_utf16_units: text_units + 71L,
     owned_wire_bytes: bytes.to_int64(),
   }
 }
@@ -21,21 +22,23 @@ fn journal_submitted_retained(
 fn journal_submitted_decode_working(
   stage : @host.ClientSubmittedJournalConstruction,
 ) -> (Int64, Int64, Int64)? {
-  let (bytes, nodes, depth, parsing) = match stage {
-    @host.SubmittedJournalParse(bytes) => (bytes, 65536, 64, true)
-    @host.SubmittedJournalCanonical(bytes, nodes, depth) =>
-      (bytes, nodes, depth, false)
+  let (bytes, text_units, nodes, depth, parsing) = match stage {
+    @host.SubmittedJournalParse(bytes) => (bytes, 0L, 65536, 64, true)
+    @host.SubmittedJournalCanonical(bytes, text_units, nodes, depth) =>
+      (bytes, text_units, nodes, depth, false)
   }
   if bytes <= 0 ||
     bytes >= 2147483519 ||
     nodes < 1 ||
     nodes > 65536 ||
     depth < 0 ||
-    depth > 64 {
+    depth > 64 ||
+    text_units < 0L ||
+    text_units > 3L * bytes.to_int64() {
     return None
   }
   guard @execution.preparation_representation_cost(
-      journal_submitted_retained(bytes),
+      journal_submitted_retained(bytes, text_units),
     )
     is Some(retained) &&
     @decode.preserving_json_admission_construction_inventory(bytes, 16, 2)
