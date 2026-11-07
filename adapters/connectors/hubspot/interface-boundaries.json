@@ -1952,7 +1952,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-observations.mjs",
-      "sha256": "231806ba8b522b004b91b33285210c24827dc71d740f1ae8612b47e686da4f74",
+      "sha256": "4c121f0578c5a64e1191a573fb652e618bba636b78c152ecfeecf7e4cbd55017",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing HubSpot Native request/target decoders and common installed row Effect",
@@ -1990,7 +1990,8 @@
             "portalId",
             "installedFor",
             "requests",
-            "limits"
+            "limits",
+            "maxRows"
           ],
           "async": false
         },
@@ -2268,6 +2269,10 @@
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-update-driver.fixture.mjs",
+                "anchor": "test('HubSpot installed one-response decoder preserves two serial targets"
               }
             ]
           }
@@ -2276,7 +2281,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
-      "sha256": "02cf7c8d9777b9c0c4686af5b2b61a5de2ae906c70f3ce5786dc7a2283f36087",
+      "sha256": "a2b655c851a3e9878bed8942a90a3d8ac31d8e9bedb7176add5d4ec3353c8405",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",
@@ -2749,6 +2754,10 @@
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-update-driver.fixture.mjs",
+                "anchor": "test('HubSpot installed one-response decoder preserves two serial targets"
               }
             ]
           }

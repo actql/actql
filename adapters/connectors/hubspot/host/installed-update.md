@@ -19,6 +19,13 @@ bound. The quantities do not claim exact allocation or new authority. A target
 decoder selected to run inside its physical child additionally carries its
 complete private workspace there until the existing projection-complete cut;
 body/result retention and failed/pending cleanup responsibility remain.
+
+The original driver row bound limits the complete member's serial target
+inventory. It is passed separately to the observation adapter, rather than
+reusing the one-response decoder row limit. Each target still decodes exactly
+one requested record and obtains its own Account/schema-before/target/schema-
+after sequence and row-indexed authorization. Excess member rows refuse before
+reads; extra response rows remain a Native decoding refusal.
 - Extension: Further connector drivers may reuse the common named read slots and synchronous projection boundary while retaining their own Native request/response meaning. Unlabelled existing recipes keep their prior selection. Named and unlabelled selection cannot mix within a phase; unsupported write/check/confirmation slots and resource substitution are refused.
 - Verification: Focused tests exercise the actual recipe parser and caller functions with explicit physical ports, complete Native request/target projection, independent request identity preimages, cold reconstruction, schema/current/cancellation refusal and original Account response interleavings. Row-driver tests additionally cover original metadata/target grant separation, denied metadata, exact single send, unclassified reply loss, complete approved value/target/dispatch/claim correspondence on pure recovery, original Checkpoint fact selection and captured-method reentry. Compatibility with an immutable prior runtime remains distinct from a matching new normal installation, real Credential/Account/Ledger, TLS, public approval, provider updates and Saved execution.
 

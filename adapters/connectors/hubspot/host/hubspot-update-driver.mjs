@@ -72,7 +72,8 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
   const maxProperties = Object.getOwnPropertyDescriptor(requestLimits ?? {}, 'maxProperties')?.value;
   if (!positive(maxProperties)) fail('InvalidHubSpotUpdateDriver');
   const requests = createHubSpotUpdateRequestAdapter({moon, origin, portalId, connectorId, installedFor, limits: requestLimits});
-  const observations = createHubSpotUpdateObservationAdapter({moon, portalId, installedFor, requests, limits: readLimits});
+  const observations = createHubSpotUpdateObservationAdapter({moon, portalId, installedFor, requests,
+    limits: readLimits, maxRows});
   const targetReadLimits = Object.freeze(Object.fromEntries(
     ['maxColumns', 'maxRequestBytes', 'maxRequestNodes', 'maxRequestDepth'].map(name =>
       [name, Object.getOwnPropertyDescriptor(readLimits, name)?.value])));

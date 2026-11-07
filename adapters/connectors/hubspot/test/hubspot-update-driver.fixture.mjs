@@ -25,7 +25,7 @@ const canonical = data => data !== null && typeof data === 'object'
     : '{' + Object.keys(data).sort().map(key => JSON.stringify(key) + ':' + canonical(data[key])).join(',') + '}'
   : JSON.stringify(data);
 const rehash = entry => ({...entry, observationCid: 'sha256:' + createHash('sha256').update(entry.wire).digest('hex')});
-function fixture(moon) {
+function fixture(moon, {maxRows = 10, responseRows = 10} = {}) {
   const native = hubspotUpdateRequestFixture(moon), selected = Object.freeze({...native.installed,
     fields: Object.freeze(['amount', 'tags'])});
   const member = Object.freeze({...native.member, effectId: 'update-companies', memberIndex: 0});
@@ -47,14 +47,14 @@ function fixture(moon) {
     state.gateCalls.push(tuple); return Object.freeze({action: tuple.resource === state.denied ? 'deny' : 'dispatch', tuple});
   }};
   const readLimits = {maxResponseBytes: 30000, maxRequestBytes: 10000, maxNodes: 3000, maxDepth: 24,
-    maxProperties: 100, maxNameUnits: 256, maxRows: 10, maxColumns: 10, maxCursorUnits: 256,
+    maxProperties: 100, maxNameUnits: 256, maxRows: responseRows, maxColumns: 10, maxCursorUnits: 256,
     maxValueNodes: 3000, maxValueTextBytes: 8192, maxOutputBytes: 10000, maxOutputNodes: 3000,
     maxOutputDepth: 24, maxRequestNodes: 3000, maxRequestDepth: 24};
   const writeLimits = {maxResponseBytes: 30000, maxNodes: 3000, maxDepth: 24, maxRows: 1, maxRequestBytes: 20000};
   const config = {moon, site, authorization, connection: 'hubspot:hubspot', origin, portalId: '7', connectorId: 'hubspot',
     siteBindingCid: cid('a'), generationCid: cid('b'), installedFor: () => selected,
     metadataResources: {account: 'account', properties: 'properties'}, requestLimits: native.limits,
-    readLimits, writeLimits, maxRows: 10, maxMembers: 5, maxRecoveryBytes: 200000};
+    readLimits, writeLimits, maxRows, maxMembers: 5, maxRecoveryBytes: 200000};
   const driver = hubspotUpdateDriver(config);
   const describeOptions = {member, runInvocationCid: cid('d'), dispatchRequestCid: cid('e'),
     controlConstruction(receiver, method, args) {return Reflect.apply(method, receiver, args);},
@@ -62,14 +62,17 @@ function fixture(moon) {
       assert.strictEqual(input.grant, authorization.grant);
       state.physical.push({authorization, input, row, slot});
       await input.currentBeforeSend();
-      return project({accepted: true, statusCode: 200, body: Buffer.from(JSON.stringify(
+      const targetId = slot === 'target' ? JSON.parse([...input.operations.values()][0].body).inputs[0].id : id;
+      const response = {accepted: true, statusCode: 200, body: Buffer.from(JSON.stringify(
         slot === 'account' ? {portalId: 7} : slot === 'target'
-          ? {status: 'COMPLETE', results: [{id, archived: false, updatedAt: '2026-11-07T00:00:00.000Z',
-            properties: {amount: '1', tags: 'a'}}]} : properties))});
+          ? {status: 'COMPLETE', results: [{id: targetId, archived: false, updatedAt: '2026-11-07T00:00:00.000Z',
+            properties: {amount: '1', tags: 'a'}}]} : properties))};
+      state.readResponseHook?.(slot, response);
+      return project(response);
     }};
   const describe = () => driver.describe(describeOptions);
-  const prepare = current => {
-    const logical = driver.prepareRequest({member, current, value, selector: id});
+  const prepare = (current, selector = id) => {
+    const logical = driver.prepareRequest({member, current, value, selector});
     return {logical, finalized: driver.finalizeRequest({member, request: logical.request, requestTag: tag})};
   };
   const send = (current, request, changed = {}) => driver.send({member, current, request,
@@ -88,6 +91,41 @@ function fixture(moon) {
 }
 
 export function registerHubSpotUpdateDriverTests(moon) {
+  test('HubSpot installed one-response decoder preserves two serial targets under the original member row bound', async () => {
+    const decoderBounds = [];
+    const counted = {...moon, hubspotProjectRecordRead(...args) {
+      decoderBounds.push(args[5]); return moon.hubspotProjectRecordRead(...args);
+    }};
+    const f = fixture(counted, {maxRows: 2, responseRows: 1}), current = await f.describe();
+    const ids = [id, '9007199254740994'];
+    const entries = ids.map(selected => f.prepare(current, selected).finalized);
+    const grants = ids.map((_, row) => Object.freeze({grant: Object.freeze({row}), useId: 'target-' + row}));
+    const options = {member: f.member, entries, current, readChild: f.describeOptions.readChild,
+      authorizationForRow(row) {f.state.targetUses.push(row); return grants[row];}};
+    const rows = await f.driver.observeTargets(options);
+    assert.deepEqual(rows.map(row => row.identity), ids);
+    assert.deepEqual(decoderBounds, [1, 1]);
+    assert.deepEqual(f.state.targetUses, [0, 1]);
+    assert.deepEqual(f.state.physical.filter(p => p.slot === 'target').map(p => p.authorization), grants);
+    assert.deepEqual(f.state.physical.map(p => p.slot), ['account', 'schema',
+      'account', 'schema-before', 'target', 'schema-after', 'account', 'schema-before', 'target', 'schema-after']);
+    const before = f.state.physical.length;
+    await assert.rejects(f.driver.observeTargets({...options, entries: [...entries, entries[0]]}),
+      {code: 'ForeignHubSpotUpdateCurrent'});
+    assert.equal(f.state.physical.length, before);
+    const bad = fixture(counted, {maxRows: 2, responseRows: 1}), badCurrent = await bad.describe();
+    const entry = bad.prepare(badCurrent).finalized;
+    bad.state.readResponseHook = (slot, response) => {
+      if (slot !== 'target') return;
+      const body = JSON.parse(response.body); body.results.push(body.results[0]);
+      response.body = Buffer.from(JSON.stringify(body));
+    };
+    await assert.rejects(bad.driver.observeTargets({member: bad.member, entries: [entry], current: badCurrent,
+      readChild: bad.describeOptions.readChild, authorizationForRow: () => grants[0]}));
+    assert.equal(bad.state.physical.at(-1).slot, 'target');
+    assert.equal(f.state.writes.length, 0); assert.equal(bad.state.writes.length, 0);
+  });
+
   test('HubSpot driver keeps the original Site and Account methods captured before later reentry', async () => {
     const f = fixture(moon);
     f.config.site.issueReadGrant = () => {throw new Error('Substituted Site issuer');};

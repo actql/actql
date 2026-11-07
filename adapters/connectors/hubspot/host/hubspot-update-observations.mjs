@@ -35,7 +35,7 @@ export class HubSpotUpdateObservationFailure extends Error {
   }
 }
 
-export function createHubSpotUpdateObservationAdapter({moon, portalId, installedFor, requests, limits}) {
+export function createHubSpotUpdateObservationAdapter({moon, portalId, installedFor, requests, limits, maxRows}) {
   if (!/^[1-9][0-9]{0,10}$/u.test(portalId ?? '') || typeof installedFor !== 'function' ||
       nodeTypes.isProxy(installedFor) || nodeTypes.isAsyncFunction(installedFor)) fail('InvalidHubSpotUpdateObservation');
   const native = capture(moon, ['hubspotRecheckAccountIdentityJson', 'hubspotProjectProperties',
@@ -44,8 +44,13 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
   if (Object.values(native).some(method => typeof method !== 'function' || nodeTypes.isProxy(method) ||
       nodeTypes.isAsyncFunction(method))) fail('InvalidHubSpotUpdateObservation');
   const policy = Object.freeze(capture(limits, limitNames));
+  // One physical batch-read decodes one target. The checked member may own
+  // several serial target rows, each with its own current/grant/child slots.
+  const rowLimit = maxRows === undefined ? policy.maxRows : maxRows;
   if (!Object.values(policy).every(value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647) ||
-      policy.maxRows > 100) fail('InvalidHubSpotUpdateObservation');
+      policy.maxRows > 100 || !Number.isSafeInteger(rowLimit) || rowLimit < 1 || rowLimit > 100) {
+    fail('InvalidHubSpotUpdateObservation');
+  }
   const request = Object.freeze(capture(requests, ['requestFacts', 'nativeTargetRead', 'objectType']));
   if (Object.values(request).some(method => typeof method !== 'function')) fail('InvalidHubSpotUpdateObservation');
   const currents = new WeakMap();
@@ -113,7 +118,7 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
       const original = selected(options.member), prior = currents.get(options.current), observations = [];
       if (!prior || prior.catalog !== original.catalog || prior.mappingCid !== original.mappingCid ||
           prior.mappingRef !== original.mappingRef || !Array.isArray(options.entries) ||
-          options.entries.length > policy.maxRows) fail('ForeignHubSpotUpdateCurrent');
+          options.entries.length > rowLimit) fail('ForeignHubSpotUpdateCurrent');
       try {
         const read = scope(options, observations), rows = [];
         for (const [rowIndex, entry] of options.entries.entries()) {
