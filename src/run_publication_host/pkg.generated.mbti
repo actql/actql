@@ -453,6 +453,8 @@ pub fn client_direct_acquisition_occurrence_at(ClientDirectAcquisitionOccurrence
 
 pub fn client_direct_acquisition_occurrence_count(ClientDirectAcquisitionOccurrences) -> Int
 
+pub fn client_direct_acquisition_occurrence_subject(ClientDirectAcquisitionOccurrences, Int) -> @program_check.SourceExecutionSubject?
+
 pub fn client_direct_acquisition_occurrences_match_effect_program(ClientDirectAcquisitionOccurrences, PreparedClientEffectComputation) -> Bool
 
 pub fn client_direct_acquisition_occurrences_match_program(ClientDirectAcquisitionOccurrences, PreparedClientProgram) -> Bool

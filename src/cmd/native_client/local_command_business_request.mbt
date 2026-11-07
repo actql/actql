@@ -234,6 +234,7 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
   request_id : String,
   now : String,
   until : String,
+  request : @run_host.ClientRequestIdentity,
 ) -> LocalEffectFirstCompilation raise ClientStop {
   guard self.original.business is Some(business) &&
     business.request_parent is Some(parent) &&
@@ -266,6 +267,21 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
         self.installed_contracts,
       )
     }
+    let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
+      prepared, 1000000,
+    ).unwrap_or_else(() => stop("LocalOriginalSourceUnavailable"))
+    let source_inputs = if @run_host.client_direct_acquisition_occurrence_count(
+        direct,
+      ) ==
+      0 {
+      []
+    } else {
+      guard self.original.project is Some(project) &&
+        project.mock_declarations is Some(mock) else {
+        stop("LocalOriginalSourceUnavailable")
+      }
+      mock.prepare_effect_sources(prepared, direct)
+    }
     local_effect_first_compilation(
       self.preparation,
       scope,
@@ -275,6 +291,8 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
       now,
       until,
       infers~,
+      request=Some(request),
+      source_inputs~,
     )
   })
 }

@@ -151,3 +151,44 @@ test "Direct occurrence mapping rejects foreign checked owner and wrong checked 
     (0, 0, 0),
   )
 }
+
+///|
+test "Direct subject borrowing retains the filtered original across multiple obligations and foreign equal Programs" {
+  let prepared = multi_source_prepared(multi_source_program)
+  let selected = select_client_direct_acquisition_occurrences(prepared, 1000000).unwrap()
+  let foreign_prepared = multi_source_prepared(multi_source_program)
+  let foreign = select_client_direct_acquisition_occurrences(
+    foreign_prepared, 1000000,
+  ).unwrap()
+  assert_true(
+    client_direct_acquisition_occurrence_subject(selected, -1) is None,
+  )
+  assert_true(client_direct_acquisition_occurrence_subject(selected, 2) is None)
+  let checked = @strategy.graph_program(prepared.graph)
+  assert_true(@checked.source_execution_count(checked) > 2)
+  for index in 0..<2 {
+    let original = client_direct_acquisition_occurrence_subject(selected, index).unwrap()
+    let coordinates = client_direct_acquisition_occurrence_at(selected, index).unwrap()
+    assert_eq((original.stage, original.input), (coordinates.0, coordinates.1))
+    assert_true(original.request is @acquisition.Direct(_, _))
+    assert_true(
+      physical_equal(original.owner, @checked.source_identity(checked)),
+    )
+    assert_true(
+      physical_equal(
+        original,
+        @checked.source_execution_subject(selected.checks[index]),
+      ),
+    )
+    assert_true(
+      @checked.source_execution_kind(selected.checks[index])
+      is @checked.CarrierResponse,
+    )
+    assert_false(
+      physical_equal(
+        original,
+        client_direct_acquisition_occurrence_subject(foreign, index).unwrap(),
+      ),
+    )
+  }
+}

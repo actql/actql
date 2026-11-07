@@ -15,6 +15,7 @@ priv struct LocalEffectFirstCompilation {
   allowed : @run_host.ClientEffectAllowedRun
   definition : @publication.PublicationContract
   issued : @run_host.ClientEffectIssuedNormalizationMaterials
+  _retained_sources : Array[LocalProjectMockEffectSourceInput]
 }
 
 ///|
@@ -45,6 +46,8 @@ fn local_effect_first_compilation(
   now : String,
   until : String,
   infers? : Array[@run_host.ClientInferPlanGraph] = [],
+  request? : @run_host.ClientRequestIdentity? = None,
+  source_inputs? : Array[LocalProjectMockEffectSourceInput] = [],
 ) -> LocalEffectFirstCompilation raise ClientStop {
   guard @local_host.native_client_submitted_preparation(preparation)
     is EffectComputation(prepared) else {
@@ -92,14 +95,23 @@ fn local_effect_first_compilation(
   let definition = @run_host.issue_client_effect_run_definition(
     allowed, namespace_id, request_id, now, until,
   ).unwrap_or_else(() => stop("LocalEffectRunDefinitionNotReady"))
-  let request = local_effect_request_identity(preparation, scope, request_id)
+  let request = match request {
+    Some(original) => {
+      if @run_host.prepared_client_effect_request_scope(prepared, original)
+        is Err(_) {
+        stop("LocalEffectRequestIdentityUnavailable")
+      }
+      original
+    }
+    None => local_effect_request_identity(preparation, scope, request_id)
+  }
   let issued = @run_host.issue_prepared_client_effect_normalization_materials(
     allowed,
     definition,
     normalization,
     request=Some(request),
   ).unwrap_or_else(() => stop("LocalEffectOriginalMaterialsUnavailable"))
-  { request, allowed, definition, issued, }
+  { request, allowed, definition, issued, _retained_sources: source_inputs, }
 }
 
 ///|
@@ -217,6 +229,7 @@ fn local_effect_prepare_start_with_clocks(
         request_id,
         now,
         run_text(retention, "available_until"),
+        request=Some(request),
       )
     Some(original) =>
       original.compile_effect_first(
@@ -226,6 +239,7 @@ fn local_effect_prepare_start_with_clocks(
         request_id,
         now,
         run_text(retention, "available_until"),
+        request,
       )
   }
   // These same original bindings are consumed by the actual preflight, in

@@ -295,6 +295,7 @@ fn native_mock_readme_request_payload(
   document : String,
   original : LocalProjectMockDeclarations,
   effect_compilation : Bool,
+  effect_source_inputs : Bool,
 ) -> String? raise {
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
   let wire : Json = {
@@ -351,6 +352,38 @@ fn native_mock_readme_request_payload(
               if infers.length() != 1 {
                 stop("LocalOriginalModelGraphCount")
               }
+              let request = local_effect_request_identity(
+                preparation,
+                "sha256:" + "a".repeat(64),
+                "original-readme-request",
+              )
+              let source_inputs = if effect_source_inputs {
+                let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
+                  prepared, 1000000,
+                ).unwrap()
+                original.prepare_effect_sources(prepared, direct)
+              } else {
+                []
+              }
+              if effect_source_inputs {
+                if source_inputs.length() != 2 {
+                  stop("LocalOriginalSourceInputCount")
+                }
+                if !physical_equal(
+                    source_inputs[0]._retained_source,
+                    original.sources[0],
+                  ) ||
+                  !physical_equal(
+                    source_inputs[1]._retained_source,
+                    original.sources[1],
+                  ) ||
+                  !(source_inputs[0]._retained_reader is Rows(_)) ||
+                  !(source_inputs[1]._retained_reader is Files(_, _)) ||
+                  source_inputs[0]._retained_coordinates ==
+                  source_inputs[1]._retained_coordinates {
+                  stop("LocalOriginalSourceInputsChanged")
+                }
+              }
               let compiled = local_effect_first_compilation(
                 preparation,
                 "sha256:" + "a".repeat(64),
@@ -360,6 +393,8 @@ fn native_mock_readme_request_payload(
                 "2026-10-10T00:00:00.000Z",
                 "2099-01-01T00:00:00.000Z",
                 infers~,
+                request=Some(request),
+                source_inputs~,
               )
               if !physical_equal(
                   @run_host.client_effect_compilation_owner(
@@ -368,6 +403,10 @@ fn native_mock_readme_request_payload(
                   prepared,
                 ) {
                 stop("LocalOriginalEffectCompilationChanged")
+              }
+              if effect_source_inputs &&
+                !physical_equal(compiled._retained_sources, source_inputs) {
+                stop("LocalOriginalSourceInputsChanged")
               }
               None
             } catch {
@@ -398,6 +437,7 @@ fn native_mock_readme_request_in_metadata_read(
   read : @initial_arena.InstalledArenaOriginalRead,
   facility : NativeMockReadmeRequestFacility,
   effect_compilation? : Bool = false,
+  effect_source_inputs? : Bool = false,
 ) -> String? raise {
   let original = native_project_mock_model_fixture("deal-review-missing")
   original.prepare_source_declarations().unwrap()
@@ -442,7 +482,7 @@ fn native_mock_readme_request_in_metadata_read(
   // query through actual funded Native intake/check/compile, not execution.
   metadata.leave_domain_original_read(read).unwrap()
   let issue = native_mock_readme_request_payload(
-    facility, environment, publication, document, original, effect_compilation,
+    facility, environment, publication, document, original, effect_compilation, effect_source_inputs,
   )
   facility.arena.close_domain_retained_execution(facility.physical).unwrap()
   @local_values.abort_request_preparation_after_cleanup(facility.parent).unwrap()
@@ -537,5 +577,15 @@ test "Native original whole README compiles its first Effect Task with the same 
     false,
     readme_request=true,
     effect_compilation=true,
+  )
+}
+
+///|
+test "Native original whole README retains its two distinct checked Source readers before first Effect Task" {
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
   )
 }
