@@ -47,9 +47,9 @@ export async function verifyNativeNumericRows(path, count = 100000) {
 // Each cli call below launches the same installed Native entry in a new
 // process. Its successful reply/exit is gated by the entry's real command
 // cleanup; it is not independent FD inspection or a whole-Host stop claim.
-export async function observeNativeNumericScale({project, cli}) {
+export async function observeNativeNumericScale({project, cli, outputDirectory = project}) {
   const count = 100000, input = join(project, 'numeric-scale.json');
-  const first = join(project, 'numeric-first.jsonl'), saved = join(project, 'numeric-saved.jsonl');
+  const first = join(outputDirectory, 'numeric-first.jsonl'), saved = join(outputDirectory, 'numeric-saved.jsonl');
   const program = {version: 'actql/0.1', id: 'numeric-scale',
     stages: [{id: 'main', inputs: {}, steps: [{as: 'v', values: {
       schema: {v0: {type: 'number', nullable: false}},
@@ -153,10 +153,14 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
       local: {account_id: principal, principal, connection, state_parent: project, state_name: 'host',
         managed_root: project, sqlite_library: libraries.sqlite, signature_library: libraries.crypto,
         submission_ttl_ms: 86400000, journal_record_limit: 8, journal_snapshot_bytes: 8388608,
-        installation_files: ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json', 'profile.json'],
+        installation_files: ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json', 'profile.json', 'file-read.json'],
         run_file: 'run.json', read_file: 'read.json', run_policy_profile_file: 'profile.json'},
     }},
   };
+  // File output has its own adopted selection; a later --output destination
+  // cannot manufacture it from the stdout read original.
+  files['file-read.json'] = structuredClone(files['read.json']);
+  Object.assign(files['file-read.json'].native.result_read, {sink: 'file', purpose: 'cli-file'});
   await mkdir(project, {mode: 0o700});
   for (const [name, value] of Object.entries(files)) {
     await writeFile(join(project, name), canonicalText(value), {flag: 'wx', mode: 0o600});
@@ -172,7 +176,11 @@ export async function observeNativeNumericOperatorScale({project, cli, assets, l
   const operator = (args, cwd = project, code = 0) => cli([...selected.configuration, ...args], cwd, code);
   const adopted = await operator(['adopt', '--initialize-signing', '--json']);
   assert.equal(JSON.parse(adopted.stdout).kind, 'local_host_adopted');
-  const result = await observeNativeNumericScale({project, cli: operator});
+  // Presentation output must be outside the adopted managed namespace. Keep
+  // its original protected boundary; select a distinct owned directory instead.
+  const outputDirectory = project + '-output';
+  await mkdir(outputDirectory, {mode: 0o700});
+  const result = await observeNativeNumericScale({project, cli: operator, outputDirectory});
   // A distinct fresh operator deliberately selects a lower finite row policy.
   // Its original refusal is neither retried nor a reason to weaken enforcement.
   const lowProject = project + '-low-policy';
