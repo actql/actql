@@ -11,6 +11,7 @@ import {selectAcquiredEffectSources, selectAcquiredEffectPlanInputs} from './acq
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
 import {prepareInstalledEffectRequestChild} from './installed-effect-plan.mjs';
+import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {retainUpdateTargetSelection, originalUpdateTargetSelectionsCid, updateTargetSelectionMatchesRun}
   from './update-target-original-shape.mjs';
 
@@ -536,13 +537,14 @@ const recoveryRowNodes = [];
 (function walk(node) {
   if (!node || typeof node !== 'object') return;
   if (node.type === 'FunctionDeclaration' && node.id.name === 'prepareRecovered' ||
-      node.type === 'VariableDeclarator' && ['physicalRoute', 'prepareRecoveredEntries'].includes(node.id.name)) recoveryRowNodes.push(node);
+      node.type === 'VariableDeclarator' && ['physicalRoute', 'prepareRecoveredEntries', 'runLimits'].includes(node.id.name)) recoveryRowNodes.push(node);
   for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(walk);
   else if (child && typeof child === 'object') walk(child);
 })(parse(recoveryRowSource, {ecmaVersion: 'latest', sourceType: 'module'}));
 const recoveryNode = recoveryRowNodes.find(node => node.type === 'FunctionDeclaration');
 const recoveryRouteNode = recoveryRowNodes.find(node => node.id.name === 'physicalRoute').init;
 const recoveryEntriesNode = recoveryRowNodes.find(node => node.id.name === 'prepareRecoveredEntries').init;
+const recoveryRunLimitsNode = recoveryRowNodes.find(node => node.id.name === 'runLimits').init;
 
 function recoveredPhysicalFixture({managed = true, pending = false, failPrepare = false, prepareFailure, reenter, closeDuringRetain = false, storedResponse} = {}) {
   const prepared = {}, request = {}, value = {}, operationPlan = {}, preview = {}, computation = {}, storedResults = {},
@@ -570,6 +572,10 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     readClaimedResponse() {events.push('stored-read'); return {};},
     recoverClaimFacts() {return {members: [{claims: []}]};}};
   const moon = {clientRequestRelation: (left, right) => left === right ? 1 : 2,
+    clientProgramInstalledEffectManagedPlanShape(selected) {
+      assert.strictEqual(this, moon); assert.strictEqual(selected, operationPlan);
+      return runtimeTupleFromFields({0: 1, 1: 1, 2: 1});
+    },
     strategyPublicationContractIdentity: original => original.identity,
     clientProgramInstalledEffectManagedOperationPlan(parent, p, identity) {
       assert.strictEqual(this, moon); assert.strictEqual(parent, value);
@@ -606,10 +612,14 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     effectComputationPreviewLedgerIdentity: () => originalCurrent,
     effectComputationPreviewSemanticCid: () => 'original-preview'};
   const limits = {preview: {}, key: {}, maxRows: 1, maxWork: 1, maxFrontierWork: 1};
+  const limitPorts = {limits, moon, readManagedShape: moon.clientProgramInstalledEffectManagedPlanShape,
+    owners: [owner], fail, runtimeField};
+  const runLimits = new Function(...Object.keys(limitPorts), 'return (' +
+    recoveryRowSource.slice(recoveryRunLimitsNode.start, recoveryRunLimitsNode.end) + ');')(...Object.values(limitPorts));
   const ports = {moon, localContractLimits: {}, singular: undefined, ROUTING_VERSION: 'original-version',
     text: value => typeof value === 'string' && value.length > 0, selectionChanged: () => assert.fail('No target selection'),
     recoveredMembers: () => [member], bindRunResources() {}, selectionFence: () => () => {},
-    memberDispatch: () => 'original-dispatch', limits,
+    memberDispatch: () => 'original-dispatch', limits, runLimits,
     effect: {recoveredPreviewKeys: () => [], admitPreviewIdentity: () => ({})},
     openLedger() {events.push('ledger-open'); return ledger;},
     admitCapability: () => ({identity: 'original-capability'}), orderedSourceIndexes: () => [0],
