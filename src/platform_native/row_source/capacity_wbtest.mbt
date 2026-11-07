@@ -289,14 +289,19 @@ test "Source caller preparation inventory matches independent constructor vector
       evaluator_bytes,
     )
   }
+  // Managed constructor DATA can quote above the standalone byte envelope.
+  // The public component guard still refuses that profile before execution.
+  let quoted_bytes = {
+    ..limits,
+    page: { max_bytes: 65537, max_nodes: 8192, max_depth: 32, max_rows: 100, },
+  }
+  assert_false(native_relation_file_input_valid(selection, quoted_bytes))
+  assert_true(
+    native_relation_file_caller_preparation_inventory(selection, quoted_bytes)
+    is Some(_),
+  )
   for
     page in [
-      @rows.RowPageLimits::{
-        max_bytes: 65537,
-        max_nodes: 8192,
-        max_depth: 32,
-        max_rows: 100,
-      },
       @rows.RowPageLimits::{
         max_bytes: 65536,
         max_nodes: 8193,
