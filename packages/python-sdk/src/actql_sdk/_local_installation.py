@@ -493,3 +493,12 @@ class OriginalLocalInstallation:
                     return False
                 self._workspaces.remove(workspace)
             return True
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(OriginalLocalInstallation, (
+        '_observe_roots', '_require_current_host_files',
+    )),
+)

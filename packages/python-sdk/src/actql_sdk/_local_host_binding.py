@@ -118,6 +118,9 @@ class _OriginalPublisherPort:
             self.observer()
             if type(fact) is not _PublisherFact or type(fact.namespace_id) is not str:
                 raise ValueError('Original Local physical publisher facts changed')
+            phase = getattr(self.core, '_reconciliation_prepare', None)
+            if phase is not None and not phase.suspended:
+                phase.authorizations += 1
             return fact.namespace_id == 'local'
         except BaseException as error:
             raise self._fail(error)
@@ -321,7 +324,11 @@ class _InvocationObservation:
                 raise ValueError('Original closed Local reader port is unavailable')
             observe(self.reader, self.binding._current_observer, self)
             if physical:
-                self.binding._physical_current()
+                phase = getattr(self.core, '_reconciliation_prepare', None)
+                if phase is not None and not phase.suspended:
+                    phase.check()
+                else:
+                    self.binding._physical_current()
                 observe(self.reader, self.binding._current_observer, self)
         except BaseException as error:
             raise self._fail(error)
@@ -352,7 +359,9 @@ class _InvocationObservation:
             if self.admitted:
                 self.check(physical=True)
             self.suspended = True
-            result = callback(*args)
+            phase = getattr(self.core, '_reconciliation_prepare', None)
+            result = (phase.interrupt(callback, *args) if phase is not None and not phase.suspended
+                      else callback(*args))
             if self.admitted:
                 self.check(physical=True)
             elif self.failure is not None:
@@ -672,11 +681,14 @@ class OriginalHostBinding:
         """
         with self._core._lock:
             span = getattr(self._core, '_invocation_observation', None)
+            phase = getattr(self._core, '_reconciliation_prepare', None)
             try:
                 self._nominal()
                 if not self._active:
                     raise ValueError('Original Local Host physical frame is unavailable')
-                if type(span) is _InvocationObservation and span.binding is self:
+                if phase is not None and phase.binding is self and not phase.suspended:
+                    phase.check()
+                elif type(span) is _InvocationObservation and span.binding is self:
                     if not span.suspended:
                         if not span.admitted:
                             span.enter()
@@ -689,6 +701,8 @@ class OriginalHostBinding:
                 else:
                     self._physical_current()
             except BaseException as error:
+                if phase is not None and phase.binding is self:
+                    raise phase._fail(error)
                 if type(span) is _InvocationObservation and span.binding is self:
                     raise span._fail(error)
                 raise
@@ -800,3 +814,26 @@ class OriginalHostBinding:
                     return False
                 self._workspace = None
             return True
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(OriginalHostBinding, (
+        '_adoption_inventory', '_new_invocation_observation', '_nominal',
+        '_physical_current', '_require_observation_frame', '_settings_inventory',
+        'current', 'fenced',
+    )),
+    _capture_prepare_methods(_OriginalPublisherPort, (
+        '__init__', '_bind', '_fail',
+        '_require_live', '_require_original', '_require_reservation',
+        'authorize', 'current',
+    )),
+    _capture_prepare_methods(_InvocationObservation, (
+        '__init__', '_fail', '_guard_originals',
+        '_guard_publisher', '_guard_sql', '_guard_wasm_methods',
+        '_publisher_result', '_reuse_sql_snapshot', '_select_publisher',
+        'check', 'enter', 'interrupt',
+        'leave',
+    )),
+)

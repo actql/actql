@@ -1684,6 +1684,59 @@ wire, CID, schema, pool allowance, fuel or Run/Read law. The block-size bound is
 a transfer bound and is not a claim about whole Python/SQLite memory or normal
 latency.
 
+### Original finite-policy metadata
+
+The existing admitted finite-policy Owner retains its checked request and
+dependency identities alongside a fixed digest of its constructor-owned body.
+The live SDK read binding projects Run correspondence and dependency metadata
+together. It does not readmit the same unchanged canonical policy for each
+current-read boundary. The retention Owner supplies its already-admitted read
+endpoint directly. Current Account, selection, availability, Store, grant and
+publication-view checks remain separate and execute at their existing stages.
+
+The exposed body may alias mutable Host/FFI bytes. Each typed projection bounds
+and hashes the actual current body against the original private digest. Changed
+bytes use the unchanged raw structural validator and dependency decoder; the
+baseline is never refreshed. Independently admitted equivalent request and Run
+identities preserve value-based correspondence. No second policy body or parsed
+tree is retained. The fixed digest, record references and hash scratch remain
+within the existing backed guest VM and unchanged linear-memory maximum; this
+is not a new operation reservation or a larger transfer allowance.
+
+### Closed original reconciliation preparation
+
+The nonsaved `OriginalStoreReconciliation.prepare` path has one fixed read-only
+Store driver. It accepts the original reconciliation Owner, not an arbitrary
+consumer or work callback. Its fresh transaction preserves the existing four
+row reads, their order and cumulative query/copy limits. All payload-binding,
+completed-reader and publisher authorization stages still run. Saved readers,
+generic inspectors, projected writes, COMMIT and subsequent reconciliation
+stages keep their separate observation boundaries.
+
+Only the standard original Host, genuine Wasmtime exports, original publisher
+port and completed payload readers can enter this driver. Definition-time
+method and helper provenance and the finite export inventory are checked before
+entry. Unsupported customization selects the legacy route before admission;
+a changed or failed admitted phase cannot fall back, requery or replay.
+
+The phase borrows only physical DATA observations from the same installation,
+Store transaction and completed-reader originals. Full checks surround entry,
+every callback or unknown import, and return. Those checks include metadata
+fences, capacity originals, the installed file graph and completed-reader
+identity. Interior checks retain exact object, operation, thread, connection,
+transaction and statement identities and sticky failure. Literal bounded SQL
+prevents parameter adapters from becoming an unobserved callback. No original
+snapshot is rebased, and no successful observation becomes later authority.
+
+The original current Owner funds the fixed receipt, definition records,
+reader pins and construction overlap before admission. The phase retains at
+most eight completed-reader facts, seven metadata inputs and one current
+projection output. Issued callbacks remain pinned until actual Core retirement;
+cleanup callback success is not its acknowledgement. The existing QueryFailed
+reporting continuation retains its original inputs and error, without resuming
+successful preparation. Finally-based retirement removes the phase before the
+original read transaction closes, including on refusal or interruption.
+
 ### Bounded Journal row exchange
 
 Private ABI87 replaces the small-step Journal row transport with two bounded

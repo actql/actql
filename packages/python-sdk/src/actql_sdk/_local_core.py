@@ -154,6 +154,15 @@ class _PublisherCallbacks:
     original: _OriginalPublisherPort | None = None
 
 
+def _original_metadata_cleanup() -> bool:
+    """Original in-memory transport cleanup, still called as an effect."""
+    return True
+
+
+def _original_metadata_stopped(reader: int) -> bool:
+    return True
+
+
 _PUBLISHER_LIMIT = 8192
 
 
@@ -187,6 +196,7 @@ class _PhysicalInput:
     stopped: Callable[[int], bool]
     publisher: _PublisherCallbacks | None = None
     journal: _JournalCallbacks | None = None
+    prepare_bytes: int = 0
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -333,6 +343,10 @@ def _validate_core_module(wasmtime: Any, module: Any) -> None:
 # Fixed receipt, 20 method records, one selected export/name/native lookup,
 # and the workspace's physical-control callbacks. No export-map copy exists.
 _CLOSED_WASM_RECEIPT_BYTES = 4096
+# One exact synchronous prepare receipt, its method provenance, up to eight
+# completed-reader pin records and bounded construction temporaries. Funded by
+# the original current Owner before any prepare receipt is allocated.
+_RECONCILIATION_PREPARE_BYTES = 40960
 
 
 class _ClosedWasmExports:
@@ -564,6 +578,7 @@ class LocalCore:
         self._invoking = False
         self._host_current_binding: Any = None
         self._invocation_observation: Any = None
+        self._reconciliation_prepare: Any = None
         self._ordinary_host = _ordinary_host
         self._host_fuel_phase: str | None = 'initial' if _ordinary_host else None
         self._host_initial_claimed = False
@@ -913,10 +928,14 @@ class LocalCore:
             active = getattr(self, '_invocation_observation', None)
             if active is not None:
                 active._fail(error)
+            phase = getattr(self, '_reconciliation_prepare', None)
+            if phase is not None:
+                phase._fail(error)
             raise error
         if getattr(self, '_ordinary_host', False) and self._host_fuel_phase is None:
             raise RuntimeError('Local Core requires its admitted Host operation')
         platform = getattr(self, '_platform_vm_original', None)
+        phase = getattr(self, '_reconciliation_prepare', None)
         span = None
         self._invoking = True
         try:
@@ -928,6 +947,8 @@ class LocalCore:
                     self._require_platform_vm_current()
                 export_name = f'actql_{family}_{name}'
                 export = self._exports[export_name]
+                if phase is not None and not phase.suspended:
+                    phase.before_export(export_name, export)
                 binding = getattr(self, '_host_current_binding', None)
                 if binding is not None:
                     span = binding._new_invocation_observation()
@@ -936,7 +957,12 @@ class LocalCore:
                         receipt = getattr(self, '_closed_wasm_exports', None)
                         if type(receipt) is _ClosedWasmExports and receipt._qualify(export_name, export):
                             span.wasm_export = (receipt, export_name, export, export._func)
+                if phase is not None and not phase.suspended and (
+                        span is None or span.wasm_export is None):
+                    raise ValueError('Original reconciliation requires its genuine Wasmtime invocation')
                 result = export(self._store, self._nonce, *arguments)
+                if phase is not None and not phase.suspended:
+                    phase.after_export(export_name, export)
                 if platform is not None:
                     if self._platform_vm_original is not platform:
                         raise ValueError('Original platform VM changed during its invocation')
@@ -950,6 +976,8 @@ class LocalCore:
             # The Core may already own the original invocation/ticket. Block
             # new work while retaining this instance for explicit retirement.
             self._closing = True
+            if phase is not None:
+                phase._fail(error)
             if span is not None:
                 span._fail(error)
                 if span.failure is not error:
@@ -1611,7 +1639,8 @@ class LocalCore:
                 callbacks.release()
                 return True
 
-            self._inputs[ticket] = _PhysicalInput(b'', retire, lambda _: True, journal=callbacks)
+            self._inputs[ticket] = _PhysicalInput(b'', retire, lambda _: True, journal=callbacks,
+                                                     prepare_bytes=_RECONCILIATION_PREPARE_BYTES)
             limit = source.length + 256
             from ._local_host_binding import _InvocationObservation
             from ._local_storage_physical import _CLOSED_SQL_BYTES
@@ -1625,7 +1654,7 @@ class LocalCore:
                          + 4096
                          # Bounded simultaneous UTF-8, hex fragments and final
                          # literal SQL. Owned connections retain no plan cache.
-                         + 3 * _CLOSED_SQL_BYTES)
+                         + 3 * _CLOSED_SQL_BYTES + _RECONCILIATION_PREPARE_BYTES)
             handle = self._call('current', 'reserve', source.handle, ticket, allowance)
             if handle <= 0:
                 del self._inputs[ticket]
@@ -2014,6 +2043,9 @@ class LocalCore:
             # Register callbacks before crossing Wasm. A trap cannot cause a
             # physical ticket to disappear while the Core may still own it.
             self._inputs[ticket] = _PhysicalInput(payload, cleanup, stopped)
+            phase = getattr(self, '_reconciliation_prepare', None)
+            if phase is not None and not phase.suspended:
+                phase.track_input(ticket, self._inputs[ticket])
             handle = self._call('buffer', 'reserve', ticket, len(payload),
                                 self._input_copy_bytes(payload))
             if handle <= 0:
@@ -2841,7 +2873,10 @@ class LocalCore:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
             limit = maximum
-            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, _original_metadata_stopped)
+            phase = getattr(self, '_reconciliation_prepare', None)
+            if phase is not None and not phase.suspended:
+                phase.track_output(ticket, self._inputs[ticket])
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'publication_commit_export')))
@@ -4575,6 +4610,9 @@ class LocalCore:
             self._check(operation, code)
             self._loans.pop(value.ticket)
             self._released.discard(value.ticket)
+            phase = getattr(self, '_reconciliation_prepare', None)
+            if phase is not None and not phase.suspended:
+                phase.retire_output(value.ticket)
             return True
 
     def fill_input(self, value: _Input, start: int, count: int) -> None:
@@ -4690,3 +4728,40 @@ class LocalCore:
         self._compute_loans.clear()
         self._task_loans.clear()
         self._result_loans.clear()
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(LocalCore, (
+        '_bulk_memory', '_bulk_memory_current', '_call',
+        '_check', '_cleanup', '_close_output',
+        '_closed_publisher_memory', '_host_current_call', '_host_current_ready',
+        '_input_copy', '_input_copy_bytes', '_journal_begin',
+        '_journal_callbacks', '_journal_copy', '_journal_copy_row',
+        '_journal_current', '_journal_current_operation', '_journal_input_current',
+        '_journal_length', '_journal_memory_range', '_journal_query',
+        '_journal_query_copy', '_journal_query_header', '_journal_release',
+        '_journal_revision', '_journal_row_current', '_journal_schema',
+        '_native_scope', '_observation_import', '_output_copy_bytes',
+        '_owned', '_owned_input', '_owned_output',
+        '_platform_vm_observation', '_publication_configuration', '_publisher_begin',
+        '_publisher_callbacks', '_publisher_copy', '_publisher_current',
+        '_publisher_finish', '_read', '_read_output',
+        '_read_output_block', '_require_platform_vm_current', '_reserve_publication_read_export',
+        '_stopped', 'authorize_publisher', 'bind_host_current',
+        'close_publication_commit_export', 'fill_input', 'host_current_frame',
+        'prepare_publication_lookup', 'prepare_publication_observation', 'produce_publication_commit_index_key',
+        'produce_publication_lookup_reference', 'publication_commit_result_count', 'read_publication_commit_material',
+        'reserve_input', 'reserve_publication_commit_export', 'seal_input',
+        'validate_host_current', 'validate_payload_snapshot', 'validate_publication_commit_payload_binding',
+    )),
+    _capture_prepare_methods(_ClosedWasmExports, (
+        '__init__', '_matches', '_method_identity',
+        '_qualify', '_retained_bytes', '_supported',
+    )),
+)
+from ._local_prepare_provenance import _capture_prepare_functions
+_PREPARE_FUNCTIONS = _capture_prepare_functions(globals(), (
+    '_publisher_fact', '_original_metadata_cleanup', '_original_metadata_stopped',
+))

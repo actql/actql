@@ -624,3 +624,107 @@ test "SDK read refuses expired foreign selection adoption and current authority 
     is Err(StoredChain(Commit(CommitEncoding))),
   )
 }
+
+///|
+// A Host/FFI byte view can mutate the exact buffer exposed by the original.
+fn sdk_read_original_buffer(value : Bytes) -> FixedArray[Byte] = "%identity"
+
+///|
+test "SDK binding accepts separately admitted policy identities and rejects changed dependencies" {
+  let fixture = sdk_read_fixture()
+  defer (fixture.cleanup)()
+  let plan = fixture.preflight.intent.plan
+  let request = @host.admit_client_request_identity_record_wire(
+    @host.client_request_identity_record_wire(plan.request).unwrap(),
+  ).unwrap()
+  let definition = @publication.admit_publication_contract(
+    "run_definition",
+    @publication.publication_contract_json(plan.definition),
+    8192,
+    512,
+    8,
+  ).unwrap()
+  assert_false(physical_equal(request, plan.request))
+  assert_false(physical_equal(definition, plan.definition))
+  let body = @host.client_local_run_policy_original_body(fixture.original)
+  let original_wire = @utf8.decode(body)
+  let bootstrap = @host.client_local_product_sdk_bootstrap_originals(
+    "/private/local",
+    @host.client_local_run_policy_original_issued_at(fixture.original),
+  ).unwrap()
+  let independent = @host.admit_client_local_run_policy_original(
+    @utf8.encode(original_wire),
+    bootstrap.profile,
+    @host.admit_client_submission_reference_record(fixture.reference_wire).unwrap(),
+    request,
+    definition,
+    "sha256:" + "a".repeat(64),
+    @publication.local_sdk_result_read_selection_cid(fixture.selection),
+  ).unwrap()
+  let invoke = finite => {
+    validate_sdk_read_original_binding(
+      local_sdk_read_source(fixture.preflight),
+      fixture.account,
+      finite,
+      fixture.selection,
+      "sha256:" + "a".repeat(64),
+      "answer",
+      "jsonl",
+      "sdk-read-original",
+    )
+  }
+  assert_true(invoke(independent) is Ok(_))
+  let exposed = sdk_read_original_buffer(body)
+  for
+    target in [
+      "sha256:" + "a".repeat(64),
+      @publication.local_sdk_result_read_selection_cid(fixture.selection),
+    ] {
+    let changed = @utf8.encode(
+      original_wire.replace(old=target, new="sha256:" + "0".repeat(64)),
+    )
+    assert_eq(changed.length(), body.length())
+    for index in 0..<body.length() {
+      exposed[index] = changed[index]
+    }
+    assert_true(invoke(fixture.original) is Err(InvalidOriginal))
+    assert_true(invoke(independent) is Ok(_))
+  }
+  let restored = @utf8.encode(original_wire)
+  for index in 0..<body.length() {
+    exposed[index] = restored[index]
+  }
+  assert_true(invoke(fixture.original) is Ok(_))
+  exposed[0] = b'!'
+  assert_true(invoke(fixture.original) is Err(InvalidOriginal))
+}
+
+///|
+test "SDK metadata lookup rechecks aliased policy mutation after the Store callback" {
+  let fixture = sdk_read_fixture()
+  defer (fixture.cleanup)()
+  let body = @host.client_local_run_policy_original_body(fixture.original)
+  let exposed = sdk_read_original_buffer(body)
+  let calls = Ref(0)
+  let observed_table = Ref("")
+  assert_true(
+    sdk_delivery_observe(
+      fixture,
+      (table, _) => {
+        observed_table.val = table
+        calls.val += 1
+        exposed[0] = b'!'
+        Ok(None)
+      },
+      () => Ok(()),
+    )
+    is Err(Store(Preparation(InvalidOriginal))),
+  )
+  assert_eq(calls.val, 1)
+  assert_eq(observed_table.val, "delivery_attempt")
+  exposed[0] = b'{'
+  assert_true(
+    sdk_delivery_observe(fixture, (_, _) => Ok(None), () => Ok(()))
+    is Err(MissingAttempt),
+  )
+}

@@ -186,3 +186,14 @@ class LocalHostFiles:
                 self._bytes -= len(value.body)
                 del self._files[name]
             return True
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(LocalHostFiles, (
+        '_nominal', '_observe_current_files', '_require_current_lifetime',
+        '_require_original', '_require_original_members', 'current',
+        'require_current_originals',
+    )),
+)

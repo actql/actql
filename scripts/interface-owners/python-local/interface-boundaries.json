@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "d076cd5a9d0e58b3168ee76400cb037a40182d8b79c9358c60b4967d6ee04409",
+  "syntaxProjectionSha256": "e877e27f53082140c3cd966896344aca42350e9a59f62e87e43abd6a140504e7",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -4243,6 +4243,7 @@
       ],
       "imports": [
         "._local_core",
+        "._local_prepare_provenance",
         "._local_storage",
         "collections.abc",
         "contextlib",
@@ -4656,7 +4657,7 @@
           ]
         }
       ],
-      "sha256": "142c80a8cc835838e7a1a8d6110fbe41989d7262994ab469981debe34bbd1d6b",
+      "sha256": "fb98a78c574d7821ad75102f31babe6cbfc3cf1eb74f83a4ef178b91f8feb365",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -4722,6 +4723,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -4736,6 +4741,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -4754,6 +4763,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -4772,6 +4785,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -4786,6 +4803,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -4804,6 +4825,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -4818,6 +4843,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -4836,6 +4865,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -4850,6 +4883,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -4872,6 +4909,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -5147,6 +5188,7 @@
         "._local_native_holding",
         "._local_native_image",
         "._local_native_vm",
+        "._local_prepare_provenance",
         "._local_storage",
         "._local_storage_physical",
         "._local_wasm_abi",
@@ -8121,6 +8163,18 @@
         },
         {
           "async": false,
+          "name": "_original_metadata_cleanup",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_original_metadata_stopped",
+          "parameters": [
+            "reader"
+          ]
+        },
+        {
+          "async": false,
           "name": "_publisher_fact",
           "parameters": [
             "payload"
@@ -8160,7 +8214,7 @@
           ]
         }
       ],
-      "sha256": "0f96891e415ff7ac07fa46b6eddda6cf073bc04146fe190285b42741eb5a65b3",
+      "sha256": "3bed8c7faa2a23f7cf7bed7c42402f0f2b0fc2ffb29c64d84a3bee1408742186",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -8444,7 +8498,9 @@
             "_ClosedWasmExports/_method_identity",
             "_ClosedWasmExports/_qualify",
             "_ClosedWasmExports/_retained_bytes",
-            "_ClosedWasmExports/_supported"
+            "_ClosedWasmExports/_supported",
+            "_original_metadata_cleanup",
+            "_original_metadata_stopped"
           ],
           "exports": [
             "LocalCore"
@@ -9646,6 +9702,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -10844,6 +10904,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -10886,6 +10950,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -10928,6 +10996,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -10966,6 +11038,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -11008,6 +11084,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -11046,6 +11126,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -11088,6 +11172,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -11126,6 +11214,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -11228,6 +11320,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "class ClosedWasmSqlTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -23756,6 +23852,7 @@
         "stat"
       ],
       "imports": [
+        "._local_prepare_provenance",
         "dataclasses",
         "errno",
         "fcntl",
@@ -24473,7 +24570,7 @@
           ]
         }
       ],
-      "sha256": "b4b9acebae3ece3820fd50a5da57efdd04b420b40e6b9f721905a859df3842b5",
+      "sha256": "c89419241ddffe03dadd967b6fbd0b2e2d8cadc98ce513d94d9f7b5b58989919",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -24494,6 +24591,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Original Core material transfer"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -24504,6 +24605,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Original Core material transfer"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -24518,6 +24623,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -24532,6 +24641,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -24542,6 +24655,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_files.py",
                 "anchor": "class LocalAreaAcquisitionError(LocalFileError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -24556,6 +24673,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -24566,6 +24687,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_files.py",
                 "anchor": "class LocalAreaAcquisitionError(LocalFileError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -24580,6 +24705,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -24590,6 +24719,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_files.py",
                 "anchor": "class LocalAreaAcquisitionError(LocalFileError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -24608,6 +24741,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_files.py",
                 "anchor": "class LocalAreaAcquisitionError(LocalFileError):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -27292,6 +27429,7 @@
         "._local_core",
         "._local_host_files",
         "._local_installation",
+        "._local_prepare_provenance",
         "._local_storage",
         "._local_storage_physical",
         "._local_submission",
@@ -27627,7 +27765,7 @@
           ]
         }
       ],
-      "sha256": "7df26641b0fada50507a4294bc9389339f932ab45dc28a07503209e8275e44a4",
+      "sha256": "2095b6786a098d00ecdae94cd6e9b6dcdbbb6bdbc8e25d5339f66db8190c67d1",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -27824,6 +27962,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -27846,6 +27988,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -27872,6 +28018,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -27898,6 +28048,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -27924,6 +28078,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -27950,6 +28108,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -27972,6 +28134,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -27998,6 +28164,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -28020,6 +28190,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -28102,6 +28276,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "class ClosedWasmSqlTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -28648,6 +28826,7 @@
       "imports": [
         "._local_files",
         "._local_installation",
+        "._local_prepare_provenance",
         "._local_storage",
         "collections.abc",
         "dataclasses",
@@ -28770,7 +28949,7 @@
           "parameters": []
         }
       ],
-      "sha256": "045d204c6fa87af642616b1b92f0233a1afe11e2351a99a5d802b6ccc87c11e9",
+      "sha256": "90f02eb3c85218ec808a01a867d633cd1313e43888b813d277ee2c63f1bdb120",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28809,6 +28988,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "After observing every original file FD/name, root and Store generation, the Host"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -28823,6 +29006,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -28841,6 +29028,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -28859,6 +29050,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -28877,6 +29072,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -28895,6 +29094,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -28909,6 +29112,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -28927,6 +29134,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -28941,6 +29152,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -28995,6 +29210,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_installation_file_group.py",
                 "anchor": "class OriginalInstallationFileGroupTests("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -30163,6 +30382,7 @@
         "._local_host_binding",
         "._local_host_files",
         "._local_native_store",
+        "._local_prepare_provenance",
         "._local_storage",
         "._local_submission",
         "collections.abc",
@@ -30347,7 +30567,7 @@
           ]
         }
       ],
-      "sha256": "671d84213138849b53cfdce81c9f25bcd9f1061546d8fdffa0e614cd999d78ca",
+      "sha256": "a6f28f6127a29a55842f8fda60b19a504b697447e63387e60f4f51e410e56675",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -30368,6 +30588,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## First-adoption bootstrap metadata"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -30378,6 +30602,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## First-adoption bootstrap metadata"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -30392,6 +30620,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -30406,6 +30638,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -30416,6 +30652,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
                 "anchor": "class LocalInstallationCleanupPending(RuntimeError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -30430,6 +30670,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -30440,6 +30684,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
                 "anchor": "class LocalInstallationCleanupPending(RuntimeError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -30454,6 +30702,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -30464,6 +30716,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
                 "anchor": "class LocalInstallationCleanupPending(RuntimeError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -30482,6 +30738,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_installation.py",
                 "anchor": "class LocalInstallationCleanupPending(RuntimeError):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -31073,6 +31333,7 @@
         "dataclass"
       ],
       "imports": [
+        "._local_prepare_provenance",
         "._local_storage",
         "collections.abc",
         "dataclasses",
@@ -31204,7 +31465,7 @@
           "parameters": []
         }
       ],
-      "sha256": "eab36cc253c84cdad3ffdd9dc43ea0517bb02a427a6f4ecc03349c6906b389a8",
+      "sha256": "7cc541ab3bf988e492cbe5570476e4127d924347f7b8742ab23233969db76af5",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -31243,6 +31504,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -31261,6 +31526,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -31283,6 +31552,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -31305,6 +31578,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -31323,6 +31600,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -31345,6 +31626,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -31363,6 +31648,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -31385,6 +31674,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -31403,6 +31696,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Bounded Journal row exchange"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -31445,6 +31742,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_journal_row_transport.py",
                 "anchor": "class JournalRowTransportTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -49670,6 +49971,7 @@
       "imports": [
         "._local_commit_projection",
         "._local_core",
+        "._local_prepare_provenance",
         "collections.abc"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_observation_transfer.py",
@@ -49861,7 +50163,7 @@
           ]
         }
       ],
-      "sha256": "2671a4a68eef83abebc7e6724e8ab644f788f67a7684c2240f517a9e637117ea",
+      "sha256": "a48ac5ad26e620da5c87f32923c4f254f41ebe382acd509284ce82c12798cf35",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -49903,6 +50205,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Independent publisher callback transport"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -49913,6 +50219,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Independent publisher callback transport"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -49927,6 +50237,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -49941,6 +50255,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -49951,6 +50269,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_observation_transfer.py",
                 "anchor": "class OriginalObservationTransfer:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -49965,6 +50287,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -49975,6 +50301,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_observation_transfer.py",
                 "anchor": "class OriginalObservationTransfer:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -49989,6 +50319,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -49999,6 +50333,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_observation_transfer.py",
                 "anchor": "class OriginalObservationTransfer:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -50017,6 +50355,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_observation_transfer.py",
                 "anchor": "class OriginalObservationTransfer:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -52351,7 +52693,7 @@
           ]
         }
       ],
-      "sha256": "92fddb1946803649986a5b209024f4a9adf009c49bae029d50565e2dc6ad8400",
+      "sha256": "0fd02fa3f7a380d447846e22273215528494ab9268f41c9784d741ba8698ddc9",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -52530,6 +52872,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -52572,6 +52918,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -52618,6 +52968,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -52664,6 +53018,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -52710,6 +53068,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Bounded write-free reader groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -52756,6 +53118,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -52798,6 +53164,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -52844,6 +53214,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -52886,6 +53260,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -52984,6 +53362,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_publisher.py",
                 "anchor": "class ClosedPublisherTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -54341,6 +54723,7 @@
         "._local_commit_projection",
         "._local_core",
         "._local_files",
+        "._local_prepare_provenance",
         "collections.abc",
         "contextlib",
         "json"
@@ -54380,6 +54763,13 @@
         {
           "async": false,
           "name": "OriginalReaderFacts/_observe_reader",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalReaderFacts/_prepare_snapshot",
           "parameters": [
             "self"
           ]
@@ -54458,7 +54848,7 @@
           ]
         }
       ],
-      "sha256": "10d266fcf4ed24ae3a25cd38317468ac8609b8fdc51cb1a8e3aa2a9f6d290b66",
+      "sha256": "f4a06f32a760c3a174eece8a948dd014f23281079af09e36a2873d8fddeb3e99",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -54467,6 +54857,7 @@
             "OriginalReaderFacts",
             "OriginalReaderFacts/__init__",
             "OriginalReaderFacts/_material_originals",
+            "OriginalReaderFacts/_prepare_snapshot",
             "OriginalReaderFacts/_ready",
             "OriginalReaderFacts/_same_material_originals",
             "OriginalReaderFacts/before_commit",
@@ -54494,6 +54885,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -54508,6 +54903,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -54526,6 +54925,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -54544,6 +54947,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -54558,6 +54965,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -54576,6 +54987,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -54590,6 +55005,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -54608,6 +55027,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -54622,6 +55045,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -54644,6 +55071,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -59856,6 +60287,7 @@
         "sqlite3"
       ],
       "imports": [
+        "._local_prepare_provenance",
         "__future__",
         "collections.abc",
         "sqlite3",
@@ -60399,7 +60831,7 @@
           ]
         }
       ],
-      "sha256": "e3376f6d6b7ddabdfe0c16dd0810b30e9c42f1e1a29cbfef83958e3093adfe97",
+      "sha256": "cd4be0494187e481d299f8572217ba298a94d650b72ece8a33bfa08958cff901",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60867,6 +61299,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -60893,6 +61329,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -60923,6 +61363,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -60953,6 +61397,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -60983,6 +61431,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -61013,6 +61465,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -61039,6 +61495,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -61069,6 +61529,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -61095,6 +61559,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -61197,6 +61665,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "class ClosedWasmSqlTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -61317,9 +61789,11 @@
         "LocalStorageCommitUnknown",
         "LocalStorageError",
         "LocalStorageInitializationError",
+        "OriginalStoreReconciliation",
         "Path",
         "RLock",
         "StoredBytes",
+        "TYPE_CHECKING",
         "dataclass",
         "get_ident",
         "os",
@@ -61329,14 +61803,18 @@
       "imports": [
         "._local_files",
         "._local_host_binding",
+        "._local_prepare_provenance",
+        "._local_reconciliation_prepare",
         "._local_storage_physical",
+        "._local_store_reconciliation",
         "collections.abc",
         "dataclasses",
         "os",
         "pathlib",
         "sqlite3",
         "stat",
-        "threading"
+        "threading",
+        "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_storage.py",
       "responsibilityFacet": "primary",
@@ -61477,7 +61955,8 @@
             "current",
             "successors",
             "_readonly",
-            "_prewrite"
+            "_prewrite",
+            "_reconciliation"
           ]
         },
         {
@@ -61604,6 +62083,15 @@
         },
         {
           "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/prepare_check",
+          "parameters": [
+            "view",
+            "phase",
+            "physical"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalByteStore/_inspect_namespace_locked/query_current",
           "parameters": [
             "view",
@@ -61629,6 +62117,14 @@
             "namespace",
             "after",
             "consume"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_original_reconciliation_prepare",
+          "parameters": [
+            "self",
+            "owner"
           ]
         },
         {
@@ -62229,7 +62725,7 @@
           "parameters": []
         }
       ],
-      "sha256": "e5aeaa88293ee28c097d36afd3867a4482908b7cfdf8d77bfc3fb89dd8447f5d",
+      "sha256": "54adc0b3273193071d7b40fd835bbc310266e714cef151319a4191e671121a16",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62800,9 +63296,11 @@
             "LocalByteStore/_inspect_namespace_locked/journal_schema",
             "LocalByteStore/_inspect_namespace_locked/metadata_fence",
             "LocalByteStore/_inspect_namespace_locked/observe",
+            "LocalByteStore/_inspect_namespace_locked/prepare_check",
             "LocalByteStore/_inspect_namespace_locked/query_current",
             "LocalByteStore/_inspect_namespace_locked/read",
             "LocalByteStore/_inspect_namespace_locked/scan_after",
+            "LocalByteStore/_inspect_original_reconciliation_prepare",
             "LocalByteStore/_inspect_publication_projected",
             "LocalByteStore/_inspect_publication_projected/consume_all",
             "LocalByteStore/_inspect_publication_projected/fence",
@@ -62897,6 +63395,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -62927,6 +63429,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -62961,6 +63467,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -62995,6 +63505,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -63033,6 +63547,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -63067,6 +63585,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -63097,6 +63619,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -63131,6 +63657,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -63161,6 +63691,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed physical observation in one Core invocation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -63307,6 +63841,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "class ClosedWasmSqlTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -64186,7 +64724,9 @@
             "get_ident",
             "os",
             "sqlite3",
-            "stat"
+            "stat",
+            "OriginalStoreReconciliation",
+            "TYPE_CHECKING"
           ],
           "attributes": {
             "responsibility": [
@@ -64314,7 +64854,9 @@
         "._local_core",
         "._local_host_binding",
         "._local_observation_transfer",
+        "._local_prepare_provenance",
         "._local_reader_facts",
+        "._local_reconciliation_prepare",
         "._local_storage",
         "collections.abc",
         "contextlib",
@@ -64406,6 +64948,14 @@
           "name": "OriginalStoreReconciliation/_nominal",
           "parameters": [
             "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalStoreReconciliation/_prepare_closed",
+          "parameters": [
+            "self",
+            "reader"
           ]
         },
         {
@@ -64607,7 +65157,7 @@
           ]
         }
       ],
-      "sha256": "4fb8247d7bc4f1ed429bc4ca4a7633f4b11069cd4ac4f8f8e170d1937fd06302",
+      "sha256": "474a298eb1de75d0dd81f9c236f165ac6c949db38bc9c52c06f5059e7cc6ff29",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -64624,6 +65174,7 @@
             "OriginalStoreReconciliation/_inspect/retain_index",
             "OriginalStoreReconciliation/_inspect/select_index",
             "OriginalStoreReconciliation/_nominal",
+            "OriginalStoreReconciliation/_prepare_closed",
             "OriginalStoreReconciliation/_project_sdk_read_store",
             "OriginalStoreReconciliation/_project_sdk_read_store/project",
             "OriginalStoreReconciliation/_project_sdk_read_store/project/transfer",
@@ -64665,6 +65216,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -64679,6 +65234,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -64697,6 +65256,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -64715,6 +65278,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -64729,6 +65296,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -64747,6 +65318,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -64761,6 +65336,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -64779,6 +65358,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -64793,6 +65376,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -64815,6 +65402,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -65077,6 +65668,7 @@
       ],
       "imports": [
         ".",
+        "._local_prepare_provenance",
         "._local_storage",
         "collections.abc",
         "dataclasses",
@@ -65193,7 +65785,7 @@
           ]
         }
       ],
-      "sha256": "b295fe19a102db16f68a0daa8c18acbfcf7e7e615653eba0ad43ec1c0b1ce3ff",
+      "sha256": "6d74bcefbeb938130a6912f2a3c0406853f2e74bc3b0bbff67626195ab2ec3ad",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -65221,6 +65813,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Original submitted input preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "inputsOutputs": [
@@ -65231,6 +65827,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Original submitted input preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "identity": [
@@ -65245,6 +65845,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "ownership": [
@@ -65259,6 +65863,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "synchronization": [
@@ -65269,6 +65877,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_submission.py",
                 "anchor": "class LocalSubmissionAuthority:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "failure": [
@@ -65283,6 +65895,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "cancellation": [
@@ -65293,6 +65909,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_submission.py",
                 "anchor": "class LocalSubmissionAuthority:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "resources": [
@@ -65307,6 +65927,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "extension": [
@@ -65317,6 +65941,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_submission.py",
                 "anchor": "class LocalSubmissionAuthority:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
               }
             ],
             "verification": [
@@ -65335,6 +65963,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_submission.py",
                 "anchor": "class LocalSubmissionAuthority:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
               }
             ]
           }
@@ -81301,6 +81933,634 @@
           }
         }
       ]
+    },
+    {
+      "module": "packages/python-sdk/src/actql_sdk/_local_prepare_provenance.py",
+      "role": "physical-io",
+      "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
+      "exports": [
+        "Any",
+        "FunctionType",
+        "cast"
+      ],
+      "imports": [
+        "types",
+        "typing"
+      ],
+      "operations": [
+        {
+          "async": false,
+          "name": "_capture_prepare_functions",
+          "parameters": [
+            "namespace",
+            "names"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_capture_prepare_methods",
+          "parameters": [
+            "cls",
+            "names"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_code",
+          "parameters": [
+            "method"
+          ]
+        }
+      ],
+      "sha256": "cb0db85eb9c48e2b7cf0cc0a0a43d99bde62c2bfdcc63b6b0bade899a7e553e5",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "_capture_prepare_functions",
+            "_capture_prepare_methods",
+            "_code"
+          ],
+          "exports": [
+            "Any",
+            "FunctionType",
+            "cast"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_prepare_provenance.py",
+                "anchor": "def _capture_prepare_methods("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_prepare_provenance.py",
+                "anchor": "def _capture_prepare_methods("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_prepare_provenance.py",
+                "anchor": "def _capture_prepare_methods("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_prepare_provenance.py",
+                "anchor": "def _capture_prepare_methods("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_prepare_provenance.py",
+                "anchor": "def _capture_prepare_methods("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_prepare_provenance.py",
+                "anchor": "def _capture_prepare_methods("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_prepare_provenance.py",
+                "anchor": "def _capture_prepare_methods("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_prepare_provenance.py",
+                "anchor": "def _capture_prepare_methods("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_prepare_provenance.py",
+                "anchor": "def _capture_prepare_methods("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
+              }
+            ]
+          }
+        }
+      ],
+      "responsibilityFacet": "primary"
+    },
+    {
+      "module": "packages/python-sdk/src/actql_sdk/_local_reconciliation_prepare.py",
+      "role": "physical-io",
+      "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
+      "exports": [
+        "Any",
+        "Callable",
+        "LocalByteStore",
+        "LocalCore",
+        "LocalFileRoot",
+        "LocalHostFiles",
+        "LocalStorageError",
+        "LocalSubmissionAuthority",
+        "MethodType",
+        "OriginalCommitProjection",
+        "OriginalHostBinding",
+        "OriginalLocalInstallation",
+        "OriginalObservationTransfer",
+        "OriginalReaderFacts",
+        "OriginalStoreReconciliation",
+        "PhysicalFileSnapshot",
+        "RLock",
+        "StoredBytes",
+        "annotations",
+        "cast",
+        "get_ident",
+        "hashlib",
+        "sqlite3",
+        "sys"
+      ],
+      "imports": [
+        "._local_commit_projection",
+        "._local_core",
+        "._local_files",
+        "._local_host_binding",
+        "._local_host_files",
+        "._local_installation",
+        "._local_journal_port",
+        "._local_observation_transfer",
+        "._local_prepare_provenance",
+        "._local_reader_facts",
+        "._local_storage",
+        "._local_storage_physical",
+        "._local_store_reconciliation",
+        "._local_submission",
+        "__future__",
+        "_thread",
+        "collections.abc",
+        "hashlib",
+        "sqlite3",
+        "sys",
+        "threading",
+        "types",
+        "typing"
+      ],
+      "operations": [
+        {
+          "async": false,
+          "name": "_PrepareObservation",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/__init__",
+          "parameters": [
+            "self",
+            "owner",
+            "binding",
+            "reader"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/_check_effect",
+          "parameters": [
+            "self",
+            "callback",
+            "args"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/_check_issued",
+          "parameters": [
+            "self",
+            "ticket",
+            "physical"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/_check_issued_callbacks",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/_check_provenance",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/_fail",
+          "parameters": [
+            "self",
+            "error"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/_guard_sql",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/after_export",
+          "parameters": [
+            "self",
+            "name",
+            "export"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/before_export",
+          "parameters": [
+            "self",
+            "name",
+            "export"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/check",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/fence",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/full",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/interrupt",
+          "parameters": [
+            "self",
+            "callback",
+            "*args"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/leave",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/query_failed",
+          "parameters": [
+            "self",
+            "owner",
+            "error"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/read",
+          "parameters": [
+            "self",
+            "key",
+            "consume"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/retained_bytes",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/retire_output",
+          "parameters": [
+            "self",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/run",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/snapshot",
+          "parameters": [
+            "self",
+            "fact"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/track_input",
+          "parameters": [
+            "self",
+            "ticket",
+            "physical"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PrepareObservation/track_output",
+          "parameters": [
+            "self",
+            "ticket",
+            "physical"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_ReaderPin",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_ReaderPin/__init__",
+          "parameters": [
+            "self",
+            "fact"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_ReaderPin/check",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_ReaderPin/retained_bytes",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_methods_original",
+          "parameters": [
+            "objects",
+            "reduced"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_objects",
+          "parameters": [
+            "owner",
+            "binding"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_original_shapes",
+          "parameters": [
+            "owner",
+            "binding"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_prepare_original_reader",
+          "parameters": [
+            "owner",
+            "binding",
+            "reader"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_prepare_supported",
+          "parameters": [
+            "owner",
+            "binding"
+          ]
+        }
+      ],
+      "sha256": "c012fdb5810604d67ded60beaf7440c1716a40a03adc82ba87884c29ed3fbfc3",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "_PrepareObservation",
+            "_PrepareObservation/__init__",
+            "_PrepareObservation/_check_effect",
+            "_PrepareObservation/_check_issued",
+            "_PrepareObservation/_check_issued_callbacks",
+            "_PrepareObservation/_check_provenance",
+            "_PrepareObservation/_fail",
+            "_PrepareObservation/_guard_sql",
+            "_PrepareObservation/after_export",
+            "_PrepareObservation/before_export",
+            "_PrepareObservation/check",
+            "_PrepareObservation/fence",
+            "_PrepareObservation/full",
+            "_PrepareObservation/interrupt",
+            "_PrepareObservation/leave",
+            "_PrepareObservation/query_failed",
+            "_PrepareObservation/read",
+            "_PrepareObservation/retained_bytes",
+            "_PrepareObservation/retire_output",
+            "_PrepareObservation/run",
+            "_PrepareObservation/snapshot",
+            "_PrepareObservation/track_input",
+            "_PrepareObservation/track_output",
+            "_ReaderPin",
+            "_ReaderPin/__init__",
+            "_ReaderPin/check",
+            "_ReaderPin/retained_bytes",
+            "_methods_original",
+            "_objects",
+            "_original_shapes",
+            "_prepare_original_reader",
+            "_prepare_supported"
+          ],
+          "exports": [
+            "Any",
+            "Callable",
+            "LocalByteStore",
+            "LocalCore",
+            "LocalFileRoot",
+            "LocalHostFiles",
+            "LocalStorageError",
+            "LocalSubmissionAuthority",
+            "MethodType",
+            "OriginalCommitProjection",
+            "OriginalHostBinding",
+            "OriginalLocalInstallation",
+            "OriginalObservationTransfer",
+            "OriginalReaderFacts",
+            "OriginalStoreReconciliation",
+            "PhysicalFileSnapshot",
+            "RLock",
+            "StoredBytes",
+            "annotations",
+            "cast",
+            "get_ident",
+            "hashlib",
+            "sqlite3",
+            "sys"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_reconciliation_prepare.py",
+                "anchor": "class _PrepareObservation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_reconciliation_prepare.py",
+                "anchor": "class _PrepareObservation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_reconciliation_prepare.py",
+                "anchor": "class _PrepareObservation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_reconciliation_prepare.py",
+                "anchor": "class _PrepareObservation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_reconciliation_prepare.py",
+                "anchor": "class _PrepareObservation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_reconciliation_prepare.py",
+                "anchor": "class _PrepareObservation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_reconciliation_prepare.py",
+                "anchor": "class _PrepareObservation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_reconciliation_prepare.py",
+                "anchor": "class _PrepareObservation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_reconciliation_prepare.py",
+                "anchor": "class _PrepareObservation:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed original reconciliation preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
+                "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
+              }
+            ]
+          }
+        }
+      ],
+      "responsibilityFacet": "primary"
     }
   ],
   "syntaxProjectionBasis": "SHA256 of UTF-8 JSON.stringify over sorted declared {module,operations,exports,imports}; source inventory only."

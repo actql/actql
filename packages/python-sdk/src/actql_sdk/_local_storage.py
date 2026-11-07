@@ -6,6 +6,10 @@ from pathlib import Path
 import sqlite3
 import stat
 from threading import RLock, get_ident
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ._local_store_reconciliation import OriginalStoreReconciliation
 
 from ._local_files import LocalFileRoot, _PayloadFile
 from ._local_storage_physical import (
@@ -60,6 +64,10 @@ class _NamespaceReader:
     # Store-owned validation for one original closed Wasm invocation. Unlike
     # public reader access this can run inside the exact current callback.
     _invocation_check: Callable[['_NamespaceReader', Callable[[], object], object], None] | None = None
+
+    # Only the exact original reconciliation driver receives this private port.
+    # It checks its own fresh reader, never a generic callback's read span.
+    _prepare_check: Callable[['_NamespaceReader', object, bool], None] | None = None
 
     # Private pre-admission probe. False retains ordinary reader semantics;
     # it never refreshes the original snapshot or returns a currentness token.
@@ -939,10 +947,10 @@ class LocalByteStore:
         self.inspect_namespaces(fences, inspect=observe, current=current)
 
     def _inspect_namespace_locked(
-            self, inspect: _InventoryInspection, fences: tuple[ByteFence, ...],
+            self, inspect: _InventoryInspection | None, fences: tuple[ByteFence, ...],
             current: Callable[[], object] | None, *,
             successors: tuple[ByteWrite, ...] = (), _readonly: bool = False,
-            _prewrite: bool = False) -> None:
+            _prewrite: bool = False, _reconciliation: 'OriginalStoreReconciliation | None' = None) -> None:
         # This callback borrows the enclosing physical transaction. It cannot
         # commit, acknowledge Core adoption, repair metadata or survive cleanup.
         active = True
@@ -1122,6 +1130,51 @@ class LocalByteStore:
             finally:
                 if entered:
                     observing_invocation = False
+
+        def prepare_check(view: _NamespaceReader, phase: object, physical: bool) -> None:
+            nonlocal failure
+            from ._local_reconciliation_prepare import _PrepareObservation
+            try:
+                if failure is not None:
+                    raise failure
+                if (type(phase) is not _PrepareObservation or _reconciliation is None
+                        or phase.owner is not _reconciliation or phase.reader is not reader
+                        or phase.core._reconciliation_prepare is not phase
+                        or phase.binding._current_observer is not current
+                        or view is not reader or view.owner is not self or not active
+                        or get_ident() != thread or not _readonly or successors
+                        or view._prepare_check is not prepare_check
+                        or view.scan_after is not scan_after or view.read is not read
+                        or view.check_frame is not check_frame or view.check_fences is not check_fences
+                        or view.check_fences_and_current is not check_fences_and_current
+                        or view.current is not current_snapshot or view.check_inventory is not check_inventory
+                        or view.query_current is not query_current or view.journal_schema is not journal_schema
+                        or view.check_unchanged is not check_unchanged
+                        or view._invocation_check is not invocation_check
+                        or view._invocation_candidate is not invocation_candidate
+                        or type(database) is not _SQLiteByteDatabase or original_snapshot is None
+                        or self._physical is not database or database._connection is not self._connection
+                        or self._connection is not original_snapshot[0]
+                        or self._connection._transaction_epoch != original_control_epoch
+                        or self._connection._closed_statement_epoch != original_statement_epoch
+                        or self._connection._outer_transaction_epoch != original_snapshot[1]
+                        or self._connection.total_changes != original_snapshot[2]
+                        or not self._connection.in_transaction):
+                    raise LocalStorageError('Original reconciliation snapshot changed or retired')
+                if physical:
+                    if database._snapshot_identity() != original_snapshot:
+                        raise LocalStorageError('Original reconciliation schema snapshot changed')
+                    metadata_fence(reuse_snapshot=False)
+                    if not self._originals_match_locked(_reconciliation._originals):
+                        raise LocalStorageError('Original reconciliation reservations changed')
+                    if database._snapshot_identity() != original_snapshot:
+                        raise LocalStorageError('Original reconciliation metadata changed during observation')
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                if type(phase) is _PrepareObservation:
+                    phase._fail(failure)
+                raise failure
 
         def check_frame(view: _NamespaceReader) -> None:
             nonlocal failure
@@ -1405,9 +1458,11 @@ class LocalByteStore:
                 journal_schema=journal_schema, check_inventory=check_inventory,
                 check_unchanged=(check_unchanged if original_snapshot is not None
                     and type(original_snapshot[0]) is _TrackedSQLiteConnection else None),
+                _prepare_check=prepare_check if closed_reader and _reconciliation is not None else None,
                 _invocation_check=invocation_check if closed_reader else None,
                 _invocation_candidate=invocation_candidate if closed_reader else None)
-            result = inspect(reader)
+            result = (_reconciliation._prepare_closed(reader) if _reconciliation is not None
+                      else inspect(reader) if inspect is not None else None)
             if failure is not None:
                 raise failure
             if result is not None or reads == 0:
@@ -1415,6 +1470,32 @@ class LocalByteStore:
             fence()
         finally:
             active = False
+
+    def _inspect_original_reconciliation_prepare(self, owner: 'OriginalStoreReconciliation') -> None:
+        """Drive exactly the original nonsaved prepare, with no supplied callback."""
+        from ._local_store_reconciliation import OriginalStoreReconciliation
+        if (type(owner) is not OriginalStoreReconciliation or owner._store is not self
+                or owner._original is not owner or not owner._entered or not owner._active
+                or owner._projection._saved or owner._binding is None):
+            raise ValueError('Foreign original reconciliation preparation')
+        binding = owner._binding
+        self._validate_originals(owner._originals, set())
+        with binding.fenced() as fences, self._lock:
+            self._validate_metadata_fences(fences, ())
+            self._open()
+            database = self._physical
+            database.begin_read()
+            try:
+                self._inspect_namespace_locked(None, fences, binding._current_observer,
+                                               _readonly=True, _reconciliation=owner)
+                self._fenced_current(binding._current_observer)
+                if not self._fences_match_locked(fences, ()):
+                    raise LocalStorageError('Original reconciliation metadata changed')
+            except BaseException:
+                database.cleanup_read()
+                raise
+            else:
+                database.finish_read()
 
     def inspect_publication_projected_attached(
             self, inspect: Callable[[Callable[[str, Callable[[StoredBytes | None], object]], None]], object],
@@ -2040,3 +2121,17 @@ class LocalByteStore:
 
     def __exit__(self, *_: object) -> None:
         self.close()
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(LocalByteStore, (
+        '_capacity_amount', '_capacity_name', '_fenced_current',
+        '_fences_match_locked', '_file_generation', '_inspect_namespace_locked',
+        '_inspect_original_reconciliation_prepare', '_key', '_observe_generation',
+        '_open', '_originals_match_locked', '_read_bytes_locked',
+        '_validate_metadata_fences', '_validate_originals', 'namespaced_key',
+        'observe_generation',
+    )),
+)

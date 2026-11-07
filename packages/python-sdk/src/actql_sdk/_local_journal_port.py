@@ -266,3 +266,16 @@ class _JournalCallbacks:
         self.mode = -1
         self.queried = False
         return 0 if self.failure is None else -41
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(_JournalCallbacks, (
+        '_fail', 'begin', 'byte',
+        'check_current', 'check_frame', 'length',
+        'query', 'query_copy', 'release',
+        'revision', 'row_byte', 'row_copy',
+        'schema',
+    )),
+)

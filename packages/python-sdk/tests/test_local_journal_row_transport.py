@@ -469,7 +469,10 @@ class JournalRowTransportTests(unittest.TestCase):
         original = (2 * (source.length + 256) + 2 * 262144 + 4096
             + sys.getsizeof(callbacks) + sys.getsizeof(core._inputs[loan.ticket])
             + sys.getsizeof(object.__new__(_InvocationObservation))
-            + sys.getsizeof((None,) * 4) + 4096 + 3 * _CLOSED_SQL_BYTES)
+            + sys.getsizeof((None,) * 4) + 4096 + 3 * _CLOSED_SQL_BYTES
+            # The same current Owner also funds the fixed prepare receipt.
+            + 40 * 1024)
+        self.assertEqual(core._inputs[loan.ticket].prepare_bytes, 40 * 1024)
         self.assertEqual(calls[0], ('current', 'reserve', (source.handle, loan.ticket, original + transfer_bytes)))
         fixture = LocalJournalBridgeCustodyTests()
         self.addCleanup(fixture.doCleanups)

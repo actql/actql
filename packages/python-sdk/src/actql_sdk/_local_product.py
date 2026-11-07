@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 import httpx
 
 from . import _wire as wire
+from ._local_core import _original_metadata_cleanup, _original_metadata_stopped
 from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _Workspace, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
 from ._local_distribution import installed_local_components, LocalInstallationError, LocalComponents
 from ._local_files import (LocalFileRoot, _AllocationArea, _PayloadFile, _NameAdoption, _FileFinalization, _FileReader,
@@ -2755,7 +2756,8 @@ class InstalledLocalHost:
                 return None
             installation.binding.inspect(lambda _:
                 self._core.finish_publication_commit(publication, configuration.handle))
-            projection = OriginalCommitProjection(self._core, publication, configuration.handle, cleanup=lambda: True)
+            projection = OriginalCommitProjection(self._core, publication, configuration.handle,
+                                                  cleanup=_original_metadata_cleanup)
             self._commit_projections.append(projection)
             return projection
 
@@ -2788,7 +2790,7 @@ class InstalledLocalHost:
                 else:
                     fact = OriginalReaderFacts(projection, held.record, held.reader.root, held.reader,
                         index, index, held.store_authority, held.generation,
-                        cleanup=lambda: True, stopped=lambda _: True)
+                        cleanup=_original_metadata_cleanup, stopped=_original_metadata_stopped)
                     # Retain before the first fallible metadata allocation.
                     self._reader_facts.append(fact)
                 if fact._reader is not held.reader or fact._result != index:
@@ -2856,8 +2858,9 @@ class InstalledLocalHost:
                 # worst case, charged before Store rows or encoding are copied.
                 transfer = OriginalObservationTransfer(projection, publisher,
                     max_source_bytes=65536, max_packet_bytes=6 * 65536 + 256,
-                    cleanup=lambda: True, stopped=lambda _: True,
-                    workspace_cleanup=lambda: True, workspace_stopped=lambda: True)
+                    cleanup=_original_metadata_cleanup, stopped=_original_metadata_stopped,
+                    workspace_cleanup=_original_metadata_cleanup,
+                    workspace_stopped=_original_metadata_cleanup)
                 self._observation_transfers.append(transfer)
                 transfers.append(transfer)
                 transfer.reserve()

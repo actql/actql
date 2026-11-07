@@ -24,7 +24,7 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
     """
     __slots__ = ('_transaction_epoch', '_outer_transaction_epoch', '_user_trace', '_trace_depth',
                  '_observation_eligible', '_encoding_eligible', '_closed_invocation',
-                 '_closed_statement_epoch')
+                 '_closed_statement_epoch', '_closed_prepare')
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -33,6 +33,7 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
         self._trace_depth = 0
         self._closed_statement_epoch = 0
         self._user_trace: Callable[[str], object] | None = None
+        self._closed_prepare: Any = None
         self._closed_invocation: Any = None
         detect_types = kwargs.get('detect_types', args[2] if len(args) > 2 else 0)
         self._observation_eligible = detect_types == 0
@@ -55,7 +56,7 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
 
     def _customize(self) -> None:
         self._observation_eligible = False
-        span = self._closed_invocation
+        span = self._closed_prepare or self._closed_invocation
         if span is not None:
             error = RuntimeError('SQLite customization during closed observation')
             span._fail(error)
@@ -67,10 +68,14 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
         super().__setattr__(name, value)
 
     def execute(self, sql: str, parameters: Any = (), /) -> sqlite3.Cursor:
+        phase = self._closed_prepare
         span = self._closed_invocation
-        if span is not None and not span.suspended:
+        closed = phase if phase is not None and not phase.suspended else span
+        if closed is not None and not closed.suspended:
             try:
-                span._guard_sql()
+                closed._guard_sql()
+                if span is not None and not span.suspended and span is not closed:
+                    span._guard_sql()
                 # Only the audited physical read methods below construct
                 # bounded literals. Never dispatch global adapters here,
                 # including adapters registered concurrently for private types.
@@ -78,8 +83,8 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
                     raise ValueError('Closed SQLite reads require original literal transport')
                 return super().execute(sql)
             except BaseException as error:
-                span._fail(error)
-                raise span.failure
+                closed._fail(error)
+                raise closed.failure
         return super().execute(sql, parameters)
 
     def deserialize(self, *args: Any, **kwargs: Any) -> None:
@@ -177,7 +182,9 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
         span = self._closed_invocation
         foreign_closed = (span is not None and span.wasm_export is not None
                           and span.admitted and get_ident() != span.thread)
-        if not read_only or foreign_closed:
+        phase = self._closed_prepare
+        foreign_prepare = phase is not None and get_ident() != phase.thread
+        if not read_only or foreign_closed or foreign_prepare:
             self._closed_statement_epoch += 1
         if command in {'BEGIN', 'COMMIT', 'END', 'ROLLBACK', 'SAVEPOINT', 'RELEASE'}:
             self._transaction_epoch += 1
@@ -287,8 +294,11 @@ class _SQLiteByteDatabase:
         UTF-8 database. The legacy path retains ordinary parameter semantics.
         """
         connection = self._connection
-        span = (connection._closed_invocation
-                if type(connection) is _TrackedSQLiteConnection else None)
+        span = None
+        if type(connection) is _TrackedSQLiteConnection:
+            phase = connection._closed_prepare
+            span = (phase if phase is not None and not phase.suspended
+                    else connection._closed_invocation)
         if span is None or span.suspended:
             return connection.execute('?'.join(fragments), values)
         try:
@@ -497,3 +507,19 @@ class _SQLiteByteDatabase:
             self._connection.execute('UPDATE core_bytes SET generation = ?, payload = ? WHERE key = ?',
                                      (generation, payload, key))
         return generation
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(_SQLiteByteDatabase, (
+        '_journal_schema', '_read_sql', '_snapshot_identity',
+        'begin_read', 'cleanup_read', 'finish_read',
+        'in_transaction', 'read_capacity', 'read_header',
+        'read_row', 'scan_range',
+    )),
+    _capture_prepare_methods(_TrackedSQLiteConnection, (
+        '__setattr__', '_closed_eligible', '_customize',
+        '_trace_transaction', '_transaction_tokens', 'execute',
+    )),
+)
