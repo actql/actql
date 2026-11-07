@@ -132,6 +132,116 @@ The existing Site must still bind the actual authenticated same-App live
 requests, generation and current authority. Equal data/revisions are not that
 authority or an ACK.
 
+## Installed UPDATE request and driver
+
+UPDATE responsibility: the provider adapter connects the existing same-runtime
+native Mapping, proposal, original target, revision-checked request and typed
+acknowledgement to the installed row Effect. The shared Host owns Preview,
+Checkpoint approval, durable claims, Unknown, settlement and physical cleanup.
+
+UPDATE inputs and outputs: the bounded mapped object and exact API-id String
+produce a logical proposal. The complete original Form is rechecked around the
+target read. The native checked before object includes `$id` and every declared
+before field. The original observed revision enters the native PUT body only
+after that target has been projected; no default or guessed revision is used.
+
+UPDATE identity: the immutable binding includes connector, origin, app, resource,
+Site and generation, Mapping ref/CID and codec. Final request identity also binds
+the original logical request, dispatch tag, complete original target-body digest
+and exact serialized PUT body. Equal copied opaque carriers cannot supply it.
+
+UPDATE ownership: the adapter retains native DATA originals and captured runtime
+methods. It issues no Account decision, permission, claim or physical ACK. The
+driver passes the SAME Site-issued metadata authorization to its physical child;
+the invocation useId is separate. Target reads use their original same-row grant.
+
+UPDATE synchronization: each describe and target phase performs fresh authorized
+Form reads. Target current, cancellation and credential fences remain in the
+existing physical child. An immutable metadata holder is not a reusable current
+proof. Captured native, Site and Account methods keep their original receivers.
+
+UPDATE failure: schema, complete before-value, revision, id, Mapping, request-tag,
+body and member/claim mismatches refuse. Non-success, incomplete or unrelated
+responses remain unclassified, never absence, known nonacceptance or a resend.
+Failed physical read observations remain attached to their original cause.
+
+UPDATE cancellation: existing signals are checked before reads and sends. A late
+abort must not discard an already observed write response. Socket and response
+custody, pending cleanup and Root retirement remain the existing Host duties.
+
+UPDATE resources: parser, value, identity, comparison and writer bounds remain
+distinct. Cold before output uses its response bound, independently of the PUT
+output bound. Full saved wire and decoded target bytes are bounded before
+restoration. Positive limits are not funding: the standard installer must reserve
+the simultaneous original material, construction and physical-child backing.
+
+UPDATE extension: cold restoration checks the complete saved binding, original
+request tag, native values/target/body, approved row and claim correspondence.
+It performs no I/O, new request selection or resend. Node and generated RelA
+delegate to the same native validators; no parallel validation implementation is
+introduced. This driver alone does not establish a funded standard installation.
+
+UPDATE verification: actual compiled native boundary cases cover wide id/revision
+strings, independent before/PUT bounds, copied and substituted material, complete
+Form/target drift, metadata versus target grants, response correlation, lost
+reply and cancellation custody, original Checkpoint binding and cold tampering.
+Explicit component ports do not establish ordinary approval or provider sends.
+
+## UPDATE constructor quantities
+
+Quantities responsibility: the native provider describes its actual proposal,
+Form, target, final PUT and response constructor families. The existing execution
+owner prices representation units; it remains the sole reservation owner.
+
+Quantities inputs and outputs: each phase consumes the same original Mapping
+and its existing parser, value, comparison and writer bounds. Form, target and
+response quantities use the actual received byte count. Returned immutable
+material and construction workspace are separate outputs of the inventory.
+
+Quantities identity: copied Mappings refuse before quotation. Counts do not
+admit values, prove a target, replace a revision or authorize a physical use.
+
+Quantities ownership: the installed Catalog, Mapping, prior proposal/Preview and
+charged physical input remain borrowed. A successful Form recheck returns Unit
+and has zero retained native output. Target output keeps its complete immutable
+index, borrowed String/Span family, original page, checked Values and before wire.
+Its parser/key/ancestry work is separate. Finalization retains its request and
+document; response projection retains only its exact acknowledged result material.
+
+Quantities synchronization: quotation is synchronous DATA inspection, without
+parsing, a new target observation, I/O, current decision or successful admission.
+The original native constructors still execute all their checks afterward.
+
+Quantities failure: invalid limits, copied originals, oversized actual bodies and
+batch substitution refuse. The full failed parse/closed-object prefix remains
+covered; a successful small acknowledgement does not bound malformed input.
+
+Quantities cancellation: these helpers issue no release, cancellation or ACK.
+Running and failed construction retains its complete reserved peak. The existing
+caller may reconcile completed workspace only after the actual original phase
+and its output/fences finish; pending physical custody remains separate.
+
+Quantities resources: CREATE and UPDATE share their existing mapped-write Value
+admission inventory. UPDATE co-counts its unused CREATE writer as workspace,
+never continuing output. Existing Source retained-String/Span and decoder-index
+inventories exclude parser/key-admission scratch from the target output. Encoded
+before/result demand uses bounded source escaping/normalization envelopes while
+the original semantic limits remain unchanged. Execution already includes
+retained material; the two byte quantities must not be added as disjoint use.
+These are logical bounds, not measured heap, RSS, latency or physical funding.
+
+Quantities extension: the same Common issuer's Node and generated RelA ports
+forward the five native phase capacities. Host JSON, saved envelopes, request
+identity, physical response/secret, driver/Mapping installation and operation
+recipe quantities still belong to their respective existing callers. These
+native quantities alone do not complete the standard installed factory.
+
+Quantities verification: focused actual native constructor controls pair each
+phase with its original Form/value/target/request/acknowledgement admission and
+exact wire. Separate invalid/copied/batch/body-bound cases refuse; an unused byte
+ceiling stays neutral without treating wider depth or field bounds as inactive.
+Affected CREATE callers retain their original wire and refusal controls.
+
 ## Original Common acquisition and checked-contract handoff
 
 The connector's record declaration retains the original Form projection and
@@ -172,6 +282,80 @@ its captured input until the original Host closes it. That ACK is not proof of
 GC/RSS reclamation or retirement of all escaped metadata/frames; the caller's
 original holding responsibility persists to its actual alias/frame boundary.
 No normal numerical profile follows from this typed handoff.
+
+## Standard installed UPDATE assembly
+
+Installation responsibility: the connector-owned Effect profile selects one
+original installed Source App/resource and an explicit writable-field subset.
+The standard generated installation table selects the loader; no provider-name
+branch, second initialization Ledger or additional authority owner is needed.
+
+Installation inputs and outputs: the Source and Effect loaders share the same
+bounded original Form/declaration preparation. The Effect adds a Native UPDATE
+Mapping and the existing row Effect driver/recipe. The complete declared schema,
+including read-only fields, remains the target's original before inventory.
+
+Installation identity: Site context, original metadata, runtime bundle,
+Environment and Mapping identities bind each generation and physical target
+selection. Exact API `$id` and the observed revision remain Strings. Recovery
+validates the complete saved native value, target bytes, request body and CIDs;
+restoration itself never sends or creates a new request.
+
+Installation ownership: the existing Host initialization owner reserves each
+Native/Host constructor before projection. Borrowed immutable Form, declaration,
+Site and field Strings are references, not additional payload copies. Mapping
+success replaces its own construction quote with its retained-only projection.
+The generic installed driver owner conservatively retains its complete quote;
+this connector does not change that shared lifetime contract. Failed
+construction retains its complete original responsibility.
+
+Installation synchronization: capture, apply and resume each retain a separate
+Form describe slot and schema-before/target/schema-after slots. The target uses
+its original Checkpoint grant; Form reads keep their distinct Account decisions.
+Request construction and finalization use separate existing operation positions.
+
+Installation failure: malformed, noncanonical, copied or changed saved material
+keeps the full Native refusal path. Fixed primitive bindings are checked before
+recursive Host canonicalization. Native value admission precedes Host value
+parse. An unclassified or lost write response never becomes permission to resend.
+
+Installation cancellation: each existing current/cancellation callback and
+physical credential use remains with its original owner. An abort after physical
+send cannot discard the observed result or establish known nonacceptance.
+
+Installation resources: two real checked Mapping reads are distinct from schema
+parse and identity/output writers; writers do not each imply another complete
+metadata admission. Phase recipes price retained original values and ended
+workspace separately. Actual byte observations select staged response demand;
+logical quantity inspection grants no capacity, permission or completion.
+
+Installation extension: another writable field or App must use the original
+Catalog eligibility and full Mapping constructor. A future operation retains its
+own protocol/revision semantics and existing row Effect ownership; it cannot
+borrow UPDATE approval, permission or an opaque value from another runtime.
+
+Installation verification: pure quantities, exact wire/current/refusal cases,
+real initial-parent reservation and physical cleanup, normal package consumers,
+loopback TLS and live-provider acceptance have distinct scopes. Success at one
+boundary is not acceptance of the others.
+
+## Installed UPDATE target bounds
+
+The managed Plan supplies the existing per-member row ceiling. The shared row
+Effect keeps that ceiling for each member and derives a finite stage counter
+ceiling from the same Plan's member count. An explicitly supplied tighter row
+limit still applies. The counter does not fund rows: the same adopted Run must
+retain the actual captured or recovered inventory before any row-dependent
+constructor, and its work, retention, transfer and recovery limits still apply.
+Legacy non-managed callers keep their existing installation limits.
+
+The provider's maximum of 100 records per Update Records request is separate
+from the total targets in an Effect. This installed UPDATE sends one observed,
+revision-bound record in each PUT. Describe and restoration receive the shared
+owner's row bound; the driver imposes no second whole-Effect batch quota. Each
+fresh Form read grant admits only its own single physical read. Neither a row
+count nor a request quota substitutes for current Account/Checkpoint decisions,
+original target checks, durable claims or pending/Unknown cleanup duties.
 
 ## Provider references
 

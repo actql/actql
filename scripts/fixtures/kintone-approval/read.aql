@@ -1,0 +1,3 @@
+SELECT r.`$id` AS id, r.Subject AS Subject
+FROM kintone.inquiries AS r
+WHERE r.`$id` = @record_id;

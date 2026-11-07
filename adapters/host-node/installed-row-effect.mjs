@@ -1072,6 +1072,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   }
   const resources = captureEffectResources(effectResources);
   const limits = installedRowEffectConstructionLimits(suppliedLimits);
+  const configuredMaxRows = Object.hasOwn(suppliedLimits ?? {}, 'maxRows') ? limits.maxRows : undefined;
   if (write !== undefined && driver !== undefined) fail('InvalidInstalledRowEffectDriver');
   const standard = write === undefined ? undefined : deriveInstalledRowWrite(write, connectorRegistration);
   const owned = checkDriver(standard === undefined ? driver : standard.driver);
@@ -1185,6 +1186,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
     assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings, commands);
   }
   const adapter = createRowEffectStage([Object.freeze({moon, limits, owned, profile,
+    configuredMaxRows,
     installed, installedCommands, storeMappings, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
     runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources,
@@ -1269,6 +1271,25 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // every retained owner before a composed stage can be constructed.
   const {moon, ledgerRoot} = owners[0];
   const limits = retainedLimits ?? owners[0].limits;
+  const readManagedShape = moon.clientProgramInstalledEffectManagedPlanShape;
+  const runLimits = managed => {
+    if (managed === undefined) return {...limits, maxRowsPerMember: limits.maxRows};
+    if (managed.runtime !== moon || managed.closed || typeof managed.controlConstruction !== 'function' ||
+        typeof readManagedShape !== 'function') fail('ForeignInstalledEffectManagedRun');
+    // This SAME adopted Plan supplies a rejection ceiling, not authority or
+    // already funded rows. retainInputs/retainRecoveredInputs still debit the
+    // actual inventory before any row-dependent constructor or provider call.
+    const shape = managed.controlConstruction(moon, readManagedShape, [managed.operationPlan]);
+    const rows = runtimeField(shape, 0), members = runtimeField(shape, 1);
+    if (!Number.isSafeInteger(rows) || rows < 0 || !Number.isSafeInteger(members) || members < 1 ||
+        rows > 2147483647 || members > 2147483647) fail('InvalidInstalledEffectManagedShape');
+    // Core preview/ledger counters are Int. Saturate only this conservative
+    // stage ceiling; an overlarge product must not refuse a small valid stage.
+    const total = Math.min(2147483647, rows * members);
+    const maxRows = owners.reduce((bound, owner) => owner.configuredMaxRows === undefined
+      ? bound : Math.min(bound, owner.configuredMaxRows), total);
+    return Object.freeze({...limits, maxRows, maxRowsPerMember: Math.min(rows, maxRows)});
+  };
   const recipes = owners.flatMap(owner => owner.managedPlanRecipes === undefined
     ? [owner.managedPlanRecipe] : Object.values(owner.managedPlanRecipes));
   const controlEntryBytes = installedEffectSavedControlEntryLimit(recipes);
@@ -1695,13 +1716,13 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         }});
     };
   };
-  const describeMember = async ({member, physicalOperations, operationPhase, runInvocationCid,
+  const describeMember = async ({member, maxRows, physicalOperations, operationPhase, runInvocationCid,
     dispatchRequestCid, label, approval, signal, assertCurrent, controlConstruction}) => {
     const {owned} = ownerOf(member);
     if (owned.describe === undefined) return undefined;
     const readChild = managedReadChild({member, phase: `${operationPhase}-describe`,
       physicalOperations, runInvocationCid, dispatchRequestCid, assertCurrent, signal});
-    return owned.describe({member, runInvocationCid, dispatchRequestCid, label, approval, signal, controlConstruction,
+    return owned.describe({member, maxRows, runInvocationCid, dispatchRequestCid, label, approval, signal, controlConstruction,
       ...(readChild === undefined ? {} : {readChild}), ...resourceFields(member)});
   };
 
@@ -1962,7 +1983,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         for (const [index, member] of members.entries()) {
           const {owned} = ownerOf(member);
           assertCurrent?.();
-          const description = await describeMember({member, runInvocationCid,
+          const description = await describeMember({member, maxRows: entries[index].length, runInvocationCid,
             dispatchRequestCid: dispatches[index], label: `apply-${index}`,
             approval: reads[index]?.approval, signal, assertCurrent, physicalOperations, operationPhase, controlConstruction});
           assertCurrent?.();
@@ -2165,7 +2186,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     return {current, bindDispatch, confirmResponse, assertClaimedCurrent, retire};
   };
 
-  const basePreflight = ({effects, members, requestScope, keys}) => ({
+  const basePreflight = ({effects, members, requestScope, keys, limits}) => ({
     sources: effects.map(member => member.source_binding_cid),
     contracts: members.map(contractCidOf),
     capabilities: effects.map(member => member.capability_evidence_cid),
@@ -2241,7 +2262,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // The Preview of the Effect Unit: the common draft with each member's rows
   // (create rows already in canonical order) stated as their exact values,
   // and each update row's observed target, version and before value.
-  function authorPreview({control, prepared, inputs, context, requestScope,
+  function authorPreview({control, prepared, inputs, context, requestScope, limits,
     members, rowsOf, capabilities, footprints, payloads}) {
     const {maxWireBytes, maxNodes, maxDepth} = limits.preview;
     const requestAuthority = moon.clientProgramEffectRequestAuthority(
@@ -2267,7 +2288,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       identities.push(identity);
       const rows = rowsOf[index];
       rowCount += rows.length;
-      if (rowCount > limits.maxRows) fail('InstalledRowEffectRowLimit');
+      if (rows.length > limits.maxRowsPerMember || rowCount > limits.maxRows) fail('InstalledRowEffectRowLimit');
       const planCid = checked(moon.clientProgramEffectPlanCid(prepared,
         runtimeField(descriptor, 0), limits.maxFields, limits.planWork, maxWireBytes,
         maxNodes, maxDepth));
@@ -2401,6 +2422,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     runInvocationCid, dispatches, requestScope, storedResults, signal,
     targetReads, contentOwner, managedEffect, updateTargetSelections, own, ownInputs, ownChildren, assertCurrent}) {
     assertCurrent?.();
+    const limits = runLimits(managedEffect);
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
       limits.maxPinnedResults));
     const commandWorkspaces = [];
@@ -2575,7 +2597,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       },
       onProposalRow(memberIndex, rowIndex, proposal) {
         if (rowIndex !== proposals[memberIndex]?.length ||
-            rowIndex >= limits.maxRows || proposalCount >= limits.maxRows) {
+            rowIndex >= limits.maxRowsPerMember || proposalCount >= limits.maxRows) {
           fail('InstalledRowEffectRowLimit');
         }
         proposalCount++;
@@ -2599,7 +2621,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const {owned} = ownerOf(member);
       assertCurrent?.();
       if (proposals[index].length === 0) fail('InstalledRowEffectEmptyMember');
-      const description = await describeMember({member, runInvocationCid,
+      const description = await describeMember({member, maxRows: proposals[index].length, runInvocationCid,
         dispatchRequestCid: dispatches[index], label: `preview-${index}`,
         approval: reads[index]?.approval, signal, assertCurrent, physicalOperations, operationPhase: 'capture', controlConstruction});
       assertCurrent?.();
@@ -2629,7 +2651,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         for (const [rowIndex, row] of rows.entries()) {
           // Export already bounds the total proposal rows. Member/control
           // children share the same retainer but do not consume a row slot.
-          if (rowIndex >= limits.maxRows) fail('InstalledRowEffectRowLimit');
+          if (rowIndex >= limits.maxRowsPerMember) fail('InstalledRowEffectRowLimit');
           const context = {member, value: row.value, selector: row.selector,
             ...(member.kind === 'create' ? {createRowIdentity: createRows[rowIndex].identity,
               proposalWire: row.proposalWire} : {}),
@@ -2702,7 +2724,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         store, storedResults, control, runDefinition: plan.runDefinition});
     }
     const payloads = sourceSet.members.map(member => member.payload);
-    const preview = authorPreview({control, prepared, inputs,
+    const preview = authorPreview({control, prepared, inputs, limits,
       context: {runDefinition: previewContext.runDefinition,
         runInvocation: previewContext.runInvocation,
         compiledPlan: previewContext.compiledPlan,
@@ -2843,7 +2865,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         subjectCid: moon.clientProgramEffectApplySubjectCid(previewInputs),
         applyPreview, ledger, targetReads, assertCurrent, physicalOperations, controlConstruction});
       const preflight = {proofs: plans.map(item => item.proof),
-        ...basePreflight({effects: body.effects, members, requestScope,
+        ...basePreflight({effects: body.effects, members, requestScope, limits,
           keys: preview.keys})};
       return Object.freeze({preview: admittedPreview, computation,
         storedResults,
@@ -3005,12 +3027,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // create) or from the provider's retained data (an update), and held to
   // exactly the request its durable claim names, the value the Preview
   // approved and, for an update, the Preview's target.
-  const recoveredEntries = ({members, body, durable, recorded,
+  const recoveredEntries = ({members, body, durable, recorded, maxRows,
     previewWire, runInvocationCid, dispatches, requestTags, controlConstruction, reserveRecoveryInput}) => {
     const restore = (owned, method, facts) => controlConstruction === undefined || owned.finalizeRequest === undefined
       ? Reflect.apply(method, owned, [facts]) : controlConstruction(owned, method, [facts]);
     const rebuilt = singular?.owned.recoverRequests === undefined ? undefined :
-      restore(singular.owned, singular.owned.recoverRequests, {durable, recorded, previewWire, body,
+      restore(singular.owned, singular.owned.recoverRequests, {durable, recorded, previewWire, body, maxRows,
         members, runInvocationCid, dispatches, requestTags, reserveRecoveryInput,
         ...resourceFields(members[0])});
     const requests = members.map((_, index) => rebuilt?.requests?.[index]);
@@ -3022,7 +3044,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         const memberIndexes = Object.freeze(members.flatMap((member, index) =>
           ownerOf(member) === owner ? [index] : []));
         if (memberIndexes.length === 0) continue;
-        const recovered = restore(owner.owned, owner.owned.recoverMemberRequests, {durable, recorded,
+        const recovered = restore(owner.owned, owner.owned.recoverMemberRequests, {durable, recorded, maxRows,
           previewWire, body, memberIndexes, members, runInvocationCid, dispatches, requestTags, reserveRecoveryInput,
           ...resourceFields(members[memberIndexes[0]])});
         if (!Array.isArray(recovered?.requests) ||
@@ -3219,6 +3241,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const members = recoveredMembers(body, provider, selected);
     bindRunResources(facts, members);
     const assertCurrent = selectionFence(facts, members, provider.stage_index, updateTargetSelections);
+    const limits = runLimits(managedEffect);
     const runInvocationCid = body.invocation_cid;
     const dispatches = members.map(member =>
       memberDispatch(runInvocationCid, member));
@@ -3230,6 +3253,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const keys = effect.recoveredPreviewKeys(admitted, requestScope,
       members.length, limits.maxRows, limits.maxWork, limits.key.maxBytes,
       limits.key.maxNodes, limits.key.maxDepth);
+    let recoveredRows = 0;
+    for (const member of body.effects) {
+      if (!Array.isArray(member.changes)) fail('InstalledEffectContinuationMismatch');
+      recoveredRows += member.changes.length;
+      if (member.changes.length > limits.maxRowsPerMember || recoveredRows > limits.maxRows) {
+        fail('InstalledRowEffectRowLimit');
+      }
+    }
     const applyPreview = effect.admitPreviewIdentity(previewWire,
       body.run_identity_cid, body.authoring_context.authoring_context_cid,
       requestScope, keys, limits.preview.maxWireBytes,
@@ -3341,7 +3372,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         nodeId: provider.stage_id, maxRows: limits.maxRows,
         maxWork: limits.maxWork});
       assertCurrent?.();
-      ({entries, currents} = prepareRecoveredEntries({members, body, durable,
+      ({entries, currents} = prepareRecoveredEntries({members, body, durable, maxRows: limits.maxRowsPerMember,
         recorded, previewWire, runInvocationCid, dispatches,
         requestTags: keys.map((rows, index) => ownerOf(members[index]).owned.finalizeRequest === undefined
           ? undefined : rows.map(key => effect.dispatchKeyCid(key))), controlConstruction,
@@ -3443,7 +3474,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             reconcileStoredResponses,
             refreshPreflight: ({signal: refreshSignal} = {}) => route.current({
               signal: refreshSignal, preflight: basePreflight({
-                effects: body.effects, members, requestScope})}),
+                effects: body.effects, members, requestScope, limits})}),
             bindDispatch: route.bindDispatch,
             authorization: {gate: singular?.authorization, scopes: scopes(members)}},
           receipt: {ledger, preview: applyPreview, commonMoon: moon,

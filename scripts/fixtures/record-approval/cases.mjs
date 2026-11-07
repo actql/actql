@@ -24,7 +24,7 @@ export function salesforceUpdateCase(programs, selected) {
 
 // A separate Program for HubSpot's own original field names. The exact same
 // bytes are used for its mock and installed route; no string rewriting occurs.
-// The descriptor is not a claim that an ordinary HubSpot Effect is connected.
+// A fixture result alone does not qualify the ordinary installed Effect route.
 export function hubspotUpdateCase(programs, selected) {
   const {recordId, previousName, nextName} = select(selected);
   return {name: 'hubspot-company-update',
@@ -37,4 +37,19 @@ export function hubspotUpdateCase(programs, selected) {
       beforeRows: [{id: recordId, name: previousName}], afterRows: [{id: recordId, name: nextName}]},
     review: {target: 'connector://hubspot/companies', identity: recordId,
       before: {name: previousName}, changes: {name: nextName}}};
+}
+
+// Kintone system record ids remain exact strings, including values above 2^53.
+export function kintoneUpdateCase(programs, selected) {
+  const {recordId, previousName, nextName} = select(selected);
+  return {name: 'kintone-record-update',
+    effect: {document: programs.update, format: 'aql', resultName: 'updates',
+      parameterDeclarations: {record_id: {type: 'string'}, next_name: {type: 'string'}},
+      parameters: {record_id: recordId, next_name: nextName},
+      expectedRows: [{id: recordId, previous_name: previousName, next_name: nextName}]},
+    read: {document: programs.read, format: 'aql', resultName: 'main',
+      parameterDeclarations: {record_id: {type: 'string'}}, parameters: {record_id: recordId},
+      beforeRows: [{id: recordId, Subject: previousName}], afterRows: [{id: recordId, Subject: nextName}]},
+    review: {target: 'connector://kintone/inquiries', identity: recordId,
+      before: {Subject: previousName}, changes: {Subject: nextName}}};
 }

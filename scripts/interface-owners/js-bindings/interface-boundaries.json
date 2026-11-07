@@ -77482,7 +77482,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d49a7c47c24faccdb4f5d7003827dbb9ff9fa18bfe432aa4827904ea378f4ff1",
+      "sha256": "db576b698fcb9b2fe39fa62ea0ee06262321368fd5411ebfa7d03b66359c48a5",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -78075,6 +78075,7 @@
             "inputs",
             "context",
             "requestScope",
+            "limits",
             "members",
             "rowsOf",
             "capabilities",
@@ -78104,7 +78105,8 @@
             "effects",
             "members",
             "requestScope",
-            "keys"
+            "keys",
+            "limits"
           ],
           "async": false
         },
@@ -78639,6 +78641,7 @@
           "name": "createRowEffectStage/describeMember/describeMember",
           "parameters": [
             "member",
+            "maxRows",
             "physicalOperations",
             "operationPhase",
             "runInvocationCid",
@@ -79421,6 +79424,7 @@
             "body",
             "durable",
             "recorded",
+            "maxRows",
             "previewWire",
             "runInvocationCid",
             "dispatches",
@@ -79615,6 +79619,21 @@
           "name": "createRowEffectStage/routeOf/routeOf",
           "parameters": [
             "capability"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/runLimits/runLimits",
+          "parameters": [
+            "managed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/runLimits/runLimits/maxRows/maxRows",
+          "parameters": [
+            "bound",
+            "owner"
           ],
           "async": false
         },
@@ -81919,7 +81938,9 @@
             "createRowEffectStage/scopes/scopes/scopes",
             "createRowEffectStage/selectOwner/selectOwner",
             "createRowEffectStage/selectOwner/selectOwner/route/route",
-            "createRowEffectStage/settle/settle"
+            "createRowEffectStage/settle/settle",
+            "createRowEffectStage/runLimits/runLimits",
+            "createRowEffectStage/runLimits/runLimits/maxRows/maxRows"
           ],
           "exports": [],
           "attributes": {
