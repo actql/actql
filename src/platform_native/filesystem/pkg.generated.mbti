@@ -8,6 +8,8 @@ import {
 // Values
 pub fn native_filesystem_read_layout() -> NativeFilesystemReadLayout?
 
+pub fn native_filesystem_write_layout() -> NativeFilesystemWriteLayout?
+
 pub fn open_private_root(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeFilesystemIssue]
 
 pub fn open_private_root_in_current_read_context_with_custody(String, Int) -> Result[Root, NativeRootOpenFailure]
@@ -90,6 +92,11 @@ pub(all) struct NativeFilesystemReadLayout {
   reader_payload_bytes : Int64
   observation_payload_bytes : Int64
   acquisition_payload_bytes : Int64
+  external_object_overhead_bytes : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NativeFilesystemWriteLayout {
+  writer_payload_bytes : Int64
   external_object_overhead_bytes : Int64
 } derive(Eq, @debug.Debug)
 
