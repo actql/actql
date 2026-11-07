@@ -383,7 +383,7 @@ test('current query configuration binds both JS-only files without changing impo
 
 test('single current map binds exact per-entry reviews and full literal import closure', () => {
   assert.equal(Object.keys(currentPackageConfigurations).length, 19);
-  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 11);
+  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 12);
   const head = gitTree(root, execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
   for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
     const revision = entry.revision ?? currentConfigurationReviewRevision;
