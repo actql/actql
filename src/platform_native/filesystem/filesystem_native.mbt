@@ -290,7 +290,7 @@ fn writer_message(writer : Writer) -> String {
 }
 
 ///|
-/// An explicit positive diagnostic ceiling bounds only original Root/Reader
+/// An explicit positive diagnostic ceiling bounds original Root/Reader/Writer
 /// detail. Omission preserves legacy behavior and does not establish funding.
 pub fn open_root(
   path : String,
