@@ -755,7 +755,8 @@ test('each Client group retains its acceptance commands exactly once', () => {
   // The full local command still executes these source-only contracts. Hosted
   // CI executes them once in lint, without package/runtime preparation.
   const earlyContracts = new Set(['packages/client-wire/cancel-identity.test.mjs',
-    'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs']);
+    'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs',
+    'examples/infer-evaluation/evaluate.test.mjs', 'examples/infer-evaluation/compare-source-instructions.test.mjs']);
   const distributionContracts = original[4].split(' ').filter(argument => !earlyContracts.has(argument)).join(' ');
   const partitions = {
     'client-distribution': [4],

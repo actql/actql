@@ -110,6 +110,23 @@ test('known maintenance and focused changes select their required job union', ()
   }
 });
 
+test('mixed reviewed Draft preparation never becomes merge evidence', () => {
+  const entries = [change(), change('docs/development.md')];
+  const {git} = gitFixture({changes: entries});
+  const read = readChanges({pull_request: {base: {sha: old}}}, git);
+  const value = validateSelection(selectTargets(read.paths, {...read, draft: true}));
+  assert.equal(value.profile, 'draft-focused');
+  assert.deepEqual(value.maintenanceChanges, [entries[1]]);
+  assert.deepEqual(value.focusedChanges, [entries[0]]);
+  assert.throws(() => verifyGate({sourceRevision: head, selection: value}, results(value),
+    {event: 'pull_request', sourceRevision: head, draft: true}), /Draft preparation/);
+  const {git: bad} = gitFixture({changes: entries, badPin: true});
+  const unavailable = readChanges({pull_request: {base: {sha: old}}}, bad);
+  const refused = validateSelection(selectTargets(unavailable.paths, {...unavailable, draft: true}));
+  assert.equal(refused.profile, 'draft');
+  assert.equal(refused.focusedTests, null); assert.equal(refused.maintenanceChanges, null);
+});
+
 test('registered family includes existing siblings and NEW fixed-compute/join tests', () => {
   for (const path of [current, stableFocusedFiles[1], added, 'src/query_integration/fixed_join_ordered_ports_wbtest.mbt']) {
     assert(focusedPattern.test(path));
