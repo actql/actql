@@ -248,6 +248,15 @@ MOONBIT_FFI_EXPORT int64_t actql_bootstrap_growth_control_bytes(
         &controls) == ACTQL_OWNED_OK && controls <= INT64_MAX ? (int64_t)controls : -1;
 }
 
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_growth_for_payload_bytes(
+    actql_bootstrap_backing *record, int64_t payload) {
+    if (record == NULL || record->lease == NULL || payload <= 0 ||
+        (uint64_t)payload > PTRDIFF_MAX) return -1;
+    uint64_t total = 0;
+    return actql_native_owned_growth_for_payload_bytes(record->lease, (size_t)payload,
+        &total) == ACTQL_OWNED_OK && total <= INT64_MAX ? (int64_t)total : -1;
+}
+
 MOONBIT_FFI_EXPORT int64_t actql_bootstrap_grow(actql_bootstrap_backing *record,
     int64_t expected, int64_t additional) {
     if (record == NULL || expected <= 0 || additional <= 0 ||

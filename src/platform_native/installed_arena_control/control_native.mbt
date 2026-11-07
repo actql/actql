@@ -394,3 +394,22 @@ pub fn InstalledArenaHost::ensure_backing_capacity(
   }
   backing.ensure_backing_capacity(self, scope.original, bytes)
 }
+
+///|
+/// Same installed Root, at the actual selected child-allocation boundary.
+/// Bytes describe its C payload geometry, never a maximum-policy reservation.
+pub fn InstalledArenaHost::grow_backing_for_allocation(
+  self : InstalledArenaHost,
+  scope : InstalledArenaBackingBorrow,
+  payload_bytes : Int64,
+) -> Result[Unit, @bootstrap.NativeBootstrapIssue] {
+  match self.require_backing_borrow_current(scope) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let backing = match self.original_backing() {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  backing.grow_backing_for_allocation(self, scope.original, payload_bytes)
+}

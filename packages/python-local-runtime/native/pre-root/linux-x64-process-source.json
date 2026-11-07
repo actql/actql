@@ -83,8 +83,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 42368,
-      "sha256": "005063e60dfec67bfbc5b7e324982885578bae4882a1a1e1e512cfeb600fa1c7"
+      "bytes": 42805,
+      "sha256": "c1eea291360487485062a036e0283dce8369f0974a3bbb13836981824ab0bf84"
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_native.mbt",
@@ -123,8 +123,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
-      "bytes": 7243,
-      "sha256": "a338f46d2317ad4a35584e65b7545c7fbc452e0fca55f2e8738cffa2f6505eec"
+      "bytes": 7439,
+      "sha256": "0444df0c78d0fda6a23ffeb29f4b9e38f531cfc8fc758ea1e328b7819f85f149"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_linux_x64_process_profile.h",
@@ -253,8 +253,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/backing_growth_native.mbt",
-      "bytes": 3492,
-      "sha256": "8e7c4ad9810c7771ad886f86b22b8964912d85024dad7ef4f2be8bce85b91c43"
+      "bytes": 4478,
+      "sha256": "023d52b154fdaa5d966da537a38a40fd50a8069520c60459b084120b7f8d663a"
     },
     {
       "path": "src/platform_native/host_bootstrap/backing_growth_wbtest.mbt",
@@ -273,8 +273,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_domain_growth.inc",
-      "bytes": 27056,
-      "sha256": "e83c3323a20c14a05c0d77d085c418445dbba4c9a7f83c93a943186c3bdda438"
+      "bytes": 28051,
+      "sha256": "c743974199c77ea78c91126ee8e63b69a81c0f0cb8beb0f3917e8a82929dcace"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/domain_supplier.c",

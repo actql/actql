@@ -193,6 +193,8 @@ fn prepare_local_command_preparation_original(
     business: business.map(candidate => {
       profile: candidate,
       selected_profile: None,
+      initial_window_bytes: None,
+      initial_domain_bytes: None,
       domain: None,
       execution: None,
       operation: None,

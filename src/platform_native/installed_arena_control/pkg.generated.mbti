@@ -325,6 +325,7 @@ pub fn InstalledArenaHost::enter_local_host_cleanup(Self, InstalledArenaLocalHos
 pub fn InstalledArenaHost::enter_local_host_phase(Self, InstalledArenaLocalHostResources, InstalledArenaLocalHostPhase) -> Result[Unit, InstalledArenaLocalHostResourcesIssue]
 pub fn InstalledArenaHost::finish_domain_retained_execution_failed_entry_cleanup(Self, InstalledArenaRetainedExecution) -> Result[Unit, InstalledArenaRetainedExecutionIssue]
 pub fn InstalledArenaHost::finish_sqlite_lookup(Self, InstalledArenaSqliteLookup) -> InstalledArenaSqliteDatabaseCall[Unit]
+pub fn InstalledArenaHost::grow_backing_for_allocation(Self, InstalledArenaBackingBorrow, Int64) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::grow_domain_original_read_consumer_capacity(Self, InstalledArenaOriginalReadConsumer, Int64, Int64) -> Result[Unit, InstalledArenaOriginalReadIssue]
 pub fn[I] InstalledArenaHost::initialize_preparation(Self, @host_bootstrap.NativeBackedLiveChild[Self, InstalledArenaDomain, I], I, @host_bootstrap.NativeBackedInitializationBudget) -> Result[@physical_resources.BackedInitializationAdmission[I], @host_bootstrap.NativeBackedInitializationIssue]
 pub fn InstalledArenaHost::leave_backing_borrow_scope(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
