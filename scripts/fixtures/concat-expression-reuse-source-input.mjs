@@ -75,10 +75,12 @@ export const concatReuseSuccesses = [
   success('qualified-input-receiver', collision('pieces.x || y'),
     [collisionRows[2], collisionRows[0], collisionRows[1], collisionRows[3]], collisionColumns),
 ];
+// Different operands, arity and receivers are outside the selected DISTINCT
+// scope. Preserve the existing common InvalidQuery refusal.
 export const concatReuseRefusals = [
   distinctSql('CONCAT(x,y)', 'y || x'),
   distinctSql('x || y', 'ACTQL.CONCAT(x,y)'),
   distinctSql("CONCAT(x,y,'')", 'x || y'),
   'SELECT DISTINCT CONCAT(x,y) AS x FROM pieces ORDER BY x || y',
 ].map((query, i) => ({name: 'concat-reuse-unproven-' + i,
-  format: 'aql-text', text: prefix + query, expectedCode: 'ClientProgramImplementationLimit'}));
+  format: 'aql-text', text: prefix + query, expectedCode: 'ClientProgramInvalidInput'}));
