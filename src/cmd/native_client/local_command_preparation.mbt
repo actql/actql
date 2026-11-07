@@ -49,6 +49,7 @@ priv enum LocalCommandPreparationIssue {
   CommandAdoption(@local_host.NativeLocalAdoptionIssue)
   CommandCapture(@local_host.NativeLocalAdoptionCaptureIssue)
   CommandApplication(String)
+  CommandProjectMock(LocalProjectMockModelIssue)
   CommandFilesystem(@files.NativeBoundedTextIssue)
   CommandFilesystemCleanup(@local_filesystem.NativeFilesystemIssue)
 }
@@ -79,6 +80,7 @@ priv struct LocalCommandPreparationOriginal {
   mut read_inventory_recorded : Bool
   mut business_inventory_recorded : Bool
   mut run_observation : LocalCommandRunObservationOriginal?
+  mut project : LocalProjectConfiguration?
   cancellation_recovery : Ref[String?]
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
@@ -189,6 +191,7 @@ fn prepare_local_command_preparation_original(
     read_inventory_recorded: false,
     business_inventory_recorded: false,
     run_observation: None,
+    project: None,
     cancellation_recovery: Ref(None),
     business: business.map(candidate => {
       profile: candidate,
@@ -937,6 +940,16 @@ fn LocalCommandPreparationOriginal::close_checked(
           )
           self.outer_library = None
         }
+        self.cleanup_stage = "project-originals"
+        if self.project is Some(project) &&
+          project.mock_declarations is Some(original) {
+          match original.retire_originals() {
+            Ok(true) => ()
+            Ok(false) => return Err(CommandUnavailable)
+            Err(issue) => return Err(CommandProjectMock(issue))
+          }
+        }
+        self.project = None
         // These closed records still retain Read-managed aliases. Keep them
         // through their real close and then retire our own last references.
         // The closed Journal and Adoption still retain their actual SQLite DB.
@@ -1392,14 +1405,7 @@ fn LocalCommandPreparationOriginal::prepare_adopted_journal(
 fn LocalCommandPreparationOriginal::initial_read_budget(
   self : LocalCommandPreparationOriginal,
 ) -> @initial_arena.InstalledArenaOriginalReadBudget {
-  let budget = self.profile.read_budget
-  {
-    ..budget,
-    read_execution: Int64::min(
-      budget.read_execution,
-      Int64::max(budget.bootstrap_execution, budget.workspace_execution),
-    ),
-  }
+  local_command_initial_read_budget(self.profile)
 }
 
 ///|
@@ -1409,5 +1415,21 @@ fn[T] command_preparation_option(
   match value {
     Some(value) => value
     None => raise LocalCommandPreparationStop(CommandInvalidProfile)
+  }
+}
+
+///|
+// The same selected initial Read basis is reused by its original command and
+// Native component consumers. This projection issues no platform original.
+fn local_command_initial_read_budget(
+  profile : LocalCommandPreparationProfile,
+) -> @initial_arena.InstalledArenaOriginalReadBudget {
+  let budget = profile.read_budget
+  {
+    ..budget,
+    read_execution: Int64::min(
+      budget.read_execution,
+      Int64::max(budget.bootstrap_execution, budget.workspace_execution),
+    ),
   }
 }

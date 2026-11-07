@@ -68,6 +68,7 @@ fn command_preparation_cleanup_kind(
     CommandAdoption(_) => "adoption"
     CommandCapture(_) => "adoption-capture"
     CommandApplication(_) => "application"
+    CommandProjectMock(_) => "project-mock"
     CommandFilesystem(_) => "filesystem"
     CommandFilesystemCleanup(_) => "filesystem-cleanup"
   }

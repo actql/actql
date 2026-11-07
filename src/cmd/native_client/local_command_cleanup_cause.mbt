@@ -270,6 +270,26 @@ fn command_preparation_cleanup_cause(
         AdoptionJournal(_) => "AdoptionJournal"
       }
     CommandApplication(_) => "CommandApplication"
+    CommandProjectMock(cause) =>
+      match cause {
+        ForeignOriginal => "ProjectMockForeignOriginal"
+        AlreadyPreparing => "ProjectMockAlreadyPreparing"
+        Task(original) =>
+          match original.kind {
+            InvalidLimits => "ProjectMockTaskInvalidLimits"
+            BodyLimit | TaskLimit | WorkLimit => "ProjectMockTaskLimit"
+            _ => "ProjectMockTaskInvalid"
+          }
+        Answers(original) => local_project_mock_answer_cleanup_cause(original)
+        Installation(original) =>
+          match original {
+            ForeignOriginal => "ProjectMockInstallationForeignOriginal"
+            Retired => "ProjectMockInstallationRetired"
+            Busy => "ProjectMockInstallationBusy"
+            MissingAnswer => "ProjectMockInstallationMissingAnswer"
+            Answers(cause) => local_project_mock_answer_cleanup_cause(cause)
+          }
+      }
     CommandFilesystem(cause) =>
       match cause {
         InvalidLimit => "InvalidLimit"
@@ -300,5 +320,22 @@ fn command_preparation_cleanup_cause(
         Seal(_) => "Seal"
         Cleanup(_) => "Cleanup"
       }
+  }
+}
+
+///|
+// Closed original Model issue labels only, not Task/document strings or
+// execution/refusal classification. The retained issue remains authoritative.
+fn local_project_mock_answer_cleanup_cause(
+  issue : @model.ModelMockAnswerIssue,
+) -> String {
+  match issue {
+    InvalidLimits => "ProjectMockAnswerInvalidLimits"
+    BodyLimit | WorkLimit | EntryLimit => "ProjectMockAnswerLimit"
+    InvalidBody => "ProjectMockAnswerInvalidBody"
+    TaskIdentity => "ProjectMockAnswerTaskIdentity"
+    OutputValue => "ProjectMockAnswerOutputValue"
+    ForeignOriginal => "ProjectMockAnswerForeignOriginal"
+    Retired => "ProjectMockAnswerRetired"
   }
 }

@@ -53,8 +53,11 @@ domain and arena retirement supplies their respective acknowledgements.
 ## Native Project Mock declaration intake
 
 The Native Project reader selects the same original configuration/profile and
-reads its explicit connectors, Model registry, Catalog, data and answer
-locators through the existing bounded UTF-8 Reader. Task paths are relative to
+reads its explicit connectors, Model registry, Catalog and answer declarations
+through the existing bounded UTF-8 Reader. The Source data locator is retained
+without opening its payload; the same Request's admitted Source must read it
+under its own checked payload bounds and current custody. The declaration
+Reader's 64 KiB limit is not a Source payload or Run limit. Task paths are relative to
 the original registry file; Catalog, data and answer paths are relative to the
 Project. Common admits the original connection/Catalog/registry documents and
 public Task contracts. A Task's registered name and original provider selection
@@ -71,6 +74,17 @@ Run grant. Declaration intake does not select Native execution availability.
 Only the actual same-Request Source/Model/Effect assembly, installed Host and
 approval supplier can admit execution. Intake cannot select the packaged
 source-free Host as a substitute.
+
+
+The same command retains its Project before constructing Mock Model originals.
+Each original answer, normalization and installation is retained before the
+next fallible constructor. Construction invokes no Model callback or clock.
+Its first failure remains sticky, so the caller cannot reinstall or silently
+replace an incomplete original. Retirement visits those same installations
+before answer/profile originals. An installation with live users keeps its
+same entry and retirement position pending; it does not acknowledge the
+command's physical Read. Only the existing Read/domain/arena owners report
+physical closure after all command-held aliases retire.
 
 ## Ordinary literal query caller
 
