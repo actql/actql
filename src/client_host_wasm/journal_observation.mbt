@@ -11,28 +11,34 @@ fn physical_journal_schema(ticket : Int) -> Int = "actql_host" "journal_schema"
 ///|
 // Literal little-endian u32 key length, u32 body length and i64 revision.
 // The original ticket retains the row until the second bounded import succeeds.
+// Borrow the buffers through the actual import, not an earlier offset extractor.
+#unsafe_skip_stub_check
+#borrow(namespace_buffer, key_buffer, header_buffer)
 fn physical_journal_query_header(
   ticket : Int,
   mode : Int,
-  namespace_offset : Int,
+  namespace_buffer : Bytes,
   namespace_bytes : Int,
-  key_offset : Int,
+  key_buffer : Bytes,
   key_bytes : Int,
-  header_offset : Int,
+  header_buffer : FixedArray[Byte],
 ) -> Int = "actql_host" "journal_query_header"
 
 ///|
+#unsafe_skip_stub_check
+#borrow(key_buffer, body_buffer)
 fn physical_journal_copy_row(
   ticket : Int,
-  key_offset : Int,
+  key_buffer : FixedArray[Byte],
   key_bytes : Int,
-  body_offset : Int,
+  body_buffer : FixedArray[Byte],
   body_bytes : Int,
 ) -> Int = "actql_host" "journal_copy_row"
 
 ///|
-// Source-pinned wasm32 payload borrow. The synchronous Host validates this
-// same instance's original memory; no Moon object/header is decoded in Python.
+// Source-pinned wasm32 payload offset only. Callers must retain the Bytes
+// separately across any later foreign call; this extraction extends no loan.
+// Python validates original memory and never decodes a Moon object header.
 #borrow(bytes)
 extern "wasm" fn journal_bytes_offset(bytes : Bytes) -> Int =
   #|(func (param i32) (result i32) local.get 0)
@@ -164,15 +170,14 @@ fn physical_journal_row(
   // This replaces the old input list, fields Array and two tuple staging loop;
   // none of that removed staging is needed to fund the new header.
   let header : FixedArray[Byte] = FixedArray::make(16, 0)
-  let header = header.unsafe_reinterpret_as_bytes()
   let code = physical_journal_query_header(
     physical,
     mode,
-    journal_bytes_offset(namespace_bytes),
+    namespace_bytes,
     namespace_bytes.length(),
-    journal_bytes_offset(key_bytes),
+    key_bytes,
     key_bytes.length(),
-    journal_bytes_offset(header),
+    header,
   )
   if code == 1 {
     return current().map(_ => None)
@@ -180,25 +185,23 @@ fn physical_journal_row(
   if code != 0 {
     return Err(-41)
   }
-  let (key_length, body_length, revision) = match journal_row_header(header) {
+  let (key_length, body_length, revision) = match
+    journal_row_header(header.unsafe_reinterpret_as_bytes()) {
     Ok(fields) => fields
     Err(code) => return Err(code)
   }
   let actual_key : FixedArray[Byte] = FixedArray::make(key_length, 0)
-  let actual_key = actual_key.unsafe_reinterpret_as_bytes()
   let body : FixedArray[Byte] = FixedArray::make(body_length, 0)
-  let body = body.unsafe_reinterpret_as_bytes()
   if physical_journal_copy_row(
-      physical,
-      journal_bytes_offset(actual_key),
-      key_length,
-      journal_bytes_offset(body),
-      body_length,
+      physical, actual_key, key_length, body, body_length,
     ) !=
     0 {
     return Err(-41)
   }
-  let actual_key = @utf8.decode(actual_key) catch { _ => return Err(-41) }
+  let actual_key = @utf8.decode(actual_key.unsafe_reinterpret_as_bytes()) catch {
+    _ => return Err(-41)
+  }
+  let body = body.unsafe_reinterpret_as_bytes()
   match current() {
     Ok(_) => ()
     Err(code) => return Err(code)

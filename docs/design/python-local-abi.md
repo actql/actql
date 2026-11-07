@@ -1709,6 +1709,11 @@ query/copy budgets, Account decisions and cumulative work/fuel remain unchanged.
 The header, bounded block and transfer controls are charged by the existing
 Journal/current reservations before use. No maximum-sized row preallocation,
 new execution Owner, authority cache or fallback to an older artifact is added.
+The source-level foreign declarations borrow each request, header and output
+buffer for the entire import. Their compiled ABI remains bounded wasm32 offsets
+and lengths. Extracting a pointer in a shorter borrowed helper would not keep
+its backing array alive until the later import; generated bindings therefore
+recognize only the explicitly declared, bounded borrowed-buffer parameters.
 
 ## Physical publication metadata transactions
 
