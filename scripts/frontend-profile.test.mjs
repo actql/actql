@@ -226,7 +226,19 @@ test('exact String parameter vectors preserve every unrelated historical expecta
 
 // Machine controls omit absent declarations: the Program grammar rejects an
 // explicitly empty params map before membership typing or execution can run.
-import {groupedInSuccesses} from './fixtures/grouped-in-source-input.mjs';
+import {groupedInSuccesses, groupedInRefusals} from './fixtures/grouped-in-source-input.mjs';
+test('grouped signed zero keeps its original rows and canonical membership result', () => {
+  const item = groupedInSuccesses.find(value => value.name === 'grouped-in-negative-zero');
+  assert.equal(item.text, 'SELECT id FROM records WHERE id IN (-(0))');
+  assert.deepEqual(item.sourceRows, [{id: 3, amount: 30}, {id: 1, amount: null},
+    {id: -2, amount: -2}, {id: 3, amount: 30}, {id: 2, amount: 20}]);
+  assert.deepEqual(item.expected, []);
+  assert.deepEqual(item.columns, [{name: 'id', contract: {type: 'number', nullable: false}}]);
+  assert.equal(item.sourceReadSessionCount, 1);
+  assert(!groupedInRefusals.some(value => value.name === item.name));
+  for (const name of ['dynamic-column', 'dynamic-expression', 'wrong-type'])
+    assert(groupedInRefusals.some(value => value.name === 'grouped-in-' + name));
+});
 test('membership machine controls never emit empty parameter declarations', () => {
   const driver = read('scripts/test-packed-public-query.mjs');
   const narrowSelection = driver.slice(driver.indexOf('const narrowPublicQuery'),
