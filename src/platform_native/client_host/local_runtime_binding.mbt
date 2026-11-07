@@ -77,6 +77,68 @@ fn local_runtime_original_assets(
 }
 
 ///|
+// Operator-selected Host capacity is checking DATA, not a different runtime.
+// Every other Environment member and policy stays identical to the installed
+// cohort. The existing capacity Owner validates finite quantities and version;
+// this comparison issues no Account/current/Run or physical permission.
+fn local_runtime_capacity_environment_context(wire : String) -> String? {
+  let source = match
+    @source.parse_json_bytes_preserving(@utf8.encode(wire), {
+      max_input_bytes: 65536,
+      max_nodes: 8192,
+      max_depth: 64,
+    }) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  try {
+    let value = @canonical.from_source(source, 8192, 64, 65536)
+    guard @canonical.object_field(value, "evidence_bundle_cid")
+      is Some(@canonical.String(identity)) &&
+      @canonical.object_without_field(value, "evidence_bundle_cid")
+      is Some(body) &&
+      @canonical.cid_value(body, 65536, 8192, 64) == identity &&
+      @canonical.object_field(body, "host_policy_profile") is Some(profile) &&
+      @canonical.object_field(profile, "capacity") is Some(capacity) &&
+      @canonical.object_without_field(profile, "capacity") is Some(other_policy) else {
+      return None
+    }
+    let capacity_wire = @canonical.stringify_value(capacity, 65536, 8192, 64)
+    let capacity_cid = @canonical.cid_value(capacity, 65536, 8192, 64)
+    guard @capacity_policy.admit(@utf8.encode(capacity_wire), capacity_cid, {
+        max_bytes: 65536,
+        max_nodes: 8192,
+        max_depth: 64,
+      })
+      is Ok(_) &&
+      @canonical.object_with_replaced_fields(body, [
+        ("host_policy_profile", other_policy),
+      ])
+      is Some(context) else {
+      return None
+    }
+    Some(@canonical.stringify_value(context, 65536, 8192, 64))
+  } catch {
+    _ => None
+  }
+}
+
+///|
+fn local_runtime_capacity_environment_compatible(
+  original : String,
+  installed : String,
+) -> Bool {
+  match
+    (
+      local_runtime_capacity_environment_context(original),
+      local_runtime_capacity_environment_context(installed),
+    ) {
+    (Some(original), Some(installed)) => original == installed
+    _ => false
+  }
+}
+
+///|
 // Private synchronous access preserves the original current/Account/selected
 // file operations while an acquired Journal routes each SQL call through its
 // own SQLite phase. It is never stored in the binding or accepted publicly.
@@ -316,7 +378,13 @@ fn NativeLocalHostConnection::bind_packaged_runtime_with_access(
   let pair = if original_wire ==
     @host.client_native_local_runtime_original(manifest) {
     // The unchanged cohort is not a migration; preserve its original path.
-    if original_assets.environment != assets.environment ||
+    if (
+        original_assets.environment != assets.environment &&
+        !local_runtime_capacity_environment_compatible(
+          original_assets.environment,
+          assets.environment,
+        )
+      ) ||
       original_assets.registry != assets.registry ||
       original_assets.values != assets.values ||
       original_assets.fragment != assets.fragment ||

@@ -193,7 +193,7 @@ fn prepare_native_command_invocation(
   if !local_command_preparation_selected(matches) {
     return
   }
-  if (
+  let explicit_operational = (
       matches.subcommand is Some(("run", _)) ||
       (
         matches.subcommand is Some((operation, child)) &&
@@ -211,21 +211,19 @@ fn prepare_native_command_invocation(
       ) ||
       matches.subcommand is Some(("result", _))
     ) &&
-    matches.sources.get("config-file") is Some(@argparse.Argv) {
-    // The selected Run uses the original packaged installation. An explicit
-    // legacy configuration has no corresponding operational supplier here;
-    // it must not fall through to raw Library loading after this selection.
-    stop("ExplicitLocalConfigurationRequiresOriginalSupplier")
-  }
+    matches.sources.get("config-file") is Some(@argparse.Argv)
   let context = match command_preargument_retained_context() {
-    Ok(None) => return // Separate unselected compatibility entrance only.
     Ok(Some(value)) => value
+    Ok(None) if explicit_operational =>
+      stop("ExplicitLocalConfigurationRequiresOriginalSupplier")
+    Ok(None) => return // Separate unselected compatibility entrance only.
     Err(_) => stop("LocalCommandPreparationUnavailable")
   }
   if command_preparation_invocation.val is Some(_) {
     stop("LocalCommandPreparationUnavailable")
   }
-  if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
+  if !(matches.sources.get("config-root") is Some(@argparse.Default)) &&
+    !(matches.sources.get("config-file") is Some(@argparse.Argv)) {
     stop("ExplicitLocalRootRequiresConfiguration")
   }
   let (root, source, platform, manifest) = local_product_context(context)

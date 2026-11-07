@@ -110,10 +110,14 @@ The mandatory full-integration `native-cli-linux-local` job uses this profile
 and verifies a fresh private npm installation, plain initialization, check,
 explain, source-free Run execution and separate-process saved Results after
 the source file is removed. Its large-input representative submits a JSON
-Program larger than one MiB containing 100,000 Values rows, checks every row
-of the complete first Result, removes the Program file, and checks the same
-stored Result in fresh CLI processes. Successful command replies remain gated
-by the Native entry's actual cleanup; this is not independent FD inspection.
+Program larger than one MiB containing 100,000 Values rows under an explicitly
+selected finite operator Host policy, checks every row of the complete first
+Result, removes the Program file, and checks the same stored Result in fresh
+CLI processes. The operator uses the same installed launcher, libraries and
+contract assets through the existing explicit configuration/adoption path;
+packaged defaults remain unchanged. A distinct low-policy Host must refuse a
+Program exceeding its selected row ceiling. Successful command replies remain
+gated by the Native entry's actual cleanup; this is not independent FD inspection.
 The consumer writes provisional observations only.
 Success evidence is written by its parent after registry close, zero child exit
 and verified removal of the original consumer scratch directory.
