@@ -17,36 +17,54 @@ const tokens = new RegExp([
   String.raw`\burn:(?:actql|aoa):[A-Za-z0-9_.:-]+:(${number})`,
 ].join('|'), 'g');
 
-function registryPackageVersion(text, offset) {
-  const start = text.lastIndexOf('https://', offset);
-  if (start < 0 || (start > 0 && !/[\s"'`<>()]/u.test(text[start - 1]))) return false;
+function registryPackageVersionEnd(text, start) {
+  if (start < 0 || (start > 0 && !/[\s"'`<>()]/u.test(text[start - 1]))) return -1;
   const raw = /^[^\s"'`<>()]+/u.exec(text.slice(start))?.[0];
-  if (!raw || offset >= start + raw.length) return false;
+  if (!raw) return -1;
   let url;
-  try {url = new URL(raw);} catch {return false;}
-  if (url.href !== raw || url.username || url.password || url.search || url.hash) return false;
+  try {url = new URL(raw);} catch {return -1;}
+  if (url.href !== raw || url.username || url.password || url.search || url.hash) return -1;
   // Only a literal public package/version route is external version data.
   // Other URLs and adjacent owned identifiers still pass through the gate.
-  if (url.origin === 'https://registry.npmjs.org')
-    return /^\/(?:@[A-Za-z0-9_.-]+\/)?(?:actql|aoa)[A-Za-z0-9_.-]*\/[^/]+\/?$/u.test(url.pathname);
-  return url.origin === 'https://pypi.org' &&
-    (/^\/pypi\/(?:actql|aoa)[A-Za-z0-9_.-]*\/[^/]+\/json$/u.test(url.pathname) ||
-      /^\/project\/(?:actql|aoa)[A-Za-z0-9_.-]*\/[^/]+\/?$/u.test(url.pathname));
+  const external = url.origin === 'https://registry.npmjs.org'
+    ? /^\/(?:@[A-Za-z0-9_.-]+\/)?(?:actql|aoa)[A-Za-z0-9_.-]*\/[^/]+\/?$/u.test(url.pathname)
+    : url.origin === 'https://pypi.org' &&
+      (/^\/pypi\/(?:actql|aoa)[A-Za-z0-9_.-]*\/[^/]+\/json$/u.test(url.pathname) ||
+        /^\/project\/(?:actql|aoa)[A-Za-z0-9_.-]*\/[^/]+\/?$/u.test(url.pathname));
+  return external ? start + raw.length : -1;
 }
 
 export function occurrences(text, path) {
   const result = [];
+  // Offsets increase within this one immutable text. Retain parser positions,
+  // never a source admission or verdict between inputs. Look ahead lazily so
+  // baseline-only files do not need another scan.
+  let line = 1, nextNewline, nextUrl, urlStart = -1, registryEnd = -1;
   for (const match of text.matchAll(tokens)) {
     const version = match[1] ?? match[2] ?? match[3];
     if (version === baseline) continue;
-    if (match[1] && registryPackageVersion(text, match.index)) continue;
+    if (match[1]) {
+      if (nextUrl === undefined) nextUrl = text.indexOf('https://');
+      while (nextUrl >= 0 && nextUrl <= match.index) {
+        urlStart = nextUrl;
+        nextUrl = text.indexOf('https://', urlStart + 1);
+        registryEnd = undefined;
+      }
+      if (registryEnd === undefined) registryEnd = registryPackageVersionEnd(text, urlStart);
+      if (match.index < registryEnd) continue;
+    }
+    if (nextNewline === undefined) nextNewline = text.indexOf('\n');
+    while (nextNewline >= 0 && nextNewline < match.index) {
+      line++;
+      nextNewline = text.indexOf('\n', nextNewline + 1);
+    }
     // Freeze local source context, not merely a token or file-wide count:
     // a historical rejection fixture cannot authorize a new product writer.
     const context = text.slice(Math.max(0, match.index - 80),
       match.index + match[0].length + 80);
     const contextSha256 = createHash('sha256').update(context).digest('hex');
     result.push({path, token: match[0], contextSha256,
-      line: text.slice(0, match.index).split('\n').length});
+      line});
   }
   return result;
 }
