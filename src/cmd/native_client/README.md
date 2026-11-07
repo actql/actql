@@ -80,6 +80,17 @@ The authored correlation cardinality and exact-stored-byte representation remain
 unchanged. These static identities are distinct from adopted Account authority,
 reference issuance, a physical read, Content custody and runtime availability.
 
+Declared Project writes use Common's full-Relation UPDATE Mapping constructor.
+The command selects write publication after binding its original packaged
+runtime to the adopted Host and before checking the Request. The retained
+runtime manifest and same captured Read's per-connection authority scope feed
+the existing Common installation-identity codec; aliases retain its original
+Mapping target and installation identity. Neither that identity nor the
+catalogue permission strings are an Account decision or an approval. The
+ordinary Effect supplier must separately implement dispatch and recovery under
+the same original current, claim and cleanup protocols. Mock execution remains
+unavailable until that complete connection is installed.
+
 ## Static Local explanation
 
 The source-level `explain` command accepts the same `--program-file`, explicit

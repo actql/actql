@@ -79,6 +79,7 @@ fn native_project_mock_model_backed_read(
   source_environment? : Bool = false,
   file_bindings? : Bool = false,
   file_facts? : Bool = false,
+  write_mapping? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -133,7 +134,9 @@ fn native_project_mock_model_backed_read(
       fail("actual metadata Read pending")
   }
   host.enter_domain_original_read(read).unwrap()
-  if file_facts {
+  if write_mapping {
+    native_project_mock_write_mapping_in_original_read()
+  } else if file_facts {
     native_project_mock_file_facts_in_original_read()
   } else if file_bindings {
     native_project_mock_file_bindings_in_original_read()
@@ -564,4 +567,120 @@ fn native_project_mock_file_facts_in_original_read() -> Unit raise {
 ///|
 test "Native Project Mock actual backed Read binds File facts to original schemas and physical limits" {
   native_project_mock_model_backed_read(false, file_facts=true)
+}
+
+///|
+// Explicit immutable installation DATA ports exercise the SAME pure projection
+// used after the normal Runtime/Account observations. They are not a Host,
+// Account/capture, Runtime acquisition or normal installation qualification.
+fn native_project_mock_write_mapping_in_original_read() -> Unit raise {
+  let original = native_project_mock_model_fixture("deal-review-missing")
+  defer original.retire()
+  original.prepare_source_declarations().unwrap()
+  let source = original.sources[0]
+  assert_eq(source._retained_writes.length(), 1)
+  assert_eq(original.sources[1]._retained_writes.length(), 0)
+  let write = source._retained_writes[0]
+  assert_eq(write.aliases, ["salesforce.Opportunity"])
+  assert_eq(write._retained_observe_permission, "salesforce:record:observe")
+  guard @json.parse(write.mapping.body) is Object(mapping) &&
+    mapping.get("primary_identity") == Some(Json::string("id")) &&
+    mapping.get("minimum_approval") == Some(Json::string("required")) &&
+    mapping.get("target_schema") is Some(Object(schema)) &&
+    schema.get("fields") is Some(Object(fields)) &&
+    fields.get("NextStep") is Some(Object(next_step)) else {
+    fail("original complete UPDATE Mapping")
+  }
+  assert_eq(next_step.get("nullable"), Some(Json::boolean(true)))
+  assert_true(
+    fields.contains("id") &&
+    fields.contains("name") &&
+    fields.contains("StageName"),
+  )
+  assert_true(original.update_aliases().is_empty())
+  let projected = local_project_mock_write_installations(
+    source,
+    "sha256:" + "d".repeat(64),
+    "sha256:" + "8".repeat(64),
+  ).unwrap()
+  assert_eq(projected.length(), 1)
+  assert_true(physical_equal(projected[0].write, write))
+  assert_true(physical_equal(projected[0]._retained_source, source))
+  original.write_installations = Some(projected)
+  original
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    local_utc_now,
+  )
+  .unwrap()
+  let source_environment = original
+    .prepare_source_environment(explain_fixture_environment())
+    .unwrap()
+  let environment = original
+    .prepare_model_environment(source_environment)
+    .unwrap()
+  assert_eq(
+    @compiler_environment.member_count(
+      @checked.checking_environment_wire(environment),
+      MappingContracts,
+    ),
+    1,
+  )
+  let (publication, wire) = original
+    .prepare_source_publication(environment)
+    .unwrap()
+  assert_true(wire.contains(projected[0].binding))
+  assert_true(wire.contains(projected[0].owner.0))
+  let document = local_project_required_declaration(
+    original._retained_project,
+    Some("deal-review.aql"),
+  ).unwrap()
+  let (lowered, _) = match
+    @source_publication.lower_prepared_published_query(
+      publication,
+      environment,
+      document,
+      @frontend.Text,
+      None,
+      public_primary=true,
+    ) {
+    Ok(value) => value
+    Err(Frontend(QueryLowering(UpdateTargetBinding(issue)))) =>
+      fail("original UPDATE: " + @debug.to_string(issue))
+    Err(_) => fail("original full README lowerer")
+  }
+  assert_true(lowered.program is Some(_))
+  assert_true(lowered.update_targets is Some(_))
+  assert_true(lowered.document.contains("model-task:deal-review.v1"))
+  assert_true(lowered.document.contains("StageName"))
+  // Strict authored-spec refusal stays before the Common Mapping constructor.
+  let (_, wire) = original._retained_catalog.at(0).unwrap()
+  for variant in 0..<2 {
+    guard @json.parse(wire) is Object(body) &&
+      body.get("writes") is Some(Array(writes)) &&
+      writes[0] is Object(spec) else {
+      fail("original authored write spec")
+    }
+    if variant == 0 {
+      spec["extra"] = Json::boolean(true)
+    } else {
+      spec["primary_identity"] = Json::string("name")
+    }
+    assert_true(
+      local_project_mock_write_declarations(
+        Json::object(body),
+        source._retained_declaration,
+      )
+      is Err(_),
+    )
+  }
+  original.retire_originals().unwrap() |> ignore
+  assert_true(original.write_installations is None)
+  assert_true(original.update_aliases().is_empty())
+}
+
+///|
+test "Native Project Mock original UPDATE Mapping and selected metadata preserve full README lowering" {
+  native_project_mock_model_backed_read(false, write_mapping=true)
 }

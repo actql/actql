@@ -281,6 +281,29 @@ fn command_preparation_cleanup_cause(
             Alias(_) => "ProjectMockPublicationAlias"
             _ => "ProjectMockPublication"
           }
+        Mapping(cause) =>
+          match cause {
+            OutputLimit => "ProjectMockWriteMappingLimit"
+            _ => "ProjectMockWriteMapping"
+          }
+        Runtime(cause) =>
+          match cause {
+            CleanupPending => "ProjectMockWriteRuntimeCleanupPending"
+            Changed => "ProjectMockWriteRuntimeChanged"
+            _ => "ProjectMockWriteRuntime"
+          }
+        WriteHost(cause) =>
+          match cause {
+            CustodyLost => "ProjectMockWriteHostCustodyLost"
+            TransactionUnknown => "ProjectMockWriteHostTransactionUnknown"
+            _ => "ProjectMockWriteHost"
+          }
+        WriteInstallation(cause) =>
+          match cause {
+            Limit => "ProjectMockWriteInstallationLimit"
+            InvalidMaterials => "ProjectMockWriteInstallationMaterials"
+            _ => "ProjectMockWriteInstallation"
+          }
         Source(issue) =>
           match issue {
             InvalidSpecification => "ProjectMockSourceInvalidSpecification"

@@ -77,6 +77,7 @@ fn LocalProjectMockDeclarations::prepare_source_environment(
     let capabilities = local_project_mock_array(
       original, "connector_capabilities",
     )
+    let mappings = local_project_mock_array(original, "mapping_contracts")
     let manifest = match body.get("connector_manifest") {
       Some(Object(fields)) => fields
       None =>
@@ -106,6 +107,9 @@ fn LocalProjectMockDeclarations::prepare_source_environment(
         capabilities.push(local_project_mock_json(wire))
       }
       entries.push(local_project_mock_json(declaration.manifest_entry))
+      for write in source._retained_writes {
+        mappings.push(local_project_mock_json(write.mapping.body))
+      }
     }
     for
       (key, values) in [
@@ -114,6 +118,7 @@ fn LocalProjectMockDeclarations::prepare_source_environment(
         ("source_views", views),
         ("schema_snapshots", schemas),
         ("connector_capabilities", capabilities),
+        ("mapping_contracts", mappings),
       ] {
       body[key] = local_project_mock_members(values).unwrap_or_else(() => {
         stop("InvalidProjectBindings")
@@ -216,6 +221,7 @@ fn LocalProjectMockDeclarations::prepare_source_publication(
         @checked.checking_environment_cid(environment),
       ),
       "aliases": Json::array(self.source_aliases()),
+      "updateTargets": Json::array(self.update_aliases()),
     }
     let wire = local_project_mock_relation_wire(body).unwrap_or_else(() => {
       stop("InvalidProjectBindings")
