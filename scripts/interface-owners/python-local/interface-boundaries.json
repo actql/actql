@@ -76222,7 +76222,7 @@
     },
     {
       "module": "src/cmd/native_client/local_start.mbt",
-      "sha256": "8fc763edebb8d6b6f7fbd72fb13aa0f11d002f2ff8b81c5bfe8cafc351a8f8bf",
+      "sha256": "b56413102070fabc7f80697e1d622d53316c6541b0d29f0edc1649da7fa5562d",
       "exports": [],
       "operations": [
         {
