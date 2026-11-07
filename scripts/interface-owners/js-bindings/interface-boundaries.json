@@ -18109,7 +18109,10 @@
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
             "publicationControl/token/token",
-            "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor"
+            "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#2",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#3",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#4"
           ],
           "exports": [],
           "attributes": {
@@ -18792,7 +18795,13 @@
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#2",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#3",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#4",
-            "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput"
+            "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#10",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#5",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#6",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#7",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#8",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#9"
           ],
           "exports": [],
           "attributes": {
@@ -25066,6 +25075,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#10",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#2",
           "parameters": [
             "value"
@@ -25081,6 +25097,41 @@
         },
         {
           "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#7",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#8",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#9",
           "parameters": [
             "value"
           ],
@@ -29067,6 +29118,27 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
           "parameters": [
             "compiled",
@@ -31499,7 +31571,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6f465b192e79ce83f63fcb9df0cd8114e6bf2df8b71ae8d0b2214a76a66e42ef"
+      "sha256": "edb9198d33a377555b52e923b6f2ad31b16af1d3da7279a7d1a62d1584d6a564"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -33429,7 +33501,7 @@
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4e6c27d3ce00e8e64a72ea10d5e626cd698b2fe3c6af17dc7374c631d3f0a7fc",
+      "sha256": "37a6bbf7b292b86bdc9783672050b62b2016feba63eeb5a6410fa6433c8cbad3",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -33650,6 +33722,11 @@
           "async": false
         },
         {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/captured/init:originalCapturedInput/init:originalCapturedInput",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectContinuation/init:restore/init:restore/close/close",
           "parameters": [],
           "async": true
@@ -33831,7 +33908,8 @@
             "acquiredEffectContinuation/init:restore/init:restore/custodyAvailable/custodyAvailable",
             "acquiredEffectContinuation/init:restore/init:restore/init:restore#2",
             "acquiredEffectContinuation/init:restore/init:restore/init:restore#3",
-            "acquiredEffectContinuation/init:restore/init:restore/init:restore#4"
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#4",
+            "acquiredEffectContinuation/init:restore/init:restore/captured/init:originalCapturedInput/init:originalCapturedInput"
           ],
           "exports": [
             "acquiredEffectContinuation"
@@ -86815,7 +86893,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3e468e05809595fb96b5a58dd1a3ff39a821896c4961cb43c20a369697f051f0",
+      "sha256": "cff855a1acdc644d58ef47151b820b79305df3ac15896236a0d51c97b1cd1313",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -86912,6 +86990,11 @@
             "dag",
             "task"
           ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/complete/captureAccess/init:originalCapturedInput/init:originalCapturedInput",
+          "parameters": [],
           "async": false
         },
         {
@@ -87632,7 +87715,8 @@
         {
           "operations": [
             "startInstalledRowRun/complete/captureAccess/init:originalRowCapture/init:originalRowCapture",
-            "startInstalledRowRun/complete/captureAccess/init:originalWholeInput/init:originalWholeInput"
+            "startInstalledRowRun/complete/captureAccess/init:originalWholeInput/init:originalWholeInput",
+            "startInstalledRowRun/complete/captureAccess/init:originalCapturedInput/init:originalCapturedInput"
           ],
           "exports": [],
           "attributes": {
@@ -88557,7 +88641,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "cfb2a7beb2af8de2fc26a9271da5ed08c446055f641767cae43d574339bd38e9",
+      "sha256": "4aa0fb3ecb6deb62338837e4475f89afba01a82cc4e2cbba0041f55df74566be",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

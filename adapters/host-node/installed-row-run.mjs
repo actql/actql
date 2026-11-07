@@ -10,8 +10,11 @@ const fail = code => { throw Object.assign(new Error(code), {code}); };
 
 export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   capacity, keyed = false, originalRead, originalKeyedRead, wholeInput = false}) {
+  // The checked original already retains the Whole acquisition and its Core
+  // provider capacity. A Host-backed Mock read has no separate managed reader;
+  // do not fabricate one or confuse that absence with missing Run backing.
   if (wholeInput && (keyed || originalRead === undefined || ledger === undefined ||
-      capacity?.provider === undefined || capacity?.listingReport !== undefined)) {
+      capacity?.listingReport !== undefined)) {
     fail('InstalledWholeSourceReadUnavailable');
   }
   if (keyed && ledger === undefined) fail('InstalledKeyedSourceLedgerRequired');
@@ -367,6 +370,10 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         // This private view cannot create a Source observation or permission.
         source();
         return captured;
+      }, originalCapturedInput() {
+        if (this !== captureAccess || closed) fail('ForeignInstalledSourceCapture');
+        source();
+        return checked(moon.clientProgramWholeSourceCaptureInput(captured));
       }} : {}),
       ...(!wholeInput ? {originalRowCapture() {
         if (this !== captureAccess || closed) fail('ForeignInstalledSourceCapture');
@@ -393,7 +400,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         wholeInput ? moon.clientProgramWholeSourceCheckComputeBinding(captured, dag, task)
           : moon.clientProgramRowSourceRetainCapturedTask(captured, dag, task))})});
     return Object.freeze({checkedSource: prepared.checkedSource, identity,
-      logicalInput, ...(wholeInput ? {inputKind: 'whole-input'} : {requirement: owner.requirement}), setup, occurrence,
+      logicalInput, ...(wholeInput ? {inputKind: 'whole-input', wholeCapacity: owner.providerCaptureCapacity}
+        : {requirement: owner.requirement}), setup, occurrence,
       capturedSource, inferStep, composedInfer,
       capture: captureAccess,
       prepareSourceEvidenceOriginal: async ({authorityScopeCid, effectiveDataPolicyCid}) => {

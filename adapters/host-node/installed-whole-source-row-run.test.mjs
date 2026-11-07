@@ -24,7 +24,7 @@ assert(prepareDeclaration && describePreparedSourceDeclaration &&
 
 test('whole input consumes the same Run/reader/evidence originals without Query or output transfer', async () => {
   const acquisition = {}, originalRead = {}, ledger = {}, provider = {}, capacity = {};
-  const run = {}, attempt = {}, borrow = {}, capture = {}, source = {}, identity = {}, logical = {}, evidence = {};
+  const run = {}, attempt = {}, borrow = {}, capture = {}, source = {}, identity = {}, logical = {}, evidence = {}, originalInput = {};
   const checkedOwner = {}, dag = {}, calls = [];
   let settled, observeStop, stopped = false, retired = false;
   const moon = {
@@ -48,6 +48,9 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
     clientProgramRowSourceCaptureAdvance: () => ok({_0: true, _1: 1n}),
     clientProgramRowSourceCapture: () => ok(capture),
     clientProgramRowSourceCaptureSource(actual) {assert.equal(actual, capture); return ok(source);},
+    clientProgramWholeSourceCaptureInput(actual) {
+      assert.equal(actual, capture); return ok(originalInput);
+    },
     clientProgramCapturedTaskSourceMatches(prepared, actual, task) {
       assert.equal(prepared, checkedOwner); assert.equal(actual, source); assert.equal(task, 0); return true;
     },
@@ -89,10 +92,13 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
   prepared: {checkedSource: {}}, currentRead});
   assert.equal(result.logicalInput, logical);
   assert.equal(result.inputKind, 'whole-input');
+  assert.strictEqual(result.wholeCapacity, capacity);
   assert.equal(Object.hasOwn(result, 'requirement'), false);
   assert.equal(result.capture.originalWholeInput(), capture);
+  assert.strictEqual(result.capture.originalCapturedInput(), originalInput);
   const copied = {...result.capture};
   assert.throws(() => copied.originalWholeInput(), {code: 'ForeignInstalledSourceCapture'});
+  assert.throws(() => copied.originalCapturedInput(), {code: 'ForeignInstalledSourceCapture'});
   result.capture.retainTask(dag, 0);
   await result.prepareSourceEvidenceOriginal({authorityScopeCid: 'scope', effectiveDataPolicyCid: 'policy'});
   assert.equal(result.capture.takeSourceEvidenceOriginal(), evidence);
@@ -102,10 +108,43 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
   assert.equal(await session.cleanup(), true);
   assert.equal(retired, true);
   assert.throws(() => result.capture.originalWholeInput(), {code: 'ForeignInstalledSourceCapture'});
+  assert.throws(() => result.capture.originalCapturedInput(), {code: 'ForeignInstalledSourceCapture'});
   assert.equal(calls.filter(value => value === 'start').length, 1);
   assert.equal(calls.filter(value => value === 'read').length, 1);
   assert.equal(calls.filter(value => value === 'logical').length, 1);
   assert.equal(calls.filter(value => value === 'evidence').length, 1);
+});
+
+test('whole Host-backed read starts on its checked original without a managed provider reader', () => {
+  const originalRead = {}, acquisition = {}, ledger = {}, run = {};
+  let checkedLedger = false, starts = 0, retirements = 0, stopped = false;
+  const moon = {
+    clientProgramInstalledSourceReadCheckLedger(read, selectedLedger) {
+      assert.strictEqual(read, originalRead); assert.strictEqual(selectedLedger, ledger);
+      checkedLedger = true; return ok();
+    },
+    clientProgramInstalledWholeSourceReadStartRows(read, selected, nonce, verify, transfer, scratch) {
+      assert.equal(checkedLedger, true); assert.strictEqual(read, originalRead);
+      assert.strictEqual(selected, acquisition); assert.equal(nonce, 'host-backed');
+      assert.equal(verify({}), false); assert.equal(transfer, 1024n); assert.equal(scratch, 512n);
+      starts++; return ok(run);
+    },
+    clientProgramRowSourceCloseAccounted(selected) {
+      assert.strictEqual(selected, run);
+      return stopped ? ok() : {$tag: 0, _0: 'physical-stop-pending'};
+    },
+    clientProgramRowSourceCaptureCleanup: () => ok(true),
+    clientProgramInstalledSourceReadRetire(read) {
+      assert.strictEqual(read, originalRead); retirements++; return ok();
+    },
+  };
+  const session = startInstalledRowRun({moon, acquisition, originalRead, ledger, wholeInput: true,
+    nonce: 'host-backed', capacity: {transferBytes: 1024n, executionBytes: 512n}});
+  assert.strictEqual(session.run, run); assert.equal(starts, 1);
+  assert.throws(() => session.close(), error => error.cause === 'physical-stop-pending');
+  assert.equal(retirements, 0);
+  stopped = true; session.close();
+  assert.equal(retirements, 1); assert.equal(starts, 1);
 });
 
 test('whole input cannot select a bare, keyed or listing RowRun', () => {

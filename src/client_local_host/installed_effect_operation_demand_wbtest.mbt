@@ -47,7 +47,22 @@ fn effect_plan_fixture_failure(
         CapacityMetadataBudget => "Source.CapacityMetadataBudget"
         UnsupportedBindings(_) => "Source.UnsupportedBindings"
         UnsupportedEffects(_) => "Source.UnsupportedEffects"
-        Requests(_) => "Source.Requests"
+        Requests(issue) =>
+          match issue {
+            InvalidLimits => "Source.Requests.InvalidLimits"
+            BudgetExceeded => "Source.Requests.BudgetExceeded"
+            Declarations(_) => "Source.Requests.Declarations"
+            Slots(_) => "Source.Requests.Slots"
+            Requests(Stage(_, Request(_, issue))) =>
+              "Source.Requests.Request:" + @debug.to_string(issue.kind)
+            Requests(_) => "Source.Requests.Requests"
+            Rows(SourceInput(_, _, issue)) =>
+              "Source.Requests.SourceInput:" + @debug.to_string(issue)
+            Rows(_) => "Source.Requests.Rows"
+            Policy(issue) => "Source.Requests.Policy:" + @debug.to_string(issue)
+            Capacity(_) => "Source.Requests.Capacity"
+            Producers(_) => "Source.Requests.Producers"
+          }
         RequestForm(_) => "Source.RequestForm"
         Checks(_) => "Source.Checks"
         Identity(_) => "Source.Identity"
@@ -248,7 +263,10 @@ fn effect_operation_source_plan_fixture(
   same_unit_results? : Bool = false,
   provider? : @execution.ExecutionCapacity? = None,
   whole_inputs? : Bool = false,
+  source_request? : String? = None,
+  source_declaration? : @row_source_host.RowDeclaration? = None,
   whole_policy? : @row_source_host.RowInputLimits? = None,
+  host_listing_items? : Int? = None,
   query_time_for? : ((
     @publication_host.PreparedClientEffectComputation,
     @publication_host.ClientRequestIdentity,
@@ -264,22 +282,33 @@ fn effect_operation_source_plan_fixture(
       nullable: false,
     })
   }
-  let declaration = @row_source_host.generate_row_declaration(
-    "operation-source",
-    "fixture",
-    "fixture/0.1",
-    [{ resource: "r", resource_kind: "record", fields, }],
-    {
-      max_bytes: 1000000,
-      max_nodes: 100000,
-      max_depth: 100,
-      max_views: 1,
-      max_fields: source_width,
-    },
-  ).unwrap()
+  let declaration = match source_declaration {
+    Some(original) => original
+    None =>
+      @row_source_host.generate_row_declaration(
+        "operation-source",
+        "fixture",
+        "fixture/0.1",
+        [{ resource: "r", resource_kind: "record", fields, }],
+        {
+          max_bytes: 1000000,
+          max_nodes: 100000,
+          max_depth: 100,
+          max_views: 1,
+          max_fields: source_width,
+        },
+      ).unwrap()
+  }
   let parsed = @json.parse(source_query_original_environment)
   guard parsed is Object(base) else { fail("fixture Environment object") }
   base.remove("evidence_bundle_cid")
+  if host_listing_items is Some(maximum) {
+    guard base["host_policy_profile"] is Object(profile) &&
+      profile["capacity"] is Object(capacity) else {
+      fail("fixture original Host capacity policy")
+    }
+    capacity["max_file_listing_items"] = Json::number(maximum.to_double())
+  }
   let (schemas, capabilities) = @row_source_host.row_declaration_evidence_members(
     declaration,
   )
@@ -397,6 +426,15 @@ fn effect_operation_source_plan_fixture(
     )
   } else {
     document
+  }
+  let document = match source_request {
+    None => document
+    Some(original) =>
+      document
+      .split("\"resource\":\"r\"}")
+      .map(part => part.to_owned())
+      .to_array()
+      .join("\"resource\":\"r\",\"request\":" + original + "}")
   }
   let prepared = match
     @publication_host.prepare_client_effect_computation(

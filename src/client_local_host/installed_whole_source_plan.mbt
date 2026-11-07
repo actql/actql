@@ -10,6 +10,24 @@ struct ClientInstalledWholeSourceCapacity {
 }
 
 ///|
+// Borrow the actual Host policy retained by this checked Program. A Source
+// capture ceiling or observed row count cannot substitute for this owner.
+fn installed_source_listing_policy(
+  graph : @strategy.CheckedDAG,
+) -> @capacity.Policy {
+  let identity = @checked.source_identity(@strategy.graph_program(graph))
+  let sources = @context.program_identity_sources(identity)
+  let operations = @context.program_sources_operations(sources)
+  let preparation = @context.operation_profiles_preparation(operations)
+  let producers = @context.preparation_sources(preparation)
+  let capacity = @context.source_producer_capacity(producers)
+  let selected = @context.source_policy_selected(
+    @context.source_capacity_context(capacity),
+  )
+  @environment.capacity_policy(@context.selected_capacity(selected))
+}
+
+///|
 /// Pre-Plan selection from this exact Prepared/Request invocation. The closed
 /// choice retains its actual Query or Source original; reference getters are DATA.
 /// Query construction errors cannot select the whole-input constructor.
@@ -166,6 +184,11 @@ pub fn prepare_installed_whole_source_capacity(
       contracts.original.value.contracts,
       declaration,
       limits,
+      listing_policy=Some(
+        installed_source_listing_policy(
+          @publication_host.prepared_client_graph(prepared),
+        ),
+      ),
     ) {
     Ok(value) => value
     Err(_) => return Err(Unsupported)

@@ -1231,7 +1231,10 @@ test('same-environment duplicate checks retain one explicit owner without weaken
   assert(!jobs.host.steps.some(step => step.run?.startsWith('node --test adapters/store-local/publication-commit-owner.test.mjs')));
   assert(pkg.scripts['check:distribution-client'].includes('scripts/owned-scratch.test.mjs'));
   const scratch = jobs.lint.steps.find(step => step.run === 'node --test scripts/owned-scratch.test.mjs');
-  assert.match(scratch.if, /profile != 'full'/u);
+  assert.equal(scratch.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  assert.deepEqual(Object.entries(jobs).flatMap(([name, job]) =>
+    job.steps?.filter(step => step.run?.split(/\s+/u).includes('scripts/owned-scratch.test.mjs'))
+      .map(() => name) ?? []), ['lint'], 'normal scratch checks have one runtime-independent owner');
   assert(jobs.lint.steps.some(step => step.run === 'node --test scripts/dependency-isolation-scratch.test.mjs'));
   // Operation inventory remains fail-fast before fan-out: deleting that safety
   // admission is not justified merely because spec also checks the inventory.
