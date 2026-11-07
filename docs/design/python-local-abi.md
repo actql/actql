@@ -2010,14 +2010,25 @@ reader without the direct port keeps the original outer before/after checks.
 Neither shape returns bytes after a latched failure, changes query/copy bounds
 or turns a physical miss into a semantic absence fact.
 
-The installed Host's own adoption/settings inventories use that same direct
-row port for their fixed raw membership comparisons. Their local list-append
-consumers are removed; no arbitrary caller runs between the query and those
-comparisons. Both full inventories still run before and after protected Core
-work, including each trailing absence query and every original byte/revision.
-The exact Local Store always supplies this port; an incomplete Local reader
-refuses rather than selecting a compatibility path. Independent physical
-adapters retain their complete metadata checks through the same Store reader.
+The installed Host's own adoption/settings inventories use a closed bounded
+comparison in that same reader. At most nine sorted original key/body pairs,
+revision zero and the trailing absence query must match. No row escapes and no
+caller-supplied consumer runs between queries. The exact stdlib SQLite adapter
+with the same required current observer groups physical file observations before
+and after that entire comparison; every row still checks the original transaction,
+main/TEMP schema, metadata, failure latch and cumulative query/copy bounds.
+Current callbacks remain non-reentrant, and even a swallowed callback failure
+refuses before the comparison returns. Both complete inventories still run
+before and after protected Core work. A reader without the closed port retains
+the direct per-row port; absence of both ports refuses. Independent physical
+adapters and distinct current observers retain per-query physical fences.
+
+The synchronous publication-observation caller advances its original Owner in
+finite 256-unit quanta instead of reopening the complete inspection every 16
+units. Each advance keeps a fresh before/after current frame and the same original
+response, publisher and file facts. Core caps the quantum at the remaining
+cumulative work budget and retains failure/cancellation and cleanup state; the
+caller neither refreshes fuel nor finishes before Core reports readiness.
 
 Within that same live reader, the exact stdlib SQLite adapter can retain a
 completed immutable metadata-fence observation. Reuse requires the same
