@@ -351,6 +351,8 @@ pub fn cleanup_client_original_keyed_prefix_lookup(ClientOriginalKeyedPrefixLook
 
 pub fn clear_client_source_input(ClientSourceInput) -> Unit
 
+pub fn clear_prepared_client_effect_custody_after_cleanup(PreparedClientEffectComputation) -> Unit
+
 pub fn client_acquired_infer_prefix_owner(PreparedClientProgram, Int, Int) -> @lowering_relation.BoundPrepared?
 
 pub fn client_cancellation_identity_relation(ClientCancellationIdentity, ClientCancellationIdentity) -> ClientCancellationIdentityRelation

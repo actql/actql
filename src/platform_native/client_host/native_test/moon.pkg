@@ -15,6 +15,7 @@ import {
   "actql/actql/check_environment" @environment,
   "actql/actql/physical_resources" @resources,
   "actql/actql/client_source_publication" @source_publication,
+  "moonbitlang/core/debug",
 } for "test"
 
 options(

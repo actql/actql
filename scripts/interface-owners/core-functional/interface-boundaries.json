@@ -43814,7 +43814,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6fd58768a99356a6ca1864909597e94421c5b9caae302e6442227e6dbe7ed75a",
+      "sha256": "868a82deecef50f0e493783eced1d64271cca7c8447ed985c663a9269e7538ae",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -44048,6 +44048,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "## Same Request Effect preparation lifetime"
               }
             ],
             "extension": [
@@ -44092,6 +44096,10 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"Request keeps live continuation"
               }
             ]
           }
@@ -68588,7 +68596,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_program.mbt",
-      "sha256": "8c7bb804b90c25ca47bdfe7e241adb14144cfa181c09e48cbe5226fc5ca24c83",
+      "sha256": "43adaa963e126fbaf3a7e2cc38c198ff0c00da6ca5b0c211b8e45253c2d01c8e",
       "exports": [],
       "operations": [
         {
@@ -68598,6 +68606,10 @@
         {
           "name": "bind_prepared_client_effect_run",
           "declaration": "bind_prepared_client_effect_run ( computation : PreparedClientEffectComputation , admission : @ publication . RunPublicationAdmission , run_definition : @ publication . PublicationContract , ) - > Result [ PreparedClientEffectRun , ClientEffectRunIssue ]"
+        },
+        {
+          "name": "clear_prepared_client_effect_custody_after_cleanup",
+          "declaration": "clear_prepared_client_effect_custody_after_cleanup ( owner : PreparedClientEffectComputation , ) - > Unit"
         },
         {
           "name": "client_effect_program_view",
@@ -68738,7 +68750,8 @@
             "prepared_client_effect_result_count",
             "prepared_client_effect_result_name",
             "prepared_client_effect_run_computation",
-            "prepared_client_effect_run_graph"
+            "prepared_client_effect_run_graph",
+            "clear_prepared_client_effect_custody_after_cleanup"
           ],
           "exports": [],
           "attributes": {
@@ -68852,6 +68865,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retaining Source originals after Request compilation"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "## Same Request Effect preparation lifetime"
               }
             ],
             "extension": [
@@ -68896,6 +68913,10 @@
               {
                 "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
                 "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_normalization_wbtest.mbt",
+                "anchor": "test \"retired Effect custody severs cached backedges"
               }
             ]
           }

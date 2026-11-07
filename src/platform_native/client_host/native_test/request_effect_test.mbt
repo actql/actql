@@ -180,11 +180,25 @@ test "Native same Request carries original Effect preparation and retires origin
   ).native_request_stage("Effect original Request")
   arena.enter_domain_retained_execution(physical).native_request_stage("Effect Read enter")
   let outcome = native_effect_request_consume(parent, input)
+  assert_eq(outcome, 0)
   assert_true(@local.abort_request_preparation_after_cleanup(parent) is Err(_))
   arena.leave_domain_retained_execution(physical).native_request_stage("Effect Read leave")
-  arena.close_domain_retained_execution(physical).native_request_stage("Effect physical retirement")
+  match arena.close_domain_retained_execution(physical) {
+    Ok(_) => ()
+    Err(@arena.Domain(issue)) => fail("Effect retirement Domain: " + @debug.to_string(issue))
+    Err(@arena.Child(issue)) => fail("Effect retirement Child: " + @debug.to_string(issue))
+    Err(@arena.Initialization(@bootstrap.Domain(issue))) => {
+      let observation = arena.observe_domain_retained_execution_cleanup(physical).native_request_stage("Effect original cleanup metadata")
+      fail("Effect retirement InitializationDomain: " + @debug.to_string(issue) + " metadata=" +
+        @debug.to_string((observation.users, observation.active, observation.generic_live_extents,
+          observation.managed_live_blocks, observation.managed_requested_bytes,
+          observation.minimum_managed_request, observation.maximum_managed_request)))
+    }
+    Err(@arena.Initialization(@bootstrap.Child(issue))) => fail("Effect retirement InitializationChild: " + @debug.to_string(issue))
+    Err(@arena.Initialization(@bootstrap.Inventory(_))) => fail("Effect retirement InitializationInventory")
+    Err(@arena.Initialization(@bootstrap.Quiescence(_))) => fail("Effect retirement InitializationQuiescence")
+  }
   @local.abort_request_preparation_after_cleanup(parent).native_request_stage("Effect original Request retirement")
   arena.close_domain_after_owner_ack(domain).native_request_stage("Effect domain return")
   arena.try_close().native_request_stage("Effect arena return")
-  assert_eq(outcome, 0)
 }
