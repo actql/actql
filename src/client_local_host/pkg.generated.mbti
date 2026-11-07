@@ -1463,6 +1463,7 @@ pub(all) enum ClientLocalQueryIssue {
 }
 
 type ClientLocalRequirements
+pub fn ClientLocalRequirements::finalization_round_limit(Self, @run_publication_host.PreparedClientProgram) -> Int?
 pub fn ClientLocalRequirements::matches(Self, @run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> Bool
 pub fn ClientLocalRequirements::maximum_limits(Self) -> @physical_resources.LedgerLimits
 pub fn ClientLocalRequirements::publication_limits(Self, @run_publication_host.PreparedClientProgram, Int) -> (@execution_relation.RetainedRowDecodeLimits, @run_publication_host.PublicationOutputExportLimits)?

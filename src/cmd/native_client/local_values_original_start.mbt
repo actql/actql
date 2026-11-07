@@ -146,6 +146,7 @@ fn local_execute_original_publish_values(
     Ok(value) => value
     Err(issue) => {
       business.publication_failure = Some(issue)
+      local_publication_failure_tags(issue, native_timing_amount)
       stop("LocalResultPublicationNotReady")
     }
   }
