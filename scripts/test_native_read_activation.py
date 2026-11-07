@@ -111,6 +111,12 @@ class ReadActivationCustody(unittest.TestCase):
     def test_managed_successor_search_does_not_rescan_live_prefix(self):
         self.execute('managed-successor-search', 1)
 
+    def test_managed_cohort_page_search_does_not_restart_at_live_prefix(self):
+        self.execute('managed-cohort-page-search', 1)
+
+    def test_managed_page_search_wrap_preserves_earlier_original_free_block(self):
+        self.execute('managed-page-wrap-fallback', 1)
+
     def test_coalesced_block_fallback_preserves_original_live_slots(self):
         self.execute('managed-block-fallback', 1)
 

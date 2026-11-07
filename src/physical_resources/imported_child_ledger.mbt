@@ -12,6 +12,8 @@ priv struct ImportedChildLedgerOrigin {
   mut stop : (Int64) -> Int
   fixed_capacities : Bool
   mut working : (PlatformVMWorkingCapacity, Int64, Int64)?
+  // Same physical owner's acquired byte window; policy remains ledger.limits.
+  mut current_window : Ref[Int64]?
   // The back-reference rejects copies without another Resource Owner.
   mut ledger : Ledger?
   mut stopping : Bool
@@ -83,6 +85,7 @@ fn prepare_imported_child_port(
       stop,
       fixed_capacities,
       working: None,
+      current_window: None,
       ledger: None,
       stopping: false,
       unavailable: false,
@@ -569,7 +572,24 @@ pub fn relocate_imported_child_cleanup_usage(
     Ok(_) => ()
   }
   let usage = ledger.usage
-  let copied_usage : LedgerUsage = {
+  let copied_usage = cleanup_ledger_usage_copy(usage)
+  let quantities = ledger.quantity_usage
+  let copied_quantities : QuantityUsage = {
+    reserved: cleanup_quantity_copy(quantities.reserved),
+    uncertain: cleanup_quantity_copy(quantities.uncertain),
+    consumed: cleanup_quantity_copy(quantities.consumed),
+  }
+  let copied_limits = ledger.quantity_limits.map(cleanup_quantity_copy)
+  // Construct every replacement before mutating the same original controls.
+  ledger.usage = copied_usage
+  ledger.quantity_usage = copied_quantities
+  ledger.quantity_limits = copied_limits
+  Ok(())
+}
+
+///|
+fn cleanup_ledger_usage_copy(usage : LedgerUsage) -> LedgerUsage {
+  {
     planning_work: usage.planning_work,
     attempts: usage.attempts,
     reserved_attempts: usage.reserved_attempts,
@@ -584,18 +604,6 @@ pub fn relocate_imported_child_cleanup_usage(
     reserved_execution_bytes: usage.reserved_execution_bytes,
     peak_retention_bytes: usage.peak_retention_bytes,
   }
-  let quantities = ledger.quantity_usage
-  let copied_quantities : QuantityUsage = {
-    reserved: cleanup_quantity_copy(quantities.reserved),
-    uncertain: cleanup_quantity_copy(quantities.uncertain),
-    consumed: cleanup_quantity_copy(quantities.consumed),
-  }
-  let copied_limits = ledger.quantity_limits.map(cleanup_quantity_copy)
-  // Construct every replacement before mutating the same original controls.
-  ledger.usage = copied_usage
-  ledger.quantity_usage = copied_quantities
-  ledger.quantity_limits = copied_limits
-  Ok(())
 }
 
 ///|

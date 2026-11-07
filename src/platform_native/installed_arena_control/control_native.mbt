@@ -375,3 +375,22 @@ pub fn InstalledArenaHost::acquisition_issue(
 ) -> @bootstrap.NativeBootstrapIssue? {
   self.acquisition_issue
 }
+
+///|
+/// Existing installed assembly only. Acquire this same Root's selected physical
+/// facility at its actual phase; declarations alone never grant child use.
+pub fn InstalledArenaHost::ensure_backing_capacity(
+  self : InstalledArenaHost,
+  scope : InstalledArenaBackingBorrow,
+  bytes : Int64,
+) -> Result[Unit, @bootstrap.NativeBootstrapIssue] {
+  match self.require_backing_borrow_current(scope) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let backing = match self.original_backing() {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  backing.ensure_backing_capacity(self, scope.original, bytes)
+}

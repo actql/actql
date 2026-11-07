@@ -39,3 +39,41 @@ pub fn grow_unborrowed_shared_allocation(
   allocation.bytes = bytes
   Ok(())
 }
+
+///|
+/// Reconcile only acknowledged retired storage in the SAME unborrowed control
+/// claim. The trusted physical owner must have completed its original cleanup
+/// before supplying the remaining amount. Whole backing stays reserved; no
+/// attempt, work, transfer or quantity is refunded or issued by this update.
+pub fn reconcile_unborrowed_shared_allocation_after_cleanup(
+  owner : SharedCapacity,
+  allocation : SharedAllocation,
+  expected_bytes : Int64,
+  remaining_bytes : Int64,
+) -> Result[Unit, LedgerIssue] {
+  if !physical_equal(allocation.owner, owner) {
+    return Err(ForeignOwner)
+  }
+  match reservation_check(owner.ledger, owner.reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // Recheck these originals after the one current callback. A stale amount,
+  // active borrower, pending growth or retirement cannot supply cleanup credit.
+  if owner.closing ||
+    owner.growth is Some(_) ||
+    allocation.retiring ||
+    allocation.released ||
+    allocation.readers != 0 {
+    return Err(ClosedHolding)
+  }
+  if expected_bytes != allocation.bytes ||
+    remaining_bytes < 0L ||
+    remaining_bytes > expected_bytes ||
+    owner.allocated < expected_bytes {
+    return Err(InvalidCharge)
+  }
+  owner.allocated -= expected_bytes - remaining_bytes
+  allocation.bytes = remaining_bytes
+  Ok(())
+}

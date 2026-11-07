@@ -63918,7 +63918,7 @@
     },
     {
       "module": "src/physical_resources/backed_live_child.mbt",
-      "sha256": "f9d38436283e3ed133c92d217b207a66d0f765ab47988c997235a25d36d696c8",
+      "sha256": "e20e81e977031c2e9b41b9976443d56f4deb617e08bf9f141fcdaeb553e5d74b",
       "exports": [],
       "operations": [
         {
@@ -64558,7 +64558,7 @@
           }
         }
       ],
-      "sha256": "2e63a22d903767ba92d6e2f4c3f024f4ce7d8083c64647590a46219ca5a58ad8",
+      "sha256": "394b794854a0d5c2214a1827d4cabcbba1c4a8c5366e09f51747467eabd53948",
       "exports": [],
       "operations": [
         {
@@ -64580,6 +64580,14 @@
         {
           "name": "check_imported_original_child_ledger_current",
           "declaration": "check_imported_original_child_ledger_current ( value : ImportedChildLedger , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "check_imported_original_child_ledger_retained",
+          "declaration": "check_imported_original_child_ledger_retained ( value : ImportedChildLedger , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "cleanup_ledger_usage_copy",
+          "declaration": "cleanup_ledger_usage_copy ( usage : LedgerUsage ) - > LedgerUsage"
         },
         {
           "name": "cleanup_quantity_copy",
@@ -77915,7 +77923,7 @@
           }
         }
       ],
-      "sha256": "762a71aab3757aa4597bb54f7e78601a8a696d09fcc4ef9e1d6a4a2804b77f46",
+      "sha256": "7930ca829968215e95585916e212c7a6d361d9dc139ab0df2797e71def53d7c2",
       "operations": [
         {
           "name": "[P,C]backed_child_current",
@@ -77959,7 +77967,7 @@
         },
         {
           "name": "[P,C]reserve_backed_execution_delegation",
-          "declaration": "[ P , C ] reserve_backed_execution_delegation ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , extent : BackedExecutionExtent , access : BackedExecutionAccess , limits : LedgerLimits , overhead_retained : Int64 , overhead_execution : Int64 , ) - > Result [ BackedExecutionDelegation [ P , C ] , BackedExecutionIssue ]"
+          "declaration": "[ P , C ] reserve_backed_execution_delegation ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , extent : BackedExecutionExtent , access : BackedExecutionAccess , limits : LedgerLimits , overhead_retained : Int64 , overhead_execution : Int64 , initial_window ? : Int64 ?"
         },
         {
           "name": "[P,C]settle_backed_execution_after_owner_ack",
@@ -78102,7 +78110,7 @@
           }
         }
       ],
-      "sha256": "0172a38127ea71df30f780352759405b380d13da85dfe4c23b761f5708dab703",
+      "sha256": "c1caeff237bc323f7b7cb857ed5f66c7ba189de4724653c547c9af03dda8a42d",
       "operations": [
         {
           "name": "[P,C,R]backed_original_child_ready",
@@ -78657,7 +78665,7 @@
           }
         }
       ],
-      "sha256": "4d727be59557777931e39444ba33108866b159913199ddf42dd2c769e7e6d81f",
+      "sha256": "b7ccdee641432b9373eed1edc46e800e4ae85b1a825baae52129356d34232594",
       "operations": [
         {
           "name": "[P,C]issue_platform_vm_preparation_region",
@@ -82990,6 +82998,161 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/backed_child_window.mbt",
+      "sha256": "0b31224a261a271c8d69760c3083851b38d1947ae9ad34b33b5edbcf8c7b97cd",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing backed execution child and SharedCapacityGrowth Resource owner; no physical receipt issuer or new Ledger",
+      "referenceQualification": "Portable nominal Resource components and declared-policy/acquired-window correspondence only; no Native receipt, ordinary backing or physical cleanup acceptance.",
+      "operations": [
+        {
+          "name": "[P,C,R]backed_original_child_window_current",
+          "declaration": "[ P , C , R ] backed_original_child_window_current ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ BackedExecutionDelegation [ P , C ] , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]check_backed_original_child_window_demand",
+          "declaration": "[ P , C , R ] check_backed_original_child_window_demand ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , retained : Int64 , execution : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]complete_backed_original_child_window_after_acquisition",
+          "declaration": "[ P , C , R ] complete_backed_original_child_window_after_acquisition ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , growth : SharedCapacityGrowth , acquired_payload_bytes : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]read_backed_original_child_window_bytes",
+          "declaration": "[ P , C , R ] read_backed_original_child_window_bytes ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ Int64 , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]complete_backed_execution_window_after_acquisition",
+          "declaration": "[ P , C ] complete_backed_execution_window_after_acquisition ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , growth : SharedCapacityGrowth , acquired_payload_bytes : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]complete_backed_execution_window_current",
+          "declaration": "[ P , C ] complete_backed_execution_window_current ( region : BackedExecutionRegion [ P , C ] , ticket : BackedExecutionDelegation [ P , C ] , growth : SharedCapacityGrowth , acquired_payload_bytes : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        }
+      ],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P,C,R]backed_original_child_window_current",
+            "[P,C,R]check_backed_original_child_window_demand",
+            "[P,C,R]complete_backed_original_child_window_after_acquisition",
+            "[P,C,R]read_backed_original_child_window_bytes",
+            "[P,C]complete_backed_execution_window_after_acquisition",
+            "[P,C]complete_backed_execution_window_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed child policy cannot grant bytes before same-parent acquired window publication\""
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"closing original child retains pending acquired growth without publishing another window\""
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"acquired child window observation preserves usage and rejects foreign closing and retired originals\""
               }
             ]
           }

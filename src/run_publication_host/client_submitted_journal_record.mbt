@@ -19,8 +19,24 @@ pub(all) struct ClientSubmittedJournalEncoding {
 pub fn decode_client_submitted_journal_row(
   body : Bytes,
 ) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue] {
+  decode_client_submitted_journal_row_profile(body, false)
+}
+
+///|
+// One codec implementation for the explicit finite profile and the observed
+// row profile. Selecting the latter here is not a Resource debit: its enclosing
+// Native caller must back parsing, intent admission and canonical comparison
+// together before entering this function. It is not yet a public entrance.
+fn decode_client_submitted_journal_row_profile(
+  body : Bytes,
+  observed : Bool,
+) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue] {
+  let row_bytes = if observed { body.length() } else { 262144 }
+  if row_bytes <= 0 || row_bytes >= 2147483519 {
+    return Err(CustodyLost)
+  }
   let source = @source.parse_json_bytes_preserving(body, {
-    max_input_bytes: 262144,
+    max_input_bytes: row_bytes,
     max_nodes: 16,
     max_depth: 2,
   }).to_option()
@@ -28,8 +44,12 @@ pub fn decode_client_submitted_journal_row(
     @decode.admit(source, {
       max_nodes: 16,
       max_depth: 2,
-      max_string_bytes: 131072,
-      max_total_string_bytes: 262144,
+      max_string_bytes: if observed {
+        row_bytes
+      } else {
+        131072
+      },
+      max_total_string_bytes: row_bytes,
     })
     is Ok(cursor) &&
     @decode.closed_object(cursor, [
@@ -39,6 +59,22 @@ pub fn decode_client_submitted_journal_row(
     ])
     is Ok(object) else {
     return Err(CustodyLost)
+  }
+  // Only the original intent's bound changes in the observed profile. Keep
+  // every other original field's finite string obligation; a larger intent
+  // must not silently widen the retained Run/control schema.
+  if observed {
+    for
+      key in [
+        "phase", "preparation_problem_classification", "preparation_problem_code",
+        "reference", "run_admission", "run_state_key", "run_state_original", "version",
+      ] {
+      if @decode.lookup(object, key) is Some(value) &&
+        @decode.text(value) is Ok(text) &&
+        @scalar.admit_utf8_length(text, 131072) is Err(_) {
+        return Err(CustodyLost)
+      }
+    }
   }
   let text = key => {
     @decode.lookup(object, key).bind(value => @decode.text(value).to_option())
@@ -55,7 +91,16 @@ pub fn decode_client_submitted_journal_row(
     Err(_) => return Err(CustodyLost)
   }
   let intent = match
-    prepare_client_submitted_intent(intent_wire, 65536, 65536, 64) {
+    prepare_client_submitted_intent(
+      intent_wire,
+      if observed {
+        row_bytes
+      } else {
+        65536
+      },
+      65536,
+      64,
+    ) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -134,6 +179,13 @@ pub fn decode_client_submitted_journal_row(
       run_state_original~,
       run_state_observation~,
       preparation_problem~,
+      // Canonical comparison belongs to the SAME enclosing codec lifetime,
+      // not a second independently admitted construction or current callback.
+      before_construction=if observed {
+        Some((_, _, _) => Ok(()))
+      } else {
+        None
+      },
     ) {
     Ok(original) if original == body =>
       Ok({

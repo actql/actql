@@ -259,6 +259,10 @@ pub fn[P, C, R] stop_backed_execution_live_child(
   if access.child_origin is Some(origin) {
     origin.stopping = true
   }
+  if access.ticket is Some(ticket) && ticket.current_window is Some(_) &&
+    access.read_use is Some(read_use) {
+    read_use.closing = true
+  }
   access.closing = true
   Ok(())
 }

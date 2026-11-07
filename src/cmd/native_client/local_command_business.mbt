@@ -230,6 +230,12 @@ fn LocalCommandPreparationOriginal::prepare_business_domain(
   if business.domain is Some(_) || self.closing || self.closed {
     return Err(CommandUnavailable)
   }
+  // This separate existing business facility is selected only here, after
+  // command Read preparation. Do not map its future maximum at Host startup.
+  match host.ensure_backing_capacity(scope, self.profile.arena_bytes) {
+    Err(issue) => return Err(CommandHost(issue))
+    Ok(_) => ()
+  }
   let acquired = host
     .prepare_domain_in_process(scope, selected.domain_bytes, selected.limits)
     .map_err(issue => CommandDomain(issue))

@@ -12,7 +12,9 @@ struct SharedCapacityGrowth {
 }
 
 ///|
-/// Reserve complete new mapping and its actual control prefix before acquisition.
+/// Reserve complete new mapping and its actual owned prefix before acquisition.
+/// A same-owner physical child may hold the complete addition in this original
+/// claim: its self-hosted receipt and mapping remain charged until root cleanup.
 /// Existing borrowers keep their exact tokens and the old payload never moves.
 /// While pending, no allocation or new borrower may consume the proposed suffix.
 pub fn begin_shared_capacity_growth(
@@ -39,7 +41,7 @@ pub fn begin_shared_capacity_growth(
   }
   if bytes <= owner.capacity ||
     control_additional <= 0L ||
-    control_additional >= bytes - owner.capacity ||
+    control_additional > bytes - owner.capacity ||
     owner.reservation.execution != owner.capacity {
     return Err(InvalidCharge)
   }

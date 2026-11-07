@@ -115,6 +115,10 @@ pub fn[E] prepare_client_submitted_journal_append(
   ],
   custody_lost : E,
   usage? : (() -> Result[ClientJournalPhysicalRow?, E])? = None,
+  before_construction? : ((Int, Int, Int) -> Result[
+    Unit,
+    ClientJournalEncodingIssue,
+  ])? = None,
 ) -> Result[
   ClientSubmittedJournalAppendPlan,
   ClientSubmittedJournalAppendIssue[E],
@@ -176,6 +180,7 @@ pub fn[E] prepare_client_submitted_journal_append(
     client_submitted_intent_journal_row_body(
       client_submission_reference_record_wire(reference),
       intent,
+      before_construction~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))

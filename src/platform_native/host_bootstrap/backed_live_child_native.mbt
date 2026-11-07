@@ -476,3 +476,70 @@ pub fn[T, C, R] NativeHostBootstrap::retire_backed_live_child_after_owner_ack(
   record.retired = true
   Ok(())
 }
+
+///|
+/// Real original Read caller only: policy is checked before acquisition, then
+/// actual usable backing is acquired/published before the later Read resize.
+/// The two byte dimensions remain independent: raw placement vs pool cover.
+pub fn[T, C, R] NativeHostBootstrap::prepare_backed_original_read_working(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, R],
+  runtime : R,
+  retained : Int64,
+  execution : Int64,
+  contiguous_bytes : Int64,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.original_live_child(original, record, runtime) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if record.purpose != Read || record.retired {
+    return Err(Bootstrap(Unavailable))
+  }
+  guard record.projection is Some(projection) else {
+    return Err(Bootstrap(Unavailable))
+  }
+  let mut minimum_usable_bytes = 0L
+  if record.domain.view.loan.initial_window is Some(_) {
+    match
+      @resources.check_backed_original_child_window_demand(
+        projection, runtime, retained, execution,
+      ) {
+      Err(issue) => return Err(Accounting(issue))
+      Ok(_) => ()
+    }
+    let current = match
+      @resources.read_backed_original_child_window_bytes(projection, runtime) {
+      Err(issue) => return Err(Accounting(issue))
+      Ok(value) => value
+    }
+    if retained < 0L ||
+      execution < 0L ||
+      execution > 9223372036854775807L - retained {
+      return Err(Bootstrap(Unavailable))
+    }
+    minimum_usable_bytes = Int64::max(0L, retained + execution - current)
+  } else {
+    // Legacy fully-backed children keep their original declared-policy refusal
+    // before any physical acquisition, even though they need no window grant.
+    let limits = match
+      @resources.backed_execution_live_limits(projection, runtime) {
+      Err(issue) => return Err(Accounting(issue))
+      Ok(value) => value
+    }
+    if retained < 0L ||
+      execution < 0L ||
+      retained > limits.retained_bytes ||
+      execution > limits.execution_bytes {
+      return Err(Accounting(@resources.Resource(@resources.InvalidLimits)))
+    }
+  }
+  self.prepare_backed_read_working(
+    original,
+    record.domain,
+    record.child,
+    contiguous_bytes,
+    minimum_usable_bytes~,
+  )
+}
