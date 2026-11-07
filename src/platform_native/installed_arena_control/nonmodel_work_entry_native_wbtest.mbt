@@ -12,6 +12,7 @@ fn nonmodel_entry_negative_carrier(
     live: None,
     frame: None,
     ledger: None,
+    initialization_cleanup: None,
     owns_read: false,
     child_started: false,
     active: false,
