@@ -1621,12 +1621,13 @@ fn managed_capture_fixture_work(
 fn managed_capture_fixture_case(
   file_limits : NativeRelationFileLimits,
   expected_transfer : Int64,
+  input_name? : String = "row-source-input",
 ) -> Unit raise {
   let selection : NativeRelationFileSelection = {
     directory: @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").managed_capture_stage(
       "original stage 333",
     ),
-    name: "row-source-input",
+    name: input_name,
     resource: "records",
     items_path: ["items"],
     key_path: None,
@@ -1741,7 +1742,7 @@ test "Native managed Source funds the selected Mock byte profile beyond componen
   }
   let selection : NativeRelationFileSelection = {
     directory: @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap(),
-    name: "row-source-input",
+    name: "row-source-large-input",
     resource: "records",
     items_path: ["items"],
     key_path: None,
@@ -1749,5 +1750,9 @@ test "Native managed Source funds the selected Mock byte profile beyond componen
   }
   // The independent legacy diagnostic is still bounded by its own envelope.
   assert_false(native_relation_file_input_valid(selection, limits))
-  managed_capture_fixture_case(limits, 70062L)
+  managed_capture_fixture_case(
+    limits,
+    70062L,
+    input_name="row-source-large-input",
+  )
 }
