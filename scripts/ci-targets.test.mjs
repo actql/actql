@@ -924,7 +924,14 @@ function draftStepEnabled(step, profile) {
 test('Draft cheap command inventory excludes compiler API generation and compound suites', () => {
   const commands = name => jobs[name].steps.filter(step => step.run && draftStepEnabled(step, 'draft')).map(step => step.run);
   const preflight = commands('preflight');
+  // The pinned standalone workflow checker is also mandatory during Draft preparation.
+  // Its exact version, digest and all-workflow/fatal contract are checked by ci-preflight.test.mjs.
+  const workflowLint = jobs.preflight.steps.find(step => step.name === 'Check all workflows with pinned actionlint');
+  assert(workflowLint);
+  assert.equal(workflowLint.if, undefined);
+  assert.equal(workflowLint['continue-on-error'], undefined);
   assert.deepEqual(preflight.filter(command => !command.includes('setup-moonbit')), [
+    workflowLint.run,
     'node --test scripts/pure-operation-inventory.test.mjs',
     'python3 scripts/test_native_timings.py CommandCounterMap', 'npm ci',
     `node --input-type=module -e 'import {runFocusedTests} from "./scripts/test-execution.mjs"; process.exitCode=runFocusedTests("node",["--test-name-pattern","^check:.* retains its exact registered commands", "scripts/build-runtime-packages.test.mjs"],{cwd:process.cwd()});'`,
