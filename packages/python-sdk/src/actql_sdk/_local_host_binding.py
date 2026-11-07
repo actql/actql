@@ -3,15 +3,124 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 import json
 from threading import get_ident
+from types import MethodType
 from typing import Any, TypeVar
 
-from ._local_core import LocalCore, _Input, _Output, _Workspace
+from ._local_core import (LocalCore, _Input, _Output, _Workspace, _PhysicalInput,
+                          _PublisherCallbacks, _PublisherFact)
 from ._local_host_files import LocalHostFiles, _HostFile
 from ._local_storage import ByteFence, LocalByteStore, LocalStorageError, StoredBytes, _NamespaceReader
 from ._local_submission import LocalSubmissionAuthority
 from ._local_storage_physical import _TrackedSQLiteConnection
 
 _T = TypeVar('_T')
+
+
+class _OriginalPublisherPort:
+    """The installed physical fence, never an Account decision or grant.
+
+    Only these two original callbacks are closed: every call still observes
+    the binding and authorize still compares the supplied namespace. Common
+    separately checks all six facts, Account, Policy and the original target.
+    """
+    __slots__ = ('original', 'core', 'binding', 'installation', 'observer',
+                 'current_callback', 'authorize_callback', 'output', 'physical',
+                 'callbacks', 'failure')
+
+    def __init__(self, binding: 'OriginalHostBinding') -> None:
+        self.original = self
+        self.core, self.binding = binding._core, binding
+        self.installation = binding._source._installation
+        self.observer = binding._current_observer
+        self.current_callback, self.authorize_callback = self.current, self.authorize
+        self.output: _Output | None = None
+        self.physical: _PhysicalInput | None = None
+        self.callbacks: _PublisherCallbacks | None = None
+        self.failure: BaseException | None = None
+        self._require_original()
+
+    def _require_original(self) -> None:
+        from ._local_installation import OriginalLocalInstallation
+        binding, installation = self.binding, self.installation
+        if self.failure is not None:
+            raise self.failure
+        if (self.original is not self or type(binding) is not OriginalHostBinding
+                or binding._original is not binding or binding._core is not self.core
+                or binding._closing or type(installation) is not OriginalLocalInstallation
+                or installation._original is not installation or installation._closing
+                or installation._core is not self.core or installation._binding is not binding
+                or binding._source._installation is not installation
+                or binding._state._installation is not installation
+                or binding._current_observer is not self.observer
+                or type(self.observer) is not MethodType
+                or self.observer.__self__ is not binding
+                or self.observer.__func__ is not OriginalHostBinding.current
+                or type(binding.current) is not MethodType
+                or binding.current.__self__ is not binding
+                or binding.current.__func__ is not OriginalHostBinding.current
+                or type(self.current_callback) is not MethodType
+                or self.current_callback.__self__ is not self
+                or self.current_callback.__func__ is not _OriginalPublisherPort.current
+                or type(self.authorize_callback) is not MethodType
+                or self.authorize_callback.__self__ is not self
+                or self.authorize_callback.__func__ is not _OriginalPublisherPort.authorize):
+            raise ValueError('Original Local physical publisher changed or retired')
+
+    def _require_reservation(self, core: LocalCore, current: Callable[[], bool],
+                             authorize: Callable[[_PublisherFact], bool]) -> None:
+        self._require_original()
+        if (core is not self.core or current is not self.current_callback
+                or authorize is not self.authorize_callback or self.output is not None
+                or self.physical is not None or self.callbacks is not None):
+            raise ValueError('Original Local physical publisher is already bound or foreign')
+
+    def _bind(self, output: _Output, physical: _PhysicalInput,
+              callbacks: _PublisherCallbacks) -> None:
+        # The Core has already retained the issued output and physical input.
+        # Even a refused bind therefore leaves its original cleanup reachable.
+        self.output, self.physical, self.callbacks = output, physical, callbacks
+        self._require_live()
+
+    def _require_live(self) -> None:
+        self._require_original()
+        output, physical, callbacks, core = self.output, self.physical, self.callbacks, self.core
+        if (type(output) is not _Output or type(physical) is not _PhysicalInput
+                or type(callbacks) is not _PublisherCallbacks
+                or core._closing or core._closed or getattr(core, '_retired', False)
+                or core._inputs.get(output.ticket) is not physical
+                or physical.publisher is not callbacks or callbacks.original is not self
+                or callbacks.current is not self.current_callback
+                or callbacks.authorize is not self.authorize_callback
+                or (callbacks.buffer is not None and type(callbacks.buffer) is not bytearray)
+                or type(callbacks.received) is not int):
+            raise ValueError('Original Local physical publisher loan changed or retired')
+        core._owned_output(output, 'publisher')
+
+    def _fail(self, error: BaseException) -> BaseException:
+        if self.failure is None:
+            self.failure = error
+        span = getattr(self.core, '_invocation_observation', None)
+        if type(span) is _InvocationObservation:
+            span._fail(self.failure)
+        return self.failure
+
+    def current(self) -> bool:
+        try:
+            self._require_live()
+            self.observer()
+            return True
+        except BaseException as error:
+            raise self._fail(error)
+
+    def authorize(self, fact: _PublisherFact) -> bool:
+        try:
+            self._require_live()
+            self.observer()
+            if type(fact) is not _PublisherFact or type(fact.namespace_id) is not str:
+                raise ValueError('Original Local physical publisher facts changed')
+            return fact.namespace_id == 'local'
+        except BaseException as error:
+            raise self._fail(error)
 
 
 class _InvocationObservation:
@@ -25,7 +134,8 @@ class _InvocationObservation:
     __slots__ = ('binding', 'core', 'reader', 'connection', 'current', 'input',
                  'epoch', 'source', 'state', 'installation', 'selected', 'expected',
                  'fences', 'thread', 'operation', 'failure', 'suspended', 'active',
-                 'admitted', 'disabled', 'checking_physical', 'platform')
+                 'admitted', 'disabled', 'checking_physical', 'platform', 'publisher',
+                 'publisher_buffer', 'publisher_received')
 
     def __init__(self, binding: 'OriginalHostBinding', reader: _NamespaceReader,
                  connection: _TrackedSQLiteConnection) -> None:
@@ -39,6 +149,9 @@ class _InvocationObservation:
         self.thread = get_ident()
         self.operation = self.core._host_operation_id
         self.platform = getattr(self.core, '_platform_vm_original', None)
+        self.publisher: _OriginalPublisherPort | None = None
+        self.publisher_buffer: bytearray | None = None
+        self.publisher_received = 0
         self.failure: BaseException | None = None
         self.suspended = False
         self.active = True
@@ -95,6 +208,7 @@ class _InvocationObservation:
                     or self.connection._closed_invocation is not self
                     or not self.connection._closed_eligible()):
                 raise ValueError('Original closed Local invocation changed or retired')
+            self._guard_publisher()
             core._owned_output(self.current, 'current')
             core._owned_input(self.input)
             callbacks = core._journal_callbacks(self.current.ticket)
@@ -116,6 +230,57 @@ class _InvocationObservation:
                 core._owned_output(projection, 'original')
         except BaseException as error:
             raise self._fail(error)
+
+    def _guard_publisher(self) -> None:
+        publisher = self.publisher
+        if publisher is None:
+            return
+        publisher._require_live()
+        callbacks = publisher.callbacks
+        if (publisher.binding is not self.binding or publisher.installation is not self.installation
+                or callbacks is None or callbacks.buffer is not self.publisher_buffer
+                or callbacks.received != self.publisher_received):
+            raise ValueError('Original closed Local publisher or collector changed')
+
+    def _select_publisher(self, publisher: _OriginalPublisherPort) -> bool:
+        if self.disabled:
+            return False
+        self._guard_publisher()
+        publisher._require_live()
+        if (publisher.binding is not self.binding or publisher.installation is not self.installation
+                or (self.publisher is not None and self.publisher is not publisher)):
+            return False
+        if self.publisher is None:
+            self.publisher = publisher
+            assert publisher.callbacks is not None
+            self.publisher_buffer = publisher.callbacks.buffer
+            self.publisher_received = publisher.callbacks.received
+        return True
+
+    def _publisher_result(self, name: str, result: Any) -> None:
+        # Unknown transport results cannot be swallowed by a scalar export and
+        # turned back into a successful invocation. False remains denial.
+        if type(result) is not int or result < 0 and not (
+                name in ('publisher_current', 'publisher_finish') and result == -1):
+            raise ValueError('Original closed Local publisher transport failed')
+        assert self.publisher is not None and self.publisher.callbacks is not None
+        callbacks = self.publisher.callbacks
+        if name == 'publisher_begin':
+            if (type(callbacks.buffer) is not bytearray or callbacks.received != 0
+                    or self.publisher_buffer is not None):
+                raise ValueError('Original closed Local publisher collector changed')
+        elif name == 'publisher_copy':
+            if (callbacks.buffer is not self.publisher_buffer
+                    or callbacks.received != self.publisher_received + result):
+                raise ValueError('Original closed Local publisher copy changed')
+        elif name == 'publisher_finish':
+            if callbacks.buffer is not None or callbacks.received != 0:
+                raise ValueError('Original closed Local publisher collector survived finish')
+        elif (callbacks.buffer is not self.publisher_buffer
+                or callbacks.received != self.publisher_received):
+            raise ValueError('Original closed Local publisher current changed collector')
+        self.publisher_buffer, self.publisher_received = callbacks.buffer, callbacks.received
+        self._guard_publisher()
 
     def check(self, *, physical: bool = False) -> None:
         try:
@@ -144,12 +309,18 @@ class _InvocationObservation:
             return
         if self.connection._closed_invocation is not None:
             raise ValueError('Original SQLite invocation already borrowed')
+        candidate = self.reader._invocation_candidate
+        if candidate is None or not candidate(self.reader, self.binding._current_observer, self):
+            self.disabled = True
+            return
         self.connection._closed_invocation = self
         self.admitted = True
         self.check(physical=True)
 
     def interrupt(self, callback: Callable[..., Any], *args: Any) -> Any:
         try:
+            if self.failure is not None:
+                raise self.failure
             if self.admitted:
                 self.check(physical=True)
             self.suspended = True
@@ -166,6 +337,9 @@ class _InvocationObservation:
     def leave(self) -> None:
         self.suspended = True
         self.active = False
+        self.publisher = None
+        self.publisher_buffer = None
+        self.publisher_received = 0
         if self.connection._closed_invocation is self:
             self.connection._closed_invocation = None
 
@@ -504,6 +678,7 @@ class OriginalHostBinding:
                 or installation is not self._state._installation
                 or self._source._observe_roots is not None or self._state._observe_roots is not None
                 or reader is None or reader._invocation_check is None
+                or reader._invocation_candidate is None
                 or type(connection) is not _TrackedSQLiteConnection
                 or not connection._closed_eligible()):
             return None

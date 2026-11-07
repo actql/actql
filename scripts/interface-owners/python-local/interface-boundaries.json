@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "31b7e1efd13cbdd0fd0be330c1ab95288b7ab75156678d39536981d022ee1afd",
+  "syntaxProjectionSha256": "284d8a5f01c3bbee87cc515089c76aaf90745cb867832621fb7fbcac9cdcaee9",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -5122,6 +5122,7 @@
         "LocalNativeCapacity",
         "LocalResultProgress",
         "LocalTaskProgress",
+        "MethodType",
         "RLock",
         "TYPE_CHECKING",
         "annotations",
@@ -5160,6 +5161,7 @@
         "secrets",
         "sys",
         "threading",
+        "types",
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_core.py",
@@ -5248,6 +5250,14 @@
             "family",
             "operation",
             "abi_family"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_closed_publisher_memory",
+          "parameters": [
+            "self",
+            "caller"
           ]
         },
         {
@@ -7498,7 +7508,8 @@
             "request",
             "current",
             "authorize",
-            "cleanup"
+            "cleanup",
+            "original"
           ]
         },
         {
@@ -8004,7 +8015,7 @@
           ]
         }
       ],
-      "sha256": "d37f157a80bf11fd273de8d52d43d9d00ee02ddb185378726b97b4193af61531",
+      "sha256": "8152d1a6882d474afe740197bd971e145f84112fb34868edc9c7e414cd2deeb8",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -8017,6 +8028,7 @@
             "LocalCore/_cleanup",
             "LocalCore/_close_core",
             "LocalCore/_close_output",
+            "LocalCore/_closed_publisher_memory",
             "LocalCore/_dispose",
             "LocalCore/_from_installed_image",
             "LocalCore/_host_cleanup",
@@ -10960,6 +10972,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
                 "anchor": "def test_zero_parameters_cannot_dispatch_an_adapter_registered_after_the_guard("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_prewrite_invocation.py",
+                "anchor": "class PrewriteInvocationTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_publisher.py",
+                "anchor": "class ClosedPublisherTests(unittest.TestCase):"
               }
             ]
           }
@@ -12559,6 +12579,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "class _PublisherCallbacks:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_prewrite_invocation.py",
+                "anchor": "class PrewriteInvocationTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_publisher.py",
+                "anchor": "class ClosedPublisherTests(unittest.TestCase):"
               }
             ]
           }
@@ -13643,7 +13671,8 @@
             "import_module",
             "json",
             "secrets",
-            "sys"
+            "sys",
+            "MethodType"
           ],
           "attributes": {
             "responsibility": [
@@ -26957,6 +26986,7 @@
         "LocalHostFiles",
         "LocalStorageError",
         "LocalSubmissionAuthority",
+        "MethodType",
         "OriginalHostBinding",
         "StoredBytes",
         "TypeVar",
@@ -26975,6 +27005,7 @@
         "contextlib",
         "json",
         "threading",
+        "types",
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
@@ -27143,9 +27174,33 @@
         },
         {
           "async": false,
+          "name": "_InvocationObservation/_guard_publisher",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_InvocationObservation/_guard_sql",
           "parameters": [
             "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_InvocationObservation/_publisher_result",
+          "parameters": [
+            "self",
+            "name",
+            "result"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_InvocationObservation/_select_publisher",
+          "parameters": [
+            "self",
+            "publisher"
           ]
         },
         {
@@ -27181,6 +27236,76 @@
         },
         {
           "async": false,
+          "name": "_OriginalPublisherPort",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalPublisherPort/__init__",
+          "parameters": [
+            "self",
+            "binding"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPublisherPort/_bind",
+          "parameters": [
+            "self",
+            "output",
+            "physical",
+            "callbacks"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPublisherPort/_fail",
+          "parameters": [
+            "self",
+            "error"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPublisherPort/_require_live",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPublisherPort/_require_original",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPublisherPort/_require_reservation",
+          "parameters": [
+            "self",
+            "core",
+            "current",
+            "authorize"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPublisherPort/authorize",
+          "parameters": [
+            "self",
+            "fact"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPublisherPort/current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_body",
           "parameters": [
             "raw"
@@ -27194,7 +27319,7 @@
           ]
         }
       ],
-      "sha256": "3e95b923f53310d56521b0a4b3b318fd42e9167a18ffe1688648df1fd1b2ba2a",
+      "sha256": "35308ddf21ebe67f04ccf2be7b943d5deb60456cf99db5bf56ba8f22281fca1b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -27347,11 +27472,23 @@
             "_InvocationObservation/__init__",
             "_InvocationObservation/_fail",
             "_InvocationObservation/_guard_originals",
+            "_InvocationObservation/_guard_publisher",
             "_InvocationObservation/_guard_sql",
+            "_InvocationObservation/_publisher_result",
+            "_InvocationObservation/_select_publisher",
             "_InvocationObservation/check",
             "_InvocationObservation/enter",
             "_InvocationObservation/interrupt",
-            "_InvocationObservation/leave"
+            "_InvocationObservation/leave",
+            "_OriginalPublisherPort",
+            "_OriginalPublisherPort/__init__",
+            "_OriginalPublisherPort/_bind",
+            "_OriginalPublisherPort/_fail",
+            "_OriginalPublisherPort/_require_live",
+            "_OriginalPublisherPort/_require_original",
+            "_OriginalPublisherPort/_require_reservation",
+            "_OriginalPublisherPort/authorize",
+            "_OriginalPublisherPort/current"
           ],
           "exports": [
             "OriginalHostBinding"
@@ -27603,6 +27740,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
                 "anchor": "def test_zero_parameters_cannot_dispatch_an_adapter_registered_after_the_guard("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_prewrite_invocation.py",
+                "anchor": "class PrewriteInvocationTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_publisher.py",
+                "anchor": "class ClosedPublisherTests(unittest.TestCase):"
               }
             ]
           }
@@ -27754,7 +27899,8 @@
             "TypeVar",
             "contextmanager",
             "json",
-            "get_ident"
+            "get_ident",
+            "MethodType"
           ],
           "attributes": {
             "responsibility": [
@@ -50519,6 +50665,7 @@
         "._local_core",
         "._local_distribution",
         "._local_files",
+        "._local_host_binding",
         "._local_initial_preparation",
         "._local_installation",
         "._local_native_store",
@@ -51284,18 +51431,6 @@
         },
         {
           "async": false,
-          "name": "InstalledLocalHost/_prepare_original_publication/authorize",
-          "parameters": [
-            "fact"
-          ]
-        },
-        {
-          "async": false,
-          "name": "InstalledLocalHost/_prepare_original_publication/current",
-          "parameters": []
-        },
-        {
-          "async": false,
           "name": "InstalledLocalHost/_prepare_original_store_observation",
           "parameters": [
             "self",
@@ -51765,7 +51900,7 @@
           ]
         }
       ],
-      "sha256": "3aeb4399885da2888798c63aca8a0306140f98d3fca2962f96be796fc899cec8",
+      "sha256": "92fddb1946803649986a5b209024f4a9adf009c49bae029d50565e2dc6ad8400",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -51853,8 +51988,6 @@
             "InstalledLocalHost/_prepare_original_payload",
             "InstalledLocalHost/_prepare_original_payload_writing",
             "InstalledLocalHost/_prepare_original_publication",
-            "InstalledLocalHost/_prepare_original_publication/authorize",
-            "InstalledLocalHost/_prepare_original_publication/current",
             "InstalledLocalHost/_prepare_original_store_observation",
             "InstalledLocalHost/_profile",
             "InstalledLocalHost/_profile/original_scope",
@@ -52396,6 +52529,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_submission_output_retirement.py",
                 "anchor": "def test_retirement_refusal_retains_original_cleanup_and_blocks_new_reservation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_publisher.py",
+                "anchor": "class ClosedPublisherTests(unittest.TestCase):"
               }
             ]
           }
@@ -60841,7 +60978,8 @@
             "fences",
             "current",
             "successors",
-            "_readonly"
+            "_readonly",
+            "_prewrite"
           ]
         },
         {
@@ -60905,7 +61043,25 @@
         },
         {
           "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/invocation_candidate",
+          "parameters": [
+            "view",
+            "observer",
+            "span"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalByteStore/_inspect_namespace_locked/invocation_check",
+          "parameters": [
+            "view",
+            "observer",
+            "span"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/invocation_frame",
           "parameters": [
             "view",
             "observer",
@@ -61566,7 +61722,7 @@
           "parameters": []
         }
       ],
-      "sha256": "75b5c0f568f8cc3397b7bcb5dc69e701e64aac7c9188cec84afc29150c235581",
+      "sha256": "fb7c2929ef84753ef6c0b175af0b9b00f37b654879c2ff828832ee08e9aaa4d4",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62130,7 +62286,9 @@
             "LocalByteStore/_inspect_namespace_locked/check_unchanged",
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
+            "LocalByteStore/_inspect_namespace_locked/invocation_candidate",
             "LocalByteStore/_inspect_namespace_locked/invocation_check",
+            "LocalByteStore/_inspect_namespace_locked/invocation_frame",
             "LocalByteStore/_inspect_namespace_locked/journal_schema",
             "LocalByteStore/_inspect_namespace_locked/metadata_fence",
             "LocalByteStore/_inspect_namespace_locked/observe",
@@ -62593,6 +62751,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
                 "anchor": "def test_zero_parameters_cannot_dispatch_an_adapter_registered_after_the_guard("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_prewrite_invocation.py",
+                "anchor": "class PrewriteInvocationTests(unittest.TestCase):"
               }
             ]
           }
@@ -63319,6 +63481,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
                 "anchor": "def test_zero_parameters_cannot_dispatch_an_adapter_registered_after_the_guard("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_prewrite_invocation.py",
+                "anchor": "class PrewriteInvocationTests(unittest.TestCase):"
               }
             ]
           }

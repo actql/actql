@@ -1768,19 +1768,12 @@ class InstalledLocalHost:
             # an SDK port needs no copied contract, target CID or permit input.
             publisher_input = self._copy(b'{}')
 
-            def current() -> bool:
-                installation.binding.current()
-                return True
-
-            def authorize(fact: _PublisherFact) -> bool:
-                # This same-Store fence supplies physical custody only. The
-                # nominal Common port checks all six facts, original/current
-                # Account publish, Policy/target and the Core-validated index.
-                installation.binding.current()
-                return fact.namespace_id == 'local'
-
+            from ._local_host_binding import _OriginalPublisherPort
+            physical_publisher = _OriginalPublisherPort(installation.binding)
             publisher = self._reserve(lambda: self._core.reserve_publisher(
-                preflight, publisher_input, current=current, authorize=authorize, cleanup=lambda: True))
+                preflight, publisher_input, current=physical_publisher.current_callback,
+                authorize=physical_publisher.authorize_callback, cleanup=lambda: True,
+                original=physical_publisher))
             self._publishers.append(publisher)
             installation.binding.inspect(lambda _:
                 self._core.install_publisher(publisher, configuration.handle))

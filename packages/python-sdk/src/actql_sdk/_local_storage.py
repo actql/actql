@@ -61,6 +61,10 @@ class _NamespaceReader:
     # public reader access this can run inside the exact current callback.
     _invocation_check: Callable[['_NamespaceReader', Callable[[], object], object], None] | None = None
 
+    # Private pre-admission probe. False retains ordinary reader semantics;
+    # it never refreshes the original snapshot or returns a currentness token.
+    _invocation_candidate: Callable[['_NamespaceReader', Callable[[], object], object], bool] | None = None
+
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
 
@@ -529,7 +533,8 @@ class LocalByteStore:
                 if fences and not self._fences_match_locked(fences):
                     raise LocalStorageError('Original Local capacity fences changed')
                 if inspect is not None:
-                    self._inspect_namespace_locked(inspect, fences, current)
+                    # This reader retires before this owner starts its SQL writes.
+                    self._inspect_namespace_locked(inspect, fences, current, _prewrite=True)
                 try:
                     changed = database.reserve_capacity_in_transaction(
                         namespace, key, reserved_bytes, reserved_objects,
@@ -936,7 +941,8 @@ class LocalByteStore:
     def _inspect_namespace_locked(
             self, inspect: _InventoryInspection, fences: tuple[ByteFence, ...],
             current: Callable[[], object] | None, *,
-            successors: tuple[ByteWrite, ...] = (), _readonly: bool = False) -> None:
+            successors: tuple[ByteWrite, ...] = (), _readonly: bool = False,
+            _prewrite: bool = False) -> None:
         # This callback borrows the enclosing physical transaction. It cannot
         # commit, acknowledge Core adoption, repair metadata or survive cleanup.
         active = True
@@ -946,6 +952,10 @@ class LocalByteStore:
         failure: BaseException | None = None
         observing_current: Callable[[], object] | None = None
         observing_invocation = False
+        # Only audited owner phases end this reader before any intended write.
+        # BEGIN IMMEDIATE alone is not eligibility: projected readers enclose
+        # multiple writes and deliberately retain the full legacy path.
+        closed_phase = (_readonly is True or _prewrite is True) and not successors
 
         database = self._physical
         original_snapshot = (database._snapshot_identity()
@@ -989,24 +999,76 @@ class LocalByteStore:
                 observing_current = None
             metadata_fence(reuse_snapshot=reuse_snapshot)
 
+        def invocation_frame(view: _NamespaceReader, observer: Callable[[], object], span: object) -> None:
+            from ._local_host_binding import _InvocationObservation
+            if (type(span) is not _InvocationObservation or type(view) is not _NamespaceReader
+                    or view is not reader or type(self) is not LocalByteStore
+                    or view.owner is not self or not active or get_ident() != thread
+                    or observing_invocation or not closed_phase or observer is not current
+                    or view.scan_after is not scan_after or view.read is not read
+                    or view.query_current is not query_current or view.journal_schema is not journal_schema
+                    or view.check_frame is not check_frame or view.check_fences is not check_fences
+                    or view.check_fences_and_current is not check_fences_and_current
+                    or view.current is not current_snapshot or view.check_inventory is not check_inventory
+                    or view.check_unchanged is not check_unchanged
+                    or view._invocation_candidate is not invocation_candidate
+                    or view._invocation_check is not invocation_check
+                    or span.reader is not view or span.binding._current_observer is not observer
+                    or span.core._invocation_observation is not span or not span.core._invoking
+                    or reading and observing_current is not observer):
+                raise ValueError('Foreign or reentrant closed Local observation')
+
+        def invocation_candidate(view: _NamespaceReader, observer: Callable[[], object], span: object) -> bool:
+            nonlocal failure, observing_invocation
+            entered = False
+            try:
+                if failure is not None:
+                    raise failure
+                invocation_frame(view, observer, span)
+                if (span.admitted or span.connection._closed_invocation is not None
+                        or type(database) is not _SQLiteByteDatabase or original_snapshot is None
+                        or self._physical is not database or self._connection is not original_snapshot[0]
+                        or database._connection is not original_snapshot[0]
+                        or span.connection is not original_snapshot[0]):
+                    raise LocalStorageError('Original closed Local candidate supplier changed')
+                connection = original_snapshot[0]
+                if not connection._closed_eligible():
+                    return False
+                observing_invocation = entered = True
+                snapshot = database._snapshot_identity()
+                if failure is not None:
+                    raise failure
+                if (self._physical is not database or self._connection is not connection
+                        or database._connection is not connection or not connection.in_transaction
+                        or snapshot[0] is not connection or snapshot[1] != original_snapshot[1]
+                        or snapshot[3] != original_snapshot[3]):
+                    raise LocalStorageError('Original closed Local candidate snapshot changed')
+                # A generic inspector may have changed unrelated rows or used
+                # SAVEPOINT before this call. No reduced observation has run:
+                # keep the legacy route, never rebase this reader's baseline.
+                # Recheck callback eligibility after SQL too: customization
+                # during this unadmitted probe must not admit a closed span.
+                return (connection._closed_eligible()
+                        and snapshot[2] == original_snapshot[2]
+                        and connection._transaction_epoch == original_control_epoch)
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                from ._local_host_binding import _InvocationObservation
+                if type(span) is _InvocationObservation and span.reader is reader:
+                    span._fail(failure)
+                raise failure
+            finally:
+                if entered:
+                    observing_invocation = False
+
         def invocation_check(view: _NamespaceReader, observer: Callable[[], object], span: object) -> None:
             nonlocal failure, observing_invocation
             entered = False
             try:
                 if failure is not None:
                     raise failure
-                from ._local_host_binding import _InvocationObservation
-                if (type(span) is not _InvocationObservation or view is not reader
-                        or view.owner is not self or not active or get_ident() != thread
-                        or observing_invocation or not _readonly or observer is not current
-                        or view.query_current is not query_current or view.journal_schema is not journal_schema
-                        or view.check_frame is not check_frame or view.check_fences is not check_fences
-                        or view.check_fences_and_current is not check_fences_and_current
-                        or view._invocation_check is not invocation_check
-                        or span.reader is not view or span.binding._current_observer is not observer
-                        or span.core._invocation_observation is not span or not span.core._invoking
-                        or reading and observing_current is not observer):
-                    raise ValueError('Foreign or reentrant closed Local observation')
+                invocation_frame(view, observer, span)
                 observing_invocation = entered = True
                 span._guard_sql()
                 # The exact current callback is already enclosed by fence's
@@ -1037,7 +1099,7 @@ class LocalByteStore:
         def check_frame(view: _NamespaceReader) -> None:
             nonlocal failure
             try:
-                if (view is not reader or not active or reading
+                if (view is not reader or not active or reading or observing_invocation
                         or get_ident() != thread or failure is not None):
                     raise ValueError('Local inventory reader is not active')
             except BaseException as error:
@@ -1304,6 +1366,10 @@ class LocalByteStore:
 
         try:
             fence()
+            closed_reader = (closed_phase and type(self) is LocalByteStore
+                and original_snapshot is not None
+                and type(original_snapshot[0]) is _TrackedSQLiteConnection
+                and original_snapshot[0]._closed_eligible())
             reader = _NamespaceReader(
                 scan_after=scan_after, read=read,
                 owner=self, current=current_snapshot, check_fences=check_fences,
@@ -1312,9 +1378,8 @@ class LocalByteStore:
                 journal_schema=journal_schema, check_inventory=check_inventory,
                 check_unchanged=(check_unchanged if original_snapshot is not None
                     and type(original_snapshot[0]) is _TrackedSQLiteConnection else None),
-                _invocation_check=(invocation_check if _readonly and original_snapshot is not None
-                    and type(original_snapshot[0]) is _TrackedSQLiteConnection
-                    and original_snapshot[0]._closed_eligible() else None))
+                _invocation_check=invocation_check if closed_reader else None,
+                _invocation_candidate=invocation_candidate if closed_reader else None)
             result = inspect(reader)
             if failure is not None:
                 raise failure
@@ -1878,7 +1943,8 @@ class LocalByteStore:
                     database.rollback()
                     return None
                 if inspect is not None:
-                    self._inspect_namespace_locked(inspect, fences, current)
+                    # This reader retires before this owner starts its SQL writes.
+                    self._inspect_namespace_locked(inspect, fences, current, _prewrite=True)
                 generations: list[int] = []
                 inserted = replaced = 0
                 for write in writes:

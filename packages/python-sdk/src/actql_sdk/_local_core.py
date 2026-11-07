@@ -12,9 +12,11 @@ from importlib import import_module
 import secrets
 import sys
 from threading import RLock
+from types import MethodType
 from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
+    from ._local_host_binding import _OriginalPublisherPort
     from ._local_engine import _InstalledImageInput, _InstalledImageFileInput
     from ._local_native_image import _NativeImageHolding
     from ._local_native_vm import _OriginalVMObservation
@@ -148,6 +150,7 @@ class _PublisherCallbacks:
     authorize: Callable[[_PublisherFact], bool]
     buffer: bytearray | None = None
     received: int = 0
+    original: _OriginalPublisherPort | None = None
 
 
 _PUBLISHER_LIMIT = 8192
@@ -827,44 +830,76 @@ class LocalCore:
         """
         def invoke(*args: Any) -> Any:
             span = getattr(self, '_invocation_observation', None)
+            if span is not None and span.failure is not None:
+                raise span.failure
             if span is None or span.suspended:
                 return callback(*args)
-            pure = name in ('input_byte', 'input_copy')
-            journal = None
-            if name in ('journal_current', 'journal_current_operation', 'journal_schema',
-                        'journal_begin', 'journal_query', 'journal_length', 'journal_revision',
-                        'journal_release', 'journal_query_copy', 'journal_copy'):
-                index = 1 if name in ('journal_query_copy', 'journal_copy') else 0
-                journal = self._journal_callbacks(args[index])
-                pure = (type(journal) is _JournalCallbacks and journal.reader is span.reader
-                        and journal.current is span.binding._current_observer)
-            elif name == 'platform_vm_observation':
-                # This exact standard Wasmtime path only observes retained
-                # Store/Caller/Memory identities and data_len/data_ptr. Native
-                # VM/child suppliers are never eligible for a closed span.
-                original = getattr(self, '_platform_vm_original', None)
-                runtime = import_module('wasmtime') if original is not None else None
-                pure = (original is not None and original[9] is runtime.Memory
-                        and original[10] is runtime.Caller and type(original[3]) is runtime.Store
-                        and type(original[6]) is original[9]
-                        and type(args[0]) is original[10]
-                        and getattr(self, '_physical_holding', None) is None
-                        and getattr(self, '_physical_child_control', None) is None
-                        and getattr(self, '_physical_vm_observation', None) is None)
-            if not pure:
-                return span.interrupt(callback, *args)
             try:
+                pure = name in ('input_byte', 'input_copy')
+                journal = None
+                publisher = None
+                if name in ('journal_current', 'journal_current_operation', 'journal_schema',
+                            'journal_begin', 'journal_query', 'journal_length', 'journal_revision',
+                            'journal_release', 'journal_query_copy', 'journal_copy'):
+                    index = 1 if name in ('journal_query_copy', 'journal_copy') else 0
+                    journal = self._journal_callbacks(args[index])
+                    pure = (type(journal) is _JournalCallbacks and journal.reader is span.reader
+                            and journal.current is span.binding._current_observer)
+                elif name in ('publisher_current', 'publisher_begin', 'publisher_copy', 'publisher_finish'):
+                    from ._local_host_binding import _OriginalPublisherPort
+                    index = 1 if name == 'publisher_copy' else 0
+                    # A name alone never closes a supplied callback. Match the
+                    # actual registered bridge method and original issued port.
+                    if (len(args) > index and type(callback) is MethodType
+                            and callback.__self__ is self
+                            and callback.__func__ is getattr(LocalCore, '_' + name)):
+                        candidate = self._publisher_callbacks(args[index])
+                        if (type(candidate) is _PublisherCallbacks
+                                and type(candidate.original) is _OriginalPublisherPort):
+                            original = candidate.original
+                            memory_closed = self._closed_publisher_memory(
+                                args[0] if name == 'publisher_copy' else None)
+                            if not memory_closed and span.publisher is original:
+                                raise ValueError('Original closed Local publisher memory changed')
+                            if memory_closed and span._select_publisher(original):
+                                publisher, pure = original, True
+                elif name == 'platform_vm_observation':
+                    # This exact standard Wasmtime path only observes retained
+                    # Store/Caller/Memory identities and data_len/data_ptr. Native
+                    # VM/child suppliers are never eligible for a closed span.
+                    original_vm = getattr(self, '_platform_vm_original', None)
+                    runtime = import_module('wasmtime') if original_vm is not None else None
+                    pure = (original_vm is not None and original_vm[9] is runtime.Memory
+                            and original_vm[10] is runtime.Caller and type(original_vm[3]) is runtime.Store
+                            and type(original_vm[6]) is original_vm[9]
+                            and type(args[0]) is original_vm[10]
+                            and getattr(self, '_physical_holding', None) is None
+                            and getattr(self, '_physical_child_control', None) is None
+                            and getattr(self, '_physical_vm_observation', None) is None)
+                if not pure:
+                    return span.interrupt(callback, *args)
+                if publisher is not None:
+                    if not span.admitted:
+                        span.enter()
+                    if not span.admitted:
+                        # Unsupported before admission keeps every legacy fence.
+                        span.publisher = None
+                        span.publisher_buffer = None
+                        span.publisher_received = 0
+                        return span.interrupt(callback, *args)
+                    span._guard_publisher()
                 if span.admitted:
                     span._guard_sql()
                 result = callback(*args)
                 if journal is not None and journal.failure is not None:
                     raise journal.failure
+                if publisher is not None:
+                    span._publisher_result(name, result)
                 if span.admitted:
                     span._guard_sql()
                 return result
             except BaseException as error:
-                span._fail(error)
-                raise span.failure
+                raise span._fail(error)
         return invoke
 
     @contextmanager
@@ -980,6 +1015,28 @@ class LocalCore:
         block = (limit + 2 * min(16384, limit)
                  + 2 * sys.getsizeof(bytearray()) + sys.getsizeof(b''))
         return max(complete, block)
+
+    def _closed_publisher_memory(self, caller: Any = None) -> bool:
+        """Only the original standard Wasmtime copy has no supplied callbacks."""
+        original = getattr(self, '_platform_vm_original', None)
+        if original is None:
+            return False
+        runtime = import_module('wasmtime')
+        memory = original[6]
+        if (original[9] is not runtime.Memory or original[10] is not runtime.Caller
+                or type(original[3]) is not runtime.Store or type(memory) is not runtime.Memory
+                or (caller is not None and type(caller) is not runtime.Caller)
+                or getattr(self, '_physical_holding', None) is not None
+                or getattr(self, '_physical_child_control', None) is not None
+                or getattr(self, '_physical_vm_observation', None) is not None):
+            return False
+        return all(type(method) is MethodType and method.__self__ is owner
+                   and method.__func__ is expected for method, owner, expected in (
+                       (memory.read, memory, runtime.Memory.read),
+                       (memory.data_ptr, memory, runtime.Memory.data_ptr),
+                       (memory.data_len, memory, runtime.Memory.data_len))) and (
+            caller is None or type(caller.get) is MethodType and caller.get.__self__ is caller
+            and caller.get.__func__ is runtime.Caller.get)
 
     def _bulk_memory_current(self, memory: Any) -> None:
         # This is the same entered instance's fixed linear memory. No address
@@ -1225,6 +1282,9 @@ class LocalCore:
             allowance = (2 * limit + 2 * 262144 + 4096 + sys.getsizeof(callbacks)
                          + sys.getsizeof(self._inputs[ticket])
                          + sys.getsizeof(object.__new__(_InvocationObservation))
+                         # Bounded pre-admission reader slot and two closure
+                         # records/cell arrays; referenced originals stay owned.
+                         + 4096
                          # Bounded simultaneous UTF-8, hex fragments and final
                          # literal SQL. Owned connections retain no plan cache.
                          + 3 * _CLOSED_SQL_BYTES)
@@ -1491,7 +1551,8 @@ class LocalCore:
     def reserve_publisher(self, preflight: _Output, request: _Input, *,
                           current: Callable[[], bool],
                           authorize: Callable[[_PublisherFact], bool],
-                          cleanup: Callable[[], bool]) -> _Output:
+                          cleanup: Callable[[], bool],
+                          original: _OriginalPublisherPort | None = None) -> _Output:
         """Private trusted Host port, never a public SDK authorization option.
 
         The installed Host must supply its independent current publisher Owner
@@ -1506,16 +1567,24 @@ class LocalCore:
                 raise RuntimeError('Local Core is closing')
             if not all(callable(value) for value in (current, authorize, cleanup)):
                 raise ValueError('Publisher requires trusted Host callbacks')
+            if original is not None:
+                from ._local_host_binding import _OriginalPublisherPort
+                if type(original) is not _OriginalPublisherPort:
+                    raise ValueError('Foreign original Local physical publisher')
+                original._require_reservation(self, current, authorize)
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            callbacks = _PublisherCallbacks(current, authorize)
+            callbacks = _PublisherCallbacks(current, authorize, original=original)
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True, callbacks)
             # Collector + UTF-8 decode + six Unicode strings + closed parser
             # containers, including overlap. This is not a global memory claim.
             allowance = (128 * _PUBLISHER_LIMIT + 4096 + sys.getsizeof(callbacks)
                          + sys.getsizeof(self._inputs[ticket]))
+            if original is not None:
+                allowance += (sys.getsizeof(original) + sys.getsizeof(original.current_callback)
+                              + sys.getsizeof(original.authorize_callback))
             handle = self._call('publisher', 'reserve', preflight.handle, request.handle,
                                 ticket, allowance)
             if handle <= 0:
@@ -1523,6 +1592,8 @@ class LocalCore:
                 raise LocalCoreError('reserve_publisher', handle)
             value = _Output(self._identity, ticket, handle, _PUBLISHER_LIMIT, 'publisher')
             self._loans[ticket] = value
+            if original is not None:
+                original._bind(value, self._inputs[ticket], callbacks)
             return value
 
     def install_publisher(self, value: _Output, current_configuration: int) -> None:

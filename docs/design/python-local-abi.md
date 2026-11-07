@@ -3274,12 +3274,19 @@ action alone is neither acknowledgement nor a public RunState observation.
 ### Closed physical observation in one Core invocation
 
 An ordinary installed Host may group physical observations within one synchronous
-Wasm export using the same original binding and explicitly read-only SQLite
-reader. Admission is lazy at the first current observation. Pure exports that do
+Wasm export using the same original binding and an explicitly write-free SQLite
+reader phase. Admission is lazy at the first current observation. Pure exports that do
 not inspect current state introduce no filesystem observation. Nothing survives
 export return, trap, reader exit, another Host operation or an async suspension.
-Write readers, custom physical suppliers, native resource observers and cleanup
-retain the complete individual observation path.
+The inspected CAS and capacity-reservation phases also qualify because their
+reader retires before the Store begins its intended writes. A private admission
+probe checks the original connection, outer transaction and schema. Prior legal
+unrelated writes or savepoints select the complete legacy path without rebasing
+the reader; actual snapshot errors refuse. Projected multi-write and other write
+readers, custom physical suppliers, native resource observers and cleanup retain
+the complete individual observation path. Once admitted, later mutation is a
+sticky failure, not fallback. Old fences, successor readback, COMMIT uncertainty
+and cleanup custody keep their existing independent boundaries.
 
 This is a closed computation validated before effects or result escape, not a
 cached authority decision. The full original file/root/Store graph is checked on
@@ -3292,9 +3299,17 @@ decision. No authorization import or original work/fuel boundary is removed.
 
 Every Host import passes through one classifier. Only the audited immutable
 input and same-reader Journal transports, plus the exact standard Wasmtime
-Store/Caller/Memory observation, remain inside the closed computation. Unknown
-imports, publisher decisions, child resources and cleanup suspend it before
-calling out. Current checks within those callbacks use full physical observations.
+Store/Caller/Memory observation, remain inside the closed computation. The exact
+installed physical publisher may also remain inside: its original current and
+authorize callbacks still run on every invocation, including the namespace
+comparison, while Common separately rechecks Account, Policy and all publication
+stages. This is not a cached authorization result. One charged nominal publisher
+pin retains the issued output, callback and collector identities; copying also
+requires the unchanged standard Wasmtime memory methods. Replacement, malformed
+transport, swallowed callback failures and refused reentry poison the invocation;
+a normal namespace denial remains denial. Other publishers, unknown imports,
+child resources and cleanup suspend it before calling out. Current checks within
+those callbacks use full physical observations.
 A refused observation, escaping callback exception or refused reentry is sticky
 even when caught by an inner callback. No refused invocation resumes through a legacy fallback; original
 loans remain reachable for their existing explicit cleanup.
@@ -3309,8 +3324,10 @@ global Python adapter registration from introducing an unguarded callback. Text
 literals preserve the exact UTF-8 bytes through a hexadecimal BLOB-to-TEXT cast;
 no caller-supplied SQL fragment is accepted. The owned connection disables its
 statement cache so changing literal values cannot accumulate retained plans.
-Temporary SQL encoding is included in the original current transfer allowance;
-SQLite and other workspace reservations remain separate.
+Temporary SQL encoding, the bounded reader admission closures and invocation
+metadata are included in the original current transfer allowance. The original
+publisher port and its bound callbacks are included in its own allowance. SQLite
+and other workspace reservations remain separate.
 
 ### Original observation data within one Host operation
 
