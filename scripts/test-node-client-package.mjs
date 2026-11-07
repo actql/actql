@@ -2391,7 +2391,7 @@ assert.equal((await cancelledResend.wait()).status, 'cancelled');
 assert.equal((await cancelledResend.status()).control.physical_stop, 'confirmed');
 await assert.rejects(cancelledResend.result('answer').all());
 const execution = await client.startSource(document, {format: 'json',
-  requestId: 'packed-restart-before-physical-start'});
+  submissionRef});
 assert.deepEqual(execution.ref, ref);
 assert.equal((await execution.wait()).status, 'succeeded');
 assert.deepEqual(await execution.result('answer').all(),
@@ -2410,7 +2410,7 @@ const acquiredSubmissionRef = JSON.parse(readFileSync('restart-acquired-submissi
 const acquiredAttached = await client.attach(acquiredRef);
 assert.equal((await acquiredAttached.status()).status, 'running');
 const acquiredResumed = await client.startSource(acquiredDocument,
-  {format: 'json', requestId: 'packed-acquired-restart-before-start',
+  {format: 'json', submissionRef: acquiredSubmissionRef,
     parameters: {minimum: 1}});
 assert.deepEqual(acquiredResumed.ref, acquiredRef);
 assert.equal((await acquiredResumed.wait()).status, 'succeeded');

@@ -49,6 +49,13 @@ async function sdkOriginal(t, name, parameters) {
       return {kind: 'ready', submissionRef: foreign ? {...original, nonce: 'foreign'} : original,
         intentCid, admission: {ref, durability: 'durable', revision: 1}};
     }
+    if (operation === 'submit-intent') {
+      assert.deepEqual(body.submissionRef, original);
+      assert.equal(body.intentCid, intentCid);
+      return {kind: 'already_satisfied', attemptRef: body.attemptRef,
+        outcome: {kind: 'ready', submissionRef: original, intentCid,
+          admission: {ref, durability: 'durable', revision: 1}}};
+    }
     assert.equal(operation, 'submit-named-intent');
     assert.equal(body.requestName, name);
     intentCid ??= body.intentCid;
@@ -182,6 +189,28 @@ test('packed restart actors retain complete original submission refs beside thei
         (file, encoding) => {assert.equal(encoding, 'utf8'); return saved.get(file);});
       assert.deepEqual(restored, JSON.parse(saved.get(path)));
     }
+  }
+});
+
+test('packed restart explicitly continues the original submission instead of only observing its name', async t => {
+  const text = actor('resume-remote.mjs');
+  const parsed = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  for (const [name, requestName, parameters] of [
+    ['execution', 'packed-restart-before-physical-start', undefined],
+    ['acquiredResumed', 'packed-acquired-restart-before-start', {minimum: 1}],
+  ]) {
+    const f = await sdkOriginal(t, requestName, parameters);
+    const declaration = nodes(parsed, node => node.type === 'VariableDeclaration' &&
+      node.declarations.some(value => value.id.name === name));
+    assert.equal(declaration.length, 1);
+    const invoke = new Function('client', 'document', 'acquiredDocument', 'submissionRef', 'acquiredSubmissionRef',
+      'return (async () => {' + text.slice(declaration[0].start, declaration[0].end) +
+      '\nreturn ' + name + ';})();');
+    const before = f.calls.length;
+    const replayed = await invoke(f.client, f.document, f.document, f.original, f.original);
+    assert.deepEqual(f.calls.slice(before), ['submit-intent']);
+    assert.deepEqual(replayed.ref, f.execution.ref);
+    assert.deepEqual(f.sdk.getSubmissionOutcome(replayed).submissionRef, f.original);
   }
 });
 
