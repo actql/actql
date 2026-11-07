@@ -1260,19 +1260,40 @@ test('Quick cold Unknown retains failed sample and unobserved first Result witho
 test('two-Model deal-review fixture preserves keyed Content and consumes the first original review before Effect', () => {
   const original = projectTemplateFiles('deal-review-mock'), files = twoModelDealReviewFiles();
   const changed = Object.keys(files).filter(name => files[name] !== original[name]).sort();
-  assert.deepEqual(changed, ['actql.config.json', 'deal-review.aql', 'mock/deal-review-confirm.v1.answers.yaml',
+  assert.deepEqual(changed, ['actql.config.json', 'deal-review.program.json', 'mock/deal-review-confirm.v1.answers.yaml',
     'model-tasks.json', 'model-tasks/deal-review-confirm.v1.yaml']);
   for (const name of Object.keys(original).filter(name => !changed.includes(name))) {
     assert.equal(files[name], original[name], name);
   }
-  const program = files['deal-review.aql'];
-  assert.equal((program.match(/\|> INFER /gu) ?? []).length, 2);
-  assert.ok(program.includes('JOIN drive.contents AS c USING (resource, version)'));
-  const extra = "|> INFER `model-task:deal-review-confirm.v1`\n" +
-    '     INPUT (changed = review.value.changed, stage = review.value.stage,\n' +
-    '            next_step = review.value.next_step) AS confirmation\n' +
-    "|> WHERE confirmation.outcome = 'ok' AND confirmation.value.confirmed\n";
-  assert.equal(program.replace(extra, ''), original['deal-review.aql']);
+  assert.equal(files['deal-review.aql'], original['deal-review.aql'], 'Original public text is unchanged');
+  const program = JSON.parse(files['deal-review.program.json']);
+  assert.deepEqual(program.stages.map(stage => stage.id), ['review', 'confirm', 'apply']);
+  assert.equal(program.stages.flatMap(stage => stage.steps).filter(step => step.infer).length, 2);
+  const [first, second, apply] = program.stages;
+  assert.deepEqual(first.inputs, {
+    opportunities: {connector: 'salesforce', resource: 'Opportunity'},
+    files: {connector: 'drive', resource: 'files', request: {paths: null, glob: null}},
+    contents: {connector: 'drive', resource: 'contents'}});
+  assert.deepEqual(first.steps[1].join.on,
+    [{left: 'resource', right: 'resource'}, {left: 'version', right: 'version'}]);
+  assert.deepEqual(second.inputs, {reviewed: {result: {stage: 'review', result: 'rows'}}});
+  assert.deepEqual(apply.inputs, {confirmed: {result: {stage: 'confirm', result: 'rows'}}});
+  for (const stage of [first, second]) {
+    assert.equal(stage.steps.filter(step => step.infer).length, 1);
+    assert.deepEqual(stage.steps.find(step => step.assert_rows).assert_rows, {unique_by: ['id']});
+  }
+  assert.deepEqual(second.steps.find(step => step.infer).infer, {
+    contract: 'model-task:deal-review-confirm.v1', key: 'id', input: {
+      changed: {property: {value: {property: {value: {field: 'review'}, name: 'value'}}, name: 'changed'}},
+      stage: {property: {value: {property: {value: {field: 'review'}, name: 'value'}}, name: 'stage'}},
+      next_step: {property: {value: {property: {value: {field: 'review'}, name: 'value'}}, name: 'next_step'}}}});
+  assert.deepEqual(second.steps.find(step => step.filter).filter, {and: [
+    {eq: [{field: 'outcome'}, {literal: 'ok'}]},
+    {property: {value: {field: 'value'}, name: 'confirmed'}}]});
+  assert.equal(first.effects, undefined); assert.equal(second.effects, undefined);
+  assert.equal(apply.effects.save.update.target, 'connector://salesforce/Opportunity');
+  assert.deepEqual(apply.effects.save.update.from, {result: 'rows'});
+  assert.deepEqual(program.results, {updates: {from: {stage: 'apply', result: 'rows'}}});
   const task = parse(files['model-tasks/deal-review-confirm.v1.yaml']);
   assert.deepEqual(task.input, {changed: {type: 'boolean', nullable: true},
     stage: {type: 'string', nullable: true}, next_step: {type: 'string', nullable: true}});
@@ -1325,4 +1346,24 @@ test('two-Model deal-review uses the same existing public workflow and retains i
   assert.deepEqual(observations[0].samples[0].phases, []);
   assert.equal((await readdir(join(root, 'mock-project-0'))).includes('node_modules'), false);
   scratch.passed();
+});
+
+test('two-Model deal-review submits one unchanged structured Program through the existing public caller', async () => {
+  const selected = twoModelDealReviewFiles()['deal-review.program.json'];
+  const start = workflowSource.indexOf("    const source = await step('read original README program'");
+  const end = workflowSource.indexOf("    const state = await step('wait for original Checkpoint'", start);
+  assert.ok(start >= 0 && end > start);
+  const steps = [], original = Object.freeze({fixture: 'one-original-submission'});
+  let reads = 0, submissions = 0;
+  const execution = await compileFunction(workflowPrefix +
+    'return (async () => {' + workflowSource.slice(start, end) + 'return execution;})();',
+    ['process', 'assert', 'step', 'readFile', 'client'])(
+    {argv: ['node', 'fixture', 'capture', 'handoff', 'deal-review-mock', 'two-models']}, assert,
+    async (name, operation) => {steps.push(name); return operation();},
+    async (path, encoding) => {reads++; assert.equal(path, 'deal-review.program.json');
+      assert.equal(encoding, 'utf8'); return selected;},
+    {async startSource(document, options) {submissions++; assert.equal(document, selected);
+      assert.deepEqual(options, {format: 'json', stopBefore: 'commit'}); return original;}});
+  assert.equal(execution, original); assert.equal(reads, 1); assert.equal(submissions, 1);
+  assert.deepEqual(steps, ['read original README program', 'README startSource']);
 });
