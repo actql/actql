@@ -77,3 +77,6 @@ Existing callers retain the default signature. A stopped DAG removes its own
 reciprocal supplied-Read cache; the original active child and Source keep their
 actual cleanup duties. Closed read markers and cached array slots are cut only
 after that read's cleanup, while the enclosing Run still awaits physical ACK.
+If currentness synchronously retires the read, both its marker and Ledger are
+cut. Post-callback checks preserve the existing Retired outcome before testing
+nominal correspondence; initial foreign-original checks remain unchanged.
