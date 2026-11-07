@@ -110,6 +110,20 @@ function residentConsumerFailureSummary(lines) {
   return [...selected.values()];
 }
 
+// Publish only the same closed observer DATA already printed by this original
+// failure. Raw scratch and errors remain private; publication cannot replace it.
+async function retainResidentConsumerFailureSummary(directory, lines) {
+  const observations = residentConsumerFailureSummary(lines);
+  console.error('ACTQL_NATIVE_RESIDENT_CONSUMER_FAILURE ' + JSON.stringify(observations));
+  try {
+    await writeFile(join(directory, 'resident-consumer-summary.json'),
+      JSON.stringify({version: 1, diagnosticOnly: true, observations}) + '\n',
+      {flag: 'wx', mode: 0o600});
+  } catch {
+    console.error('NativeResidentFailureSummaryUnavailable');
+  }
+}
+
 async function runResidentPhaseWatchdog(script, {
   forkChild = fork, phaseTimeoutMilliseconds = 120000, killGraceMilliseconds = 5000,
   report = value => console.error('ACTQL_NATIVE_RESIDENT_WATCHDOG ' + JSON.stringify(value)),
@@ -3680,8 +3694,7 @@ try {
     if (retainedConsumerMode) {
       await writeFile(join(root, 'resident-failure-lines.json'), JSON.stringify(currentSite.lines),
         {mode: 0o600});
-      console.error('ACTQL_NATIVE_RESIDENT_CONSUMER_FAILURE ' +
-        JSON.stringify(residentConsumerFailureSummary(currentSite.lines)));
+      await retainResidentConsumerFailureSummary(root, currentSite.lines);
     }
     console.error('resident Site output:', JSON.stringify(retainedConsumerMode
       ? currentSite.lines.filter(line => line.kind !== 'accepted').slice(-30)

@@ -45,6 +45,37 @@ test('Resident consumer diagnostics preserve the original refusal under relay no
   assert.deepEqual(summarize([]),[]);
 });
 
+test('Original Resident failure artifact retains only closed observations and never overwrites evidence', async t => {
+  const summary = syntax.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'residentConsumerFailureSummary');
+  const writer = syntax.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'retainResidentConsumerFailureSummary');
+  assert(summary); assert(writer);
+  const reports = [];
+  const retain = Function('writeFile', 'join', 'residentConsumerFailureSummary', 'console',
+    `return (${source.slice(writer.start, writer.end)});`)(writeFile, join,
+    Function(`return (${source.slice(summary.start, summary.end)});`)(),
+    {error: value => reports.push(value)});
+  const directory = await mkdtemp(join(tmpdir(), 'actql-resident-original-summary-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const lines = [{kind: 'consumer-refused', reason: 'retained-input', boundary: 'producer-route',
+    body: 'private-body', request_cid: 'private-request', message: 'private-error'}];
+  await retain(directory, lines);
+  const path = join(directory, 'resident-consumer-summary.json');
+  const original = await readFile(path, 'utf8');
+  assert.deepEqual(JSON.parse(original), {version: 1, diagnosticOnly: true, observations: [
+    {kind: 'consumer-refused', reason: 'retained-input', boundary: 'producer-route', count: 1},
+  ]});
+  assert(!original.includes('private-'));
+  assert(!reports.join('\n').includes('private-'));
+  await retain(directory, [{kind: 'consumer-failed', reason: 'protocol'}]);
+  assert.equal(await readFile(path, 'utf8'), original);
+  assert.equal(reports.at(-1), 'NativeResidentFailureSummaryUnavailable');
+  // A missing destination also cannot replace the original failed test/cleanup.
+  await assert.doesNotReject(retain(join(directory, 'absent'), lines));
+  assert.equal(reports.at(-1), 'NativeResidentFailureSummaryUnavailable');
+});
+
 async function childFixture(t, body) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-resident-watchdog-'));
   const script = join(directory, 'child.mjs');
