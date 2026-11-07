@@ -691,6 +691,15 @@ fn multi_captured_capacity_limits_owned(
 }
 
 ///|
+fn installed_source_compute_count(compute : Int, sources : Int) -> Int? {
+  if compute < 0 || sources < 0 || sources > 2147483647 - compute {
+    None
+  } else {
+    Some(compute + sources)
+  }
+}
+
+///|
 // Immutable selected-input half of the existing calculator. Planned callers
 // already own these generated originals; no second preparation or quote is
 // needed during their managed-parent construction.
@@ -712,6 +721,17 @@ fn multi_captured_capacity_limits_selected(
     capacities.length() != source_count ||
     transport_bytes.length() != source_count ||
     transport_execution_bytes.length() != source_count {
+    return None
+  }
+  guard installed_source_compute_count(
+      count,
+      if source_inputs {
+        source_count
+      } else {
+        0
+      },
+    )
+    is Some(attempts) else {
     return None
   }
   if sequences.length() != count {
@@ -804,8 +824,8 @@ fn multi_captured_capacity_limits_selected(
   }
   Some({
     planning_work: 100000,
-    attempts: count + (if source_inputs { source_count } else { 0 }),
-    holdings: count + (if source_inputs { source_count } else { 0 }),
+    attempts,
+    holdings: attempts,
     transfer_bytes: transfer,
     retained_bytes: native_retained + compute_retained,
     execution_bytes: execution_capacity,

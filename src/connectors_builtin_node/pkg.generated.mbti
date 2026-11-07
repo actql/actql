@@ -960,7 +960,7 @@ pub fn client_program_effect_definition_cid(@run_publication_host.PreparedClient
 
 pub fn client_program_effect_dependency_body_cid(@run_publication.CapturedEffectDependencyBody) -> String
 
-pub fn client_program_effect_direct_source_coordinates(@run_publication_host.PreparedClientEffectComputation) -> Result[Array[(Int, Int, Int, Int)], @run_publication_host.ClientDirectAcquisitionOccurrenceIssue]
+pub fn client_program_effect_direct_source_coordinates(@run_publication_host.PreparedClientEffectComputation) -> Result[Array[Array[Int]], @run_publication_host.ClientDirectAcquisitionOccurrenceIssue]
 
 pub fn client_program_effect_environment_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
@@ -1732,7 +1732,7 @@ pub fn client_program_installed_effect_recovered_input_inventory_retain(@client_
 
 pub fn client_program_installed_effect_response_buffer_construction_capacity(Int) -> @execution_relation.ExecutionCapacity?
 
-pub fn client_program_installed_effect_row_source_input_prepare(@client_row_source_host.RowDeclaration, @execution_relation.ExecutionCapacity?) -> Result[@client_local_host.ClientInstalledEffectSourceInput, @client_local_host.ClientInstalledManagedRunIssue]
+pub fn client_program_installed_effect_row_source_input_prepare(@client_row_source_host.RowDeclaration, @execution_relation.ExecutionCapacity?, @client_row_source_host.RowInputLimits?) -> Result[@client_local_host.ClientInstalledEffectSourceInput, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_file_effect_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> Result[@execution_relation.ExecutionCapacity, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -1869,6 +1869,8 @@ pub fn client_program_installed_provider_row_capture_capacity(@client_row_source
 pub fn client_program_installed_provider_row_capture_capacity_matches(@client_local_host.ClientInstalledCaptureCapacity, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity) -> Bool
 
 pub fn client_program_installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> @client_local_host.ClientInstalledCaptureCapacity?
+
+pub fn client_program_installed_row_input_policy(Int, Int, Int, Int, Int) -> @client_row_source_host.RowInputLimits
 
 pub fn client_program_installed_salesforce_current_response_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, Int, Int, Int, Int, @actql/actql/connectors/salesforce/catalog.QueryRead?, String, Bytes?, Int64, Int) -> Result[@execution_relation.ExecutionCapacity, @actql/actql/connectors/salesforce/catalog.QueryReadIssue]
 

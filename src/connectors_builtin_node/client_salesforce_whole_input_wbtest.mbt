@@ -319,3 +319,43 @@ test "Salesforce full input bridge rejects another declaration or current Site w
     is Err(@salesforce_host.Projection(@salesforce_catalog.QueryLimit)),
   )
 }
+
+///|
+extern "js" fn salesforce_whole_legacy_effect_input_call(
+  prepare : (
+    @client_row_source_host.RowDeclaration,
+    @execution.ExecutionCapacity?,
+    @client_row_source_host.RowInputLimits?,
+  ) -> Result[
+    @client_local_host.ClientInstalledEffectSourceInput,
+    @client_local_host.ClientInstalledManagedRunIssue,
+  ],
+  declaration : @client_row_source_host.RowDeclaration,
+) -> Result[
+  @client_local_host.ClientInstalledEffectSourceInput,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] =
+  #|(prepare, declaration) => prepare(declaration, undefined)
+
+///|
+test "Effect row input bridge keeps the existing two-argument JavaScript constructor" {
+  let (observation, binding) = salesforce_whole_observation()
+  let declaration = client_program_salesforce_row_declaration(
+    salesforce_whole_declaration(observation, binding),
+  ).unwrap()
+  // An omitted policy is the original Query constructor, never a Whole
+  // fallback. Whole Plan construction separately requires its selected policy.
+  salesforce_whole_legacy_effect_input_call(
+    client_program_installed_effect_row_source_input_prepare, declaration,
+  ).unwrap()
+  |> ignore
+  let policy = client_program_installed_row_input_policy(
+    128, 2097152, 10000, 32, 128,
+  )
+  client_program_installed_effect_row_source_input_prepare(
+    declaration,
+    None,
+    Some(policy),
+  ).unwrap()
+  |> ignore
+}

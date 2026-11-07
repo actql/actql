@@ -248,6 +248,7 @@ fn effect_operation_source_plan_fixture(
   same_unit_results? : Bool = false,
   provider? : @execution.ExecutionCapacity? = None,
   whole_inputs? : Bool = false,
+  whole_policy? : @row_source_host.RowInputLimits? = None,
   query_time_for? : ((
     @publication_host.PreparedClientEffectComputation,
     @publication_host.ClientRequestIdentity,
@@ -469,17 +470,28 @@ fn effect_operation_source_plan_fixture(
     [demand]
   }
   if whole_inputs {
+    let policy = whole_policy.unwrap_or(
+      installed_row_input_policy(3, 2048, 1000, 20, 3),
+    )
     let whole_plan = prepare_installed_effect_managed_source_plan(
       prepared,
       request,
       [
-        prepare_installed_effect_row_source_input(declaration, provider).unwrap(),
-        prepare_installed_effect_row_source_input(declaration, provider).unwrap(),
+        prepare_installed_effect_row_source_input(
+          declaration,
+          provider,
+          input_limits=Some(policy),
+        ).unwrap(),
+        prepare_installed_effect_row_source_input(
+          declaration,
+          provider,
+          input_limits=Some(policy),
+        ).unwrap(),
       ],
       original_row_query_contract_fixture,
       original_row_evidence_contract_fixture,
-      [1024L, 1024L],
-      [2048L, 2048L],
+      [policy.page.max_bytes.to_int64(), policy.page.max_bytes.to_int64()],
+      [policy.page.max_bytes.to_int64(), policy.page.max_bytes.to_int64()],
       contracts,
       source_query_original_values,
       Some(source_query_original_fragment),

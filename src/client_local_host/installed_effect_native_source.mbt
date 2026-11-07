@@ -4,7 +4,8 @@
 enum ClientInstalledEffectSourceInput {
   InstalledEffectRowSource(
     @row_source_host.RowDeclaration,
-    @execution.ExecutionCapacity?
+    @execution.ExecutionCapacity?,
+    @row_source_host.RowInputLimits?
   )
   InstalledEffectDuckDBSource(String, String, String, String, String, String)
 }
@@ -13,8 +14,9 @@ enum ClientInstalledEffectSourceInput {
 pub fn prepare_installed_effect_row_source_input(
   declaration : @row_source_host.RowDeclaration,
   provider : @execution.ExecutionCapacity?,
+  input_limits? : @row_source_host.RowInputLimits? = None,
 ) -> Result[ClientInstalledEffectSourceInput, ClientInstalledManagedRunIssue] {
-  Ok(InstalledEffectRowSource(declaration, provider))
+  Ok(InstalledEffectRowSource(declaration, provider, input_limits))
 }
 
 ///|
@@ -148,7 +150,8 @@ fn prepare_installed_effect_source_inputs(
       Err(issue) => return Err(issue)
     }
     if route is @sourceviews.WholeInputRoute(original) {
-      guard input is InstalledEffectRowSource(declaration, provider) else {
+      guard input
+        is InstalledEffectRowSource(declaration, provider, Some(input_limits)) else {
         return Err(Unsupported)
       }
       let capacity = match
@@ -160,6 +163,7 @@ fn prepare_installed_effect_source_inputs(
           declaration,
           contracts,
           provider,
+          input_limits,
           transport_execution[index],
           sequences,
         ) {
@@ -185,7 +189,7 @@ fn prepare_installed_effect_source_inputs(
       Err(_) => return Err(Unsupported)
     }
     match input {
-      InstalledEffectRowSource(declaration, provider) => {
+      InstalledEffectRowSource(declaration, provider, _) => {
         let acquisition = match
           @row_source_host.prepare_row_acquisition(
             declaration, requirement, query_contract, evidence_contract,
@@ -293,13 +297,13 @@ fn prepare_installed_effect_whole_source_capacity(
   declaration : @row_source_host.RowDeclaration,
   contracts : ClientInstalledSequenceContracts,
   provider : @execution.ExecutionCapacity?,
+  input_limits : @row_source_host.RowInputLimits,
   transport_execution : Int64,
   sequences : Array[@execution.GeneratedSequence],
 ) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue] {
-  if transport_execution <= 0L {
+  if transport_execution < input_limits.page.max_bytes.to_int64() {
     return Err(Unsupported)
   }
-  let page_bytes = Int64::min(transport_execution, 1000000L).to_int()
   let graph = installed_managed_owner_graph(Effect(prepared))
   guard @publication_host.client_source_acquisition_matches_effect_program(
       prepared, stage, ordinal, original,
@@ -320,28 +324,7 @@ fn prepare_installed_effect_whole_source_capacity(
       sequence,
       contracts.original.value.contracts,
       declaration,
-      {
-        max_rows: 100,
-        page: {
-          max_bytes: page_bytes,
-          max_nodes: 100000,
-          max_depth: 100,
-          max_rows: 100,
-        },
-        retention: {
-          max_nodes: 100000,
-          max_text_bytes: 500000,
-          max_depth: 100,
-          max_work: 20000000,
-        },
-        wire: {
-          max_columns: 100,
-          max_order_work: 100000,
-          max_bytes: 1000000,
-          max_nodes: 100000,
-          max_depth: 100,
-        },
-      },
+      input_limits,
     ) {
     Ok(value) => value
     Err(_) => return Err(Unsupported)

@@ -630,7 +630,7 @@ pub fn client_program_effect_definition_cid(@run_publication_host.PreparedClient
 
 pub fn client_program_effect_dependency_body_cid(@run_publication.CapturedEffectDependencyBody) -> String
 
-pub fn client_program_effect_direct_source_coordinates(@run_publication_host.PreparedClientEffectComputation) -> Result[Array[(Int, Int, Int, Int)], @run_publication_host.ClientDirectAcquisitionOccurrenceIssue]
+pub fn client_program_effect_direct_source_coordinates(@run_publication_host.PreparedClientEffectComputation) -> Result[Array[Array[Int]], @run_publication_host.ClientDirectAcquisitionOccurrenceIssue]
 
 pub fn client_program_effect_environment_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
@@ -1023,6 +1023,8 @@ pub fn client_program_installed_provider_row_capture_capacity(@client_row_source
 pub fn client_program_installed_provider_row_capture_capacity_matches(@client_local_host.ClientInstalledCaptureCapacity, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity) -> Bool
 
 pub fn client_program_installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> @client_local_host.ClientInstalledCaptureCapacity?
+
+pub fn client_program_installed_row_input_policy(Int, Int, Int, Int, Int) -> @client_row_source_host.RowInputLimits
 
 pub fn client_program_installed_table_source_body_capacity(@execution_relation.ExecutionCapacity, Int, Int) -> Result[@execution_relation.ExecutionCapacity, @physical_resources.PreparationCapacityIssue]
 

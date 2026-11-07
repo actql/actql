@@ -649,7 +649,7 @@ fn prepare_installed_effect_managed_plan_owned(
       }
       let mut providers = 0
       for input in inputs {
-        if input is InstalledEffectRowSource(_, Some(_)) {
+        if input is InstalledEffectRowSource(_, Some(_), _) {
           providers += 1
         }
       }

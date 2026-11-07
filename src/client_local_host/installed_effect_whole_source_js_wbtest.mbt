@@ -312,3 +312,136 @@ test "Effect whole read fences reentrant retirement without replacing its siblin
   retire_installed_managed_run(owner).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
+
+///|
+test "Effect whole input consumes the installed row and page policy without an extra clamp" {
+  let policy = installed_row_input_policy(128, 2097152, 10000, 32, 128)
+  let plan = effect_operation_source_plan_fixture(
+    whole_inputs=true,
+    whole_policy=Some(policy),
+  )
+  let declaration = plan.whole_sources[0].unwrap().0
+  for over_rows in [false, true] {
+    let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+      plan,
+      prepared_installed_effect_managed_requirements(plan),
+    )
+    let owner = begin_preparation_owned_installed_effect_managed_run(
+      initial,
+      input,
+      capacity,
+      plan.prepared,
+      plan.request,
+      plan,
+    ).unwrap()
+    let (read, _, acquisition, _) = begin_installed_effect_managed_whole_source_read(
+      owner,
+      plan.prepared,
+      plan.request,
+      declaration,
+      0,
+    ).unwrap()
+    assert_eq(@row_source_host.row_input_acquisition_max_rows(acquisition), 128)
+    let run = start_installed_whole_source_read_rows(
+      read,
+      acquisition,
+      "configured-whole-policy",
+      _ => true,
+      2097152L,
+      2097152L,
+    ).unwrap()
+    assert_true(
+      @row_source_host.begin_row_run_with_page_limits(run, policy.page, 129)
+      is Err(Source(InvalidPage)),
+    )
+    assert_true(
+      @row_source_host.begin_row_run_with_page_limits(
+        run,
+        { ..policy.page, max_bytes: 2097153, },
+        128,
+      )
+      is Err(Source(InvalidPage)),
+    )
+    @row_source_host.begin_row_run_with_page_limits(run, policy.page, 128).unwrap()
+    let count = if over_rows { 129 } else { 128 }
+    let body = @utf8.encode(
+      "[" +
+      Array::makei(count, index => "{\"id\":" + (index + 1).to_string() + "}").join(
+        ",",
+      ) +
+      "]",
+    )
+    let charge = @row_source_host.charge_row_run_page(run, body).unwrap()
+    let received = @row_source_host.accept_charged_row_run_page(
+      run, charge, body,
+    )
+    if over_rows {
+      assert_true(received is Err(_))
+      assert_true(@row_source_host.capture_row_run(run) is Err(_))
+    } else {
+      assert_eq(received.unwrap(), 128)
+      @row_source_host.finish_row_run(run).unwrap()
+      @row_source_host.begin_row_capture(run).unwrap()
+      let mut complete = false
+      for _ in 0..<10000 {
+        if @row_source_host.advance_row_capture(run, 256).unwrap().0 {
+          complete = true
+          break
+        }
+      }
+      assert_true(complete)
+      let source = @row_source_host.row_capture_source(
+        @row_source_host.capture_row_run(run).unwrap(),
+      ).unwrap()
+      assert_eq(@query.captured_source_row_count(source), Some(128))
+    }
+    let mut retired = false
+    for _ in 0..<10000 {
+      match retire_installed_source_read(read) {
+        Ok(_) => {
+          retired = true
+          break
+        }
+        Err(CleanupPending) => ()
+        Err(_) => fail("configured original Source cleanup failed")
+      }
+    }
+    assert_true(retired)
+    retire_installed_managed_run(owner).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "Effect whole input refuses an absent installed policy rather than selecting defaults" {
+  let plan = effect_operation_source_plan_fixture(whole_inputs=true)
+  let declaration = plan.whole_sources[0].unwrap().0
+  let input = prepare_installed_effect_row_source_input(declaration, None).unwrap()
+  assert_true(
+    prepare_installed_effect_managed_source_plan(
+      plan.prepared,
+      plan.request,
+      [input, input],
+      original_row_query_contract_fixture,
+      original_row_evidence_contract_fixture,
+      plan.transport_bytes,
+      plan.transport_execution_bytes,
+      plan.installed_contracts,
+      plan.values_body,
+      plan.fragment_body,
+      plan.ordered_body,
+      plan.operations,
+      provider_factory=_ => [],
+    )
+    is Err(Unsupported),
+  )
+}
+
+///|
+test "Source and Compute attempt inventory refuses checked Int overflow" {
+  assert_eq(installed_source_compute_count(2147483645, 2), Some(2147483647))
+  assert_eq(installed_source_compute_count(2147483646, 2), None)
+  assert_eq(installed_source_compute_count(2147483647, 1), None)
+  assert_eq(installed_source_compute_count(-1, 1), None)
+  assert_eq(installed_source_compute_count(1, -1), None)
+}

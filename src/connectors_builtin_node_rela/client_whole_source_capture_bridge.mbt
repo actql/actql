@@ -58,28 +58,9 @@ pub fn client_program_prepare_whole_source_capacity(
     original,
     declaration,
     contracts,
-    {
-      max_rows,
-      page: {
-        max_bytes: max_page_bytes,
-        max_nodes: max_page_nodes,
-        max_depth: max_page_depth,
-        max_rows: max_page_rows,
-      },
-      retention: {
-        max_nodes: 100000,
-        max_text_bytes: 500000,
-        max_depth: 100,
-        max_work: 20000000,
-      },
-      wire: {
-        max_columns: 100,
-        max_order_work: 100000,
-        max_bytes: 1000000,
-        max_nodes: 100000,
-        max_depth: 100,
-      },
-    },
+    @client_local_host.installed_row_input_policy(
+      max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+    ),
     provider,
   )
 }
@@ -487,7 +468,7 @@ pub fn client_program_whole_source_issue_source_evidence_wire(
 pub fn client_program_effect_direct_source_coordinates(
   prepared : @publication_host.PreparedClientEffectComputation,
 ) -> Result[
-  Array[(Int, Int, Int, Int)],
+  Array[Array[Int]],
   @publication_host.ClientDirectAcquisitionOccurrenceIssue,
 ] {
   @publication_host.select_client_effect_direct_acquisition_occurrences(
@@ -499,7 +480,7 @@ pub fn client_program_effect_direct_source_coordinates(
         let (stage, input, task) = @publication_host.client_direct_acquisition_occurrence_at(
           value, slot,
         ).unwrap()
-        (stage, input, slot, task)
+        [stage, input, slot, task]
       },
     )
   })
@@ -628,5 +609,20 @@ pub fn client_program_issue_effect_whole_source_input_logical(
     identity,
     original,
     task~,
+  )
+}
+
+///|
+/// Immutable policy DATA from the same installed Source constructor as Pure.
+#export_name("clientProgramInstalledRowInputPolicy")
+pub fn client_program_installed_row_input_policy(
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+) -> @client_row_source_host.RowInputLimits {
+  @client_local_host.installed_row_input_policy(
+    max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
   )
 }

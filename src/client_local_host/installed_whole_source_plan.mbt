@@ -90,6 +90,41 @@ fn select_installed_source_input_graph(
 }
 
 ///|
+/// The existing installed Row input profile, shared by Pure and Effect
+/// constructors. Source row/page policy is retained exactly as configured;
+/// this DATA neither admits resources nor grants a physical read.
+pub fn installed_row_input_policy(
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+) -> @row_source_host.RowInputLimits {
+  {
+    max_rows,
+    page: {
+      max_bytes: max_page_bytes,
+      max_nodes: max_page_nodes,
+      max_depth: max_page_depth,
+      max_rows: max_page_rows,
+    },
+    retention: {
+      max_nodes: 100000,
+      max_text_bytes: 500000,
+      max_depth: 100,
+      max_work: 20000000,
+    },
+    wire: {
+      max_columns: 100,
+      max_order_work: 100000,
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+    },
+  }
+}
+
+///|
 /// Derive this actual input inside the Request's already admitted Plan phase.
 /// The same installed contracts and bound sequence are consumed, not emitted
 /// and readmitted. Source declaration lifetime stays with initial material.
