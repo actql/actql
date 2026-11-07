@@ -156,23 +156,29 @@ pub fn[I] finish_request_computation_preparation(
     // Native's existing typed Query entrance retains its parser on this same
     // Request, rather than the submitted Source envelope. JSON/YAML Program
     // inputs have neither Source original and keep recursive ARRAY support.
-    let profile = if owner.compiled_effect is Some(prepared) && owner.effect_capacity is Some(capacity) {
+    let profile = if owner.compiled_effect is Some(prepared) &&
+      owner.effect_capacity is Some(capacity) {
       match reserve_request_query_profile_scratch(owner, input, capacity) {
         Err(issue) => return Err(Preparation(issue))
         Ok(_) => ()
       }
       @publication_host.check_client_source_array_profile(
         @checked.effect_program_static_checked_computation(
-          @publication_host.prepared_client_effect_computation_candidate(prepared),
+          @publication_host.prepared_client_effect_computation_candidate(
+            prepared,
+          ),
         ),
       )
-    } else if owner.compiled_program is Some(prepared) && owner.program_capacity is Some(capacity) {
+    } else if owner.compiled_program is Some(prepared) &&
+      owner.program_capacity is Some(capacity) {
       match reserve_request_query_profile_scratch(owner, input, capacity) {
         Err(issue) => return Err(Preparation(issue))
         Ok(_) => ()
       }
       @publication_host.check_client_source_array_profile(
-        @strategy.graph_program(@publication_host.prepared_client_graph(prepared)),
+        @strategy.graph_program(
+          @publication_host.prepared_client_graph(prepared),
+        ),
       )
     } else {
       return Err(Preparation(WrongPhase))

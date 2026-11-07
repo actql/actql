@@ -137,29 +137,54 @@ fn native_effect_request_consume(
   let environment = native_client_effect_fixture_environment()
   let publication = @source_publication.prepare_published_query_environment(
     environment,
-    "{\"environmentCid\":\"" + @checked.checking_environment_cid(environment) + "\",\"aliases\":[]}",
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
   ).native_request_stage("Effect original publication")
   let result = @native.prepare_native_client_submitted_request(
     parent, input, environment, publication,
   )
   if result is Ok((preparation, holder)) {
-    guard @native.native_client_submitted_preparation(preparation) is EffectComputation(prepared) else {
+    guard @native.native_client_submitted_preparation(preparation)
+      is EffectComputation(prepared) else {
       fail("Effect was replaced by Pure")
     }
     assert_true(holder is @native.Effect(_))
-    assert_eq(@native.native_client_submitted_preparation_intent_cid(preparation), @host.client_submitted_intent_cid(input))
-    let normalization = @host.issue_prepared_client_effect_normalization(prepared).native_request_stage("Effect original normalization")
+    assert_eq(
+      @native.native_client_submitted_preparation_intent_cid(preparation),
+      @host.client_submitted_intent_cid(input),
+    )
+    let normalization = @host.issue_prepared_client_effect_normalization(
+      prepared,
+    ).native_request_stage("Effect original normalization")
     let manifests = @host.admit_client_compilation_manifests(
       @environment.compiler_grammar_manifest_wire(),
       @environment.compiler_barrier_contract_manifest_wire(),
-      10000, 1000, 20,
+      10000,
+      1000,
+      20,
     ).native_request_stage("Effect original manifests")
     let compilation = @host.issue_prepared_client_effect_compilation(
-      prepared, manifests, @host.client_standard_values_sequence_limits(),
-      1000, 1000, 65536, 8192, 64, normalization=Some(normalization),
+      prepared,
+      manifests,
+      @host.client_standard_values_sequence_limits(),
+      1000,
+      1000,
+      65536,
+      8192,
+      64,
+      normalization=Some(normalization),
     ).native_request_stage("Effect first sequence compiler")
-    assert_true(physical_equal(@host.client_effect_compilation_owner(compilation), prepared))
-    @native.return_native_client_submitted_request_body(holder).native_request_stage("Effect original borrow return") |> ignore
+    assert_true(
+      physical_equal(
+        @host.client_effect_compilation_owner(compilation),
+        prepared,
+      ),
+    )
+    @native.return_native_client_submitted_request_body(holder).native_request_stage(
+      "Effect original borrow return",
+    )
+    |> ignore
   }
   match result {
     Ok(_) => 0
@@ -171,34 +196,67 @@ fn native_effect_request_consume(
 ///|
 test "Native same Request carries original Effect preparation and retires original borrow" {
   let input = @host.prepare_client_submitted_intent(
-    "{\"kind\":\"program\",\"input\":" + native_client_effect_fixture_document + ",\"parameters\":null}",
-    65536, 8192, 64,
+    "{\"kind\":\"program\",\"input\":" +
+    native_client_effect_fixture_document +
+    ",\"parameters\":null}",
+    65536,
+    8192,
+    64,
   ).native_request_stage("original Effect intent")
   let (arena, domain, physical, initial) = native_effect_request_facility(input)
   let parent = @local.begin_backed_request_preparation(
-    initial, input, @local.client_local_resource_policy(),
+    initial,
+    input,
+    @local.client_local_resource_policy(),
   ).native_request_stage("Effect original Request")
-  arena.enter_domain_retained_execution(physical).native_request_stage("Effect Read enter")
+  arena
+  .enter_domain_retained_execution(physical)
+  .native_request_stage("Effect Read enter")
   let outcome = native_effect_request_consume(parent, input)
   assert_eq(outcome, 0)
   assert_true(@local.abort_request_preparation_after_cleanup(parent) is Err(_))
-  arena.leave_domain_retained_execution(physical).native_request_stage("Effect Read leave")
+  arena
+  .leave_domain_retained_execution(physical)
+  .native_request_stage("Effect Read leave")
   match arena.close_domain_retained_execution(physical) {
     Ok(_) => ()
-    Err(@arena.Domain(issue)) => fail("Effect retirement Domain: " + @debug.to_string(issue))
-    Err(@arena.Child(issue)) => fail("Effect retirement Child: " + @debug.to_string(issue))
+    Err(@arena.Domain(issue)) =>
+      fail("Effect retirement Domain: " + @debug.to_string(issue))
+    Err(@arena.Child(issue)) =>
+      fail("Effect retirement Child: " + @debug.to_string(issue))
     Err(@arena.Initialization(@bootstrap.Domain(issue))) => {
-      let observation = arena.observe_domain_retained_execution_cleanup(physical).native_request_stage("Effect original cleanup metadata")
-      fail("Effect retirement InitializationDomain: " + @debug.to_string(issue) + " metadata=" +
-        @debug.to_string((observation.users, observation.active, observation.generic_live_extents,
-          observation.managed_live_blocks, observation.managed_requested_bytes,
-          observation.minimum_managed_request, observation.maximum_managed_request)))
+      let observation = arena
+        .observe_domain_retained_execution_cleanup(physical)
+        .native_request_stage("Effect original cleanup metadata")
+      fail(
+        "Effect retirement InitializationDomain: " +
+        @debug.to_string(issue) +
+        " metadata=" +
+        @debug.to_string(
+          (
+            observation.users,
+            observation.active,
+            observation.generic_live_extents,
+            observation.managed_live_blocks,
+            observation.managed_requested_bytes,
+            observation.minimum_managed_request,
+            observation.maximum_managed_request,
+          ),
+        ),
+      )
     }
-    Err(@arena.Initialization(@bootstrap.Child(issue))) => fail("Effect retirement InitializationChild: " + @debug.to_string(issue))
-    Err(@arena.Initialization(@bootstrap.Inventory(_))) => fail("Effect retirement InitializationInventory")
-    Err(@arena.Initialization(@bootstrap.Quiescence(_))) => fail("Effect retirement InitializationQuiescence")
+    Err(@arena.Initialization(@bootstrap.Child(issue))) =>
+      fail("Effect retirement InitializationChild: " + @debug.to_string(issue))
+    Err(@arena.Initialization(@bootstrap.Inventory(_))) =>
+      fail("Effect retirement InitializationInventory")
+    Err(@arena.Initialization(@bootstrap.Quiescence(_))) =>
+      fail("Effect retirement InitializationQuiescence")
   }
-  @local.abort_request_preparation_after_cleanup(parent).native_request_stage("Effect original Request retirement")
-  arena.close_domain_after_owner_ack(domain).native_request_stage("Effect domain return")
+  @local.abort_request_preparation_after_cleanup(parent).native_request_stage(
+    "Effect original Request retirement",
+  )
+  arena
+  .close_domain_after_owner_ack(domain)
+  .native_request_stage("Effect domain return")
   arena.try_close().native_request_stage("Effect arena return")
 }

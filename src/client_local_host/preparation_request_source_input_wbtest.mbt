@@ -415,14 +415,25 @@ test "funded Source terminal preserves flat ARRAY and same cached original after
   let wire = "{\"kind\":\"aql\",\"input\":{\"format\":\"sql\",\"text\":\"SELECT [1,2] AS value\"},\"parameters\":null}"
   let (_, access, initial, parent, input) = funded_request_source_parent(wire)
   let (environment, publication, selected) = funded_request_source_environment()
-  compile_funded_request_source(parent, input, environment, publication, selected)
+  compile_funded_request_source(
+    parent, input, environment, publication, selected,
+  )
   let prepared = parent.compiled_program.unwrap()
   let first = borrow_request_source_preparation(parent, input).unwrap()
   let original = @resources.preparation_body_borrow_value(first).unwrap()
-  assert_true(@publication_host.client_source_computation_preparation(original) is Pure(actual) && physical_equal(actual, prepared))
+  assert_true(
+    @publication_host.client_source_computation_preparation(original)
+    is Pure(actual) &&
+    physical_equal(actual, prepared),
+  )
   @resources.return_preparation_body_borrow(first).unwrap() |> ignore
   let second = borrow_request_source_preparation(parent, input).unwrap()
-  assert_true(physical_equal(@resources.preparation_body_borrow_value(second).unwrap(), original))
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(second).unwrap(),
+      original,
+    ),
+  )
   @resources.return_preparation_body_borrow(second).unwrap() |> ignore
   close_funded_request_source(access, initial, parent, input)
 }

@@ -78,7 +78,9 @@ let submitted_request_source_reader : @source.JsonDataReader[@source.Node?] = {
 /// variant creates another preparation, body, permission or cleanup Owner.
 pub enum NativeClientSubmittedRequestBody {
   Program(@resources.PreparationBodyBorrow[@host.PreparedClientProgram])
-  Effect(@resources.PreparationBodyBorrow[@host.PreparedClientEffectComputation])
+  Effect(
+    @resources.PreparationBodyBorrow[@host.PreparedClientEffectComputation]
+  )
 }
 
 ///|
@@ -104,10 +106,7 @@ pub fn prepare_native_client_submitted_request(
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
 ) -> Result[
-  (
-    NativeClientSubmittedPreparation,
-    NativeClientSubmittedRequestBody,
-  ),
+  (NativeClientSubmittedPreparation, NativeClientSubmittedRequestBody),
   NativeClientSubmittedPreparationIssue,
 ] {
   prepare_native_client_submitted_request_input(
@@ -126,10 +125,7 @@ pub fn[I] prepare_native_client_submitted_request_input(
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
 ) -> Result[
-  (
-    NativeClientSubmittedPreparation,
-    NativeClientSubmittedRequestBody,
-  ),
+  (NativeClientSubmittedPreparation, NativeClientSubmittedRequestBody),
   NativeClientSubmittedPreparationIssue,
 ] {
   match
@@ -150,15 +146,21 @@ pub fn[I] prepare_native_client_submitted_request_input(
   // Do not check, compile or continue it a second time at this Native handoff.
   match kind {
     @local.Pure => {
-      let borrow = match @local.borrow_request_program_plan_input(owner, input) {
+      let borrow = match
+        @local.borrow_request_program_plan_input(owner, input) {
         Err(issue) => return Err(RequestPreparation(issue))
         Ok(value) => value
       }
       let original = @resources.preparation_body_borrow_value(borrow).unwrap()
-      Ok(({
-        intent_cid: @host.client_submitted_intent_cid(intent),
-        preparation: Computation(original),
-      }, Program(borrow)))
+      Ok(
+        (
+          {
+            intent_cid: @host.client_submitted_intent_cid(intent),
+            preparation: Computation(original),
+          },
+          Program(borrow),
+        ),
+      )
     }
     @local.Effect => {
       let borrow = match @local.borrow_request_effect_plan_input(owner, input) {
@@ -166,10 +168,15 @@ pub fn[I] prepare_native_client_submitted_request_input(
         Ok(value) => value
       }
       let original = @resources.preparation_body_borrow_value(borrow).unwrap()
-      Ok(({
-        intent_cid: @host.client_submitted_intent_cid(intent),
-        preparation: EffectComputation(original),
-      }, Effect(borrow)))
+      Ok(
+        (
+          {
+            intent_cid: @host.client_submitted_intent_cid(intent),
+            preparation: EffectComputation(original),
+          },
+          Effect(borrow),
+        ),
+      )
     }
   }
 }

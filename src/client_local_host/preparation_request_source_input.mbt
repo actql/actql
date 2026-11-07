@@ -344,7 +344,8 @@ fn[I, P] reserve_request_query_profile_scratch(
     program_check_data_extent_cost(data) is Some(scratch) else {
     return Err(WrongPhase)
   }
-  let (r, e) = match @resources.preparation_capacity_working_extents(capacity, input) {
+  let (r, e) = match
+    @resources.preparation_capacity_working_extents(capacity, input) {
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
   }
@@ -353,7 +354,9 @@ fn[I, P] reserve_request_query_profile_scratch(
   }
   let previous = owner.phase
   owner.phase = Selecting
-  let reserved = @resources.reserve_working_preparation_phase(capacity, input, r, e)
+  let reserved = @resources.reserve_working_preparation_phase(
+    capacity, input, r, e,
+  )
   owner.phase = previous
   reserved.map_err(issue => Capacity(issue))
 }

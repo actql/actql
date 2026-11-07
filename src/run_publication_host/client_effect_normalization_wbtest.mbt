@@ -214,15 +214,30 @@ test "retired Effect custody severs cached backedges without discarding escaped 
   let original = issue_prepared_client_effect_normalization(owner).unwrap()
   let journal = prepared_client_effect_normalization_evidence(owner, original).unwrap()
   let wire = @publication.run_evidence_value_json(journal)
-  assert_true(physical_equal(original, issue_prepared_client_effect_normalization(owner).unwrap()))
+  assert_true(
+    physical_equal(
+      original,
+      issue_prepared_client_effect_normalization(owner).unwrap(),
+    ),
+  )
   let foreign = normalization_fixture()
   let foreign_original = issue_prepared_client_effect_normalization(foreign).unwrap()
   // The caller has already finished its original logical capacity. This pure
   // domain operation only severs caches; it cannot release escaped aliases.
   clear_prepared_client_effect_custody_after_cleanup(owner)
-  assert_true(owner.normalization is None && owner.normalization_custody is None)
-  assert_true(prepared_client_effect_normalization_evidence(owner, original) is Err(ForeignPreparation))
+  assert_true(
+    owner.normalization is None && owner.normalization_custody is None,
+  )
+  assert_true(
+    prepared_client_effect_normalization_evidence(owner, original)
+    is Err(ForeignPreparation),
+  )
   assert_eq(@publication.run_evidence_value_json(original.journal), wire)
-  assert_true(physical_equal(foreign_original, issue_prepared_client_effect_normalization(foreign).unwrap()))
+  assert_true(
+    physical_equal(
+      foreign_original,
+      issue_prepared_client_effect_normalization(foreign).unwrap(),
+    ),
+  )
   clear_prepared_client_effect_custody_after_cleanup(owner)
 }

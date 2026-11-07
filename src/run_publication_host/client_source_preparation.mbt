@@ -11,8 +11,11 @@ pub enum ClientSourceProgramPreparation {
 pub fn check_client_source_array_profile(
   checked : @checked.CheckedProgram,
 ) -> Result[Unit, ClientSourcePreparationIssue] {
-  @source_frontend.check_array_profile(checked, max_work=1000000, max_slots=100000)
-  .map_err(issue => ArrayProfile(issue))
+  @source_frontend.check_array_profile(
+    checked,
+    max_work=1000000,
+    max_slots=100000,
+  ).map_err(issue => ArrayProfile(issue))
 }
 
 ///|
@@ -167,7 +170,9 @@ pub fn prepare_client_source_computation(
         let prepared = { ..prepared, source_intent: Some(intent), }
         source_result(
           check_client_source_array_profile(
-            @checked.effect_program_static_checked_computation(prepared.candidate),
+            @checked.effect_program_static_checked_computation(
+              prepared.candidate,
+            ),
           ),
         )
         |> ignore

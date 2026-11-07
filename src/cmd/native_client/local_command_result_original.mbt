@@ -233,7 +233,9 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
         !published.current(host, settings, published.environment) {
         stop("LocalReadOriginalCustodyUnavailable")
       }
-      guard @local_host.native_client_submitted_preparation(published.preparation)
+      guard @local_host.native_client_submitted_preparation(
+          published.preparation,
+        )
         is Computation(prepared) else {
         stop("LocalReadOriginalCustodyUnavailable")
       }

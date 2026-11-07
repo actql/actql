@@ -120,17 +120,28 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       // This original Pure route retains its unchanged normalization and
       // requirements. An Effect is never coerced into its body or authority.
       @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
-        stop("LocalOriginalNormalizationNotInstalled")
-      }) |> ignore
+          stop("LocalOriginalNormalizationNotInstalled")
+        },
+      )
+      |> ignore
       let assets = runtime.assets
       let requirements = @local_values.prepare_source_free_local_requirements(
-        prepared, runtime.installed_contracts, assets.values,
-        Some(assets.fragment), assets.ordered,
+        prepared,
+        runtime.installed_contracts,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
       ).unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
       command_preparation_result(
-        self.require_business_program(prepared, runtime.installed_contracts, assets, requirements),
+        self.require_business_program(
+          prepared,
+          runtime.installed_contracts,
+          assets,
+          requirements,
+        ),
         stage=Some("business-program"),
-      ) |> ignore
+      )
+      |> ignore
       Some(requirements)
     }
     EffectComputation(_) => None
@@ -165,7 +176,9 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   // exact admitted Runtime/Program/current selection may activate its route.
   if requirements is Some(_) {
     command_preparation_result(
-      original_operation.activate().map_err(issue => CommandStoreOperation(issue)),
+      original_operation
+      .activate()
+      .map_err(issue => CommandStoreOperation(issue)),
       stage=Some("business-activation"),
     )
   }
