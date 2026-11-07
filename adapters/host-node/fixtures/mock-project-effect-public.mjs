@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile, stat} from 'node:fs/promises';
 import {connect} from '@actql/node';
+import {getSubmissionCheckObservation} from '@actql/sdk';
 
 const [phase, handoffPath, template = 'churn-risk-mock', variant = 'readme'] = process.argv.slice(2);
 assert.ok(['capture', 'approve', 'recover'].includes(phase));
@@ -25,7 +26,7 @@ const originalDeal = Object.freeze({
   '006Acme': {StageName: 'Proposal', NextStep: null},
   '006Globex': {StageName: 'Negotiation', NextStep: 'Legal review'},
 });
-let client, firstFailedStep, activeStep, primary, failed = false;
+let client, firstFailedStep, activeStep, primary, checkDiagnostic, failed = false;
 async function step(name, operation) {
   activeStep = name;
   try {
@@ -36,6 +37,38 @@ async function step(name, operation) {
     firstFailedStep ??= name;
     throw cause;
   }
+}
+// Read this exact call's retained SDK observation, never check or submit again.
+// Facts, input bodies, context/revision IDs and submission references stay private.
+function submissionCheckDiagnostic(error) {
+  try {
+    const original = getSubmissionCheckObservation(error);
+    if (original === undefined) return {available: false};
+    const report = original.report ?? original.partial_report;
+    const token = value => typeof value === 'string' && /^[a-z][a-z0-9_.-]{0,127}$/u.test(value);
+    const entries = [...(report?.reasons ?? []), ...(report?.requirements ?? []),
+      ...(report?.coverage?.limits ?? []), ...(report?.coverage?.unresolved ?? [])];
+    const reasons = entries.slice(0, 32).filter(entry => token(entry.code)).map(entry => {
+      const result = {code: entry.code}, source = entry.location;
+      if (!source || !['text', 'structured'].includes(source.kind)) return result;
+      const location = {kind: source.kind};
+      if (['program', 'source', 'parameters', 'parameter_declarations'].includes(source.document_id)) {
+        location.document = source.document_id;
+      }
+      if (source.kind === 'text' && Number.isSafeInteger(source.start_byte) && source.start_byte >= 0 &&
+          Number.isSafeInteger(source.end_byte) && source.end_byte >= source.start_byte) {
+        location.start_byte = source.start_byte; location.end_byte = source.end_byte;
+      }
+      if (source.kind === 'structured' && typeof source.pointer === 'string' &&
+          source.pointer.length <= 512 && /^(?:\/[A-Za-z0-9_~.-]*)*$/u.test(source.pointer)) {
+        location.pointer = source.pointer;
+      }
+      result.location = location;
+      return result;
+    });
+    return {available: true, ...(token(original.outcome) ? {outcome: original.outcome} : {}),
+      ...(token(report?.verdict) ? {verdict: report.verdict} : {}), reasons, truncated: entries.length > 32};
+  } catch {return {available: false};} // Diagnostics never replace the original refusal or close.
 }
 const snapshot = info => ({dev: String(info.dev), ino: String(info.ino),
   size: String(info.size), mtimeNs: String(info.mtimeNs)});
@@ -252,7 +285,10 @@ try {
         assert.deepEqual(await targetState(), approved.after));
     }
   }
-} catch (cause) {failed = true; primary = cause; firstFailedStep ??= activeStep;}
+} catch (cause) {
+  failed = true; primary = cause; firstFailedStep ??= activeStep;
+  checkDiagnostic = submissionCheckDiagnostic(cause);
+}
 let closeFailure, closeFailed = false;
 if (client !== undefined) {
   try {await client.close();}
@@ -260,6 +296,7 @@ if (client !== undefined) {
 }
 console.log(JSON.stringify({phase, firstFailedStep: firstFailedStep ?? null,
   status: failed || closeFailed ? 'failed' : 'passed',
-  code: primary?.code, cleanupCode: closeFailure?.code}));
+  code: primary?.code, cleanupCode: closeFailure?.code,
+  ...(checkDiagnostic === undefined ? {} : {checkObservation: checkDiagnostic})}));
 if (failed) throw primary;
 if (closeFailed) throw closeFailure;
