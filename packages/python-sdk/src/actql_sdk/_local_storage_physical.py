@@ -11,6 +11,9 @@ from collections.abc import Callable
 from typing import Any, Protocol, cast
 
 
+_CLOSED_SQL_BYTES = 65536
+
+
 class _TrackedSQLiteConnection(sqlite3.Connection):
     """Keep transaction identity even for SQL issued through the raw connection.
 
@@ -18,7 +21,8 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
     The installed hook remains present when a diagnostic trace is replaced or
     removed. User trace exceptions retain SQLite's normal callback handling.
     """
-    __slots__ = ('_transaction_epoch', '_outer_transaction_epoch', '_user_trace', '_trace_depth')
+    __slots__ = ('_transaction_epoch', '_outer_transaction_epoch', '_user_trace', '_trace_depth',
+                 '_observation_eligible', '_encoding_eligible', '_closed_invocation')
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -26,7 +30,95 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
         self._outer_transaction_epoch = 0
         self._trace_depth = 0
         self._user_trace: Callable[[str], object] | None = None
+        self._closed_invocation: Any = None
+        detect_types = kwargs.get('detect_types', args[2] if len(args) > 2 else 0)
+        self._observation_eligible = detect_types == 0
+        self._encoding_eligible = False
         super().set_trace_callback(self._trace_transaction)
+
+    def _qualify_encoding(self) -> None:
+        # Only the Store calls this after publishing connection cleanup
+        # custody. Constructor acquisition adds no fallible SQL observation.
+        self._encoding_eligible = self.execute('PRAGMA encoding').fetchone() == ('UTF-8',)
+
+    def _closed_eligible(self) -> bool:
+        if (not self._observation_eligible or not self._encoding_eligible or self.row_factory is not None
+                or self.text_factory is not str or type(sqlite3.adapters) is not dict):
+            return False
+        # Converters are disabled at construction. Relevant global adapters
+        # may change independently of this connection, so inspect them now.
+        return not any((kind, sqlite3.PrepareProtocol) in sqlite3.adapters
+                       for kind in (str, int, float, bytes, type(None)))
+
+    def _customize(self) -> None:
+        self._observation_eligible = False
+        span = self._closed_invocation
+        if span is not None:
+            error = RuntimeError('SQLite customization during closed observation')
+            span._fail(error)
+            raise error
+
+    def __setattr__(self, name: str, value: object) -> None:
+        if name in ('row_factory', 'text_factory') and hasattr(self, '_observation_eligible'):
+            self._customize()
+        super().__setattr__(name, value)
+
+    def execute(self, sql: str, parameters: Any = (), /) -> sqlite3.Cursor:
+        span = self._closed_invocation
+        if span is not None and not span.suspended:
+            try:
+                span._guard_sql()
+                # Only the audited physical read methods below construct
+                # bounded literals. Never dispatch global adapters here,
+                # including adapters registered concurrently for private types.
+                if type(parameters) is not tuple or parameters:
+                    raise ValueError('Closed SQLite reads require original literal transport')
+                return super().execute(sql)
+            except BaseException as error:
+                span._fail(error)
+                raise span.failure
+        return super().execute(sql, parameters)
+
+    def deserialize(self, *args: Any, **kwargs: Any) -> None:
+        self._customize()
+        return super().deserialize(*args, **kwargs)
+
+    def backup(self, *args: Any, **kwargs: Any) -> None:
+        if kwargs.get('progress') is not None:
+            self._customize()
+        return super().backup(*args, **kwargs)
+
+    def set_progress_handler(self, *args: Any, **kwargs: Any) -> None:
+        self._customize()
+        return super().set_progress_handler(*args, **kwargs)
+
+    def set_authorizer(self, *args: Any, **kwargs: Any) -> None:
+        self._customize()
+        return super().set_authorizer(*args, **kwargs)
+
+    def create_function(self, *args: Any, **kwargs: Any) -> None:
+        self._customize()
+        return super().create_function(*args, **kwargs)
+
+    def create_aggregate(self, *args: Any, **kwargs: Any) -> None:
+        self._customize()
+        return super().create_aggregate(*args, **kwargs)
+
+    def create_window_function(self, *args: Any, **kwargs: Any) -> None:
+        self._customize()
+        return super().create_window_function(*args, **kwargs)
+
+    def create_collation(self, *args: Any, **kwargs: Any) -> None:
+        self._customize()
+        return super().create_collation(*args, **kwargs)
+
+    def enable_load_extension(self, *args: Any, **kwargs: Any) -> None:
+        self._customize()
+        return super().enable_load_extension(*args, **kwargs)
+
+    def load_extension(self, *args: Any, **kwargs: Any) -> None:
+        self._customize()
+        return super().load_extension(*args, **kwargs)
 
     @staticmethod
     def _transaction_tokens(statement: str) -> tuple[str, ...]:
@@ -88,6 +180,7 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
                 self._trace_depth -= 1
 
     def set_trace_callback(self, trace_callback: Callable[[str], object] | None) -> None:
+        self._customize()
         if trace_callback is not None and not callable(trace_callback):
             raise TypeError('SQLite trace callback must be callable or None')
         # Retain sqlite3's closed-connection/registration checks and leave the
@@ -168,6 +261,42 @@ class _SQLiteByteDatabase:
         self._connection = connection
         self._transaction_sequence = 0
 
+    def _read_sql(self, fragments: tuple[str, ...], values: tuple[object, ...]) -> sqlite3.Cursor:
+        """Execute only an owned read template, without adapter dispatch in a span.
+
+        Call sites supply literal SQL fragments, not an interpolated arbitrary
+        statement. Hex text preserves quotes, NUL and Unicode on the admitted
+        UTF-8 database. The legacy path retains ordinary parameter semantics.
+        """
+        connection = self._connection
+        span = (connection._closed_invocation
+                if type(connection) is _TrackedSQLiteConnection else None)
+        if span is None or span.suspended:
+            return connection.execute('?'.join(fragments), values)
+        try:
+            span._guard_sql()
+            if len(values) > 3 or len(fragments) != len(values) + 1:
+                raise ValueError('Invalid original closed SQLite read shape')
+            parts = [fragments[0]]
+            for value, suffix in zip(values, fragments[1:]):
+                if type(value) is str:
+                    encoded = value.encode('utf-8')
+                    if len(encoded) > 4096:
+                        raise ValueError('Closed SQLite text exceeds original key bound')
+                    literal = "CAST(X'" + encoded.hex() + "' AS TEXT)"
+                elif type(value) is int and -(2**63) <= value < 2**63:
+                    literal = str(value)
+                else:
+                    raise ValueError('Non-original closed SQLite read value')
+                parts.extend((literal, suffix))
+            statement = ''.join(parts)
+            if len(statement) > _CLOSED_SQL_BYTES:
+                raise ValueError('Closed SQLite statement exceeds its reservation')
+            return connection.execute(statement)
+        except BaseException as error:
+            span._fail(error)
+            raise span.failure
+
     def _snapshot_identity(self) -> tuple[sqlite3.Connection, int, int, tuple[int, int]]:
         """Same live transaction plus SQLite's actual mutation counter, DATA only."""
         connection = self._connection
@@ -203,12 +332,12 @@ class _SQLiteByteDatabase:
         version = self._connection.execute('PRAGMA main.user_version').fetchone()
         # At most four bounded catalog rows distinguish the complete two/three
         # object formats from any extra/colliding schema without a payload scan.
-        rows = self._connection.execute("""SELECT
+        rows = self._read_sql(("""SELECT
             CASE WHEN length(name) <= 34 THEN name ELSE NULL END,
             type, CASE WHEN length(tbl_name) <= 16 THEN tbl_name ELSE NULL END,
-            CASE WHEN length(sql) <= ? THEN sql ELSE NULL END
+            CASE WHEN length(sql) <= """, """ THEN sql ELSE NULL END
             FROM main.sqlite_schema WHERE name NOT LIKE 'sqlite_%'
-            ORDER BY name LIMIT 4""",
+            ORDER BY name LIMIT 4"""),
             (max(len(_SCHEMA), len(_CAPACITY_SCHEMA), len(_RUN_DEFINITION_INDEX)),)).fetchall()
         shadow = self._connection.execute("""SELECT 1 FROM temp.sqlite_schema
             WHERE name COLLATE NOCASE IN ('core_bytes', 'actql_capacity') LIMIT 1""").fetchone()
@@ -271,39 +400,39 @@ class _SQLiteByteDatabase:
 
     def read_row(self, key: str, max_bytes: int) -> tuple[object, object, object, object] | None:
         # The same CASE bounds allocation before the row reaches Python.
-        raw = self._connection.execute('''SELECT generation,
-            CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
+        raw = self._read_sql(('''SELECT generation,
+            CASE WHEN length(payload) <= ''', ''' THEN payload ELSE NULL END,
             typeof(payload), length(payload)
-            FROM core_bytes WHERE key = ?''', (max_bytes, key)).fetchone()
+            FROM core_bytes WHERE key = ''', ''), (max_bytes, key)).fetchone()
         return cast(tuple[object, object, object, object] | None, raw)
 
     def read_header(self, key: str) -> tuple[int, int] | None:
-        return cast(tuple[int, int] | None, self._connection.execute(
-            'SELECT generation, length(payload) FROM core_bytes WHERE key = ?',
+        return cast(tuple[int, int] | None, self._read_sql((
+            'SELECT generation, length(payload) FROM core_bytes WHERE key = ', ''),
             (key,)).fetchone())
 
     def scan_range(self, lower: str, upper: str, max_bytes: int, *, inclusive: bool,
                    exact: bool) -> tuple[object, object, object, object, object] | None:
         relation = '=' if exact else '>=' if inclusive else '>'
-        raw = self._connection.execute(f'''SELECT
+        raw = self._read_sql(('''SELECT
             CASE WHEN length(CAST(key AS BLOB)) <= 4096 THEN key ELSE NULL END,
             generation,
-            CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
+            CASE WHEN length(payload) <= ''', f''' THEN payload ELSE NULL END,
             typeof(payload), length(payload)
-            FROM core_bytes WHERE key {relation} ? AND key < ?
-            ORDER BY key COLLATE BINARY LIMIT 1''', (max_bytes, lower, upper)).fetchone()
+            FROM core_bytes WHERE key {relation} ''', ' AND key < ', '''
+            ORDER BY key COLLATE BINARY LIMIT 1'''), (max_bytes, lower, upper)).fetchone()
         return cast(tuple[object, object, object, object, object] | None, raw)
 
     def read_capacity(self, namespace: str, key: str) -> tuple[int, int] | None:
-        return cast(tuple[int, int] | None, self._connection.execute(
+        return cast(tuple[int, int] | None, self._read_sql((
             '''SELECT reserved_bytes, reserved_objects
-            FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
+            FROM actql_capacity WHERE namespace = ''', ' AND reservation_key = ', ''),
             (namespace, key)).fetchone())
 
     def capacity_usage(self, namespace: str) -> tuple[int, int]:
-        return cast(tuple[int, int], self._connection.execute(
+        return cast(tuple[int, int], self._read_sql((
             '''SELECT coalesce(sum(reserved_bytes), 0),
-            coalesce(sum(reserved_objects), 0) FROM actql_capacity WHERE namespace = ?''',
+            coalesce(sum(reserved_objects), 0) FROM actql_capacity WHERE namespace = ''', ''),
             (namespace,)).fetchone())
 
     def reservation_count(self) -> int:

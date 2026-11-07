@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "d5a780dd411719407cff02b6f4cab14d7c3aefa1e0a8d0006326080ab368667f",
+  "syntaxProjectionSha256": "31b7e1efd13cbdd0fd0be330c1ab95288b7ab75156678d39536981d022ee1afd",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -5145,6 +5145,7 @@
         "._local_native_image",
         "._local_native_vm",
         "._local_storage",
+        "._local_storage_physical",
         "._local_wasm_abi",
         "._local_worker_child_control",
         "__future__",
@@ -5482,6 +5483,22 @@
           "parameters": [
             "self",
             "handle"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_observation_import",
+          "parameters": [
+            "self",
+            "name",
+            "callback"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_observation_import/invoke",
+          "parameters": [
+            "*args"
           ]
         },
         {
@@ -7987,7 +8004,7 @@
           ]
         }
       ],
-      "sha256": "1c2a5def986fdd358ee529b4399e0555c79d0872fe3cf689ad72b1b4d8f7adeb",
+      "sha256": "d37f157a80bf11fd273de8d52d43d9d00ee02ddb185378726b97b4193af61531",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -8021,6 +8038,8 @@
             "LocalCore/_native_scope",
             "LocalCore/_native_settled",
             "LocalCore/_native_stopped",
+            "LocalCore/_observation_import",
+            "LocalCore/_observation_import/invoke",
             "LocalCore/_observe_original_vm_span",
             "LocalCore/_owned",
             "LocalCore/_owned_compute",
@@ -9443,6 +9462,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "inputsOutputs": [
@@ -10629,6 +10652,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "identity": [
@@ -10659,6 +10686,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "ownership": [
@@ -10689,6 +10720,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "synchronization": [
@@ -10715,6 +10750,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "failure": [
@@ -10745,6 +10784,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "cancellation": [
@@ -10771,6 +10814,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "resources": [
@@ -10801,6 +10848,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "extension": [
@@ -10827,6 +10878,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "verification": [
@@ -10885,6 +10940,26 @@
               {
                 "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
                 "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_repeated_current_imports_keep_calls_but_group_graph_walks_per_invocation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_effect_and_unknown_imports_suspend_current_and_are_not_removed("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_file_mutation_blocks_effect_before_callback_and_retains_custody("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_callback_exception_close_and_swallowed_reentry_poison_original_invocation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_zero_parameters_cannot_dispatch_an_adapter_registered_after_the_guard("
               }
             ]
           }
@@ -26886,16 +26961,20 @@
         "StoredBytes",
         "TypeVar",
         "contextmanager",
+        "get_ident",
         "json"
       ],
       "imports": [
         "._local_core",
         "._local_host_files",
+        "._local_installation",
         "._local_storage",
+        "._local_storage_physical",
         "._local_submission",
         "collections.abc",
         "contextlib",
         "json",
+        "threading",
         "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_host_binding.py",
@@ -26945,6 +27024,13 @@
           "parameters": [
             "self",
             "reader"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalHostBinding/_new_invocation_observation",
+          "parameters": [
+            "self"
           ]
         },
         {
@@ -27027,6 +27113,74 @@
         },
         {
           "async": false,
+          "name": "_InvocationObservation",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_InvocationObservation/__init__",
+          "parameters": [
+            "self",
+            "binding",
+            "reader",
+            "connection"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_InvocationObservation/_fail",
+          "parameters": [
+            "self",
+            "error"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_InvocationObservation/_guard_originals",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_InvocationObservation/_guard_sql",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_InvocationObservation/check",
+          "parameters": [
+            "self",
+            "physical"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_InvocationObservation/enter",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_InvocationObservation/interrupt",
+          "parameters": [
+            "self",
+            "callback",
+            "*args"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_InvocationObservation/leave",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_body",
           "parameters": [
             "raw"
@@ -27040,7 +27194,7 @@
           ]
         }
       ],
-      "sha256": "9d6fd6fd2a38c4cbeb158094c30775a3a693a23c196a79e7fe0edc03269710b2",
+      "sha256": "3e95b923f53310d56521b0a4b3b318fd42e9167a18ffe1688648df1fd1b2ba2a",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -27179,6 +27333,7 @@
           "operations": [
             "OriginalHostBinding",
             "OriginalHostBinding/__init__",
+            "OriginalHostBinding/_new_invocation_observation",
             "OriginalHostBinding/_nominal",
             "OriginalHostBinding/_physical_current",
             "OriginalHostBinding/_reserve",
@@ -27187,7 +27342,16 @@
             "OriginalHostBinding/current",
             "OriginalHostBinding/fenced",
             "OriginalHostBinding/inspect",
-            "OriginalHostBinding/inspect_reader"
+            "OriginalHostBinding/inspect_reader",
+            "_InvocationObservation",
+            "_InvocationObservation/__init__",
+            "_InvocationObservation/_fail",
+            "_InvocationObservation/_guard_originals",
+            "_InvocationObservation/_guard_sql",
+            "_InvocationObservation/check",
+            "_InvocationObservation/enter",
+            "_InvocationObservation/interrupt",
+            "_InvocationObservation/leave"
           ],
           "exports": [
             "OriginalHostBinding"
@@ -27205,6 +27369,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "inputsOutputs": [
@@ -27219,6 +27387,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "identity": [
@@ -27237,6 +27409,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "ownership": [
@@ -27255,6 +27431,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "synchronization": [
@@ -27273,6 +27453,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "failure": [
@@ -27291,6 +27475,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "cancellation": [
@@ -27305,6 +27493,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "resources": [
@@ -27323,6 +27515,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "extension": [
@@ -27337,6 +27533,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "verification": [
@@ -27383,6 +27583,26 @@
               {
                 "path": "packages/python-sdk/tests/test_local_installation_file_group.py",
                 "anchor": "class OriginalInstallationFileGroupTests("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_repeated_current_imports_keep_calls_but_group_graph_walks_per_invocation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_effect_and_unknown_imports_suspend_current_and_are_not_removed("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_file_mutation_blocks_effect_before_callback_and_retains_custody("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_callback_exception_close_and_swallowed_reentry_poison_original_invocation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_zero_parameters_cannot_dispatch_an_adapter_registered_after_the_guard("
               }
             ]
           }
@@ -27533,7 +27753,8 @@
             "StoredBytes",
             "TypeVar",
             "contextmanager",
-            "json"
+            "json",
+            "get_ident"
           ],
           "attributes": {
             "responsibility": [
@@ -59241,6 +59462,15 @@
         },
         {
           "async": false,
+          "name": "_SQLiteByteDatabase/_read_sql",
+          "parameters": [
+            "self",
+            "fragments",
+            "values"
+          ]
+        },
+        {
+          "async": false,
           "name": "_SQLiteByteDatabase/_snapshot_identity",
           "parameters": [
             "self"
@@ -59420,6 +59650,36 @@
         },
         {
           "async": false,
+          "name": "_TrackedSQLiteConnection/__setattr__",
+          "parameters": [
+            "self",
+            "name",
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/_closed_eligible",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/_customize",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/_qualify_encoding",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_TrackedSQLiteConnection/_trace_transaction",
           "parameters": [
             "self",
@@ -59435,6 +59695,105 @@
         },
         {
           "async": false,
+          "name": "_TrackedSQLiteConnection/backup",
+          "parameters": [
+            "self",
+            "*args",
+            "**kwargs"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/create_aggregate",
+          "parameters": [
+            "self",
+            "*args",
+            "**kwargs"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/create_collation",
+          "parameters": [
+            "self",
+            "*args",
+            "**kwargs"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/create_function",
+          "parameters": [
+            "self",
+            "*args",
+            "**kwargs"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/create_window_function",
+          "parameters": [
+            "self",
+            "*args",
+            "**kwargs"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/deserialize",
+          "parameters": [
+            "self",
+            "*args",
+            "**kwargs"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/enable_load_extension",
+          "parameters": [
+            "self",
+            "*args",
+            "**kwargs"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/execute",
+          "parameters": [
+            "self",
+            "sql",
+            "parameters"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/load_extension",
+          "parameters": [
+            "self",
+            "*args",
+            "**kwargs"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/set_authorizer",
+          "parameters": [
+            "self",
+            "*args",
+            "**kwargs"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/set_progress_handler",
+          "parameters": [
+            "self",
+            "*args",
+            "**kwargs"
+          ]
+        },
+        {
+          "async": false,
           "name": "_TrackedSQLiteConnection/set_trace_callback",
           "parameters": [
             "self",
@@ -59442,7 +59801,7 @@
           ]
         }
       ],
-      "sha256": "39f8e17608e65c95fd5e2b6cda1e0948c6bb3ccf7cdb9b767b191863f826f81c",
+      "sha256": "1f5d1627a5bbcc77ea25d276246ab8da7ef315424327649c86fe756fc837783c",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -59842,6 +60201,7 @@
             "_SQLiteByteDatabase",
             "_SQLiteByteDatabase/__init__",
             "_SQLiteByteDatabase/_journal_schema",
+            "_SQLiteByteDatabase/_read_sql",
             "_SQLiteByteDatabase/_snapshot_identity",
             "_SQLiteByteDatabase/begin_immediate",
             "_SQLiteByteDatabase/begin_read",
@@ -59864,8 +60224,23 @@
             "_SQLiteByteDatabase/write_record",
             "_TrackedSQLiteConnection",
             "_TrackedSQLiteConnection/__init__",
+            "_TrackedSQLiteConnection/__setattr__",
+            "_TrackedSQLiteConnection/_closed_eligible",
+            "_TrackedSQLiteConnection/_customize",
+            "_TrackedSQLiteConnection/_qualify_encoding",
             "_TrackedSQLiteConnection/_trace_transaction",
             "_TrackedSQLiteConnection/_transaction_tokens",
+            "_TrackedSQLiteConnection/backup",
+            "_TrackedSQLiteConnection/create_aggregate",
+            "_TrackedSQLiteConnection/create_collation",
+            "_TrackedSQLiteConnection/create_function",
+            "_TrackedSQLiteConnection/create_window_function",
+            "_TrackedSQLiteConnection/deserialize",
+            "_TrackedSQLiteConnection/enable_load_extension",
+            "_TrackedSQLiteConnection/execute",
+            "_TrackedSQLiteConnection/load_extension",
+            "_TrackedSQLiteConnection/set_authorizer",
+            "_TrackedSQLiteConnection/set_progress_handler",
             "_TrackedSQLiteConnection/set_trace_callback"
           ],
           "exports": [],
@@ -59886,6 +60261,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "inputsOutputs": [
@@ -59904,6 +60283,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "identity": [
@@ -59926,6 +60309,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "ownership": [
@@ -59948,6 +60335,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "synchronization": [
@@ -59970,6 +60361,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Bounded write-free reader groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "failure": [
@@ -59992,6 +60387,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "cancellation": [
@@ -60010,6 +60409,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "resources": [
@@ -60032,6 +60435,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "extension": [
@@ -60050,6 +60457,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "verification": [
@@ -60124,6 +60535,26 @@
               {
                 "path": "packages/python-sdk/tests/test_local_storage_readonly_span.py",
                 "anchor": "def test_trace_registration_preserves_tracking_and_user_statements("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_repeated_current_imports_keep_calls_but_group_graph_walks_per_invocation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_effect_and_unknown_imports_suspend_current_and_are_not_removed("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_file_mutation_blocks_effect_before_callback_and_retains_custody("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_callback_exception_close_and_swallowed_reentry_poison_original_invocation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_zero_parameters_cannot_dispatch_an_adapter_registered_after_the_guard("
               }
             ]
           }
@@ -60254,6 +60685,7 @@
       ],
       "imports": [
         "._local_files",
+        "._local_host_binding",
         "._local_storage_physical",
         "collections.abc",
         "dataclasses",
@@ -60400,7 +60832,8 @@
             "inspect",
             "fences",
             "current",
-            "successors"
+            "successors",
+            "_readonly"
           ]
         },
         {
@@ -60460,6 +60893,15 @@
           "parameters": [
             "required_current",
             "reuse_snapshot"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/invocation_check",
+          "parameters": [
+            "view",
+            "observer",
+            "span"
           ]
         },
         {
@@ -61116,7 +61558,7 @@
           "parameters": []
         }
       ],
-      "sha256": "9ae4158ede25dff054f18e57d492a01f5a857ff830c80b6611fd33d9e8c35d45",
+      "sha256": "75b5c0f568f8cc3397b7bcb5dc69e701e64aac7c9188cec84afc29150c235581",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -61680,6 +62122,7 @@
             "LocalByteStore/_inspect_namespace_locked/check_unchanged",
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
+            "LocalByteStore/_inspect_namespace_locked/invocation_check",
             "LocalByteStore/_inspect_namespace_locked/journal_schema",
             "LocalByteStore/_inspect_namespace_locked/metadata_fence",
             "LocalByteStore/_inspect_namespace_locked/observe",
@@ -61772,6 +62215,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "inputsOutputs": [
@@ -61794,6 +62241,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "identity": [
@@ -61820,6 +62271,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "ownership": [
@@ -61846,6 +62301,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "synchronization": [
@@ -61876,6 +62335,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Bounded write-free reader groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "failure": [
@@ -61902,6 +62365,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "cancellation": [
@@ -61924,6 +62391,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "resources": [
@@ -61950,6 +62421,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "extension": [
@@ -61972,6 +62447,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "verification": [
@@ -62086,6 +62565,26 @@
               {
                 "path": "packages/python-sdk/tests/test_local_storage_readonly_span.py",
                 "anchor": "class ReadOnlySpanTests("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_repeated_current_imports_keep_calls_but_group_graph_walks_per_invocation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_effect_and_unknown_imports_suspend_current_and_are_not_removed("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_file_mutation_blocks_effect_before_callback_and_retains_custody("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_callback_exception_close_and_swallowed_reentry_poison_original_invocation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_zero_parameters_cannot_dispatch_an_adapter_registered_after_the_guard("
               }
             ]
           }
@@ -62642,6 +63141,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Physical persistence"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "inputsOutputs": [
@@ -62652,6 +63155,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Physical persistence"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "identity": [
@@ -62666,6 +63173,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "ownership": [
@@ -62680,6 +63191,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "synchronization": [
@@ -62690,6 +63205,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class _NamespaceReader:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "failure": [
@@ -62704,6 +63223,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "cancellation": [
@@ -62714,6 +63237,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class _NamespaceReader:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "resources": [
@@ -62728,6 +63255,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "extension": [
@@ -62738,6 +63269,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class _NamespaceReader:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Closed physical observation in one Core invocation"
               }
             ],
             "verification": [
@@ -62756,6 +63291,26 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class _NamespaceReader:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_repeated_current_imports_keep_calls_but_group_graph_walks_per_invocation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_effect_and_unknown_imports_suspend_current_and_are_not_removed("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_file_mutation_blocks_effect_before_callback_and_retains_custody("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_callback_exception_close_and_swallowed_reentry_poison_original_invocation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_zero_parameters_cannot_dispatch_an_adapter_registered_after_the_guard("
               }
             ]
           }

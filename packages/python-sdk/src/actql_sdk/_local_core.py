@@ -430,6 +430,8 @@ class LocalCore:
         self._retired = False
         self._closing = False
         self._invoking = False
+        self._host_current_binding: Any = None
+        self._invocation_observation: Any = None
         self._ordinary_host = _ordinary_host
         self._host_fuel_phase: str | None = 'initial' if _ordinary_host else None
         self._host_initial_claimed = False
@@ -540,7 +542,8 @@ class LocalCore:
                               for _ in _IMPORT_SIGNATURES[name][0].split()]
                     self._linker.define_func('actql_host', name,
                         wasmtime.FuncType(params, [wasmtime.ValType.i64() if
-                            _IMPORT_SIGNATURES[name][1] == 'i64' else wasmtime.ValType.i32()]), callback)
+                            _IMPORT_SIGNATURES[name][1] == 'i64' else wasmtime.ValType.i32()]),
+                        self._observation_import(name, callback))
                 for name, callback in [('input_copy', self._input_copy),
                                        ('publisher_copy', self._publisher_copy),
                                        ('journal_query_copy', self._journal_query_copy),
@@ -549,7 +552,7 @@ class LocalCore:
                               for _ in _IMPORT_SIGNATURES[name][0].split()]
                     self._linker.define_func('actql_host', name,
                         wasmtime.FuncType(params, [wasmtime.ValType.i32()]),
-                        callback, access_caller=True)
+                        self._observation_import(name, callback), access_caller=True)
                 for name in ('execution_child_admit', 'execution_child_current',
                              'execution_child_limit', 'execution_child_capacity',
                              'execution_child_report', 'execution_child_stop'):
@@ -561,11 +564,13 @@ class LocalCore:
                         if self._physical_child_control is None else
                         getattr(self._physical_child_control, name.removeprefix('execution_child_')))
                     self._linker.define_func('actql_host', name,
-                        wasmtime.FuncType(params, [result_type]), child_callback, access_caller=True)
+                        wasmtime.FuncType(params, [result_type]),
+                        self._observation_import(name, child_callback), access_caller=True)
                 self._linker.define_func('actql_host', 'platform_vm_observation',
                     wasmtime.FuncType([wasmtime.ValType.i64(), wasmtime.ValType.i32()],
                                       [wasmtime.ValType.i64()]),
-                    self._platform_vm_observation, access_caller=True)
+                    self._observation_import('platform_vm_observation', self._platform_vm_observation),
+                    access_caller=True)
                 instance = self._linker.instantiate(self._store, self._module)
                 self._instance = instance
                 self._exports = instance.exports(self._store)
@@ -762,10 +767,15 @@ class LocalCore:
         if self._closed or self._retired:
             raise RuntimeError('Local Core is closed')
         if self._invoking:
-            raise RuntimeError('Local Core callbacks cannot reenter the instance')
+            error = RuntimeError('Local Core callbacks cannot reenter the instance')
+            active = getattr(self, '_invocation_observation', None)
+            if active is not None:
+                active._fail(error)
+            raise error
         if getattr(self, '_ordinary_host', False) and self._host_fuel_phase is None:
             raise RuntimeError('Local Core requires its admitted Host operation')
         platform = getattr(self, '_platform_vm_original', None)
+        span = None
         self._invoking = True
         try:
             with self._native_scope():
@@ -774,22 +784,88 @@ class LocalCore:
                     observation._require_core_current()
                 if platform is not None:
                     self._require_platform_vm_current()
+                binding = getattr(self, '_host_current_binding', None)
+                if binding is not None:
+                    span = binding._new_invocation_observation()
+                    if span is not None:
+                        self._invocation_observation = span
                 result = self._exports[f'actql_{family}_{name}'](
                     self._store, self._nonce, *arguments)
                 if platform is not None:
                     if self._platform_vm_original is not platform:
                         raise ValueError('Original platform VM changed during its invocation')
                     self._require_platform_vm_current()
-        except BaseException:
+                if span is not None:
+                    if span.failure is not None:
+                        raise span.failure
+                    if span.admitted:
+                        span.check(physical=True)
+        except BaseException as error:
             # The Core may already own the original invocation/ticket. Block
             # new work while retaining this instance for explicit retirement.
             self._closing = True
+            if span is not None:
+                span._fail(error)
+                if span.failure is not error:
+                    raise span.failure from error
             raise
         finally:
+            if span is not None:
+                span.leave()
+            self._invocation_observation = None
             self._invoking = False
         if type(result) is not int:
             raise RuntimeError('Invalid Local Core scalar response')
         return result
+
+    def _observation_import(self, name: str, callback: Callable[..., Any]) -> Callable[..., Any]:
+        """All imports are effects unless this exact closed transport is audited.
+
+        No authorization call is removed. Effect imports close the physical
+        observation before calling out and reacquire it only after returning.
+        Unknown future imports therefore cannot silently extend the span.
+        """
+        def invoke(*args: Any) -> Any:
+            span = getattr(self, '_invocation_observation', None)
+            if span is None or span.suspended:
+                return callback(*args)
+            pure = name in ('input_byte', 'input_copy')
+            journal = None
+            if name in ('journal_current', 'journal_current_operation', 'journal_schema',
+                        'journal_begin', 'journal_query', 'journal_length', 'journal_revision',
+                        'journal_release', 'journal_query_copy', 'journal_copy'):
+                index = 1 if name in ('journal_query_copy', 'journal_copy') else 0
+                journal = self._journal_callbacks(args[index])
+                pure = (type(journal) is _JournalCallbacks and journal.reader is span.reader
+                        and journal.current is span.binding._current_observer)
+            elif name == 'platform_vm_observation':
+                # This exact standard Wasmtime path only observes retained
+                # Store/Caller/Memory identities and data_len/data_ptr. Native
+                # VM/child suppliers are never eligible for a closed span.
+                original = getattr(self, '_platform_vm_original', None)
+                runtime = import_module('wasmtime') if original is not None else None
+                pure = (original is not None and original[9] is runtime.Memory
+                        and original[10] is runtime.Caller and type(original[3]) is runtime.Store
+                        and type(original[6]) is original[9]
+                        and type(args[0]) is original[10]
+                        and getattr(self, '_physical_holding', None) is None
+                        and getattr(self, '_physical_child_control', None) is None
+                        and getattr(self, '_physical_vm_observation', None) is None)
+            if not pure:
+                return span.interrupt(callback, *args)
+            try:
+                if span.admitted:
+                    span._guard_sql()
+                result = callback(*args)
+                if journal is not None and journal.failure is not None:
+                    raise journal.failure
+                if span.admitted:
+                    span._guard_sql()
+                return result
+            except BaseException as error:
+                span._fail(error)
+                raise span.failure
+        return invoke
 
     @contextmanager
     def _host_operation(self, *, initial: bool = False) -> Iterator[None]:
@@ -804,7 +880,11 @@ class LocalCore:
             return
         with self._lock:
             if self._host_fuel_phase is not None or self._invoking:
-                raise RuntimeError('Original Host operation is already active')
+                error = RuntimeError('Original Host operation is already active')
+                active = getattr(self, '_invocation_observation', None)
+                if active is not None:
+                    active._fail(error)
+                raise error
             if self._closed or self._retired or self._closing:
                 raise RuntimeError('Original Host normal work is fenced')
             sequence = getattr(self, '_host_operation_sequence', 0)
@@ -834,7 +914,11 @@ class LocalCore:
             return
         with self._lock:
             if self._invoking:
-                raise RuntimeError('Original Host callback cannot start cleanup')
+                error = RuntimeError('Original Host callback cannot start cleanup')
+                active = getattr(self, '_invocation_observation', None)
+                if active is not None:
+                    active._fail(error)
+                raise error
             joined = self._host_fuel_phase is not None
             self._host_cleanup_depth = getattr(self, '_host_cleanup_depth', 0) + 1
             if not joined:
@@ -1035,7 +1119,11 @@ class LocalCore:
         return -41 if callbacks is None else callbacks.schema()
 
     def _journal_current_operation(self, ticket: int) -> int:
-        """Fresh original current plus this entered Host operation's DATA.
+        """Original current observation plus this Host operation's DATA.
+
+        The standard closed invocation validates physical originals at entry,
+        return and effect boundaries; every import still validates original
+        lifetime and the same SQL snapshot. Other suppliers keep full checks.
 
         Zero selects complete original observation for raw/cleanup callers.
         It is not an Allow, permission cache, reader handle or continuation.
@@ -1065,7 +1153,7 @@ class LocalCore:
             return 0 if callbacks.check_current() == 0 else -41
         try:
             # This checks the SAME reader's complete required SQL fences and
-            # original physical current together. A preceding check_current
+            # original current protocol together. A preceding check_current
             # would repeat that same observation before this synchronous call.
             receiver._require_observation_frame(self, loan, callbacks.reader)
         except BaseException as error:
@@ -1132,8 +1220,14 @@ class LocalCore:
 
             self._inputs[ticket] = _PhysicalInput(b'', retire, lambda _: True, journal=callbacks)
             limit = source.length + 256
+            from ._local_host_binding import _InvocationObservation
+            from ._local_storage_physical import _CLOSED_SQL_BYTES
             allowance = (2 * limit + 2 * 262144 + 4096 + sys.getsizeof(callbacks)
-                         + sys.getsizeof(self._inputs[ticket]))
+                         + sys.getsizeof(self._inputs[ticket])
+                         + sys.getsizeof(object.__new__(_InvocationObservation))
+                         # Bounded simultaneous UTF-8, hex fragments and final
+                         # literal SQL. Owned connections retain no plan cache.
+                         + 3 * _CLOSED_SQL_BYTES)
             handle = self._call('current', 'reserve', source.handle, ticket, allowance)
             if handle <= 0:
                 del self._inputs[ticket]
@@ -1158,10 +1252,16 @@ class LocalCore:
                     or callbacks.failure is not None):
                 raise ValueError('Invalid original Local current transaction loan')
             callbacks.reader = reader
+            prior_binding = getattr(self, '_host_current_binding', None)
             try:
                 if callbacks.check_current() != 0:
                     assert callbacks.failure is not None
                     raise callbacks.failure
+                from ._local_host_binding import OriginalHostBinding
+                receiver = getattr(callbacks.current, '__self__', None)
+                if (type(receiver) is OriginalHostBinding and receiver._core is self
+                        and callbacks.current is receiver._current_observer):
+                    self._host_current_binding = receiver
                 yield
                 if callbacks.failure is not None:
                     raise callbacks.failure
@@ -1170,6 +1270,7 @@ class LocalCore:
                     raise callbacks.failure from error
                 raise
             finally:
+                self._host_current_binding = prior_binding
                 callbacks.reader = None
 
     def _host_current_ready(self, value: _Output) -> _JournalCallbacks:

@@ -3262,6 +3262,47 @@ remain retained, so the original publication cannot be replayed. Unknown,
 missing or refused index exports preserve the pending pair. The observation
 action alone is neither acknowledgement nor a public RunState observation.
 
+### Closed physical observation in one Core invocation
+
+An ordinary installed Host may group physical observations within one synchronous
+Wasm export using the same original binding and explicitly read-only SQLite
+reader. Admission is lazy at the first current observation. Pure exports that do
+not inspect current state introduce no filesystem observation. Nothing survives
+export return, trap, reader exit, another Host operation or an async suspension.
+Write readers, custom physical suppliers, native resource observers and cleanup
+retain the complete individual observation path.
+
+This is a closed computation validated before effects or result escape, not a
+cached authority decision. The full original file/root/Store graph is checked on
+admission, before and after each effect import, and before the scalar result can
+return. Exact thread, binding, reader, input/current loan, operation, lifetime and
+SQL transaction identities remain checked inside the invocation. Each actual
+Journal query retains its schema, mutation, metadata and cumulative query/copy
+fences; Core continues to inspect every requested row, final EOF and Account
+decision. No authorization import or original work/fuel boundary is removed.
+
+Every Host import passes through one classifier. Only the audited immutable
+input and same-reader Journal transports, plus the exact standard Wasmtime
+Store/Caller/Memory observation, remain inside the closed computation. Unknown
+imports, publisher decisions, child resources and cleanup suspend it before
+calling out. Current checks within those callbacks use full physical observations.
+A refused observation, escaping callback exception or refused reentry is sticky
+even when caught by an inner callback. No refused invocation resumes through a legacy fallback; original
+loans remain reachable for their existing explicit cleanup.
+
+The owned SQLite connection must have no custom trace, progress, authorizer,
+function, collation, extension, conversion or row/text factory callbacks. Prior
+customization permanently selects the ordinary path. Customization attempted
+while an invocation is admitted is refused before installation and poisons that
+invocation. Closed read queries use only audited constant SQL fragments and
+bounded typed literals, with no bound-parameter adaptation. This prevents a late
+global Python adapter registration from introducing an unguarded callback. Text
+literals preserve the exact UTF-8 bytes through a hexadecimal BLOB-to-TEXT cast;
+no caller-supplied SQL fragment is accepted. The owned connection disables its
+statement cache so changing literal values cannot accumulate retained plans.
+Temporary SQL encoding is included in the original current transfer allowance;
+SQLite and other workspace reservations remain separate.
+
 ### Original observation data within one Host operation
 
 The ordinary Host records a private monotone operation generation only after

@@ -57,6 +57,10 @@ class _NamespaceReader:
     # snapshot. No physical-current observation or permission is returned.
     check_unchanged: Callable[['_NamespaceReader'], None] | None = None
 
+    # Store-owned validation for one original closed Wasm invocation. Unlike
+    # public reader access this can run inside the exact current callback.
+    _invocation_check: Callable[['_NamespaceReader', Callable[[], object], object], None] | None = None
+
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
 
@@ -169,11 +173,13 @@ class LocalByteStore:
                     raise LocalStorageInitializationError(self) from original
         self._connection = sqlite3.connect(path, isolation_level=None,
                                            timeout=1.0, check_same_thread=False,
-                                           factory=_TrackedSQLiteConnection)
+                                           factory=_TrackedSQLiteConnection, cached_statements=0)
         try:
             database = _SQLiteByteDatabase(self._connection)
             self._physical = database
             self._observe_generation()
+            if type(self._connection) is _TrackedSQLiteConnection:
+                self._connection._qualify_encoding()
             # Select TEMP storage before the first catalog/snapshot statement.
             # Changing it later discards TEMP while SQLite may retain prepared
             # schema observations from this same connection's constructor.
@@ -826,7 +832,7 @@ class LocalByteStore:
                 self._fenced_current(current)
                 if not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local namespace fences changed')
-                self._inspect_namespace_locked(inspect, fences, current)
+                self._inspect_namespace_locked(inspect, fences, current, _readonly=True)
                 self._fenced_current(current)
                 if not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local namespace fences changed')
@@ -930,7 +936,7 @@ class LocalByteStore:
     def _inspect_namespace_locked(
             self, inspect: _InventoryInspection, fences: tuple[ByteFence, ...],
             current: Callable[[], object] | None, *,
-            successors: tuple[ByteWrite, ...] = ()) -> None:
+            successors: tuple[ByteWrite, ...] = (), _readonly: bool = False) -> None:
         # This callback borrows the enclosing physical transaction. It cannot
         # commit, acknowledge Core adoption, repair metadata or survive cleanup.
         active = True
@@ -938,6 +944,8 @@ class LocalByteStore:
         thread = get_ident()
         reads = copied = 0
         failure: BaseException | None = None
+        observing_current: Callable[[], object] | None = None
+        observing_invocation = False
 
         database = self._physical
         original_snapshot = (database._snapshot_identity()
@@ -969,11 +977,62 @@ class LocalByteStore:
 
         def fence(required_current: Callable[[], object] | None = None, *,
                   reuse_snapshot: bool = False) -> None:
+            nonlocal observing_current
             metadata_fence(reuse_snapshot=reuse_snapshot)
-            self._fenced_current(current)
-            if required_current is not None and required_current is not current:
-                self._fenced_current(required_current)
+            try:
+                observing_current = current
+                self._fenced_current(current)
+                if required_current is not None and required_current is not current:
+                    observing_current = required_current
+                    self._fenced_current(required_current)
+            finally:
+                observing_current = None
             metadata_fence(reuse_snapshot=reuse_snapshot)
+
+        def invocation_check(view: _NamespaceReader, observer: Callable[[], object], span: object) -> None:
+            nonlocal failure, observing_invocation
+            entered = False
+            try:
+                if failure is not None:
+                    raise failure
+                from ._local_host_binding import _InvocationObservation
+                if (type(span) is not _InvocationObservation or view is not reader
+                        or view.owner is not self or not active or get_ident() != thread
+                        or observing_invocation or not _readonly or observer is not current
+                        or view.query_current is not query_current or view.journal_schema is not journal_schema
+                        or view.check_frame is not check_frame or view.check_fences is not check_fences
+                        or view.check_fences_and_current is not check_fences_and_current
+                        or view._invocation_check is not invocation_check
+                        or span.reader is not view or span.binding._current_observer is not observer
+                        or span.core._invocation_observation is not span or not span.core._invoking
+                        or reading and observing_current is not observer):
+                    raise ValueError('Foreign or reentrant closed Local observation')
+                observing_invocation = entered = True
+                span._guard_sql()
+                # The exact current callback is already enclosed by fence's
+                # before/after metadata/schema checks. Do not add another pair
+                # of PRAGMAs there; standalone entry/exit checks still observe
+                # the complete live snapshot.
+                snapshot = (original_snapshot if observing_current is observer and not span.checking_physical
+                            else database._snapshot_identity())
+                if failure is not None:
+                    raise failure
+                if (original_snapshot is None or self._physical is not database
+                        or self._connection is not original_snapshot[0]
+                        or snapshot[0] is not original_snapshot[0]
+                        or snapshot[1:] != original_snapshot[1:]
+                        or self._connection.total_changes != original_snapshot[2]
+                        or not self._connection.in_transaction
+                        or self._connection._transaction_epoch != original_control_epoch):
+                    raise LocalStorageError('Closed Local observation snapshot changed')
+                span._guard_sql()
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                raise failure
+            finally:
+                if entered:
+                    observing_invocation = False
 
         def check_frame(view: _NamespaceReader) -> None:
             nonlocal failure
@@ -1035,8 +1094,9 @@ class LocalByteStore:
                     raise ValueError('Copied or foreign Local inventory snapshot')
                 current_snapshot()
                 # Only the SAME frozen members, in the SAME admitted order,
-                # reuse their shape/bounds checks. Physical current above is
-                # fresh on every call; copied/subset DATA keeps full admission.
+                # reuse their shape/bounds checks. The original current port
+                # runs on every call (including closed invocation lifetime/SQL
+                # checks); copied/subset DATA keeps full admission.
                 same_originals = len(required) == len(fences) and all(
                     wanted is original for wanted, original in zip(required, fences))
                 if required and not same_originals:
@@ -1251,7 +1311,10 @@ class LocalByteStore:
                 check_frame=check_frame, query_current=query_current,
                 journal_schema=journal_schema, check_inventory=check_inventory,
                 check_unchanged=(check_unchanged if original_snapshot is not None
-                    and type(original_snapshot[0]) is _TrackedSQLiteConnection else None))
+                    and type(original_snapshot[0]) is _TrackedSQLiteConnection else None),
+                _invocation_check=(invocation_check if _readonly and original_snapshot is not None
+                    and type(original_snapshot[0]) is _TrackedSQLiteConnection
+                    and original_snapshot[0]._closed_eligible() else None))
             result = inspect(reader)
             if failure is not None:
                 raise failure

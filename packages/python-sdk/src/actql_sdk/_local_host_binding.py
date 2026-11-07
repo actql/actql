@@ -2,14 +2,172 @@
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 import json
+from threading import get_ident
 from typing import Any, TypeVar
 
 from ._local_core import LocalCore, _Input, _Output, _Workspace
 from ._local_host_files import LocalHostFiles, _HostFile
 from ._local_storage import ByteFence, LocalByteStore, LocalStorageError, StoredBytes, _NamespaceReader
 from ._local_submission import LocalSubmissionAuthority
+from ._local_storage_physical import _TrackedSQLiteConnection
 
 _T = TypeVar('_T')
+
+
+class _InvocationObservation:
+    """One closed Wasm call, not a cached permission or a reader loan.
+
+    Original Account decisions still run. Physical files are observed before
+    entry, before/after effect imports and before return; closed read-only
+    imports retain live identity and SQL checks rather than repeating the
+    complete filesystem walk. Nothing survives the synchronous invocation.
+    """
+    __slots__ = ('binding', 'core', 'reader', 'connection', 'current', 'input',
+                 'epoch', 'source', 'state', 'installation', 'selected', 'expected',
+                 'fences', 'thread', 'operation', 'failure', 'suspended', 'active',
+                 'admitted', 'disabled', 'checking_physical', 'platform')
+
+    def __init__(self, binding: 'OriginalHostBinding', reader: _NamespaceReader,
+                 connection: _TrackedSQLiteConnection) -> None:
+        if binding._current is None or binding._input is None or binding._frame_epoch is None:
+            raise ValueError('Original closed Local observation is unavailable')
+        self.binding, self.core, self.reader, self.connection = binding, binding._core, reader, connection
+        self.current, self.input, self.epoch = binding._current, binding._input, binding._frame_epoch
+        self.source, self.state = binding._source, binding._state
+        self.installation = self.source._installation
+        self.selected, self.expected, self.fences = binding._selected, binding._expected, binding._fences
+        self.thread = get_ident()
+        self.operation = self.core._host_operation_id
+        self.platform = getattr(self.core, '_platform_vm_original', None)
+        self.failure: BaseException | None = None
+        self.suspended = False
+        self.active = True
+        self.admitted = False
+        self.disabled = False
+        self.checking_physical = False
+
+    def _fail(self, error: BaseException) -> BaseException:
+        if self.failure is None:
+            self.failure = error
+        return self.failure
+
+    def _guard_sql(self) -> None:
+        try:
+            if self.failure is not None:
+                raise self.failure
+            if (not self.active or not self.admitted or get_ident() != self.thread
+                    or self.core._invocation_observation is not self or not self.core._invoking
+                    or self.core._closing or self.core._closed or self.core._retired
+                    or self.connection._closed_invocation is not self
+                    or self.binding._store._connection is not self.connection
+                    or not self.connection._closed_eligible()):
+                raise ValueError('Original closed SQLite invocation changed or retired')
+        except BaseException as error:
+            raise self._fail(error)
+
+    def _guard_originals(self) -> None:
+        try:
+            self._guard_sql()
+            if self.failure is not None:
+                raise self.failure
+            binding, core, installation = self.binding, self.core, self.installation
+            if (not self.active or get_ident() != self.thread
+                    or core._invocation_observation is not self or not core._invoking
+                    or core._closing or core._closed or core._retired
+                    or core._host_cleanup_depth or core._host_fuel_phase != 'operation'
+                    or core._host_operation_id != self.operation
+                    or getattr(core, '_platform_vm_original', None) is not self.platform
+                    or core._host_current_binding is not binding
+                    or binding._original is not binding or binding._closing or not binding._active
+                    or binding._current is not self.current or binding._input is not self.input
+                    or binding._observed_reader is not self.reader or binding._frame_epoch is not self.epoch
+                    or binding._source is not self.source or binding._state is not self.state
+                    or binding._selected is not self.selected or binding._expected is not self.expected
+                    or binding._fences is not self.fences or installation is None
+                    or installation._original is not installation or installation._closing
+                    or len(installation._pins) != 2 or installation._pins[0] is not self.source
+                    or installation._pins[1] is not self.state
+                    or self.source._installation is not installation or self.state._installation is not installation
+                    or self.source._root is not installation._source or self.state._root is not installation._state
+                    or self.source._store is not installation._store or self.state._store is not installation._store
+                    or self.source._observe_roots is not None or self.state._observe_roots is not None
+                    or binding._store._connection is not self.connection
+                    or self.connection._closed_invocation is not self
+                    or not self.connection._closed_eligible()):
+                raise ValueError('Original closed Local invocation changed or retired')
+            core._owned_output(self.current, 'current')
+            core._owned_input(self.input)
+            callbacks = core._journal_callbacks(self.current.ticket)
+            if (callbacks is None or callbacks.reader is not self.reader
+                    or callbacks.current is not binding._current_observer):
+                raise ValueError('Original closed Local current callback changed')
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self.source._require_original_members((binding._account, *self.selected))
+            self.state._require_original_members((binding._staged_account, binding._initialization,
+                                                  binding._configuration, binding._journal))
+            for pins in (self.source, self.state):
+                pins._require_current_lifetime()
+                for value in pins._files.values():
+                    pins._root._owned_original(value.reader)
+                    if value.reader.closing or value.reader.invalid or value.reader.descriptor is None:
+                        raise ValueError('Closed Local original file reader retired')
+            for projection in self.expected:
+                core._owned_output(projection, 'original')
+        except BaseException as error:
+            raise self._fail(error)
+
+    def check(self, *, physical: bool = False) -> None:
+        try:
+            if self.checking_physical:
+                raise ValueError('Reentrant closed Local physical observation')
+            self._guard_originals()
+            self.checking_physical = physical
+            observe = self.reader._invocation_check
+            if observe is None:
+                raise ValueError('Original closed Local reader port is unavailable')
+            observe(self.reader, self.binding._current_observer, self)
+            if physical:
+                self.binding._physical_current()
+                observe(self.reader, self.binding._current_observer, self)
+        except BaseException as error:
+            raise self._fail(error)
+        finally:
+            self.checking_physical = False
+
+    def enter(self) -> None:
+        # Admission is lazy: pure scalar/progress exports need no new graph
+        # walk. Unsupported customization before the first observation keeps
+        # the complete legacy path; an admitted span never falls back.
+        if self.disabled or not self.connection._closed_eligible():
+            self.disabled = True
+            return
+        if self.connection._closed_invocation is not None:
+            raise ValueError('Original SQLite invocation already borrowed')
+        self.connection._closed_invocation = self
+        self.admitted = True
+        self.check(physical=True)
+
+    def interrupt(self, callback: Callable[..., Any], *args: Any) -> Any:
+        try:
+            if self.admitted:
+                self.check(physical=True)
+            self.suspended = True
+            result = callback(*args)
+            if self.admitted:
+                self.check(physical=True)
+            elif self.failure is not None:
+                raise self.failure
+            self.suspended = False
+            return result
+        except BaseException as error:
+            raise self._fail(error)
+
+    def leave(self) -> None:
+        self.suspended = True
+        self.active = False
+        if self.connection._closed_invocation is self:
+            self.connection._closed_invocation = None
 
 
 class LocalHostBindingCleanupPending(RuntimeError):
@@ -309,10 +467,47 @@ class OriginalHostBinding:
         return_committed occur in their own fresh original read snapshot.
         """
         with self._core._lock:
-            self._nominal()
-            if not self._active:
-                raise ValueError('Original Local Host physical frame is unavailable')
-            self._physical_current()
+            span = getattr(self._core, '_invocation_observation', None)
+            try:
+                self._nominal()
+                if not self._active:
+                    raise ValueError('Original Local Host physical frame is unavailable')
+                if type(span) is _InvocationObservation and span.binding is self:
+                    if not span.suspended:
+                        if not span.admitted:
+                            span.enter()
+                        if span.admitted:
+                            span.check()
+                        else:
+                            self._physical_current()
+                    else:
+                        self._physical_current()
+                else:
+                    self._physical_current()
+            except BaseException as error:
+                if type(span) is _InvocationObservation and span.binding is self:
+                    raise span._fail(error)
+                raise
+
+    def _new_invocation_observation(self) -> _InvocationObservation | None:
+        from ._local_installation import OriginalLocalInstallation
+        core, reader, installation = self._core, self._observed_reader, self._source._installation
+        connection = self._store._connection
+        # Unsupported suppliers take the full legacy path. Once admitted, an
+        # actual refusal is latched and can never select that fallback.
+        if (not getattr(core, '_ordinary_host', False) or core._host_fuel_phase != 'operation'
+                or getattr(core, '_host_cleanup_depth', 0) or core._closing
+                or getattr(core, '_physical_holding', None) is not None
+                or getattr(core, '_physical_child_control', None) is not None
+                or getattr(core, '_physical_vm_observation', None) is not None
+                or type(installation) is not OriginalLocalInstallation
+                or installation is not self._state._installation
+                or self._source._observe_roots is not None or self._state._observe_roots is not None
+                or reader is None or reader._invocation_check is None
+                or type(connection) is not _TrackedSQLiteConnection
+                or not connection._closed_eligible()):
+            return None
+        return _InvocationObservation(self, reader, connection)
 
     def inspect_reader(self, reader: _NamespaceReader, consume: Callable[[_Output], object]) -> None:
         """Use the same actual read/write transaction's borrowed namespace reader.
