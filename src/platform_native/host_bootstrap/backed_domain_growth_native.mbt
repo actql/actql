@@ -1,17 +1,25 @@
 ///|
 #borrow(backing, domain)
+extern "C" fn checked_read_working_status_ffi(
+  backing : Backing,
+  domain : PhysicalExtentDomain,
+  bytes : Int64,
+) -> Int = "actql_bootstrap_checked_read_working_status"
+
+///|
+#borrow(backing, domain)
+extern "C" fn quote_checked_read_growth_ffi(
+  backing : Backing,
+  domain : PhysicalExtentDomain,
+  bytes : Int64,
+) -> Int64 = "actql_bootstrap_quote_checked_read_growth"
+
+///|
+#borrow(backing, domain)
 extern "C" fn domain_growth_eligible_ffi(
   backing : Backing,
   domain : PhysicalExtentDomain,
 ) -> Int = "actql_bootstrap_domain_growth_eligible"
-
-///|
-#borrow(backing, domain)
-extern "C" fn working_request_status_ffi(
-  backing : Backing,
-  domain : PhysicalExtentDomain,
-  bytes : Int64,
-) -> Int = "actql_bootstrap_working_request_status"
 
 ///|
 // Actual same-domain supplier ports. Scalar quotations describe one original
@@ -113,6 +121,7 @@ fn[T, C] NativeHostBootstrap::grow_backed_domain_working(
   domain : NativeBackedExecutionDomain[T, C],
   child : C,
   contiguous_bytes : Int64,
+  checked_read? : Bool = false,
 ) -> Result[Unit, NativeBackedExecutionIssue] {
   match self.require_domain_current(original, domain, child) {
     Err(issue) => return Err(issue)
@@ -121,11 +130,15 @@ fn[T, C] NativeHostBootstrap::grow_backed_domain_working(
   guard self.control is Some(control) else {
     return Err(Bootstrap(Unavailable))
   }
-  let serial = quote_domain_growth_ffi(
-    self.backing,
-    domain.physical,
-    contiguous_bytes,
-  )
+  let serial = if checked_read {
+    quote_checked_read_growth_ffi(
+      self.backing,
+      domain.physical,
+      contiguous_bytes,
+    )
+  } else {
+    quote_domain_growth_ffi(self.backing, domain.physical, contiguous_bytes)
+  }
   if serial <= 0L {
     return Err(Bootstrap(Unavailable))
   }
@@ -312,12 +325,20 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_read_working(
     Ok(_) => ()
   }
   match
-    working_request_status_ffi(self.backing, domain.physical, contiguous_bytes) {
+    checked_read_working_status_ffi(
+      self.backing,
+      domain.physical,
+      contiguous_bytes,
+    ) {
     0 => Ok(())
     1 if domain.working_growth_prepared => {
       match
         self.grow_backed_domain_working(
-          original, domain, child, contiguous_bytes,
+          original,
+          domain,
+          child,
+          contiguous_bytes,
+          checked_read=true,
         ) {
         Err(issue) => return Err(issue)
         Ok(_) => ()

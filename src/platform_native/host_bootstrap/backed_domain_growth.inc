@@ -23,6 +23,38 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_working_request_status(
     return actql_native_owned_working_request_status(domain->lease, (size_t)bytes);
 }
 
+/* Only the SAME original active Read may select bound growth. Its trusted
+ * Common caller checks the original consumer demand; these calls issue
+ * no semantic read/Run permission or constructor themselves. */
+static bool bootstrap_checked_read_current(actql_bootstrap_backing *root,
+    actql_bootstrap_domain *domain) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    return bootstrap_growth_original(root, domain) && domain->read_context != NULL &&
+        domain->read_user && domain->read_active != 0 &&
+        actql_read_context_current() == domain->read_context &&
+        actql_native_owned_current() == domain->lease;
+#else
+    (void)root; (void)domain;
+    return false;
+#endif
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_checked_read_working_status(
+    actql_bootstrap_backing *root, actql_bootstrap_domain *domain, int64_t bytes) {
+    if (!bootstrap_checked_read_current(root, domain) || bytes <= 0 ||
+        (uint64_t)bytes > PTRDIFF_MAX) return -1;
+    return actql_native_owned_checked_read_working_status(domain->lease, (size_t)bytes);
+}
+
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_quote_checked_read_growth(
+    actql_bootstrap_backing *root, actql_bootstrap_domain *domain, int64_t bytes) {
+    if (!bootstrap_checked_read_current(root, domain) || bytes <= 0 ||
+        (uint64_t)bytes > PTRDIFF_MAX) return -1;
+    uint64_t serial = 0;
+    int status = actql_native_owned_quote_checked_read_growth(domain->lease, (size_t)bytes, &serial);
+    return status == ACTQL_OWNED_OK && serial > 0 && serial <= INT64_MAX ? (int64_t)serial : -1;
+}
+
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_prepare_domain_growth(
     actql_bootstrap_backing *root, actql_bootstrap_domain *domain) {
     if (!bootstrap_growth_original(root, domain)) return ACTQL_OWNED_INVALID;

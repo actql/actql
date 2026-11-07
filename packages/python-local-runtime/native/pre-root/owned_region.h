@@ -159,6 +159,15 @@ int actql_native_owned_working_request_status(actql_owned_capacity *domain,
 int actql_native_owned_domain_growth_eligible(actql_owned_capacity *domain,
     actql_owned_extent_view *original_view);
 
+/* Original checked Read route only. The trusted adapter binds the issued
+ * consumer/current context and funds the complete actual parent addition.
+ * These scalar ports alone confer neither quota nor a new Read. */
+int actql_native_owned_bound_working_allocations(actql_owned_capacity *domain,
+    size_t initial_bytes, size_t maximum_bytes);
+int actql_native_owned_checked_read_working_status(actql_owned_capacity *domain, size_t bytes);
+int actql_native_owned_quote_checked_read_growth(actql_owned_capacity *domain,
+    size_t bytes, uint64_t *serial);
+
 int actql_native_owned_prepare_domain_growth(actql_owned_capacity *domain,
     actql_owned_extent_view *original_view);
 int actql_native_owned_quote_domain_growth(actql_owned_capacity *domain,

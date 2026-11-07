@@ -18,15 +18,15 @@
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 40271,
-      "sha256": "cf86b4f8461d69555db9af96b4d2950d155607db66a9cbef46f96797752487a3"
+      "bytes": 41465,
+      "sha256": "d043591d81b0988dbd262cec8f4d2fd77afb2a1bd87428350d1555b6137e9493"
     },
     {
       "root": "provider",
       "path": "owned_region.inc",
       "output": "owned_region.inc",
-      "bytes": 35559,
-      "sha256": "d7537dcd7a4fa333bd67c9f3f9b5b2b177dd9c92abb9d62ee52e6310e2fdcdac"
+      "bytes": 36266,
+      "sha256": "6900203c7d7ec0a9f7515d9cda8355b1edaad545417451f494f49ce94cfdbe70"
     },
     {
       "root": "provider",
@@ -39,8 +39,8 @@
       "root": "provider",
       "path": "owned_region.h",
       "output": "owned_region.h",
-      "bytes": 12115,
-      "sha256": "2e4502c3be5e8de19519be88d70cf99ac7c2af5b981e00bde058fb9e3a95f7b6"
+      "bytes": 12673,
+      "sha256": "4541a46e89ba40db90f0236c806a3ea8bd939dbff326422f80fd6020891f9501"
     },
     {
       "root": "provider",
@@ -179,8 +179,8 @@
       "root": "provider",
       "path": "owned_domain_growth.inc",
       "output": "owned_domain_growth.inc",
-      "bytes": 23883,
-      "sha256": "699f07016c642292dbaf64ca77e27c37add4bb48acbd9b4b44722a8c7b030fdc"
+      "bytes": 26496,
+      "sha256": "4ddcb64285159048f394f2b285f76946022bbf0dddfc5f1e9989aaa6c8c4b1ee"
     }
   ],
   "outputs": {
@@ -221,8 +221,8 @@
       "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
     },
     "owned_capacity.c": {
-      "bytes": 41900,
-      "sha256": "8c5e9f016011f85d5183681663523df7fab5ae10f73a910ea631018073c7855f"
+      "bytes": 43094,
+      "sha256": "50c54bb6ca1df7b9cf51db1d8b3b400ed1c0ae4ced121ac0bec5cd6fdc5bd315"
     },
     "owned_capacity.h": {
       "bytes": 7243,
@@ -237,12 +237,12 @@
       "sha256": "e3914075758a265d18c3a6b075053d2fe31a3f35ee8cc8aee0548493ab814373"
     },
     "owned_region.h": {
-      "bytes": 12115,
-      "sha256": "2e4502c3be5e8de19519be88d70cf99ac7c2af5b981e00bde058fb9e3a95f7b6"
+      "bytes": 12673,
+      "sha256": "4541a46e89ba40db90f0236c806a3ea8bd939dbff326422f80fd6020891f9501"
     },
     "owned_region.inc": {
-      "bytes": 35601,
-      "sha256": "c4d00b18d135f4eadb7ece5bcab6be644d7c6822bed2c3e6f2822a879979357c"
+      "bytes": 36308,
+      "sha256": "6eb9004e1862fcbad5f3316f20e0b27ded8aec295111aaea40cb507213af8a14"
     },
     "owned_rust_heap.inc": {
       "bytes": 9115,
@@ -285,8 +285,8 @@
       "sha256": "ca3b1d4c0dad0da85a1b3e1a20956d1ac696f52b0c7565f70547070f7f0d75ba"
     },
     "owned_domain_growth.inc": {
-      "bytes": 23883,
-      "sha256": "699f07016c642292dbaf64ca77e27c37add4bb48acbd9b4b44722a8c7b030fdc"
+      "bytes": 26496,
+      "sha256": "4ddcb64285159048f394f2b285f76946022bbf0dddfc5f1e9989aaa6c8c4b1ee"
     }
   },
   "normal_profile": null,
