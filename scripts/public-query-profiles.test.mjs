@@ -313,8 +313,8 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // from the previous pin, then register eleven whole-ARRAY successes, seven
   // refusals and one demanded failure through the active membership selection.
   // Query signed zero moves one existing occurrence from refusal to success;
-  // Seven existing DISTINCT scope refusals now use InvalidInput; their Programs,
-  // positions, counts, bounds and every other authored occurrence stay exact.
+  // Seven negated-predicate, six membership and four CONCAT DISTINCT scope
+  // refusals use InvalidInput. Programs, positions, counts and bounds stay exact.
   assert.equal(pin.totalCases, 4240);
   assert.deepEqual(pin.counts, {"successes":2651,"executionFailures":54,"refusals":1535});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2597,"executionFailures":52,"refusals":1496}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
