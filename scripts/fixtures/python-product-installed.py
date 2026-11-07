@@ -94,6 +94,17 @@ def _sync(version: str, phase: str, receipt: Path) -> None:
         original = _plain(run.ref)
         if saved is not None and original != saved['run']:
             raise AssertionError('Attach replaced the original Run')
+        if saved is None:
+            second_submission = client.new_submission()
+            if _plain(second_submission) == _plain(submission):
+                raise AssertionError('Second submission must have a distinct original reference')
+            second = client.start_source('SELECT 1 AS n', format='sql', submission_ref=second_submission)
+            _record(receipt.with_name(receipt.name + '.second.submitted'), version=version,
+                    facade='sync', submission=second_submission, run=_plain(second.ref))
+            if _plain(second.ref) == original or second.wait()['status'] != 'succeeded':
+                raise AssertionError('Second distinct Run did not succeed on the same Host')
+            # all() consumes through EOF and refuses any extra row at this bound.
+            _rows(second.result('answer').all(max_rows=1))
     if saved is None:
         _record(receipt, version=version, facade='sync', submission=submission, run=original)
 
@@ -122,6 +133,17 @@ async def _async(version: str, phase: str, receipt: Path) -> None:
         original = _plain(run.ref)
         if saved is not None and original != saved['run']:
             raise AssertionError('Attach replaced the original Run')
+        if saved is None:
+            second_submission = client.new_submission()
+            if _plain(second_submission) == _plain(submission):
+                raise AssertionError('Second submission must have a distinct original reference')
+            second = await client.start_source('SELECT 1 AS n', format='sql', submission_ref=second_submission)
+            _record(receipt.with_name(receipt.name + '.second.submitted'), version=version,
+                    facade='async', submission=second_submission, run=_plain(second.ref))
+            if _plain(second.ref) == original or (await second.wait())['status'] != 'succeeded':
+                raise AssertionError('Second distinct Run did not succeed on the same Host')
+            # all() consumes through EOF and refuses any extra row at this bound.
+            _rows(await second.result('answer').all(max_rows=1))
     if saved is None:
         _record(receipt, version=version, facade='async', submission=submission, run=original)
 
@@ -158,7 +180,7 @@ def installed(version: str, mode: str, *, facade: str | None = None,
         asyncio.run(_async(version, phase, receipt))
     print(json.dumps({'mode': mode, 'version': version, 'facade': facade, 'phase': phase,
         'pid': os.getpid(), 'select1': phase == 'initial', 'reread': True,
-        'original_run_reused': phase == 'resume', 'closed': True}))
+        'original_run_reused': phase == 'resume', 'same_host_second_run': phase == 'initial', 'closed': True}))
 
 
 def _observe_closed() -> None:

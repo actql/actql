@@ -51765,7 +51765,7 @@
           ]
         }
       ],
-      "sha256": "6e3781217d8054abc7bf97c9024c363e41b2182154ca9ed11890297c078b18db",
+      "sha256": "3aeb4399885da2888798c63aca8a0306140f98d3fca2962f96be796fc899cec8",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -52388,6 +52388,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_sdk_results.py",
                 "anchor": "def test_bounded_steps_share_reader_but_loan_and_cleanup_boundaries_do_not("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_submission_output_retirement.py",
+                "anchor": "def test_consumed_transport_retires_before_next_reservation_without_closing_originals("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_submission_output_retirement.py",
+                "anchor": "def test_retirement_refusal_retains_original_cleanup_and_blocks_new_reservation("
               }
             ]
           }

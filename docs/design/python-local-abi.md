@@ -3253,6 +3253,15 @@ This returns only their transfer allowance. Saved files, metadata originals,
 the Store, current fences and actual physical owners remain retained. A refused
 close keeps the same partial installation and cannot trigger another bootstrap.
 
+Once the original retained submission body has been copied into the submitted-row
+input, its consumed output transport retires before another full row-output
+reservation. The original submission record and input borrow remain live; Core
+reobserves that same original against the current Store when producing and
+validating the rows. A refused or exceptional retirement preserves the original
+cleanup custody and prevents the later reservation. No capacity is increased,
+no retained input is discarded, and no Store write or admission is acknowledged
+by this transport retirement.
+
 After a publication has been attempted, its Host-wide pending-write routing
 pair blocks another write until the same original observation admits and
 re-exports the complete stored index under the actual File, Store, current and

@@ -1384,18 +1384,21 @@ class InstalledLocalHost:
             row_input = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
                 'reference': wire_bytes(captured_reference).decode('utf-8'),  # type: ignore[no-untyped-call]
                 'preparing': retained['body'], 'now': self._now()}))
+            # The copied row input now owns the consumed transport bytes.
+            # Retire only the output before reserving another full row output;
+            # Core retains the original record/input borrow for revalidation.
+            if not self._core.retire_submission_append_output(observed):
+                raise LocalProductCleanupPending(self)
             output = self._reserve(lambda: self._runs.reserve_submitted_rows(
                 run, configuration, row_input, cleanup=lambda: True))
             self._row_outputs.append(output)
             self._run_rows.append((run, output))
             installation.binding.inspect(lambda _: self._core.produce_material(output))
             self._commit_original_run_rows(output)
-            # The immutable row Owner/input remain in Core. These consumed
-            # transports need not overlap the fresh saved-admission lookup.
+            # The immutable row Owner/input remain in Core. This consumed
+            # transport need not overlap the fresh saved-admission lookup.
             # Neither retirement is the Store or admission acknowledgement.
             if not self._core.retire_material_output(output):
-                raise LocalProductCleanupPending(self)
-            if not self._core.retire_submission_append_output(observed):
                 raise LocalProductCleanupPending(self)
             admission = self._read_original_saved_admission(run)
             self._pending_run_write = None
