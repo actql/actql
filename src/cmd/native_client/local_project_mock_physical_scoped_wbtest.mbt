@@ -292,3 +292,106 @@ fn native_project_mock_source_environment_in_original_read() -> Unit raise {
 test "Native Project Mock actual backed Read composes original Source Model environment and publication once" {
   native_project_mock_model_backed_read(false, source_environment=true)
 }
+
+///|
+// The real Command consumes its available Read before Project retention.
+// No Command platform, database, Account, Project permission or Run is faked.
+test "Native Project input keeps the original consuming Read current" {
+  let profile = local_command_installed_profile(
+    "0000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001",
+  )
+  let budget = local_command_initial_read_budget(profile)
+  let pool = native_storage_sum([
+    budget.bootstrap_retained,
+    budget.bootstrap_execution,
+    budget.workspace_execution,
+    budget.read_retained,
+    budget.read_execution,
+  ]).unwrap()
+  let host = @initial_arena.prepare_installed_arena_host(
+    profile.source,
+    profile.recipe,
+    1L,
+    profile.arena_bytes,
+    profile.host_limits,
+    profile.control_bytes,
+  ).unwrap()
+  host.acquire().unwrap()
+  let backing = host.borrow_backing().unwrap()
+  host.enter_backing_borrow_scope(backing).unwrap()
+  let domain = match
+    host
+    .prepare_domain_in_process(
+      backing,
+      profile.read_domain_bytes,
+      profile.read_domain_limits,
+      initial_window=Some(pool),
+    )
+    .unwrap() {
+    PreparedDomain(value) => value
+    PendingDomain(_, _) => fail("Project consuming Read domain pending")
+  }
+  host.transfer_domain(domain).unwrap()
+  let sqlite_domain = match
+    host
+    .prepare_domain_in_process(
+      backing,
+      profile.sqlite_domain_bytes,
+      profile.sqlite_domain_limits,
+    )
+    .unwrap() {
+    PreparedDomain(value) => value
+    PendingDomain(_, _) => fail("Project consuming SQLite domain pending")
+  }
+  host.transfer_domain(sqlite_domain).unwrap()
+  host.leave_backing_borrow_scope(backing).unwrap()
+  host.return_backing_borrow(backing).unwrap()
+  host.prepare_domain_read(domain).unwrap()
+  host.prepare_domain_read(sqlite_domain).unwrap()
+  let read = match host.prepare_domain_original_read(domain, budget).unwrap() {
+    ReadyOriginalRead(value) => value
+    PendingOriginalRead(_, _) => fail("Project original Read pending")
+  }
+  let sqlite = match
+    host
+    .prepare_sqlite_library(
+      sqlite_domain,
+      @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap(),
+      profile.sqlite_heap_bytes,
+      profile.diagnostic_ceiling,
+    )
+    .unwrap() {
+    ReadySqlite(value) => value
+    PendingSqlite(_, _) => fail("Project SQLite library pending")
+  }
+  let pair = host.bind_local_host_resources(read, sqlite).unwrap()
+  // This is the same actual handoff made by Command::acquire_runtime.
+  host
+  .prepare_local_host_read_consumer(
+    pair,
+    profile.consumer_retained_bytes,
+    budget.read_execution,
+  )
+  .unwrap()
+  |> ignore
+  assert_true(
+    local_project_input_read_current(host, read, Some(pair)) is Err(_),
+  )
+  host.enter_local_host_phase(pair, HostRead).unwrap()
+  assert_true(host.require_domain_original_read_current(read) is Err(_))
+  let current = local_project_input_read_current(host, read, Some(pair))
+  host.leave_local_host_phase(pair).unwrap()
+  assert_true(
+    local_project_input_read_current(host, read, Some(pair)) is Err(_),
+  )
+  host.enter_local_host_phase(pair, HostSqlite).unwrap()
+  assert_true(
+    local_project_input_read_current(host, read, Some(pair)) is Err(_),
+  )
+  host.leave_local_host_phase(pair).unwrap()
+  host.close_local_host_resources(pair).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.close_domain_after_owner_ack(sqlite_domain).unwrap()
+  host.try_close().unwrap()
+  assert_true(current is Ok(_))
+}

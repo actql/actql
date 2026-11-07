@@ -460,6 +460,29 @@ fn execute_native_project_selection(
 // The same command retains this Project before any Model original is made.
 // Its current physical Read is required; metadata/Bool/capacity DATA cannot
 // substitute for that live scope. No Host, Request or Ledger is created here.
+fn local_project_input_read_current(
+  host : @initial_arena.InstalledArenaHost,
+  read : @initial_arena.InstalledArenaOriginalRead,
+  pair : @initial_arena.InstalledArenaLocalHostResources?,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  match pair {
+    None =>
+      host
+      .require_domain_original_read_current(read)
+      .map_err(issue => CommandRead(issue))
+    Some(pair) =>
+      // The actual Command has spent its available-read claim. Match this
+      // SAME consuming pair/read and its entered physical allocation scope.
+      // Standalone declaration readers keep the original available-read port.
+      match host.observe_local_host_consuming_read_scope(pair, read) {
+        Ok(ReadEntered) => Ok(())
+        Ok(ReadUnentered) => Err(CommandUnavailable)
+        Err(issue) => Err(CommandPair(issue))
+      }
+  }
+}
+
+///|
 fn LocalCommandPreparationOriginal::prepare_project_input(
   self : LocalCommandPreparationOriginal,
   selected : LocalProjectConfiguration?,
@@ -472,9 +495,9 @@ fn LocalCommandPreparationOriginal::prepare_project_input(
     self.read is Some(read) else {
     return Err(CommandUnavailable)
   }
-  match host.require_domain_original_read_current(read) {
+  match local_project_input_read_current(host, read, self.pair) {
     Ok(_) => ()
-    Err(issue) => return Err(CommandRead(issue))
+    Err(issue) => return Err(issue)
   }
   self.project = selected
   if selected is Some(project) && project.mock_declarations is Some(mock) {
