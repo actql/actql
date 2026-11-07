@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "src/connectors_builtin_node/client_hubspot_effect_construction_bridge.mbt",
-      "sha256": "cff0c797f46df5ac4128e09afb942c647323240951499028fe3eded0713d9d16",
+      "sha256": "db0ec244e6e93337f54adc689ce9d809d6c4a2adab06b92779344e3157bf0221",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common constructor/Plan/Grant/HTTP quantity owners",

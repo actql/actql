@@ -310,3 +310,25 @@ test "HubSpot private constructor port refuses unknown tags and incomplete quant
     is Err(Unsupported),
   )
 }
+
+///|
+test "HubSpot private installation quote keeps full original resource inventory separate from installed writes" {
+  let original = client_program_hubspot_effect_constructor_capacity(7, [], [], [
+    1, 2, 3, 1024,
+  ]).unwrap()
+  assert_true(@execution.execution_capacity_retained_bytes(original) > 0L)
+  assert_true(
+    @execution.execution_capacity_execution_bytes(original) >
+    @execution.execution_capacity_retained_bytes(original),
+  )
+  assert_true(
+    client_program_hubspot_effect_constructor_capacity(7, [], [], [1, 2, 3])
+    is None,
+  )
+  assert_true(
+    client_program_hubspot_effect_constructor_capacity(7, [], [], [
+      2, 2, 1, 1024,
+    ])
+    is None,
+  )
+}

@@ -21,6 +21,70 @@ fn hubspot_effect_capacity(
 }
 
 ///|
+/// Installing one UPDATE driver, its one managed recipe and the original
+/// mapping lookup/target predicates. Catalogs, Mappings, limits and Site are
+/// borrowed from the same parent. No per-Run requests or authority are owned
+/// by this quote. Closed arrays include both initial/maximum quantity vectors,
+/// 8 member operations, 15 row operations and 19 Credential selections.
+pub fn effect_installation_construction_capacity(
+  mappings : Int,
+  fields : Int,
+  resources : Int,
+  text_units : Int,
+) -> @execution.ExecutionCapacity? {
+  if mappings < 1 || fields < mappings || resources < mappings || text_units < 1 {
+    return None
+  }
+  let m = mappings.to_int64()
+  let f = fields.to_int64()
+  let r = resources.to_int64()
+  // Each captured method has an original receiver/callable pair and closure
+  // view. Cover driver/request/observation (96), Plan/extent/response (96),
+  // and installing lookup/target/current callbacks (16). Capture vectors and
+  // returned records are distinct from those closure views.
+  guard @shape.collection_construction_extent({
+      records: 2L * (96L + 96L + 16L) + 64L + 5L * m,
+      record_references: 14L * (96L + 96L + 16L) + 512L + 24L * m + 2L * f,
+      record_words: 128L + 12L * m,
+      reference_arrays: 48L + 2L * m,
+      reference_items: 512L + 8L + 15L + 19L + 2L * f,
+      scalar_arrays: 12L,
+      scalar_items: 256L,
+      maps: 8L,
+      map_entries: m,
+    })
+    is Some(owned) else {
+    return None
+  }
+  guard @execution.compose_preparation_representation([
+      initialization_collection_units(owned),
+      {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        // The Site binding and installation-generation digest escape. Their
+        // canonical preimages below are private construction workspace.
+        owned_utf16_units: 2L * 71L,
+        owned_wire_bytes: 0L,
+      },
+    ])
+    is Some(retained) else {
+    return None
+  }
+  hubspot_effect_capacity(retained, [
+    {
+      // Canonical metadata traverses every declared resource, including
+      // those not selected for a write. No second decoded Catalog is made.
+      record_headers: 32L + 6L * r + 6L * m,
+      reference_slots: 128L + 24L * r + 24L * m,
+      scalar_words: 32L + 4L * r + 4L * m,
+      owned_utf16_units: text_units.to_int64() * 6L,
+      owned_wire_bytes: text_units.to_int64() * 6L,
+    },
+  ])
+}
+
+///|
 fn hubspot_effect_body_limits_valid(limits : WriteBodyLimits) -> Bool {
   limits.max_input_bytes > 0 &&
   limits.max_nodes > 0 &&

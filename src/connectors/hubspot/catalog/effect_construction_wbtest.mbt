@@ -266,3 +266,35 @@ test "HubSpot Effect quantities refuse invalid original limits and unsupported w
     is None,
   )
 }
+
+///|
+test "HubSpot installation quote retains only its closed holders and digests while full original metadata stays borrowed" {
+  let original = effect_installation_construction_capacity(1, 2, 2, 1024).unwrap()
+  let longer = effect_installation_construction_capacity(1, 2, 2, 8192).unwrap()
+  let more_sources = effect_installation_construction_capacity(1, 2, 8, 1024).unwrap()
+  let more_mappings = effect_installation_construction_capacity(2, 4, 2, 1024).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(original),
+    @execution.execution_capacity_retained_bytes(longer),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(longer) >
+    @execution.execution_capacity_execution_bytes(original),
+  )
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(original),
+    @execution.execution_capacity_retained_bytes(more_sources),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(more_sources) >
+    @execution.execution_capacity_execution_bytes(original),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(more_mappings) >
+    @execution.execution_capacity_retained_bytes(original),
+  )
+  assert_true(effect_installation_construction_capacity(0, 1, 1, 1) is None)
+  assert_true(effect_installation_construction_capacity(2, 1, 2, 1) is None)
+  assert_true(effect_installation_construction_capacity(2, 2, 1, 1) is None)
+  assert_true(effect_installation_construction_capacity(1, 1, 1, 0) is None)
+}

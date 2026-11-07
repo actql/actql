@@ -21,3 +21,22 @@ complete private workspace there until the existing projection-complete cut;
 body/result retention and failed/pending cleanup responsibility remain.
 - Extension: Further connector drivers may reuse the common named read slots and synchronous projection boundary while retaining their own Native request/response meaning. Unlabelled existing recipes keep their prior selection. Named and unlabelled selection cannot mix within a phase; unsupported write/check/confirmation slots and resource substitution are refused.
 - Verification: Focused tests exercise the actual recipe parser and caller functions with explicit physical ports, complete Native request/target projection, independent request identity preimages, cold reconstruction, schema/current/cancellation refusal and original Account response interleavings. Row-driver tests additionally cover original metadata/target grant separation, denied metadata, exact single send, unclassified reply loss, complete approved value/target/dispatch/claim correspondence on pure recovery, original Checkpoint fact selection and captured-method reentry. Compatibility with an immutable prior runtime remains distinct from a matching new normal installation, real Credential/Account/Ledger, TLS, public approval, provider updates and Saved execution.
+
+The standard installed Effect profile names an absolute `sourceProfilePath` and
+a nonempty `writes` list. Each write selects one original resource, distinct
+fields, and an existing writable string `markerProperty` outside those business
+fields. Loading uses the same full Source metadata constructor and declaration,
+then the same-parent Native Mapping/Environment preparation. No provider
+property is created. The original request constructor validates the marker
+against the complete Catalog before any update can be sent.
+
+The installed factory opens the shared original Row Site with the existing
+Common reader policy, retains its Account/context and physical cleanup, and
+installs the original driver plus one UPDATE recipe through the existing
+constructor owner. Site and generation digests bind current Site/context,
+runtime, metadata, full Environment, mappings and marker configuration. The
+Target inventory delegates semantic/current selection to the existing Common
+owner and binds every original member independently to its physical read tuple.
+No metadata read or equal JSON replaces a Checkpoint decision/current proof.
+Registration and source/component tests are separate from matching normal
+software, TLS approval/update, Saved recovery and physical cleanup acceptance.

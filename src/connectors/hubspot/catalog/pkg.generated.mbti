@@ -16,6 +16,8 @@ pub fn effect_account_construction_capacity(Int, Int, Int, Int, Int) -> @executi
 
 pub fn effect_finalization_construction_capacity(WriteBodyLimits, RecordRequestLimits, RecordReadLimits, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn effect_installation_construction_capacity(Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn effect_metadata_construction_capacity(Int, Int, PropertyLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn effect_request_construction_capacity(WriteBodyLimits, RecordRequestLimits, RecordReadLimits, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
