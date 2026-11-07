@@ -274,6 +274,7 @@ fn command_preparation_cleanup_cause(
       match cause {
         ForeignOriginal => "ProjectMockForeignOriginal"
         AlreadyPreparing => "ProjectMockAlreadyPreparing"
+        Environment => "ProjectMockEnvironment"
         Task(original) =>
           match original.kind {
             InvalidLimits => "ProjectMockTaskInvalidLimits"

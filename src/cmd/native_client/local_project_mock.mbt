@@ -8,6 +8,7 @@ priv struct LocalProjectMockDeclarations {
   mut model_profile : @compiler_environment.ModelMockProfile?
   models : Array[LocalProjectMockModelOriginal]
   mut model_started : Bool
+  mut model_environment : (@checked.CheckEnvironment, @checked.CheckEnvironment)?
   mut model_failure : LocalProjectMockModelIssue?
   mut model_retire_index : Int
   mut closing : Bool
@@ -207,6 +208,7 @@ fn local_project_read_mock_declarations(
     model_profile: None,
     models: [],
     model_started: false,
+    model_environment: None,
     model_failure: None,
     model_retire_index: 0,
     closing: false,
@@ -253,6 +255,7 @@ priv struct LocalProjectMockModelOriginal {
 priv enum LocalProjectMockModelIssue {
   ForeignOriginal
   AlreadyPreparing
+  Environment
   Task(@compiler_environment.ModelTaskIssue)
   Answers(@model.ModelMockAnswerIssue)
   Installation(@model.ModelMockInstallationIssue)
@@ -356,6 +359,7 @@ fn LocalProjectMockDeclarations::retire_originals(
     return Ok(true)
   }
   self.closing = true
+  self.model_environment = None
   while self.model_retire_index < self.models.length() {
     let entry = self.models[self.model_retire_index]
     if entry.installation is Some(original) {
@@ -399,5 +403,82 @@ fn local_project_mock_answer_limits() -> @model.ModelMockAnswerLimits {
     },
     max_entries: limits.bodies.max_members,
     max_work: limits.max_work,
+  }
+}
+
+///|
+// Reuse the existing Task projector and ordinary Native checker, retaining
+// both exact original environments. This is immutable semantic DATA only;
+// no Source, Model Scope, installed Host or permission is constructed here.
+fn LocalProjectMockDeclarations::prepare_model_environment(
+  self : Self,
+  base : @checked.CheckEnvironment,
+) -> Result[@checked.CheckEnvironment, LocalProjectMockModelIssue] {
+  if self.closing || self.retired || !self.model_started {
+    return Err(ForeignOriginal)
+  }
+  if self.model_failure is Some(issue) {
+    return Err(issue)
+  }
+  if self.model_environment is Some((original, prepared)) {
+    return if physical_equal(original, base) {
+      Ok(prepared)
+    } else {
+      Err(ForeignOriginal)
+    }
+  }
+  let tasks = []
+  for entry in self.models {
+    guard entry.normalized is Some(normalized) && entry.installation is Some(_) else {
+      return Err(ForeignOriginal)
+    }
+    tasks.push(normalized)
+  }
+  let (wire, cid, _) = match
+    @compiler_environment.project_public_model_task_environment(
+      @checked.checking_environment_wire(base),
+      tasks,
+      local_project_mock_task_limits(),
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      self.model_failure = Some(Task(issue))
+      return Err(Task(issue))
+    }
+  }
+  let prepared = match local_admitted_check_environment(wire, cid) {
+    Some(value) => value
+    None => {
+      self.model_failure = Some(Environment)
+      return Err(Environment)
+    }
+  }
+  self.model_environment = Some((base, prepared))
+  Ok(prepared)
+}
+
+///|
+// The existing caller has already selected its captured configuration/Read.
+// Keep those original bytes/current fences and supplement only the immutable
+// Project Task inventory before the SAME Request's first semantic check.
+fn local_command_project_environment(
+  base : @checked.CheckEnvironment,
+) -> @checked.CheckEnvironment raise ClientStop {
+  guard command_preparation_invocation.val is Some(original) else {
+    return base
+  }
+  if original.closing || original.closed {
+    stop("LocalBusinessOriginalUnavailable")
+  }
+  guard original.project is Some(project) &&
+    project.mock_declarations is Some(mock) else {
+    return base
+  }
+  match mock.prepare_model_environment(base) {
+    Ok(value) => value
+    Err(issue) => {
+      original.retain_primary(CommandProjectMock(issue))
+      stop("InvalidProjectBindings")
+    }
   }
 }

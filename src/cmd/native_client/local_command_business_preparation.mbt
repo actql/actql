@@ -75,7 +75,9 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   let settings = configuration.settings
   let environment_name = configuration.environment_name
   let environment_body = configuration.environment_body
-  let environment = configuration.checked_environment()
+  let environment = local_command_project_environment(
+    configuration.checked_environment(),
+  )
   let account = local_host_result(capture.configuration_in_original_read())
   if account.account_id() != settings.account_id {
     stop("LocalConfigurationChanged")
