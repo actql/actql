@@ -65,6 +65,30 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
         assert.equal(currentTree.entries.get(source)?.mode, '100644');
       }
     }
+    if (path === 'src/platform_native/publication_store/moon.pkg') {
+      assert.equal(entry.revision, '5f2e0ecdeeaea9fb011c514806ef4dee80b03dad');
+      const prior = tree.read(path).toString();
+      const selectors = ['    "captured_content_custody_native.mbt": [ "native" ],\n',
+        '    "captured_content_custody_native_wbtest.mbt": [ "native" ],\n',
+        '    "captured_content_custody_unsupported.mbt": [ "not", "native" ],\n'];
+      let reconstructed = body;
+      for (const selector of selectors) {
+        assert.equal(body.split(selector).length, 2);
+        reconstructed = reconstructed.replace(selector, '');
+      }
+      assert.equal(reconstructed, prior, 'only the three reviewed Native custody selectors changed');
+      assert.deepEqual(packageImports(body).imports, packageImports(prior).imports);
+      assert.equal(currentTree.read(path).toString(), body);
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(prior))), null);
+      const selected = packageSourceInputs({tree: currentTree, packages: ['src/platform_native/publication_store'], target: 'js'});
+      for (const member of ['captured_content_custody_native.mbt', 'captured_content_custody_native_wbtest.mbt',
+        'captured_content_custody_unsupported.mbt', 'store_format_stub.c']) {
+        const source = `src/platform_native/publication_store/${member}`;
+        assert(selected.paths.includes(source));
+        assert.equal(currentTree.entries.get(source)?.kind, 'blob');
+        assert.equal(currentTree.entries.get(source)?.mode, '100644');
+      }
+    }
     const changes = [body + '\noptions(pre_build: {command: "unreviewed"})\n',
       body.replace(/"(?:actql\/actql|moonbitlang\/core)\/[^"\n]+"/, '"actql/actql/unreviewed_resource_owner"'),
       body.replace(/"js"|"native"|"wasm"/, '"unreviewed-target"')];
@@ -148,10 +172,10 @@ test('current Source JSON review binds only its checked normalization count depe
   }
 });
 
-test('current Local Host successor preserves its capacity import and binds four JS callback selectors', () => {
+test('current Local Host successor preserves its capacity import and binds five JS callback selectors', () => {
   const path = 'src/client_local_host/moon.pkg';
-  const revision = '131b446df837e49f6277c8582460e521dd97c153';
-  const digest = '2d1cea3783b4e932e2dd107b4159e8b32dad4f1f57470ee8d3cbd1d30e319802';
+  const revision = 'd3aed5e30374353163fe2beb3f7a8b4f784b2ea9';
+  const digest = '508773432a6b071bb057fc41d51008054462a6f8006f862ce6638e91e448d00e';
   const rule = 'literal-target-selectors-with-bound-source-membership';
   assert.deepEqual(currentPackageConfigurations[path], {revision, digest, rule});
   execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
@@ -171,13 +195,18 @@ test('current Local Host successor preserves its capacity import and binds four 
   }
   assert.equal(reconstructed, previous, 'all other imports, targets and options retain their original bytes');
   const successorSelectors = ['preparation_request_native_intake_retirement_js_wbtest.mbt',
-    'preparation_request_artifact_retention_js_wbtest.mbt'].map(name => `    "${name}": [ "js" ],\n`);
+    'preparation_request_artifact_retention_js_wbtest.mbt', 'native_publication_workspace_js_wbtest.mbt'].map(name => `    "${name}": [ "js" ],\n`);
   let reconstructedIntroduction = body;
   for (const selector of successorSelectors) {
     assert.equal(body.split(selector).length, 2);
     reconstructedIntroduction = reconstructedIntroduction.replace(selector, '');
   }
-  assert.equal(reconstructedIntroduction, introduced, 'the successor adds only its two reviewed JS fixtures');
+  assert.equal(reconstructedIntroduction, introduced, 'the successor adds only its three reviewed JS fixtures');
+  const intakeRevision = gitTree(root, '131b446df837e49f6277c8582460e521dd97c153').read(path).toString();
+  assert.equal(hash(intakeRevision), '2d1cea3783b4e932e2dd107b4159e8b32dad4f1f57470ee8d3cbd1d30e319802');
+  assert.equal(body.replace(successorSelectors[2], ''), intakeRevision,
+    'the new publication fixture preserves the two original intake/artifact selectors');
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(intakeRevision))), null);
   assert.deepEqual(packageImports(body).imports,
     [...packageImports(previous).imports, 'actql/actql/capacity_policy'].sort());
   assert.equal(currentTree.read(path).toString(), body);
@@ -383,7 +412,7 @@ test('current query configuration binds both JS-only files without changing impo
 
 test('single current map binds exact per-entry reviews and full literal import closure', () => {
   assert.equal(Object.keys(currentPackageConfigurations).length, 19);
-  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 12);
+  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 13);
   const head = gitTree(root, execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
   for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
     const revision = entry.revision ?? currentConfigurationReviewRevision;

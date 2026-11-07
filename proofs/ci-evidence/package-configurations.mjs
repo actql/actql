@@ -86,14 +86,14 @@ const foreignLibraryConfigurations = Object.freeze({
 // revision still applies to every unchanged entry.
 export const currentConfigurationReviewRevision = '38e95bfac2907700456de6c53ed0cad3620bb72d';
 export const currentPackageConfigurations = Object.freeze({
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '2d1cea3783b4e932e2dd107b4159e8b32dad4f1f57470ee8d3cbd1d30e319802', rule: 'literal-target-selectors-with-bound-source-membership', revision: '131b446df837e49f6277c8582460e521dd97c153'}),
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '508773432a6b071bb057fc41d51008054462a6f8006f862ce6638e91e448d00e', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'd3aed5e30374353163fe2beb3f7a8b4f784b2ea9'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: '707ebd62113403d8c1a08c3db9ea28d5e899c3c80d6ac7dc5cfadd545045ac38', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/physical_resources/moon.pkg': Object.freeze({digest: '508d45513dd76478ece212cd3e9a2da45aa93f2e100d99c44076a31afa46be23', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'bf198225499436c26be2f7d763582b0efaeeae2b'}),
   'src/platform_native/bounded_files/moon.pkg': Object.freeze({digest: '9dcccf37816250ccb794c1467658f3cd4c2ff239ed752b36e59ef167a40553a5', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/filesystem/moon.pkg': Object.freeze({digest: 'ccbef60792340068be1ef431d1f8a7336a842dcd1021a84a816c3582a7c6b08b', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/http_client/moon.pkg': Object.freeze({digest: '67cf437063d4a099acc9d33736d48fb3cfbff4cd4efa3235dc0239121ee6455e', rule: 'literal-native-options-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
-  'src/platform_native/publication_store/moon.pkg': Object.freeze({digest: '43ab4a8d9546c327742bae8c574381a62a03ea6311b592c61f311bea8ada4b6d', rule: 'literal-native-options-with-bound-source-membership'}),
+  'src/platform_native/publication_store/moon.pkg': Object.freeze({digest: '2e4ba01a83ff09a249bb91b843b89485ee07fe925e771f0368ffda28242728cf', rule: 'literal-native-options-with-bound-source-membership', revision: '5f2e0ecdeeaea9fb011c514806ef4dee80b03dad'}),
   'src/platform_native/remote_client/moon.pkg': Object.freeze({digest: '2d564b643659ca806c35da2414f432b52292fa8c79a94cffc0706191ae156832', rule: 'literal-native-options-with-bound-source-membership', revision: 'deea413fba8b255cf5be7300d94eccd883b5b5eb'}),
   'src/platform_native/remote_journal/moon.pkg': Object.freeze({digest: '89432a0cc007a76c3af8f2311c98f1838e13e74976bb7d28240a9704830aa60b', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/remote_standard_host/moon.pkg': Object.freeze({digest: '01ae0816929d7ae3037f46906d63f999bca640fa20d12433e478c41475229886', rule: 'literal-target-selectors-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
