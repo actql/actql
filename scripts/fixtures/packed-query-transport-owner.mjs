@@ -30,13 +30,13 @@ export function requireCompleteInventory(expected, completed) {
 }
 
 // This is a test-only observer of the already installed original ingress. It
-// starts immediately before one named refusal; no runtime bytes are changed.
+// captures only its selected original boundary; no runtime bytes are changed.
 // Missing diagnostic evidence never replaces the original acceptance result.
-export async function observePackedSubmissionCause({sourceURL, report = value => {
+export async function observePackedSubmissionCause({sourceURL, boundary = 'original-catch', report = value => {
   process.stderr.write(`Packed submission original cause: ${JSON.stringify(value)}\n`);
 }}) {
   const observations = [];
-  let worker, exited, closing, ready, loaded = false, observationFailed = false;
+  let worker, exited, closing, ready, unavailableReason, loaded = false, observationFailed = false;
   const emit = value => {try {report(value);} catch { /* Preserve the original test outcome. */ }};
   const unavailable = () => Object.freeze({close: async () => {
     if (!closing) closing = Promise.resolve().then(() => emit({available: false}));
@@ -49,13 +49,23 @@ export async function observePackedSubmissionCause({sourceURL, report = value =>
     assert.ok(metadata.isFile() && metadata.size > 0 && metadata.size <= 128 * 1024);
     const bytes = await readFile(path), source = bytes.toString('utf8');
     assert.equal(bytes.length, metadata.size);
+    const boundaries = {
+      'original-catch': {anchor: 'throw publicFailure(error);', count: 2, index: 1, frame: 0},
+      'local-500': {anchor: 'const error = new ClientError(code, {status});', count: 1, index: 0,
+        frame: 1, caller: 'publicFailure', condition: 'status === 500'},
+      'http-500': {anchor: "response.writeHead(status, {'content-type': 'application/json'});",
+        count: 1, index: 0, frame: 0, condition: 'status === 500'},
+    };
+    assert.ok(Object.hasOwn(boundaries, boundary), 'Unknown diagnostic boundary');
+    const selected = boundaries[boundary];
     const catches = source.split('\n').flatMap((line, index) =>
-      line.trim() === 'throw publicFailure(error);' ? [index] : []);
-    assert.equal(catches.length, 2, 'separate Result and generic ingress catches');
+      line.trim() === selected.anchor ? [index] : []);
+    assert.equal(catches.length, selected.count, 'Exact original ingress boundary required');
+    const lineNumber = catches[selected.index];
     const sha256 = createHash('sha256').update(bytes).digest('hex');
     worker = new Worker(new URL(import.meta.url), {execArgv: [], workerData: {
       kind: 'packed-submission-cause', url: pathToFileURL(path).href,
-      sha256, lineNumber: catches[1]}});
+      sha256, lineNumber, frame: selected.frame, caller: selected.caller, condition: selected.condition}});
     exited = new Promise(resolve => worker.once('exit', resolve));
     ready = new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('DiagnosticStartupUnavailable')), 3000);
@@ -65,6 +75,7 @@ export async function observePackedSubmissionCause({sourceURL, report = value =>
         if (value.kind === 'primary') observations.push(value.types);
         if (value.kind === 'ready') {clearTimeout(timer); resolve();}
         if (value.kind === 'unavailable') {
+          if (value.reason === 'original-caller-unavailable') unavailableReason = value.reason;
           observationFailed = true; clearTimeout(timer); reject(new Error('DiagnosticUnavailable'));
         }
       });
@@ -84,7 +95,8 @@ export async function observePackedSubmissionCause({sourceURL, report = value =>
         } catch { /* Terminate only this observer, never the original Host. */ }
         finally {await worker.terminate().catch(() => {});}
         emit({available: loaded && stopped && !observationFailed, sourceSha256: sha256,
-          zeroBasedLine: catches[1], originalCauseTypes: observations});
+          boundary, zeroBasedLine: lineNumber, originalCauseTypes: observations,
+          ...(unavailableReason === undefined ? {} : {unavailableReason})});
       })();
       return closing;
     }});
@@ -152,8 +164,14 @@ out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','
     try {
       assert.ok(!captured && originals.has(params.callFrames[0].location.scriptId));
       captured = true;
+      const frame = params.callFrames[workerData.frame];
+      if (!frame || !originals.has(frame.location.scriptId) ||
+          workerData.caller !== undefined && frame.functionName !== workerData.caller) {
+        parentPort.postMessage({kind: 'unavailable', reason: 'original-caller-unavailable'});
+        return;
+      }
       const {result, exceptionDetails} = await post('Debugger.evaluateOnCallFrame', {
-        callFrameId: params.callFrames[0].callFrameId, expression,
+        callFrameId: frame.callFrameId, expression,
         returnByValue: true, silent: true});
       assert.equal(exceptionDetails, undefined);
       parentPort.postMessage({kind: 'primary', types: result.value});
@@ -171,7 +189,8 @@ out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','
   try {
     await post('Debugger.enable');
     ({breakpointId: breakpoint} = await post('Debugger.setBreakpointByUrl', {
-      url: workerData.url, lineNumber: workerData.lineNumber, columnNumber: 0}));
+      url: workerData.url, lineNumber: workerData.lineNumber, columnNumber: 0,
+      ...(workerData.condition === undefined ? {} : {condition: workerData.condition})}));
     parentPort.postMessage({kind: 'ready'});
   } catch {parentPort.postMessage({kind: 'unavailable'});}
 }

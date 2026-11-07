@@ -233,6 +233,92 @@ test('packed cause observer retains exact factory codes and primitive edge types
   assert.doesNotMatch(JSON.stringify(reports), /9234567|9234568|private-/u);
 });
 
+async function statusDiagnosticTarget(t, transport, {foreignCaller = false} = {}) {
+  const caller = foreignCaller ? 'foreignFailure' : 'publicFailure';
+  const directory = await fixture(t), path = join(directory, 'status-ingress.mjs');
+  const shared = `const statuses = new WeakMap(); let reads = 0;
+const responseCode = error => { reads++; return statuses.get(error); };
+export const statusReads = () => reads;
+`;
+  const source = transport === 'http' ? shared + `
+function sendError(response, error) {
+  const status = responseCode(error);
+  response.writeHead(status, {'content-type': 'application/json'});
+}
+export function originalIngress(original, status) {
+  statuses.set(original, status);
+  try {throw original;}
+  catch (error) {sendError({writeHead() {}}, error); throw error;}
+}
+` : shared + `
+class ClientError extends Error {
+  constructor(code, {status}) {super(code); this.code = code; this.status = status;}
+}
+const localErrors = new WeakSet();
+const publicClientErrorStatus = responseCode;
+const publicClientErrorCode = error => statuses.get(error) === 500 ? 'ClientHostFailure' : 'ClientProgramUnsupported';
+const publicError = (code, status) => {
+  const error = new ClientError(code, {status});
+  delete error.stack;
+  return error;
+};
+const ${caller} = error => localErrors.has(error) ? error
+  : publicError(publicClientErrorCode(error), publicClientErrorStatus(error));
+export function originalIngress(original, status) {
+  statuses.set(original, status);
+  try {throw original;}
+  catch (error) {throw ${caller}(error);}
+}
+`;
+  await writeFile(path, source);
+  const sourceURL = pathToFileURL(path);
+  return {sourceURL, ...await import(sourceURL.href)};
+}
+
+for (const transport of ['http', 'local']) {
+  test(`packed cause observer captures only the first ${transport} 500 from its computed status and original frame`, async t => {
+    const target = await statusDiagnosticTarget(t, transport), reports = [];
+    const expected = Object.assign(new Error('private-decline'), {code:'ClientProgramUnsupported'});
+    const original = Object.assign(new Error('private-primary'), {code:'MoonBitHostFailure'});
+    let reflected = 0;
+    const later = new Proxy(new Error('private-later'), {
+      getPrototypeOf() {reflected++; throw new Error('Later original must not be inspected');},
+    });
+    const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+      boundary:transport + '-500', report:value=>reports.push(value)});
+    const unchanged = (error, primary, status) => transport === 'http' ? error === primary
+      : error !== primary && error.code === (status === 500 ? 'ClientHostFailure' : 'ClientProgramUnsupported') && error.status === status;
+    try {
+      assert.throws(() => target.originalIngress(expected, 422), error => unchanged(error, expected, 422));
+      assert.throws(() => target.originalIngress(original, 500), error => unchanged(error, original, 500));
+      assert.throws(() => target.originalIngress(later, 500), error => unchanged(error, later, 500));
+    } finally {await observer.close();}
+    assert.equal(target.statusReads(), 3, 'the breakpoint condition must not repeat status classification');
+    assert.equal(reflected, 0, 'later errors are not reflected after the first 500');
+    assert.equal(reports.length, 1);
+    assert.equal(reports[0].available, true);
+    assert.deepEqual(reports[0].originalCauseTypes, [[{edge:'original',type:'Error',code:'MoonBitHostFailure'}]]);
+    assert.doesNotMatch(JSON.stringify(reports), /private-|decline|later|message|stack/u);
+  });
+}
+
+test('packed cause observer refuses a different Local caller and still resumes its public outcome', async t => {
+  const target = await statusDiagnosticTarget(t, 'local', {foreignCaller:true}), reports = [];
+  const original = Object.assign(new Error('private-foreign-caller'), {code:'MoonBitHostFailure'});
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    boundary:'local-500', report:value=>reports.push(value)});
+  try {
+    assert.throws(() => target.originalIngress(original, 500), error =>
+      error !== original && error.code === 'ClientHostFailure' && error.status === 500);
+  } finally {await observer.close();}
+  assert.equal(target.statusReads(), 1);
+  assert.equal(reports.length, 1);
+  assert.equal(reports[0].available, false);
+  assert.equal(reports[0].unavailableReason, 'original-caller-unavailable');
+  assert.deepEqual(reports[0].originalCauseTypes, []);
+  assert.doesNotMatch(JSON.stringify(reports), /private-|foreignFailure|message|stack/u);
+});
+
 test('complete transport inventory rejects missing, duplicate, extra and reordered identities', () => {
   // Independently authored expected identities, not generated from a partition.
   const expected = ['standard/success/a', 'standard/failure/b', 'standard/refusal/c'];
