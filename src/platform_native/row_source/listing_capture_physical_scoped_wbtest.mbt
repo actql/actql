@@ -114,11 +114,16 @@ fn managed_listing_fixture_case(
     }
   })
   let clock_calls = Ref(0)
+  let active_capture : Ref[NativeRelationFileCapture?] = Ref(None)
+  let reentrant_pending = Ref(false)
   let now_ms : (() -> Int64)? = if clock_mode == 0 {
     None
   } else {
     Some(() => {
       clock_calls.val += 1
+      if clock_mode == 5 && active_capture.val is Some(capture) {
+        reentrant_pending.val = capture.close() is Err(Unavailable)
+      }
       if clock_calls.val > 1 && clock_mode == 2 {
         -1L
       } else if clock_calls.val > 1 && clock_mode == 3 {
@@ -192,8 +197,14 @@ fn managed_listing_fixture_case(
     listing=Some(listing),
     program=Some(program),
     clock_refusal=if clock_mode >= 2 { clock_mode } else { 0 },
+    capture_observer=if clock_mode == 5 {
+      Some(capture => active_capture.val = Some(capture))
+    } else {
+      None
+    },
     query~,
   )
+  active_capture.val = None
   arena
   .close_domain_retained_execution(execution)
   .managed_capture_stage("listing physical child retirement")
@@ -211,7 +222,15 @@ fn managed_listing_fixture_case(
     assert_eq(clock_calls.val, 2)
   } else if clock_mode == 4 {
     assert_eq(clock_calls.val, 1)
+  } else if clock_mode == 5 {
+    assert_eq(clock_calls.val, 2)
+    assert_true(reentrant_pending.val)
   }
+}
+
+///|
+test "Native Source reentrant close keeps the active original call pending until it returns" {
+  managed_listing_fixture_case(5)
 }
 
 ///|

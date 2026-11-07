@@ -92,11 +92,21 @@ pub fn native_relation_file_content_construction_inventory(
   provider : NativeRelationFilePreparedProvider,
   max_content_bytes : Int,
 ) -> @execution.PreparationRepresentationUnits? {
+  file_content_construction_inventory(provider, max_content_bytes, None)
+}
+
+///|
+fn file_content_construction_inventory(
+  provider : NativeRelationFilePreparedProvider,
+  max_content_bytes : Int,
+  response_bytes : Int?,
+) -> @execution.PreparationRepresentationUnits? {
   if max_content_bytes < 0 || max_content_bytes > provider.limits.page.max_bytes {
     return None
   }
   let limits = provider.limits.page
-  guard file_provider_projection_inventory(provider) is Some(projected) &&
+  guard file_provider_projection_inventory(provider, response_bytes~)
+    is Some(projected) &&
     @encode.text_writer_construction_inventory(
       limits.max_bytes,
       limits.max_nodes,

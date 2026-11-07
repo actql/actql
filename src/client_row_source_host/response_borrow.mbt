@@ -216,12 +216,21 @@ fn grow_row_run_response_capacity_at_phase(
   let (retained, execution) = match value.selection {
     QueryResponse(acquisition) =>
       match
-        row_provider_capacity_sum(
-          row_acquisition_retained_capacity(acquisition),
-          row_acquisition_execution_capacity(acquisition),
-          physical.execution_scratch,
-          Some(capacity),
-        ) {
+        (if row_acquisition_is_listing(acquisition) {
+          row_listing_capacity_sum(
+            row_acquisition_retained_capacity(acquisition),
+            row_acquisition_execution_capacity(acquisition),
+            physical.execution_scratch,
+            Some(capacity),
+          )
+        } else {
+          row_provider_capacity_sum(
+            row_acquisition_retained_capacity(acquisition),
+            row_acquisition_execution_capacity(acquisition),
+            physical.execution_scratch,
+            Some(capacity),
+          )
+        }) {
         Err(issue) => return Err(issue)
         Ok(value) => value
       }

@@ -85,6 +85,7 @@ fn native_project_mock_model_backed_read(
   lookup_policy? : Bool = false,
   effect_compilation? : Bool = false,
   effect_source_inputs? : Bool = false,
+  content_join? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -155,6 +156,7 @@ fn native_project_mock_model_backed_read(
       facility,
       effect_compilation~,
       effect_source_inputs~,
+      content_join~,
     )
   } else if lookup_policy {
     native_mock_lookup_policy_in_original_read()

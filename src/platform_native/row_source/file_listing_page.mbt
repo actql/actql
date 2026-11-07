@@ -227,8 +227,17 @@ pub fn project_native_relation_file_listing_page(
 pub fn native_relation_file_listing_construction_inventory(
   provider : NativeRelationFilePreparedProvider,
 ) -> @execution.PreparationRepresentationUnits? {
+  file_listing_construction_inventory(provider, None)
+}
+
+///|
+fn file_listing_construction_inventory(
+  provider : NativeRelationFilePreparedProvider,
+  response_bytes : Int?,
+) -> @execution.PreparationRepresentationUnits? {
   let limits = provider.limits.page
-  guard file_provider_projection_inventory(provider) is Some(projected) &&
+  guard file_provider_projection_inventory(provider, response_bytes~)
+    is Some(projected) &&
     @encode.text_writer_construction_inventory(
       limits.max_bytes,
       limits.max_nodes,

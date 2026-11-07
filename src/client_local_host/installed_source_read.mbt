@@ -478,6 +478,7 @@ pub fn start_installed_source_read_listing_rows(
   original_stop : (@row_source_host.RowAttempt) -> Bool,
   transfer_bytes : Int64,
   execution_bytes : Int64,
+  response_capacity? : Bool = false,
 ) -> Result[@row_source_host.RowRun, ClientInstalledSourceReadIssue] {
   let ledger = match claim_installed_source_read_start(value, acquisition) {
     Err(issue) => return Err(issue)
@@ -486,7 +487,14 @@ pub fn start_installed_source_read_listing_rows(
   retain_installed_source_read_run(
     value,
     @row_source_host.start_accounted_listing_row_acquisition(
-      acquisition, capacity, nonce, original_stop, ledger, transfer_bytes, execution_bytes,
+      acquisition,
+      capacity,
+      nonce,
+      original_stop,
+      ledger,
+      transfer_bytes,
+      execution_bytes,
+      response_capacity~,
     ),
   )
 }

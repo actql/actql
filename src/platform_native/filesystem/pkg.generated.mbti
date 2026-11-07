@@ -136,6 +136,7 @@ pub fn Root::close(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::create_directory(Self, String) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesystemIssue]
 pub fn Root::create_writer_with_custody(Self, String, Int64) -> Result[Writer, NativeWriterOpenFailure]
+pub fn Root::diagnostic_ceiling(Self) -> Int?
 pub fn Root::inspect_directory(Self, String) -> Result[NativeFileOwnership?, NativeFilesystemIssue]
 pub fn Root::inspect_file_generation(Self, String) -> Result[NativeFileGeneration?, NativeFilesystemIssue]
 pub fn Root::inspect_generation(Self, String) -> Result[NativeFileGeneration?, NativeFilesystemIssue]

@@ -16,6 +16,9 @@ fn NativeRelationFileCapture::retained_keyed_original(self : Self) -> Bool {
 /// Store child separately; physical Text-row declaration is not Content schema.
 /// The caller funds this constructor before entry. The existing capture owns
 /// its full raw provider reservation before any filesystem I/O can begin.
+/// The optional automatic Content continuation is the original Model-owned
+/// path; it must match that read's SAME Request, compiled Run and Definition.
+/// Omitting it retains the existing separately supplied keyed-page protocol.
 pub fn prepare_native_managed_relation_file_keyed_capture(
   arena : @arena.InstalledArenaHost,
   execution : @arena.InstalledArenaRetainedExecution,
@@ -26,6 +29,7 @@ pub fn prepare_native_managed_relation_file_keyed_capture(
   physical : NativeRelationFilePreparedProvider,
   issuer : @admitted.ReferenceIssuer,
   nonce : String,
+  content? : NativeRelationFileContentInput? = None,
 ) -> Result[NativeRelationFileCapture, NativeRelationFileFailure] {
   if !file_capture_text(nonce, 128) ||
     !file_capture_text(source_ref, 1024) ||
@@ -43,6 +47,17 @@ pub fn prepare_native_managed_relation_file_keyed_capture(
   if !@local.installed_keyed_source_read_acquisition_matches(read, acquisition) {
     return Err({ issue: ForeignOriginal, owner: None, })
   }
+  if content is Some(input) &&
+    !@local.installed_keyed_source_read_request_matches(
+      read,
+      acquisition,
+      input.keyed,
+      input.request,
+      input.compiled,
+      input.definition,
+    ) {
+    return Err({ issue: ForeignOriginal, owner: None, })
+  }
   match @rows.check_row_keyed_acquisition_original(acquisition, declaration) {
     Ok(_) => ()
     Err(issue) => return Err({ issue: Row(issue), owner: None, })
@@ -57,6 +72,7 @@ pub fn prepare_native_managed_relation_file_keyed_capture(
     physical.selection,
     physical.limits,
     prepared_provider=Some(physical),
+    content~,
   )
 }
 
@@ -83,6 +99,25 @@ pub fn NativeRelationFileCapture::keyed_content_document(
 /// derived ContentRef wire again. Common still admits schema/cardinality and
 /// the original issuer; no projection may fabricate Source authority.
 pub fn NativeRelationFileCapture::complete_keyed_content_page(
+  self : Self,
+  original : @rows.RelationDocument,
+  body : Bytes,
+) -> Result[Unit, NativeRelationFileFailure] {
+  if !self.same() {
+    return Err({ issue: ForeignOriginal, owner: None, })
+  }
+  if self.advancing {
+    return Err(self.fail(Unavailable))
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  self.complete_keyed_content_page_original(original, body)
+}
+
+///|
+fn NativeRelationFileCapture::complete_keyed_content_page_original(
   self : Self,
   original : @rows.RelationDocument,
   body : Bytes,

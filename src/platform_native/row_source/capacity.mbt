@@ -6,8 +6,9 @@
 // * Original acquisition selector: H1/R4/S1. The managed-input arm retains
 //   acquisition/read/selected-capacity/provider; managed Query arms borrow
 //   acquisition/read/provider (R3), within the same R4 peak; ordinary arms borrow one.
-// * Capture holder: H1/R25/S7 (24 optional references plus borrowed limits;
-//   offset, three progression flags, phase, two listing clock observations). Its Some wrappers: H24/R24/S24.
+// * Capture holder: H1/R27/S8 (26 optional references plus borrowed limits;
+//   offset, three progression flags, phase, advancing and two listing clocks).
+//   Its Some wrappers: H26/R26/S26. Content's own child storage is additional.
 // * Selection snapshot: record + two path arrays + optional key path Some,
 //   H4/R(7 + path lengths)/S1. Strings/limits/declarations remain borrowed.
 // * First failure chain: carrier, owner Some, outer issue, inner issue,
@@ -59,7 +60,7 @@ fn file_capture_metadata_capacity(
     )
     is Some(paths) &&
     @execution.checked_preparation_add_product(
-      4L + 25L + 24L + 7L + 10L + 3L + 3L + 1L + 4L + 2L + 2L + 1L + 6L + 13L,
+      4L + 27L + 26L + 7L + 10L + 3L + 3L + 1L + 4L + 2L + 2L + 1L + 6L + 13L,
       paths,
       1L,
     )
@@ -73,7 +74,7 @@ fn file_capture_metadata_capacity(
     @execution.preparation_representation_cost({
       record_headers: 1L +
       1L +
-      24L +
+      26L +
       4L +
       9L +
       3L +
@@ -93,8 +94,8 @@ fn file_capture_metadata_capacity(
       10L,
       reference_slots: references + 14L,
       scalar_words: 1L +
-      7L +
-      24L +
+      8L +
+      26L +
       1L +
       8L +
       3L +
@@ -143,6 +144,27 @@ fn file_capture_metadata_capacity(
   } else {
     0L
   }
+  let response_quote = if prepared_provider
+    .map(provider => provider.response_measured)
+    .unwrap_or(false) {
+    // The original admitted Contract has at most n nodes. These are the same
+    // five bounded quote walks documented by the caller preflight inventory,
+    // now inside the retained reader before its charged-response grow. Their
+    // cursor/array/result backing must precede that Resource callback too.
+    let n = limits.page.max_nodes.to_int64()
+    @execution.preparation_representation_cost({
+      record_headers: 600L + 11L * n,
+      reference_slots: 200L + 26L * n,
+      scalar_words: 1400L + 11L * n,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
+  } else {
+    0L
+  }
+  let controls = @execution.checked_preparation_add_product(
+    controls, response_quote, 1L,
+  ).unwrap()
   @execution.checked_preparation_add_product(mapped, controls, 1L).bind(total => {
     @execution.checked_preparation_add_product(total, prepared_control, 1L).bind(total => {
         @execution.checked_preparation_add_product(total, listing_control, 1L)
@@ -245,7 +267,21 @@ fn file_capture_provider_capacity(
   limits : NativeRelationFileLimits,
   contract : @contract.Contract,
   prepared_contract? : @rows.RelationDocumentPreparedContract? = None,
+  response_bytes? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
+  let page = match
+    file_capture_response_backing_page(limits.page, response_bytes) {
+    Some(value) => value
+    None => return None
+  }
+  guard file_capture_projection_backing_page(
+      contract,
+      limits.page,
+      response_bytes,
+    )
+    is Some(projection_page) else {
+    return None
+  }
   let projection : @rows.RelationDocumentProjectionConstruction = {
     original: contract,
     items_path_depth: selection.items_path.length(),
@@ -256,11 +292,10 @@ fn file_capture_provider_capacity(
     None =>
       @rows.relation_document_construction_inventory(limits.page, [projection])
     Some(_) => {
-      guard @rows.relation_document_raw_construction_inventory(limits.page)
+      guard @rows.relation_document_raw_construction_inventory(page)
         is Some(raw) &&
         @rows.relation_document_projection_construction_inventory(
-          projection,
-          limits.page,
+          projection, projection_page,
         )
         is Some(projected) else {
         return None
@@ -455,4 +490,156 @@ pub fn native_relation_file_input_capture_limits(
     retained_bytes: retained,
     execution_bytes: executing,
   })
+}
+
+///|
+// An actual charged input byte count bounds parser/typed text backing in the
+// SAME units. Keep every node/depth/row policy and all transport ceilings. The
+// parser below still receives the original limits; no refusal is relaxed.
+fn file_capture_response_backing_page(
+  page : @rows.RowPageLimits,
+  response_bytes : Int?,
+) -> @rows.RowPageLimits? {
+  match response_bytes {
+    None => Some(page)
+    Some(bytes) =>
+      if bytes < 0 || bytes > page.max_bytes {
+        None
+      } else {
+        // Empty malformed input still needs its original bounded refusal frame.
+        Some({ ..page, max_bytes: Int::max(1, bytes), })
+      }
+  }
+}
+
+///|
+// Only the original closed Text-row profile has a direct cumulative input
+// text bound. Other Contracts retain their full original projection envelope.
+// Do not infer Decimal rendering, reference envelopes or nested output sizes
+// from received byte length. NFC uses its existing generated output bound;
+// six bytes per UTF16 unit covers JSON escaping, with raw structural overhead.
+fn file_capture_projection_backing_page(
+  contract : @contract.Contract,
+  page : @rows.RowPageLimits,
+  response_bytes : Int?,
+) -> @rows.RowPageLimits? {
+  guard response_bytes is Some(bytes) else { return Some(page) }
+  if bytes < 0 || bytes > page.max_bytes {
+    return None
+  }
+  guard contract.shape is @contract.Object(fields) else { return Some(page) }
+  for index in 0..<@contract.field_count(fields) {
+    if !(@contract.field_at(fields, index).unwrap().contract.shape
+      is @contract.Text(_)) {
+      return Some(page)
+    }
+  }
+  guard @canonical.nfc_lf_retained_output_units(bytes.to_int64())
+    is Some(normalized) &&
+    @execution.checked_preparation_add_product(bytes.to_int64(), normalized, 6L)
+    is Some(bound) else {
+    return None
+  }
+  Some({
+    ..page,
+    max_bytes: Int64::min(page.max_bytes.to_int64(), Int64::max(1L, bound)).to_int(),
+  })
+}
+
+///|
+// One original Native holder/reservation for both constructor entry and its
+// charged response continuation. Never recompute a different owner or release
+// earlier outputs: grow uses this absolute simultaneous extent monotonically.
+fn file_capture_construction_capacity(
+  selection : NativeRelationFileSelection,
+  limits : NativeRelationFileLimits,
+  original : NativeRelationFileAcquisition,
+  prepared_provider : NativeRelationFilePreparedProvider?,
+  content : NativeRelationFileContentInput?,
+  response_bytes : Int?,
+) -> (Int64, Int64)? {
+  let listing = match original {
+    ManagedFileListingAcquisition(_, _, _, _)
+    | ManagedFileQueryListingAcquisition(_, _, _) => true
+    _ => false
+  }
+  let response_bound = if prepared_provider
+    .map(provider => provider.response_measured)
+    .unwrap_or(false) {
+    Some(Int::max(1, response_bytes.unwrap_or(1)))
+  } else {
+    None
+  }
+  let metadata_bytes = match
+    file_capture_metadata_capacity(
+      selection,
+      limits,
+      prepared_provider~,
+      listing~,
+    ) {
+    Some(value) => value
+    None => return None
+  }
+  // Keyed RowRun funds its checked response; this same owner separately
+  // retains the actual raw physical file/decoder provider until final close.
+  let (metadata_retained, metadata_execution) = match original {
+    ManagedFileKeyedAcquisition(_, _, provider, _) => {
+      let capacity = if provider.response_measured {
+        match
+          file_capture_provider_capacity(
+            provider.selection,
+            provider.limits,
+            @rows.relation_document_prepared_contract(
+              provider.prepared_contract,
+            ),
+            prepared_contract=Some(provider.prepared_contract),
+            response_bytes=response_bound,
+          ) {
+          Some(value) => value
+          None => return None
+        }
+      } else {
+        provider.capacity
+      }
+      guard @execution.checked_preparation_add_product(
+          metadata_bytes,
+          @execution.execution_capacity_retained_bytes(capacity),
+          1L,
+        )
+        is Some(retained) &&
+        @execution.checked_preparation_add_product(
+          metadata_bytes,
+          @execution.execution_capacity_execution_bytes(capacity),
+          1L,
+        )
+        is Some(execution) else {
+        return None
+      }
+      (retained, execution)
+    }
+    _ => (metadata_bytes, metadata_bytes)
+  }
+  let (metadata_retained, metadata_execution) = match content {
+    None => (metadata_retained, metadata_execution)
+    Some(input) => {
+      guard native_relation_file_content_capacity(
+          input,
+          prepared_provider,
+          response_bytes=response_bound,
+        )
+        is Some((retained, execution)) &&
+        @execution.checked_preparation_add_product(
+          metadata_retained, retained, 1L,
+        )
+        is Some(retained) &&
+        @execution.checked_preparation_add_product(
+          metadata_execution, execution, 1L,
+        )
+        is Some(execution) else {
+        return None
+      }
+      (retained, execution)
+    }
+  }
+  Some((metadata_retained, metadata_execution))
 }

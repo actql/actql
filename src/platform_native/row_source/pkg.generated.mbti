@@ -8,7 +8,10 @@ import {
   "actql/actql/physical_resources",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/installed_arena_control",
+  "actql/actql/platform_native/publication_store",
   "actql/actql/query_planning",
+  "actql/actql/run_publication",
+  "actql/actql/run_publication_host",
   "actql/actql/value_admission",
 }
 
@@ -31,7 +34,7 @@ pub fn native_relation_file_provider_capacity(@client_row_source_host.RowDeclara
 
 pub fn prepare_native_managed_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledWholeSourceCapacity, @execution_relation.ExecutionCapacity, String, NativeRelationFileSelection, NativeRelationFileLimits, prepared_provider? : NativeRelationFilePreparedProvider?) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
-pub fn prepare_native_managed_relation_file_keyed_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, String, @client_local_host.ClientInstalledKeyedSourceRead, @client_row_source_host.RowKeyedAcquisition, NativeRelationFilePreparedProvider, @value_admission.ReferenceIssuer, String) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
+pub fn prepare_native_managed_relation_file_keyed_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, String, @client_local_host.ClientInstalledKeyedSourceRead, @client_row_source_host.RowKeyedAcquisition, NativeRelationFilePreparedProvider, @value_admission.ReferenceIssuer, String, content? : NativeRelationFileContentInput?) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
 pub fn prepare_native_managed_relation_file_listing_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledWholeSourceCapacity, NativeRelationFileListingProvider, String) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
@@ -41,11 +44,13 @@ pub fn prepare_native_managed_relation_file_query_listing_capture(@installed_are
 
 pub fn prepare_native_relation_file_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
+pub fn prepare_native_relation_file_content_input(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, @publication_store.Store, NativeRelationFileListingFields, String, String, @value_admission.ReferenceLimits, Int, () -> Int64, () -> String, (@value_admission.ReferenceValue) -> String?) -> Result[NativeRelationFileContentInput, NativeRelationFileIssue]
+
 pub fn prepare_native_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_row_source_host.RowInputAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
 pub fn prepare_native_relation_file_listing_provider(@client_row_source_host.RowDeclaration, String, NativeRelationFilePreparedProvider, NativeRelationFileListingFields, @value_admission.ReferenceIssuer, (String) -> Result[@value_admission.CheckedValue, NativeRelationFileIssue], now_ms? : (() -> Int64)?) -> Result[NativeRelationFileListingProvider, NativeRelationFileIssue]
 
-pub fn prepare_native_relation_file_provider(@client_row_source_host.RowDeclaration, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFilePreparedProvider, NativeRelationFileIssue]
+pub fn prepare_native_relation_file_provider(@client_row_source_host.RowDeclaration, NativeRelationFileSelection, NativeRelationFileLimits, response_measured? : Bool) -> Result[NativeRelationFilePreparedProvider, NativeRelationFileIssue]
 
 pub fn project_native_relation_file_content_bytes(NativeRelationFilePreparedProvider, @client_row_source_host.RelationDocument, NativeRelationFileListingFields, String, String, String, Int) -> Result[(String, Bytes), NativeRelationFileIssue]
 
@@ -62,6 +67,8 @@ pub fn NativeRelationFileCapture::close(Self) -> Result[Bool, NativeRelationFile
 pub fn NativeRelationFileCapture::complete_keyed_content_page(Self, @client_row_source_host.RelationDocument, Bytes) -> Result[Unit, NativeRelationFileFailure]
 pub fn NativeRelationFileCapture::keyed_capture(Self) -> Result[@client_row_source_host.RowKeyedSourceCapture, NativeRelationFileIssue]
 pub fn NativeRelationFileCapture::keyed_content_document(Self) -> Result[@client_row_source_host.RelationDocument, NativeRelationFileIssue]
+
+type NativeRelationFileContentInput
 
 type NativeRelationFileFailure
 pub fn NativeRelationFileFailure::issue(Self) -> NativeRelationFileIssue
@@ -80,6 +87,9 @@ pub(all) enum NativeRelationFileIssue {
   Document(@client_row_source_host.RowSourceIssue)
   Mapping(@client_row_source_host.RowMappingIssue)
   ManagedRead(@client_local_host.ClientInstalledSourceReadIssue)
+  Content(@run_publication.GeneratedContentReferenceIssue)
+  Store(@publication_store.NativePublicationStoreIssue)
+  Lookup(@run_publication_host.ClientKeyedRequestIssue)
 }
 
 pub(all) struct NativeRelationFileLimits {

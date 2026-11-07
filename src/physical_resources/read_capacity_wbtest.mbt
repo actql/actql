@@ -321,3 +321,89 @@ test "read capacity cleanup retains custody without settling unknown send usage"
   assert_eq(ledger_usage(ledger).uncertain_transfer_bytes, 11L)
   assert_eq(quantity_usage(ledger), quantities)
 }
+
+///|
+test "byte-only growth keeps its original identity and cannot mint work" {
+  let ledger = read_capacity_fixture(17L, 13L)
+  let foreign = read_capacity_fixture(17L, 13L)
+  let token = reserve_capacity(ledger, 4L, 6L).unwrap()
+  let before = ledger_usage(ledger)
+  let serial = ledger.next_capacity_serial
+  let send_serial = ledger.next_attempt_serial
+  let quantities = quantity_usage(ledger)
+  grow_capacity_reservation(ledger, token, 10L, 12L).unwrap()
+  let grown = ledger_usage(ledger)
+  assert_eq(grown, {
+    ..before,
+    reserved_retention_bytes: 10L,
+    reserved_execution_bytes: 12L,
+    peak_retention_bytes: 10L,
+  })
+  assert_true(capacity_reservation_matches(ledger, token, 10L, 12L))
+  assert_eq(ledger.next_capacity_serial, serial)
+  assert_eq(ledger.next_attempt_serial, send_serial)
+  assert_eq(quantity_usage(ledger), quantities)
+  assert_true(
+    grow_capacity_reservation(foreign, token, 10L, 12L) is Err(ForeignOwner),
+  )
+  assert_true(
+    grow_capacity_reservation(ledger, token, 9L, 12L) is Err(InvalidCharge),
+  )
+  assert_true(
+    grow_capacity_reservation(ledger, token, 10L, 11L) is Err(InvalidCharge),
+  )
+  assert_true(
+    grow_capacity_reservation(ledger, token, 18L, 12L) is Err(RetentionLimit),
+  )
+  assert_true(
+    grow_capacity_reservation(ledger, token, 10L, 14L) is Err(ExecutionLimit),
+  )
+  assert_eq(ledger_usage(ledger), grown)
+  assert_eq(quantity_usage(ledger), quantities)
+  assert_eq(ledger.next_capacity_serial, serial)
+  settle_capacity(ledger, token).unwrap()
+  let closed = ledger_usage(ledger)
+  assert_true(
+    grow_capacity_reservation(ledger, token, 10L, 12L) is Err(ClosedReservation),
+  )
+  assert_eq(ledger_usage(ledger), closed)
+  assert_eq(closed.attempts, 0)
+  assert_eq(closed.transferred_bytes, 0L)
+  assert_eq(closed.live_reservations, 0)
+}
+
+///|
+test "byte-only growth observes original current once and rejects its reentrant close" {
+  let ledger = read_capacity_fixture(17L, 13L)
+  let token = reserve_capacity(ledger, 4L, 6L).unwrap()
+  let calls = Ref(0)
+  ledger.imported_child = Some({
+    nonce: 1L,
+    admit: _ => 0,
+    current: _ => {
+      calls.val += 1
+      // The Resource owner, rather than the Native caller, fences this
+      // synchronous callback before changing the original byte reservation.
+      settle_reservation_current(ledger, token.reservation).unwrap()
+      0
+    },
+    limit: (_, _) => 0L,
+    capacity: (_, _) => 0L,
+    report: (_, _) => 0,
+    stop: _ => 0,
+    fixed_capacities: false,
+    working: None,
+    current_window: None,
+    acquire_window: None,
+    acquiring_window: false,
+    ledger: Some(ledger),
+    stopping: false,
+    unavailable: false,
+  })
+  assert_true(
+    grow_capacity_reservation(ledger, token, 10L, 12L) is Err(ClosedReservation),
+  )
+  assert_eq(calls.val, 1)
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
+}

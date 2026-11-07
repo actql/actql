@@ -2906,3 +2906,9 @@ int64_t actql_native_filesystem_write_layout_field(int32_t field) {
     default: return -1;
   }
 }
+
+int32_t actql_native_filesystem_root_diagnostic_ceiling(
+  actql_native_filesystem_root *root
+) {
+  return root == NULL ? 0 : root->diagnostic_ceiling;
+}

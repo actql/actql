@@ -42,7 +42,23 @@ and Read-allocated diagnostic/usage alias before retiring the physical execution
 and then its domain. A successful logical close alone does not retire those
 physical aliases.
 
-The quote retains the whole peak until final RowRun cleanup. It combines the
+The default quote retains the whole declared peak until final RowRun cleanup.
+An installed prepared provider may instead select received-byte construction
+backing once at preparation. Transport buffers and all original page, work,
+chunk and attempt guards remain unchanged. Before parsing a completed charged
+response, this mode grows the SAME original reservation to the complete
+simultaneous constructor extent. A failed grow refuses admission; received work
+is not refunded and prior Source outputs remain retained. The response length
+is measured from the original charged Bytes, never an announced length.
+
+Raw parser backing uses that measured length. Typed projection keeps its full
+declared envelope except for closed Text-only rows, whose cumulative text bound
+uses the canonical NFC output inventory and JSON escaping bound. Listing output
+writers retain their full original allowance. Numeric, reference and nested
+Contracts do not acquire a byte-length projection shortcut. The successful grown
+peak remains held through the same final cleanup.
+
+The quote combines the
 Common constructor inventories, a documented managed-control census, checked
 path/buffer/diagnostic extents and the filesystem's actual compiled `sizeof`
 facts, including observation and acquisition objects. It is a logical accounting
@@ -67,6 +83,31 @@ same-parent backing. This entry supplies no ContentRef, Store persistence,
 keyed-request completion, authorization or physical cleanup acknowledgement.
 Only the existing checked capture/Store/ReferenceIssuer connection may turn the
 returned DATA into an admitted ContentRef.
+
+## Original keyed Content Store connection
+
+The keyed capture entrance may retain one `NativeRelationFileContentInput`
+containing the original keyed acquisition, request, compiled Run and publication
+Definition, Store and Source role selection. Its pure correspondence check
+compares those original objects without another current callback. A copied
+selection or equal-looking request cannot replace them.
+
+The same file-capture owner resolves the nominal Resource, reads its actual
+file, projects content bytes and version, and retains the Store child before
+persistence. Only the Store's original persist/confirm sequence permits the
+run-bound issuer to return a nominal ContentRef. The returned keyed page carries
+that reference, not a synthetic String. Original row response admission still
+checks the same request and cumulative charged ticket. This path supplies no
+Account, provider permission, Model result or Effect write authority.
+
+The original metadata reservation covers simultaneous file parsing, content
+projection, Store construction, confirmation and reference/page output. Its
+received-byte continuation grows that same byte-only token before materializing
+the next phase; it creates no send attempt or transfer allowance. Failure and
+reentrant close retain the actual Store/reader children. Close returns their
+original duties before settling the token; logical completion is not physical
+cleanup. The installing caller remains responsible for retiring escaped aliases,
+leaving the actual Native execution frame, and then retiring the SAME Run.
 
 ## Caller preparation inventory
 

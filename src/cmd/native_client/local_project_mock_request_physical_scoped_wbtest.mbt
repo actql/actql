@@ -7,6 +7,7 @@ priv struct NativeMockReadmeRequestFacility {
   physical : @initial_arena.InstalledArenaRetainedExecution
   parent : @local_values.ClientRequestPreparation[Array[Int]]
   input : Array[Int]
+  mut run : @local_values.ClientInstalledManagedRun?
 }
 
 ///|
@@ -80,7 +81,7 @@ fn native_mock_readme_request_facility() -> NativeMockReadmeRequestFacility rais
     input,
     @local_values.client_local_resource_policy(),
   ).unwrap()
-  { arena, domain, physical, parent, input, }
+  { arena, domain, physical, parent, input, run: None, }
 }
 
 ///|
@@ -296,6 +297,7 @@ fn native_mock_readme_request_payload(
   original : LocalProjectMockDeclarations,
   effect_compilation : Bool,
   effect_source_inputs : Bool,
+  content_join : Bool,
 ) -> String? raise {
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
   let wire : Json = {
@@ -319,6 +321,7 @@ fn native_mock_readme_request_payload(
         @local_host.native_client_submitted_preparation_intent_cid(preparation),
         @run_host.client_submitted_intent_cid(intent),
       )
+      let mut body_returned = false
       let branch = match
         @local_host.native_client_submitted_preparation(preparation) {
         EffectComputation(prepared) => {
@@ -408,9 +411,23 @@ fn native_mock_readme_request_payload(
                 !physical_equal(compiled._retained_sources, source_inputs) {
                 stop("LocalOriginalSourceInputsChanged")
               }
+              if content_join {
+                @local_host.return_native_client_submitted_request_body(borrow).unwrap()
+                |> ignore
+                body_returned = true
+                native_mock_readme_content_join(
+                  facility,
+                  original,
+                  prepared,
+                  compiled,
+                  contracts,
+                  infers[0],
+                )
+              }
               None
             } catch {
               ClientStop(message) => Some(message)
+              error => raise error
             }
           } else {
             None
@@ -418,15 +435,21 @@ fn native_mock_readme_request_payload(
         }
         _ => Some("original README did not retain Effect computation")
       }
-      @local_host.return_native_client_submitted_request_body(borrow).unwrap()
-      |> ignore
+      if !body_returned {
+        @local_host.return_native_client_submitted_request_body(borrow).unwrap()
+        |> ignore
+      }
       branch
     }
   }
   // Match the real command's first logical cleanup: it intentionally remains
   // pending until the SAME Native initializer reports physical retirement.
   // The actual close below still refuses live reservations or aliases.
-  ignore(@local_values.abort_request_preparation_after_cleanup(facility.parent))
+  if facility.run is None {
+    ignore(
+      @local_values.abort_request_preparation_after_cleanup(facility.parent),
+    )
+  }
   facility.arena.leave_domain_retained_execution(facility.physical).unwrap()
   issue
 }
@@ -438,8 +461,15 @@ fn native_mock_readme_request_in_metadata_read(
   facility : NativeMockReadmeRequestFacility,
   effect_compilation? : Bool = false,
   effect_source_inputs? : Bool = false,
+  content_join? : Bool = false,
 ) -> String? raise {
-  let original = native_project_mock_model_fixture("deal-review-missing")
+  let original = native_project_mock_model_fixture(
+    if content_join {
+      "deal-review"
+    } else {
+      "deal-review-missing"
+    },
+  )
   original.prepare_source_declarations().unwrap()
   // SAME selected Native file implementation, with the explicit immutable
   // authority metadata port already disclosed for this source component.
@@ -478,14 +508,24 @@ fn native_mock_readme_request_in_metadata_read(
     original._retained_project,
     Some("deal-review.aql"),
   ).unwrap()
-  // No payload data.json exists. This is the unchanged complete authored
-  // query through actual funded Native intake/check/compile, not execution.
+  // The earlier cases intentionally omit payload data. The distinct joined
+  // component selects the exact existing template with its fresh data file.
   metadata.leave_domain_original_read(read).unwrap()
   let issue = native_mock_readme_request_payload(
     facility, environment, publication, document, original, effect_compilation, effect_source_inputs,
+    content_join,
   )
   facility.arena.close_domain_retained_execution(facility.physical).unwrap()
-  @local_values.abort_request_preparation_after_cleanup(facility.parent).unwrap()
+  match facility.run {
+    Some(run) => {
+      @local_values.retire_installed_managed_run(run).native_content_join_stage(
+        "same Run retirement after actual Native frame close",
+      )
+      facility.run = None
+    }
+    None =>
+      @local_values.abort_request_preparation_after_cleanup(facility.parent).unwrap()
+  }
   facility.arena.close_domain_after_owner_ack(facility.domain).unwrap()
   facility.arena.try_close().unwrap()
   metadata.enter_domain_original_read(read).unwrap()

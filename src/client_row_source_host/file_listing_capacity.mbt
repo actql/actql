@@ -90,6 +90,7 @@ pub fn start_accounted_listing_row_acquisition(
   ledger : @resources.Ledger,
   transfer_bytes : Int64,
   execution_scratch : Int64,
+  response_capacity? : Bool = false,
 ) -> Result[RowRun, RowHostIssue] {
   if declaration is None || transfer_bytes < 0L {
     return Err(Physical(InvalidLimits))
@@ -148,7 +149,13 @@ pub fn start_accounted_listing_row_acquisition(
         Err(resource_issue) => return Err(Physical(resource_issue))
       }
   }
-  install_row_reservation(run, ledger, reservation, execution_scratch)
+  install_row_reservation(
+    run,
+    ledger,
+    reservation,
+    execution_scratch,
+    provider_capacity=if response_capacity { declaration } else { None },
+  )
   Ok(run)
 }
 

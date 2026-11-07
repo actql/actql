@@ -14,6 +14,8 @@ import {
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/encode_core" @encode,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_shape" @shape,
+  "actql/actql/execution_relation" @execution,
   "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/base64",
   "moonbitlang/core/string",
@@ -30,6 +32,7 @@ options(
   targets: {
     "store_native.mbt": [ "native" ],
     "captured_content_custody_native.mbt": [ "native" ],
+    "captured_content_capacity_native.mbt": [ "native" ],
     "captured_content_custody_native_wbtest.mbt": [ "native" ],
     "captured_content_custody_unsupported.mbt": [ "not", "native" ],
     "publication_observation_native.mbt": [ "native" ],
