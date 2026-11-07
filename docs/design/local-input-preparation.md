@@ -5764,6 +5764,23 @@ that backing or permit raw Source records to bypass the existing Request owner.
 
 ### Source intake and borrowed handoff on the same Request
 
+Before returning the selected compiler kind, the Request terminal completes the
+retained Source's existing typed constructor borrow and returns that same
+borrow. The original handoff quote backs the checked ARRAY-profile walk and
+cached Source association; no second parser, checker or compiler is invoked.
+A later borrow observes that same cached preparation instead of repeating its
+profile walk. A rejected Source never reaches a body or Run consumer.
+
+The Native typed Query entrance instead retains its original parser on the
+Request without a submitted-Source envelope. That original selects the same
+checked ARRAY profile after reserving the complete original typed-data estimate
+as scratch on its existing capacity. Its debit observation invokes no current
+callback; the original grow supplies the reentry/current boundary before the
+walk. Source diagnostics retain the original checked locations. JSON/YAML
+machine Programs have neither Source original and keep recursive ARRAY types;
+no syntax-text classifier or new capacity policy selects this distinction.
+
+
 `prepare_request_source_input` retains only the Request's same admitted intent,
 Environment and publication. Before calling the shared Source intake, it grows
 the existing working reservation by the existing input-derived canonical and

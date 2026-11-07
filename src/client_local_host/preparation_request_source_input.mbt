@@ -330,3 +330,30 @@ fn[I] clear_request_source_input(owner : ClientRequestPreparation[I]) -> Unit {
   }
   owner.source_input = None
 }
+
+///|
+// Native's existing typed Query entrance has no submitted-Source envelope.
+// Reserve the SAME full typed-data scratch used by the retained Source walk,
+// before collecting slots/contracts; no policy ceiling or new Root is used.
+fn[I, P] reserve_request_query_profile_scratch(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[I, P],
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard owner.program_data is Some(data) &&
+    program_check_data_extent_cost(data) is Some(scratch) else {
+    return Err(WrongPhase)
+  }
+  let (r, e) = match @resources.preparation_capacity_working_extents(capacity, input) {
+    Err(issue) => return Err(Capacity(issue))
+    Ok(value) => value
+  }
+  guard @execution.checked_preparation_add_product(e, scratch, 1L) is Some(e) else {
+    return Err(Policy)
+  }
+  let previous = owner.phase
+  owner.phase = Selecting
+  let reserved = @resources.reserve_working_preparation_phase(capacity, input, r, e)
+  owner.phase = previous
+  reserved.map_err(issue => Capacity(issue))
+}

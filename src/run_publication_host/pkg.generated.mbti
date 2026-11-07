@@ -335,6 +335,8 @@ pub fn check_client_node_model_preparation_layout(ClientNodeModelPreparationLayo
 
 pub fn check_client_private_continuation_retention(Bytes, String, Int, Int) -> Result[Unit, ClientPrivateContinuationRetentionIssue]
 
+pub fn check_client_source_array_profile(@program_check.CheckedProgram) -> Result[Unit, ClientSourcePreparationIssue]
+
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
 pub fn check_recovered_client_table_schema_wire(RecoveredClientTablePreview, String, Int, Int, Int) -> Result[Unit, ClientTableInputIssue]
