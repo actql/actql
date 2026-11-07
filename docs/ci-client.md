@@ -252,6 +252,35 @@ controlled successful comparisons. Independent retry scope and reduced per-job
 timeout exposure are the immediate goals. Pipeline evidence remains a separate,
 longer critical path; this split does not establish a whole-workflow speedup.
 
+## Source-backed preparation observation
+
+The existing `ci-evidence` / `ci-timing` collector read completed run
+[42410011597](https://github.com/actql/actql/actions/runs/42410011597), attempt 1,
+reported head `3930886d10d1b0a50ee9a77bae376c196b078b87`. All three selected
+Client jobs and their preparation steps passed; the overall run failed.
+
+| Preparation step | Distribution | Callers | Mutations |
+| --- | ---: | ---: | ---: |
+| Runtime build | 73 s | 74 s | 70 s |
+| Adapter build | 4 s | 3 s | 3 s |
+| Each wire freshness check | 0 s | 0 s | 0 s |
+| Existing normal-tar download | 2 s | 2 s | 2 s |
+
+These are API timestamp differences at whole-second precision: a zero-second
+wire observation is not zero work. The normal-tar download does not measure
+transfer of a new runtime-output artifact. The runtime stages total 217 runner
+seconds; replacing them with one hypothetical 70–74-second build would remove
+143–147 seconds before upload, transfer and dependency waiting. That arithmetic
+is not measured savings, and the preparation stages already overlap in time.
+
+Do not introduce another shared runtime artifact from this observation alone.
+Adapter and freshness work is small, while runtime sharing still lacks a
+same-source relocated consumer and mutation-private-copy qualification plus a
+net timing comparison. Keep the measured boundaries and private builds until
+those requirements justify the extra producer and dependency. The failed run's
+35,501 total job-seconds and 4,532-second final-check interval remain separate
+observations, never a successful optimization comparison.
+
 ## Main performance observations
 
 Every public `main` push runs `main-performance` on Linux with the normal
