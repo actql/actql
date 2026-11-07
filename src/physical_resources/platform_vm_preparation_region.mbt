@@ -43,6 +43,16 @@ fn grow_imported_platform_working_current(
   retained : Int64,
   execution : Int64,
 ) -> Result[Unit, LedgerIssue] {
+  if ledger.imported_child is Some(origin) &&
+    origin.current_window is Some(window) {
+    let backed_bytes = window.val
+    guard origin.ledger is Some(original) && physical_equal(original, ledger) else {
+      return Err(ForeignOwner)
+    }
+    if retained > backed_bytes || execution > backed_bytes - retained {
+      return Err(RetentionLimit)
+    }
+  }
   guard ledger.imported_child is Some(origin) &&
     origin.working is Some((working, prefix_retained, prefix_execution)) else {
     return Ok(())

@@ -132,6 +132,8 @@ pub fn[P, C] check_backed_execution_delegation_current(BackedExecutionRegion[P, 
 
 pub fn[I] check_backed_initialization_input(BackedInitializationAdmission[I], I) -> Result[Unit, ImportedChildLedgerIssue]
 
+pub fn[P, C, R] check_backed_original_child_window_demand(BackedExecutionLiveProjection[P, C, R], R, Int64, Int64) -> Result[Unit, BackedExecutionIssue]
+
 pub fn[P] check_backed_preparation_cleanup_original(BackedPreparedRunAdmission[P], Ledger) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn[I] check_backed_preparation_input(BackedPreparationAdmission[I], I) -> Result[Unit, ImportedChildLedgerIssue]
@@ -205,6 +207,10 @@ pub fn[T] close_model_io_admission(ModelIoAdmission[T], T) -> Result[Bool, Model
 pub fn close_platform_vm_working_capacity_after_cleanup(PlatformVMWorkingCapacity) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
+
+pub fn[P, C] complete_backed_execution_window_after_acquisition(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], SharedCapacityGrowth, Int64) -> Result[Unit, BackedExecutionIssue]
+
+pub fn[P, C, R] complete_backed_original_child_window_after_acquisition(BackedExecutionLiveProjection[P, C, R], R, SharedCapacityGrowth, Int64) -> Result[Unit, BackedExecutionIssue]
 
 pub fn[P, E] complete_node_managed_run_operation_construction(NodeManagedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking) -> Result[Unit, NodeManagedRunOperationIssue[E]]
 
@@ -532,7 +538,7 @@ pub fn reservation_serial(Reservation) -> Int
 
 pub fn reserve_attempt(Ledger, Int64, Int64, Int64, quantities? : QuantityAmounts?) -> Result[Reservation, LedgerIssue]
 
-pub fn[P, C] reserve_backed_execution_delegation(BackedExecutionRegion[P, C], P, C, BackedExecutionExtent, BackedExecutionAccess, LedgerLimits, Int64, Int64) -> Result[BackedExecutionDelegation[P, C], BackedExecutionIssue]
+pub fn[P, C] reserve_backed_execution_delegation(BackedExecutionRegion[P, C], P, C, BackedExecutionExtent, BackedExecutionAccess, LedgerLimits, Int64, Int64, initial_window? : Int64?) -> Result[BackedExecutionDelegation[P, C], BackedExecutionIssue]
 
 pub fn reserve_capacity(Ledger, Int64, Int64) -> Result[CapacityReservation, LedgerIssue]
 

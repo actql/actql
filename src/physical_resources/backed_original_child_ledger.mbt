@@ -85,6 +85,9 @@ pub fn[P, C, R] prepare_backed_original_child_ledger(
   if access.region is Some(region) {
     value.origin.working = region.working
   }
+  if access.ticket is Some(ticket) {
+    value.origin.current_window = ticket.current_window
+  }
   access.child_origin = Some(value.origin)
   Ok(value)
 }
@@ -106,6 +109,7 @@ fn retire_backed_original_child_origin(
   origin.stop = retired_backed_original_child_status
   origin.ledger = None
   origin.working = None
+  origin.current_window = None
 }
 
 ///|

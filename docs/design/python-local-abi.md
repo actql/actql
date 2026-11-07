@@ -3629,6 +3629,52 @@ Parser capacity refusal, input error and physical cleanup pending keep their
 existing distinct Host codes. Neither successful sealing nor cleanup grants
 Source checking, Run execution or physical Store retirement.
 
+#### Original child policy and acquired byte window
+
+An in-process exclusive child may retain a declared policy larger than its
+initial physical payload. `initial_window` selects only this closed, single
+child purpose. The existing default mapped-extent route and VM working route
+keep their original rules. The ticket and imported child origin retain the
+same current byte window separately from `Ledger.limits`; these two additional
+reference slots and the shared Ref byte-counter/Option constructor need backing in
+the original entry envelope before delegation. They are not another Resource
+or a physical receipt.
+
+`check_backed_original_child_window_demand` checks the same live projection,
+runtime, current state and declared policy only. It reserves nothing and
+returns no reusable current proof or permission to construct. Every canonical
+child byte reserve/resize still checks retained plus execution against its current acquired pooled window in the
+existing closed Resource cut, before usage or serial mutation. Reporting also
+cannot claim bytes outside that window. No external current callback or I/O
+is added merely to read the window.
+
+The physical owner next reserves the complete addition on the same parent,
+retains that original `SharedCapacityGrowth`, and acquires its actual payload
+and receipt. Only then may it call
+`complete_backed_original_child_window_after_acquisition` with the same
+projection/runtime/growth, receipt-derived usable bytes excluding controls,
+from that receipt. The Resource owner checks same-parent membership, positive
+usable growth, overflow and the charged addition,
+then completes that pending growth and adds those usable bytes to the same
+child window in one
+synchronous current cut. The caller must not complete the growth a second
+time. Only the subsequent same-Read resize admits payload construction. The lower
+`complete_backed_execution_window_after_acquisition` accepts the existing
+region/provider/child/ticket before any live projection or imported Ledger
+exists; both entrances use one private closed current cut and the same byte
+counter. Neither constructs a substitute runtime or Root.
+
+Native additions may be discontiguous. Their complete original mappings and
+controls stay charged to the parent's control allocation; the original mapped
+extent, address, loan and exclusion range never expand by arithmetic. Unknown,
+partial acquisition, a lost completion or current/closing refusal keeps the
+pending growth and physical cleanup duties. Neither window publication nor
+Read settlement is a physical stop or cleanup ACK. Existing attempt, work,
+transfer and consumed history remain unchanged. The portable window controls
+exercise these logical identities and refusal paths with explicit physical
+owner stand-ins; actual Native receipt/backing and ordinary acceptance require
+their separate installed consumer connection.
+
 #### Original Request admission and demand growth
 
 The fixed platform preparation connection uses the existing backed region,

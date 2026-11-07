@@ -38,6 +38,9 @@ pub struct BackedExecutionDelegation[P, C] {
   extent : BackedExecutionExtent
   access : BackedExecutionAccess
   limits : LedgerLimits
+  // A growable in-process child separates declared policy from bytes already
+  // acquired by its original physical owner. None preserves fixed extents.
+  priv current_window : Ref[Int64]?
   mut peak_retention : Int64
   // The original logical reservation's open flag is the settlement state.
   // None remains unknown final usage; it never means zero usage or unsent.
@@ -180,6 +183,7 @@ pub fn[P, C] reserve_backed_execution_delegation(
   limits : LedgerLimits,
   overhead_retained : Int64,
   overhead_execution : Int64,
+  initial_window? : Int64? = None,
 ) -> Result[BackedExecutionDelegation[P, C], BackedExecutionIssue] {
   let (capacity, allocation) = match backed_region_current(region, provider) {
     Ok(value) => value
@@ -195,12 +199,28 @@ pub fn[P, C] reserve_backed_execution_delegation(
     limits.execution_bytes < 0L ||
     (
       region.working is None &&
+      initial_window is None &&
       (
         limits.retained_bytes > extent.payload_length ||
         limits.execution_bytes > extent.payload_length - limits.retained_bytes
       )
     ) {
     return Err(InvalidExtent)
+  }
+  if initial_window is Some(bytes) &&
+    (
+      region.working is Some(_) ||
+      access != ExclusiveWrite ||
+      !region.children.is_empty() ||
+      bytes <= 0L ||
+      bytes > extent.payload_length
+    ) {
+    return Err(InvalidExtent)
+  }
+  for existing in region.children {
+    if existing.current_window is Some(_) {
+      return Err(ExtentConflict)
+    }
   }
   // This closed VM binding delegates one original child and grows only that
   // child's actual claim. It is not a mapped window or shared read region.
@@ -250,6 +270,7 @@ pub fn[P, C] reserve_backed_execution_delegation(
     extent,
     access,
     limits,
+    current_window: initial_window.map(bytes => Ref(bytes)),
     peak_retention: 0L,
     final_usage: None,
     live_usage_reported: false,
@@ -366,6 +387,18 @@ fn[P, C] backed_usage_valid(
   usage : LedgerUsage,
 ) -> Bool {
   let limits = ticket.limits
+  let window = match ticket.current_window {
+    Some(window) => {
+      let bytes = window.val
+      usage.held_bytes <= bytes &&
+      usage.reserved_retention_bytes <= bytes - usage.held_bytes &&
+      usage.peak_retention_bytes <= bytes &&
+      usage.reserved_execution_bytes <=
+      bytes - usage.held_bytes - usage.reserved_retention_bytes
+    }
+    None => true
+  }
+  window &&
   usage.held_bytes >= 0L &&
   usage.held_bytes <= limits.retained_bytes &&
   usage.reserved_retention_bytes >= 0L &&
