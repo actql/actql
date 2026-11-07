@@ -6080,3 +6080,12 @@ abort/current/partial-cleanup duties remain attached to the same Request. A
 logical retirement attempt cannot acknowledge an outstanding Native frame.
 Explicit-configuration library entry points remain separate compatibility
 routes; they are not selected as a fallback by these ordinary installed commands.
+
+
+The submitted-intent Owner retains the exact UTF-8 byte count returned by its
+original canonical text writer beside that same immutable wire and CID. Journal
+append and cumulative inventory consume this stored fact instead of encoding
+another complete byte buffer solely to obtain its length. The Request's existing
+constructor peak and retained-intent quote include that additional scalar.
+This count is not capacity, current authority, a complete Journal inventory or a
+COMMIT acknowledgement; the original count/byte quota and transaction still apply.

@@ -298,9 +298,7 @@ pub fn[E] inspect_client_submitted_journal_inventory(
       row.key {
       return Err(custody_lost)
     }
-    retained_bytes += @utf8.encode(client_submitted_intent_wire(record.intent))
-      .length()
-      .to_int64()
+    retained_bytes += record.intent.wire_bytes.to_int64()
     if retained_bytes > 67108864L {
       return Err(custody_lost)
     }
