@@ -154,6 +154,22 @@ fn local_submission_original_tags(
     return
   }
   match issue {
+    Journal(original) => {
+      // Closed Journal variants only. The actual SQL status stays separate;
+      // arbitrary physical messages, paths and identities never become tags.
+      emit(10, path * 16L + 7L)
+      let tag = match original {
+        Physical(cause) => {
+          emit(15, local_submission_sql_tag(cause))
+          5000L
+        }
+        CapacityExceeded => 5001L
+        Encoding => 5002L
+        CustodyLost => 5003L
+        _ => 5099L
+      }
+      emit(11, tag)
+    }
     OriginalResources(cause) => {
       emit(10, path * 16L + 1L)
       local_submission_pair_tags(cause, emit)
