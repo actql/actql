@@ -137,3 +137,20 @@ After actual read cleanup the managed Run drops its cached read slots, rather
 than merely clearing array length. A completed Resource retirement drops its
 now-unneeded capacity callback only after the original retirement returns true;
 pending/failure and physical ACK remain with their original owners.
+
+A normal declared-file caller can prepare `NativeRelationFilePreparedProvider`
+once under its original metadata scope. Its opaque Common prepared contract,
+selection snapshot and exact immutable capacity accompany the same managed
+Plan. At read time, `prepared_provider` checks those original correspondences
+and reuses the checked contract and quote. It does not create a Ledger or an
+Account/read grant. Mutable input path arrays cannot replace the retained
+snapshot. Public limit records are immutable DATA compared by quantity, while
+the managed Plan still requires the same capacity original.
+
+The independent component entrance retains its original 64 KiB envelope. A
+managed caller supplies and funds its selected implementation profile instead;
+that component envelope is not another normal Source acceptance policy. The
+file owner checks the observed generation against the selected ceiling and
+allocates the receive backing for that generation's actual size. It charges
+only actual chunks once and checks the exact generation/extent through EOF.
+No support maximum is itself an observed file size or physical-release ACK.

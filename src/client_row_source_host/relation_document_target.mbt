@@ -15,6 +15,21 @@ pub struct RelationDocument {
 }
 
 ///|
+// The original admitted declaration's schema only. It is DATA held by the
+// installing caller, not Source/Effect authority or a document observation.
+// Private fields prevent a caller-supplied Contract from replacing its schema.
+struct RelationDocumentPreparedContract {
+  declaration : RowDeclaration
+  resource : String
+  primary_identity : String
+  limits : RowPageLimits
+  contract : @contract.Contract
+  schema : @schema.Schema
+  columns : Array[String]
+  identity_index : Int
+}
+
+///|
 /// Bounded cumulative observations, not a capacity quotation or retirement
 /// receipt. Construction must be funded before receiving the original bytes.
 pub(all) struct RelationDocumentUsage {
@@ -314,6 +329,7 @@ pub fn project_relation_target_document(
   key_path : Array[String]?,
   primary_identity : String,
   writable_fields : Array[String],
+  prepared_contract? : RelationDocumentPreparedContract? = None,
 ) -> Result[RelationTargetDocument, RowSourceIssue] {
   if !relation_document_original(backing) {
     return Err(ForeignSource)
@@ -341,29 +357,48 @@ pub fn project_relation_target_document(
         raise RelationDocumentStop(InvalidInputSchema)
       }
     }
-    relation_document_work(work, limits.max_nodes)
-    let (_, contract) = mapping_original_relation(
-      declaration,
-      resource,
-      primary_identity,
-      {
-        max_bytes: limits.max_bytes,
-        max_nodes: limits.max_nodes,
-        max_depth: limits.max_depth,
-        max_views: limits.max_nodes,
-        max_fields: limits.max_nodes,
-      },
-    ).unwrap_or_else(() => raise RelationDocumentStop(InvalidInputSchema))
-    let schema = @schema.from_object(contract).unwrap_or_else(() => {
-      raise RelationDocumentStop(InvalidInputSchema)
-    })
-    let columns = @schema.fields(schema).map(@schema.field_reference_name)
-    let identity_index = columns
-      .search(primary_identity)
-      .unwrap_or_else(() => raise RelationDocumentStop(InvalidInputSchema))
-    let identity = @schema.field_at(schema, identity_index).unwrap().contract
-    if identity.nullable || !(identity.shape is @contract.Text(_)) {
-      raise RelationDocumentStop(InvalidInputSchema)
+    let (schema, columns, identity_index) = match prepared_contract {
+      Some(original) => {
+        if !physical_equal(original.declaration, declaration) ||
+          original.resource != resource ||
+          original.primary_identity != primary_identity ||
+          original.limits.max_bytes != limits.max_bytes ||
+          original.limits.max_nodes != limits.max_nodes ||
+          original.limits.max_depth != limits.max_depth {
+          raise RelationDocumentStop(ForeignSource)
+        }
+        // Same already-admitted metadata; no schema read/hash or work charge
+        // for a mapping which was not reconstructed. Every actual row, path,
+        // key and Value below still spends this document's original work.
+        (original.schema, original.columns, original.identity_index)
+      }
+      None => {
+        relation_document_work(work, limits.max_nodes)
+        let (_, contract) = mapping_original_relation(
+          declaration,
+          resource,
+          primary_identity,
+          {
+            max_bytes: limits.max_bytes,
+            max_nodes: limits.max_nodes,
+            max_depth: limits.max_depth,
+            max_views: limits.max_nodes,
+            max_fields: limits.max_nodes,
+          },
+        ).unwrap_or_else(() => raise RelationDocumentStop(InvalidInputSchema))
+        let schema = @schema.from_object(contract).unwrap_or_else(() => {
+          raise RelationDocumentStop(InvalidInputSchema)
+        })
+        let columns = @schema.fields(schema).map(@schema.field_reference_name)
+        let identity_index = columns
+          .search(primary_identity)
+          .unwrap_or_else(() => raise RelationDocumentStop(InvalidInputSchema))
+        let identity = @schema.field_at(schema, identity_index).unwrap().contract
+        if identity.nullable || !(identity.shape is @contract.Text(_)) {
+          raise RelationDocumentStop(InvalidInputSchema)
+        }
+        (schema, columns, identity_index)
+      }
     }
     let writable = []
     for name in writable_fields {
