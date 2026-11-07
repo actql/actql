@@ -66,13 +66,15 @@ export const membershipReuseSuccesses = [
   success('qualified-input-receiver', collisionSql('pieces.needle IN UNNEST([TRUE])'),
     [collisionRows[3], collisionRows[2], collisionRows[0], collisionRows[1], collisionRows[4]], collisionColumns),
 ];
+// The selected DISTINCT predicate cannot restore these different input
+// expressions. The existing common lowerer classifies them as InvalidQuery.
 export const membershipReuseRefusals = [
   'amount NOT IN UNNEST([1,2])', 'amount IN UNNEST([2,1])',
   'amount IN UNNEST([1,2,2])', 'amount IN UNNEST(ARRAY<FLOAT64>[1,2])',
   'amount IN UNNEST([1,1+1])', 'id IN UNNEST([1,2])',
 ].map((ordered, i) => ({name: 'membership-reuse-unproven-' + i,
   format: 'sql', text: sql('amount IN (1,2)', ordered),
-  expectedCode: 'ClientProgramImplementationLimit'}));
+  expectedCode: 'ClientProgramInvalidInput'}));
 membershipReuseRefusals.push(...[
   {name: 'undeclared', parameters: {p: 1}},
   {name: 'missing', parameterDeclarations: declaration},

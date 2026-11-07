@@ -29,7 +29,7 @@ test('receiver collision reverses ordered IDs while empty and rejected inputs st
   assert.deepEqual(cases.get('concat-reuse-group-empty').expected, []);
   assert.deepEqual(cases.get('concat-reuse-distinct-empty').expected, []);
   assert.equal(concatReuseRefusals.length, 4);
-  assert.ok(concatReuseRefusals.every(item => item.expectedCode === 'ClientProgramImplementationLimit'));
+  assert.ok(concatReuseRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
   assert.ok(concatReuseSuccesses.every(item => item.sourceReadSessionCount === 1));
 });
 

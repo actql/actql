@@ -125,9 +125,24 @@ test "Whole Source snapshots restore exact original Inputs and execute the same 
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
   // Cold receiving admission reuses the same checked Plan/Request and bound
   // Run, with no new acquisition, Check or source provider call.
+  // The immutable saved rows are already known BEFORE this receiving parent
+  // is admitted. Keep their actual receiver holdings/workspace alongside the
+  // unchanged Compute requirement; live input startup now quotes only its
+  // initial controls, not every future row or this distinct cold receiver.
+  let receiving_quote = prepared_installed_effect_managed_requirements(plan)
+  for occurrence in 0..<2 {
+    let selected = plan.whole_sources[occurrence].unwrap().1
+    let (_, _, _, wires) = snapshots[occurrence]
+    let receiving = whole_source_capture_restoration_capacity(selected, wires).unwrap()
+    receiving_quote[4] += @execution.execution_capacity_retained_bytes(
+      receiving,
+    )
+    receiving_quote[5] += @execution.execution_capacity_execution_bytes(
+      receiving,
+    )
+  }
   let (input, initial, ledger, capacity) = effect_parent_test_preparation(
-    plan,
-    prepared_installed_effect_managed_requirements(plan),
+    plan, receiving_quote,
   )
   let owner = begin_preparation_owned_installed_effect_managed_run(
     initial,
