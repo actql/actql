@@ -49,6 +49,7 @@ export function nativeCoreScopedAllocationProfile(source) {
 export const nativeScopedTestFiles = Object.freeze([
   nativeRequestEffectHandoffTestFile,
   'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt',
+  'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt',
   'src/cmd/native_client/local_command_business_cleanup_wbtest.mbt',
   'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt',
   'src/platform_native/client_host/submitted_request_preparation_native_wbtest.mbt',
@@ -64,6 +65,7 @@ export const nativeScopedTestFiles = Object.freeze([
   'src/platform_native/installed_arena_control/request_preparation_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/request_source_frame_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/model_read_frame_physical_scoped_wbtest.mbt',
+  'src/platform_native/installed_arena_control/owned_body_extent_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/retained_execution_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/store_operation_reentry_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/store_result_return_physical_scoped_wbtest.mbt',

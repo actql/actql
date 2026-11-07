@@ -82,6 +82,7 @@ export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary
   const {root, backing} = backingFixture(namespace);
   backing('backing', backingPages);
   for (const probe of [0, 3, 4]) backing('backing-' + probe, 256);
+  for (const probe of [0, 1, 2]) backing('extent-backing-' + probe, 256);
   for (const name of namedBackingFiles) backing(name, 64);
   mkdirSync(join(root, 'store'), {mode: 0o700});
   assert.equal(statSync(join(root, 'store')).mode & 0o777, 0o700);

@@ -52,6 +52,7 @@ test('selected physical case inputs use actual pages, exact private backing size
     assert.equal(statSync(path).mode & 0o777, 0o700);
     const expected = new Map([
       ['backing',backingPages],['backing-0',256],['backing-3',256],['backing-4',256],
+      ['extent-backing-0',256],['extent-backing-1',256],['extent-backing-2',256],
       ['initialization-original.backing',64],['initialization-budget-refused.backing',64],
       ['request-original.backing',64],['request-run-transfer.backing',64],['request-unstarted.backing',64],
       ['common-request-entrance.backing',64],
