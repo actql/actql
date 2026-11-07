@@ -323,6 +323,26 @@ for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of 
   });
 }
 
+test('ordinary Read activation regressions run on the selected Native toolchain', () => {
+  const steps = jobs.native.steps;
+  const setup = steps.findIndex(step => step.uses === './.github/actions/setup-toolchain');
+  const process = steps.findIndex(step => step.name ===
+    'Test selected Linux x64 process-provider ABI and original physical custody');
+  const index = steps.findIndex(step => step.name ===
+    'Test original Read slab activation custody on selected Linux x64');
+  assert.ok(setup >= 0 && setup < process && process < index);
+  assert.equal(steps[index].run, 'python3 -B scripts/test_native_read_activation.py');
+  assert.equal(steps[index]['timeout-minutes'], 3);
+  assert.equal(steps[index].if, undefined);
+  assert.equal(steps[index]['continue-on-error'], undefined);
+  assert.equal(steps[index].env, undefined, 'inherit the original selected compiler and MoonBit');
+  const retained = steps.find(step => step.name ===
+    'Retain Linux x64 process-provider original controls');
+  assert.equal(retained.if, 'always()');
+  assert.deepEqual(retained.with.path.trim().split('\n'),
+    ['_build/linux-x64-owned-process/', '_build/native-read-activation/']);
+});
+
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
   assert.equal(jobs['session-evidence']['timeout-minutes'], 60);
   assert.deepEqual(jobs.core.needs, ['select-targets', 'preflight']);

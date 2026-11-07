@@ -58,12 +58,12 @@
       "sha256": "09c725d17f8622e4169cb4218991654b65d9bce2dd32ea8dd7a30d4ef004cbcd"
     },
     "packages/python-local-runtime/native/pre-root/scoped-read-review.patch": {
-      "bytes": 49697,
-      "sha256": "e8ad15e5848cb5308682a7780d19907e3bb04cbe82adebff47eb754ad3d5bf64"
+      "bytes": 52592,
+      "sha256": "3ec2048e414aea70bb9514ae5a7b936d9ff0430310b1a5ef6d081cf885eefa57"
     },
     "packages/python-local-runtime/native/pre-root/scoped-read-source.json": {
       "bytes": 10831,
-      "sha256": "b2df399331633adff1ae0194cc64414544659dbf3a8f15535d157a9365548a52"
+      "sha256": "80a773fa37e539f5e57534c42874f4c37c23a9b414c75d4d909a598761153e71"
     },
     "packages/python-local-runtime/native/pre-root/owned_capacity.h": {
       "bytes": 7243,
