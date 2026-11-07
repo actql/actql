@@ -25,8 +25,8 @@
       "root": "provider",
       "path": "owned_region.inc",
       "output": "owned_region.inc",
-      "bytes": 35034,
-      "sha256": "b01307a3f9dc717161107aa357525486f403ef10b904bc0542406d313c964d58"
+      "bytes": 35559,
+      "sha256": "d7537dcd7a4fa333bd67c9f3f9b5b2b177dd9c92abb9d62ee52e6310e2fdcdac"
     },
     {
       "root": "provider",
@@ -39,8 +39,8 @@
       "root": "provider",
       "path": "owned_region.h",
       "output": "owned_region.h",
-      "bytes": 11516,
-      "sha256": "e4881135e85e3fac07634a1916da40261121f0e59ffc941e4eeff8edc171d97b"
+      "bytes": 11744,
+      "sha256": "3766a8adee12e34bb43f7c0a2530e788a75d257b35ce1a98cb13ffc1b8b46772"
     },
     {
       "root": "provider",
@@ -179,8 +179,8 @@
       "root": "provider",
       "path": "owned_domain_growth.inc",
       "output": "owned_domain_growth.inc",
-      "bytes": 21793,
-      "sha256": "7281cba63a3083e1baeb9b8c7238c111e84f7d0df98cf381ed5b8303fceea620"
+      "bytes": 22054,
+      "sha256": "92abe5710f93030ac62a14497968fd2888a1a77b4a77c45b18bd1be13c7c2352"
     }
   ],
   "outputs": {
@@ -237,12 +237,12 @@
       "sha256": "e3914075758a265d18c3a6b075053d2fe31a3f35ee8cc8aee0548493ab814373"
     },
     "owned_region.h": {
-      "bytes": 11516,
-      "sha256": "e4881135e85e3fac07634a1916da40261121f0e59ffc941e4eeff8edc171d97b"
+      "bytes": 11744,
+      "sha256": "3766a8adee12e34bb43f7c0a2530e788a75d257b35ce1a98cb13ffc1b8b46772"
     },
     "owned_region.inc": {
-      "bytes": 35076,
-      "sha256": "ab28f328f8eeb4f5d936ff83f18028311da8faad915ff12a5c41f66e677bca07"
+      "bytes": 35601,
+      "sha256": "c4d00b18d135f4eadb7ece5bcab6be644d7c6822bed2c3e6f2822a879979357c"
     },
     "owned_rust_heap.inc": {
       "bytes": 9115,
@@ -285,8 +285,8 @@
       "sha256": "ca3b1d4c0dad0da85a1b3e1a20956d1ac696f52b0c7565f70547070f7f0d75ba"
     },
     "owned_domain_growth.inc": {
-      "bytes": 21793,
-      "sha256": "7281cba63a3083e1baeb9b8c7238c111e84f7d0df98cf381ed5b8303fceea620"
+      "bytes": 22054,
+      "sha256": "92abe5710f93030ac62a14497968fd2888a1a77b4a77c45b18bd1be13c7c2352"
     }
   },
   "normal_profile": null,

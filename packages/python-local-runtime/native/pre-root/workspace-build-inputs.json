@@ -157,11 +157,11 @@
     },
     {
       "source": "owned_region.h",
-      "sha256": "e4881135e85e3fac07634a1916da40261121f0e59ffc941e4eeff8edc171d97b"
+      "sha256": "3766a8adee12e34bb43f7c0a2530e788a75d257b35ce1a98cb13ffc1b8b46772"
     },
     {
       "source": "owned_region.inc",
-      "sha256": "b01307a3f9dc717161107aa357525486f403ef10b904bc0542406d313c964d58"
+      "sha256": "d7537dcd7a4fa333bd67c9f3f9b5b2b177dd9c92abb9d62ee52e6310e2fdcdac"
     },
     {
       "source": "owned_domain_borrow.h",
@@ -173,7 +173,7 @@
     },
     {
       "source": "owned_domain_growth.inc",
-      "sha256": "7281cba63a3083e1baeb9b8c7238c111e84f7d0df98cf381ed5b8303fceea620"
+      "sha256": "92abe5710f93030ac62a14497968fd2888a1a77b4a77c45b18bd1be13c7c2352"
     },
     {
       "source": "owned_thread.h",
