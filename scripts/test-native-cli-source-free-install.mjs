@@ -122,8 +122,8 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
   const storeCid = 'sha256:' + createHash('sha256').update(storeWire).digest('hex');
   const files = {
     'account.json': {version: 'actql-execution-account-config/0.1', account_id: principal,
-      entries: [permission('numeric-run', 'run', ['cancel', 'publish', 'read', 'submit']),
-        permission('numeric-result', 'result/answer0', ['read'])]},
+      entries: [permission('numeric-result', 'result/answer0', ['read']),
+        permission('numeric-run', 'run', ['cancel', 'publish', 'read', 'submit'])]},
     'environment.json': environment,
     'run.json': {version: 'actql-config/0.1', native: {run: {
       namespace_id: 'numeric', store_name: 'results', store_authority_cid: storeCid,

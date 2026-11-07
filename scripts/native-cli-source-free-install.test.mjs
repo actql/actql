@@ -441,6 +441,10 @@ test('Native numeric operator retains low defaults and authors an explicit finit
   assert.deepEqual(body, expected, 'No unrelated policy quantity changes');
   assert.deepEqual(selected.configuration, ['--mode', 'local', '--config-root', project,
     '--config-file', 'operator.json']);
+  const account = JSON.parse(await readFile(join(project, 'account.json'), 'utf8'));
+  assert.deepEqual(account.entries.map(entry => entry.entry_id), ['numeric-result', 'numeric-run']);
+  assert.deepEqual(account.entries.map(entry => [entry.resource.any_of, entry.operation.any_of]),
+    [[['result/answer0'], ['read']], [['run'], ['cancel', 'publish', 'read', 'submit']]]);
   const configuration = JSON.parse(await readFile(join(project, 'operator.json'), 'utf8'));
   assert.deepEqual(configuration.native.check_environment,
     {file: 'environment.json', evidence_bundle_cid: identity});
