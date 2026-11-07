@@ -46,7 +46,7 @@ fn row_input_phase_capacity(
       // Literal glob tokens/component String headers use actual pattern units.
       records: 32L + 2L * pattern,
       record_references: 56L + pattern,
-      record_words: 58L + pattern,
+      record_words: 59L + pattern,
       reference_arrays: observations + 3L,
       reference_items: slots + width * 4L,
       scalar_arrays: 4L,

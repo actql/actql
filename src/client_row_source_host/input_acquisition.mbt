@@ -327,6 +327,7 @@ pub fn start_row_input_acquisition(
       text: 0L,
       rows: 0L,
       tokens: 0L,
+      working_frames: 0,
       preflight: None,
       parser: None,
     }),

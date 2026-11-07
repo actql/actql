@@ -1322,26 +1322,19 @@ pub fn accept_charged_row_run_values(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  if run.configuration is InputConfiguration(_) &&
-    run.physical is Some(_) &&
-    columns.length() == read.columns.length() &&
-    rows.length() <= read.page_limits.max_rows {
-    let width = read.columns.length().to_int64()
-    match
-      fund_row_input_page(
-        run,
-        read,
-        rows.length().to_int64() * (2L * width + 1L),
-        0L,
-        rows.length().to_int64(),
-        0,
-        None,
-      ) {
-      Ok(_) => ()
-      Err(issue) => {
-        abort_row_run(run)
-        return Err(issue)
-      }
+  // Keep the existing page/column rejection before inspecting payload values.
+  let indices = match row_source_value_indices(read, columns, rows) {
+    Ok(value) => value
+    Err(issue) => {
+      abort_row_run(run)
+      return Err(Source(issue))
+    }
+  }
+  for row in rows {
+    if row.length() != columns.length() {
+      cancel_row_source_read(read) |> ignore
+      abort_row_run(run)
+      return Err(Source(InvalidPage))
     }
   }
   if run.configuration is InputConfiguration(_) && run.physical is Some(_) {
@@ -1353,7 +1346,7 @@ pub fn accept_charged_row_run_values(
       }
     }
   }
-  match accept_row_source_values(read, columns, rows) {
+  match append_row_source_values(read, columns, rows, indices) {
     Ok(count) => Ok(count)
     Err(issue) => {
       abort_row_run(run)

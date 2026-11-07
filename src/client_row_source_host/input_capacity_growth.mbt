@@ -7,6 +7,7 @@ priv struct RowInputProgress {
   mut text : Int64
   mut rows : Int64
   mut tokens : Int64
+  mut working_frames : Int
   mut preflight : @source.JsonSourcePreflight?
   mut parser : @source.JsonParse?
 }
@@ -68,6 +69,11 @@ fn fund_row_input_page(
     )
     is Some(capacity) else {
     return Err(Physical(InvalidLimits))
+  }
+  let capacity = match
+    row_input_working_capacity(capacity, progress.working_frames) {
+    Some(value) => value
+    None => return Err(Physical(InvalidLimits))
   }
   match grow_row_input_capacity(run, acquisition, capacity) {
     Ok(_) => ()
@@ -239,6 +245,11 @@ fn fund_row_input_capture(
     is Some(capacity) else {
     return Err(Physical(InvalidLimits))
   }
+  let capacity = match
+    row_input_working_capacity(capacity, progress.working_frames) {
+    Some(value) => value
+    None => return Err(Physical(InvalidLimits))
+  }
   grow_row_input_capacity(run, acquisition, capacity)
 }
 
@@ -269,24 +280,69 @@ priv enum RowInputValueFrame {
 }
 
 ///|
-// Observe immutable provider DATA, not a second semantic admission. The
-// provider keeps its original payload; this receiver must additionally fund
-// row/measurement traversal backing before the existing input owner appends.
-// No elements() copies, encoding, authority checks or replacement values.
-fn fund_row_input_values(
-  run : RowRun,
-  read : RowSourceRead,
+// One page-local geometry walk over immutable provider DATA. It reuses one
+// pending buffer across cells. Local counters do not cross Resource/current
+// boundaries; only an exhausted frame window asks for a larger buffer chunk.
+fn count_row_input_values(
   rows : Array[Array[@admitted.CheckedValue]],
-) -> Result[Unit, RowHostIssue] {
+  initial_frames : Int,
+  grow_frames : (Int) -> Result[Unit, RowHostIssue],
+) -> Result[(Int64, Int64, Int), RowHostIssue] {
+  if initial_frames < 1 {
+    return Err(InvalidState)
+  }
+  let mut window = initial_frames
+  let mut nodes = 0L
+  let mut text = 0L
+  let pending : Array[RowInputValueFrame] = []
   for row in rows {
     for checked in row {
-      match fund_row_input_page(run, read, 2L, 0L, 0L, 0, None) {
-        Ok(_) => ()
-        Err(issue) => return Err(issue)
+      guard @execution.checked_preparation_add_product(nodes, 2L, 1L)
+        is Some(next_nodes) else {
+        return Err(Physical(InvalidLimits))
       }
-      let pending = [RowInputValueFrame::Value(checked.value)]
+      nodes = next_nodes
+      pending.push(Value(checked.value))
       while pending.pop() is Some(frame) {
-        let (nodes, text, next) = match frame {
+        let pushes = match frame {
+          Value(@admitted.Array(values)) =>
+            if @admitted.element_count(values) == 0 {
+              0
+            } else {
+              1
+            }
+          Value(@admitted.Object(values)) =>
+            if @admitted.element_count(values) == 0 {
+              0
+            } else {
+              1
+            }
+          Value(@admitted.JsonData(_)) => 1
+          Value(_) => 0
+          ArrayNext(values, index) =>
+            if index + 1 < @admitted.element_count(values) {
+              2
+            } else {
+              1
+            }
+          ObjectNext(values, index) =>
+            if index + 1 < @admitted.element_count(values) {
+              2
+            } else {
+              1
+            }
+        }
+        if pending.length() > window - pushes {
+          if window > 1073741823 {
+            return Err(Physical(InvalidLimits))
+          }
+          let next = window * 2
+          match grow_frames(next) {
+            Ok(_) => window = next
+            Err(issue) => return Err(issue)
+          }
+        }
+        let (more_nodes, more_text, next) = match frame {
           Value(value) =>
             match value {
               @admitted.Null
@@ -336,7 +392,6 @@ fn fund_row_input_values(
           ArrayNext(values, index) => {
             let value = @admitted.element_at(values, index).unwrap()
             if index + 1 < @admitted.element_count(values) {
-              // This frame/borrowed child was funded on container entry.
               pending.push(ArrayNext(values, index + 1))
             }
             (0L, 0L, Some(Value(value)))
@@ -349,17 +404,141 @@ fn fund_row_input_values(
             (0L, name.length().to_int64() * 3L, Some(Value(value)))
           }
         }
-        if nodes > 0L || text > 0L {
-          match fund_row_input_page(run, read, nodes, text, 0L, 0, None) {
-            Ok(_) => ()
-            Err(issue) => return Err(issue)
-          }
+        guard @execution.checked_preparation_add_product(nodes, more_nodes, 1L)
+          is Some(next_nodes) &&
+          @execution.checked_preparation_add_product(text, more_text, 1L)
+          is Some(next_text) else {
+          return Err(Physical(InvalidLimits))
         }
+        nodes = next_nodes
+        text = next_text
         if next is Some(frame) {
           pending.push(frame)
         }
       }
     }
   }
+  Ok((nodes, text, window))
+}
+
+///|
+// Same shared constructor owner for the metadata walk and existing input
+// measurement stack. Doubling is actual buffer growth, not a future data cap.
+fn row_input_working_capacity(
+  base : @execution.ExecutionCapacity,
+  frames : Int,
+) -> @execution.ExecutionCapacity? {
+  if frames == 0 {
+    return Some(base)
+  }
+  let slots = frames.to_int64()
+  guard @shape.collection_construction_extent({
+      records: slots * 2L + 8L,
+      record_references: slots * 2L + 8L,
+      record_words: slots * 4L + 8L,
+      reference_arrays: 2L,
+      reference_items: slots * 2L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(buffer) &&
+    @execution.preparation_representation_cost({
+      record_headers: buffer.record_headers,
+      reference_slots: buffer.reference_slots,
+      scalar_words: buffer.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(bytes) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(base),
+      bytes,
+      1L,
+    )
+    is Some(execution) else {
+    return None
+  }
+  @execution.execution_capacity(
+    @execution.execution_capacity_retained_bytes(base),
+    execution,
+  )
+}
+
+///|
+fn fund_row_input_value_window(
+  run : RowRun,
+  read : RowSourceRead,
+  frames : Int,
+) -> Result[Unit, RowHostIssue] {
+  guard run.configuration is InputConfiguration(acquisition) &&
+    run.input_progress is Some(progress) &&
+    row_input_read_current(run, read) else {
+    return Err(InvalidState)
+  }
+  if frames <= progress.working_frames {
+    return Ok(())
+  }
+  guard row_input_phase_capacity(
+      acquisition.preparation,
+      progress.nodes,
+      progress.text,
+      progress.rows,
+      progress.tokens,
+      0,
+      None,
+    )
+    is Some(base) &&
+    row_input_working_capacity(base, frames) is Some(capacity) else {
+    return Err(Physical(InvalidLimits))
+  }
+  match grow_row_input_capacity(run, acquisition, capacity) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  if !row_input_read_current(run, read) {
+    return Err(InvalidState)
+  }
+  progress.working_frames = frames
   Ok(())
+}
+
+///|
+fn fund_row_input_values(
+  run : RowRun,
+  read : RowSourceRead,
+  rows : Array[Array[@admitted.CheckedValue]],
+) -> Result[Unit, RowHostIssue] {
+  let width = read.columns.length().to_int64()
+  match
+    fund_row_input_page(
+      run,
+      read,
+      rows.length().to_int64() * (2L * width + 1L),
+      0L,
+      rows.length().to_int64(),
+      0,
+      None,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  if rows.is_empty() || read.columns.is_empty() {
+    return Ok(())
+  }
+  match fund_row_input_value_window(run, read, 16) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let progress = run.input_progress.unwrap()
+  let (nodes, text, _) = match
+    count_row_input_values(rows, progress.working_frames, frames => {
+      fund_row_input_value_window(run, read, frames)
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // Only this completed page total crosses the expensive layout/current edge.
+  fund_row_input_page(run, read, nodes, text, 0L, 0, None)
 }

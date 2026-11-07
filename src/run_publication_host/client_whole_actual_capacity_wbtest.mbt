@@ -271,3 +271,47 @@ test "whole actual projected and checked provider pages fund receiver backing wi
     assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
   }
 }
+
+///|
+test "whole typed page shape refuses before payload inventory or growth" {
+  let (_, _, selected) = whole_row_selection(
+    input_limits=Some(whole_actual_input_limits()),
+  )
+  let initial = @row_host.row_input_acquisition_capacity(selected, None).unwrap()
+  let r = @execution.execution_capacity_retained_bytes(initial)
+  let e = @execution.execution_capacity_execution_bytes(initial) + 20000L
+  let value = @values.checked_number_value(
+    1.0,
+    @contract.primitive(@contract.NumberType, nullable=false),
+  ).unwrap()
+  for mode in 0..<4 {
+    let (run, ledger, stopped) = whole_actual_start(selected, r, e)
+    let body = @utf8.encode("[]")
+    let ticket = @row_host.charge_row_run_page(run, body).unwrap()
+    let columns = if mode == 0 {
+      ["foreign"]
+    } else if mode == 3 {
+      []
+    } else {
+      ["id"]
+    }
+    let rows = if mode == 1 {
+      [Array::make(4096, value)]
+    } else if mode == 2 {
+      Array::make(129, [value])
+    } else {
+      [[value]]
+    }
+    assert_true(
+      @row_host.accept_charged_row_run_values(run, ticket, columns, rows)
+      is Err(Source(InvalidPage)),
+    )
+    assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, r)
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, e)
+    assert_true(@row_host.capture_row_run(run) is Err(_))
+    assert_true(@row_host.close_accounted_row_run(run) is Err(_))
+    stopped.val = true
+    @row_host.close_accounted_row_run(run).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  }
+}
