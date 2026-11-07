@@ -79,3 +79,20 @@ test "literal array membership preserves the common type and parameter refusal" 
     )
   }
 }
+
+///|
+test "scalar annotated membership preserves the original item type refusal" {
+  let actual = compile(
+    @query.parse_query(
+      "SELECT 2 IN UNNEST(ARRAY<STRING>[1]) AS found",
+      syntax_limits(),
+    ).unwrap(),
+    { ..fixture_context(), inputs: [], },
+    construction_limits(),
+  ).unwrap()
+  assert_true(
+    @check.check_parsed(actual, check_environment(), None, check_limits())
+    is Rejected(_),
+    msg="a STRING item declaration cannot admit a numeric ARRAY element",
+  )
+}

@@ -68,6 +68,10 @@ export const inUnnestLiteralArraySuccesses = [
     [{included: false, excluded: true}], [boolean('included'), boolean('excluded')],
     {parameterDeclarations: {xs: {type: 'array', nullable: true, max_items: 2,
       items: {type: 'number', nullable: true}}}, parameters: {xs: null}}),
+  // SQL expression signs use the existing canonical-zero numeric lowering.
+  // This does not admit negative-zero JSON literals or Parameter values.
+  success('negative-zero', 'SELECT 2 IN UNNEST([-(0)]) AS found',
+    [{found: false}], [boolean('found', false)]),
 ];
 export const inUnnestLiteralArrayRefusals = [
   {name: 'annotation-not-erased', text: 'SELECT 2 IN UNNEST(ARRAY<STRING>[1]) AS found'},
@@ -76,7 +80,6 @@ export const inUnnestLiteralArrayRefusals = [
   {name: 'wrong-parameter-value', text: 'SELECT 2 IN UNNEST([@p]) AS found',
     parameterDeclarations: declarations, parameters: {p: 'wrong-type'}},
   {name: 'nonfinite', text: 'SELECT 2 IN UNNEST([1e9999]) AS found'},
-  {name: 'negative-zero', text: 'SELECT 2 IN UNNEST([-(0)]) AS found'},
 ].map(value => ({...value, name: 'in-unnest-literal-array-' + value.name, format: 'sql'}));
 
 // SQL uses its public default main; this Pipe case explicitly authors answer.
