@@ -11,6 +11,10 @@ The `client` required check remains the aggregate result for all Client
 acceptance. The workflow now schedules these independent workloads:
 
 - `client-packages` packs the same five Client distributions once
+- `client-supported-versions` installs the same run's normal tarballs in fresh
+  external consumers for the minimum and latest supported Node versions. SDK
+  cases check import and a fixture HTTP round trip; Local cases check open, query and
+  close. These consumers cannot rebuild packages or resolve checkout runtime.
 - `client-distribution` runs the source-backed distribution contract tests
 - `client-distribution-callers` runs the existing Host preparation and resource callers
 - `client-distribution-mutations` runs the four original mutation commands
@@ -29,7 +33,9 @@ The package consumers and source-backed distribution jobs depend on the exact
 package producer. Native Client transport and Salesforce start independently.
 Salesforce's source-backed recovery imports require the Local runtime bridges;
 it prepares these in its own checkout before the existing gates.
-Each workload retains the previous 30-minute limit. Source composition has its
+The existing distribution and installed-query workloads retain their 30-minute
+limits. Each supported-version case has a separate 10-minute limit and does not
+multiply the Native, proof or mutation campaigns. Source composition has its
 own runner so the other installed-query consumers cannot consume that budget.
 Its complete command is unchanged and remains required by `client`.
 The old 53-command
