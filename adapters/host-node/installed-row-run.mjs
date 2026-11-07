@@ -367,6 +367,10 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         // This private view cannot create a Source observation or permission.
         source();
         return captured;
+      }, originalCapturedInput() {
+        if (this !== captureAccess || closed) fail('ForeignInstalledSourceCapture');
+        source();
+        return checked(moon.clientProgramWholeSourceCaptureInput(captured));
       }} : {}),
       ...(!wholeInput ? {originalRowCapture() {
         if (this !== captureAccess || closed) fail('ForeignInstalledSourceCapture');
@@ -393,7 +397,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         wholeInput ? moon.clientProgramWholeSourceCheckComputeBinding(captured, dag, task)
           : moon.clientProgramRowSourceRetainCapturedTask(captured, dag, task))})});
     return Object.freeze({checkedSource: prepared.checkedSource, identity,
-      logicalInput, ...(wholeInput ? {inputKind: 'whole-input'} : {requirement: owner.requirement}), setup, occurrence,
+      logicalInput, ...(wholeInput ? {inputKind: 'whole-input', wholeCapacity: owner.providerCaptureCapacity}
+        : {requirement: owner.requirement}), setup, occurrence,
       capturedSource, inferStep, composedInfer,
       capture: captureAccess,
       prepareSourceEvidenceOriginal: async ({authorityScopeCid, effectiveDataPolicyCid}) => {

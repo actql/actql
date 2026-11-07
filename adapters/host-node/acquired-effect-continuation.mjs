@@ -367,11 +367,15 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
         restorations.delete(owner);
       };
       const captured = Object.freeze({identity, logicalInput,
-        ...(wholeInput ? {inputKind: 'whole-input'} : {requirement}), capturedSource,
+        ...(wholeInput ? {inputKind: 'whole-input', wholeCapacity: capacity} : {requirement}), capturedSource,
         checkedSource: state.scope.checkedSource, occurrence: source.occurrence,
         acquisition: record.acquisition,
         capture: Object.freeze({source: () => moon.clientProgramSourceCaptureSource(owner),
           originalRead: () => moon.clientProgramSourceCaptureOriginalRead(owner),
+          ...(wholeInput ? {originalCapturedInput() {
+            if (this !== captured.capture) fail('SourceCaptureCustodyUnavailable');
+            return checked(moon.clientProgramRestoredWholeSourceCaptureInput(owner));
+          }} : {}),
           retainTask: (dag, task) => checked(wholeInput
             ? moon.clientProgramSourceCaptureRetainInput(owner, dag, task)
             : moon.clientProgramSourceCaptureRetainTask(owner, dag, task)),

@@ -4,7 +4,7 @@
 // This object neither owns cleanup nor issues completion, resources or reads.
 struct RowCapturedInputs {
   ledger : @resources.Ledger
-  captures : Array[RowSourceCapture]
+  captures : Array[RowCapturedInput]
   originals : Array[(@resources.Reservation, @resources.Holding)]
 }
 
@@ -15,14 +15,14 @@ pub fn row_captured_inputs_construction_inventory(
   if count < 1 {
     return None
   }
-  guard @shape.reference_array_retained_extent(2L, 2L * count.to_int64())
+  guard @shape.reference_array_retained_extent(3L, 3L * count.to_int64())
     is Some(arrays) else {
     return None
   }
   Some({
-    record_headers: 1L + count.to_int64() + arrays.record_headers,
-    reference_slots: 3L + 2L * count.to_int64() + arrays.reference_slots,
-    scalar_words: arrays.scalar_words,
+    record_headers: 1L + 2L * count.to_int64() + arrays.record_headers,
+    reference_slots: 3L + 3L * count.to_int64() + arrays.reference_slots,
+    scalar_words: count.to_int64() + arrays.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
@@ -36,11 +36,20 @@ pub fn retain_row_captured_inputs(
   ledger : @resources.Ledger,
   max_work : Int,
 ) -> RowCapturedInputs? {
-  guard snapshot_row_captured_inputs(captures, ledger, max_work) is Some(value) &&
+  guard captures.all(capture => {
+      capture.run.configuration is DirectConfiguration(_)
+    }) &&
+    snapshot_row_captured_inputs(
+      captures.map(capture => RowCapturedInput::{ original: Live(capture), }),
+      ledger,
+      max_work,
+    )
+    is Some(value) &&
     @resources.original_captured_inputs_prefix_available(
       ledger,
       value.originals,
-    ) else {
+    ) &&
+    row_captured_inputs_fence(value, ledger, false) else {
     return None
   }
   Some(value)
@@ -54,11 +63,20 @@ pub fn borrow_row_captured_inputs(
   ledger : @resources.Ledger,
   max_work : Int,
 ) -> RowCapturedInputs? {
-  guard snapshot_row_captured_inputs(captures, ledger, max_work) is Some(value) &&
+  guard captures.all(capture => {
+      capture.run.configuration is DirectConfiguration(_)
+    }) &&
+    snapshot_row_captured_inputs(
+      captures.map(capture => RowCapturedInput::{ original: Live(capture), }),
+      ledger,
+      max_work,
+    )
+    is Some(value) &&
     @resources.original_borrowed_captured_inputs_available(
       ledger,
       value.originals,
-    ) else {
+    ) &&
+    row_captured_inputs_fence(value, ledger, false) else {
     return None
   }
   Some(value)
@@ -66,7 +84,7 @@ pub fn borrow_row_captured_inputs(
 
 ///|
 fn snapshot_row_captured_inputs(
-  captures : Array[RowSourceCapture],
+  captures : Array[RowCapturedInput],
   ledger : @resources.Ledger,
   max_work : Int,
 ) -> RowCapturedInputs? {
@@ -74,20 +92,13 @@ fn snapshot_row_captured_inputs(
     return None
   }
   let captures = captures.copy()
+  let originals = []
   for capture in captures {
-    guard capture.run.configuration is DirectConfiguration(_) &&
-      !capture.run.closed &&
-      capture.run.physical is Some(physical) &&
-      physical_equal(physical.ledger, ledger) &&
-      physical.dag is None &&
-      physical.holding is Some(_) else {
+    guard row_captured_input_pair(capture, ledger) is Some(pair) else {
       return None
     }
+    originals.push(pair)
   }
-  let originals = Array::makei(captures.length(), index => {
-    let physical = captures[index].run.physical.unwrap()
-    (physical.reservation, physical.holding.unwrap())
-  })
   let value = RowCapturedInputs::{ ledger, captures, originals, }
   guard row_captured_inputs_current(value) else { return None }
   Some(value)
@@ -102,34 +113,26 @@ pub fn row_captured_inputs_borrowed_available(
   @resources.original_borrowed_captured_inputs_available(
     ledger,
     value.originals,
-  )
+  ) &&
+  row_captured_inputs_fence(value, ledger, true)
 }
 
 ///|
 fn row_captured_inputs_current(value : RowCapturedInputs) -> Bool {
   for capture in value.captures {
-    guard capture.run.configuration is DirectConfiguration(configuration) &&
-      row_capture_source(capture) is Ok(source) &&
-      @query.captured_source_matches_query(
-        source,
-        @planning.query_material_owner(
-          @planning.query_requirement_material(configuration.requirement),
-        ),
-      ) else {
+    if row_captured_input_source(capture) is None {
       return false
     }
   }
-  // No liveness callback is allowed after this fence and before the caller's
-  // resource census. Reentrant close of an EARLIER capture is checked too.
   for index, capture in value.captures {
-    let (reservation, original_holding) = value.originals[index]
-    guard !capture.run.closed &&
-      capture.run.physical is Some(physical) &&
-      physical_equal(physical.ledger, value.ledger) &&
-      physical.dag is None &&
-      physical_equal(physical.reservation, reservation) &&
-      physical.holding is Some(holding) &&
-      physical_equal(holding, original_holding) else {
+    let (reservation, holding) = value.originals[index]
+    if !row_captured_input_fence(
+        capture,
+        value.ledger,
+        reservation,
+        holding,
+        false,
+      ) {
       return false
     }
   }
@@ -137,8 +140,6 @@ fn row_captured_inputs_current(value : RowCapturedInputs) -> Bool {
 }
 
 ///|
-// Lifetime observation after the exact Row allocation is handed to its SAME
-// DAG. New-construction helpers above retain their stricter no-DAG census.
 pub fn row_captured_inputs_live(
   value : RowCapturedInputs,
   ledger : @resources.Ledger,
@@ -147,28 +148,14 @@ pub fn row_captured_inputs_live(
     return false
   }
   for capture in value.captures {
-    if row_capture_source(capture) is Err(_) {
+    if row_captured_input_source(capture) is None {
       return false
     }
   }
   for index, capture in value.captures {
-    let (reservation, original) = value.originals[index]
-    guard !capture.run.closed &&
-      capture.run.physical is Some(physical) &&
-      physical_equal(physical.ledger, ledger) &&
-      physical_equal(physical.reservation, reservation) else {
+    let (reservation, holding) = value.originals[index]
+    if !row_captured_input_fence(capture, ledger, reservation, holding, true) {
       return false
-    }
-    match (physical.dag, physical.holding) {
-      (None, Some(holding)) =>
-        if !physical_equal(holding, original) {
-          return false
-        }
-      (Some((dag, task)), None) =>
-        if !@strategy.captured_task_allocation_matches(dag, task, original) {
-          return false
-        }
-      _ => return false
     }
   }
   true
@@ -210,7 +197,10 @@ pub fn row_captured_input_at(
   value : RowCapturedInputs,
   index : Int,
 ) -> RowSourceCapture? {
-  value.captures.get(index)
+  match value.captures.get(index) {
+    Some({ original: Live(capture), }) => Some(capture)
+    _ => None
+  }
 }
 
 ///|
@@ -315,9 +305,86 @@ pub fn row_captured_input_requirement_at(
   value : RowCapturedInputs,
   index : Int,
 ) -> @planning.QueryRequirement? {
-  guard value.captures.get(index) is Some(capture) &&
+  guard row_captured_input_at(value, index) is Some(capture) &&
     capture.run.configuration is DirectConfiguration(configuration) else {
     return None
   }
   Some(configuration.requirement)
+}
+
+///|
+pub fn borrow_row_captured_input_originals(
+  captures : Array[RowCapturedInput],
+  ledger : @resources.Ledger,
+  max_work : Int,
+) -> RowCapturedInputs? {
+  guard snapshot_row_captured_inputs(captures, ledger, max_work) is Some(value) &&
+    @resources.original_borrowed_captured_inputs_available(
+      ledger,
+      value.originals,
+    ) &&
+    row_captured_inputs_fence(value, ledger, false) else {
+    return None
+  }
+  Some(value)
+}
+
+///|
+pub fn retain_row_captured_input_originals(
+  captures : Array[RowCapturedInput],
+  ledger : @resources.Ledger,
+  max_work : Int,
+) -> RowCapturedInputs? {
+  guard snapshot_row_captured_inputs(captures, ledger, max_work) is Some(value) &&
+    @resources.original_captured_inputs_prefix_available(
+      ledger,
+      value.originals,
+    ) &&
+    row_captured_inputs_fence(value, ledger, false) else {
+    return None
+  }
+  Some(value)
+}
+
+///|
+pub fn row_captured_inputs_source_at(
+  value : RowCapturedInputs,
+  index : Int,
+) -> @query.CapturedInputSource? {
+  match value.captures.get(index) {
+    Some(capture) => row_captured_input_source(capture)
+    None => None
+  }
+}
+
+///|
+pub fn row_captured_inputs_source_original_at(
+  value : RowCapturedInputs,
+  index : Int,
+) -> @sourcequery.SourceAcquisition? {
+  match value.captures.get(index) {
+    Some(capture) => row_captured_input_source_original(capture)
+    None => None
+  }
+}
+
+///|
+// No Source or current callback follows this fence before the caller's census.
+fn row_captured_inputs_fence(
+  value : RowCapturedInputs,
+  ledger : @resources.Ledger,
+  allow_dag : Bool,
+) -> Bool {
+  if !physical_equal(value.ledger, ledger) {
+    return false
+  }
+  for index, capture in value.captures {
+    let (reservation, holding) = value.originals[index]
+    if !row_captured_input_fence(
+        capture, ledger, reservation, holding, allow_dag,
+      ) {
+      return false
+    }
+  }
+  true
 }

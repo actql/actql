@@ -282,6 +282,8 @@ pub fn client_program_admit_composed_infer_egress(@run_publication_host.ClientIn
 
 pub fn client_program_admit_composed_infer_sources(@run_publication_host.ClientInferOccurrence, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String, @run_publication_host.ClientKeyedLookupObservation?) -> Result[@run_publication_host.ClientInferComposedSources, @run_publication_host.ClientInferCallScopeIssue]
 
+pub fn client_program_admit_composed_infer_whole_sources(@run_publication_host.ClientInferOccurrence, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@client_local_host.ClientInstalledWholeSourceCapacity], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String, @run_publication_host.ClientKeyedLookupObservation?) -> Result[@run_publication_host.ClientInferComposedSources, @run_publication_host.ClientInferCallScopeIssue]
+
 pub fn client_program_admit_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootAdmissionIssue]
 
 pub fn client_program_admit_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[@run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyIssue]
@@ -3360,6 +3362,8 @@ pub fn client_program_restore_whole_source_capture(@client_local_host.ClientInst
 
 pub fn client_program_restored_infer_source_originals(@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[Array[(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue)], @run_publication_host.ClientInferCallScopeIssue]
 
+pub fn client_program_restored_whole_source_capture_input(@client_local_host.ClientAccountedSourceCapture) -> Result[@client_row_source_host.RowCapturedInput, @client_local_host.ClientSourceCaptureIssue]
+
 pub fn client_program_restrict_infer_send_slots(@client_infer_host.Execution, Array[Bool]) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
 pub fn client_program_result_count(@run_publication_host.PreparedClientProgram) -> Int
@@ -3840,6 +3844,8 @@ pub fn client_program_start_infer_original_current_state_decode(@client_infer_ho
 
 pub fn client_program_start_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, @client_local_host.ClientInstalledSequenceContracts, String, @model_execution.VerifiedModelCapture, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
+pub fn client_program_start_installed_original_composed_keyed_input_prefix(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@client_row_source_host.RowCapturedInput]) -> Result[@client_local_host.ClientOriginalComposedKeyedPrefix, @client_local_host.ClientSerializationPrefixIssue]
+
 pub fn client_program_start_installed_original_composed_keyed_prefix(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@client_row_source_host.RowSourceCapture]) -> Result[@client_local_host.ClientOriginalComposedKeyedPrefix, @client_local_host.ClientSerializationPrefixIssue]
 
 pub fn client_program_start_keyed_infer_execution(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, @run_publication_host.ClientInferComposedSources, @execution_relation.GeneratedSequence?, @physical_resources.Ledger) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
@@ -3961,6 +3967,8 @@ pub fn client_program_whole_source_borrow_responses(@client_row_source_host.RowR
 pub fn client_program_whole_source_capacity_acquisition(@client_local_host.ClientInstalledWholeSourceCapacity) -> @client_row_source_host.RowInputAcquisition
 
 pub fn client_program_whole_source_capacity_matches(@client_local_host.ClientInstalledWholeSourceCapacity, @client_row_source_host.RowInputAcquisition, @execution_relation.ExecutionCapacity) -> Bool
+
+pub fn client_program_whole_source_capture_input(@client_row_source_host.RowSourceCapture) -> Result[@client_row_source_host.RowCapturedInput, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_whole_source_check_compute_binding(@client_row_source_host.RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, @client_row_source_host.RowHostIssue]
 

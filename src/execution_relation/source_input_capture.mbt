@@ -105,11 +105,20 @@ pub fn bind_completed_source_input_operation(
     ) {
     return Err(ProducerBindingMismatch)
   }
+  let input_index = match
+    @lower.node_at(@lower.bound_preparation(receiver), consumer_step) {
+    Some(node) =>
+      match @lower.node_input_target(node, edge) {
+        Some(@pipeline.Input(index)) => index
+        _ => return Err(ProducerBindingMismatch)
+      }
+    None => return Err(ProducerBindingMismatch)
+  }
   Ok({
-    identity: { input_index: edge, carrier: None, supplied: Some(read.rows), },
+    identity: { input_index, carrier: None, supplied: Some(read.rows), },
     receiver,
-    consumer_step: Some(consumer_step),
-    input_index: edge,
+    consumer_step: None,
+    input_index,
     output,
     projection: None,
   })

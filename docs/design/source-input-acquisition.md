@@ -174,6 +174,17 @@ one-shot invocation slot remains consumed on semantic failure. Complete original
 Source evidence and logical input values must fit the caller's encoding bounds;
 equal wire representations cannot replace their native capture correspondence.
 
+The keyed Model prefix borrows a closed input original from that live capture
+or the existing restored Source owner. Restored inputs retain their actual
+receiving reservation and holding; they do not acquire a replacement RowRun.
+Source slots remain distinct from Compute task indexes, so two complete inputs
+may feed the same authored JOIN task. The shared prefix and Model admission
+check each original acquisition, Source identity and parent Ledger, while the
+existing Source owner retains cleanup. Dependent Models preserve this same
+Source provenance through saved call-scope restoration. Query requirements
+keep their separate nominal variant; mixed Query and complete-input Plan
+binding remains unsupported.
+
 The original Task compiler represents external inputs even for a single task.
 Its Result port follows the same closed acquisition selection: Query publishes
 its checked capture port; whole input publishes the actual authored Task output.

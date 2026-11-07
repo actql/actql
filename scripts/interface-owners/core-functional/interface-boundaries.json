@@ -2365,7 +2365,10 @@
             "tuplePair/tuplePair",
             "usageKeys/usageKeys",
             "usageKeys/usageKeys/usageKeys",
-            "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor"
+            "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#2",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#3",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#4"
           ],
           "exports": [
             "contentCaptureControl",
@@ -3220,7 +3223,13 @@
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#2",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#3",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#4",
-            "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput"
+            "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#10",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#5",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#6",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#7",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#8",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#9"
           ],
           "exports": [],
           "attributes": {
@@ -8662,6 +8671,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#10",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#2",
           "parameters": [
             "value"
@@ -8677,6 +8693,41 @@
         },
         {
           "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#7",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#8",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#9",
           "parameters": [
             "value"
           ],
@@ -12663,6 +12714,27 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
           "parameters": [
             "compiled",
@@ -15095,7 +15167,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6f465b192e79ce83f63fcb9df0cd8114e6bf2df8b71ae8d0b2214a76a66e42ef"
+      "sha256": "edb9198d33a377555b52e923b6f2ad31b16af1d3da7279a7d1a62d1584d6a564"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -60810,9 +60882,17 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "0f8cb11adc07a4960fec7e61a32e67f6f4d8a8820a3cbcbed66651b00ed6874f",
+      "sha256": "9d2db9f85221d80a652b75856ecc93b3f0cb879e687d0f69621749272f644913",
       "exports": [],
       "operations": [
+        {
+          "name": "check_client_infer_original_evidence",
+          "declaration": "check_client_infer_original_evidence ( name : String , evidence : @ publication . RunEvidenceValue , ) - > Result [ Unit , @ publication_host . ClientInferCallScopeIssue ]"
+        },
+        {
+          "name": "client_program_admit_composed_infer_whole_sources",
+          "declaration": "client_program_admit_composed_infer_whole_sources ( occurrence : @ publication_host . ClientInferOccurrence , captures : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , capacities : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , logicals : Array [ @ publication . RunEvidenceValue ] , evidence : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , started_at : String , completed_at : String , keyed : @ publication_host . ClientKeyedLookupObservation ? , ) - > Result [ @ publication_host . ClientInferComposedSources , @ publication_host . ClientInferCallScopeIssue , ]"
+        },
         {
           "name": "client_program_effect_direct_source_coordinates",
           "declaration": "client_program_effect_direct_source_coordinates ( prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ Array [ Array [ Int ] ] , @ publication_host . ClientDirectAcquisitionOccurrenceIssue , ]"
@@ -60910,6 +60990,10 @@
           "declaration": "client_program_restore_whole_source_capture ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , expected_binding : String , saved_binding : String , saved_identity : Array [ String ] , schema_cid : String , rows_cid : String , rows : Array [ String ] , ledger : @ resources . Ledger , custody_available : ( ) - > Bool , reference_issuer : @ admitted . ReferenceIssuer ? , ) - > Result [ @ client_local_host . ClientAccountedSourceCapture , @ client_local_host . ClientSourceCaptureIssue , ]"
         },
         {
+          "name": "client_program_restored_whole_source_capture_input",
+          "declaration": "client_program_restored_whole_source_capture_input ( owner : @ client_local_host . ClientAccountedSourceCapture , ) - > Result [ @ client_row_source_host . RowCapturedInput , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
           "name": "client_program_select_installed_effect_source_input",
           "declaration": "client_program_select_installed_effect_source_input ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , stage : Int , source_index : Int , ) - > Result [ @ acquisition . SourceAcquisitionRoute , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -60930,6 +61014,10 @@
           "declaration": "client_program_source_capture_retain_input ( value : @ client_local_host . ClientAccountedSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Result [ Unit , @ client_local_host . ClientSourceCaptureIssue ]"
         },
         {
+          "name": "client_program_start_installed_original_composed_keyed_input_prefix",
+          "declaration": "client_program_start_installed_original_composed_keyed_input_prefix ( owner : @ client_local_host . ClientInstalledManagedRun , scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , inputs : Array [ @ client_row_source_host . RowCapturedInput ] , ) - > Result [ @ client_local_host . ClientOriginalComposedKeyedPrefix , @ client_local_host . ClientSerializationPrefixIssue , ]"
+        },
+        {
           "name": "client_program_whole_source_borrow_responses",
           "declaration": "client_program_whole_source_borrow_responses ( run : @ client_row_source_host . RowRun , acquisition : @ client_row_source_host . RowInputAcquisition , ) - > Result [ @ client_row_source_host . RowRunResponseBorrow , @ client_row_source_host . RowHostIssue , ]"
         },
@@ -60940,6 +61028,10 @@
         {
           "name": "client_program_whole_source_capacity_matches",
           "declaration": "client_program_whole_source_capacity_matches ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , acquisition : @ client_row_source_host . RowInputAcquisition , provider : @ execution . ExecutionCapacity , ) - > Bool"
+        },
+        {
+          "name": "client_program_whole_source_capture_input",
+          "declaration": "client_program_whole_source_capture_input ( capture : @ client_row_source_host . RowSourceCapture , ) - > Result [ @ client_row_source_host . RowCapturedInput , @ client_row_source_host . RowHostIssue , ]"
         },
         {
           "name": "client_program_whole_source_check_compute_binding",
@@ -61012,7 +61104,12 @@
             "client_program_export_whole_source_capture",
             "client_program_restore_whole_source_capture",
             "client_program_source_capture_retain_input",
-            "client_program_whole_source_is_listing"
+            "client_program_whole_source_is_listing",
+            "check_client_infer_original_evidence",
+            "client_program_admit_composed_infer_whole_sources",
+            "client_program_restored_whole_source_capture_input",
+            "client_program_start_installed_original_composed_keyed_input_prefix",
+            "client_program_whole_source_capture_input"
           ],
           "exports": [],
           "attributes": {
@@ -61813,9 +61910,17 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "8a6b75d95026552971f58ea7f7cd34d7647102b37e70ed3007e5fb1bd2ffe946",
+      "sha256": "ae9e2aac04519fa1cd1ea60ceacd767d57212254d3e0a862219032f7c6b36914",
       "exports": [],
       "operations": [
+        {
+          "name": "check_client_infer_original_evidence",
+          "declaration": "check_client_infer_original_evidence ( name : String , evidence : @ publication . RunEvidenceValue , ) - > Result [ Unit , @ publication_host . ClientInferCallScopeIssue ]"
+        },
+        {
+          "name": "client_program_admit_composed_infer_whole_sources",
+          "declaration": "client_program_admit_composed_infer_whole_sources ( occurrence : @ publication_host . ClientInferOccurrence , captures : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , capacities : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , logicals : Array [ @ publication . RunEvidenceValue ] , evidence : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , started_at : String , completed_at : String , keyed : @ publication_host . ClientKeyedLookupObservation ? , ) - > Result [ @ publication_host . ClientInferComposedSources , @ publication_host . ClientInferCallScopeIssue , ]"
+        },
         {
           "name": "client_program_effect_direct_source_coordinates",
           "declaration": "client_program_effect_direct_source_coordinates ( prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ Array [ Array [ Int ] ] , @ publication_host . ClientDirectAcquisitionOccurrenceIssue , ]"
@@ -61913,6 +62018,10 @@
           "declaration": "client_program_restore_whole_source_capture ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , expected_binding : String , saved_binding : String , saved_identity : Array [ String ] , schema_cid : String , rows_cid : String , rows : Array [ String ] , ledger : @ resources . Ledger , custody_available : ( ) - > Bool , reference_issuer : @ admitted . ReferenceIssuer ? , ) - > Result [ @ client_local_host . ClientAccountedSourceCapture , @ client_local_host . ClientSourceCaptureIssue , ]"
         },
         {
+          "name": "client_program_restored_whole_source_capture_input",
+          "declaration": "client_program_restored_whole_source_capture_input ( owner : @ client_local_host . ClientAccountedSourceCapture , ) - > Result [ @ client_row_source_host . RowCapturedInput , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
           "name": "client_program_select_installed_effect_source_input",
           "declaration": "client_program_select_installed_effect_source_input ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , stage : Int , source_index : Int , ) - > Result [ @ acquisition . SourceAcquisitionRoute , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -61933,6 +62042,10 @@
           "declaration": "client_program_source_capture_retain_input ( value : @ client_local_host . ClientAccountedSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Result [ Unit , @ client_local_host . ClientSourceCaptureIssue ]"
         },
         {
+          "name": "client_program_start_installed_original_composed_keyed_input_prefix",
+          "declaration": "client_program_start_installed_original_composed_keyed_input_prefix ( owner : @ client_local_host . ClientInstalledManagedRun , scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , inputs : Array [ @ client_row_source_host . RowCapturedInput ] , ) - > Result [ @ client_local_host . ClientOriginalComposedKeyedPrefix , @ client_local_host . ClientSerializationPrefixIssue , ]"
+        },
+        {
           "name": "client_program_whole_source_borrow_responses",
           "declaration": "client_program_whole_source_borrow_responses ( run : @ client_row_source_host . RowRun , acquisition : @ client_row_source_host . RowInputAcquisition , ) - > Result [ @ client_row_source_host . RowRunResponseBorrow , @ client_row_source_host . RowHostIssue , ]"
         },
@@ -61943,6 +62056,10 @@
         {
           "name": "client_program_whole_source_capacity_matches",
           "declaration": "client_program_whole_source_capacity_matches ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , acquisition : @ client_row_source_host . RowInputAcquisition , provider : @ execution . ExecutionCapacity , ) - > Bool"
+        },
+        {
+          "name": "client_program_whole_source_capture_input",
+          "declaration": "client_program_whole_source_capture_input ( capture : @ client_row_source_host . RowSourceCapture , ) - > Result [ @ client_row_source_host . RowCapturedInput , @ client_row_source_host . RowHostIssue , ]"
         },
         {
           "name": "client_program_whole_source_check_compute_binding",
@@ -62015,7 +62132,12 @@
             "client_program_export_whole_source_capture",
             "client_program_restore_whole_source_capture",
             "client_program_source_capture_retain_input",
-            "client_program_whole_source_is_listing"
+            "client_program_whole_source_is_listing",
+            "check_client_infer_original_evidence",
+            "client_program_admit_composed_infer_whole_sources",
+            "client_program_restored_whole_source_capture_input",
+            "client_program_start_installed_original_composed_keyed_input_prefix",
+            "client_program_whole_source_capture_input"
           ],
           "exports": [],
           "attributes": {
@@ -62858,7 +62980,7 @@
     },
     {
       "module": "src/execution_relation/source_input_capture.mbt",
-      "sha256": "69fede90bddc0c34295b5985f8bec13f46d87119784ef9ca04de7b9f56c45a0b",
+      "sha256": "625573d646be07dc4a0e0a27ac8cb1ce94603ded287acbb212686e9cd316da34",
       "exports": [],
       "operations": [
         {
@@ -65933,7 +66055,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "00bf7a342d8fa81f1b446cf891b6b28826f433e2e59bcb39758d1ac17ce59b79",
+      "sha256": "4d441d952b39eab0c06754326ac632e635ab6317698a1b5c160bf779510992c5",
       "exports": [],
       "operations": [
         {
@@ -68196,7 +68318,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_compilation.mbt",
-      "sha256": "cb5df21bf9d08f4caee6b86876e2710dcaf684045c9f5053f428ba0a95a2a933",
+      "sha256": "4892bdb85dcd5904c8f46626c5a98ee310f59343486b477edb0de1689068f2c1",
       "operations": [
         {
           "name": "admit_client_effect_allowed_run",
@@ -82229,7 +82351,7 @@
     },
     {
       "module": "src/client_local_host/original_composed_keyed_prefix.mbt",
-      "sha256": "089ab0cf4424b190e4225bfafc9bc0a8c5d7066597f04adcfcb801e7d1a712a8",
+      "sha256": "b7d0645c82d9f5ff204b3bb902ceceaef92af80e03334a7f0f5aa1ba55f067b8",
       "exports": [],
       "operations": [
         {
@@ -82250,7 +82372,11 @@
         },
         {
           "name": "start_client_original_composed_keyed_prefix_owned",
-          "declaration": "start_client_original_composed_keyed_prefix_owned ( scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowSourceCapture ] , input_prefix : @ execution . GeneratedSequence , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , installed : ClientInstalledManagedRun ? , ) - > Result [ ClientOriginalComposedKeyedPrefix , ClientSerializationPrefixIssue ]"
+          "declaration": "start_client_original_composed_keyed_prefix_owned ( scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowCapturedInput ] , input_prefix : @ execution . GeneratedSequence , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , installed : ClientInstalledManagedRun ? , borrowed_inputs ? : Bool"
+        },
+        {
+          "name": "start_installed_original_composed_keyed_input_prefix",
+          "declaration": "start_installed_original_composed_keyed_input_prefix ( owner : ClientInstalledManagedRun , scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowCapturedInput ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , ) - > Result [ ClientOriginalComposedKeyedPrefix , ClientSerializationPrefixIssue ]"
         },
         {
           "name": "start_installed_original_composed_keyed_prefix",
@@ -82270,7 +82396,8 @@
             "complete_client_original_composed_keyed_prefix",
             "start_client_original_composed_keyed_prefix",
             "start_client_original_composed_keyed_prefix_owned",
-            "start_installed_original_composed_keyed_prefix"
+            "start_installed_original_composed_keyed_prefix",
+            "start_installed_original_composed_keyed_input_prefix"
           ],
           "exports": [],
           "attributes": {
