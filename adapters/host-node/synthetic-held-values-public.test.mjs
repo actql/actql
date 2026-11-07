@@ -26,7 +26,7 @@ const until = async inspect => {
 };
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
 
-async function fixture(t, {seed = true} = {}) {
+async function fixture(t, {seed = true, hostCapacityPolicy} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-synthetic-held-values-'));
   const principalId = userInfo().username;
   const reviewer = generateKeyPairSync('ed25519'), host = generateKeyPairSync('ed25519');
@@ -47,7 +47,8 @@ async function fixture(t, {seed = true} = {}) {
   }};
   const close = async () => {await client?.close(); client = undefined;};
   const open = async () => client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
-    durability: 'durable', installation: {directory, authorization}});
+    durability: 'durable', installation: {directory, authorization,
+      ...(hostCapacityPolicy === undefined ? {} : {hostCapacityPolicy})}});
   t.after(async () => {await close(); await rm(directory, {recursive: true, force: true});});
   await open();
   // Activate the lazy, empty Journal through its public read before seeding
@@ -55,15 +56,19 @@ async function fixture(t, {seed = true} = {}) {
   assert.deepEqual((await client.checkpoints()).items, []);
   await close();
   const original = seed ? await writeSyntheticHistoricalHeldValues({directory, document,
-    requestId: 'original-synthetic-values', authorization, runtimeRootUrl}) : undefined;
+    requestId: 'original-synthetic-values', authorization, runtimeRootUrl, hostCapacityPolicy}) : undefined;
   const signer = {keyId: 'reviewer-key', reviewerId: 'reviewer',
     sign: bytes => sign(null, bytes, reviewer.privateKey)};
   return {directory, original, authorization, signer, open, close,
     get client() {return client;}, get computes() {return computes;}, get starts() {return starts;}};
 }
 
-test('synthetic historical Values retain zero pre-Run work, one approved Run and cleanup across public restart', async t => {
-  const f = await fixture(t);
+const originalExplicitPolicy = JSON.parse(await readFile(new URL(
+  'spec/local-check-environment.json', runtimeRootUrl), 'utf8')).host_policy_profile.capacity;
+for (const [suffix, hostCapacityPolicy] of [['', undefined],
+  [' with original explicit Host policy', originalExplicitPolicy]]) {
+test('synthetic historical Values retain zero pre-Run work, one approved Run and cleanup across public restart' + suffix, async t => {
+  const f = await fixture(t, {hostCapacityPolicy});
   const original = f.original;
   await f.open();
   const waiting = await f.client.lookupRequest(original.requestId);
@@ -96,8 +101,14 @@ test('synthetic historical Values retain zero pre-Run work, one approved Run and
   assert.deepEqual({runs: answered.runs, accepted: answered.accepted, computes: f.computes, starts: f.starts},
     {runs: [], accepted: [], computes: 0, starts: 0});
   await f.close(); await f.open();
+  let endedObserved = false;
   const ready = await until(async () => {
     const value = await f.client.lookupRequest(original.requestId);
+    if (!endedObserved && value.kind === 'held' && value.state === 'ended') {
+      endedObserved = true;
+      t.diagnostic(JSON.stringify({phase: 'original-policy-resume',
+        endReason: value.endReason, terminalErrorCode: value.terminalErrorCode}));
+    }
     return value.kind === 'found' && value;
   });
   const run = await f.client.attach(ready.ref);
@@ -132,6 +143,7 @@ test('synthetic historical Values retain zero pre-Run work, one approved Run and
   assert.equal(f.computes, 1);
   assert.equal(f.starts, 1);
 });
+}
 
 test('synthetic historical Checkpoint with a changed original hash is refused by public recovery', async t => {
   const f = await fixture(t);
