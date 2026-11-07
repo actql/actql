@@ -76,3 +76,117 @@ test "selected normalization supplier refuses copied and substituted original pr
     ),
   )
 }
+
+///|
+fn common_update_normalization_fixture(
+  completion? : Bool = false,
+) -> PreparedClientEffectComputation {
+  let (document, environment, limits) = local_update_normalization_fixture()
+  let document = if completion {
+    document
+    .replace(
+      old="\"schema\":{",
+      new="\"schema\":{\"spare\":{\"type\":\"number\",\"nullable\":false},",
+    )
+    .replace(old="\"rows\":[{", new="\"rows\":[{\"spare\":1,")
+    .replace(
+      old="\"as\":\"selected\"}]",
+      new="\"as\":\"raw\"},{\"drop\":[\"spare\"],\"as\":\"selected\"}]",
+    )
+  } else {
+    document
+  }
+  let document = document.replace(
+    old="\"as\":\"selected\"}]",
+    new="\"as\":\"original\"},{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"selected\"}]",
+  )
+  prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+}
+
+///|
+test "common update normalization retains actual zero-completion closure and distinct first compiler profile" {
+  let owner = common_update_normalization_fixture()
+  assert_true(
+    issue_prepared_client_effect_local_update_normalization(owner)
+    is Err(Inventory(ProfileNotInstalled)),
+  )
+  // The Effect-free entry remains Effect-free; only the static Effect owner
+  // can connect its complete computation and original Mapping proof.
+  assert_true(
+    @checked.local_program_common_normalization_inventory(
+      @checked.effect_program_static_checked_computation(owner.candidate),
+      10000,
+    )
+    is Err(UnsupportedRequirement),
+  )
+  let proof = issue_prepared_client_effect_selected_normalization(owner).unwrap()
+  assert_true(proof.inventory is CommonUpdate(_))
+  assert_eq(
+    client_effect_normalization_catalog_cid(proof),
+    "sha256:1263116a02d125a0c66f2445a175075d4ec333e56f3d003d35e9d51065fecf8f",
+  )
+  assert_eq(
+    @publication.run_evidence_value_identity(
+      prepared_client_effect_normalization_evidence(owner, proof).unwrap(),
+    ),
+    "sha256:8b5172ca35db5cd4f35b8e6bbde52243d92b9e9027c2fc4568b8d66a5334ffb1",
+  )
+  assert_true(
+    physical_equal(
+      proof,
+      issue_prepared_client_effect_selected_normalization(owner).unwrap(),
+    ),
+  )
+  let copied = { ..owner, }
+  assert_true(
+    issue_prepared_client_effect_selected_normalization(copied)
+    is Err(ForeignPreparation),
+  )
+  assert_true(
+    prepared_client_effect_normalization_evidence(
+      common_update_normalization_fixture(),
+      proof,
+    )
+    is Err(ForeignPreparation),
+  )
+  let manifests = admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    10000,
+    1000,
+    20,
+  ).unwrap()
+  let compilation = issue_prepared_client_effect_compilation(
+    owner,
+    manifests,
+    client_standard_values_sequence_limits(),
+    1000,
+    1000,
+    100000,
+    10000,
+    100,
+    normalization=Some(proof),
+  ).unwrap()
+  assert_true(compilation.normalization_profile is Some(CommonUpdate(_)))
+}
+
+///|
+test "common update normalization never drops a real original projection completion" {
+  let owner = common_update_normalization_fixture(completion=true)
+  assert_true(
+    issue_prepared_client_effect_local_update_normalization(owner)
+    is Err(Inventory(ProfileNotInstalled)),
+  )
+  assert_true(
+    issue_prepared_client_effect_selected_normalization(owner)
+    is Err(Inventory(CompletionObserved)),
+  )
+  assert_true(owner.normalization is None)
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "actql-local-common-update-completion-free-catalog.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "applicability",
+    "profile",
+    "rules",
+    "version"
+  ],
+  "properties": {
+    "applicability": {
+      "const": {
+        "proof": "same-original-CheckedProgram-complete-requirement-closure-and-static-update-Mapping-owners",
+        "audit_work_limit": 10000,
+        "effect_kind": "mapped_update",
+        "selector_classes": [
+          "id"
+        ],
+        "mapping_conversions": "none",
+        "change_sources": [
+          "field",
+          "scalar_literal"
+        ],
+        "computation": "existing-common-original-occurrence-normalization-audit; execution-requirements-retained",
+        "actual_completions": "zero; nonempty-or-unconnected-completion-refuses",
+        "source_selection": "explicit-original-resolver-selection; no-Source-authority",
+        "parameter_origins": [
+          "supplied",
+          "default"
+        ],
+        "scope": "fresh-normalization-only; no-operation-support-Model-Effect-approval-resource-or-current-grant",
+        "compatibility": "existing-catalogs-and-saved-original-recipe-bytes-unchanged"
+      }
+    },
+    "profile": {
+      "const": "actql-local-common-update-completion-free/0.1"
+    },
+    "rules": {
+      "type": "array",
+      "maxItems": 0
+    },
+    "version": {
+      "const": "actql-normalization-rule-catalog/0.1"
+    }
+  }
+}

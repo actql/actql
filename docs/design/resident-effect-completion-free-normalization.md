@@ -332,3 +332,30 @@ through the same save/retry and typed outcome projection. Reconstructing row
 custody never grants permission to write. Empty or multiple create rows remain
 explicitly unsupported by this single-row adapter; those implementation
 boundaries are not restrictions on the language's create semantics.
+
+
+## Common computation with an original mapped update
+
+The Native README computation combines independent Source inputs, a keyed
+Content input, an explicit uniqueness assertion and an original Model occurrence.
+It is outside the immutable one-root Local update catalogue. A successful check
+or an executable Model graph does not prove an empty normalization inventory.
+
+`actql-local-common-update-completion-free-catalog.json` selects a separate fresh
+profile. Its computation audit reuses the same common original-occurrence walk
+used by Local normalization, including complete requirement and parameter
+ownership. Its update audit reuses the original selector, field, scalar literal,
+Mapping-conversion and omission checks. Actual completion entries, unconnected
+Source/default/template completions and work exhaustion still refuse. There is
+no second operation-support table and no Source, Model, Preview, permission,
+resource or physical execution grant. The Effect-free public inventory continues
+to reject Effect programs; only the original static Effect closure can enter this
+composition. Existing catalogue bodies and all saved recipes remain unchanged.
+
+Fresh selection first reads the retained original narrow applicability audit;
+when that profile is not installed, the common composition must establish its
+own complete original proof. An observed completion is never rescued by the
+broader audit. The selected nominal inventory and its distinct catalogue are
+bound before the first Effect compilation, retained by the same preparation and
+carried through original material and saved-compilation profile checks. Later
+reads of the retained original proof do not repeat the occurrence audit.

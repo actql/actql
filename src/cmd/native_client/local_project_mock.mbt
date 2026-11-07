@@ -278,6 +278,7 @@ priv struct LocalProjectMockModelOriginal {
   mut normalized : @compiler_environment.NormalizedPublicModelTask?
   mut answers : @model.ModelMockAnswers?
   mut installation : @model.ModelMockInstallation?
+  mut execution : @compiler_environment.ModelExecutionContract?
 }
 
 ///|
@@ -344,6 +345,7 @@ fn LocalProjectMockDeclarations::prepare_models(
       normalized: None,
       answers: None,
       installation: None,
+      execution: None,
     }
     self.models.push(entry)
     let format = if answer_path.has_suffix(".json") { "json" } else { "yaml" }
@@ -423,6 +425,7 @@ fn LocalProjectMockDeclarations::retire_originals(
         Err(issue) => return Err(Answers(issue))
       }
     }
+    entry.execution = None
     entry.normalized = None
     self.model_retire_index += 1
   }
@@ -501,7 +504,68 @@ fn LocalProjectMockDeclarations::prepare_model_environment(
       return Err(Environment)
     }
   }
+  // Retain the Environment before admitting any execution contract whose
+  // original Task it owns. A later failure still retires this same Project.
   self.model_environment = Some((base, prepared))
+  let selected = match @checked.checking_environment_model_tasks(prepared) {
+    Some(value) => value
+    None => {
+      self.model_failure = Some(Environment)
+      return Err(Environment)
+    }
+  }
+  let limits = local_project_mock_task_limits()
+  for entry in self.models {
+    guard entry.normalized is Some(normalized) &&
+      self.model_profile is Some(profile) else {
+      self.model_failure = Some(ForeignOriginal)
+      return Err(ForeignOriginal)
+    }
+    let task = match
+      @compiler_environment.resolve_model_task(
+        selected,
+        @compiler_environment.public_model_task_declaration_identity(
+          entry.declaration,
+        ).0,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        self.model_failure = Some(Task(issue))
+        return Err(Task(issue))
+      }
+    }
+    let (wire, cid, _, _, _, _) = match
+      @compiler_environment.model_mock_execution_materials(
+        profile, normalized, limits,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        self.model_failure = Some(Task(issue))
+        return Err(Task(issue))
+      }
+    }
+    let execution = match
+      @compiler_environment.read_model_execution_contract(
+        task,
+        @utf8.encode(wire),
+        cid,
+        limits.bodies,
+        limits.max_work,
+      ) {
+      Ok(value) => value
+      Err(_) => {
+        self.model_failure = Some(Environment)
+        return Err(Environment)
+      }
+    }
+    entry.execution = Some(execution)
+    if !@compiler_environment.model_mock_execution_matches(
+        profile, normalized, execution,
+      ) {
+      self.model_failure = Some(ForeignOriginal)
+      return Err(ForeignOriginal)
+    }
+  }
   Ok(prepared)
 }
 

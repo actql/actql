@@ -44,6 +44,7 @@ fn local_effect_first_compilation(
   request_id : String,
   now : String,
   until : String,
+  infers? : Array[@run_host.ClientInferPlanGraph] = [],
 ) -> LocalEffectFirstCompilation raise ClientStop {
   guard @local_host.native_client_submitted_preparation(preparation)
     is EffectComputation(prepared) else {
@@ -61,21 +62,15 @@ fn local_effect_first_compilation(
   let normalization_result = match @syntax.effect_header_kind(header) {
     "create" => @run_host.issue_prepared_client_effect_normalization(prepared)
     "update" =>
-      @run_host.issue_prepared_client_effect_local_update_normalization(
-        prepared,
-      )
+      @run_host.issue_prepared_client_effect_selected_normalization(prepared)
     _ => stop("LocalEffectNormalizationProfileNotInstalled")
   }
   let normalization = normalization_result.unwrap_or_else(() => {
     stop("LocalOriginalNormalizationNotInstalled")
   })
-  let manifests = @run_host.admit_client_compilation_manifests(
-    @compiler_environment.compiler_grammar_manifest_wire(),
-    @compiler_environment.compiler_barrier_contract_manifest_wire(),
-    10000,
-    1000,
-    20,
-  ).unwrap_or_else(() => stop("LocalCompilerManifestUnavailable"))
+  // Reuse the same immutable installed manifests retained by Request Graph
+  // construction. Do not admit identical compiler contracts again here.
+  let manifests = native_request_manifests
   // Supply the genuine profile to the FIRST compiler invocation. Never upgrade
   // a previously compiled/accepted legacy Template during replay or recovery.
   let compilation = @run_host.issue_prepared_client_effect_compilation(
@@ -88,6 +83,8 @@ fn local_effect_first_compilation(
     8192,
     64,
     normalization=Some(normalization),
+    infer=if infers.length() == 1 { Some(infers[0]) } else { None },
+    infers=if infers.length() == 1 { [] } else { infers },
   ).unwrap_or_else(() => stop("LocalEffectCompilationNotReady"))
   let allowed = @run_host.issue_client_effect_allowed_run(
     compilation, scope, configuration_cid, until,
