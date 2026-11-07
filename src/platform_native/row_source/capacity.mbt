@@ -3,6 +3,7 @@
 // H/R/S below mean headers/reference slots/scalar words. Charge simultaneous
 // variants conservatively, including mutually exclusive failure paths:
 //
+// * Original acquisition selector: H1/R1/S1 (Query or whole Source).
 // * Capture holder: H1/R24/S5 (23 optional references plus borrowed limits;
 //   offset, three progression flags, phase). Its Some wrappers: H23/R23/S23.
 // * Selection snapshot: record + two path arrays + optional key path Some,
@@ -40,7 +41,7 @@ fn file_capture_metadata_capacity(
     )
     is Some(paths) &&
     @execution.checked_preparation_add_product(
-      24L + 23L + 7L + 9L + 3L + 3L + 1L + 4L + 2L + 2L + 1L + 6L + 12L,
+      1L + 24L + 23L + 7L + 9L + 3L + 3L + 1L + 4L + 2L + 2L + 1L + 6L + 12L,
       paths,
       1L,
     )
@@ -53,6 +54,7 @@ fn file_capture_metadata_capacity(
     is Some(diagnostics) &&
     @execution.preparation_representation_cost({
       record_headers: 1L +
+      1L +
       23L +
       4L +
       8L +
@@ -71,7 +73,8 @@ fn file_capture_metadata_capacity(
       6L +
       10L,
       reference_slots: references,
-      scalar_words: 5L +
+      scalar_words: 1L +
+      5L +
       23L +
       1L +
       7L +
@@ -256,6 +259,77 @@ pub fn native_relation_file_capture_limits(
     file_capture_provider_capacity(selection, limits, contract)
     is Some(provider) &&
     @rows.row_acquisition_provider_capacity(acquisition, Some(provider))
+    is Some(combined) &&
+    @execution.checked_preparation_add_product(
+      metadata,
+      @execution.execution_capacity_retained_bytes(combined),
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      metadata,
+      @execution.execution_capacity_execution_bytes(combined),
+      1L,
+    )
+    is Some(executing) &&
+    @execution.checked_preparation_add_product(
+      executing,
+      limits.page.max_bytes.to_int64(),
+      1L,
+    )
+    is Some(executing) else {
+    return Err(Capacity)
+  }
+  Ok({
+    planning_work: 0,
+    attempts: 1,
+    holdings: 1,
+    transfer_bytes: limits.page.max_bytes.to_int64(),
+    retained_bytes: retained,
+    execution_bytes: executing,
+  })
+}
+
+///|
+/// Quote the same physical file owner for a complete checked Source input.
+/// Original input bounds/contract provenance remain with that acquisition.
+pub fn native_relation_file_input_capture_limits(
+  declaration : @rows.RowDeclaration,
+  acquisition : @rows.RowInputAcquisition,
+  selection : NativeRelationFileSelection,
+  limits : NativeRelationFileLimits,
+) -> Result[@resources.LedgerLimits, NativeRelationFileIssue] {
+  if !native_relation_file_input_valid(selection, limits) ||
+    @rows.row_input_acquisition_is_listing(acquisition) {
+    return Err(InvalidInput)
+  }
+  match
+    @rows.check_row_input_acquisition_declaration(acquisition, declaration) {
+    Err(issue) => return Err(Row(issue))
+    Ok(_) => ()
+  }
+  let source_ref = @rows.row_input_acquisition_facts(acquisition).source_ref
+  let resource = match @rows.row_declaration_view(declaration, source_ref) {
+    Some(view) => view.resource
+    None => return Err(Row(@rows.Source(UndeclaredSource)))
+  }
+  if resource != selection.resource {
+    return Err(ForeignOriginal)
+  }
+  let contract = match
+    @rows.relation_document_projection_contract(
+      declaration,
+      resource,
+      selection.primary_identity,
+      limits.page,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Mapping(issue))
+  }
+  guard file_capture_metadata_capacity(selection, limits) is Some(metadata) &&
+    file_capture_provider_capacity(selection, limits, contract)
+    is Some(provider) &&
+    @rows.row_input_acquisition_capacity(acquisition, Some(provider))
     is Some(combined) &&
     @execution.checked_preparation_add_product(
       metadata,

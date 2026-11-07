@@ -21,4 +21,5 @@ import {
   "actql/actql/client_local_host" @local,
   "actql/actql/execution_query" @query,
   "actql/actql/value_admission" @admitted,
+  "actql/actql/sourceview_resolution" @sourceviews,
 } for "wbtest"
