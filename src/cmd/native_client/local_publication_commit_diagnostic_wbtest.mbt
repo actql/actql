@@ -34,4 +34,15 @@ test "commit diagnostics separate original Store evidence refusal from uncertain
   )
   assert_eq(fields.get(11), Some(9006L))
   assert_eq(fields.get(12), Some(5L))
+  fields.clear()
+  local_publication_commit_failure_tags(
+    @local_publication.Store(
+      PublicationCommit(
+        CommitEvidence(EvidenceEmbeddedIdentity("authoring_context_cid")),
+      ),
+    ),
+    emit,
+  )
+  assert_eq(fields.get(11), Some(9005L))
+  assert_eq(fields.get(12), Some(2064L))
 }
