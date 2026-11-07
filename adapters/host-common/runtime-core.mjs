@@ -3373,6 +3373,15 @@ function publicationControl(moon) {
     },
     admitComposedInferSources(occurrence, captures, sourceEvidence, authorityScopeCid,
       startedAt, completedAt, keyed) {
+      if (captures.some(value => value.inputKind === 'whole-input')) {
+        if (captures.some(value => value.inputKind !== 'whole-input' || value.wholeCapacity === undefined)) {
+          throw new TypeError('Unsupported mixed original Model Source inputs');
+        }
+        return checked(moon.clientProgramAdmitComposedInferWholeSources(occurrence,
+          captures.map(value => value.capture.source()), captures.map(value => value.identity),
+          captures.map(value => value.wholeCapacity), captures.map(value => value.logicalInput),
+          sourceEvidence.map(evidenceToken), authorityScopeCid, startedAt, completedAt, keyed));
+      }
       return checked(moon.clientProgramAdmitComposedInferSources(occurrence,
         captures.map(value => value.capture.source()), captures.map(value => value.identity),
         captures.map(value => value.requirement), captures.map(value => value.logicalInput),
@@ -3394,6 +3403,15 @@ function publicationControl(moon) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      if (captures.some(value => value.inputKind === 'whole-input')) {
+        if (captures.some(value => value.inputKind !== 'whole-input' ||
+            typeof value.capture.originalCapturedInput !== 'function')) {
+          throw new TypeError('Unsupported mixed original keyed Source inputs');
+        }
+        return checked(moon.clientProgramStartInstalledOriginalComposedKeyedInputPrefix(managedRun,
+          scope, value, token(definition), graph, keyed,
+          captures.map(value => value.capture.originalCapturedInput())));
       }
       return checked(moon.clientProgramStartInstalledOriginalComposedKeyedPrefix(managedRun,
         scope, value, token(definition), graph, keyed,

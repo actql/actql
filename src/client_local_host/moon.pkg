@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/carrier_contract" @carrier,
+  "actql/actql/capacity_policy" @capacity,
   "actql/actql/decode_shape" @shape,
   "actql/actql/parameter_binding" @parameters,
   "actql/actql/client_source_publication" @source_publication,

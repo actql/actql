@@ -28,6 +28,7 @@ test "whole Source input capture borrows original rows before Select without com
   assert_false(completed_output_matches_supplied_inputs(output, [read]))
   let bound = bind_completed_source_input_operation(owner, 0, 0, output, read).unwrap()
   let consumer = prepare_producer_read(owner, bound, 10, 100).unwrap()
+  assert_true(producer_read_matches_operation_input(consumer, owner, 0, 0))
   assert_true(producer_read_cell(consumer, 0, 0) is Some(Number(3.0)))
   assert_true(producer_read_cell(consumer, 0, 1) is Some(Text("original")))
   live.val = false

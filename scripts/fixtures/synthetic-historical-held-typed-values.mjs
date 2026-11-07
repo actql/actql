@@ -157,6 +157,10 @@ export async function writeSyntheticHistoricalHeldTypedValues({directory, docume
     // historical fixture, independently authored before current acceptance.
     max_relation_output_rows: 536870912 / 256,
     max_artifact_rows: 536870912 / 256,
+    // The current Local factory selects this optional ceiling from the same
+    // nominal row policy. It does not turn this synthetic historical-format
+    // input into evidence that an earlier Host selected that Environment.
+    max_file_listing_items: 536870912 / 256,
     max_model_request_bytes_per_item: 65536};
   const binding = {authorization_context_cid: cid({principal: principalId,
     account_id: account.account_id, configuration_cid: configurationCid, source_configuration_cid: null}),

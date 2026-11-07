@@ -119,6 +119,7 @@ fn read_text_file(
         "; close " +
         filesystem_issue_code(cleanup)
       @bounded_files.InvalidUtf8 => "input is not valid UTF-8"
+      @bounded_files.PreparationUnavailable => "input preparation unavailable"
     }
   })
 }

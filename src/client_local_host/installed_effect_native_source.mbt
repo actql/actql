@@ -325,6 +325,7 @@ fn prepare_installed_effect_whole_source_capacity(
       contracts.original.value.contracts,
       declaration,
       input_limits,
+      listing_policy=Some(installed_source_listing_policy(graph)),
     ) {
     Ok(value) => value
     Err(_) => return Err(Unsupported)

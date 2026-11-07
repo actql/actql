@@ -902,12 +902,24 @@ pub fn begin_charged_row_run_listing_page(
     Err(issue) => return Err(issue)
   }
   guard run.attempt.state is Reading(read) else { return Err(InvalidState) }
+  let parsed = match run.configuration {
+    InputConfiguration(acquisition) =>
+      match prepare_row_input_listing_page(run, read, acquisition, body) {
+        Ok(value) => Some(value)
+        Err(issue) => {
+          abort_row_run(run)
+          return Err(issue)
+        }
+      }
+    _ => None
+  }
   match
     begin_row_source_listing_page(
       read,
       body,
       elapsed_ms,
       received_bytes=charge.received_bytes,
+      parsed~,
     ) {
     Ok(_) => Ok(())
     Err(issue) => {

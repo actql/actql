@@ -2747,7 +2747,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     const capacity = {transferBytes: maxTransferBytes,
       executionBytes: BigInt(limits.maxPageBytes)};
     if (originalReader !== undefined) capacity.provider = originalReader.capacity;
-    if (listingReportCapacity !== undefined &&
+    if (!owner.wholeInput && listingReportCapacity !== undefined &&
         moon.clientProgramRowSourceIsListing(acquisition)) {
       // Extra report/control backing is admitted by Core before page I/O and
       // retained through original capture/evidence/cleanup, not settled by
@@ -2819,7 +2819,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
         : moon.clientProgramRowSourceBeginWithPageLimits(run, limits.maxPageBytes,
           beginPageLimits.maxNodes, beginPageLimits.maxDepth, limits.maxPageRows,
           limits.maxCaptureRows, referenceIssuer));
-      const isListing = !owner.wholeInput && moon.clientProgramRowSourceIsListing(acquisition);
+      const isListing = owner.wholeInput
+        ? moon.clientProgramWholeSourceIsListing(acquisition)
+        : moon.clientProgramRowSourceIsListing(acquisition);
       // paths=[] is already typed and complete. Do not issue a read grant or
       // enter a Site driver merely to manufacture an empty transport result.
       if (isListing && moon.clientProgramRowSourceListingComplete(run)) {

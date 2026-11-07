@@ -2280,10 +2280,9 @@ pub fn open_source_inputs_effect_run_dag(
   models? : Array[(Int, Int, @execution.CompletedOutput)] = [],
 ) -> Result[CapturedEffectRunDAG, RunIssue] {
   guard @graph.source_inputs_dag_matches_original(
-      graph,
-      checked.computation.graph_value(),
-    ) &&
-    sources.length() == graph.supplied_slots_count() else {
+    graph,
+    checked.computation.graph_value(),
+  ) else {
     return Err(ForeignCapture)
   }
   let reads = []
@@ -2342,6 +2341,9 @@ pub fn open_source_inputs_effect_run_dag(
       reads.push((task, input, read))
       selected
     }
+  }
+  if reads.length() != graph.supplied_slots_count() {
+    return Err(ForeignCapture)
   }
   let dependencies = match
     effect_dependency_ports(checked.computation, 4096, 65536, 64) {

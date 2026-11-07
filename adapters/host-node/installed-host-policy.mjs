@@ -165,8 +165,13 @@ export function selectInstalledLocalMaterializationEnvironment(
         modelRequestBytes > BigInt(Number.MAX_SAFE_INTEGER)) fail('LocalModelRequestPolicyProjection');
     capacity.max_model_request_bytes_per_item = Number(modelRequestBytes);
   }
-  for (const field of ['max_relation_output_rows', 'max_artifact_rows']) {
-    capacity[field] = explicit === undefined ? rows : Math.min(explicit[field], rows);
+  for (const field of ['max_relation_output_rows', 'max_artifact_rows', 'max_file_listing_items']) {
+    // The ordinary Local service selects a finite listing policy from its
+    // same Resource owner. It is a ceiling, never an observed Source count.
+    // An explicitly omitted optional policy stays unresolved.
+    if (explicit === undefined || explicit[field] !== undefined) {
+      capacity[field] = explicit === undefined ? rows : Math.min(explicit[field], rows);
+    }
   }
   return selectInstalledHostEnvironment(moon, baseWire, capacity, lookupSelection);
 }

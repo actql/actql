@@ -1,4 +1,48 @@
 ///|
+// Both Query and complete Source inputs enter the SAME listing protocol.
+// Construct selectors/progress only after the caller's Source reservation.
+fn prepare_row_listing_progress(
+  profile : @environment.FileListProfile?,
+  request : @sourcequery.ParameterizedRequest,
+  max_pattern_units : Int,
+  reference_issuer : @admitted.ReferenceIssuer?,
+  rows : RowListingRows?,
+  retention? : RowListingRetention? = None,
+) -> Result[RowListingProgress?, RowSourceIssue] {
+  guard profile is Some(profile) else { return Ok(None) }
+  if reference_issuer is None {
+    return Err(Value("resource"))
+  }
+  if rows is None {
+    return Err(ListingLimitUnresolved("max_listing_items"))
+  }
+  let selection = match prepare_row_file_selection(request, max_pattern_units) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok(
+    Some(
+      new_row_listing_progress(
+        @environment.file_listing_limit_candidates(profile),
+        resolved_rows=rows,
+        selection=Some(selection),
+        retention~,
+      ),
+    ),
+  )
+}
+
+///|
+// The same RowRun's retained-metadata inventory, not a second input, Ledger
+// or listing permission. Usage comes from the original typed admission once.
+priv struct RowListingRetention {
+  max_nodes : Int
+  max_text : Int
+  mut nodes : Int
+  mut text : Int
+}
+
+///|
 // Protocol observations retained by the existing RowSourceRead. This is not
 // another acquisition owner, a count proof or a durable restart receipt.
 priv struct RowListingProgress {
@@ -8,6 +52,9 @@ priv struct RowListingProgress {
   tokens : Array[String]
   observations : Map[String, Array[@admitted.CheckedValue?]]
   found_paths : Array[Bool]
+  retention : RowListingRetention?
+  mut preflight : @source.JsonSourcePreflight?
+  mut parser : @source.JsonParse?
   mut page : RowListingPage?
   mut work : Int
   mut next_token : String?
@@ -24,11 +71,15 @@ fn new_row_listing_progress(
   limits : Array[(String, Int64)],
   resolved_rows? : RowListingRows? = None,
   selection? : RowFileSelection? = None,
+  retention? : RowListingRetention? = None,
 ) -> RowListingProgress {
   {
     limits: limits.copy(),
     resolved_rows,
     selection,
+    retention,
+    preflight: None,
+    parser: None,
     tokens: [],
     observations: {},
     found_paths: match selection {
@@ -49,6 +100,14 @@ fn new_row_listing_progress(
 
 ///|
 fn clear_row_listing_tokens(progress : RowListingProgress) -> Unit {
+  if progress.preflight is Some(original) {
+    @source.cancel_json_source_preflight(original)
+    progress.preflight = None
+  }
+  if progress.parser is Some(original) {
+    @source.cancel_json_parse(original)
+    progress.parser = None
+  }
   // Non-JS array backing can retain popped values. Remove each reference
   // before shrinking; cleanup must not leave the cursor history reachable.
   while !progress.tokens.is_empty() {
@@ -76,6 +135,7 @@ priv struct RowListingPage {
   mut selected : Bool?
   mut duplicate : Bool
   mut checked_path : Int
+  mut retention_before : (Int, Int)?
 }
 
 ///|
@@ -195,6 +255,7 @@ fn begin_row_source_listing_page(
   body : Bytes,
   elapsed_ms : Int64,
   received_bytes? : Int64 = body.length().to_int64(),
+  parsed? : @source.Node? = None,
 ) -> Result[Unit, RowSourceIssue] {
   guard read.open && read.listing is Some(progress) else {
     return Err(ListingProtocol)
@@ -227,13 +288,20 @@ fn begin_row_source_listing_page(
   if body.length() > limits.max_bytes {
     return fail_read(read, InvalidPage)
   }
-  guard @source.parse_json_bytes(body, {
-      max_input_bytes: limits.max_bytes,
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-    })
-    is Ok(node) &&
-    @decode.admit(node, {
+  let node = match parsed {
+    Some(original) => original
+    None =>
+      match
+        @source.parse_json_bytes(body, {
+          max_input_bytes: limits.max_bytes,
+          max_nodes: limits.max_nodes,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(value) => value
+        Err(_) => return fail_read(read, ListingProtocol)
+      }
+  }
+  guard @decode.admit(node, {
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
       max_string_bytes: limits.max_bytes,
@@ -281,6 +349,7 @@ fn begin_row_source_listing_page(
     selected: None,
     duplicate: false,
     checked_path: 0,
+    retention_before: None,
   })
   Ok(())
 }
@@ -352,12 +421,14 @@ fn advance_row_source_listing_page(
       return Ok(ListingPageComplete(rows=count, work~))
     }
     if page.cells is None {
+      page.retention_before = progress.retention.map(b => (b.nodes, b.text))
       let cells = match
         admit_row_source_object(
           read.schema,
           read.declared_fields,
           page.items[page.index],
           read.values,
+          listing_retention=progress.retention,
           references=read.reference_issuer.map(issuer => {
             (
               issuer,
@@ -549,6 +620,15 @@ fn advance_row_source_listing_page(
       read.rows += 1L
       page.emitted += 1
     }
+    if page.duplicate &&
+      progress.retention is Some(budget) &&
+      page.retention_before is Some((nodes, text)) {
+      // Only the duplicate's temporary row retires. The original metadata
+      // stays charged until terminal completeness or cancellation clears it.
+      budget.nodes = nodes
+      budget.text = text
+    }
+    page.retention_before = None
     page.index += 1
     page.cells = None
     page.prior = None

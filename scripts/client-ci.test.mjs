@@ -685,12 +685,59 @@ test('Client preparation exposes runtime adapters and wire freshness as separate
   }
 });
 
+test('source-response custody has one same-environment normal Client owner', () => {
+  const file = 'adapters/host-common/source-response-custody.test.mjs';
+  assert(!runs('client-distribution').some(command => command.split(/\s+/u).includes(file)));
+  const owner = jobs['client-distribution-callers'].steps.filter(step => step.run?.split(/\s+/u).includes(file));
+  assert.equal(owner.length, 1);
+  assert.equal(owner[0].run, `node scripts/local-checks.mjs test node -- ${file}`);
+  assert.equal(owner[0].if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.deepEqual(owner[0].env, {TMPDIR: '${{ github.workspace }}/_build'});
+  const local = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    .scripts['check:distribution-client'].split(' && ');
+  assert.equal(local.filter(command => command.split(/\s+/u).includes(file)).length, 1);
+  assert(local.includes(owner[0].run));
+});
+
+test('source-only Client wire and scratch tests do not wait for a producer or runtime', () => {
+  const files = ['packages/client-wire/cancel-identity.test.mjs',
+    'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs'];
+  const step = jobs.lint.steps.find(step => step.name === 'Test source-only Client wire contracts');
+  assert(step);
+  assert.deepEqual(jobs.lint.needs, ['select-targets', 'preflight']);
+  assert.equal(step.if, "${{ needs.select-targets.outputs.profile == 'full' }}");
+  assert.equal(step.run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- ' + files.slice(0, 2).join(' '));
+  assert(!jobs.lint.needs.includes('client-packages'));
+  assert(jobs.lint.steps.indexOf(step) < jobs.lint.steps.findIndex(step => step.name === 'Type-check public SDK and Client wire declarations'));
+  assert(!jobs.lint.steps.slice(0, jobs.lint.steps.indexOf(step)).some(step =>
+    /build-runtime-packages|build-local-node-adapters|download-client-packages/u.test(step.run ?? step.uses ?? '')));
+  const scratch = jobs.lint.steps.find(step => step.run === 'node --test scripts/owned-scratch.test.mjs');
+  assert(scratch);
+  assert.equal(scratch.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  const owners = ['lint', ...groups].flatMap(name => jobs[name].steps.filter(step => step.run)
+    .map(step => ({name, command: step.run})));
+  for (const file of files) {
+    const selected = owners.filter(owner => owner.command.split(/\s+/u).includes(file));
+    assert.equal(selected.length, 1, file);
+    assert.equal(selected[0].name, 'lint', file);
+  }
+  const mutation = runs('client-distribution-mutations');
+  for (const script of ['check-read-row-mutations', 'check-submission-input-mutations',
+    'check-submission-check-observation-mutations', 'check-effect-uncertainty-mutations'])
+    assert(mutation.includes(`node scripts/${script}.mjs`), 'mutation baseline and restoration stay in their original owner');
+});
+
 test('each Client group retains its acceptance commands exactly once', () => {
   const original = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
     .scripts['check:distribution-client'].split(' && ');
   assert.equal(original.length, 53, 'the existing full local gate remains unchanged');
   const prepared = ['npm ci --prefix packages/provider-ai-sdk --ignore-scripts',
     ...original.slice(0, 4)];
+  // The full local command still executes these source-only contracts. Hosted
+  // CI executes them once in lint, without package/runtime preparation.
+  const earlyContracts = new Set(['packages/client-wire/cancel-identity.test.mjs',
+    'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs']);
+  const distributionContracts = original[4].split(' ').filter(argument => !earlyContracts.has(argument)).join(' ');
   const partitions = {
     'client-distribution': [4],
     'client-distribution-callers': Array.from({length: 36}, (_, index) => index + 17),
@@ -701,12 +748,12 @@ test('each Client group retains its acceptance commands exactly once', () => {
   for (const [name, indexes] of Object.entries(partitions)) {
     assert.deepEqual(runs(name), [
       ...(['client-distribution', 'client-distribution-callers', 'client-distribution-mutations'].includes(name) ? prepared : []),
-      ...indexes.map(index => original[index]),
+      ...indexes.map(index => index === 4 ? distributionContracts : original[index]),
     ], name);
   }
   assert.deepEqual(Object.values(partitions).flat().sort((a, b) => a - b),
     Array.from({length: 49}, (_, index) => index + 4),
-    'every original acceptance command remains exactly once; only four source-preparation commands repeat');
+    'every original command keeps its owner; source-only arguments move to lint and only four preparation commands repeat');
   assert(!jobs['client-distribution-packed'].steps.some(step => step.id === 'distribution-preparation'),
     'normal tar acceptance does not rebuild the checkout runtime');
   assert.deepEqual(jobs['client-distribution-native'].needs, ['select-targets', 'preflight']);

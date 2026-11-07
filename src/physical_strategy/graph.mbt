@@ -217,8 +217,28 @@ fn bind_checked_effect_source_ports(
         let target = @ports.port_target(
           @execution.managed_result_occurrence_port(occurrence),
         )
-        guard graph_stage_target_task(graph, stage, target) is Some(task) else {
-          return Err(UnsupportedEffectSource(index))
+        let task = match graph_stage_target_task(graph, stage, target) {
+          Some(task) => task
+          None => {
+            // An unsplit captured root has no completed Result target yet.
+            // Retain this exact authored private Step on its original task;
+            // Whole input planning and the eventual Result read still prove
+            // execution and target correspondence before Effect consumption.
+            guard target is @pipeline.Step(step) &&
+              graph_stage_operation_task(graph, stage, step) is Some(task) &&
+              task < graph.captured_prefix &&
+              graph.stage_tasks[stage] == [task] &&
+              graph.targets[task] is None &&
+              graph.selected_steps[task] is None &&
+              graph.prefix_ends[task] is None &&
+              @lower.preparation_output_target(
+                @lower.bound_preparation(graph.owners[task]),
+              ) ==
+              Some(target) else {
+              return Err(UnsupportedEffectSource(index))
+            }
+            task
+          }
         }
         guard graph.owners.get(task) is Some(task_owner) &&
           owners.get(stage) is Some(owner) &&
