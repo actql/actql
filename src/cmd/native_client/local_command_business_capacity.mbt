@@ -5,7 +5,7 @@
 fn LocalCommandPreparationOriginal::prepare_business_request_capacity(
   self : LocalCommandPreparationOriginal,
   capture : @local_host.NativeLocalJournalCapture,
-  input : @run_host.ClientSubmittedIntent,
+  input : LocalCommandBusinessInput,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.host is Some(host) &&
     self.journal is Some(journal) &&
@@ -84,7 +84,11 @@ fn LocalCommandPreparationOriginal::prepare_business_request_capacity(
     (Ok(_), Ok(_)) =>
       try {
         command_preparation_value(self.prepare_business_execution(host, input))
-        command_preparation_value(self.prepare_business_operation())
+        // The fixed static caller has no Store/Run operation child. Its SAME
+        // Request reservation funds parsing, checking and metadata only.
+        if input.operation != "check" {
+          command_preparation_value(self.prepare_business_operation())
+        }
         Ok(())
       } catch {
         LocalCommandPreparationStop(issue) => Err(issue)

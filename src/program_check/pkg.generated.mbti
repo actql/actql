@@ -516,6 +516,8 @@ pub fn observe_supplement_checked_request_value_policies(CheckedProgram, Array[H
 
 pub fn observe_supplement_effect_request_value_policies(EffectComputationCandidate, Array[HostRequestValuePolicyEvidence], CompileLimits) -> (Result[EffectComputationCandidate, EffectComputationIssue], Int, Bool)
 
+pub fn original_check_diagnostic_outcome(CheckDiagnostic) -> CheckOutcome
+
 pub fn parsed_carriers_construction_extent(ParsedCarriersInput) -> @check_environment.RegistryConstructionExtent
 
 pub fn parsed_carriers_inspection_extent(ParsedCheckRegistry) -> @check_environment.RegistryConstructionExtent

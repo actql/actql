@@ -24,6 +24,16 @@ priv enum LocalRunReceiptObservation {
 }
 
 ///|
+// The actual immutable input producer selection, before file payload exists.
+// DATA in the existing business carrier, not a permission or Resource owner.
+priv struct LocalCommandBusinessInput {
+  root : String
+  operation : String
+  arguments : @argparse.Matches
+  retained_intent : @run_host.ClientSubmittedIntent?
+}
+
+///|
 // Caller retention only. The existing Host/domain/retained-execution Owners
 // keep every partial physical stage and their distinct acknowledgements.
 priv struct LocalCommandBusinessOriginal {
@@ -32,12 +42,15 @@ priv struct LocalCommandBusinessOriginal {
   mut domain : @initial_arena.InstalledArenaDomain?
   mut execution : @initial_arena.InstalledArenaRetainedExecution?
   // The SAME original input and preparation survive Journal scope switches.
-  mut request_input : @run_host.ClientSubmittedIntent?
+  mut request_input : LocalCommandBusinessInput?
+  mut request_intent : @run_host.ClientSubmittedIntent?
+  mut request_intake_units : Int64
+  mut request_read_failure : @files.NativeBoundedTextFailure?
   mut request_initial : @initial_resources.BackedPreparationAdmission[
-    @run_host.ClientSubmittedIntent,
+    LocalCommandBusinessInput,
   ]?
   mut request_parent : @local_values.ClientRequestPreparation[
-    @run_host.ClientSubmittedIntent,
+    LocalCommandBusinessInput,
   ]?
   mut request_body : @initial_resources.PreparationBodyBorrow[
     @run_host.PreparedClientProgram,
@@ -237,7 +250,7 @@ fn LocalCommandPreparationOriginal::prepare_business_domain(
 fn LocalCommandPreparationOriginal::prepare_business_execution(
   self : LocalCommandPreparationOriginal,
   host : @initial_arena.InstalledArenaHost,
-  input : @run_host.ClientSubmittedIntent,
+  input : LocalCommandBusinessInput,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.business is Some(business) else { return Ok(()) }
   if business.profile.kind == SavedResultRead {
@@ -352,6 +365,7 @@ fn LocalCommandPreparationOriginal::close_business_execution(
   }
   business.request_initial = None
   business.request_input = None
+  business.request_intent = None
   if business.domain is Some(domain) {
     match host.close_domain_after_owner_ack(domain) {
       Err(issue) => return Err(CommandDomain(issue))

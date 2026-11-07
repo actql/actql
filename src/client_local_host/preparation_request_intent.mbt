@@ -730,3 +730,94 @@ pub fn[I] reserve_request_retained_intent_source(
     () => owner.phase = Open,
   ).map(_ => limits)
 }
+
+///|
+/// The Native command's original input frame precedes its admitted intent.
+/// Back the observed transport/encoding envelope on that SAME Request before
+/// reading file payload, encoding or issuing the intent. The fixed original
+/// syntax node/depth policy is preserved; bytes are actual input demand.
+/// A declined grow retains the same baseline and cannot add it twice.
+pub fn[I] reserve_request_native_intake_wire(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  wire_bytes : Int,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard owner.phase == Open &&
+    !owner.intent_attempted &&
+    owner.submitted_intent is None &&
+    wire_bytes > 0 &&
+    wire_bytes < 2147483519 &&
+    wire_bytes >= owner.native_intake_wire_bytes else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  if wire_bytes == owner.native_intake_wire_bytes {
+    // A new constructor boundary still needs currentness even when its SAME
+    // existing debit already fits. Do not manufacture a no-op resize/debit.
+    owner.phase = Selecting
+    return preparation_module_call(
+      () => {
+        @resources.check_working_preparation_capacity_current(
+          owner.capacity,
+          input,
+        ).map_err(issue => ClientRequestPreparationIssue::Capacity(issue))
+      },
+      () => owner.phase = Open,
+    )
+  }
+  let standard = @publication_host.client_standard_program_preparation_limits().checking.input.source
+  let nodes = Int::min(wire_bytes, standard.max_nodes)
+  let limits : @source.ParseLimits = {
+    max_input_bytes: wire_bytes,
+    max_nodes: nodes,
+    max_depth: standard.max_depth,
+  }
+  guard request_intent_construction_bytes(
+      wire_bytes.to_int64(),
+      nodes.to_int64(),
+      limits,
+      captured=false,
+    )
+    is Some(intent) &&
+    @execution.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 16L,
+      scalar_words: 16L,
+      owned_utf16_units: wire_bytes.to_int64() * 2L,
+      // Original bounded Reader quantum plus its accumulating/copy buffers.
+      owned_wire_bytes: 65536L + wire_bytes.to_int64() * 4L,
+    })
+    is Some(transport) &&
+    @execution.checked_preparation_add_product(intent, transport, 1L)
+    is Some(bytes) else {
+    return Err(Policy)
+  }
+  let base = match owner.native_intake_base {
+    Some(value) => value
+    None => {
+      let value = match
+        @resources.preparation_capacity_working_extents(owner.capacity, input) {
+        Err(issue) => return Err(Capacity(issue))
+        Ok(value) => value
+      }
+      owner.native_intake_base = Some(value)
+      value
+    }
+  }
+  guard @execution.checked_preparation_add_product(base.0, bytes, 1L) is Some(r) &&
+    @execution.checked_preparation_add_product(base.1, bytes, 1L) is Some(e) else {
+    return Err(Policy)
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      @resources.reserve_working_preparation_phase(owner.capacity, input, r, e).map_err(issue => {
+          ClientRequestPreparationIssue::Capacity(issue)
+        },
+      )
+    },
+    () => owner.phase = Open,
+  ).map(_ => owner.native_intake_wire_bytes = wire_bytes)
+}

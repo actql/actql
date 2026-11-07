@@ -90,12 +90,76 @@ pub fn prepare_native_client_submitted_request(
   ),
   NativeClientSubmittedPreparationIssue,
 ] {
-  match @local.retain_request_submitted_intent(owner, intent, intent) {
+  prepare_native_client_submitted_request_input(
+    owner, intent, intent, environment, publication,
+  )
+}
+
+///|
+/// SAME original producer input, selected and backed before its file/intent
+/// constructor. The existing typed intent remains actual input DATA; this
+/// overload changes no issuer, permission, checker/compiler or cleanup owner.
+pub fn[I] prepare_native_client_submitted_request_input(
+  owner : @local.ClientRequestPreparation[I],
+  input : I,
+  intent : @host.ClientSubmittedIntent,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+) -> Result[
+  (
+    NativeClientSubmittedPreparation,
+    @resources.PreparationBodyBorrow[@host.PreparedClientProgram],
+  ),
+  NativeClientSubmittedPreparationIssue,
+] {
+  match
+    check_native_client_submitted_request_input(
+      owner, input, intent, environment, publication,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match
+    @local.finish_request_checked_computation(
+      owner, input, environment, publication,
+    ) {
+    Err(issue) => return Err(Request(issue))
+    Ok(@local.Effect) => return Err(RequestBranchUnavailable)
+    Ok(@local.Pure) => ()
+  }
+  let borrow = match @local.borrow_request_program_plan_input(owner, input) {
+    Err(issue) => return Err(RequestPreparation(issue))
+    Ok(value) => value
+  }
+  let original = @resources.preparation_body_borrow_value(borrow).unwrap()
+  Ok(
+    (
+      {
+        intent_cid: @host.client_submitted_intent_cid(intent),
+        preparation: Computation(original),
+      },
+      borrow,
+    ),
+  )
+}
+
+///|
+/// Same original Request intake and semantic checker, before compilation or
+/// eventual body selection. Static check/explain callers keep this parent and
+/// its original outcome; neither a second parser nor a Run is issued here.
+pub fn[I] check_native_client_submitted_request_input(
+  owner : @local.ClientRequestPreparation[I],
+  input : I,
+  intent : @host.ClientSubmittedIntent,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+) -> Result[Unit, NativeClientSubmittedPreparationIssue] {
+  match @local.retain_request_submitted_intent(owner, input, intent) {
     Err(issue) => return Err(RequestPreparation(issue))
     Ok(_) => ()
   }
   let limits = match
-    @local.reserve_request_retained_intent_source(owner, intent) {
+    @local.reserve_request_retained_intent_source(owner, input) {
     Err(issue) => return Err(RequestPreparation(issue))
     Ok(value) => value
   }
@@ -119,12 +183,46 @@ pub fn prepare_native_client_submitted_request(
   // Preserve the existing Native Source policy rather than treating the outer
   // captured Text as a new structural restriction on its authored document.
   let program_limits = if kind == "program" {
-    match @local.request_default_program_preparation_limits(owner, intent) {
+    match @local.request_default_program_preparation_limits(owner, input) {
       Err(issue) => return Err(Request(issue))
       Ok(value) => value
     }
   } else {
-    @host.client_standard_program_preparation_limits()
+    let standard = @host.client_standard_program_preparation_limits()
+    let selected = (reader.field)(source, "input")
+    let document = (reader.field)(selected, "text")
+    if (reader.kind)(document) == 3 {
+      let bound = (reader.text)(document).length().to_int64() * 3L + 128L
+      if bound >= 2147483519L {
+        return Err(SubmittedInputLimit)
+      }
+      // Keep the existing Source node/depth policy. Byte storage follows the
+      // actual immutable document; a Text never fabricates structural nodes.
+      // Preserve the old floor for generated Query/contract material as well.
+      let source = standard.checking.input.source
+      let tree = standard.checking.input.tree
+      let bytes = Int::max(source.max_input_bytes, bound.to_int())
+      {
+        ..standard,
+        checking: {
+          ..standard.checking,
+          input: {
+            ..standard.checking.input,
+            source: { ..source, max_input_bytes: bytes, },
+            tree: {
+              ..tree,
+              max_string_bytes: Int::max(tree.max_string_bytes, bytes),
+              max_total_string_bytes: Int::max(
+                tree.max_total_string_bytes,
+                bytes,
+              ),
+            },
+          },
+        },
+      }
+    } else {
+      standard
+    }
   }
   let supplied = (reader.field)(source, "parameters")
   let supplied = if (reader.kind)(supplied) == 0 {
@@ -138,9 +236,9 @@ pub fn prepare_native_client_submitted_request(
     program: program_limits,
   }
   let prepared = if kind == "program" {
-    @local.prepare_request_native_computation(
+    @local.prepare_request_native_computation_check(
       owner,
-      intent,
+      input,
       selected,
       reader,
       environment,
@@ -151,9 +249,9 @@ pub fn prepare_native_client_submitted_request(
       supplied~,
     )
   } else if kind == "aql" {
-    @local.prepare_request_native_source_computation(
+    @local.prepare_request_native_source_computation_check(
       owner,
-      intent,
+      input,
       selected,
       reader,
       environment,
@@ -169,23 +267,5 @@ pub fn prepare_native_client_submitted_request(
   } else {
     return Err(InvalidSubmittedInput)
   }
-  match prepared {
-    Err(issue) => return Err(Request(issue))
-    Ok(@local.Effect) => return Err(RequestBranchUnavailable)
-    Ok(@local.Pure) => ()
-  }
-  let borrow = match @local.borrow_request_program_plan_input(owner, intent) {
-    Err(issue) => return Err(RequestPreparation(issue))
-    Ok(value) => value
-  }
-  let original = @resources.preparation_body_borrow_value(borrow).unwrap()
-  Ok(
-    (
-      {
-        intent_cid: @host.client_submitted_intent_cid(intent),
-        preparation: Computation(original),
-      },
-      borrow,
-    ),
-  )
+  prepared.map_err(issue => Request(issue))
 }

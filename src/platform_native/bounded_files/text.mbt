@@ -8,6 +8,7 @@ pub(all) enum NativeBoundedTextIssue {
   Filesystem(@filesystem.NativeFilesystemIssue)
   Cleanup(@filesystem.NativeFilesystemIssue, @filesystem.NativeFilesystemIssue)
   InvalidUtf8
+  PreparationUnavailable
 }
 
 ///|
@@ -259,6 +260,7 @@ fn read_bounded_text_file_selected(
   diagnostic_ceiling : Int?,
   scoped : Bool,
   ordinary_name : Bool,
+  prepare_payload? : ((Int64) -> Bool)? = None,
 ) -> Result[String, NativeBoundedTextFailure] {
   if max_bytes <= 0L || (diagnostic_ceiling is Some(limit) && limit <= 0) {
     return Err(bounded_text_failure(InvalidLimit))
@@ -306,6 +308,14 @@ fn read_bounded_text_file_selected(
       close_bounded_root_after_failure(
         root,
         bounded_text_failure(CapacityExceeded),
+      ),
+    )
+  }
+  if prepare_payload is Some(prepare) && !prepare(generation.size) {
+    return Err(
+      close_bounded_root_after_failure(
+        root,
+        bounded_text_failure(PreparationUnavailable),
       ),
     )
   }
@@ -362,4 +372,28 @@ fn read_bounded_text_file_selected(
     _ => return Err(bounded_text_failure(InvalidUtf8))
   }
   Ok(if trim_newline { trim_terminal_newline(text) } else { text })
+}
+
+///|
+/// Same ordinary original-generation read. The trusted already-entered caller
+/// backs the observed payload BEFORE the Reader/buffers/UTF8 constructors.
+/// This callback issues no permission, context, file identity or cleanup ACK;
+/// refusal keeps the original Root's actual cleanup custody. The signed Int
+/// ceiling is the existing byte/String representation, not a Host allowance.
+pub fn read_observed_ordinary_text_file_in_current_read_context_with_custody(
+  root_path : String,
+  name : String,
+  diagnostic_ceiling : Int,
+  prepare_payload : (Int64) -> Bool,
+) -> Result[String, NativeBoundedTextFailure] {
+  read_bounded_text_file_selected(
+    root_path,
+    name,
+    2147483518L,
+    false,
+    Some(diagnostic_ceiling),
+    true,
+    true,
+    prepare_payload=Some(prepare_payload),
+  )
 }

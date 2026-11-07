@@ -261,8 +261,23 @@ fn[I] prepare_request_original_computation_check_owned(
   evidence : Array[@context.StageCapacityInput],
   program_limits : @publication_host.ClientProgramPreparationLimits,
   effect_limits : @publication_host.ClientEffectComputationLimits,
+  static_check? : Bool = false,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
-  let child = match
+  let selected = if static_check {
+    // Existing Local check observes the ordinary semantic verdict, including
+    // unsupported authored Effects. It does not demand an execution candidate
+    // or reject that same report at a later compiler-only Effect header read.
+    owner.computation_limits = Some(program_limits)
+    prepare_request_program_check_preparation(
+      owner,
+      input,
+      environment,
+      None,
+      evidence,
+      program_limits.checking,
+      source_catalog=Some(@checked.require_source_catalog_reuse(catalog)),
+    )
+  } else {
     prepare_request_computation_check_preparation(
       owner,
       input,
@@ -272,7 +287,9 @@ fn[I] prepare_request_original_computation_check_owned(
       program_limits,
       effect_limits,
       source_catalog=Some(@checked.require_source_catalog_reuse(catalog)),
-    ) {
+    )
+  }
+  let child = match selected {
     Err(issue) => return Err(Preparation(issue))
     Ok(original) => original
   }

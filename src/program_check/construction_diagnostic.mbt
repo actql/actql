@@ -43,3 +43,14 @@ pub fn source_request_form_diagnostic(
 pub fn program_input_diagnostic(issue : @syntax.SyntaxError) -> CheckDiagnostic {
   construction_failure_diagnostic(Program(issue))
 }
+
+///|
+/// Retain the SAME already-issued diagnostic as its negative check outcome.
+/// This projects an original constructor refusal; it performs no input read,
+/// semantic check, remaining work, successful preparation or authority issue.
+/// Keeping this wrapper here preserves the checker's read-only outcome type.
+pub fn original_check_diagnostic_outcome(
+  original : CheckDiagnostic,
+) -> CheckOutcome {
+  Rejected(original)
+}

@@ -26,6 +26,7 @@ priv enum LocalCommandPreparationIssue {
   CommandInvalidProfile
   CommandNativeStorage(LocalCommandNativeStorageIssue)
   CommandUnavailable
+  CommandRequestPreparation(@local_values.ClientRequestPreparationIssue)
   CommandHost(@initial_bootstrap.NativeBootstrapIssue)
   CommandDomain(@initial_bootstrap.NativeBackedExecutionIssue)
   CommandRead(@initial_arena.InstalledArenaOriginalReadIssue)
@@ -196,6 +197,9 @@ fn prepare_local_command_preparation_original(
       execution: None,
       operation: None,
       request_input: None,
+      request_intent: None,
+      request_intake_units: 0L,
+      request_read_failure: None,
       request_initial: None,
       request_parent: None,
       request_body: None,
