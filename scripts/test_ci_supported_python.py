@@ -48,18 +48,23 @@ class SupportedPythonTests(unittest.TestCase):
                     patch.object(ci, 'verify_built_cohort', return_value={'cohort': cohort}) as verify:
                 destination = root / 'consumer'
                 ci.accept(cohort_directory, destination, '3.11.0')
-            self.assertEqual(len(calls), 5)
-            install = calls[1][0]
+            self.assertEqual(len(calls), 6)
+            bootstrap = calls[1][0]
+            self.assertIn('--require-hashes', bootstrap)
+            self.assertIn('--only-binary=:all:', bootstrap)
+            pip_requirement = (destination / 'pip-requirements.txt').read_text()
+            self.assertEqual(pip_requirement, 'pip==26.3 --hash=sha256:f3b60b20ffaadd4415ed7957212a38ac63fa4c5fa375bd0f4a797777940fad13\n')
+            install = calls[2][0]
             self.assertIn('--only-binary=:all:', install)
             self.assertIn('--constraint', install)
             self.assertEqual(install[-1], str(cohort_directory / 'wheels/actql.whl'))
             constraints = (destination / 'constraints.txt').read_text()
             for item in cohort['wheels']:
                 self.assertIn((cohort_directory / 'wheels' / item['file']).as_uri(), constraints)
-            self.assertTrue(calls[2][0][3].endswith('ci-python-installed-audit.py'))
-            self.assertTrue(calls[3][0][3].endswith('ci-python-installed-run.py'))
-            self.assertTrue(calls[3][0][4].endswith('ci-python-installed-health.py'))
-            self.assertTrue(calls[4][0][3].endswith('ci-python-installed-audit.py'))
+            self.assertTrue(calls[3][0][3].endswith('ci-python-installed-audit.py'))
+            self.assertTrue(calls[4][0][3].endswith('ci-python-installed-run.py'))
+            self.assertTrue(calls[4][0][4].endswith('ci-python-installed-health.py'))
+            self.assertTrue(calls[5][0][3].endswith('ci-python-installed-audit.py'))
             self.assertEqual(verify.call_count, 2)
             for args, options in calls[1:]:
                 self.assertEqual(options['cwd'], destination)

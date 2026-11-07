@@ -19,7 +19,11 @@ compatibility consumers each create a private venv, install the original three
 wheel URLs under exact constraints, use the existing wheel/installed-payload
 verifiers, and run the existing typed-refusal/healthy-query/close fixture. No
 consumer build, source resolution, ABI override or platform substitution is
-allowed. One version's failure does not suppress the other version. Node matrix
+allowed. Each venv uses SHA256-pinned
+[pip26.3](https://pypi.org/project/pip/26.3/) (Python>=3.10) so the auditor receives
+the stable report-v1 schema. Python3.11.0's bundled pip22.3 emits experimental
+report-v0; upgrading this installer does not upgrade the tested interpreter or
+weaken wheel/installed-byte verification. One version's failure does not suppress the other version. Node matrix
 fail-fast is disabled; the existing Client aggregate rejects failure,
 cancellation, missing results and unexpected skips.
 

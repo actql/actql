@@ -15,6 +15,9 @@ import sys
 from python_release_cohort import verify_built_cohort
 
 ROOT = Path(__file__).resolve().parents[1]
+# Official PyPI pip26.3 supports Python>=3.10 and the stable report-v1 schema.
+PIP_VERSION = '26.3'
+PIP_SHA256 = 'f3b60b20ffaadd4415ed7957212a38ac63fa4c5fa375bd0f4a797777940fad13'
 SPEC = importlib.util.spec_from_file_location('existing_python_wheel_acceptance', ROOT / 'scripts/ci-python-wheels.py')
 EXISTING = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(EXISTING)
@@ -40,6 +43,14 @@ def accept(cohort_directory: Path, destination: Path, version: str) -> None:
     (home / 'tmp').mkdir(parents=True)
     env = EXISTING.consumer_environment(venv, home)
     python = venv / 'bin/python'
+    # Python3.11.0 ensurepip ships pip22.3's experimental report-v0. Keep the
+    # interpreter and strict existing auditor; pin only the installer tooling.
+    pip_requirements = destination / 'pip-requirements.txt'
+    pip_requirements.write_text(f'pip=={PIP_VERSION} --hash=sha256:{PIP_SHA256}\n')
+    subprocess.run([str(python), '-I', '-m', 'pip', '--isolated', 'install',
+                    '--index-url', 'https://pypi.org/simple', '--only-binary=:all:',
+                    '--require-hashes', '--no-deps', '--no-cache-dir', '-r', str(pip_requirements)],
+                   cwd=destination, env=env, check=True, timeout=120)
     wheels = [cohort_directory / 'wheels' / item['file'] for item in cohort['wheels']]
     constraints = destination / 'constraints.txt'
     constraints.write_text(''.join(f"{item['distribution']} @ {wheel.as_uri()}\n"
@@ -68,6 +79,7 @@ def accept(cohort_directory: Path, destination: Path, version: str) -> None:
         raise ValueError('Source changed during supported Python acceptance')
     (destination / 'acceptance.json').write_text(json.dumps({'python': version, 'source': source,
         'cohort_sha256': hashlib.sha256(original).hexdigest(), 'platform': 'darwin-arm64',
+        'installer': PIP_VERSION, 'installer_sha256': PIP_SHA256,
         'fresh_wheel_install': True, 'local_open_query_close': True, 'published': False}, indent=2) + '\n')
 
 
