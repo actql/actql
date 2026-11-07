@@ -275,6 +275,19 @@ fn command_preparation_cleanup_cause(
         ForeignOriginal => "ProjectMockForeignOriginal"
         AlreadyPreparing => "ProjectMockAlreadyPreparing"
         Environment => "ProjectMockEnvironment"
+        Publication(issue) =>
+          match issue {
+            Limit => "ProjectMockPublicationLimit"
+            Alias(_) => "ProjectMockPublicationAlias"
+            _ => "ProjectMockPublication"
+          }
+        Source(issue) =>
+          match issue {
+            InvalidSpecification => "ProjectMockSourceInvalidSpecification"
+            InvalidContracts => "ProjectMockSourceInvalidContracts"
+            Declaration(OutputLimit) => "ProjectMockSourceDeclarationLimit"
+            _ => "ProjectMockSourceDeclaration"
+          }
         Task(original) =>
           match original.kind {
             InvalidLimits => "ProjectMockTaskInvalidLimits"

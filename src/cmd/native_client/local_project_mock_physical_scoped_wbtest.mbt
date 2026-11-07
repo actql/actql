@@ -74,6 +74,9 @@ fn native_project_mock_model_in_original_read(
 fn native_project_mock_model_backed_read(
   partial : Bool,
   environment? : Bool = false,
+  sources? : Bool = false,
+  private_source_field? : Bool = false,
+  source_environment? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -128,7 +131,15 @@ fn native_project_mock_model_backed_read(
       fail("actual metadata Read pending")
   }
   host.enter_domain_original_read(read).unwrap()
-  native_project_mock_model_in_original_read(partial, environment)
+  if source_environment {
+    native_project_mock_source_environment_in_original_read()
+  } else if private_source_field {
+    native_project_mock_source_private_field_in_original_read()
+  } else if sources {
+    native_project_mock_source_in_original_read()
+  } else {
+    native_project_mock_model_in_original_read(partial, environment)
+  }
   host.leave_domain_original_read(read).unwrap()
   match host.close_domain_original_read(read) {
     Ok(_) => ()
@@ -163,4 +174,121 @@ test "Native Project Mock actual backed Read closes a partial Model constructor 
 ///|
 test "Native Project Mock actual backed Read projects original Model environment once before Request checking" {
   native_project_mock_model_backed_read(false, environment=true)
+}
+
+///|
+fn native_project_mock_source_in_original_read() -> Unit raise {
+  // No data.json exists here. Declaration construction must not open it or
+  // fabricate a Source capture, ResourceRef, ContentRef or permission.
+  let original = native_project_mock_model_fixture("deal-review-missing")
+  defer original.retire()
+  original.prepare_source_declarations().unwrap()
+  assert_eq(original.sources.length(), 2)
+  let salesforce = original.sources[0]
+  let drive = original.sources[1]
+  assert_eq(salesforce._retained_connection, "salesforce")
+  assert_eq(drive._retained_connection, "drive")
+  assert_eq(salesforce._retained_declaration.views.length(), 1)
+  assert_eq(drive._retained_declaration.views.length(), 2)
+  assert_true(
+    drive._retained_declaration.view_bodies.any(wire => {
+      wire.contains("\"cardinality\":\"one\"")
+    }),
+  )
+  assert_true(original.prepare_source_declarations() is Err(AlreadyPreparing))
+  assert_eq(original.sources.length(), 2)
+  assert_true(original.model_profile is None)
+}
+
+///|
+test "Native Project Mock actual backed Read retains original Source declarations without reading payload" {
+  native_project_mock_model_backed_read(false, sources=true)
+}
+
+///|
+fn native_project_mock_source_private_field_in_original_read() -> Unit raise {
+  let entry : Json = {
+    "views": [
+      {
+        "resource": "records",
+        "resource_kind": "record",
+        "schema": { "id": { "type": "string", "nullable": false } },
+        // This name belongs to the internal restore adapter, not the public
+        // Project view. It cannot overwrite the original schema projection.
+        "schema_wire": "{}",
+      },
+    ],
+  }
+  let wire = local_project_mock_relation_input(entry).unwrap()
+  assert_true(
+    @row_host.restore_relation_row_declaration(
+      "declared",
+      "declared_file",
+      "declared_file/0.1",
+      wire,
+      None,
+    )
+    is Err(@row_host.RowHostIssue::InvalidSpecification),
+  )
+}
+
+///|
+test "Native Project Mock actual backed Read refuses public injection of private Source restore fields" {
+  native_project_mock_model_backed_read(false, private_source_field=true)
+}
+
+///|
+fn native_project_mock_source_environment_in_original_read() -> Unit raise {
+  let original = native_project_mock_model_fixture("deal-review-missing")
+  defer original.retire()
+  original.prepare_source_declarations().unwrap()
+  original
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    local_utc_now,
+  )
+  .unwrap()
+  let base = explain_fixture_environment()
+  let source = original.prepare_source_environment(base).unwrap()
+  assert_true(
+    physical_equal(source, original.prepare_source_environment(base).unwrap()),
+  )
+  let environment = original.prepare_model_environment(source).unwrap()
+  let (publication, wire) = original
+    .prepare_source_publication(environment)
+    .unwrap()
+  let (same_publication, same_wire) = original
+    .prepare_source_publication(environment)
+    .unwrap()
+  assert_true(physical_equal(publication, same_publication))
+  assert_eq(wire, same_wire)
+  assert_true(
+    @source_publication.prepared_published_query_environment_matches(
+      publication, environment,
+    ),
+  )
+  assert_eq(
+    @compiler_environment.member_count(
+      @checked.checking_environment_wire(environment),
+      SourceViews,
+    ),
+    3,
+  )
+  assert_eq(
+    @compiler_environment.member_count(
+      @checked.checking_environment_wire(environment),
+      ModelTaskContracts,
+    ),
+    1,
+  )
+  assert_true(
+    original.prepare_source_environment(explain_fixture_environment())
+    is Err(ForeignOriginal),
+  )
+}
+
+///|
+test "Native Project Mock actual backed Read composes original Source Model environment and publication once" {
+  native_project_mock_model_backed_read(false, source_environment=true)
 }

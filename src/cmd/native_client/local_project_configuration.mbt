@@ -478,6 +478,10 @@ fn LocalCommandPreparationOriginal::prepare_project_input(
   }
   self.project = selected
   if selected is Some(project) && project.mock_declarations is Some(mock) {
+    match mock.prepare_source_declarations() {
+      Ok(_) => ()
+      Err(issue) => return Err(CommandProjectMock(issue))
+    }
     match
       mock.prepare_models(
         local_project_mock_task_limits(),

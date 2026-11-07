@@ -95,6 +95,29 @@ continues to compare its original captured bytes, while the Request/check
 reference consumes the projected semantic identity. Saved routes do not rebuild
 current Project Tasks or replace a retained Run's Environment.
 
+The same Project retains its Catalog's Source declarations before Model
+construction. The Native adapter translates only public document fields into
+the existing Relation restore input; Common remains the schema, acquisition,
+correlation and contract owner. Private restore-field spellings cannot be
+injected through public view fields, and unfamiliar fields are not dropped.
+Original connection/Catalog correspondence and partial declaration prefixes
+stay on the same command holder. These are initial declaration contracts;
+File physical capability facts, published query aliases, Source/Content
+capture and Effect installation still require their real same-Request owners.
+No Source payload is read by this metadata construction.
+
+Source Environment assembly retains the exact base and the complete generated
+Catalog, contract, view and evidence members. It sorts their canonical member
+identities and coalesces only byte-identical bodies; the ordinary Common
+admission retains conflicting-selector refusal. Task projection consumes that
+same Source Environment. A publication retains its exact final Environment,
+restored view handles and requests once, and the original Request caller uses
+that prepared publication rather than reconstructing an empty namespace.
+These contracts and aliases remain trusted declaration DATA. Metadata alone
+never grants alias disclosure, acquisition, Model execution or Effect authority;
+the normal installation still requires its original current/account/service
+connections before opening those operations.
+
 ## Ordinary literal query caller
 
 Trusted public `sql` and literal `aql` select the ordinary Local Host when no
