@@ -4444,7 +4444,10 @@ fn Store::recover_in_scope(
     }
   }
   let mut cursor = ""
-  let mut retained = 0
+  let mut retained = match recover_captured_content_records(self) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let mut reclaimed = 0
   while true {
     let entry = match self.database.scan_after("publication_payload", cursor) {
