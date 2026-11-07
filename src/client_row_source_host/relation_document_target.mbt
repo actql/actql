@@ -266,6 +266,19 @@ pub fn discard_relation_target_document_original(
 }
 
 ///|
+/// Sever this row observation's private self-original after its consumer has
+/// returned. The parent document may already be invalidated by reentry. This
+/// invalidates row getters but neither closes a read nor acknowledges physical
+/// cleanup; returned immutable DATA keeps its existing meaning.
+pub fn discard_relation_target_row_original(row : RelationTargetRow) -> Bool {
+  guard row.original is Some(original) && physical_equal(row, original) else {
+    return false
+  }
+  row.original = None
+  true
+}
+
+///|
 /// Admit one owned original from explicit caller bytes, without model data or
 /// a schema cache. Later projections share this exact byte/cursor backing.
 pub fn admit_relation_document(

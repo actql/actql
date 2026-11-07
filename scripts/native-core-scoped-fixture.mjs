@@ -99,9 +99,11 @@ export function nativeRelationFileCaptureFixture(namespace) {
   mkdirSync(root, {mode: 0o700});
   assert.equal(statSync(root).mode & 0o777, 0o700, 'Private capture fixture required');
   const input = Buffer.from('{"items":[{"id":"first","value":1},{"id":"second","value":2}]}');
+  const listing = Buffer.from('{"items":[{"id":"first","name":"Acme🌱","version":"label","media_type":"text/plain","body":"first\\nnotes","path":null},{"id":"second","name":"Globex","version":"label","media_type":"text/plain","body":"second notes","path":"notes/globex"}]}');
   const files = [
     ['row-source-input', input],
     ['row-source-large-input', Buffer.concat([input, Buffer.alloc(70000, 0x20)])],
+    ['row-source-files', listing],
     ['row-source-malformed', Buffer.from('{"items":[')],
     ['row-source-oversized', 8193],
     ['row-source-backing', 384 * 1024 ** 2],

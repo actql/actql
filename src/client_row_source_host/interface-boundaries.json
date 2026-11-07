@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "f3b5d143993439af01290f9aa4c0132c074240821b52a6609459766fe1155226",
+      "sha256": "cd8dc51a3864afe017c82ba474b31dbb5fb60c81dd50d6252586afc629c070d4",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -419,6 +419,7 @@
         "pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView",
         "pub fn discard_relation_document_original(RelationDocument) -> Bool",
         "pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool",
+        "pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool",
         "pub fn export_row_input_original_read(RowInputAcquisition, @execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
         "pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]",
         "pub fn extend_row_run_page_charge(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]",
@@ -811,6 +812,10 @@
         {
           "name": "discard_relation_target_document_original",
           "declaration": "pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool"
+        },
+        {
+          "name": "discard_relation_target_row_original",
+          "declaration": "pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool"
         },
         {
           "name": "export_row_input_original_read",
@@ -4276,11 +4281,13 @@
         {
           "operations": [
             "discard_relation_document_original",
-            "discard_relation_target_document_original"
+            "discard_relation_target_document_original",
+            "discard_relation_target_row_original"
           ],
           "exports": [
             "pub fn discard_relation_document_original(RelationDocument) -> Bool",
-            "pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool"
+            "pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool",
+            "pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool"
           ],
           "attributes": {
             "responsibility": [

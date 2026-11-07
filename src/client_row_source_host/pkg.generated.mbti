@@ -138,6 +138,8 @@ pub fn discard_relation_document_original(RelationDocument) -> Bool
 
 pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool
 
+pub fn discard_relation_target_row_original(RelationTargetRow) -> Bool
+
 pub fn export_row_input_original_read(RowInputAcquisition, @execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
 
 pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
