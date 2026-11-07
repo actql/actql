@@ -593,7 +593,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "b986631894d21de71d4f9e9e440d0160687e092beaf094f38c0a467b190fd70d",
+      "sha256": "a68b108a62739741ac377414f4bb5a904d617b519923c667d190aeced599dfda",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -602,7 +602,8 @@
         "INSTALLED_HUBSPOT_SOURCE_VERSION",
         "checkInstalledHubSpotSourceProfile",
         "installedHubSpotSourceIdentityParts",
-        "loadInstalledHubSpotSource"
+        "loadInstalledHubSpotSource",
+        "prepareInstalledHubSpotMaterials"
       ],
       "operations": [
         {
@@ -758,14 +759,9 @@
           "async": false
         },
         {
-          "name": "loadInstalledHubSpotSource/init:project/init:project",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
           "parameters": [],
-          "async": false
+          "async": true
         },
         {
           "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource/authorize/authorize",
@@ -796,25 +792,10 @@
         },
         {
           "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "loadInstalledHubSpotSource/loadInstalledHubSpotSource#3",
           "parameters": [
             "options"
           ],
           "async": true
-        },
-        {
-          "name": "loadInstalledHubSpotSource/projected/init:project/init:project",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledHubSpotSource/projected/projected",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "loadInstalledHubSpotSource/target/target",
@@ -837,6 +818,36 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledHubSpotMaterials",
+          "parameters": [
+            "profile",
+            "moon",
+            "provider",
+            "construction"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledHubSpotMaterials/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledHubSpotMaterials/prepareInstalledHubSpotMaterials",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledHubSpotMaterials/projected/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledHubSpotMaterials/projected/projected",
+          "parameters": [],
           "async": false
         },
         {
@@ -886,19 +897,20 @@
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/view/view",
-            "loadInstalledHubSpotSource/init:project/init:project",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/authorize/authorize",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/current/current",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
-            "loadInstalledHubSpotSource/loadInstalledHubSpotSource#3",
-            "loadInstalledHubSpotSource/projected/init:project/init:project",
-            "loadInstalledHubSpotSource/projected/projected",
             "loadInstalledHubSpotSource/target/target",
             "metadataBodyBytes",
             "positive/positive",
+            "prepareInstalledHubSpotMaterials",
+            "prepareInstalledHubSpotMaterials/init:project/init:project",
+            "prepareInstalledHubSpotMaterials/prepareInstalledHubSpotMaterials",
+            "prepareInstalledHubSpotMaterials/projected/init:project/init:project",
+            "prepareInstalledHubSpotMaterials/projected/projected",
             "readInputs",
             "readInputs/readInputs",
             "text/text"
@@ -908,7 +920,8 @@
             "INSTALLED_HUBSPOT_SOURCE_VERSION",
             "checkInstalledHubSpotSourceProfile",
             "installedHubSpotSourceIdentityParts",
-            "loadInstalledHubSpotSource"
+            "loadInstalledHubSpotSource",
+            "prepareInstalledHubSpotMaterials"
           ],
           "attributes": {
             "responsibility": [

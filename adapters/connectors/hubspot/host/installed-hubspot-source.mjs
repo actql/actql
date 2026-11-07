@@ -129,11 +129,13 @@ export async function installedHubSpotSourceIdentityParts(profile, providerProfi
     {metadataCid: cid(metadata), ...(ca === undefined ? {} : {caSha256: createHash('sha256').update(ca).digest('hex')})}];
 }
 
-export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: provider,
-  runtimeBundleCid, resolveSecret, installation, construction}) {
+// Source and Effect borrow the same original metadata preparation. This does
+// not open a Site, authorize a read/write, resolve a secret or send a request.
+// Provider Catalogs stay in their original runtime; the Common declaration is
+// produced separately by the existing parent construction owner.
+export async function prepareInstalledHubSpotMaterials(profile, {moon, providerMoon: provider, construction}) {
   if (construction === undefined || typeof construction.prepareNativeInput !== 'function' ||
-      typeof construction.prepareDeclaration !== 'function' || typeof construction.openRowSite !== 'function' ||
-      typeof construction.createRowSource !== 'function' || construction.configurationReader === undefined) {
+      typeof construction.prepareDeclaration !== 'function' || construction.configurationReader === undefined) {
     fail('HubSpotSourceConstructionUnavailable');
   }
   const readers = construction.configurationReader;
@@ -180,6 +182,20 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
     views.push(projected.view);
   }
   const {declared} = construction.prepareDeclaration(views);
+  return Object.freeze({installed, siteProfile, metadata, objects, catalogs, declared});
+}
+
+export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: provider,
+  runtimeBundleCid, resolveSecret, installation, construction}) {
+  if (construction === undefined || typeof construction.prepareNativeInput !== 'function' ||
+      typeof construction.prepareDeclaration !== 'function' || typeof construction.openRowSite !== 'function' ||
+      typeof construction.createRowSource !== 'function' || construction.configurationReader === undefined) {
+    fail('HubSpotSourceConstructionUnavailable');
+  }
+  const {installed, siteProfile, metadata, objects, catalogs, declared} =
+    await prepareInstalledHubSpotMaterials(profile, {moon, providerMoon: provider, construction});
+  const {limits} = installed;
+  const readers = construction.configurationReader;
   const connection = `hubspot:${installed.connectorId}`;
   const target = (resource, fields) => Object.freeze({version: 'actql-installed-hubspot-target/0.1',
     apiOrigin: siteProfile.apiOrigin, portalId: installed.portalId, resource,

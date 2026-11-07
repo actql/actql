@@ -69,3 +69,13 @@ HubSpot's [list endpoint](https://developers.hubspot.com/docs/api-reference/lega
 defines limit as the per-page result maximum and after as the original
 forward cursor. No response-provided link is followed. The same operation,
 properties and archived selector remain selected by the existing reader.
+
+The private `prepareInstalledHubSpotMaterials` entry is the same metadata and
+Catalog constructor used by the standard Source loader and the installed Effect
+assembly. It retains every declared resource and observed property, including
+read-only fields; an Effect mapping must not replace this full Source inventory.
+It runs through the supplied original parent construction ports, returns the
+same provider-runtime Catalogs and Common declaration, and opens no Site or
+authorization. Native-only explicit-port component cases check this material
+correspondence and failure ordering; they do not establish whole-initialization
+Ledger funding or a normal installed Effect flow.
