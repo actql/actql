@@ -1368,7 +1368,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
-      "sha256": "25a743c9e5d9b29001707d8af6c2587ddc752ee2c8b6318dadc2bf5ebfe7309d",
+      "sha256": "4e6c27d3ce00e8e64a72ea10d5e626cd698b2fe3c6af17dc7374c631d3f0a7fc",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -1592,15 +1592,36 @@
           "async": true
         },
         {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/custodyAvailable/custodyAvailable",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore",
           "parameters": [
-            "row"
+            "key"
           ],
           "async": false
         },
         {
-          "name": "acquiredEffectContinuation/init:restore/init:restore/owner/owner",
-          "parameters": [],
+          "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore#4",
+          "parameters": [
+            "row"
+          ],
           "async": false
         },
         {
@@ -1737,7 +1758,6 @@
             "acquiredEffectContinuation/init:restore/init:restore/captured/captured#3",
             "acquiredEffectContinuation/init:restore/init:restore/close/close",
             "acquiredEffectContinuation/init:restore/init:restore/init:restore",
-            "acquiredEffectContinuation/init:restore/init:restore/owner/owner",
             "acquiredEffectContinuation/init:retainAll/init:retainAll",
             "acquiredEffectContinuation/nextJournal/nextJournal",
             "acquiredEffectContinuation/nextJournal/nextJournal#2",
@@ -1751,7 +1771,11 @@
             "bindingFor/bindingFor",
             "fail/fail",
             "same/same",
-            "sourceScope/sourceScope"
+            "sourceScope/sourceScope",
+            "acquiredEffectContinuation/init:restore/init:restore/custodyAvailable/custodyAvailable",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#2",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#3",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#4"
           ],
           "exports": [
             "acquiredEffectContinuation"

@@ -393,7 +393,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         wholeInput ? moon.clientProgramWholeSourceCheckComputeBinding(captured, dag, task)
           : moon.clientProgramRowSourceRetainCapturedTask(captured, dag, task))})});
     return Object.freeze({checkedSource: prepared.checkedSource, identity,
-      logicalInput, ...(wholeInput ? {} : {requirement: owner.requirement}), setup, occurrence,
+      logicalInput, ...(wholeInput ? {inputKind: 'whole-input'} : {requirement: owner.requirement}), setup, occurrence,
       capturedSource, inferStep, composedInfer,
       capture: captureAccess,
       prepareSourceEvidenceOriginal: async ({authorityScopeCid, effectiveDataPolicyCid}) => {

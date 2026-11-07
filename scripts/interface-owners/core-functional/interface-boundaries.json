@@ -60768,7 +60768,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "025d96adf4b1d883b3e2dc181f8f46d373db6dbd961e0ff1efe767985e05c101",
+      "sha256": "8a67ba7e22f933ed1aac5f5cbe7fbf34dbd2240837d60d7671d99f4234b8741f",
       "exports": [],
       "operations": [
         {
@@ -60778,6 +60778,10 @@
         {
           "name": "client_program_effect_whole_source_input_identity",
           "declaration": "client_program_effect_whole_source_input_identity ( prepared : @ publication_host . PreparedClientEffectComputation , original : @ acquisition . SourceAcquisition , ) - > Array [ String ] ?"
+        },
+        {
+          "name": "client_program_export_whole_source_capture",
+          "declaration": "client_program_export_whole_source_capture ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , binding : String , ) - > Result [ ( Array [ String ] , String , String , Array [ String ] ) , @ client_local_host . ClientSourceCaptureIssue , ]"
         },
         {
           "name": "client_program_installed_effect_managed_plan_whole_source",
@@ -60860,6 +60864,10 @@
           "declaration": "client_program_prepared_installed_whole_source_requirements ( plan : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Array [ Int64 ]"
         },
         {
+          "name": "client_program_restore_whole_source_capture",
+          "declaration": "client_program_restore_whole_source_capture ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , expected_binding : String , saved_binding : String , saved_identity : Array [ String ] , schema_cid : String , rows_cid : String , rows : Array [ String ] , ledger : @ resources . Ledger , custody_available : ( ) - > Bool , reference_issuer : @ admitted . ReferenceIssuer ? , ) - > Result [ @ client_local_host . ClientAccountedSourceCapture , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
           "name": "client_program_select_installed_effect_source_input",
           "declaration": "client_program_select_installed_effect_source_input ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , stage : Int , source_index : Int , ) - > Result [ @ acquisition . SourceAcquisitionRoute , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -60874,6 +60882,10 @@
         {
           "name": "client_program_selected_source_input_ref",
           "declaration": "client_program_selected_source_input_ref ( selection : @ acquisition . SourceAcquisitionRoute , ) - > String ?"
+        },
+        {
+          "name": "client_program_source_capture_retain_input",
+          "declaration": "client_program_source_capture_retain_input ( value : @ client_local_host . ClientAccountedSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Result [ Unit , @ client_local_host . ClientSourceCaptureIssue ]"
         },
         {
           "name": "client_program_whole_source_borrow_responses",
@@ -60950,7 +60962,10 @@
             "client_program_installed_effect_managed_sources_ledger",
             "client_program_installed_effect_managed_whole_source_read",
             "client_program_installed_row_input_policy",
-            "client_program_issue_effect_whole_source_input_logical"
+            "client_program_issue_effect_whole_source_input_logical",
+            "client_program_export_whole_source_capture",
+            "client_program_restore_whole_source_capture",
+            "client_program_source_capture_retain_input"
           ],
           "exports": [],
           "attributes": {
@@ -61751,7 +61766,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "95a8c11926395f199735b6b13fe1a380b9f5794c7a49abf866f7c2401a49842c",
+      "sha256": "ab48740797692d09317157a9b1f78202344c98dbd811defe714eb5f49568a2c4",
       "exports": [],
       "operations": [
         {
@@ -61761,6 +61776,10 @@
         {
           "name": "client_program_effect_whole_source_input_identity",
           "declaration": "client_program_effect_whole_source_input_identity ( prepared : @ publication_host . PreparedClientEffectComputation , original : @ acquisition . SourceAcquisition , ) - > Array [ String ] ?"
+        },
+        {
+          "name": "client_program_export_whole_source_capture",
+          "declaration": "client_program_export_whole_source_capture ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , binding : String , ) - > Result [ ( Array [ String ] , String , String , Array [ String ] ) , @ client_local_host . ClientSourceCaptureIssue , ]"
         },
         {
           "name": "client_program_installed_effect_managed_plan_whole_source",
@@ -61843,6 +61862,10 @@
           "declaration": "client_program_prepared_installed_whole_source_requirements ( plan : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Array [ Int64 ]"
         },
         {
+          "name": "client_program_restore_whole_source_capture",
+          "declaration": "client_program_restore_whole_source_capture ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , expected_binding : String , saved_binding : String , saved_identity : Array [ String ] , schema_cid : String , rows_cid : String , rows : Array [ String ] , ledger : @ resources . Ledger , custody_available : ( ) - > Bool , reference_issuer : @ admitted . ReferenceIssuer ? , ) - > Result [ @ client_local_host . ClientAccountedSourceCapture , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
           "name": "client_program_select_installed_effect_source_input",
           "declaration": "client_program_select_installed_effect_source_input ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , stage : Int , source_index : Int , ) - > Result [ @ acquisition . SourceAcquisitionRoute , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -61857,6 +61880,10 @@
         {
           "name": "client_program_selected_source_input_ref",
           "declaration": "client_program_selected_source_input_ref ( selection : @ acquisition . SourceAcquisitionRoute , ) - > String ?"
+        },
+        {
+          "name": "client_program_source_capture_retain_input",
+          "declaration": "client_program_source_capture_retain_input ( value : @ client_local_host . ClientAccountedSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Result [ Unit , @ client_local_host . ClientSourceCaptureIssue ]"
         },
         {
           "name": "client_program_whole_source_borrow_responses",
@@ -61933,7 +61960,10 @@
             "client_program_installed_effect_managed_sources_ledger",
             "client_program_installed_effect_managed_whole_source_read",
             "client_program_installed_row_input_policy",
-            "client_program_issue_effect_whole_source_input_logical"
+            "client_program_issue_effect_whole_source_input_logical",
+            "client_program_export_whole_source_capture",
+            "client_program_restore_whole_source_capture",
+            "client_program_source_capture_retain_input"
           ],
           "exports": [],
           "attributes": {

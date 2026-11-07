@@ -88,6 +88,7 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
     providerCaptureCapacity: capacity, occurrence: {stage: 0, input: 0, task: 0}},
   prepared: {checkedSource: {}}, currentRead});
   assert.equal(result.logicalInput, logical);
+  assert.equal(result.inputKind, 'whole-input');
   assert.equal(Object.hasOwn(result, 'requirement'), false);
   assert.equal(result.capture.originalWholeInput(), capture);
   const copied = {...result.capture};

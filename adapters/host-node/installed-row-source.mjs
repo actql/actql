@@ -3072,7 +3072,8 @@ export async function createInstalledRowSource({moon, declaration, commands,
       if (owner === undefined || owner.retainedOnly === true) fail('InstalledSourcePreparationMismatch');
       const capacity = captureCapacity(owner);
       if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
-      return Object.freeze({requirement: owner.requirement, capacity, referenceIssuer});
+      return Object.freeze({capacity, referenceIssuer,
+        ...(owner.wholeInput ? {wholeInput: true} : {requirement: owner.requirement})});
     },
     ledgerCapacity(prepared) {
       const owner = preparations.get(prepared);
