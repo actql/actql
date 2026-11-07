@@ -156,12 +156,17 @@ test('actual Native compiler partition isolates nested package drivers using ori
   mkdirSync(join(root, 'src/other/testless-child'), {recursive: true});
   writeFileSync(join(root, 'src/other/testless-child/moon.pkg'), '');
   writeFileSync(join(root, 'src/other/testless-child/main.mbt'), 'pub fn answer() -> Int { 7 }\n');
+  const full = nativeCoreTestSelection(root, ['--release'], {partitionProfiles: true});
+  assert.equal(full.profiles.ordinary.cases, 3);
+  assert(!full.profiles.ordinary.args.includes('src/parent'));
+  assert(!full.profiles.ordinary.args.includes('src/other'));
   const selected = nativeCoreTestSelection(root, ['--release'], {
     partitionProfiles: true, ordinaryPartitions: true,
   });
   const parts = selected.profiles.ordinary.partitions;
   assert.equal(selected.profiles.ordinary.cases, 3);
   assert.equal(parts.reduce((sum, p) => sum + p.cases, 0), 3);
+  assert.deepEqual(parts.flatMap(p => p.args.slice(1)).sort(), full.profiles.ordinary.args.slice(1).sort());
   assert(!parts.some(p => p.args.includes('src/parent')));
   assert(!parts.some(p => p.args.includes('src/other')));
   assert.equal(parts.filter(p => p.args.includes('src/parent/main.mbt')).length, 1);

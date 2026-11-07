@@ -511,6 +511,8 @@ test('Native Core matrix owns two required isolated partitions without multiplyi
   assert(jobs.check.needs.includes('core'));
   assert.equal(core['continue-on-error'], undefined);
   const command = core.steps.find(step => step.name === 'Test common core');
+  assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_PARTITION,
+    "${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}");
   const artifact = core.steps.find(step => step.name === 'Retain only sanitized current Native compiler diagnostics');
   assert(artifact.with.name.includes('${{ matrix.partition }}'));
   const root = mkdtempSync(join(tmpdir(), 'actql-native-partition-workflow-'));
@@ -521,7 +523,7 @@ test('Native Core matrix owns two required isolated partitions without multiplyi
     const run = command.run.replaceAll('${{ matrix.target }}', 'native')
       .replaceAll('${{ matrix.partition }}', String(partition));
     const env = {...process.env, PATH: root + ':' + process.env.PATH, ACTQL_FIXTURE_EXIT: String(status)};
-    delete env.ACTQL_TEST_NATIVE_CORE_PARTITION; delete env.MOONBIT_NEW_NATIVE;
+    env.ACTQL_TEST_NATIVE_CORE_PARTITION = `${partition}/2`; delete env.MOONBIT_NEW_NATIVE;
     const result = spawnSync('bash', ['-eo', 'pipefail', '-c', run], {cwd: root, env, encoding: 'utf8', timeout: 5000});
     assert.equal(result.error, undefined); assert.equal(result.signal, null);
     assert.equal(result.status, status, result.stderr);

@@ -159,7 +159,7 @@ function partitionProfiles(args, records, ordinaryPartitions, compilerDirectorie
   const geometry = ordinary.filter(record => !record.benchmark && selectedGeometryFiles.has(record.source));
   assert.equal(ordinary.length + physical.length + http.length + source.length, records.length);
   const affected = new Set([...physical, ...source, ...http].map(record => record.directory));
-  if (ordinaryPartitions) {
+  {
     // Moon directory inputs include nested test packages. Use the parent's
     // original files when another package lives below it, rather than compile
     // or execute that child's cases again on the parent's runner.
@@ -258,7 +258,7 @@ export function nativeCoreTestSelection(repository, args, {
       assert(metadata.tests && typeof metadata.tests === 'object' && !Array.isArray(metadata.tests));
       driver.cases = [];
       const sources = driver.command.slice(2).filter(arg => arg.endsWith('.mbt') && arg !== driver.output);
-      if (ordinaryPartitions) for (const source of sources) {
+      if (splitProfiles) for (const source of sources) {
         const directory = relative(repository, dirname(realpathSync(resolve(repository, source)))).split(sep).join('/') || '.';
         assert(directory !== '..' && !directory.startsWith('../'));
         compilerDirectories.add(directory);

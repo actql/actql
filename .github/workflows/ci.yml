@@ -365,6 +365,7 @@ jobs:
               (matrix.target != 'native' && success()) }}
         env:
           ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
+          ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}
         run: |
           if [ "${{ matrix.target }}" = native ]; then
             # Pinned Linux Native debug codegen exceeds the default 8 MiB
@@ -373,7 +374,7 @@ jobs:
               ulimit -S -s 65536
             fi
             # Reopen remains within a run; the full run below starts fresh.
-            node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
+            ACTQL_TEST_NATIVE_CORE_PARTITION= node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
             # Optimize the test IR before emitting the large full-Core C input.
             # Keep every test, strict warnings and the original generated-C
             # backend; production and the focused debug prerequisite are unchanged.
@@ -382,7 +383,7 @@ jobs:
             # Partition whole ordinary test packages before C generation. Each
             # runner keeps its own source/toolchain/build and original fixtures;
             # only partition 1 owns the unchanged HTTP/Source/scoped profiles.
-            ACTQL_TEST_NATIVE_CORE_PARTITION="${{ matrix.partition }}/2" MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
+            MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
           else
             moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
             if [ "${{ matrix.target }}" = wasm ]; then
