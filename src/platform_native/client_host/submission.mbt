@@ -277,7 +277,11 @@ fn NativeClientRunJournal::inspect_submitted_intent_row_with_record(
   (@host.ClientSubmittedJournalEncoding, NativeClientSubmittedIntentRecord),
   NativeClientRunJournalIssue,
 ] {
-  let original = match @host.decode_client_submitted_journal_row(row.body) {
+  let original = match
+    @host.decode_client_submitted_journal_row(
+      row.body,
+      before_construction=submitted_decode_construction(self.database, reads),
+    ) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -444,6 +448,7 @@ fn NativeClientRunJournal::retained_submission_with_run(
       })
     },
     CustodyLost,
+    before_construction=submitted_decode_construction(self.database, reads),
   ).map(value => {
     value.map(snapshot => {
       let decoded = @host.client_saved_submission_record(snapshot)

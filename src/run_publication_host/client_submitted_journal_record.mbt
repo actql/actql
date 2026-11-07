@@ -15,21 +15,50 @@ pub(all) struct ClientSubmittedJournalEncoding {
 }
 
 ///|
-/// Preserve the original Native submitted-row reader, caps and exact bytes.
+/// Construction observations only, not admission, a decoded value or authority.
+/// Parse covers the existing full parser limits. Canonical uses measurements
+/// from that SAME completed preserving parse, without another sizing traversal.
+pub(all) enum ClientSubmittedJournalConstruction {
+  SubmittedJournalParse(Int)
+  SubmittedJournalCanonical(Int, Int, Int)
+}
+
+///|
+/// Legacy callers retain their original finite profile. A physical caller
+/// selecting observed extents must back every construction before it starts;
+/// the observer can refuse resources but cannot replace any codec validation.
 pub fn decode_client_submitted_journal_row(
   body : Bytes,
+  before_construction? : ((ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
 ) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue] {
-  decode_client_submitted_journal_row_profile(body, false)
+  if before_construction is Some(reserve) {
+    match reserve(SubmittedJournalParse(body.length())) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  decode_client_submitted_journal_row_profile(
+    body,
+    before_construction is Some(_),
+    before_construction~,
+  )
 }
 
 ///|
 // One codec implementation for the explicit finite profile and the observed
-// row profile. Selecting the latter here is not a Resource debit: its enclosing
-// Native caller must back parsing, intent admission and canonical comparison
-// together before entering this function. It is not yet a public entrance.
+// row profile. The public observer is resource preparation, not validation:
+// the enclosing Native caller backs parsing and then the measured canonical
+// construction before each phase. Both routes keep the same full codec law.
 fn decode_client_submitted_journal_row_profile(
   body : Bytes,
   observed : Bool,
+  before_construction? : ((ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
 ) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue] {
   let row_bytes = if observed { body.length() } else { 262144 }
   if row_bytes <= 0 || row_bytes >= 2147483519 {
@@ -90,19 +119,30 @@ fn decode_client_submitted_journal_row_profile(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  let intent = match
-    prepare_client_submitted_intent(
-      intent_wire,
-      if observed {
-        row_bytes
-      } else {
-        65536
-      },
-      65536,
-      64,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+  let intent = match before_construction {
+    Some(reserve) =>
+      match
+        restore_observed_client_submitted_intent(
+          intent_wire, row_bytes, reserve,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+    None =>
+      match
+        prepare_client_submitted_intent(
+          intent_wire,
+          if observed {
+            row_bytes
+          } else {
+            65536
+          },
+          65536,
+          64,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(CustodyLost)
+      }
   }
   let run_admission = match @decode.lookup(object, "run_admission") {
     None => None
@@ -224,4 +264,58 @@ pub fn validate_client_submitted_retained_run(
     return Err(CustodyLost)
   }
   Ok(())
+}
+
+///|
+// Reuse the preserving parser's own completed measurements. Literal JSON has
+// different number semantics, so it is deliberately not substituted here.
+fn restore_observed_client_submitted_intent(
+  wire : String,
+  row_bytes : Int,
+  reserve : (ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ],
+) -> Result[ClientSubmittedIntent, ClientJournalDecodingIssue] {
+  let parser = match
+    @source.start_json_parse(
+      wire,
+      { max_input_bytes: row_bytes, max_nodes: 65536, max_depth: 64, },
+      data_keys=true,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let parsed = while true {
+    match @source.advance_json_parse(parser, 65536) {
+      Ok(@source.JsonParseContinue(_)) => continue
+      Ok(@source.JsonParseComplete(value, ..)) => break value
+      _ => return Err(CustodyLost)
+    }
+  } nobreak {
+    return Err(CustodyLost)
+  }
+  match
+    reserve(
+      SubmittedJournalCanonical(
+        row_bytes,
+        parsed.usage.nodes,
+        parsed.usage.depth,
+      ),
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let value = @canonical.from_source(
+    parsed.node,
+    65536,
+    64,
+    row_bytes,
+    data_keys=true,
+  ) catch {
+    _ => return Err(CustodyLost)
+  }
+  prepare_client_submitted_intent_value(value, row_bytes, 65536, 64).map_err(_ => {
+    CustodyLost
+  })
 }

@@ -78,6 +78,7 @@ fn NativeLocalJournalReadQueries::access(
 ) -> NativeClientJournalReadAccess {
   {
     database: self.database,
+    before_submitted_decode: Some(stage => self.prepare_submitted_decode(stage)),
     read_evidence_schema: () => {
       self
       .query(() => self.database.client_read_evidence_schema())
@@ -101,6 +102,21 @@ fn NativeLocalJournalReadQueries::access(
       self.query(() => self.database.fence_transactions()) |> ignore
     },
     read: (table_name, key) => {
+      if table_name == "client_submitted_intents" {
+        let header = match
+          self.query(() => self.database.observe_body_extent(table_name, key)) {
+          Ok(Ok(value)) => value
+          Ok(Err(issue)) | Err(issue) => return Err(issue)
+        }
+        if self.prepare_submitted_copy(header.body_bytes) is Err(_) {
+          return Err(@sqlite.Busy)
+        }
+        return self
+          .query(() => {
+            self.database.read_exact_body_extent(table_name, key, header)
+          })
+          .unwrap_or(Err(@sqlite.Busy))
+      }
       match self.query(() => self.database.read(table_name, key)) {
         Ok(value) => value
         Err(issue) => Err(issue)
@@ -282,7 +298,19 @@ fn NativeLocalJournalReadQueries::operation_access(
     },
     insert: (table, key, body) => {
       (self.invalidate_snapshot)(Some(table))
-      match self.query(() => self.database.insert(table, key, body)) {
+      match
+        self.query(() => {
+          if table == "client_submitted_intents" {
+            self.database.insert_with_body_extent(
+              table,
+              key,
+              body,
+              body.length().to_int64(),
+            )
+          } else {
+            self.database.insert(table, key, body)
+          }
+        }) {
         Ok(value) => value
         Err(issue) => Err(issue)
       }
@@ -299,7 +327,17 @@ fn NativeLocalJournalReadQueries::operation_access(
       (self.invalidate_snapshot)(Some(table))
       match
         self.query(() => {
-          self.database.compare_exchange(table, key, revision, body)
+          if table == "client_submitted_intents" {
+            self.database.compare_exchange_with_body_extent(
+              table,
+              key,
+              revision,
+              body,
+              body.length().to_int64(),
+            )
+          } else {
+            self.database.compare_exchange(table, key, revision, body)
+          }
         }) {
         Ok(value) => value
         Err(issue) => Err(issue)
