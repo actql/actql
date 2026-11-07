@@ -38,6 +38,17 @@ node /external/fixtures/hubspot-approval/run.mjs approve /fresh/consumer.json /f
 node /external/fixtures/hubspot-approval/run.mjs recover /fresh/consumer.json /fresh/receipt
 ```
 
+Run `check` with the same arguments first to validate the configuration and the
+connector's original selection contract without connecting or creating receipts:
+
+```sh
+node /external/fixtures/hubspot-approval/run.mjs check /fresh/consumer.json /fresh/receipt
+```
+
+The three launchers share `record-approval/command.mjs`. `check` does not load an
+operator module or signing key, inspect the remote account, admit the Program,
+or prove that the installation/state/receipt prefix is fresh.
+
 Capture saves the actual reference before waiting, checks the sealed Review,
 and reads the unchanged target. Approval is an explicit phase and must commit
 before waiting for the same Run's exact named Result and reading the new target.
@@ -50,6 +61,22 @@ Without `signer`, approval uses the existing default Local signer. A configured
 operator can supply `signer: {keyId, reviewerId, privateKeyPath}` for the existing
 signed resolution API. These inputs do not grant a connector Account or provider
 permission. Keep real credentials outside the fixture and receipt files.
+`privateKeyPath` is absolute or relative to the configuration file's directory.
+Capture and recovery never open this approval key; the explicit approval phase
+opens it only after the workflow rechecks the same original sealed Review.
+
+An installed connection needs function-valued authorization and secret ports
+which cannot be encoded in JSON. Set `operatorModulePath` to an explicitly
+trusted local module, absolute or relative to the configuration file. It exports
+`configureConnection(options)`, returning the ordinary `connect` options with
+the operator's existing `installation.authorization`, `resolveSourceSecret`
+and `resolveEffectSecret` callbacks. The launcher imports this executable
+configuration only for capture, approval or recovery, before connecting. It
+does not supply permission decisions or turn a secret reference into a grant.
+Do not copy a test callback that always allows access into a real installation.
+
+See the [kintone preparation checklist](../kintone-approval/README.md) for the
+original record/field contract and the inputs still needed from a real account.
 
 The external acceptance harness must independently observe the provider/mock
 target before approval, after approval and after recovery, including an unchanged

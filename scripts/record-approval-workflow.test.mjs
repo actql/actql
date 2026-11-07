@@ -2,12 +2,14 @@
 // failure preservation, not provider authentication or ordinary Run acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
+import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase} from './fixtures/record-approval/cases.mjs';
 import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
+import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
 import {mockProjectFiles as salesforceMock} from './fixtures/salesforce-approval/mock-project.mjs';
 import {mockProjectFiles as hubspotMock} from './fixtures/hubspot-approval/mock-project.mjs';
 import {runSalesforceApprovalPhase} from './fixtures/salesforce-approval/workflow.mjs';
@@ -190,12 +192,19 @@ for (const [connector, runPhase] of [
         "export async function connect(){return {async close(){" +
         "await writeFile(process.env.ACTQL_FIXTURE_CLOSE_MARKER,'closed',{flag:'wx'});}};}\n");
       const folder = new URL(`./fixtures/${connector}-approval/`, import.meta.url);
+      const entry = join(root, connector + '-approval');
+      const shared = join(root, 'record-approval');
+      await mkdir(entry);
+      await mkdir(shared);
+      for (const name of ['command.mjs', 'cases.mjs']) {
+        await copyFile(new URL('./fixtures/record-approval/' + name, import.meta.url), join(shared, name));
+      }
       for (const name of ['run.mjs', 'update.aql', 'read.aql']) {
-        await copyFile(new URL(name, folder), join(root, name));
+        await copyFile(new URL(name, folder), join(entry, name));
       }
       const exportName = {salesforce: 'runSalesforceApprovalPhase', hubspot: 'runHubSpotApprovalPhase',
         kintone: 'runKintoneApprovalPhase'}[connector];
-      await writeFile(join(root, 'workflow.mjs'),
+      await writeFile(join(entry, 'workflow.mjs'),
         "import assert from 'node:assert/strict';" +
         `export async function ${exportName}({phase,client,approve}){` +
         `assert.equal(phase,${JSON.stringify(phase)});assert.equal(typeof approve,'function');` +
@@ -204,7 +213,7 @@ for (const [connector, runPhase] of [
         connect: {mode: 'local'}, signer: {keyId: 'operator', reviewerId: 'reviewer',
           privateKeyPath: join(root, 'absent-approval.key')}}));
       const marker = join(root, 'close-returned');
-      const child = spawnSync(process.execPath, [join(root, 'run.mjs'), phase,
+      const child = spawnSync(process.execPath, [join(entry, 'run.mjs'), phase,
         join(root, 'consumer.json'), join(root, 'receipt')], {cwd: root,
         env: {...process.env, NODE_OPTIONS: '', NODE_PATH: '', ACTQL_FIXTURE_CLOSE_MARKER: marker},
         encoding: 'utf8', timeout: 10000, maxBuffer: 64 * 1024});
@@ -239,4 +248,156 @@ test('kintone fixture retains a system record id above the exact Number range', 
   assert.equal(value.review.identity, '9007199254740993');
   const files = kintoneMock(selected);
   assert.equal(JSON.parse(files['mock/data.json']).kintone.inquiries.rows[0].$id, '9007199254740993');
+});
+
+async function commandFixture(t, connector, configuration = {selection, connect: {mode: 'local'}}) {
+  const root = await mkdtemp(join(tmpdir(), 'actql-approval-command-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = join(root, 'consumer.json');
+  await writeFile(path, JSON.stringify(configuration), {mode: 0o600});
+  const log = [], events = [];
+  return {root, path, log, events,
+    options: {argv: ['check', path, join(root, 'receipt')],
+      programDirectory: new URL(`./fixtures/${connector}-approval/`, import.meta.url),
+      createDefinition: {salesforce: salesforceUpdateCase, hubspot: hubspotUpdateCase,
+        kintone: kintoneUpdateCase}[connector],
+      connect: async () => {events.push('connect'); throw new Error('Unexpected connection');},
+      runPhase: async () => {throw new Error('Unexpected workflow');}, log: value => log.push(value)}};
+}
+
+for (const connector of ['salesforce', 'hubspot', 'kintone']) {
+  test(`shared ${connector} check validates its original case without connection or key IO`, async t => {
+    const f = await commandFixture(t, connector, {selection, connect: {mode: 'local'},
+      signer: {keyId: 'operator', reviewerId: 'reviewer', privateKeyPath: 'absent.key'}});
+    await runRecordApprovalCommand(f.options);
+    assert.deepEqual(f.events, []);
+    assert.deepEqual(f.log, [{phase: 'check', status: 'ready', connected: false}]);
+    await assert.rejects(readFile(join(f.root, 'receipt.submitted.json')), {code: 'ENOENT'});
+  });
+
+  test(`shared ${connector} command rejects an invalid original selection before connecting`, async t => {
+    const f = await commandFixture(t, connector, {selection: {...selection, recordId: undefined},
+      connect: {mode: 'local'}});
+    f.options.argv[0] = 'capture';
+    await assert.rejects(runRecordApprovalCommand(f.options), /InvalidRecordApprovalSelection/u);
+    assert.deepEqual(f.events, []);
+    assert.deepEqual(f.log, []);
+  });
+}
+
+test('shared command validates signer configuration without reading its key or connecting', async t => {
+  const f = await commandFixture(t, 'kintone', {selection, connect: {mode: 'local'},
+    signer: {keyId: 'operator', privateKeyPath: 'absent.key'}});
+  await assert.rejects(runRecordApprovalCommand(f.options), /InvalidRecordApprovalSigner/u);
+  assert.deepEqual(f.events, []);
+  assert.deepEqual(f.log, []);
+});
+
+test('shared command malformed JSON error does not repeat configuration contents', async t => {
+  const f = await commandFixture(t, 'kintone');
+  const privateText = 'do-not-repeat-this-configuration-value';
+  await writeFile(f.path, '{"private":"' + privateText + '",');
+  await assert.rejects(runRecordApprovalCommand(f.options), error => {
+    assert.equal(error.message, 'InvalidRecordApprovalConfiguration');
+    assert.equal(String(error.stack).includes(privateText), false);
+    assert.equal(error.cause, undefined);
+    return true;
+  });
+  assert.deepEqual(f.events, []);
+});
+
+test('shared command signs only explicit approval with a configuration-relative operator key', async t => {
+  const f = await commandFixture(t, 'kintone', {selection, connect: {mode: 'local'},
+    signer: {keyId: 'operator', reviewerId: 'reviewer', privateKeyPath: 'keys/operator.pem'}});
+  const {privateKey, publicKey} = generateKeyPairSync('ed25519');
+  await mkdir(join(f.root, 'keys'));
+  await writeFile(join(f.root, 'keys/operator.pem'),
+    privateKey.export({format: 'pem', type: 'pkcs8'}), {mode: 0o600});
+  const captured = {summary: {original: 'sealed-checkpoint'}, ref: {authorityScopeCid: cid('a')}};
+  const bytes = Buffer.from('original-public-resolution-preimage');
+  let called = false;
+  const client = {resolveCheckpoints: async (decisions, {signer}) => {
+    called = true;
+    assert.deepEqual(decisions, [{checkpoint: captured.summary, decision: 'approved'}]);
+    assert.equal(signer.keyId, 'operator');
+    assert.equal(signer.reviewerId, 'reviewer');
+    assert.equal(signer.authorityScopeCid, captured.ref.authorityScopeCid);
+    assert(verify(null, bytes, publicKey, signer.sign(bytes)));
+    return {results: [{status: 'committed'}]};
+  }};
+  f.options.argv[0] = 'approve';
+  f.options.connect = async () => client;
+  f.options.runPhase = async ({approve, client: selected, phase}) => {
+    assert.equal(phase, 'approve');
+    assert.strictEqual(selected, client);
+    assert.equal(called, false);
+    await approve(selected, captured);
+  };
+  await runRecordApprovalCommand(f.options);
+  assert.equal(called, true);
+  assert.deepEqual(f.log, [{phase: 'approve', status: 'passed', publicClientClose: 'returned'}]);
+});
+
+test('shared command keeps receipt creation exclusive and private with the original prefix', async t => {
+  const f = await commandFixture(t, 'kintone');
+  f.options.argv[0] = 'capture';
+  f.options.connect = async () => ({});
+  f.options.runPhase = async ({save, load}) => {
+    const original = {ref: {original: 'first-run'}};
+    await save('submitted', original);
+    assert.deepEqual(await load('submitted'), original);
+    await assert.rejects(save('submitted', {ref: {original: 'replacement'}}), {code: 'EEXIST'});
+    assert.deepEqual(await load('submitted'), original);
+  };
+  await runRecordApprovalCommand(f.options);
+  assert.equal((await stat(join(f.root, 'receipt.submitted.json'))).mode & 0o777, 0o600);
+});
+
+test('shared command never prints success when its original workflow fails', async t => {
+  const f = await commandFixture(t, 'kintone');
+  const primary = new Error('Original workflow failed');
+  f.options.argv[0] = 'capture';
+  f.options.connect = async () => ({});
+  f.options.runPhase = async () => {throw primary;};
+  await assert.rejects(runRecordApprovalCommand(f.options), error => error === primary);
+  assert.deepEqual(f.log, []);
+});
+
+test('shared command check does not import a configured operator module', async t => {
+  const f = await commandFixture(t, 'kintone', {selection, connect: {mode: 'local'},
+    operatorModulePath: 'not-yet-configured-operator.mjs'});
+  await runRecordApprovalCommand(f.options);
+  assert.deepEqual(f.events, []);
+  assert.deepEqual(f.log, [{phase: 'check', status: 'ready', connected: false}]);
+});
+
+test('shared command forwards an explicit operator callback through the existing connection entrance', async t => {
+  const f = await commandFixture(t, 'kintone', {selection, connect: {mode: 'local',
+    installation: {directory: '/original/project/.actql'}}, operatorModulePath: 'operator.mjs'});
+  await writeFile(join(f.root, 'operator.mjs'),
+    `export function configureConnection(options) {
+      return {...options, installation: {...options.installation,
+        authorization: {original: () => 'original-operator-port'}}};
+    }\n`);
+  f.options.argv[0] = 'capture';
+  f.options.connect = async options => {
+    assert.equal(options.mode, 'local');
+    assert.equal(options.installation.directory, '/original/project/.actql');
+    assert.equal(options.installation.authorization.original(), 'original-operator-port');
+    f.events.push('connect');
+    return {};
+  };
+  f.options.runPhase = async () => f.events.push('workflow');
+  await runRecordApprovalCommand(f.options);
+  assert.deepEqual(f.events, ['connect', 'workflow']);
+});
+
+test('shared command rejects an incompatible operator module before connection', async t => {
+  const f = await commandFixture(t, 'kintone', {selection, connect: {mode: 'local'},
+    operatorModulePath: 'operator.mjs'});
+  await writeFile(join(f.root, 'operator.mjs'), 'export const authorization = {};\n');
+  f.options.argv[0] = 'capture';
+  await assert.rejects(runRecordApprovalCommand(f.options), /InvalidRecordApprovalOperatorModule/u);
+  assert.deepEqual(f.events, []);
+  assert.deepEqual(f.log, []);
 });
