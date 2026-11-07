@@ -31,6 +31,8 @@ pub fn native_relation_file_provider_capacity(@client_row_source_host.RowDeclara
 
 pub fn prepare_native_managed_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledWholeSourceCapacity, @execution_relation.ExecutionCapacity, String, NativeRelationFileSelection, NativeRelationFileLimits, prepared_provider? : NativeRelationFilePreparedProvider?) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
+pub fn prepare_native_managed_relation_file_keyed_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, String, @client_local_host.ClientInstalledKeyedSourceRead, @client_row_source_host.RowKeyedAcquisition, NativeRelationFilePreparedProvider, @value_admission.ReferenceIssuer, String) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
+
 pub fn prepare_native_managed_relation_file_listing_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledWholeSourceCapacity, NativeRelationFileListingProvider, String) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
 pub fn prepare_native_managed_relation_file_query_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity, String, NativeRelationFileSelection, NativeRelationFileLimits, prepared_provider? : NativeRelationFilePreparedProvider?) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
@@ -57,6 +59,9 @@ pub fn NativeRelationFileCapture::advance(Self, Int) -> Result[Bool, NativeRelat
 pub fn NativeRelationFileCapture::advance_listing(Self, Int, Int64) -> Result[Bool, NativeRelationFileFailure]
 pub fn NativeRelationFileCapture::capture(Self) -> Result[@client_row_source_host.RowSourceCapture, NativeRelationFileIssue]
 pub fn NativeRelationFileCapture::close(Self) -> Result[Bool, NativeRelationFileIssue]
+pub fn NativeRelationFileCapture::complete_keyed_content_page(Self, @client_row_source_host.RelationDocument, Bytes) -> Result[Unit, NativeRelationFileFailure]
+pub fn NativeRelationFileCapture::keyed_capture(Self) -> Result[@client_row_source_host.RowKeyedSourceCapture, NativeRelationFileIssue]
+pub fn NativeRelationFileCapture::keyed_content_document(Self) -> Result[@client_row_source_host.RelationDocument, NativeRelationFileIssue]
 
 type NativeRelationFileFailure
 pub fn NativeRelationFileFailure::issue(Self) -> NativeRelationFileIssue

@@ -72,6 +72,8 @@ pub fn begin_keyed_row_page(RowSourceRead, Bytes) -> Result[Unit, RowSourceIssue
 
 pub fn begin_keyed_row_run(RowRun, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]
 
+pub fn begin_keyed_row_run_response_attempt(RowRun, RowKeyedAcquisition) -> Result[Unit, RowHostIssue]
+
 pub fn begin_row_capture(RowRun) -> Result[Unit, RowHostIssue]
 
 pub fn begin_row_run(RowRun, Int, Int, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]
@@ -115,6 +117,8 @@ pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration,
 pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]
+
+pub fn check_row_keyed_acquisition_original(RowKeyedAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]
 
@@ -386,6 +390,8 @@ pub fn row_input_capture_identity(RowInputAcquisition) -> Array[String]?
 
 pub fn row_input_capture_schema_geometry(RowInputAcquisition) -> (Int, Int, Int, Int)?
 
+pub fn row_keyed_acquisition_resource(RowKeyedAcquisition) -> String
+
 pub fn row_mapping_target_fields(RowMapping, RowDeclarationLimits) -> Result[Array[String], RowMappingIssue]
 
 pub fn row_observation_cid(RowObservation) -> String
@@ -397,6 +403,8 @@ pub fn row_original_input_capacity() -> (Int64, Int64)
 pub fn row_run_attempt(RowRun) -> RowAttempt
 
 pub fn row_run_listing_complete(RowRun) -> Bool
+
+pub fn row_run_normal_available(RowRun) -> Bool
 
 pub fn row_run_response_selection(RowRunResponseBorrow) -> Result[RowResponseSelection, RowHostIssue]
 

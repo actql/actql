@@ -494,6 +494,8 @@ pub fn installed_keyed_row_limits(Int, Int, Int) -> @client_row_source_host.RowK
 
 pub fn installed_keyed_source_read_acquisition(ClientInstalledKeyedSourceRead) -> Result[@client_row_source_host.RowKeyedAcquisition, ClientInstalledSourceReadIssue]
 
+pub fn installed_keyed_source_read_acquisition_matches(ClientInstalledKeyedSourceRead, @client_row_source_host.RowKeyedAcquisition) -> Bool
+
 pub fn installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> ClientInstalledCaptureCapacity?
 
 pub fn installed_local_file_store_control_wire_bound() -> Int

@@ -229,3 +229,29 @@ execution/domain/arena retirement. Its issuer and elapsed values are explicit
 component inputs, not a normal Account or Host-clock qualification. This does
 not enable the CLI mock profile, capture Content, run a Model, approve an Effect
 or qualify Saved. Those existing full-workflow obligations remain open.
+
+
+## Correlated Content read
+
+`prepare_native_managed_relation_file_keyed_capture` consumes the original
+managed keyed read/acquisition on the same Native execution Ledger. Its existing
+capture owner reserves raw physical provider/decoder backing beside its metadata
+before starting I/O; the keyed RowRun separately owns its checked response.
+The original request attempt is debited before opening a file, including empty
+and failed reads. Received chunks extend one original page ticket.
+
+At `ContentReady`, `keyed_content_document` borrows the same admitted raw
+physical document. The installing Source resolves its original nominal Resource
+and version, funds exact-byte projection and Store custody, then verifies the
+stored original before issuing its ContentRef. `complete_keyed_content_page`
+requires that same document and continues the existing keyed RowRun with its
+original issuer. Core admits the typed page/cardinality and retains the completed
+keyed capture; derived reference wire is not charged as another physical read.
+These ports do not supply the Source's missing constructor backing or issuer.
+
+Keyed construction and retirement share one start-state word. A reentrant close
+cannot acknowledge an unfinished constructor; the actual returned child is
+retained before normal work or later cleanup. Entry checks the original current
+parent, and internal post-callback handoffs use retained identity/state fences
+instead of repeating that external current observation. Source/Store failure
+keeps the original capture for child-first cleanup and never reacquires a request.

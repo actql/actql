@@ -448,10 +448,10 @@ pub fn start_installed_whole_source_read_rows(
   if expected_ledger is Some(original) && !physical_equal(original, ledger) {
     return Err(ForeignOriginal)
   }
-  if read.started {
+  if !(read.start is Unstarted) {
     return Err(AlreadyStarted)
   }
-  read.started = true
+  read.start = Constructing
   retain_installed_source_read_run(
     read,
     @row_source_host.start_accounted_row_input_acquisition(
