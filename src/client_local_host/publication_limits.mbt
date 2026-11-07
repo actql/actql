@@ -175,10 +175,11 @@ pub fn ClientLocalRequirements::publication_limits(
         .map(value => value.mapping_work)
         .unwrap_or(plan.execution.rows.metadata_entries),
         max_result_order_work: publication.order_work,
-        // Native carries this existing phase guard through full receipt and
-        // committed-state validation too. Result row-index workspace alone
-        // does not bound the independent evidence-stream traversal.
-        max_result_workspace_entries: plan.execution.rows.retained_entries,
+        // This is the already-quoted Named Result index workspace, not the
+        // independent bridge/evidence metadata entry ceilings below.
+        max_result_workspace_entries: envelope
+        .map(value => value.publication_workspace_entries)
+        .unwrap_or(plan.metadata.result_workspace_entries),
         max_rows: exported.max_rows,
         values: exported.values,
         payload_wire: wire,
@@ -193,4 +194,22 @@ pub fn ClientLocalRequirements::publication_limits(
       },
     ),
   )
+}
+
+///|
+/// The original bridge and evidence-check entry bounds remain independent of
+/// Named Result row indices. Poll quantum/rounds still bound traversal work.
+/// These immutable counts supply no allocation or current authorization.
+pub fn ClientLocalRequirements::publication_entry_limits(
+  self : ClientLocalRequirements,
+  prepared : @publication_host.PreparedClientProgram,
+) -> (Int, Int)? {
+  if !physical_equal(self.prepared, prepared) {
+    return None
+  }
+  let rows = self.capacity_plan.execution.rows
+  if rows.metadata_entries < 1 || rows.retained_entries < 1 {
+    return None
+  }
+  Some((rows.metadata_entries, rows.retained_entries))
 }

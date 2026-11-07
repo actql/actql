@@ -22,11 +22,15 @@ pub fn NativeClientRelationFileWork::prepare_result_export(
     is Some((row_limits, _)) else {
     return Err(Configuration)
   }
+  guard self.requirements.publication_entry_limits(self.prepared)
+    is Some((bridge_entries, _)) else {
+    return Err(Configuration)
+  }
   let output_bridge = match
     self.execution.prepare_result_export(
       0,
       row_limits,
-      limits.max_result_workspace_entries,
+      bridge_entries,
       limits.schema.max_bytes,
       limits,
     ) {
