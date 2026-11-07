@@ -195,17 +195,22 @@ test "Request diagnostic accounting observes one reservation across snapshot gro
 ///|
 test "fixed Request control envelope preserves original upper bound through the common tariff" {
   // The retained-wire tuple/Some and its Request field add 2H/2R/2W.
+  // Native intake additionally retains its baseline tuple/Some, Request slot
+  // and monotone byte scalar: 2H/2R/3W. Neither is domain payload storage.
   // This fixed control belongs to the original parent before domain growth.
-  assert_eq(10736L + 16L * 2L + 8L * 2L + 8L * 2L, 10800L)
+  assert_eq(
+    10736L + 16L * 2L + 8L * 2L + 8L * 2L + 16L * 2L + 8L * 2L + 8L * 3L,
+    10872L,
+  )
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,
     ),
-    Some(10800L),
+    Some(10872L),
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((14896L, 0L)),
+    Some((14968L, 0L)),
   )
   let growth = @resources.preparation_inventory_growth_entry_construction()
   assert_eq(
@@ -243,7 +248,7 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   ).unwrap()
   let reservation = owner.capacity
   let before = @resources.ledger_usage(owner.ledger)
-  assert_eq(before.reserved_retention_bytes, 14896L)
+  assert_eq(before.reserved_retention_bytes, 14968L)
   reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
   let small = @resources.ledger_usage(owner.ledger)
   reserve_request_snapshot(owner, input, 256L, 32L).unwrap()
@@ -260,7 +265,7 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((14896L, 0L)),
+    Some((14968L, 0L)),
   )
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
