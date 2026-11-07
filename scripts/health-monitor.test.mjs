@@ -1381,3 +1381,43 @@ test('two-Model deal-review submits one unchanged structured Program through the
   assert.equal(execution, original); assert.equal(reads, 1); assert.equal(submissions, 1);
   assert.deepEqual(steps, ['read original README program', 'README startSource']);
 });
+
+
+test('public Mock refusal diagnostics read only the same original SDK observation and omit private data', () => {
+  const node = workflowSyntax.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'submissionCheckDiagnostic');
+  assert.ok(node, 'Original submission observation diagnostic must be connected');
+  const original = new Error('Original refusal'); let calls = 0;
+  let observation = {outcome: 'completed', report: {verdict: 'invalid',
+    reasons: [{code: 'query_syntax_invalid', facts: {secret: 'private-payload'},
+      location: {kind: 'structured', document_id: 'program', revision: 'private-revision',
+        pointer: '/stages/2/effects/save/update/set/StageName'}}],
+    requirements: [{code: 'source_required', location: {kind: 'text', document_id: 'source',
+      revision: 'private-revision', start_byte: 3, end_byte: 9}}],
+    coverage: {limits: [], unresolved: []}, context_ref: 'private-context',
+    inputs: [{text: 'private-input'}]}};
+  const project = compileFunction(workflowSource.slice(node.start, node.end) +
+    '\nreturn submissionCheckDiagnostic;', ['getSubmissionCheckObservation'])(error => {
+      assert.strictEqual(error, original); calls++; return observation;
+    });
+  assert.deepEqual(project(original), {available: true, outcome: 'completed', verdict: 'invalid', reasons: [
+    {code: 'query_syntax_invalid', location: {kind: 'structured', document: 'program',
+      pointer: '/stages/2/effects/save/update/set/StageName'}},
+    {code: 'source_required', location: {kind: 'text', document: 'source', start_byte: 3, end_byte: 9}},
+  ], truncated: false});
+  assert.equal(calls, 1);
+  observation = undefined;
+  assert.deepEqual(project(original), {available: false}); assert.equal(calls, 2);
+  observation = {outcome: 'completed', report: {verdict: 'invalid',
+    reasons: Array.from({length: 40}, () => ({code: 'implementation_limit',
+      facts: {payload: 'private-payload'}, location: {kind: 'structured', document_id: 'secret-id',
+        pointer: '/literal/private payload'}})), requirements: [], coverage: {limits: [], unresolved: []}}};
+  const bounded = project(original);
+  assert.equal(bounded.reasons.length, 32); assert.equal(bounded.truncated, true);
+  assert(!JSON.stringify(bounded).includes('private')); assert(!JSON.stringify(bounded).includes('secret-id'));
+  const refused = compileFunction(workflowSource.slice(node.start, node.end) +
+    '\nreturn submissionCheckDiagnostic;', ['getSubmissionCheckObservation'])(() => {throw original;});
+  assert.deepEqual(refused(original), {available: false});
+  assert.match(workflowSource, /submissionCheckDiagnostic\(cause\)/u);
+  assert.match(workflowSource, /if \(failed\) throw primary;/u);
+});
