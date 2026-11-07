@@ -12,6 +12,8 @@ priv struct ImportedChildLedgerOrigin {
   mut stop : (Int64) -> Int
   fixed_capacities : Bool
   mut working : (PlatformVMWorkingCapacity, Int64, Int64)?
+  // Same physical owner's acquired byte window; policy remains ledger.limits.
+  mut current_window : Ref[Int64]?
   // The back-reference rejects copies without another Resource Owner.
   mut ledger : Ledger?
   mut stopping : Bool
@@ -83,6 +85,7 @@ fn prepare_imported_child_port(
       stop,
       fixed_capacities,
       working: None,
+      current_window: None,
       ledger: None,
       stopping: false,
       unavailable: false,
