@@ -84,7 +84,36 @@ test "same original Native Read acquires its window before resize and constructo
   assert_eq(body.length(), 6 * 1048576)
   assert_eq(body[body.length() - 1], 71)
   host.leave_domain_original_read_consumer(consumer).unwrap_or_else(() => abort("Native Read stage: leave-consumer"))
-  host.close_domain_original_read(read).unwrap_or_else(() => abort("Native Read stage: close-read"))
+  match host.close_domain_original_read(read) {
+    Ok(_) => ()
+    Err(issue) => {
+      let family = match issue {
+        Domain(@bootstrap.Bootstrap(@bootstrap.Physical(code))) => "physical=" + code.to_string()
+        Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)) => "ReadersPending"
+        Domain(@bootstrap.Bootstrap(_)) => "bootstrap"
+        Domain(@bootstrap.Accounting(_)) => "domain-accounting"
+        Child(_) => "child"
+        Read(@resources.ChangedOriginalState) => "ChangedOriginalState"
+        Read(@resources.CleanupPending) => "CleanupPending"
+        Read(@resources.Resource(_)) => "read-resource"
+        Read(_) => "read-original"
+        Buffer(_) => "buffer"
+      }
+      println("Native Read close family: " + family)
+      match host.observe_domain_original_read_cleanup(read) {
+        Err(_) => println("Native Read cleanup observation unavailable")
+        Ok(observed) => println(
+          "Native Read cleanup blocks=" + observed.managed_live_blocks.to_string() +
+          " bytes=" + observed.managed_requested_bytes.to_string() +
+          " min=" + observed.minimum_managed_request.to_string() +
+          " max=" + observed.maximum_managed_request.to_string() +
+          " active=" + observed.active.to_string() +
+          " users=" + observed.users.to_string(),
+        )
+      }
+      abort("Native Read stage: close-read")
+    }
+  }
   assert_true(read.closed && read.consumer is None && read.physical_retired.val)
   host.close_domain_after_owner_ack(domain).unwrap_or_else(() => abort("Native Read stage: close-domain"))
   host.try_close().unwrap_or_else(() => abort("Native Read stage: close-host"))
