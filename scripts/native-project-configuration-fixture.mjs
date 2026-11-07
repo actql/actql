@@ -1,7 +1,8 @@
 // Only populate the invocation's existing owned namespace. These files are
 // reader test inputs, never installed project configuration or Run authority.
 import {mkdirSync, symlinkSync, writeFileSync} from 'node:fs';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
+import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 
 export function nativeProjectConfigurationFixture(namespace) {
   const root = join(namespace, 'project-configuration');
@@ -58,6 +59,17 @@ export function nativeProjectConfigurationFixture(namespace) {
     else if (name === 'directory-bindings') mkdirSync(join(path, 'connectors.json'), {mode: 0o700});
     else write(path, 'connectors.json', name === 'oversize-bindings'
       ? Buffer.alloc(65537, 0x20) : Buffer.from([0xc3, 0x28]));
+  }
+  // Exact public authored inputs, not an old business-state fixture.
+  for (const name of ['deal-review', 'deal-review-missing', 'deal-review-wrong-task']) {
+    const path = directory(name);
+    for (const [relative, original] of Object.entries(projectTemplateFiles('deal-review-mock'))) {
+      if (name === 'deal-review-missing' && relative === 'mock/data.json') continue;
+      mkdirSync(dirname(join(path, relative)), {recursive: true, mode: 0o700});
+      const body = name === 'deal-review-wrong-task' && relative === 'model-tasks/deal-review.v1.yaml'
+        ? original.replace('task: model-task:deal-review.v1', 'task: model-task:foreign.v1') : original;
+      write(path, relative, body);
+    }
   }
   return {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: root};
 }

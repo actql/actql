@@ -50,6 +50,27 @@ retry retains the same initial owner and never settles the transferred Unit
 capacity again. Unknown stop outcomes stay Unknown; only actual Native Read,
 domain and arena retirement supplies their respective acknowledgements.
 
+## Native Project Mock declaration intake
+
+The Native Project reader selects the same original configuration/profile and
+reads its explicit connectors, Model registry, Catalog, data and answer
+locators through the existing bounded UTF-8 Reader. Task paths are relative to
+the original registry file; Catalog, data and answer paths are relative to the
+Project. Common admits the original connection/Catalog/registry documents and
+public Task contracts. A Task's registered name and original provider selection
+must correspond to that same registry and declaration. Equal separately decoded
+registries cannot replace those originals. Missing or physically unclosed
+files retain their original Reader failure; no empty-document fallback exists.
+
+Successful intake remains in the existing command's Project record. The
+profile's nominal cycle retires on both refusal and ordinary command exit,
+before the enclosing Read can acknowledge cleanup. Partial intake retires that
+profile while preserving any original Reader failure. This is declaration DATA,
+not Source installation, a Model provider, Account permission, Reviewer or a
+Run grant. In particular, Native Mock execution availability remains false until
+the actual same-Request Source/Model/Effect assembly and approval supplier are
+connected. Intake cannot select the packaged source-free Host as a substitute.
+
 ## Ordinary literal query caller
 
 Trusted public `sql` and literal `aql` select the ordinary Local Host when no
