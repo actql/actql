@@ -31,6 +31,30 @@ test "default Source Request rejects the original incompatible membership annota
 }
 
 ///|
+test "default Source Request keeps canonical signed zero in scalar membership" {
+  let text = "SELECT 2 IN UNNEST([-(0)]) AS found"
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(text)
+  prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(text, "sql"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  assert_true(
+    parent.program_check.unwrap().check_outcome is Some(@checked.Checked(_)),
+    msg="the original numeric lowerer canonicalizes signed zero before checking",
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
 let request_document_yaml : String =
   #|version: actql/0.1
   #|id: source-document
