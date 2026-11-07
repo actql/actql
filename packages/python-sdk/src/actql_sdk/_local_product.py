@@ -54,6 +54,7 @@ _T = TypeVar('_T')
 _LOCAL_SELECTION = {'mode': 'local', 'owner': 'local', 'durability': 'durable',
                     'consentRefs': [], 'runners': []}
 _PUBLICATION_WORK_QUANTUM = 256
+_EXECUTION_WORK_QUANTUM = 256
 
 
 def _ordinary_core_limits() -> LocalCoreResources:
@@ -1786,6 +1787,35 @@ class InstalledLocalHost:
                 raise LocalProductCleanupPending(self)
             return preflight, publisher
 
+    def _checked_original_read(self, current: _Output, work: Callable[[], _T]) -> _T:
+        """Fence a write-free step inside one bounded original reader.
+
+        Each step still observes physical originals before and after Core work.
+        An unchanged SQLite transaction retains the inventory checked on entry;
+        other adapters recheck it. No observer or permission spans this call.
+        """
+        installation = self._active()
+        callbacks = self._core._host_current_ready(current)
+        reader = callbacks.reader
+        if reader is None:
+            raise ValueError('Original Local read step has no reader')
+
+        def unchanged() -> None:
+            if callbacks.reader is not reader:
+                raise ValueError('Original Local read step changed its reader')
+            if reader.check_unchanged is not None:
+                reader.check_unchanged(reader)
+            else:
+                installation.binding._adoption_inventory(reader)
+                installation.binding._settings_inventory(reader)
+
+        unchanged()
+        result = work()
+        if self._core._host_current_ready(current) is not callbacks:
+            raise ValueError('Original Local read step changed its current callbacks')
+        unchanged()
+        return result
+
     def _execute_original_tasks(self, compute: _SourceFreeCompute, preflight: _Output,
                                 publisher: _Output) -> tuple[_ResultExport, ...]:
         """Drive existing task Owners; Python selects no task/transition/outcome."""
@@ -1811,26 +1841,28 @@ class InstalledLocalHost:
                 task = selected[0]
                 if task is None:
                     break  # Explicit Core-checked end, never reserve's -2.
-                installation.binding.inspect(lambda _: self._core.start_task(task))
-                while True:
-                    fed: list[bool] = []
-                    installation.binding.inspect(lambda _: fed.append(self._core.feed_task(task, 16)))
-                    if fed[0]: break
-                while True:
-                    progress: list[LocalTaskProgress] = []
-                    installation.binding.inspect(lambda _: progress.append(self._core.advance_task(task, 16)))
-                    if progress[0].waiting:
-                        raise LocalCoreError('original_task_waiting', -7)
-                    if progress[0].complete: break
-                installation.binding.inspect(lambda _: self._core.prepare_task_finalization(task))
-                while True:
-                    final: list[LocalTaskProgress] = []
-                    installation.binding.inspect(lambda _: final.append(
-                        self._core.advance_task(task, 16, finalization=True)))
-                    if final[0].waiting:
-                        raise LocalCoreError('original_task_finalization_waiting', -7)
-                    if final[0].complete: break
-                installation.binding.inspect(lambda _: self._core.complete_task(task))
+                def drive_task(current: _Output) -> None:
+                    def checked(work: Callable[[], _T]) -> _T:
+                        return self._checked_original_read(current, work)
+                    checked(lambda: self._core.start_task(task))
+                    while not checked(lambda: self._core.feed_task(task, _EXECUTION_WORK_QUANTUM)):
+                        pass
+                    while True:
+                        progress = checked(lambda: self._core.advance_task(task, _EXECUTION_WORK_QUANTUM))
+                        if progress.waiting:
+                            raise LocalCoreError('original_task_waiting', -7)
+                        if progress.complete:
+                            break
+                    checked(lambda: self._core.prepare_task_finalization(task))
+                    while True:
+                        progress = checked(lambda: self._core.advance_task(
+                            task, _EXECUTION_WORK_QUANTUM, finalization=True))
+                        if progress.waiting:
+                            raise LocalCoreError('original_task_finalization_waiting', -7)
+                        if progress.complete:
+                            break
+                    checked(lambda: self._core.complete_task(task))
+                installation.binding.inspect(drive_task)
             counts: list[int] = []
             installation.binding.inspect(lambda _: counts.append(
                 self._core.publication_preflight_result_count(preflight, configuration.handle)))
@@ -1866,24 +1898,26 @@ class InstalledLocalHost:
         with self._core._lock:
             self._runs._compute(compute)
             for result in results:
-                installation.binding.inspect(lambda _: self._core.start_result_export(result))
-                while True:
-                    fed: list[bool] = []
-                    installation.binding.inspect(lambda _: fed.append(self._core.feed_result_export(result, 16)))
-                    if fed[0]: break
-                while True:
-                    progress: list[LocalResultProgress] = []
-                    installation.binding.inspect(lambda _: progress.append(
-                        self._core.advance_result_export(result, 16)))
-                    if progress[0].ready: break
-                installation.binding.inspect(lambda _:
-                    self._core.finish_result_export_preparation(result))
+                def prepare_result(current: _Output) -> None:
+                    def checked(work: Callable[[], _T]) -> _T:
+                        return self._checked_original_read(current, work)
+                    checked(lambda: self._core.start_result_export(result))
+                    while not checked(lambda: self._core.feed_result_export(result, _EXECUTION_WORK_QUANTUM)):
+                        pass
+                    while not checked(lambda: self._core.advance_result_export(
+                            result, _EXECUTION_WORK_QUANTUM)).ready:
+                        pass
+                    checked(lambda: self._core.finish_result_export_preparation(result))
+                installation.binding.inspect(prepare_result)
                 while True:
                     chunk = self._reserve(lambda: self._core.reserve_result_chunk(result, cleanup=lambda: True))
                     self._result_chunks.append(chunk)
-                    installation.binding.inspect(lambda _: self._core.produce_result_chunk(chunk))
                     final: list[bool] = []
-                    installation.binding.inspect(lambda _: final.append(self._core.result_chunk_finished(chunk)))
+                    def produce_chunk(current: _Output) -> None:
+                        self._checked_original_read(current, lambda: self._core.produce_result_chunk(chunk))
+                        final.append(self._checked_original_read(current,
+                            lambda: self._core.result_chunk_finished(chunk)))
+                    installation.binding.inspect(produce_chunk)
                     if not self._core.close_result_chunk(chunk):
                         raise LocalProductCleanupPending(self)
                     self._result_chunks.remove(chunk)
@@ -1900,16 +1934,15 @@ class InstalledLocalHost:
                 source, request, cleanup=lambda: True))
             self._publications.append(publication)
             self._run_publications.append((compute.start.run, publication))
-            installation.binding.inspect(lambda _:
-                self._core.prepare_publication(publication, configuration.handle))
-            while True:
-                captured: list[LocalResultProgress] = []
-                installation.binding.inspect(lambda _: captured.append(
-                    self._core.advance_publication(publication, configuration.handle,
-                                                   _PUBLICATION_WORK_QUANTUM)))
-                if captured[0].ready: break
-            installation.binding.inspect(lambda _:
-                self._core.finish_publication(publication, configuration.handle))
+            def capture(current: _Output) -> None:
+                def checked(work: Callable[[], _T]) -> _T:
+                    return self._checked_original_read(current, work)
+                checked(lambda: self._core.prepare_publication(publication, configuration.handle))
+                while not checked(lambda: self._core.advance_publication(
+                        publication, configuration.handle, _PUBLICATION_WORK_QUANTUM)).ready:
+                    pass
+                checked(lambda: self._core.finish_publication(publication, configuration.handle))
+            installation.binding.inspect(capture)
             if not self._core.retire_publication_output(publication):
                 raise LocalProductCleanupPending(self)
             return publication

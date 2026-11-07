@@ -102,7 +102,7 @@ class LocalFencedBatchTests(unittest.TestCase):
         connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-local-fence-ack-') as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=LostCommit)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostCommit}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     self.initialize(store)
                     before = store._connection.writes
@@ -223,7 +223,7 @@ class LocalFencedBatchTests(unittest.TestCase):
         connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-local-fence-cleanup-') as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=Pending)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': Pending}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     self.initialize(store)
                     store.compare_exchange_many_fenced(_WRITES, _FENCES, current=self.current)

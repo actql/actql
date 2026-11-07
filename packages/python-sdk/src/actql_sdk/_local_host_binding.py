@@ -174,9 +174,19 @@ class OriginalHostBinding:
                 raise ValueError('Original Local current input is unavailable')
             self._core._owned_output(self._current, 'current')
             self._core._owned_input(self._input)
-        self._source.require_current_originals((self._account, *self._selected))
-        self._state.require_current_originals((self._staged_account, self._initialization,
-                                              self._configuration, self._journal))
+        source_values = (self._account, *self._selected)
+        state_values = (self._staged_account, self._initialization,
+                        self._configuration, self._journal)
+        installation = self._source._installation
+        if (installation is not None and installation is self._state._installation
+                and self._source._observe_roots is None and self._state._observe_roots is None):
+            installation._require_current_host_files(
+                self._source, source_values, self._state, state_values)
+        else:
+            # Arbitrary observers retain their original calls and ordering,
+            # even when both pins happen to hold the same callable.
+            self._source.require_current_originals(source_values)
+            self._state.require_current_originals(state_values)
         for projection in self._expected:
             self._core._owned_output(projection, 'original')
         if self._active:

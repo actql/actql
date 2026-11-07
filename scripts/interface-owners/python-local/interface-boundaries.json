@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "5550910a867632e1a3370613cf2f8fc2de223eed03fd6138443403666687c9f6",
+  "syntaxProjectionSha256": "d5a780dd411719407cff02b6f4cab14d7c3aefa1e0a8d0006326080ab368667f",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -27040,7 +27040,7 @@
           ]
         }
       ],
-      "sha256": "c6e9868dfe3160c669db65ffff85bfe4df0f02dc0f109c6b5b623c8e7515d42c",
+      "sha256": "9d6fd6fd2a38c4cbeb158094c30775a3a693a23c196a79e7fe0edc03269710b2",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -27269,6 +27269,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
               }
             ],
             "failure": [
@@ -27375,6 +27379,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_storage_closed_inventory.py",
                 "anchor": "class ClosedInventoryTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_installation_file_group.py",
+                "anchor": "class OriginalInstallationFileGroupTests("
               }
             ]
           }
@@ -27910,16 +27918,20 @@
         "LocalHostFiles",
         "LocalHostFilesCleanupPending",
         "LocalOriginalAcquisitionError",
+        "OriginalLocalInstallation",
         "PhysicalFileSnapshot",
         "RLock",
+        "TYPE_CHECKING",
         "dataclass"
       ],
       "imports": [
         "._local_files",
+        "._local_installation",
         "._local_storage",
         "collections.abc",
         "dataclasses",
-        "threading"
+        "threading",
+        "typing"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_host_files.py",
       "responsibilityFacet": "primary",
@@ -27938,7 +27950,8 @@
             "store",
             "max_files",
             "max_bytes",
-            "observe_roots"
+            "observe_roots",
+            "_installation"
           ]
         },
         {
@@ -27950,10 +27963,32 @@
         },
         {
           "async": false,
+          "name": "LocalHostFiles/_observe_current_files",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalHostFiles/_require_current_lifetime",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalHostFiles/_require_original",
           "parameters": [
             "self",
             "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalHostFiles/_require_original_members",
+          "parameters": [
+            "self",
+            "values"
           ]
         },
         {
@@ -28014,7 +28049,7 @@
           "parameters": []
         }
       ],
-      "sha256": "dcdf8bbc4888cd8a0d655a1fbefd7fbdbe17291534429c156fae0d85152fec1b",
+      "sha256": "045d204c6fa87af642616b1b92f0233a1afe11e2351a99a5d802b6ccc87c11e9",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28023,7 +28058,10 @@
             "LocalHostFiles",
             "LocalHostFiles/__init__",
             "LocalHostFiles/_nominal",
+            "LocalHostFiles/_observe_current_files",
+            "LocalHostFiles/_require_current_lifetime",
             "LocalHostFiles/_require_original",
+            "LocalHostFiles/_require_original_members",
             "LocalHostFiles/close",
             "LocalHostFiles/current",
             "LocalHostFiles/original_bytes",
@@ -28114,6 +28152,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
               }
             ],
             "failure": [
@@ -28228,6 +28270,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_host_files.py",
                 "anchor": "def test_same_snapshot_alias_does_not_hide_actual_file_generation_change("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_installation_file_group.py",
+                "anchor": "class OriginalInstallationFileGroupTests("
               }
             ]
           }
@@ -28502,7 +28548,9 @@
             "LocalOriginalAcquisitionError",
             "PhysicalFileSnapshot",
             "RLock",
-            "dataclass"
+            "dataclass",
+            "OriginalLocalInstallation",
+            "TYPE_CHECKING"
           ],
           "attributes": {
             "responsibility": [
@@ -29485,6 +29533,17 @@
         },
         {
           "async": false,
+          "name": "OriginalLocalInstallation/_require_current_host_files",
+          "parameters": [
+            "self",
+            "source",
+            "source_values",
+            "state",
+            "state_values"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalLocalInstallation/_reserve",
           "parameters": [
             "self",
@@ -29567,7 +29626,7 @@
           ]
         }
       ],
-      "sha256": "a607045369b08da101bc52a72cb5d021a7b745057737bc87cf3c2cc2bd0b3150",
+      "sha256": "671d84213138849b53cfdce81c9f25bcd9f1061546d8fdffa0e614cd999d78ca",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29715,6 +29774,7 @@
             "OriginalLocalInstallation/_pin",
             "OriginalLocalInstallation/_project",
             "OriginalLocalInstallation/_read",
+            "OriginalLocalInstallation/_require_current_host_files",
             "OriginalLocalInstallation/_reserve",
             "OriginalLocalInstallation/_root",
             "OriginalLocalInstallation/_save_or_check",
@@ -29803,6 +29863,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original file observation groups"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original observation data within one Host operation"
               }
             ],
             "failure": [
@@ -29901,6 +29965,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_host_files.py",
                 "anchor": "def test_complete_file_group_checks_directory_twice_and_every_original_fd_and_name("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_installation_file_group.py",
+                "anchor": "class OriginalInstallationFileGroupTests("
               }
             ]
           }
@@ -50452,12 +50520,61 @@
         },
         {
           "async": false,
+          "name": "InstalledLocalHost/_capture_original_results/capture",
+          "parameters": [
+            "current"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_capture_original_results/capture/checked",
+          "parameters": [
+            "work"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_capture_original_results/prepare_result",
+          "parameters": [
+            "current"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_capture_original_results/prepare_result/checked",
+          "parameters": [
+            "work"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_capture_original_results/produce_chunk",
+          "parameters": [
+            "current"
+          ]
+        },
+        {
+          "async": false,
           "name": "InstalledLocalHost/_capture_project",
           "parameters": [
             "self",
             "directory",
             "profile"
           ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_checked_original_read",
+          "parameters": [
+            "self",
+            "current",
+            "work"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_checked_original_read/unchanged",
+          "parameters": []
         },
         {
           "async": false,
@@ -50561,6 +50678,20 @@
             "compute",
             "preflight",
             "publisher"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_execute_original_tasks/drive_task",
+          "parameters": [
+            "current"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_execute_original_tasks/drive_task/checked",
+          "parameters": [
+            "work"
           ]
         },
         {
@@ -51413,7 +51544,7 @@
           ]
         }
       ],
-      "sha256": "e50d2ab49d8d54666ead50c238e125324c79c923d398c09e78c542c4b076366b",
+      "sha256": "6e3781217d8054abc7bf97c9024c363e41b2182154ca9ed11890297c078b18db",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -51441,6 +51572,13 @@
             "InstalledLocalHost/_bind_original_publication/inspect",
             "InstalledLocalHost/_bind_original_publication/produce",
             "InstalledLocalHost/_capture_original_results",
+            "InstalledLocalHost/_capture_original_results/capture",
+            "InstalledLocalHost/_capture_original_results/capture/checked",
+            "InstalledLocalHost/_capture_original_results/prepare_result",
+            "InstalledLocalHost/_capture_original_results/prepare_result/checked",
+            "InstalledLocalHost/_capture_original_results/produce_chunk",
+            "InstalledLocalHost/_checked_original_read",
+            "InstalledLocalHost/_checked_original_read/unchanged",
             "InstalledLocalHost/_close_original_allocation_child",
             "InstalledLocalHost/_close_originals",
             "InstalledLocalHost/_close_projection",
@@ -51451,6 +51589,8 @@
             "InstalledLocalHost/_ensure_original_publication_observation",
             "InstalledLocalHost/_execute_original_admitted_run",
             "InstalledLocalHost/_execute_original_tasks",
+            "InstalledLocalHost/_execute_original_tasks/drive_task",
+            "InstalledLocalHost/_execute_original_tasks/drive_task/checked",
             "InstalledLocalHost/_execute_original_tasks/select_result",
             "InstalledLocalHost/_execute_original_tasks/select_task",
             "InstalledLocalHost/_nominal",
@@ -51761,6 +51901,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded write-free reader groups"
               }
             ],
             "failure": [
@@ -52019,6 +52163,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_product_store_observation.py",
                 "anchor": "def test_bounded_observation_quantum_retains_owner_until_core_is_ready("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_results.py",
+                "anchor": "def test_bounded_steps_share_reader_but_loan_and_cleanup_boundaries_do_not("
               }
             ]
           }
@@ -58882,6 +59030,8 @@
     },
     {
       "exports": [
+        "Any",
+        "Callable",
         "Protocol",
         "annotations",
         "cast",
@@ -58889,6 +59039,7 @@
       ],
       "imports": [
         "__future__",
+        "collections.abc",
         "sqlite3",
         "typing"
       ],
@@ -59252,9 +59403,46 @@
             "expected_generation",
             "payload"
           ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/__init__",
+          "parameters": [
+            "self",
+            "*args",
+            "**kwargs"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/_trace_transaction",
+          "parameters": [
+            "self",
+            "statement"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/_transaction_tokens",
+          "parameters": [
+            "statement"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_TrackedSQLiteConnection/set_trace_callback",
+          "parameters": [
+            "self",
+            "trace_callback"
+          ]
         }
       ],
-      "sha256": "1d72d09d685f00b0bce773fb6959fe2fb319b828f7d42bf4b5ea4fecc29be337",
+      "sha256": "39f8e17608e65c95fd5e2b6cda1e0948c6bb3ccf7cdb9b767b191863f826f81c",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -59673,7 +59861,12 @@
             "_SQLiteByteDatabase/reserve_capacity_in_transaction",
             "_SQLiteByteDatabase/rollback",
             "_SQLiteByteDatabase/scan_range",
-            "_SQLiteByteDatabase/write_record"
+            "_SQLiteByteDatabase/write_record",
+            "_TrackedSQLiteConnection",
+            "_TrackedSQLiteConnection/__init__",
+            "_TrackedSQLiteConnection/_trace_transaction",
+            "_TrackedSQLiteConnection/_transaction_tokens",
+            "_TrackedSQLiteConnection/set_trace_callback"
           ],
           "exports": [],
           "attributes": {
@@ -59773,6 +59966,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing one-time owned-file initializer selects private format 3 when the"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded write-free reader groups"
               }
             ],
             "failure": [
@@ -59923,6 +60120,10 @@
               {
                 "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
                 "anchor": "test \"indexed saved cold lookup selects exact original without unrelated Run audit\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_storage_readonly_span.py",
+                "anchor": "def test_trace_registration_preserves_tracking_and_user_statements("
               }
             ]
           }
@@ -59935,7 +60136,9 @@
             "Protocol",
             "annotations",
             "cast",
-            "sqlite3"
+            "sqlite3",
+            "Any",
+            "Callable"
           ],
           "attributes": {
             "responsibility": [
@@ -60238,6 +60441,13 @@
           "async": false,
           "name": "LocalByteStore/_inspect_namespace_locked/check_inventory/inventory_fence",
           "parameters": []
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/check_unchanged",
+          "parameters": [
+            "view"
+          ]
         },
         {
           "async": false,
@@ -60906,7 +61116,7 @@
           "parameters": []
         }
       ],
-      "sha256": "a797c35410cf0821eefe9ea6d65587479c6b26ac66312d0ff6f54df4824c268a",
+      "sha256": "9ae4158ede25dff054f18e57d492a01f5a857ff830c80b6611fd33d9e8c35d45",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -61467,6 +61677,7 @@
             "LocalByteStore/_inspect_namespace_locked/check_frame",
             "LocalByteStore/_inspect_namespace_locked/check_inventory",
             "LocalByteStore/_inspect_namespace_locked/check_inventory/inventory_fence",
+            "LocalByteStore/_inspect_namespace_locked/check_unchanged",
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
             "LocalByteStore/_inspect_namespace_locked/journal_schema",
@@ -61661,6 +61872,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The installed Host's own adoption/settings inventories use a closed bounded"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded write-free reader groups"
               }
             ],
             "failure": [
@@ -61867,6 +62082,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_storage_closed_inventory.py",
                 "anchor": "class ClosedInventoryTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_storage_readonly_span.py",
+                "anchor": "class ReadOnlySpanTests("
               }
             ]
           }

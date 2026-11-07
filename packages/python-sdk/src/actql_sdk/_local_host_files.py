@@ -2,11 +2,15 @@
 from dataclasses import dataclass
 from collections.abc import Callable
 from threading import RLock
+from typing import TYPE_CHECKING
 
 from ._local_files import (
     LocalFileRoot, LocalOriginalAcquisitionError, PhysicalFileSnapshot, _OriginalFileReader,
 )
 from ._local_storage import LocalByteStore
+
+if TYPE_CHECKING:
+    from ._local_installation import OriginalLocalInstallation
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -36,12 +40,19 @@ class LocalHostFiles:
 
     def __init__(self, root: LocalFileRoot, store: LocalByteStore, *,
                  max_files: int, max_bytes: int,
-                 observe_roots: Callable[[], None] | None = None) -> None:
+                 observe_roots: Callable[[], None] | None = None,
+                 _installation: 'OriginalLocalInstallation | None' = None) -> None:
         if (type(root) is not LocalFileRoot or type(store) is not LocalByteStore
                 or type(max_files) is not int or not 1 <= max_files <= 9
                 or type(max_bytes) is not int or not 1 <= max_bytes <= 2097152
                 or observe_roots is not None and not callable(observe_roots)):
             raise ValueError('Invalid original Local Host physical pins')
+        if _installation is not None:
+            from ._local_installation import OriginalLocalInstallation
+            if (type(_installation) is not OriginalLocalInstallation
+                    or _installation._original is not _installation
+                    or _installation._closing or observe_roots is not None):
+                raise ValueError('Invalid original Local installation file provenance')
         root._open()
         self._lock = RLock()
         self._original = self
@@ -49,6 +60,7 @@ class LocalHostFiles:
         self._root = root
         self._store = store
         self._observe_roots = observe_roots
+        self._installation = _installation
         self._generation = store.observe_generation()
         self._max_files = max_files
         self._max_bytes = max_bytes
@@ -117,6 +129,13 @@ class LocalHostFiles:
                 or self._files.get(value.name) is not value):
             raise ValueError('Copied, foreign or retired original Local Host file')
 
+    def _require_original_members(self, values: tuple[_HostFile, ...]) -> None:
+        self._nominal()
+        if len(values) > self._max_files:
+            raise ValueError('Original Local Host member bound exceeded')
+        for value in values:
+            self._require_original(value)
+
     def require_current_originals(self, values: tuple[_HostFile, ...]) -> None:
         """Check the original members and observe the complete group once.
 
@@ -124,29 +143,33 @@ class LocalHostFiles:
         invocation still observes all retained files, Store and root originals.
         """
         with self._lock:
-            self._nominal()
-            if len(values) > self._max_files:
-                raise ValueError('Original Local Host member bound exceeded')
-            for value in values:
-                self._require_original(value)
+            self._require_original_members(values)
             self.current()
+
+    def _require_current_lifetime(self) -> None:
+        self._nominal()
+        if self._closing or self._pending:
+            raise ValueError('Original Local Host physical current is unavailable')
+        self._root._open()
+
+    def _observe_current_files(self) -> None:
+        if self._store.observe_generation() != self._generation:
+            raise ValueError('Original Local Host Store generation changed')
+        originals = tuple(self._files.values())
+        observed = self._root._observe_originals(tuple(value.reader for value in originals))
+        for value, snapshot in zip(originals, observed, strict=True):
+            if snapshot is not value.snapshot and snapshot != value.snapshot:
+                raise ValueError('Original Local Host saved file changed')
 
     def current(self) -> None:
         """Observe physical originals only, never return a permission boolean."""
         with self._lock:
-            self._nominal()
-            if self._closing or self._pending:
-                raise ValueError('Original Local Host physical current is unavailable')
-            self._root._open()
+            self._require_current_lifetime()
+            if self._installation is not None:
+                self._installation._observe_roots()
             if self._observe_roots is not None and self._observe_roots() is not None:
                 raise ValueError('Original Local root observation cannot return permission')
-            if self._store.observe_generation() != self._generation:
-                raise ValueError('Original Local Host Store generation changed')
-            originals = tuple(self._files.values())
-            observed = self._root._observe_originals(tuple(value.reader for value in originals))
-            for value, snapshot in zip(originals, observed, strict=True):
-                if snapshot is not value.snapshot and snapshot != value.snapshot:
-                    raise ValueError('Original Local Host saved file changed')
+            self._observe_current_files()
 
     def close(self) -> bool:
         """Retire file pins only; preserve Store, named originals and Run custody."""

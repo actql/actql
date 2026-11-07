@@ -7,7 +7,93 @@ callback loans and failure custody. These observations issue none of those.
 from __future__ import annotations
 
 import sqlite3
-from typing import Protocol, cast
+from collections.abc import Callable
+from typing import Any, Protocol, cast
+
+
+class _TrackedSQLiteConnection(sqlite3.Connection):
+    """Keep transaction identity even for SQL issued through the raw connection.
+
+    SQLite invokes its trace for every execution, including cached statements.
+    The installed hook remains present when a diagnostic trace is replaced or
+    removed. User trace exceptions retain SQLite's normal callback handling.
+    """
+    __slots__ = ('_transaction_epoch', '_outer_transaction_epoch', '_user_trace', '_trace_depth')
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._transaction_epoch = 0
+        self._outer_transaction_epoch = 0
+        self._trace_depth = 0
+        self._user_trace: Callable[[str], object] | None = None
+        super().set_trace_callback(self._trace_transaction)
+
+    @staticmethod
+    def _transaction_tokens(statement: str) -> tuple[str, ...]:
+        # Only the first three unquoted words matter: ROLLBACK [TRANSACTION]
+        # TO preserves the outer transaction. Skip comments between words,
+        # but never interpret quoted strings/identifiers as control keywords.
+        offset = 0
+        words: list[str] = []
+        while len(words) < 3:
+            while offset < len(statement):
+                if statement[offset] in ' \t\r\n\v\f\ufeff' or (
+                        not words and statement[offset] == ';'):
+                    offset += 1
+                elif statement.startswith('--', offset):
+                    end = statement.find('\n', offset + 2)
+                    if end < 0:
+                        return tuple(words)
+                    offset = end + 1
+                elif statement.startswith('/*', offset):
+                    end = statement.find('*/', offset + 2)
+                    if end < 0:
+                        return tuple(words)
+                    offset = end + 2
+                else:
+                    break
+            end = offset
+            while (end < len(statement) and statement[end].isascii()
+                   and (statement[end].isalnum() or statement[end] == '_')):
+                end += 1
+            if end == offset:
+                break
+            words.append(statement[offset:end].upper())
+            offset = end
+        return tuple(words)
+
+    def _trace_transaction(self, statement: str) -> None:
+        # SQLite marks SQL executed recursively by a trace callback with a
+        # diagnostic '-- ' prefix. That prefix is not part of the executed SQL.
+        actual = (statement[3:] if self._trace_depth and statement.startswith('-- ')
+                  else statement)
+        words = self._transaction_tokens(actual)
+        command = words[0] if words else ''
+        if command in {'BEGIN', 'COMMIT', 'END', 'ROLLBACK', 'SAVEPOINT', 'RELEASE'}:
+            self._transaction_epoch += 1
+            rollback_to = (command == 'ROLLBACK' and (
+                words[1:2] == ('TO',) or words[1:3] == ('TRANSACTION', 'TO')))
+            # Nested savepoints preserve the reader's outer SQLite snapshot.
+            # The stricter write-free port separately observes every control.
+            if (command in {'BEGIN', 'COMMIT', 'END'}
+                    or command == 'ROLLBACK' and not rollback_to
+                    or command == 'SAVEPOINT' and not self.in_transaction):
+                self._outer_transaction_epoch += 1
+        callback = self._user_trace
+        if callback is not None:
+            self._trace_depth += 1
+            try:
+                callback(statement)
+            finally:
+                self._trace_depth -= 1
+
+    def set_trace_callback(self, trace_callback: Callable[[str], object] | None) -> None:
+        if trace_callback is not None and not callable(trace_callback):
+            raise TypeError('SQLite trace callback must be callable or None')
+        # Retain sqlite3's closed-connection/registration checks and leave the
+        # previous callback untouched if registration itself fails.
+        super().set_trace_callback(self._trace_transaction)
+        self._user_trace = trace_callback
 
 
 _APPLICATION_ID = 0x41514C42
@@ -86,6 +172,8 @@ class _SQLiteByteDatabase:
         """Same live transaction plus SQLite's actual mutation counter, DATA only."""
         connection = self._connection
         sequence = self._transaction_sequence
+        epoch = (connection._outer_transaction_epoch
+                 if type(connection) is _TrackedSQLiteConnection else sequence)
         if not connection.in_transaction:
             raise ValueError('Original SQLite snapshot is not active')
         # DDL does not advance total_changes. Read the actual bounded schema
@@ -98,9 +186,11 @@ class _SQLiteByteDatabase:
         if type(temporary) is not tuple or len(temporary) != 1 or type(temporary[0]) is not int:
             raise ValueError('Original SQLite TEMP schema snapshot is unavailable')
         if (self._connection is not connection or self._transaction_sequence != sequence
+                or (type(connection) is _TrackedSQLiteConnection
+                    and connection._outer_transaction_epoch != epoch)
                 or not connection.in_transaction):
             raise ValueError('Original SQLite snapshot changed during observation')
-        return connection, sequence, connection.total_changes, (schema[0], temporary[0])
+        return connection, epoch, connection.total_changes, (schema[0], temporary[0])
 
     def _journal_schema(self) -> int:
         """Observe the actual same-TX physical format; no authority is returned.

@@ -3223,6 +3223,29 @@ still surround every advance, and the original cumulative work, workspace and
 instruction ceilings remain in force. Batching reduces repeated transport and
 current-check overhead; it neither refreshes fuel nor retries a failed phase.
 
+### Bounded write-free reader groups
+
+Write-free task preparation, task execution, Result preparation and publication
+capture may drive their finite loops inside one original SQL reader. Each Python
+Core method still checks physical current before and after its work. Task/Result
+selection, chunk reservation and cleanup, publication retirement, File I/O and
+Store writes remain separate boundaries; every returned loan is retained before
+its enclosing reader can fail. The existing cumulative Owner work and instruction
+budgets bound these loops. A task advance uses at most 256 original work units;
+this changes no total allowance, waiting outcome or retry decision.
+
+The standard owned SQLite connection records each executed transaction-control
+statement, including cached statements and direct connection calls. Diagnostic
+trace callbacks retain their normal behavior but cannot replace this internal
+hook through the connection's trace setter. A write-free reader compares its
+original connection, transaction epoch, schema and mutation count before and
+after each step. Any change latches a refusal before the next step. Complete
+adoption/settings membership established on entry is therefore reused only in
+that same unchanged reader. Other physical adapters repeat their complete
+inventory checks. No current permission or SQL row escapes as a reusable grant.
+Longer DELETE-journal read locks last only for the existing bounded group; lock
+contention never authorizes restarting or replaying an operation.
+
 Once original installation files and the four metadata outputs are validated
 through the same Host binding, the consumed bootstrap output and its input are
 closed through their original Core loans before later Run transfers begin.
@@ -3246,6 +3269,14 @@ entering its existing serialized operation. It is DATA, not a Run, continuation,
 request identity, grant, instruction refill or authority decision. The generation
 is cleared on exit. Raw diagnostic calls and every cleanup phase use the full
 observation path. Nested cleanup neither mints a generation nor refreshes fuel.
+
+The installed source/state file pair carries explicit provenance from its
+original installation. One physical-current call may observe that closed pair
+with one installation-root/raw-reader walk and both original pin/Store checks.
+Every descriptor, filename and retained original is checked again on each call.
+Custom root observers retain the sequential source/state path and original
+callback order, even when the two callbacks are identical. This grouping neither
+retires descriptors nor retains physical observations for another invocation.
 
 The original binding may avoid rebinding the same input/current loans within
 that operation only after a prior reader completed successfully. Each actual SQL

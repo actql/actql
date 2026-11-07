@@ -9,7 +9,7 @@ from threading import RLock, get_ident
 
 from ._local_files import LocalFileRoot, _PayloadFile
 from ._local_storage_physical import (
-    _PhysicalByteDatabase, _SQLiteByteDatabase,
+    _PhysicalByteDatabase, _SQLiteByteDatabase, _TrackedSQLiteConnection,
     _PhysicalCapacityCollision, _PhysicalCapacityExceeded, _RUN_DEFINITION_INDEX,
     _APPLICATION_ID, _SCHEMA, _CAPACITY_SCHEMA, _RUN_DEFINITION_PROBE)
 
@@ -52,6 +52,10 @@ class _NamespaceReader:
     # Actual same-transaction catalog observation, not an indexed-custody proof.
     # Absence keeps existing private suppliers on their full legacy route.
     journal_schema: Callable[['_NamespaceReader', Callable[[], object]], int] | None = None
+
+    # Explicit write-free span check against this reader's original SQLite
+    # snapshot. No physical-current observation or permission is returned.
+    check_unchanged: Callable[['_NamespaceReader'], None] | None = None
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -164,7 +168,8 @@ class LocalByteStore:
                 except BaseException as original:
                     raise LocalStorageInitializationError(self) from original
         self._connection = sqlite3.connect(path, isolation_level=None,
-                                           timeout=1.0, check_same_thread=False)
+                                           timeout=1.0, check_same_thread=False,
+                                           factory=_TrackedSQLiteConnection)
         try:
             database = _SQLiteByteDatabase(self._connection)
             self._physical = database
@@ -937,6 +942,9 @@ class LocalByteStore:
         database = self._physical
         original_snapshot = (database._snapshot_identity()
                              if type(database) is _SQLiteByteDatabase else None)
+        original_control_epoch = (original_snapshot[0]._transaction_epoch
+            if original_snapshot is not None
+            and type(original_snapshot[0]) is _TrackedSQLiteConnection else None)
         last_fenced_snapshot: tuple[object, int, int, tuple[int, int]] | None = None
 
         def metadata_fence(*, reuse_snapshot: bool) -> None:
@@ -985,6 +993,40 @@ class LocalByteStore:
             except BaseException as error:
                 failure = error
                 raise
+
+        def check_unchanged(view: _NamespaceReader) -> None:
+            nonlocal failure, reading
+            entered = False
+            try:
+                # Preserve the first failure even when a caller swallowed it.
+                if failure is not None:
+                    raise failure
+                check_frame(view)
+                if view.owner is not self:
+                    raise ValueError('Original Local read-only reader owner changed')
+                reading = entered = True
+                if (type(database) is not _SQLiteByteDatabase or original_snapshot is None
+                        or self._physical is not database
+                        or self._connection is not original_snapshot[0]
+                        or original_control_epoch is None
+                        or self._connection._transaction_epoch != original_control_epoch):
+                    raise LocalStorageError('Original Local read-only supplier changed')
+                snapshot = database._snapshot_identity()
+                if failure is not None:
+                    raise failure
+                if (view.owner is not self or self._physical is not database
+                        or self._connection is not original_snapshot[0]
+                        or self._connection._transaction_epoch != original_control_epoch
+                        or snapshot[0] is not original_snapshot[0]
+                        or snapshot[1:] != original_snapshot[1:]):
+                    raise LocalStorageError('Original Local read-only snapshot changed')
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                raise failure
+            finally:
+                if entered:
+                    reading = False
 
         def check_fences(view: _NamespaceReader, required: tuple[ByteFence, ...]) -> None:
             nonlocal failure
@@ -1207,7 +1249,9 @@ class LocalByteStore:
                 owner=self, current=current_snapshot, check_fences=check_fences,
                 check_fences_and_current=check_fences_and_current,
                 check_frame=check_frame, query_current=query_current,
-                journal_schema=journal_schema, check_inventory=check_inventory)
+                journal_schema=journal_schema, check_inventory=check_inventory,
+                check_unchanged=(check_unchanged if original_snapshot is not None
+                    and type(original_snapshot[0]) is _TrackedSQLiteConnection else None))
             result = inspect(reader)
             if failure is not None:
                 raise failure

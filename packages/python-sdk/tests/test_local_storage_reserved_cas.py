@@ -144,7 +144,7 @@ class ReservedByteCASTests(unittest.TestCase):
         connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-python-reserved-cas-') as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=LostCommit)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostCommit}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     observation = self.original(store)
                     write = ByteWrite('material', 0, b'next')

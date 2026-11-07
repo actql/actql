@@ -111,7 +111,7 @@ class LocalJournalPhysicalPortTests(unittest.TestCase):
         self.store.close()
         connect = sqlite3.connect
         with patch('actql_sdk._local_storage.sqlite3.connect',
-                   side_effect=lambda *a, **k: connect(*a, **k, factory=QueryFailure)):
+                   side_effect=lambda *a, **k: connect(*a, **(k | {'factory': QueryFailure}))):
             self.store = LocalByteStore(self.path, max_records=12, max_record_bytes=512, max_payload_bytes=4096)
         self.addCleanup(self.store.close)
         self.store._connection.fail = True
