@@ -172,6 +172,18 @@ test('packed cause observer inspection failure resumes and preserves the origina
   assert.equal(reports[0].available, false);
 });
 
+test('packed cause observer retains a closed Node failure code without collecting its message', async t => {
+  const target = await diagnosticTarget(t), reports = [];
+  const primary = Object.assign(new Error('private-SQL-never-reported'), {code:'ERR_SQLITE_ERROR'});
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report:value=>reports.push(value)});
+  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
+  finally {await observer.close();}
+  assert.equal(reports[0].available, true);
+  assert.deepEqual(reports[0].originalCauseTypes, [[{edge:'original',type:'Error',code:'ERR_SQLITE_ERROR'}]]);
+  assert.doesNotMatch(JSON.stringify(reports), /private-SQL/u);
+});
+
 test('complete transport inventory rejects missing, duplicate, extra and reordered identities', () => {
   // Independently authored expected identities, not generated from a partition.
   const expected = ['standard/success/a', 'standard/failure/b', 'standard/refusal/c'];
