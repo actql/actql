@@ -176,17 +176,16 @@ pub fn client_submitted_intent_journal_row_body(
       ClientJournalEncodingIssue::Encoding
     })
   })
-  let maximum = match before_construction {
-    None => 262144
-    Some(reserve) => {
+  let (maximum, construction_base) = match before_construction {
+    None => (262144, 0L)
+    Some(_) => {
       // Complete fixed keys/punctuation/version, longest phase and null-key
       // spelling. Variable immutable Strings escape by at most six UTF8 bytes
       // per UTF16 unit. This is observed constructor geometry, not a quota.
       let fixed = "{\"intent\":\"\",\"phase\":\"preparation_failed\",\"preparation_problem_classification\":\"\",\"preparation_problem_code\":\"\",\"reference\":\"\",\"run_admission\":\"\",\"run_state_key\":null,\"run_state_original\":\"\",\"run_state_revision\":9007199254740991,\"version\":\"actql-native-client-submitted-intent-row/0.1\"}"
         .length()
         .to_int64()
-      let units = wire.length().to_int64() +
-        reference_wire.length().to_int64() +
+      let other_units = reference_wire.length().to_int64() +
         admission_wire
         .map(value => value.map(wire => wire.length().to_int64()).unwrap_or(0L))
         .unwrap_or(0L) +
@@ -197,24 +196,72 @@ pub fn client_submitted_intent_journal_row_body(
         preparation_problem
         .map(value => value.0.length().to_int64() + value.1.length().to_int64())
         .unwrap_or(0L)
-      guard @execution.checked_preparation_add_product(fixed, units, 6L)
+      guard @execution.checked_preparation_add_product(fixed, other_units, 6L)
+        is Some(base) &&
+        @execution.checked_preparation_add_product(
+          base,
+          wire.length().to_int64(),
+          6L,
+        )
         is Some(bound) &&
         bound > 0L &&
         bound < 2147483519L else {
         return Err(CapacityExceeded)
       }
-      match reserve(bound.to_int(), 16, 2) {
-        Err(issue) => return Err(issue)
-        Ok(_) => ()
-      }
-      bound.to_int()
+      (bound.to_int(), base)
     }
   }
   try {
+    // One real emission, not a size-only serialization followed by another
+    // full traversal. The existing cursor emits at most 65 UTF16 units per
+    // advance (including a crossing surrogate pair). Reserve a finite batch
+    // before its constructor/growth, using actual prior writer progress.
+    let batch_units = 65L * 256L
+    if before_construction is Some(reserve) {
+      let initial = @execution.checked_preparation_add_product(
+        construction_base,
+        Int64::min(wire.length().to_int64(), batch_units),
+        6L,
+      ).unwrap()
+      match reserve(initial.to_int(), 16, 2) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+    }
     let writer = @encode.writer(maximum, 16, 2)
     @encode.begin_object(writer)
     @encode.key(writer, "intent")
-    @encode.string_value(writer, wire)
+    match before_construction {
+      None => @encode.string_value(writer, wire)
+      Some(reserve) => {
+        let cursor = @encode.start_string_value(writer, wire)
+        let mut done = false
+        while !done {
+          for _ in 0..<256 {
+            if @encode.advance_string_value(cursor) {
+              done = true
+              break
+            }
+          }
+          if !done {
+            let (emitted, _, _) = @encode.writer_progress(writer)
+            guard @execution.checked_preparation_add_product(
+                construction_base + emitted.to_int64(),
+                batch_units,
+                6L,
+              )
+              is Some(next) else {
+              return Err(CapacityExceeded)
+            }
+            match
+              reserve(Int64::min(next, maximum.to_int64()).to_int(), 16, 2) {
+              Err(issue) => return Err(issue)
+              Ok(_) => ()
+            }
+          }
+        }
+      }
+    }
     @encode.key(writer, "phase")
     @encode.string_value(
       writer,
