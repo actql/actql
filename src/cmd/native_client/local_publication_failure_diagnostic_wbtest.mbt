@@ -45,4 +45,14 @@ test "publication diagnostics retain Work export and exact SQL cause without pay
   assert_eq(fields.get(12), Some(4L))
   assert_eq(fields.get(13), Some(201L))
   assert_eq(fields.get(15), Some(10L))
+  fields.clear()
+  local_publication_failure_tags(
+    @local_host.Publication(
+      Prepare(Output(0, Output(Output(ResultView(Limit))))),
+    ),
+    emit,
+  )
+  assert_eq(fields.get(10), Some(10L))
+  assert_eq(fields.get(12), Some(4L))
+  assert_eq(fields.get(13), Some(405104L))
 }

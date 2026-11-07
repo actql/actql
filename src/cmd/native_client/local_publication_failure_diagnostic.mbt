@@ -59,7 +59,7 @@ fn local_publication_primary_tags(
         match original {
           InvalidOutputConfiguration => 1L
           Output(cause) | OutputCleanup(cause, _) =>
-            100L + local_publication_export_tag(cause)
+            100L + local_persisted_export_issue_tag(cause)
           Payload(_) => 2L
           Store(cause) | StoreCleanup(cause, _) =>
             200L + local_publication_store_tag(cause, emit)
@@ -136,7 +136,14 @@ fn local_completed_export_issue_tag(
         InvalidLimits => 201L
         OrderLimit => 202L
         InvalidLayout => 203L
-        Encoding(_) => 204L
+        Encoding(cause) =>
+          match cause {
+            @encode.InvalidStructure => 2041L
+            @encode.InvalidUnicode => 2042L
+            @encode.InvalidNumber => 2043L
+            @encode.OutputLimit => 2044L
+            @encode.ClosedWriter => 2045L
+          }
       }
     Schema(original) =>
       match original {
@@ -156,5 +163,19 @@ fn local_completed_export_issue_tag(
         Comparison(_) => 406L
       }
     CanonicalRow => 11L
+  }
+}
+
+///|
+// Pack two CLOSED discriminants in one slot; the amount recorder accumulates
+// writes, so a nested kind must not be emitted independently into that slot.
+fn local_persisted_export_issue_tag(
+  issue : @run_host.PublicationOutputExportIssue,
+) -> Int64 {
+  let outer = local_publication_export_tag(issue)
+  match issue {
+    @run_host.Output(original) =>
+      outer + 1000L * local_completed_export_issue_tag(original)
+    _ => outer
   }
 }
