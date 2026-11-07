@@ -236,8 +236,8 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
   until : String,
 ) -> LocalEffectFirstCompilation raise ClientStop {
   guard self.original.business is Some(business) &&
-    business.request_parent is Some(_) &&
-    business.request_input is Some(_) &&
+    business.request_parent is Some(parent) &&
+    business.request_input is Some(input) &&
     business.request_intent is Some(intent) &&
     physical_equal(intent, self.intent) &&
     business.request_body is Some(@local_host.Effect(borrow)) &&
@@ -248,6 +248,24 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
     stop("LocalBusinessOriginalUnavailable")
   }
   self.original.with_business_request(self.capture, () => {
+    let occurrences = @run_host.prepared_client_effect_infer_occurrences(
+      prepared,
+    ).unwrap_or_else(() => stop("LocalOriginalModelUnavailable"))
+    let infers = if occurrences.is_empty() {
+      []
+    } else {
+      guard self.original.project is Some(project) &&
+        project.mock_declarations is Some(mock) else {
+        stop("LocalOriginalModelUnavailable")
+      }
+      mock.prepare_effect_graphs(
+        parent,
+        input,
+        prepared,
+        self.environment,
+        self.installed_contracts,
+      )
+    }
     local_effect_first_compilation(
       self.preparation,
       scope,
@@ -256,6 +274,7 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
       request_id,
       now,
       until,
+      infers~,
     )
   })
 }

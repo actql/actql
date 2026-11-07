@@ -293,6 +293,8 @@ fn native_mock_readme_request_payload(
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   document : String,
+  original : LocalProjectMockDeclarations,
+  effect_compilation : Bool,
 ) -> String? raise {
   facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
   let wire : Json = {
@@ -330,7 +332,50 @@ fn native_mock_readme_request_payload(
             ),
             "update",
           )
-          None
+          if effect_compilation {
+            let assets = @run_host.client_local_product_assets()
+            let contracts = @local_values.prepare_installed_sequence_contracts(
+              assets.registry,
+              assets.values,
+              Some(assets.fragment),
+              assets.ordered,
+            ).unwrap()
+            try {
+              let infers = original.prepare_effect_graphs(
+                facility.parent,
+                facility.input,
+                prepared,
+                environment,
+                contracts,
+              )
+              if infers.length() != 1 {
+                stop("LocalOriginalModelGraphCount")
+              }
+              let compiled = local_effect_first_compilation(
+                preparation,
+                "sha256:" + "a".repeat(64),
+                "sha256:" + "b".repeat(64),
+                "local-test",
+                "original-readme-request",
+                "2026-10-10T00:00:00.000Z",
+                "2099-01-01T00:00:00.000Z",
+                infers~,
+              )
+              if !physical_equal(
+                  @run_host.client_effect_compilation_owner(
+                    compiled.allowed.compilation,
+                  ),
+                  prepared,
+                ) {
+                stop("LocalOriginalEffectCompilationChanged")
+              }
+              None
+            } catch {
+              ClientStop(message) => Some(message)
+            }
+          } else {
+            None
+          }
         }
         _ => Some("original README did not retain Effect computation")
       }
@@ -352,6 +397,7 @@ fn native_mock_readme_request_in_metadata_read(
   metadata : @initial_arena.InstalledArenaHost,
   read : @initial_arena.InstalledArenaOriginalRead,
   facility : NativeMockReadmeRequestFacility,
+  effect_compilation? : Bool = false,
 ) -> String? raise {
   let original = native_project_mock_model_fixture("deal-review-missing")
   original.prepare_source_declarations().unwrap()
@@ -396,7 +442,7 @@ fn native_mock_readme_request_in_metadata_read(
   // query through actual funded Native intake/check/compile, not execution.
   metadata.leave_domain_original_read(read).unwrap()
   let issue = native_mock_readme_request_payload(
-    facility, environment, publication, document,
+    facility, environment, publication, document, original, effect_compilation,
   )
   facility.arena.close_domain_retained_execution(facility.physical).unwrap()
   @local_values.abort_request_preparation_after_cleanup(facility.parent).unwrap()
@@ -483,4 +529,13 @@ fn native_mock_lookup_policy_in_original_read() -> Unit raise {
 ///|
 test "Native Mock lookup policy requires selected file originals and preserves explicit Host bounds" {
   native_project_mock_model_backed_read(false, lookup_policy=true)
+}
+
+///|
+test "Native original whole README compiles its first Effect Task with the same funded Request Model Graph" {
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+  )
 }

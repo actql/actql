@@ -44,6 +44,7 @@ fn local_effect_first_compilation(
   request_id : String,
   now : String,
   until : String,
+  infers? : Array[@run_host.ClientInferPlanGraph] = [],
 ) -> LocalEffectFirstCompilation raise ClientStop {
   guard @local_host.native_client_submitted_preparation(preparation)
     is EffectComputation(prepared) else {
@@ -88,6 +89,7 @@ fn local_effect_first_compilation(
     8192,
     64,
     normalization=Some(normalization),
+    infers~,
   ).unwrap_or_else(() => stop("LocalEffectCompilationNotReady"))
   let allowed = @run_host.issue_client_effect_allowed_run(
     compilation, scope, configuration_cid, until,
