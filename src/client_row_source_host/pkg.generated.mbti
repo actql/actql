@@ -133,6 +133,8 @@ pub fn discard_relation_document_original(RelationDocument) -> Bool
 
 pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool
 
+pub fn export_row_input_original_read(RowInputAcquisition, @execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
+
 pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Result[RowOriginalCaptureExport, RowOriginalCaptureIssue]
 
 pub fn extend_row_run_page_charge(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]
@@ -261,6 +263,10 @@ pub fn restore_relation_row_declaration(String, String, String, String, String?)
 
 pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
 
+pub fn restore_row_input_capture(RowInputAcquisition, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[(RowRestoredOriginalInput, @execution_query.CapturedInputSource), RowOriginalCaptureIssue]
+
+pub fn restore_row_input_original_read(RowInputAcquisition, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]
+
 pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]
 
 pub fn restored_row_original_read(RowRestoredOriginalInput) -> @execution_relation.SuppliedRelationRead?
@@ -337,6 +343,8 @@ pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]
 
 pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts
 
+pub fn row_input_acquisition_limits(RowInputAcquisition) -> RowInputLimits
+
 pub fn row_input_acquisition_matches_source(RowInputAcquisition, @sourceview_resolution.SourceAcquisition) -> Bool
 
 pub fn row_input_acquisition_max_rows(RowInputAcquisition) -> Int
@@ -344,6 +352,10 @@ pub fn row_input_acquisition_max_rows(RowInputAcquisition) -> Int
 pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]
 
 pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])
+
+pub fn row_input_capture_identity(RowInputAcquisition) -> Array[String]?
+
+pub fn row_input_capture_schema_geometry(RowInputAcquisition) -> (Int, Int, Int, Int)?
 
 pub fn row_mapping_target_fields(RowMapping, RowDeclarationLimits) -> Result[Array[String], RowMappingIssue]
 
