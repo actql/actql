@@ -81,7 +81,11 @@ test "Request native intent refuses one-byte-short before reader construction on
       parent.capacity,
       input,
     ).unwrap()
-    let amount = request_intent_construction_bytes(128L, 32L).unwrap()
+    let amount = request_intent_construction_bytes(
+      128L,
+      32L,
+      request_captured_intent_limits(128L, 32L).unwrap(),
+    ).unwrap()
     let limits = @resources.ledger_limits(parent.ledger)
     let blocker = @resources.reserve_capacity(
       parent.ledger,
@@ -227,13 +231,18 @@ test "Request native intent enters the same Program checker module and Run witho
     is Err(WrongPhase),
   )
   finish_request_submitted_intent(parent, input).unwrap()
-  let source = prepare_request_native_program_input(
-    parent,
-    input,
-    program_input,
-    native_json_reader,
-    limits.checking.input,
-  ).unwrap()
+  let source = match
+    prepare_request_native_program_input(
+      parent,
+      input,
+      program_input,
+      native_json_reader,
+      limits.checking.input,
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      fail("Original small native source: " + @debug.to_string(issue))
+  }
   construct_program_json_preparation(source).unwrap()
   reconcile_program_json_preparation_structure(source).unwrap()
   let child = prepare_request_computation_check_preparation(
@@ -651,4 +660,212 @@ test "retained Request intent continues native Effect Parameters Plan and retire
   @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
   retire_installed_managed_run(managed).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+// Fixture for the normal Local selector's two existing row projections. The
+// generic 1000-row Environment used by other component fixtures is unchanged.
+extern "js" fn request_numeric_local_environment(
+  wire : String,
+  rows : Int,
+) -> String =
+  #|(wire, rows) => {const value=JSON.parse(wire);delete value.evidence_bundle_cid;
+  #| value.host_policy_profile.capacity.max_relation_output_rows=rows;
+  #| value.host_policy_profile.capacity.max_artifact_rows=rows;
+  #| const canonical=v=>Array.isArray(v)?'['+v.map(canonical).join(',')+']':v!==null&&typeof v==='object'?'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}':JSON.stringify(v);
+  #| value.evidence_bundle_cid='sha256:'+process.getBuiltinModule('node:crypto').createHash('sha256').update(canonical(value)).digest('hex');return canonical(value);}
+
+///|
+extern "js" fn request_numeric_environment_cid(wire : String) -> String =
+  #|(wire) => JSON.parse(wire).evidence_bundle_cid
+
+///|
+test "original numeric 100000 intent uses its observed profile under the unchanged Request budget" {
+  let program = request_native_numeric_public_program(100000)
+  let document = "{\"kind\":\"program\",\"input\":" +
+    program +
+    ",\"parameters\":null}"
+  assert_eq(document.length(), 1289220)
+  let input = [1]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  reserve_request_snapshot(parent, input, 1703936L, 262144L).unwrap()
+  let original_limits = @resources.ledger_limits(parent.ledger)
+  let selected = request_default_program_preparation_limits(parent, input).unwrap()
+  assert_true(
+    selected.checking.input.source.max_input_bytes >= document.length(),
+  )
+  let baseline = @resources.preparation_capacity_working_extents(
+    parent.capacity,
+    input,
+  ).unwrap()
+  let quote = request_intent_construction_bytes(
+    1703936L,
+    262144L,
+    selected.checking.input.source,
+  ).unwrap()
+  let cid = match
+    prepare_request_submitted_intent(
+      parent,
+      input,
+      request_native_test_value(document),
+      native_json_reader,
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      fail(
+        "Original100000 intent: " +
+        @debug.to_string(issue) +
+        "; constructor=" +
+        quote.to_string() +
+        "; baselineR=" +
+        baseline.0.to_string() +
+        "; baselineE=" +
+        baseline.1.to_string() +
+        "; selectedBytes=" +
+        selected.checking.input.source.max_input_bytes.to_string() +
+        "; selectedNodes=" +
+        selected.checking.input.source.max_nodes.to_string(),
+      )
+  }
+  let original = request_submitted_intent_original(parent, input).unwrap()
+  assert_eq(cid, @publication_host.client_submitted_intent_cid(original))
+  assert_true(
+    @publication_host.client_submitted_intent_wire(original).length() > 1048576,
+  )
+  finish_request_submitted_intent(parent, input).unwrap()
+  let continued = request_default_program_preparation_limits(parent, input).unwrap()
+  assert_eq(
+    continued.checking.input.source.max_input_bytes,
+    selected.checking.input.source.max_input_bytes,
+  )
+  assert_eq(
+    continued.checking.input.source.max_nodes,
+    selected.checking.input.source.max_nodes,
+  )
+  assert_eq(
+    continued.checking.input.source.max_depth,
+    selected.checking.input.source.max_depth,
+  )
+  assert_eq(@resources.ledger_limits(parent.ledger), original_limits)
+  let wire = request_numeric_local_environment(
+    @publication_host.client_local_product_assets().environment,
+    client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap(),
+  )
+  let environment = @publication_host.admit_client_check_environment(
+    wire,
+    request_numeric_environment_cid(wire),
+    { text_time: true, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let native = request_native_input_units(
+    1703936L,
+    262144L,
+    selected.checking.input,
+    max_key_units=Some(parent.snapshot_key_units.val),
+  ).unwrap()
+  let native_bytes = @execution.preparation_representation_cost(native).unwrap()
+  let native_base = @resources.preparation_capacity_working_extents(
+    parent.capacity,
+    input,
+  ).unwrap()
+  match
+    prepare_request_native_computation(
+      parent,
+      input,
+      request_native_test_value(program),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      selected,
+      @publication_host.client_standard_effect_computation_limits(),
+    ) {
+    Ok(Pure) => ()
+    Ok(_) => fail("The same original numeric Program changed computation kind")
+    Err(Preparation(ProgramCheck(issue))) => {
+      let detail = match issue {
+        Capacity(inner) => "Capacity " + @debug.to_string(inner)
+        Check(_) => "Check"
+        Catalog(_) => "Catalog"
+        SourceRegistration(_) => "SourceRegistration"
+        TopologyEntry(_) => "TopologyEntry"
+        Prelude(_) => "Prelude"
+        Compilation(_) => "Compilation"
+        EffectInput(_) => "EffectInput"
+        EffectCompilation(_) => "EffectCompilation"
+        SourceInput(_) => "SourceInput"
+        Work(_) => "Work"
+        ChangedInputs => "ChangedInputs"
+        WrongPhase => "WrongPhase"
+        Overflow => "Overflow"
+        RequestPolicySubjects(_) => "RequestPolicySubjects"
+      }
+      fail("Original100000 ProgramCheck: " + detail)
+    }
+    Err(Preparation(issue)) =>
+      fail(
+        "Original100000 native Program Preparation: " +
+        @debug.to_string(issue) +
+        "; constructor=" +
+        native_bytes.to_string() +
+        "; baselineR=" +
+        native_base.0.to_string() +
+        "; baselineE=" +
+        native_base.1.to_string() +
+        "; observedMaxKey=" +
+        parent.snapshot_key_units.val.to_string() +
+        "; nativeSourceReady=" +
+        (parent.program_json is Some(_)).to_string(),
+      )
+    Err(CheckOutcome(outcome)) => {
+      let detail = match outcome {
+        @checked.Checked(_) => "Checked"
+        @checked.NeedsInputs(_) => "NeedsInputs"
+        @checked.Rejected(diagnostic) =>
+          "Rejected " +
+          @debug.to_string(@checked.diagnostic_category(diagnostic))
+      }
+      fail("Original100000 check outcome: " + detail)
+    }
+    Err(Publication(_)) => fail("Original100000 Publication")
+    Err(QuerySyntax(_)) => fail("Original100000 QuerySyntax")
+    Err(QueryLowering(_)) => fail("Original100000 QueryLowering")
+  }
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  // A fresh process Request retains the SAME original Journal intent. Its
+  // existing preflight supplies default geometry; it never uses the old cap.
+  let restored_input = [2]
+  let restored = begin_request_preparation(
+    request_parent_fixture(restored_input),
+    restored_input,
+    client_local_resource_policy(),
+  ).unwrap()
+  retain_request_submitted_intent(restored, restored_input, original).unwrap()
+  let restored_limits = request_default_program_preparation_limits(
+    restored, restored_input,
+  ).unwrap()
+  assert_true(
+    restored_limits.checking.input.source.max_input_bytes >= document.length(),
+  )
+  assert_true(restored_limits.checking.input.source.max_nodes >= 200026)
+  assert_true(
+    physical_equal(
+      request_submitted_intent_original(restored, restored_input).unwrap(),
+      original,
+    ),
+  )
+  assert_eq(@resources.ledger_limits(restored.ledger), original_limits)
+  abort_request_preparation_after_cleanup(restored).unwrap()
+  assert_eq(@resources.ledger_usage(restored.ledger).live_reservations, 0)
 }

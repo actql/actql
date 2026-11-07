@@ -296,7 +296,12 @@ export function inspectCore(root, roots = coreRoots) {
     // proof or Host port. Its review does not permit another Owner or import.
     const collectedInputsRef = owner === 'pipeline_check_context' &&
       path === 'moonbitlang/core/ref';
-    const permitted = path === 'moonbitlang/core/debug' || collectedInputsRef ||
+    // Source's existing native reader writes only a maximum key length to
+    // its original Ref[Int] out-parameter. The pinned Ref contains mutable
+    // in-memory DATA only; this review adds no runtime import or Host port.
+    const capturedKeyExtentRef = owner === 'source_value' &&
+      path === 'moonbitlang/core/ref';
+    const permitted = path === 'moonbitlang/core/debug' || collectedInputsRef || capturedKeyExtentRef ||
       reviewedExternal(owner, path) !== undefined ||
       path.startsWith('actql/actql/') && packages.has(path.slice(12));
     if (!permitted) throw new Error(`UnreviewedPublicType: ${owner}: ${path}`);

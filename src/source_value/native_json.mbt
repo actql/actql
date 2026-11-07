@@ -85,7 +85,11 @@ pub fn[T] admit_captured_json(
   program_keys? : Bool = false,
   normalize_keys? : Bool = false,
   source_path? : String = "<snapshot>",
+  max_key_units_out? : Ref[Int]? = None,
 ) -> Result[ParsedSource, ParseError] {
+  if max_key_units_out is Some(observed) {
+    observed.val = 0
+  }
   if !valid_limits(limits) {
     return Err(input_error(InvalidLimits, source_path, Unavailable))
   }
@@ -259,6 +263,9 @@ pub fn[T] admit_captured_json(
           completed = Some({ value: Object(fields), span, })
         } else {
           let raw = keys[fields.length()]
+          if max_key_units_out is Some(observed) {
+            observed.val = Int::max(observed.val, raw.length())
+          }
           guard native_json_string_shape(raw) is Some((size, columns)) else {
             return failure(InvalidUnicodeEscape)
           }
