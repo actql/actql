@@ -51,7 +51,9 @@ const columns = [
   {name:'note',contract:{type:'number',nullable:true}},
   {name:'left_amount',contract:{type:'number',nullable:false}},
   {name:'right_amount',contract:{type:'number',nullable:false}},
-  {name:'risk',contract:{type:'string',nullable:true}},
+  // The same INFER outcome/value survives the inner join; outcome='ok'
+  // restores the non-null output object and its declared non-null risk field.
+  {name:'risk',contract:{type:'string',nullable:false}},
 ];
 export function graphCompositionExpectations(family) {
   assert.ok(['node','edge'].includes(family));

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installNodeClientEffectRun} from '../adapters/host-node/client-effect-run.mjs';
+import {modelConfiguration} from './fixtures/composed-infer-effect-input.mjs';
 import {graphCompositionProgram, graphCompositionTemplates,
   graphCompositionExpectations, graphDefinitionCid,
   graphCompositionRefusalProgram, graphCompositionRefusalTemplates,
@@ -115,6 +116,43 @@ test('cleanup accounting compares the current execution window without borrowing
 });
 
 for (const family of ['node', 'edge']) {
+  test(`${family} successful Model projection preserves non-null risk and nullable Graph note`, async () => {
+    const {installation} = await modelConfiguration({});
+    const task = JSON.parse(installation.environmentWire).model_task_contracts[0];
+    assert.equal(task.task_id, 'model-task:composition-risk.v1');
+    assert.deepEqual(task.output_contract, {type: 'object', nullable: false,
+      additional_properties: false, fields: {risk: {type: 'string', nullable: false}}});
+    const program = graphCompositionTemplates[family];
+    const classify = program.stages[1];
+    assert.deepEqual(classify.steps[1].infer, {contract: task.task_id, key: 'id',
+      input: {score: {field: 'right_amount'}}});
+    const join = classify.steps[2].join;
+    assert.equal(join.kind, 'inner');
+    assert.equal(join.select.outcome, 'left.outcome');
+    assert.equal(join.select.value, 'left.value');
+    assert.deepEqual(classify.steps[3], {filter: {eq: [{field: 'outcome'}, {literal: 'ok'}]}});
+    assert.deepEqual(classify.steps[4], {derive: {risk: {property: {
+      value: {field: 'value'}, name: 'risk'}}}});
+    // language.md INFER restores the same non-null success contract after
+    // this literal success filter. Typed property access preserves risk's
+    // non-null field contract; it does not refine unrelated Graph properties.
+    const columns = [
+      {name: 'id', contract: {type: 'number', nullable: false}},
+      {name: 'graph_identity', contract: {type: 'json', nullable: false}},
+      {name: 'tenant_key', contract: {type: 'string', nullable: false}},
+      {name: 'note', contract: {type: 'number', nullable: true}},
+      {name: 'left_amount', contract: {type: 'number', nullable: false}},
+      {name: 'right_amount', contract: {type: 'number', nullable: false}},
+      {name: 'risk', contract: {type: 'string', nullable: false}},
+    ];
+    const expected = graphCompositionExpectations(family);
+    assert.deepEqual(expected.classifiedColumns, columns);
+    assert.deepEqual(expected.updateColumns, [...columns,
+      {name: 'target_id', contract: {type: 'string', nullable: false, max_utf8_bytes: 15}},
+      {name: 'next_name', contract: {type: 'string', nullable: false, max_utf8_bytes: 15}}]);
+    assert.deepEqual(expected.classified.map(row => row.note), [7, null]);
+  });
+
   test(`${family} composition is a complete authored Program with only a MappingRef binding`, () => {
     const original = structuredClone(graphCompositionTemplates[family]);
     const bound = graphCompositionProgram('mapping:fixture', family);
