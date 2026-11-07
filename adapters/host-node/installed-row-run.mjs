@@ -10,8 +10,11 @@ const fail = code => { throw Object.assign(new Error(code), {code}); };
 
 export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   capacity, keyed = false, originalRead, originalKeyedRead, wholeInput = false}) {
+  // The checked original already retains the Whole acquisition and its Core
+  // provider capacity. A Host-backed Mock read has no separate managed reader;
+  // do not fabricate one or confuse that absence with missing Run backing.
   if (wholeInput && (keyed || originalRead === undefined || ledger === undefined ||
-      capacity?.provider === undefined || capacity?.listingReport !== undefined)) {
+      capacity?.listingReport !== undefined)) {
     fail('InstalledWholeSourceReadUnavailable');
   }
   if (keyed && ledger === undefined) fail('InstalledKeyedSourceLedgerRequired');

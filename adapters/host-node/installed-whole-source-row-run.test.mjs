@@ -115,6 +115,38 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
   assert.equal(calls.filter(value => value === 'evidence').length, 1);
 });
 
+test('whole Host-backed read starts on its checked original without a managed provider reader', () => {
+  const originalRead = {}, acquisition = {}, ledger = {}, run = {};
+  let checkedLedger = false, starts = 0, retirements = 0, stopped = false;
+  const moon = {
+    clientProgramInstalledSourceReadCheckLedger(read, selectedLedger) {
+      assert.strictEqual(read, originalRead); assert.strictEqual(selectedLedger, ledger);
+      checkedLedger = true; return ok();
+    },
+    clientProgramInstalledWholeSourceReadStartRows(read, selected, nonce, verify, transfer, scratch) {
+      assert.equal(checkedLedger, true); assert.strictEqual(read, originalRead);
+      assert.strictEqual(selected, acquisition); assert.equal(nonce, 'host-backed');
+      assert.equal(verify({}), false); assert.equal(transfer, 1024n); assert.equal(scratch, 512n);
+      starts++; return ok(run);
+    },
+    clientProgramRowSourceCloseAccounted(selected) {
+      assert.strictEqual(selected, run);
+      return stopped ? ok() : {$tag: 0, _0: 'physical-stop-pending'};
+    },
+    clientProgramRowSourceCaptureCleanup: () => ok(true),
+    clientProgramInstalledSourceReadRetire(read) {
+      assert.strictEqual(read, originalRead); retirements++; return ok();
+    },
+  };
+  const session = startInstalledRowRun({moon, acquisition, originalRead, ledger, wholeInput: true,
+    nonce: 'host-backed', capacity: {transferBytes: 1024n, executionBytes: 512n}});
+  assert.strictEqual(session.run, run); assert.equal(starts, 1);
+  assert.throws(() => session.close(), error => error.cause === 'physical-stop-pending');
+  assert.equal(retirements, 0);
+  stopped = true; session.close();
+  assert.equal(retirements, 1); assert.equal(starts, 1);
+});
+
 test('whole input cannot select a bare, keyed or listing RowRun', () => {
   const base = {moon: {}, acquisition: {}, nonce: 'original', wholeInput: true, ledger: {},
     originalRead: {}, capacity: {provider: {}, transferBytes: 1n, executionBytes: 1n}};
