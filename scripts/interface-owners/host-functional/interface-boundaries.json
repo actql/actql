@@ -27988,7 +27988,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28151,7 +28151,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28783,7 +28783,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -36925,11 +36925,11 @@
               },
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -37585,11 +37585,11 @@
               },
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -47964,7 +47964,7 @@
     },
     {
       "module": "adapters/host-node/host-result-service-recipe.cjs",
-      "sha256": "2fe3abdb2ae2243e194ec85edc64e183c00169698f5aaaf193a14386102e0884",
+      "sha256": "e06a5616c95d6ad3f3a580adf165988280776a0bc674f6ade61d7712654ab7e1",
       "exports": [
         "commonjs:declareHostResultServiceRecipe",
         "commonjs:facilityFields",
@@ -48004,6 +48004,13 @@
           "async": false
         },
         {
+          "name": "selectHostResultStoreArguments/selectHostResultStoreArguments",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "unavailable/unavailable",
           "parameters": [],
           "async": false
@@ -48034,7 +48041,8 @@
             "declareHostResultServiceRecipe/declareHostResultServiceRecipe",
             "record/record",
             "selectHostResultStoreArguments",
-            "unavailable/unavailable"
+            "unavailable/unavailable",
+            "selectHostResultStoreArguments/selectHostResultStoreArguments"
           ],
           "exports": [
             "commonjs:declareHostResultServiceRecipe",
@@ -48106,11 +48114,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               }
             ],
             "extension": [
@@ -48312,11 +48320,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               }
             ],
             "extension": [
@@ -84555,11 +84563,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -84699,11 +84707,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -85462,7 +85470,7 @@
     },
     {
       "module": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-      "sha256": "79b5801d474f2504c807e75a21dc77067bde10034836fba17f425f1d65d2d233",
+      "sha256": "bc142f53cd4468f9e94f68ec78f37a97551b2d550c26afcaec3117bd8b7f56a7",
       "exports": [
         "commonjs:admitHostJournalRootFormat",
         "commonjs:admitHostResultPublicationRun",
@@ -87736,11 +87744,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               }
             ],
             "extension": [
@@ -88594,11 +88602,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               }
             ],
             "extension": [
@@ -126487,7 +126495,7 @@
       "sha256": "b1900069222d7aa9d2335b2189aa62c68fe0132f896087bd9a4ae021dd8a507b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
