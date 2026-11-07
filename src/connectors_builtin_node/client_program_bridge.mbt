@@ -367,6 +367,8 @@ pub fn client_program_request_preparation_issue_code(
       return Some(client_source_preparation_issue_code(Frontend(issue)))
     Err(Publication(Publication(Declarations))) =>
       return Some(client_source_preparation_issue_code(Declarations))
+    Err(Preparation(SourceInput(Source(@publication_host.ArrayProfile(issue))))) =>
+      return Some(client_source_preparation_issue_code(ArrayProfile(issue)))
     Err(CheckOutcome(Rejected(diagnostic))) => Preparation(Check(diagnostic))
     Err(CheckOutcome(NeedsInputs(_))) => return Some("needs_inputs")
     Err(Preparation(ProgramCheck(Compilation(Syntax(issue)))))

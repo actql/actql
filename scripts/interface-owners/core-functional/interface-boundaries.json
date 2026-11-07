@@ -57118,7 +57118,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "25cdbf765a2772d60c8151354a55bdf9ce2937ff235cbd9e1350dc87002baac7",
+      "sha256": "f43ce4f02bcf23a0cffce85945545ffa96f24a1a31cd04186e12841012072281",
       "exports": [],
       "operations": [
         {
@@ -59855,6 +59855,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"Request checked Source ARRAY refusal reaches existing public rejection without recheck\""
               }
             ]
           }
