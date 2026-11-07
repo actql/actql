@@ -5,6 +5,7 @@ import {createHash, randomUUID} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
+import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
 
 function prepareQueryInvocation(control, prepared, request, retained) {
@@ -105,10 +106,10 @@ export function checkedLocalOutputLimits(moon, preparedProgram, publicationOrigi
   let values;
   if (publicationOriginal?.kind === 'preparation') {
     values = moon.clientProgramPreparedLocalPublicationLimits(publicationOriginal.value,
-      preparedProgram, localOutputLimits.maxWireBytes);
+      preparedProgram, hostResultStorePolicy.maxObjectBytes);
   } else if (publicationOriginal?.kind === 'installed_run') {
     values = moon.clientProgramInstalledManagedPublicationLimits(publicationOriginal.value,
-      preparedProgram, localOutputLimits.maxWireBytes);
+      preparedProgram, hostResultStorePolicy.maxObjectBytes);
   } else {
     throw new TypeError('InvalidCheckedLocalPublicationOriginal');
   }

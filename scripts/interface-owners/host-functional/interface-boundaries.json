@@ -47964,10 +47964,11 @@
     },
     {
       "module": "adapters/host-node/host-result-service-recipe.cjs",
-      "sha256": "e06a5616c95d6ad3f3a580adf165988280776a0bc674f6ade61d7712654ab7e1",
+      "sha256": "e95dbeddc989d02b633410c28b7d0f9012ab04b9c4dfeb3e351dbe8e53d33893",
       "exports": [
         "commonjs:declareHostResultServiceRecipe",
         "commonjs:facilityFields",
+        "commonjs:hostResultStorePolicy",
         "commonjs:validOriginalResultPublicationExtent"
       ],
       "operations": [
@@ -48046,7 +48047,8 @@
           ],
           "exports": [
             "commonjs:declareHostResultServiceRecipe",
-            "commonjs:facilityFields"
+            "commonjs:facilityFields",
+            "commonjs:hostResultStorePolicy"
           ],
           "attributes": {
             "responsibility": [
