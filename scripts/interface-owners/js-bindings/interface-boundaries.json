@@ -32125,7 +32125,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2e5a550f0717b3b6e90d2e084215ffba0d2e735b4f9c3a035bd2023d2e07992c",
+      "sha256": "b721cfa805464f2209b42454fd30ed329614f9f9d70c7c119432c0e8cc222fdb",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32625,7 +32625,8 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
           "parameters": [
-            "value"
+            "value",
+            "index"
           ],
           "async": false
         },
@@ -32739,6 +32740,13 @@
           "name": "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "openAcquiredEffectComputation/wholeInputs/wholeInputs",
+          "parameters": [
+            "source"
+          ],
+          "async": false
         },
         {
           "name": "selectRestoredKeyedSource",
@@ -32915,7 +32923,8 @@
             "acquiredEffectModelGroup/same/same/same",
             "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
             "acquiredEffectModelGroup/retirePublication",
-            "openAcquiredEffectComputation/retireInferPublication/retireInferPublication"
+            "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
+            "openAcquiredEffectComputation/wholeInputs/wholeInputs"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -33420,7 +33429,7 @@
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "25a743c9e5d9b29001707d8af6c2587ddc752ee2c8b6318dadc2bf5ebfe7309d",
+      "sha256": "4e6c27d3ce00e8e64a72ea10d5e626cd698b2fe3c6af17dc7374c631d3f0a7fc",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -33646,15 +33655,36 @@
           "async": true
         },
         {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/custodyAvailable/custodyAvailable",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore",
           "parameters": [
-            "row"
+            "key"
           ],
           "async": false
         },
         {
-          "name": "acquiredEffectContinuation/init:restore/init:restore/owner/owner",
-          "parameters": [],
+          "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore#4",
+          "parameters": [
+            "row"
+          ],
           "async": false
         },
         {
@@ -33788,7 +33818,6 @@
             "acquiredEffectContinuation/init:restore/init:restore/captured/captured#3",
             "acquiredEffectContinuation/init:restore/init:restore/close/close",
             "acquiredEffectContinuation/init:restore/init:restore/init:restore",
-            "acquiredEffectContinuation/init:restore/init:restore/owner/owner",
             "acquiredEffectContinuation/init:retainAll/init:retainAll",
             "acquiredEffectContinuation/nextJournal/nextJournal",
             "acquiredEffectContinuation/nextJournal/nextJournal#2",
@@ -33798,7 +33827,11 @@
             "acquiredEffectContinuation/persistSource",
             "acquiredEffectContinuation/sourceCurrent/sourceCurrent",
             "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent",
-            "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent/sourceOriginalCurrent"
+            "acquiredEffectContinuation/sourceOriginalCurrent/sourceOriginalCurrent/sourceOriginalCurrent",
+            "acquiredEffectContinuation/init:restore/init:restore/custodyAvailable/custodyAvailable",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#2",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#3",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#4"
           ],
           "exports": [
             "acquiredEffectContinuation"
@@ -86782,7 +86815,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "45249d2f5216fdd75c7b707c517c93744677d67be0f7fbd016c1eb58ca1c597e",
+      "sha256": "3e468e05809595fb96b5a58dd1a3ff39a821896c4961cb43c20a369697f051f0",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -88524,7 +88557,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a879c9823e31d76ec86ad3cd0bc5dd712f1132873bb1cb190b4976ec1408393c",
+      "sha256": "cfb2a7beb2af8de2fc26a9271da5ed08c446055f641767cae43d574339bd38e9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -88877,7 +88910,8 @@
             "occurrence",
             "checkedOwner",
             "wholeInput",
-            "plannedAcquisition"
+            "plannedAcquisition",
+            "effectful"
           ],
           "async": false
         },

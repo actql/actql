@@ -482,6 +482,7 @@ struct ClientAccountedSourceCapture {
   mut close_requested : Bool
   mut original : @row_source_host.RowRestoredOriginalInput?
   mut dag : (@strategy.CapturedDAG, Int)?
+  mut input_dag : @strategy.CapturedDAG?
 }
 
 ///|
@@ -611,6 +612,7 @@ pub fn restore_accounted_client_source_capture(
     close_requested: false,
     original,
     dag: None,
+    input_dag: None,
   })
 }
 
@@ -649,6 +651,7 @@ pub fn retain_accounted_client_source_capture_task(
   guard !value.close_requested &&
     !value.closed.val &&
     value.dag is None &&
+    value.input_dag is None &&
     accounted_client_source_capture_source(value) is Some(source) &&
     @strategy.captured_task_source_matches(dag, task, source) else {
     return Err(BindingMismatch)
@@ -691,6 +694,10 @@ pub fn close_accounted_client_source_capture(
     close_client_source_capture(value.capture) |> ignore
   }
   if !value.closed.val {
+    if value.input_dag is Some(dag) &&
+      !@strategy.retire_captured_task_outputs(dag) {
+      return false
+    }
     if value.original is Some(original) {
       if !@row_source_host.close_restored_row_original_input(original, quantum) {
         return false

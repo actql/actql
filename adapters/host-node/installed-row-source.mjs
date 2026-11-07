@@ -1902,7 +1902,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       connectorRegistration, connectorRevision, bindingCid, connection: site.connection});
   }
 
-  function describePreparedSource(requirement, occurrence, checkedOwner, wholeInput = false, plannedAcquisition) {
+  function describePreparedSource(requirement, occurrence, checkedOwner, wholeInput = false, plannedAcquisition, effectful = false) {
     const facts = wholeInput ? moon.clientProgramWholeSourceFacts(plannedAcquisition)
       : checked(moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
     if (!Array.isArray(facts) || facts.length !== 6 ||
@@ -1914,7 +1914,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
     if (!sourceRefs.has(sourceRef)) fail('InstalledSourceProgramMismatch');
     const [resource, ...fields] = wholeInput ? moon.clientProgramWholeSourceTarget(plannedAcquisition)
       : checked(moon.clientProgramRowSourceTarget(declaration, requirement));
-    const sourceInputOption = wholeInput ? moon.clientProgramWholeSourceInputIdentity(checkedOwner, requirement) : undefined;
+    const sourceInputOption = !wholeInput ? undefined : effectful
+      ? moon.clientProgramEffectWholeSourceInputIdentity(checkedOwner, requirement)
+      : moon.clientProgramWholeSourceInputIdentity(checkedOwner, requirement);
     const sourceInput = wholeInput && runtimeIsBoxedSome(sourceInputOption)
       ? runtimeField(sourceInputOption, 0) : undefined;
     if (wholeInput && (!Array.isArray(sourceInput) || sourceInput.length !== 2 ||
@@ -1975,14 +1977,14 @@ export async function createInstalledRowSource({moon, declaration, commands,
     if ((preparedProgram === undefined) === (preparedEffect === undefined)) {
       fail('InvalidInstalledSourcePreparation');
     }
+    const effectful = preparedEffect !== undefined;
     if (![occurrence.stage, occurrence.input, occurrence.task].every(Number.isSafeInteger) ||
-        occurrence.stage < 0 || occurrence.stage > 1 ||
-        occurrence.input < 0 || occurrence.task !== occurrence.stage ||
+        occurrence.stage < 0 || occurrence.input < 0 || occurrence.task < 0 ||
+        !effectful && (occurrence.stage > 1 || occurrence.task !== occurrence.stage) ||
         (directReadIdentity !== undefined && occurrence.input !== directReadIdentity.input)) {
       fail('InvalidAcquisitionOccurrence');
     }
     occurrence = Object.freeze({...occurrence});
-    const effectful = preparedEffect !== undefined;
     const checkedOwner = preparedEffect ?? preparedProgram;
     if (preparedSource !== undefined) {
       const original = preparations.get(preparedSource);
@@ -2019,13 +2021,32 @@ export async function createInstalledRowSource({moon, declaration, commands,
     let wholeInput = false;
     if (effectful) {
       if (managedRun === undefined || originalReader === undefined && prepareSourceRead === undefined ||
-          typeof moon.clientProgramInstalledEffectManagedSourceRead !== 'function') {
+          typeof moon.clientProgramInstalledEffectManagedSourceRead !== 'function' ||
+          typeof moon.clientProgramInstalledEffectManagedSourceInputKind !== 'function' ||
+          typeof moon.clientProgramEffectDirectSourceCoordinates !== 'function') {
         fail('InstalledEffectPlanUnavailable');
+      }
+      const coordinates = checked(moon.clientProgramEffectDirectSourceCoordinates(checkedOwner));
+      const selected = coordinates?.[occurrence.task];
+      if (!Array.isArray(selected) || selected.length !== 4 || selected[0] !== occurrence.stage ||
+          selected[1] !== occurrence.input || selected[2] !== occurrence.task ||
+          selected[3] !== (occurrence.computeTask ?? occurrence.task)) {
+        fail('InstalledSourcePreparationMismatch');
       }
       // The admitted parent already owns this acquisition/capacity. Do not
       // prepare another equal requirement or attach a replacement acquisition.
       checked(moon.clientProgramInstalledEffectManagedRunCheck(managedRun, checkedOwner, requestIdentity));
-      planned = checked(moon.clientProgramInstalledEffectManagedSourceRead(managedRun, declaration, occurrence.task));
+      const kind = checked(moon.clientProgramInstalledEffectManagedSourceInputKind(
+        managedRun, checkedOwner, requestIdentity, occurrence.task));
+      if (kind !== 'query' && kind !== 'whole-input') fail('InstalledEffectPlanUnavailable');
+      wholeInput = kind === 'whole-input';
+      if (wholeInput && typeof moon.clientProgramInstalledEffectManagedWholeSourceRead !== 'function') {
+        fail('InstalledEffectPlanUnavailable');
+      }
+      planned = wholeInput
+        ? checked(moon.clientProgramInstalledEffectManagedWholeSourceRead(
+          managedRun, checkedOwner, requestIdentity, declaration, occurrence.task))
+        : checked(moon.clientProgramInstalledEffectManagedSourceRead(managedRun, declaration, occurrence.task));
     } else if (managedRun !== undefined && originalReader !== undefined) {
       if (typeof moon.clientProgramInstalledManagedCaptureSourceRead !== 'function') {
         fail('InstalledSourcePlanUnavailable');
@@ -2057,7 +2078,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
         registry, values, fragment, ordered, queryTimePreparation, requestIdentity}).requirement
         : runtimeField(planned, 1);
       const plannedAcquisition = wholeInput ? runtimeField(planned, 2) : undefined;
-      const {prepared, resource} = describePreparedSource(requirement, occurrence, checkedOwner, wholeInput, plannedAcquisition);
+      const {prepared, resource} = describePreparedSource(requirement, occurrence, checkedOwner, wholeInput, plannedAcquisition, effectful);
       const physicalBindingCid = valueCid(prepared.physicalBinding);
       const authorizePreparation = async () => {
         const decision = await decideRead(prepared, access);
@@ -3023,7 +3044,13 @@ export async function createInstalledRowSource({moon, declaration, commands,
         }
         if (originalReader !== undefined && (typeof providerSiteCurrent !== 'function' ||
             Reflect.apply(providerSiteCurrent, site, []) !== true)) fail('InstalledSourceReaderNotCurrent');
+        if (typeof moon.clientProgramInstalledRowInputPolicy !== 'function') fail('InstalledSourcePlanConstructorUnavailable');
+        const selectedPageLimits = managedPageLimits ?? pageLimits;
+        const inputLimits = moon.clientProgramInstalledRowInputPolicy(
+          limits.maxCaptureRows, limits.maxPageBytes, selectedPageLimits?.maxNodes ?? 400000,
+          selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows);
         return Object.freeze({declaration, provider: originalReader?.capacity,
+          inputLimits,
           transferBytes: maxTransferBytes, executionBytes: BigInt(limits.maxPageBytes)});
       },
     admitsSource: sourceRef => sourceRefs.has(sourceRef),
@@ -3045,7 +3072,8 @@ export async function createInstalledRowSource({moon, declaration, commands,
       if (owner === undefined || owner.retainedOnly === true) fail('InstalledSourcePreparationMismatch');
       const capacity = captureCapacity(owner);
       if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
-      return Object.freeze({requirement: owner.requirement, capacity, referenceIssuer});
+      return Object.freeze({capacity, referenceIssuer,
+        ...(owner.wholeInput ? {wholeInput: true} : {requirement: owner.requirement})});
     },
     ledgerCapacity(prepared) {
       const owner = preparations.get(prepared);

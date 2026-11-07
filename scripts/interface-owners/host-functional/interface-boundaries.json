@@ -17405,7 +17405,7 @@
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bf77361515af3f2deb5fbede29928071eaf53b4d10e6685928bda876d9045e58",
+      "sha256": "a7b0c393813204abdf3724d4f11ae2733eeba81a1d91d167c1b894c31cc2bf85",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -17414,6 +17414,36 @@
         "selectAcquiredEffectSources"
       ],
       "operations": [
+        {
+          "name": "effectSourceInputs",
+          "parameters": [
+            "moon",
+            "preparedEffect"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectSourceInputs/effectSourceInputs",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectSourceInputs/effectSourceInputs/effectSourceInputs",
+          "parameters": [
+            "number"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectSourceInputs/effectSourceInputs/effectSourceInputs#2",
+          "parameters": [
+            "previous"
+          ],
+          "async": false
+        },
         {
           "name": "prepareInstalledAcquiredEffectLedger",
           "parameters": [
@@ -17582,7 +17612,11 @@
             "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#3",
             "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#4",
             "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#5",
-            "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#6"
+            "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#6",
+            "effectSourceInputs",
+            "effectSourceInputs/effectSourceInputs",
+            "effectSourceInputs/effectSourceInputs/effectSourceInputs",
+            "effectSourceInputs/effectSourceInputs/effectSourceInputs#2"
           ],
           "exports": [
             "prepareInstalledAcquiredEffectLedger",
@@ -125356,7 +125390,7 @@
       "sha256": "536000de4ea4495ead7ea93e73619a306a3438fce97da23fb0ad5118db2225b4",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -126497,7 +126531,7 @@
       "sha256": "b1900069222d7aa9d2335b2189aa62c68fe0132f896087bd9a4ae021dd8a507b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -127573,7 +127607,7 @@
       "sha256": "ba6eba0f710ef5f0ff4eae835ecde613fabf8685982989f9c6817bd862da38e4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -133875,7 +133909,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -134090,7 +134124,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -134734,7 +134768,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [

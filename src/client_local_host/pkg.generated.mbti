@@ -394,6 +394,8 @@ pub fn export_client_infer_retained_input(@execution_relation.CompletedOutput, S
 
 pub fn export_client_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[ClientSourceCaptureExport, ClientSourceCaptureIssue]
 
+pub fn export_client_whole_source_capture(@execution_query.CapturedInputSource, ClientInstalledWholeSourceCapacity, String) -> Result[(Array[String], String, String, Array[String]), ClientSourceCaptureIssue]
+
 pub fn[I, P] finish_effect_program_check_preparation(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.EffectComputationCandidate, ClientProgramCheckPreparationIssue]
 
 pub fn finish_program_capture(ClientProgramCapture) -> Result[@run_publication.PublicationContract, ClientClosedValuesPreparationIssue]
@@ -1054,7 +1056,11 @@ pub fn[I] reserve_request_snapshot(ClientRequestPreparation[I], I, Int64, Int64)
 
 pub fn restore_accounted_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger, ClientInstalledCaptureCapacity, () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer, original_input? : (String, String, Array[String])?) -> Result[ClientAccountedSourceCapture, ClientSourceCaptureIssue]
 
+pub fn restore_accounted_client_whole_source_capture(ClientInstalledWholeSourceCapacity, String, String, Array[String], String, String, Array[String], @physical_resources.Ledger, () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[ClientAccountedSourceCapture, ClientSourceCaptureIssue]
+
 pub fn restore_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[ClientSourceCapture, ClientSourceCaptureIssue]
+
+pub fn retain_accounted_client_source_capture_input(ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]
 
 pub fn retain_accounted_client_source_capture_task(ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]
 

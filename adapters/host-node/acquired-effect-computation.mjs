@@ -290,6 +290,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       preparedEffect: acquired.prepared, sourceProfile, registry, values, fragment, ordered,
       queryTimePreparation: acquired.queryTimePreparation, requestIdentity: acquired.requestIdentity,
       managedPlan: operationPlan, managedRun});
+    const wholeInputs = selectedSources.some(source => source.sourceKind === 'whole-input');
     const singleSourceAccess = sourceAccess ?? selectedSources[0]?.adapter.sourceAccess;
     if (infer !== undefined && !pluralModels) {
       if (modelController === undefined) throw new Error('InstalledModelJournalRequired');
@@ -443,14 +444,27 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     if (contentFamily !== undefined && !pluralModels) component = prepareInferComponent();
     if (!sourceFree) {
       const capacities = sources.map(source => source.adapter.ledgerCapacity(source.preparedSource));
-      if (capacities.some(value => value?.managedRun !== managedRun) ||
-          typeof moon.clientProgramInstalledEffectManagedRunPrepareLedger !== 'function') {
+      if (capacities.some((value, index) => value?.managedRun !== managedRun ||
+          (value.wholeInput === true) !== (selectedSources[index].sourceKind === 'whole-input'))) {
         throw new Error('ForeignInstalledEffectManagedRun');
       }
-      ledger = checked(moon.clientProgramInstalledEffectManagedRunPrepareLedger(managedRun,
-        acquired.prepared, acquired.requestIdentity, capacities.map(value => value.capacity),
-        capacities.map(value => value.transferBytes), capacities.map(value => value.executionBytes),
-        registry, values, fragment, ordered));
+      if (wholeInputs) {
+        if (typeof moon.clientProgramInstalledEffectManagedSourcesLedger !== 'function') {
+          throw new Error('InstalledEffectSourceLedgerUnavailable');
+        }
+        // The same admitted Plan already retains each actual input/read and
+        // its complete capacity. A Whole input is never a Query-capacity token.
+        ledger = checked(moon.clientProgramInstalledEffectManagedSourcesLedger(
+          managedRun, acquired.prepared, acquired.requestIdentity));
+      } else {
+        if (typeof moon.clientProgramInstalledEffectManagedRunPrepareLedger !== 'function') {
+          throw new Error('InstalledEffectSourceLedgerUnavailable');
+        }
+        ledger = checked(moon.clientProgramInstalledEffectManagedRunPrepareLedger(managedRun,
+          acquired.prepared, acquired.requestIdentity, capacities.map(value => value.capacity),
+          capacities.map(value => value.transferBytes), capacities.map(value => value.executionBytes),
+          registry, values, fragment, ordered));
+      }
     }
     for (const source of sources) {
       current();
@@ -650,9 +664,11 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     // Without a returned Compute owner an exception cannot prove a stop.
     // Keep the responsibility rather than relabeling it as released.
     unresolved = true;
-    if (multiple || contentFamily !== undefined) {
+    if (multiple || wholeInputs || contentFamily !== undefined) {
       const dag = moon.strategyHostRun(moon.clientProgramLocalEffectHostRuntime(checkedHost));
-      for (const [task, captured] of captures.entries()) captured.capture.retainTask(dag, task);
+      for (const [task, captured] of captures.entries()) {
+        captured.capture.retainTask(dag, captured.occurrence?.computeTask ?? task);
+      }
     }
     if ((component !== undefined || modelGroup !== undefined || contentFamily !== undefined) && typeof withComputePauseHandler !== 'function') {
       throw new TypeError('PhysicalPauseConfigurationMissing');

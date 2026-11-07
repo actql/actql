@@ -626,3 +626,61 @@ pub fn client_program_installed_row_input_policy(
     max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
   )
 }
+
+///|
+#export_name("clientProgramExportWholeSourceCapture")
+pub fn client_program_export_whole_source_capture(
+  source : @query.CapturedInputSource,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  binding : String,
+) -> Result[
+  (Array[String], String, String, Array[String]),
+  @client_local_host.ClientSourceCaptureIssue,
+] {
+  @client_local_host.export_client_whole_source_capture(
+    source, capacity, binding,
+  )
+}
+
+///|
+#export_name("clientProgramRestoreWholeSourceCapture")
+pub fn client_program_restore_whole_source_capture(
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  expected_binding : String,
+  saved_binding : String,
+  saved_identity : Array[String],
+  schema_cid : String,
+  rows_cid : String,
+  rows : Array[String],
+  ledger : @resources.Ledger,
+  custody_available : () -> Bool,
+  reference_issuer : @admitted.ReferenceIssuer?,
+) -> Result[
+  @client_local_host.ClientAccountedSourceCapture,
+  @client_local_host.ClientSourceCaptureIssue,
+] {
+  @client_local_host.restore_accounted_client_whole_source_capture(
+    capacity,
+    expected_binding,
+    saved_binding,
+    saved_identity,
+    schema_cid,
+    rows_cid,
+    rows,
+    ledger,
+    custody_available,
+    reference_issuer?,
+  )
+}
+
+///|
+#export_name("clientProgramSourceCaptureRetainInput")
+pub fn client_program_source_capture_retain_input(
+  value : @client_local_host.ClientAccountedSourceCapture,
+  dag : @strategy.CapturedDAG,
+  task : Int,
+) -> Result[Unit, @client_local_host.ClientSourceCaptureIssue] {
+  @client_local_host.retain_accounted_client_source_capture_input(
+    value, dag, task,
+  )
+}
