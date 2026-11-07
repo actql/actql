@@ -298,6 +298,33 @@ fn LocalCommandPreparationOriginal::execute_product_command(
 }
 
 ///|
+// Explicit operator DATA selects no executable or Library. Reuse the SAME
+// packaged Runtime and command carrier before opening its configuration Root;
+// the adoption Owner still captures every original/current generation.
+fn LocalCommandPreparationOriginal::execute_operator_command(
+  self : LocalCommandPreparationOriginal,
+  matches : @argparse.Matches,
+  operation : String,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  guard matches.sources.get("config-file") is Some(@argparse.Argv) &&
+    self.runtime is Some(physical) else {
+    stop("ExplicitLocalConfigurationRequiresOriginalSupplier")
+  }
+  command_preparation_result(self.leave(), stage=Some("runtime-return"))
+  let runtime = local_packaged_runtime_from_physical(physical)
+  command_preparation_result(self.enter(), stage=Some("runtime-reenter"))
+  execute_native_local_adoption(
+    matches,
+    operation,
+    child,
+    packaged_runtime=Some(physical),
+    preparation=Some(self),
+    preparation_runtime=Some(runtime),
+  )
+}
+
+///|
 // Continue the existing selected configuration comparisons. The same actual
 // adoption capture owns every partial Root/Lock and the original child Journal;
 // this path never loads a second SQLite Library or a stock Crypto fallback.

@@ -420,7 +420,8 @@ for (const change of ['success', 'foreign-error', 'output', 'created-state', 'cr
 function numericOperatorInputs() {
   return {assets: Object.fromEntries([...nativeLocalDefaultAssets()]
     .map(([name, bytes]) => [name, bytes.toString('utf8')])),
-    libraries: {sqlite: '/original/installed/sqlite.so', crypto: '/original/installed/crypto.so'}};
+    libraries: {sqlite: '/original/installed/sqlite.so', crypto: '/original/installed/crypto.so'},
+    runtimeWire: '{"originalManifest":true}\n'};
 }
 
 test('Native numeric operator retains low defaults and authors an explicit finite original before adoption', async t => {
@@ -445,6 +446,8 @@ test('Native numeric operator retains low defaults and authors an explicit finit
     {file: 'environment.json', evidence_bundle_cid: identity});
   assert.equal(configuration.native.local.sqlite_library, inputs.libraries.sqlite);
   assert.equal(configuration.native.local.signature_library, inputs.libraries.crypto);
+  assert(configuration.native.local.installation_files.includes('runtime.json'));
+  assert.equal(await readFile(join(project, 'runtime.json'), 'utf8'), inputs.runtimeWire);
   const run = JSON.parse(await readFile(join(project, 'run.json'), 'utf8')).native.run;
   const retention = JSON.parse(run.retention_policy_wire);
   const {effective_retention_policy_cid: retentionCid, ...retentionBody} = retention;

@@ -87,9 +87,10 @@ export async function observeNativeNumericScale({project, cli}) {
 // Explicit operator configuration through the existing Native adopt path. The
 // same installed assets/libraries remain originals; no product default changes
 // and no accepted Host is reconfigured. The actual Owners still decide admission.
-export async function prepareNativeNumericOperator({project, assets, libraries, maxRows}) {
+export async function prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows}) {
   assert(Number.isSafeInteger(maxRows) && maxRows > 0 && maxRows <= 100000);
   assert(isAbsolute(project) && isAbsolute(libraries.sqlite) && isAbsolute(libraries.crypto));
+  assert.equal(typeof runtimeWire, 'string'); JSON.parse(runtimeWire);
   const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
   const environment = JSON.parse(assets.environment);
   delete environment.evidence_bundle_cid;
@@ -142,7 +143,7 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
       local: {account_id: principal, principal, connection, state_parent: project, state_name: 'host',
         managed_root: project, sqlite_library: libraries.sqlite, signature_library: libraries.crypto,
         submission_ttl_ms: 86400000, journal_record_limit: 8, journal_snapshot_bytes: 8388608,
-        installation_files: ['run.json', 'read.json', 'retention.json', 'store.json'],
+        installation_files: ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json'],
         run_file: 'run.json', read_file: 'read.json'},
     }},
   };
@@ -151,12 +152,13 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
     await writeFile(join(project, name), canonicalText(value), {flag: 'wx', mode: 0o600});
   }
   await writeFile(join(project, 'store.json'), storeWire, {flag: 'wx', mode: 0o600});
+  await writeFile(join(project, 'runtime.json'), runtimeWire, {flag: 'wx', mode: 0o600});
   return {configuration: ['--mode', 'local', '--config-root', project, '--config-file', 'operator.json'],
     environmentCid: environment.evidence_bundle_cid, maxRows};
 }
 
-export async function observeNativeNumericOperatorScale({project, cli, assets, libraries}) {
-  const selected = await prepareNativeNumericOperator({project, assets, libraries, maxRows: 100000});
+export async function observeNativeNumericOperatorScale({project, cli, assets, libraries, runtimeWire}) {
+  const selected = await prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows: 100000});
   const operator = (args, cwd = project, code = 0) => cli([...selected.configuration, ...args], cwd, code);
   const adopted = await operator(['adopt', '--initialize-signing', '--json']);
   assert.equal(JSON.parse(adopted.stdout).kind, 'local_host_adopted');
@@ -164,7 +166,7 @@ export async function observeNativeNumericOperatorScale({project, cli, assets, l
   // A distinct fresh operator deliberately selects a lower finite row policy.
   // Its original refusal is neither retried nor a reason to weaken enforcement.
   const lowProject = project + '-low-policy';
-  const low = await prepareNativeNumericOperator({project: lowProject, assets, libraries, maxRows: 1});
+  const low = await prepareNativeNumericOperator({project: lowProject, assets, libraries, runtimeWire, maxRows: 1});
   const lowCli = (args, code = 0) => cli([...low.configuration, ...args], lowProject, code);
   await lowCli(['adopt', '--initialize-signing', '--json']);
   const small = {version: 'actql/0.1', id: 'numeric-low-policy', stages: [{id: 'main', inputs: {},
@@ -489,7 +491,8 @@ async function observeInstalledSourceFree(input, observationPath) {
     const numericLibraries = Object.fromEntries(localRuntime.libraries.map(item =>
       [item.role, join(platformRoot, item.path)]));
     const numericScale = await observeNativeNumericOperatorScale({project: join(root, 'numeric-operator'),
-      cli, assets: numericAssets, libraries: numericLibraries});
+      cli, assets: numericAssets, libraries: numericLibraries,
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
     receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
       cliSourceSha: manifest.sourceSha, platform, node: process.version, glibc: glibc ?? null,
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
