@@ -67,6 +67,19 @@ fn client_source_preparation_issue_code(
               | RetentionLimit(_, ..)
               | Decode({ kind: BudgetExceeded, .. })
             ) => "source_analysis_limit"
+            // The published-Catalog wrapper retains this exact authored
+            // missing Event field from the common pipeline owner.
+            BindingPreparation(
+              SourceProgram(
+                Program(Pipeline(_, { kind: Event(Decode(MissingField)), .. }))
+              )
+            )
+            | BindingPreparationSource(
+              SourceProgram(
+                Program(Pipeline(_, { kind: Event(Decode(MissingField)), .. }))
+              ),
+              _
+            ) => "source_invalid_input"
             // These typed facts come from the existing lowerer. The public
             // submission projection must still establish audience disclosure.
             InvalidQuery
