@@ -45,14 +45,14 @@ pub fn PublicationCommitPreparation::begin_observed_commit(
     chain.max_depth,
     remaining,
   )
-  // A stored read may observe the exact three immutable contracts it just
-  // completely validated. Its inventories are private to this same owner;
-  // general borrowed arrays, copied contracts and changed observations still
-  // take the complete validator above. This does not replace physical reads,
-  // current checks, the observed child or its separate cleanup duty.
+  // A stored read or an owned Plan may observe the exact three immutable
+  // contracts its completed view just fully validated. Both own private copied
+  // inventories. General borrowed arrays, copied contracts and changed
+  // observations still take the complete validator above. Physical reads,
+  // current checks, the observed child and separate cleanup remain unchanged.
   let stored_inputs = match inputs.origin {
-    StoredInputs => true
-    BorrowedInputs | OwnedInputs => false
+    StoredInputs | OwnedInputs => true
+    BorrowedInputs => false
   }
   if stored_inputs &&
     physical_equal(stored_request, inputs.request) &&

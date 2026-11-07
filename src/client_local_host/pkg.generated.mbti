@@ -166,6 +166,8 @@ pub fn borrow_installed_effect_operation(ClientInstalledManagedRun, @run_publica
 
 pub fn borrow_installed_managed_dispatch_preparation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram]?, ClientInstalledManagedRunIssue]
 
+pub fn borrow_program_commit_validation(ClientProgramValidation) -> @run_publication.PublicationCommitPreparation?
+
 pub fn[I] borrow_request_content_plan_input(ClientRequestPreparation[I], I) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientProgram], ClientRequestPreparationIssue]
 
 pub fn[I] borrow_request_effect_plan_input(ClientRequestPreparation[I], I) -> Result[@physical_resources.PreparationBodyBorrow[@run_publication_host.PreparedClientEffectComputation], ClientRequestPreparationIssue]
@@ -1188,7 +1190,7 @@ pub fn start_installed_whole_source_read_rows(ClientInstalledSourceRead, @client
 
 pub fn start_program_capture(ClientProgramCapture) -> Result[ClientProgramCapture, ClientClosedValuesPreparationIssue]
 
-pub fn start_program_validation(ClientProgramValidation) -> Result[ClientProgramValidation, ClientProgramValidationIssue]
+pub fn start_program_validation(ClientProgramValidation, max_workspace? : Int?) -> Result[ClientProgramValidation, ClientProgramValidationIssue]
 
 pub fn[I] supplement_request_computation_policies(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, Array[@program_check.HostRequestValuePolicyEvidence]) -> Result[@program_check.CheckEnvironment, ClientRequestTerminalIssue]
 

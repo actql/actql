@@ -1,6 +1,6 @@
 ///|
-/// Same adopted publication owner; a validation continuation never exposes its
-/// semantic checker or substitutes a second reservation/registry.
+/// Same adopted publication owner. A scoped checker loan transfers no custody
+/// and never substitutes a second reservation/registry.
 pub(all) enum ClientProgramValidationIssue {
   Owner(ClientClosedValuesPreparationIssue)
   Chain(@publication.RunEvidenceChainIssue)
@@ -290,6 +290,7 @@ pub fn prepare_program_commit_validation(
 ///|
 pub fn start_program_validation(
   value : ClientProgramValidation,
+  max_workspace? : Int? = None,
 ) -> Result[ClientProgramValidation, ClientProgramValidationIssue] {
   if !validation_original(value) {
     return Err(Owner(ForeignOriginal))
@@ -309,12 +310,14 @@ pub fn start_program_validation(
     return validation_failure(value, Owner(ForeignOriginal))
   }
   if value.commit_kind {
-    guard @publication.start_planned_commit_validation(plan) is Some(checker) else {
+    guard @publication.start_planned_commit_validation(plan, max_workspace~)
+      is Some(checker) else {
       return validation_failure(value, Owner(WrongPhase))
     }
     value.commit = Some(checker)
   } else {
-    guard @publication.start_planned_chain_validation(plan) is Some(checker) else {
+    guard @publication.start_planned_chain_validation(plan, max_workspace~)
+      is Some(checker) else {
       return validation_failure(value, Owner(WrongPhase))
     }
     value.chain = Some(checker)
@@ -429,5 +432,19 @@ pub fn check_program_commit_validation(
       cancel_program_validation(validation)
       Err(issue)
     }
+  }
+}
+
+///|
+/// Callback-free loan of the exact live checker to the existing typed Native
+/// observation boundary. The same controller retains its reservation/capture
+/// and cancels escaped aliases on retirement; this is no authority or transfer.
+pub fn borrow_program_commit_validation(
+  value : ClientProgramValidation,
+) -> @publication.PublicationCommitPreparation? {
+  if !validation_original(value) || !value.commit_kind || value.plan is Some(_) {
+    None
+  } else {
+    value.commit
   }
 }

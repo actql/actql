@@ -630,6 +630,126 @@ fn native_publication_workspace_component(
         is Err(Commit(_)),
       )
       assert_true(capture.validation is None)
+      let observed = prepare_program_commit_validation(
+        capture,
+        definition,
+        invocation,
+        [result_definition],
+        [artifact],
+        [derivation],
+        [ordering],
+        [retention],
+        [binding],
+        manifest,
+        receipt,
+        recorded,
+        request_contract,
+        attempt,
+        index,
+      ).unwrap()
+      start_program_validation(observed, max_workspace=Some(10000)).unwrap()
+      |> ignore
+      let mut ready = false
+      for _ in 0..<1000 {
+        if advance_program_validation(observed, 16).unwrap().0 {
+          ready = true
+          break
+        }
+      }
+      assert_true(ready)
+      let checker = borrow_program_commit_validation(observed).unwrap()
+      let view = checker.finish_view().unwrap()
+      checker
+      .begin_observed_commit(view, request_contract, attempt, index)
+      .unwrap()
+      let mut ready = false
+      for _ in 0..<1000 {
+        if checker.advance_observed_commit(view, 16).unwrap().0 {
+          ready = true
+          break
+        }
+      }
+      assert_true(ready)
+      assert_true(
+        physical_equal(checker.finish_observed_commit(view).unwrap(), index),
+      )
+      checker.release_observed_commit(view).unwrap()
+      checker.release_view(view).unwrap()
+      cancel_program_validation(observed)
+      assert_true(borrow_program_commit_validation(observed) is None)
+      assert_true(checker.finish() is Err(_))
+      // Equal immutable bytes do not replace the exact original observation.
+      let copied_attempt = @publication.admit_publication_contract(
+        "publication_attempt",
+        @publication.publication_contract_json(attempt),
+        65536,
+        8192,
+        64,
+      ).unwrap()
+      assert_true(!physical_equal(copied_attempt, attempt))
+      assert_eq(
+        @publication.publication_contract_identity(copied_attempt),
+        @publication.publication_contract_identity(attempt),
+      )
+      let copied_observation = prepare_program_commit_validation(
+        capture,
+        definition,
+        invocation,
+        [result_definition],
+        [artifact],
+        [derivation],
+        [ordering],
+        [retention],
+        [binding],
+        manifest,
+        receipt,
+        recorded,
+        request_contract,
+        attempt,
+        index,
+      ).unwrap()
+      start_program_validation(copied_observation, max_workspace=Some(10000)).unwrap()
+      |> ignore
+      while !advance_program_validation(copied_observation, 256).unwrap().0 {
+        ()
+      }
+      let copied_checker = borrow_program_commit_validation(copied_observation).unwrap()
+      let copied_view = copied_checker.finish_view().unwrap()
+      copied_checker
+      .begin_observed_commit(
+        copied_view, request_contract, copied_attempt, index,
+      )
+      .unwrap()
+      assert_true(
+        !copied_checker.advance_observed_commit(copied_view, 1).unwrap().0,
+      )
+      assert_true(copied_checker.finish_observed_commit(copied_view) is Err(_))
+      copied_checker.release_observed_commit(copied_view).unwrap()
+      copied_checker.release_view(copied_view).unwrap()
+      cancel_program_validation(copied_observation)
+      assert_true(borrow_program_commit_validation(copied_observation) is None)
+      // The caller's independent small workspace remains a real refusal.
+      let tight = prepare_program_commit_validation(
+        capture,
+        definition,
+        invocation,
+        [result_definition],
+        [artifact],
+        [derivation],
+        [ordering],
+        [retention],
+        [binding],
+        manifest,
+        receipt,
+        recorded,
+        request_contract,
+        attempt,
+        index,
+      ).unwrap()
+      start_program_validation(tight, max_workspace=Some(1)).unwrap() |> ignore
+      assert_true(advance_program_validation(tight, 16) is Err(Commit(_)))
+      cancel_program_validation(tight)
+      assert_true(capture.validation is None)
     }
   }
   output.close()
