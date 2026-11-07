@@ -569,7 +569,24 @@ pub fn relocate_imported_child_cleanup_usage(
     Ok(_) => ()
   }
   let usage = ledger.usage
-  let copied_usage : LedgerUsage = {
+  let copied_usage = cleanup_ledger_usage_copy(usage)
+  let quantities = ledger.quantity_usage
+  let copied_quantities : QuantityUsage = {
+    reserved: cleanup_quantity_copy(quantities.reserved),
+    uncertain: cleanup_quantity_copy(quantities.uncertain),
+    consumed: cleanup_quantity_copy(quantities.consumed),
+  }
+  let copied_limits = ledger.quantity_limits.map(cleanup_quantity_copy)
+  // Construct every replacement before mutating the same original controls.
+  ledger.usage = copied_usage
+  ledger.quantity_usage = copied_quantities
+  ledger.quantity_limits = copied_limits
+  Ok(())
+}
+
+///|
+fn cleanup_ledger_usage_copy(usage : LedgerUsage) -> LedgerUsage {
+  {
     planning_work: usage.planning_work,
     attempts: usage.attempts,
     reserved_attempts: usage.reserved_attempts,
@@ -584,18 +601,6 @@ pub fn relocate_imported_child_cleanup_usage(
     reserved_execution_bytes: usage.reserved_execution_bytes,
     peak_retention_bytes: usage.peak_retention_bytes,
   }
-  let quantities = ledger.quantity_usage
-  let copied_quantities : QuantityUsage = {
-    reserved: cleanup_quantity_copy(quantities.reserved),
-    uncertain: cleanup_quantity_copy(quantities.uncertain),
-    consumed: cleanup_quantity_copy(quantities.consumed),
-  }
-  let copied_limits = ledger.quantity_limits.map(cleanup_quantity_copy)
-  // Construct every replacement before mutating the same original controls.
-  ledger.usage = copied_usage
-  ledger.quantity_usage = copied_quantities
-  ledger.quantity_limits = copied_limits
-  Ok(())
 }
 
 ///|

@@ -387,6 +387,16 @@ pub fn InstalledArenaHost::close_domain_original_read(
         Ok(_) => ()
       }
     }
+    if record.consumer is Some(view) && view.working_snapshot_pending {
+      match
+        @resources.relocate_funded_read_consumer_cleanup_state(
+          view.consumer,
+          record,
+        ) {
+        Err(issue) => return Err(Read(issue))
+        Ok(_) => view.working_snapshot_pending = false
+      }
+    }
     let context_close = domain.backing.close_backed_read_context(
       self, original, domain,
     )

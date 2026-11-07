@@ -17,8 +17,10 @@ struct InstalledArenaOriginalReadConsumer {
   read : InstalledArenaOriginalRead
   consumer : @resources.FundedReadConsumer[InstalledArenaOriginalRead]
   workspace : @buffers.WorkspaceLoan
-  retained_bytes : Int64
-  execution_bytes : Int64
+  mut retained_bytes : Int64
+  mut execution_bytes : Int64
+  // A control relocation duty, never a physical retirement acknowledgement.
+  mut working_snapshot_pending : Bool
   mut scope : InstalledArenaOriginalReadConsumerScope
 }
 
@@ -59,6 +61,7 @@ pub fn InstalledArenaHost::prepare_domain_original_read_consumer(
     workspace,
     retained_bytes,
     execution_bytes,
+    working_snapshot_pending: false,
     scope: ConsumerScopeNew,
   }
   read.consumer = Some(view)
@@ -220,4 +223,54 @@ pub fn InstalledArenaHost::resume_domain_original_read_consumer_scope(
     return Err(Read(@resources.SpentClaim))
   }
   self.enter_original_consumer_scope(view)
+}
+
+///|
+/// Extend this SAME entered Read consumer before constructing its complete
+/// next coexistence envelope. Core mutates the original reservation, not a
+/// second token/Root or a handed-off capacity. This does not acquire a mapping:
+/// the actual Native domain and constructor backing remain separate duties.
+pub fn InstalledArenaHost::grow_domain_original_read_consumer_capacity(
+  self : InstalledArenaHost,
+  view : InstalledArenaOriginalReadConsumer,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  match self.original_domain_read_consumer(view) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let read = view.read
+  if view.scope != ConsumerScopeOpen ||
+    !read.ready ||
+    read.closing ||
+    read.closed ||
+    view.workspace.closing ||
+    view.workspace.stopped ||
+    view.workspace.cleaned ||
+    view.workspace.settled {
+    return Err(Read(@resources.CleanupPending))
+  }
+  if retained_bytes < view.retained_bytes ||
+    execution_bytes < view.execution_bytes {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  // Retain this cleanup duty before the fallible Resource call can construct
+  // or publish a child-owned snapshot, including a partial/refused outcome.
+  view.working_snapshot_pending = true
+  // The imported original's current callback is inside the one Resource
+  // mutation. Do not repeat it in a pre-check or replace its nominal binding.
+  match
+    @resources.grow_funded_read_consumer_capacity(
+      view.consumer,
+      read,
+      retained_bytes,
+      execution_bytes,
+    ) {
+    Err(issue) => return Err(Read(issue))
+    Ok(_) => ()
+  }
+  view.retained_bytes = retained_bytes
+  view.execution_bytes = execution_bytes
+  Ok(())
 }
