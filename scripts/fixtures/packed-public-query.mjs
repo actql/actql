@@ -224,7 +224,8 @@ import {sourceGraphMemberSuccesses, sourceGraphMemberRefusals}
 import {graphDiagnosticSourceSuccesses, graphDiagnosticSourceRefusals, graphDiagnosticSourceExecutionFailures}
   from './graph-diagnostics-source-input.mjs';
 
-import {transportWorker, requireCompleteInventory, sourceFixturePaths} from './packed-query-transport-owner.mjs';
+import {transportWorker, requireCompleteInventory, sourceFixturePaths,
+  observePackedSubmissionCause} from './packed-query-transport-owner.mjs';
 const transport = process.env.ACTQL_TEST_QUERY_TRANSPORT;
 assert.ok(transport === undefined || ['local', 'remote', 'tail'].includes(transport));
 const worker = transport === 'local' || transport === 'remote' ? transportWorker() : undefined;
@@ -1421,6 +1422,8 @@ for (const [index, cohort] of cohorts.entries()) {
     ? createRetainedGraphAuthorization() : undefined;
   const physicalDispatches = [];
   const retainedLeases = [];
+  let submissionCause;
+  try {
   await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
     durability: 'durable', installation: {directory,
       sourceProfilePath, hostCapacityPolicy,
@@ -1429,7 +1432,19 @@ for (const [index, cohort] of cohorts.entries()) {
         authorization: observeInputStageStore(
           observeRetainedGraphDispatch(authorization, physicalDispatches),retainedLeases)})}}, {requestPrefix: 'packed-local',
     observe: observe(directory), prepareCase,
+    completedRefusal: async ({name}) => {
+      if (name === 'event-dedupe-exact-direction') {
+        try {
+          submissionCause = await observePackedSubmissionCause({sourceURL: new URL(
+            './adapters/host-node/in-process-client.mjs', import.meta.resolve('@actql/local-node'))});
+        } catch { /* A missing diagnostic cannot replace the original test outcome. */ }
+      } else if (name === 'event-dedupe-missing-null-placement') {
+        await submissionCause?.close();
+        submissionCause = undefined;
+      }
+    },
     completedCase: recordCohort('local', directory, cohort, authorization), ...cohort});
+  } finally {await submissionCause?.close();}
   if (authorization !== undefined) assert.ok(physicalDispatches.includes('physical_start_reserved'),
     'Initial retained execution proves the actual dispatch hook is live');
   verifyInputStageStore(retainedLeases);
