@@ -168,6 +168,9 @@ int actql_native_owned_checked_read_working_status(actql_owned_capacity *domain,
 int actql_native_owned_quote_checked_read_growth(actql_owned_capacity *domain,
     size_t bytes, uint64_t *serial);
 
+int actql_native_owned_quote_checked_read_growth_covering(actql_owned_capacity *domain,
+    size_t contiguous_bytes, size_t minimum_usable_bytes, uint64_t *serial);
+
 int actql_native_owned_prepare_domain_growth(actql_owned_capacity *domain,
     actql_owned_extent_view *original_view);
 int actql_native_owned_quote_domain_growth(actql_owned_capacity *domain,

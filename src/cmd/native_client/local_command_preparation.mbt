@@ -322,12 +322,40 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
   }
   try {
     let profile = self.profile
+    // Preserve the immutable maximum profile. The initial Read funds only
+    // the existing first processing block and its actually coheld originals.
+    let read_budget = self.initial_read_budget()
+    let initial_pool = command_preparation_value(
+      native_storage_sum([
+        read_budget.bootstrap_retained,
+        read_budget.bootstrap_execution,
+        read_budget.workspace_execution,
+        read_budget.read_retained,
+        read_budget.read_execution,
+      ]).map_err(issue => CommandNativeStorage(issue)),
+    )
+    let read_domain_bytes = command_preparation_option(
+      local_command_domain_bytes(initial_pool),
+    )
+    let initial_domains = command_preparation_value(
+      native_storage_sum([read_domain_bytes, profile.sqlite_domain_bytes]).map_err(issue => {
+          CommandNativeStorage(issue)
+        },
+      ),
+    )
+    let (arena_bytes, _) = command_preparation_option(
+      local_command_backing_layout(initial_domains),
+    )
+    if read_domain_bytes > profile.read_domain_bytes ||
+      arena_bytes > profile.arena_bytes {
+      return Err(CommandInvalidProfile)
+    }
     let host = command_preparation_value(
       @initial_arena.prepare_installed_arena_host(
         profile.source,
         profile.recipe,
         1L,
-        profile.arena_bytes,
+        arena_bytes,
         profile.host_limits,
         profile.control_bytes,
       ).map_err(issue => CommandHost(issue)),
@@ -353,8 +381,9 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
       host
       .prepare_domain_in_process(
         scope,
-        profile.read_domain_bytes,
+        read_domain_bytes,
         profile.read_domain_limits,
+        initial_window=Some(initial_pool),
       )
       .map_err(issue => CommandDomain(issue)),
     )
@@ -426,7 +455,7 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     )
     let acquired = command_preparation_value(
       host
-      .prepare_domain_original_read(read_domain, profile.read_budget)
+      .prepare_domain_original_read(read_domain, read_budget)
       .map_err(issue => CommandRead(issue)),
     )
     let read = match acquired {
@@ -526,12 +555,12 @@ fn LocalCommandPreparationOriginal::acquire_runtime(
       .map_err(issue => CommandPair(issue)),
     )
     self.pair = Some(pair)
-    // The same H is both the physical occupied-page ceiling and the original
-    // consuming claim. Generic demand-based claims retain their old argument.
-    let consumer_execution = match self.native_storage.read_facility_ceiling {
-      Some(ceiling) => ceiling
-      None => profile.consumer_execution_bytes
-    }
+    // H remains the physical maximum, independent of this first finite
+    // consuming block. Later constructors acquire backing before Read resize.
+    let consumer_execution = Int64::min(
+      profile.consumer_execution_bytes,
+      self.initial_read_budget().read_execution,
+    )
     let consumer = command_preparation_value(
       host
       .prepare_local_host_read_consumer(
@@ -1354,5 +1383,29 @@ fn LocalCommandPreparationOriginal::prepare_adopted_journal(
       self.retain_primary(issue)
       Err(issue)
     }
+  }
+}
+
+///|
+fn LocalCommandPreparationOriginal::initial_read_budget(
+  self : LocalCommandPreparationOriginal,
+) -> @initial_arena.InstalledArenaOriginalReadBudget {
+  let budget = self.profile.read_budget
+  {
+    ..budget,
+    read_execution: Int64::min(
+      budget.read_execution,
+      Int64::max(budget.bootstrap_execution, budget.workspace_execution),
+    ),
+  }
+}
+
+///|
+fn[T] command_preparation_option(
+  value : T?,
+) -> T raise LocalCommandPreparationStop {
+  match value {
+    Some(value) => value
+    None => raise LocalCommandPreparationStop(CommandInvalidProfile)
   }
 }

@@ -160,3 +160,18 @@ test('checked Read bound keeps the original acquired receipt through response lo
   assert.equal(result.read_bound_reconcile_cases, 11);
   assert.equal(result.passed, result.read_bound_reconcile_cases);
 });
+
+test('checked Read separates raw placement from additional acquired pool coverage', () => {
+  const scratch = mkdtempSync(join(realpathSync(tmpdir()), 'actql-read-pool-growth-'));
+  const executable = join(scratch, 'read-pool-growth');
+  const build = spawnSync(process.env.CC ?? 'cc', ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror', '-pthread',
+    ...(process.platform === 'linux' ? ['-D_GNU_SOURCE', '-DACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN=1'] : []),
+    join(provider, 'fixtures/domain_read_pool_growth.c'), '-o', executable],
+  {cwd: root, encoding: 'utf8', timeout: 60_000});
+  assert.equal(build.status, 0, `${build.error ?? ''}\n${build.stderr}`);
+  const run = spawnSync(executable, [], {cwd: root, encoding: 'utf8', timeout: 10_000});
+  assert.equal(run.status, 0, `${run.error ?? ''}\n${run.stdout}\n${run.stderr}`);
+  const result = JSON.parse(run.stdout);
+  assert.equal(result.read_pool_growth_cases, 10);
+  assert.equal(result.passed, result.read_pool_growth_cases);
+});

@@ -63,8 +63,8 @@ pub fn InstalledArenaHost::prepare_domain_original_read_consumer(
     workspace,
     initial_retained_bytes: retained_bytes,
     initial_execution_bytes: execution_bytes,
-    retained_bytes,
-    execution_bytes,
+    retained_bytes: read.funded_retained_bytes,
+    execution_bytes: read.funded_execution_bytes,
     working_snapshot_pending: false,
     scope: ConsumerScopeNew,
   }
@@ -276,6 +276,8 @@ pub fn InstalledArenaHost::grow_domain_original_read_consumer_capacity(
   }
   view.retained_bytes = retained_bytes
   view.execution_bytes = execution_bytes
+  read.funded_retained_bytes = retained_bytes
+  read.funded_execution_bytes = execution_bytes
   Ok(())
 }
 
@@ -292,7 +294,7 @@ pub fn InstalledArenaHost::prepare_domain_original_read_construction(
 ) -> Result[Unit, InstalledArenaOriginalReadIssue] {
   guard physical_equal(read.domain.host, self) &&
     read.consumer is Some(view) &&
-    read.domain.domain is Some(domain) &&
+    read.domain.domain is Some(_) &&
     retained_bytes >= 0L &&
     execution_bytes >= 0L &&
     contiguous_bytes > 0L &&
@@ -308,24 +310,46 @@ pub fn InstalledArenaHost::prepare_domain_original_read_construction(
     view.execution_bytes,
     view.initial_execution_bytes + execution_bytes,
   )
-  match
-    self.grow_domain_original_read_consumer_capacity(view, retained, execution) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
+  guard read.ledger is Some(ledger) && read.live is Some(live) else {
+    return Err(Read(@resources.IncompleteInventory))
   }
-  // A logical resize alone is never successful physical acquisition. The
-  // original consumer and pending supplier receipt stay cleanup-only on error.
+  let usage = @resources.ledger_usage(ledger)
+  if usage.reserved_retention_bytes < read.funded_retained_bytes ||
+    usage.reserved_execution_bytes < read.funded_execution_bytes {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  let reserved_retained = usage.reserved_retention_bytes -
+    read.funded_retained_bytes
+  if usage.held_bytes < 0L ||
+    usage.held_bytes > 9223372036854775807L - reserved_retained {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  let other_retained = usage.held_bytes + reserved_retained
+  let other_execution = usage.reserved_execution_bytes -
+    read.funded_execution_bytes
+  if other_retained < 0L ||
+    other_execution < 0L ||
+    retained > 9223372036854775807L - other_retained ||
+    execution > 9223372036854775807L - other_execution {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  // Non-grant policy/current check -> real same-domain acquisition -> SAME
+  // child window publication. The original Read reservation grows only after
+  // this actual backing exists; constructor geometry is never a logical sum.
   match
-    read.domain.backing.prepare_backed_read_working(
+    read.domain.backing.prepare_backed_original_read_working(
       self,
-      domain,
-      read.domain,
+      live,
+      read,
+      other_retained + retained,
+      other_execution + execution,
       contiguous_bytes,
     ) {
     Err(issue) => {
       view.scope = ConsumerScopeCleanupOnly
-      Err(Domain(issue))
+      return Err(Domain(issue))
     }
-    Ok(_) => Ok(())
+    Ok(_) => ()
   }
+  self.grow_domain_original_read_consumer_capacity(view, retained, execution)
 }

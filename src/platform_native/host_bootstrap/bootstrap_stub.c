@@ -774,7 +774,7 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_unentered(
  * ceiling includes allocator control and every occupied/pending extent; it is
  * not a new reservation, a smaller mapping or a parent retirement ACK. */
 static int32_t prepare_read_context_original(actql_bootstrap_domain *record,
-                                             int64_t ceiling, bool bounded) {
+                                             int64_t ceiling, bool bounded, bool working) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
     if (record == NULL || record->read_attempted || record->lease == NULL)
         return ACTQL_OWNED_INVALID;
@@ -786,7 +786,15 @@ static int32_t prepare_read_context_original(actql_bootstrap_domain *record,
         /* Even an invalid original selection consumes this attempt. */
         size_t bytes = ceiling > 0 && (uint64_t)ceiling <= SIZE_MAX
             ? (size_t)ceiling : 0;
-        status = actql_native_owned_bound_allocations(record->lease, bytes);
+        if (working) {
+            uint64_t actual = 0;
+            status = actql_native_owned_capacity_bytes(record->lease, &actual);
+            if (status == ACTQL_OWNED_OK)
+                status = actql_native_owned_bound_working_allocations(record->lease,
+                    actual < bytes ? (size_t)actual : bytes, bytes);
+        } else {
+            status = actql_native_owned_bound_allocations(record->lease, bytes);
+        }
     }
     if (status == ACTQL_OWNED_OK)
         status = actql_read_context_create(record->lease, &record->read_context);
@@ -798,19 +806,24 @@ static int32_t prepare_read_context_original(actql_bootstrap_domain *record,
     if (left == ACTQL_OWNED_OK) record->read_prepare_scope = false;
     return status == ACTQL_OWNED_OK ? left : status;
 #else
-    (void)record; (void)ceiling; (void)bounded;
+    (void)record; (void)ceiling; (void)bounded; (void)working;
     return ACTQL_OWNED_INVALID;
 #endif
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_prepare_read_context(
     actql_bootstrap_domain *record) {
-    return prepare_read_context_original(record, 0, false);
+    return prepare_read_context_original(record, 0, false, false);
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_prepare_bounded_read_context(
     actql_bootstrap_domain *record, int64_t ceiling) {
-    return prepare_read_context_original(record, ceiling, true);
+    return prepare_read_context_original(record, ceiling, true, false);
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_prepare_working_read_context(
+    actql_bootstrap_domain *record, int64_t ceiling) {
+    return prepare_read_context_original(record, ceiling, true, true);
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_enter_read_context(

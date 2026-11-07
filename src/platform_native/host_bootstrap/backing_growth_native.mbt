@@ -82,3 +82,26 @@ pub fn[T] NativeHostBootstrap::grow_backing(
   }
   Ok(())
 }
+
+///|
+/// Same selected finite Root facility; already acquired bytes need no repeat
+/// acquisition. This neither enlarges declared policy nor creates a child.
+pub fn[T] NativeHostBootstrap::ensure_backing_capacity(
+  self : NativeHostBootstrap[T],
+  original : T,
+  scope : NativeBootstrapBorrow[T],
+  bytes : Int64,
+) -> Result[Unit, NativeBootstrapIssue] {
+  match self.require_borrow_current(original, scope) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if bytes <= 0L {
+    return Err(Unavailable)
+  }
+  let current = @resources.shared_capacity_usage(self.capacity).capacity
+  if bytes <= current {
+    return Ok(())
+  }
+  self.grow_backing(original, scope, bytes)
+}

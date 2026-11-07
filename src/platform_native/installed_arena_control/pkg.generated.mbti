@@ -311,6 +311,7 @@ pub fn InstalledArenaHost::close_sqlite_lookup(Self, InstalledArenaSqliteLookup)
 pub fn InstalledArenaHost::current_crypto_component(Self, InstalledArenaCryptoComponent) -> Result[@signature.OriginalCryptoComponent, InstalledArenaCryptoIssue]
 pub fn InstalledArenaHost::current_sqlite_library(Self, InstalledArenaSqliteLibrary) -> Result[@sqlite.Library, InstalledArenaSqliteIssue]
 pub fn InstalledArenaHost::delegate(Self, @physical_resources.LedgerLimits) -> Result[InstalledArenaDelegation, @host_bootstrap.NativeBootstrapIssue]
+pub fn InstalledArenaHost::ensure_backing_capacity(Self, InstalledArenaBackingBorrow, Int64) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::enter_backing_borrow_scope(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::enter_domain(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::enter_domain_original_read(Self, InstalledArenaOriginalRead) -> Result[Unit, InstalledArenaOriginalReadIssue]
@@ -348,7 +349,7 @@ pub fn[I] InstalledArenaHost::observe_request_read_cleanup_scope(Self, @host_boo
 pub fn InstalledArenaHost::poll_process_stop(Self, InstalledArenaDomain, InstalledArenaProcess) -> Result[Bool, @host_bootstrap.NativeBackedProcessRegionIssue]
 pub fn InstalledArenaHost::prepare_crypto_component(Self, InstalledArenaDomain, String, Int64, Int) -> Result[InstalledArenaCryptoAcquisition, InstalledArenaCryptoIssue]
 pub fn InstalledArenaHost::prepare_domain(Self, InstalledArenaBackingBorrow, Int, Int64, @physical_resources.LedgerLimits) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
-pub fn InstalledArenaHost::prepare_domain_in_process(Self, InstalledArenaBackingBorrow, Int64, @physical_resources.LedgerLimits) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::prepare_domain_in_process(Self, InstalledArenaBackingBorrow, Int64, @physical_resources.LedgerLimits, initial_window? : Int64?) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn[I] InstalledArenaHost::prepare_domain_initialization_child(Self, InstalledArenaDomain, I) -> Result[@host_bootstrap.NativeBackedLiveChildAcquisition[Self, InstalledArenaDomain, I], @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_domain_nonmodel_work_entry(Self, InstalledArenaLocalHostResources, InstalledArenaOriginalRead, InstalledArenaRetainedExecution, Int64, Int64) -> Result[InstalledArenaNonModelWorkEntryAcquisition, InstalledArenaNonModelWorkEntryIssue]?
 pub fn InstalledArenaHost::prepare_domain_original_read(Self, InstalledArenaDomain, InstalledArenaOriginalReadBudget) -> Result[InstalledArenaOriginalReadAcquisition, InstalledArenaOriginalReadIssue]

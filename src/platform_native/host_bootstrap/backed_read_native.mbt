@@ -14,6 +14,13 @@ extern "C" fn prepare_bounded_read_context_ffi(
 
 ///|
 #borrow(domain)
+extern "C" fn prepare_working_read_context_ffi(
+  domain : PhysicalExtentDomain,
+  bytes : Int64,
+) -> Int = "actql_bootstrap_prepare_working_read_context"
+
+///|
+#borrow(domain)
 extern "C" fn read_context_status_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_read_context_status"
 
 ///|
@@ -84,7 +91,13 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_read_context(
   }
   let status = match execution_ceiling {
     None => prepare_read_context_ffi(domain.physical)
-    Some(bytes) => prepare_bounded_read_context_ffi(domain.physical, bytes)
+    Some(bytes) =>
+      if domain.view.loan.initial_window is Some(_) &&
+        domain.working_growth_prepared {
+        prepare_working_read_context_ffi(domain.physical, bytes)
+      } else {
+        prepare_bounded_read_context_ffi(domain.physical, bytes)
+      }
   }
   if status != 0 {
     return Err(Bootstrap(Physical(status)))

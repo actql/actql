@@ -135,7 +135,8 @@ int actql_native_owned_prepare_domain_growth(actql_owned_capacity *domain,
 }
 
 static int quote_domain_growth_original(actql_owned_capacity *domain,
-    size_t contiguous_payload_bytes, uint64_t *serial, bool checked_read) {
+    size_t contiguous_payload_bytes, size_t minimum_usable_bytes,
+    uint64_t *serial, bool checked_read) {
     if (domain == NULL || serial == NULL || *serial != 0 ||
         current_capacity != domain || current_process != getpid() ||
         domain->growth.parent == NULL) return ACTQL_OWNED_INVALID;
@@ -148,7 +149,9 @@ static int quote_domain_growth_original(actql_owned_capacity *domain,
     size_t child_bytes, child_controls, root_bytes, root_controls;
     if (growth->state != OWNED_GROWTH_IDLE || growth->serial == INT64_MAX ||
         parent->pending_growth_domain != NULL || !domain_growth_original_locked(domain) ||
-        !domain_growth_layout(domain, contiguous_payload_bytes, 0, &child_bytes, &child_controls) ||
+        !domain_growth_layout(domain,
+            contiguous_payload_bytes > minimum_usable_bytes ? contiguous_payload_bytes : minimum_usable_bytes,
+            0, &child_bytes, &child_controls) ||
         !domain_growth_layout(parent, child_bytes, sizeof(struct owned_growth_receipt),
                               &root_bytes, &root_controls) ||
         child_bytes > PTRDIFF_MAX - domain->length || root_bytes > PTRDIFF_MAX - parent->length)
@@ -191,12 +194,19 @@ done:
 
 int actql_native_owned_quote_domain_growth(actql_owned_capacity *domain,
     size_t bytes, uint64_t *serial) {
-    return quote_domain_growth_original(domain, bytes, serial, false);
+    return quote_domain_growth_original(domain, bytes, 0, serial, false);
 }
 
 int actql_native_owned_quote_checked_read_growth(actql_owned_capacity *domain,
     size_t bytes, uint64_t *serial) {
-    return quote_domain_growth_original(domain, bytes, serial, true);
+    return quote_domain_growth_original(domain, bytes, 0, serial, true);
+}
+
+/* Raw constructor placement and simultaneous acquired-pool coverage are
+ * different dimensions. Only their actual backing layout shares a maximum. */
+int actql_native_owned_quote_checked_read_growth_covering(actql_owned_capacity *domain,
+    size_t contiguous_bytes, size_t minimum_usable_bytes, uint64_t *serial) {
+    return quote_domain_growth_original(domain, contiguous_bytes, minimum_usable_bytes, serial, true);
 }
 
 int actql_native_owned_domain_growth_scalar(actql_owned_capacity *domain,

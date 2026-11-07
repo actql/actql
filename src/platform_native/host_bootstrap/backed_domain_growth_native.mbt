@@ -8,11 +8,12 @@ extern "C" fn checked_read_working_status_ffi(
 
 ///|
 #borrow(backing, domain)
-extern "C" fn quote_checked_read_growth_ffi(
+extern "C" fn quote_checked_read_growth_covering_ffi(
   backing : Backing,
   domain : PhysicalExtentDomain,
-  bytes : Int64,
-) -> Int64 = "actql_bootstrap_quote_checked_read_growth"
+  contiguous_bytes : Int64,
+  minimum_usable_bytes : Int64,
+) -> Int64 = "actql_bootstrap_quote_checked_read_growth_covering"
 
 ///|
 #borrow(backing, domain)
@@ -122,6 +123,7 @@ fn[T, C] NativeHostBootstrap::grow_backed_domain_working(
   child : C,
   contiguous_bytes : Int64,
   checked_read? : Bool = false,
+  minimum_usable_bytes? : Int64 = 0L,
 ) -> Result[Unit, NativeBackedExecutionIssue] {
   match self.require_domain_current(original, domain, child) {
     Err(issue) => return Err(issue)
@@ -131,10 +133,11 @@ fn[T, C] NativeHostBootstrap::grow_backed_domain_working(
     return Err(Bootstrap(Unavailable))
   }
   let serial = if checked_read {
-    quote_checked_read_growth_ffi(
+    quote_checked_read_growth_covering_ffi(
       self.backing,
       domain.physical,
       contiguous_bytes,
+      minimum_usable_bytes,
     )
   } else {
     quote_domain_growth_ffi(self.backing, domain.physical, contiguous_bytes)
@@ -248,8 +251,42 @@ fn[T, C] NativeHostBootstrap::grow_backed_domain_working(
   if finished != 0 {
     return Err(Bootstrap(Physical(finished)))
   }
-  match @resources.complete_shared_capacity_growth_after_acquisition(growth) {
-    Err(issue) => return Err(Bootstrap(Resource(issue)))
+  // The physical receipt's usable suffix updates only this SAME original
+  // acquired window. The full mapping remains on the Root control claim;
+  // neither the old contiguous extent nor its address is expanded.
+  let completed = if domain.view.loan.initial_window is Some(_) {
+    let payload = domain_growth_scalar_ffi(
+      self.backing,
+      domain.physical,
+      serial,
+      5,
+    )
+    let controls = domain_growth_scalar_ffi(
+      self.backing,
+      domain.physical,
+      serial,
+      6,
+    )
+    if payload <= controls || controls < 0L {
+      return Err(Bootstrap(Unavailable))
+    }
+    let loan = domain.view.loan
+    @resources.complete_backed_execution_window_after_acquisition(
+      loan.region.accounting,
+      self,
+      child,
+      loan.accounting,
+      growth,
+      payload - controls,
+    ).map_err(issue => Accounting(issue))
+  } else {
+    @resources.complete_shared_capacity_growth_after_acquisition(growth).map_err(issue => {
+        Bootstrap(Resource(issue))
+      },
+    )
+  }
+  match completed {
+    Err(issue) => return Err(issue)
     Ok(_) => {
       self.growth = None
       domain.working_growth_serial = None
@@ -315,6 +352,7 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_read_working(
   domain : NativeBackedExecutionDomain[T, C],
   child : C,
   contiguous_bytes : Int64,
+  minimum_usable_bytes? : Int64 = 0L,
 ) -> Result[Unit, NativeBackedExecutionIssue] {
   match self.require_backed_read_context_current(original, domain, child) {
     Err(issue) => return Err(issue)
@@ -324,14 +362,17 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_read_working(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match
-    checked_read_working_status_ffi(
-      self.backing,
-      domain.physical,
-      contiguous_bytes,
-    ) {
-    0 => Ok(())
-    1 if domain.working_growth_prepared => {
+  if minimum_usable_bytes < 0L {
+    return Err(Bootstrap(Unavailable))
+  }
+  let placement = checked_read_working_status_ffi(
+    self.backing,
+    domain.physical,
+    contiguous_bytes,
+  )
+  match placement {
+    0 if minimum_usable_bytes == 0L => Ok(())
+    0 | 1 if domain.working_growth_prepared => {
       match
         self.grow_backed_domain_working(
           original,
@@ -339,6 +380,7 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_read_working(
           child,
           contiguous_bytes,
           checked_read=true,
+          minimum_usable_bytes~,
         ) {
         Err(issue) => return Err(issue)
         Ok(_) => ()
