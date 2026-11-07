@@ -2448,6 +2448,8 @@ pub fn client_program_kintone_prepare_delete_preview(@actql/actql/connectors/kin
 
 pub fn client_program_kintone_prepare_read(@actql/actql/connectors/kintone/host.RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@actql/actql/connectors/kintone/host.PreparedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_prepare_update_mapping(@actql/actql/connectors/kintone/host.RecordDeclaration, String, Array[@client_row_source_host.RowMappingSource], String, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordUpdateMapping, @client_row_source_host.RowMappingIssue]
+
 pub fn client_program_kintone_project_form(Bytes, String, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[@actql/actql/connectors/kintone/catalog.FormFieldCatalog, @actql/actql/connectors/kintone/catalog.FormFieldIssue]
 
 pub fn client_program_kintone_project_record_page(Bytes, @actql/actql/connectors/kintone/catalog.FormFieldCatalog, Array[String], @actql/actql/connectors/kintone/catalog.RecordPageLimits) -> Result[@actql/actql/connectors/kintone/catalog.OriginalRecordPage, @actql/actql/connectors/kintone/catalog.RecordPageIssue]
@@ -2475,6 +2477,16 @@ pub fn client_program_kintone_update_app_id(@actql/actql/connectors/kintone/cata
 pub fn client_program_kintone_update_body(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> String
 
 pub fn client_program_kintone_update_count(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> Int
+
+pub fn client_program_kintone_update_mapping_body(@actql/actql/connectors/kintone/host.RecordUpdateMapping) -> Result[String, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_kintone_update_mapping_cid(@actql/actql/connectors/kintone/host.RecordUpdateMapping) -> Result[String, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_kintone_update_mapping_matches_declaration(@actql/actql/connectors/kintone/host.RecordUpdateMapping, @actql/actql/connectors/kintone/host.RecordDeclaration) -> Bool
+
+pub fn client_program_kintone_update_mapping_matches_request(@actql/actql/connectors/kintone/host.RecordUpdateMapping, @actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> Bool
+
+pub fn client_program_kintone_update_mapping_ref(@actql/actql/connectors/kintone/host.RecordUpdateMapping) -> Result[String, @client_row_source_host.RowMappingIssue]
 
 pub fn client_program_kintone_update_observation(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 

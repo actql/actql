@@ -1,0 +1,83 @@
+// Same-runtime original kintone UPDATE Mapping DATA for the installed Host.
+// These ports issue no Account decision, target observation, claim or send.
+
+///|
+#export_name("clientProgramKintonePrepareUpdateMapping")
+pub fn client_program_kintone_prepare_update_mapping(
+  original : @kintone_host.RecordDeclaration,
+  resource : String,
+  sources : Array[@client_row_source_host.RowMappingSource],
+  approval : String,
+  limits : @client_row_source_host.RowDeclarationLimits,
+) -> Result[
+  @kintone_host.RecordUpdateMapping,
+  @client_row_source_host.RowMappingIssue,
+] {
+  @kintone_host.prepare_record_update_mapping(
+    original, resource, sources, approval, limits,
+  )
+}
+
+///|
+fn client_kintone_original_update_mapping(
+  mapping : @kintone_host.RecordUpdateMapping,
+) -> Result[
+  @client_row_source_host.RowMapping,
+  @client_row_source_host.RowMappingIssue,
+] {
+  if !@kintone_host.record_update_mapping_is_original(mapping) {
+    return Err(InvalidSpecification)
+  }
+  Ok(@kintone_host.record_update_mapping(mapping))
+}
+
+///|
+#export_name("clientProgramKintoneUpdateMappingBody")
+pub fn client_program_kintone_update_mapping_body(
+  mapping : @kintone_host.RecordUpdateMapping,
+) -> Result[String, @client_row_source_host.RowMappingIssue] {
+  match client_kintone_original_update_mapping(mapping) {
+    Ok(original) => Ok(original.body)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+#export_name("clientProgramKintoneUpdateMappingRef")
+pub fn client_program_kintone_update_mapping_ref(
+  mapping : @kintone_host.RecordUpdateMapping,
+) -> Result[String, @client_row_source_host.RowMappingIssue] {
+  match client_kintone_original_update_mapping(mapping) {
+    Ok(original) => Ok(original.mapping_ref)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+#export_name("clientProgramKintoneUpdateMappingCid")
+pub fn client_program_kintone_update_mapping_cid(
+  mapping : @kintone_host.RecordUpdateMapping,
+) -> Result[String, @client_row_source_host.RowMappingIssue] {
+  match client_kintone_original_update_mapping(mapping) {
+    Ok(original) => Ok(original.mapping_cid)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+#export_name("clientProgramKintoneUpdateMappingMatchesDeclaration")
+pub fn client_program_kintone_update_mapping_matches_declaration(
+  mapping : @kintone_host.RecordUpdateMapping,
+  original : @kintone_host.RecordDeclaration,
+) -> Bool {
+  @kintone_host.record_update_mapping_matches_declaration(mapping, original)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateMappingMatchesRequest")
+pub fn client_program_kintone_update_mapping_matches_request(
+  mapping : @kintone_host.RecordUpdateMapping,
+  request : @kintone_catalog.RecordUpdateRequest,
+) -> Bool {
+  @kintone_host.record_update_mapping_matches_request(mapping, request)
+}

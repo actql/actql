@@ -83302,6 +83302,240 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
+      "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_kintone_original_update_mapping",
+            "client_program_kintone_prepare_update_mapping",
+            "client_program_kintone_update_mapping_body",
+            "client_program_kintone_update_mapping_cid",
+            "client_program_kintone_update_mapping_matches_declaration",
+            "client_program_kintone_update_mapping_matches_request",
+            "client_program_kintone_update_mapping_ref"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Kintone UPDATE Mapping originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The kintone UPDATE Node binding passes the original `RecordDeclaration`, bounded"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "complete before/write/omit inventories. Equal copied private fields do not"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "normal current, authorization, cancellation and physical cleanup duties remain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "These are synchronous DATA checks, not current authority, a target observation,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "establish that correspondence. Body/ref/CID projections refuse copied Mappings."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous DATA only; this binding performs no I/O, issues no permission and returns no cancellation or retirement acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "reserves constructor work before invocation and retains the resulting material;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "with their existing owners. The RelA bridge is generated from the same body."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_update_bridge_wbtest.mbt",
+                "anchor": "test \"kintone UPDATE Node bridge refuses a copied private Mapping before exposing material\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_update_original_wbtest.mbt",
+                "anchor": "test \"kintone UPDATE Mapping refuses copied DATA with the same retained declaration\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "9573a2c93dee0040643f62814113629aa0328c5f7f1232d70eb89d3865bd88ba",
+      "operations": [
+        {
+          "name": "client_kintone_original_update_mapping",
+          "declaration": "client_kintone_original_update_mapping ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_update_mapping",
+          "declaration": "client_program_kintone_prepare_update_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordUpdateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_body",
+          "declaration": "client_program_kintone_update_mapping_body ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_cid",
+          "declaration": "client_program_kintone_update_mapping_cid ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_matches_declaration",
+          "declaration": "client_program_kintone_update_mapping_matches_declaration ( mapping : @ kintone_host . RecordUpdateMapping , original : @ kintone_host . RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_matches_request",
+          "declaration": "client_program_kintone_update_mapping_matches_request ( mapping : @ kintone_host . RecordUpdateMapping , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_ref",
+          "declaration": "client_program_kintone_update_mapping_ref ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
+      "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_kintone_original_update_mapping",
+            "client_program_kintone_prepare_update_mapping",
+            "client_program_kintone_update_mapping_body",
+            "client_program_kintone_update_mapping_cid",
+            "client_program_kintone_update_mapping_matches_declaration",
+            "client_program_kintone_update_mapping_matches_request",
+            "client_program_kintone_update_mapping_ref"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Kintone UPDATE Mapping originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The kintone UPDATE Node binding passes the original `RecordDeclaration`, bounded"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "complete before/write/omit inventories. Equal copied private fields do not"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "normal current, authorization, cancellation and physical cleanup duties remain"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "These are synchronous DATA checks, not current authority, a target observation,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "establish that correspondence. Body/ref/CID projections refuse copied Mappings."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous DATA only; this binding performs no I/O, issues no permission and returns no cancellation or retirement acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "reserves constructor work before invocation and retains the resulting material;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "with their existing owners. The RelA bridge is generated from the same body."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_kintone_update_bridge_wbtest.mbt",
+                "anchor": "test \"kintone UPDATE Node bridge refuses a copied private Mapping before exposing material\""
+              },
+              {
+                "path": "src/connectors/kintone/host/record_update_original_wbtest.mbt",
+                "anchor": "test \"kintone UPDATE Mapping refuses copied DATA with the same retained declaration\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "a54d333813951d4ff72293dee88f1ab8945da9b49386b33f1b0512309513b9c4",
+      "operations": [
+        {
+          "name": "client_kintone_original_update_mapping",
+          "declaration": "client_kintone_original_update_mapping ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_update_mapping",
+          "declaration": "client_program_kintone_prepare_update_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordUpdateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_body",
+          "declaration": "client_program_kintone_update_mapping_body ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_cid",
+          "declaration": "client_program_kintone_update_mapping_cid ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_matches_declaration",
+          "declaration": "client_program_kintone_update_mapping_matches_declaration ( mapping : @ kintone_host . RecordUpdateMapping , original : @ kintone_host . RecordDeclaration , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_matches_request",
+          "declaration": "client_program_kintone_update_mapping_matches_request ( mapping : @ kintone_host . RecordUpdateMapping , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_ref",
+          "declaration": "client_program_kintone_update_mapping_ref ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        }
+      ]
     }
   ]
 }
