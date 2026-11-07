@@ -98,10 +98,12 @@ fn require_installed_source_read_current(
     // The current callback may retire this read but leave the parent's slot.
     // These scalar/reference guards add no Result/Unit constructor to existing
     // Source paths; preserve their original single returned Ledger Result.
+    // Successful retirement cuts both aliases. Preserve its typed outcome
+    // before checking nominal correspondence after the callback returns.
+    guard value.ledger is Some(retained_ledger) else { return Err(Retired) }
     guard value.original is Some(retained) && physical_equal(retained, value) else {
       return Err(ForeignOriginal)
     }
-    guard value.ledger is Some(retained_ledger) else { return Err(Retired) }
     guard physical_equal(retained_ledger, ledger) &&
       value.managed_run is Some((retained_run, retained_occurrence)) &&
       physical_equal(retained_run, run) &&
@@ -118,10 +120,10 @@ fn require_installed_source_read_current(
   match @resources.check_original_resources_mutable(ledger) {
     Err(issue) => Err(Resource(issue))
     Ok(_) => {
+      guard value.ledger is Some(retained_ledger) else { return Err(Retired) }
       guard value.original is Some(retained) && physical_equal(retained, value) else {
         return Err(ForeignOriginal)
       }
-      guard value.ledger is Some(retained_ledger) else { return Err(Retired) }
       guard physical_equal(retained_ledger, ledger) &&
         value.child is Some(retained_child) &&
         physical_equal(retained_child, child) &&
