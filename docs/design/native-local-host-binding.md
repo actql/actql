@@ -86,6 +86,15 @@ same entry and retirement position pending; it does not acknowledge the
 command's physical Read. Only the existing Read/domain/arena owners report
 physical closure after all command-held aliases retire.
 
+Fresh check/business callers extend the exact selected installation Environment
+with those same normalized Task originals through the common Task projector.
+The ordinary Native Environment admission still checks the complete result;
+no Host-side Task or contract table is reconstructed. One command retains the
+original base and projected Environment once. Configuration-file currentness
+continues to compare its original captured bytes, while the Request/check
+reference consumes the projected semantic identity. Saved routes do not rebuild
+current Project Tasks or replace a retained Run's Environment.
+
 ## Ordinary literal query caller
 
 Trusted public `sql` and literal `aql` select the ordinary Local Host when no

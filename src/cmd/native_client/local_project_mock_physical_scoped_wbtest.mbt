@@ -1,5 +1,8 @@
 ///|
-fn native_project_mock_model_in_original_read(partial : Bool) -> Unit raise {
+fn native_project_mock_model_in_original_read(
+  partial : Bool,
+  environment : Bool,
+) -> Unit raise {
   let original = native_project_mock_model_fixture(
     if partial {
       "deal-review-wrong-answer"
@@ -23,11 +26,55 @@ fn native_project_mock_model_in_original_read(partial : Bool) -> Unit raise {
   } else {
     result.unwrap()
     assert_true(original.models[0].installation is Some(_))
+    if environment {
+      let base = explain_fixture_environment()
+      let prepared = original.prepare_model_environment(base).unwrap()
+      assert_true(
+        physical_equal(
+          prepared,
+          original.prepare_model_environment(base).unwrap(),
+        ),
+      )
+      let tasks = @checked.checking_environment_model_tasks(prepared).unwrap()
+      let task = @compiler_environment.resolve_model_task(
+        tasks, "model-task:deal-review.v1",
+      ).unwrap()
+      assert_true(
+        @compiler_environment.normalized_public_mock_model_task_matches_task(
+          original.models[0].normalized.unwrap(),
+          original.models[0].declaration,
+          original.model_profile.unwrap(),
+          task,
+        ),
+      )
+      // Equal separately admitted DATA cannot replace this caller's base.
+      assert_true(
+        original.prepare_model_environment(explain_fixture_environment())
+        is Err(ForeignOriginal),
+      )
+      assert_eq(
+        @compiler_environment.member_count(
+          @checked.checking_environment_wire(base),
+          ModelTaskContracts,
+        ),
+        0,
+      )
+      assert_eq(
+        @compiler_environment.member_count(
+          @checked.checking_environment_wire(prepared),
+          ModelTaskContracts,
+        ),
+        1,
+      )
+    }
   }
 }
 
 ///|
-fn native_project_mock_model_backed_read(partial : Bool) -> Unit raise {
+fn native_project_mock_model_backed_read(
+  partial : Bool,
+  environment? : Bool = false,
+) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
   let profile = local_command_installed_profile(
@@ -81,7 +128,7 @@ fn native_project_mock_model_backed_read(partial : Bool) -> Unit raise {
       fail("actual metadata Read pending")
   }
   host.enter_domain_original_read(read).unwrap()
-  native_project_mock_model_in_original_read(partial)
+  native_project_mock_model_in_original_read(partial, environment)
   host.leave_domain_original_read(read).unwrap()
   match host.close_domain_original_read(read) {
     Ok(_) => ()
@@ -111,4 +158,9 @@ test "Native Project Mock actual backed Read retires Model metadata without a fa
 ///|
 test "Native Project Mock actual backed Read closes a partial Model constructor without suppressing its refusal" {
   native_project_mock_model_backed_read(true)
+}
+
+///|
+test "Native Project Mock actual backed Read projects original Model environment once before Request checking" {
+  native_project_mock_model_backed_read(false, environment=true)
 }

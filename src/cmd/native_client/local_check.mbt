@@ -113,7 +113,7 @@ fn local_check_context(
     configuration_body,
     environment_name,
     environment_body,
-    environment,
+    environment: local_command_project_environment(environment),
     audience: settings.principal,
     connection: settings.connection,
   }
