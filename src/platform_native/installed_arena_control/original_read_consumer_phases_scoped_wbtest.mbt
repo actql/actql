@@ -119,3 +119,63 @@ test "managed aliases remain on the same original loan across resumed physical s
   held.val = None
   original_read_consumer_finish(fixture)
 }
+
+///|
+test "same original Native Read grows its reservation and retains actual returned storage" {
+  println("Native Read working diagnostic: before fixture")
+  let fixture = original_read_consumer_fixture("consumer-working-growth")
+  println("Native Read working diagnostic: fixture ready")
+  let host = fixture.host
+  let consumer = host
+    .prepare_domain_original_read_consumer(fixture.read, 16384L, 32768L)
+    .unwrap()
+  println("Native Read working diagnostic: consumer prepared")
+  assert_false(consumer.working_snapshot_pending)
+  let claim = fixture.read.claim.unwrap()
+  let workspace = consumer.workspace
+  let held : Ref[Bytes?] = Ref(None)
+  guard host.enter_domain_original_read_consumer(consumer) is Ok(_) else {
+    fail("Native Read working diagnostic: physical enter refused")
+  }
+  // This actual Bytes constructor runs in the SAME selected physical Read.
+  // The fixture has an already acquired finite domain; it does not prove
+  // acquisition beyond that domain or the complete variable Journal recipe.
+  let growth = host.grow_domain_original_read_consumer_capacity(
+    consumer, 98304L, 98304L,
+  )
+  if growth is Err(_) {
+    host.leave_domain_original_read_consumer(consumer).unwrap()
+    match growth {
+      Err(Read(@resources.Resource(@resources.RetentionLimit))) =>
+        fail("Native Read working diagnostic: retention refused")
+      Err(Read(@resources.Resource(@resources.ExecutionLimit))) =>
+        fail("Native Read working diagnostic: execution refused")
+      Err(Read(@resources.ChangedOriginalState)) =>
+        fail("Native Read working diagnostic: original snapshot changed")
+      _ => fail("Native Read working diagnostic: other grow refusal")
+    }
+  }
+  let pending = consumer.working_snapshot_pending
+  held.val = Some(Bytes::make(70000, 73))
+  host.leave_domain_original_read_consumer(consumer).unwrap()
+  assert_true(physical_equal(fixture.read.claim.unwrap(), claim))
+  assert_true(physical_equal(consumer.workspace, workspace))
+  assert_eq(
+    (consumer.retained_bytes, consumer.execution_bytes),
+    (98304L, 98304L),
+  )
+  host.resume_domain_original_read_consumer_scope(consumer).unwrap()
+  let preserved = held.val.unwrap().length() == 70000 &&
+    held.val.unwrap()[69999] == 73
+  host.leave_domain_original_read_consumer(consumer).unwrap()
+  assert_true(preserved && pending)
+  assert_true(host.close_domain_original_read(fixture.read) is Err(_))
+  assert_false(consumer.working_snapshot_pending)
+  assert_false(fixture.read.physical_retired.val || fixture.read.closed)
+  assert_true(
+    host.grow_domain_original_read_consumer_capacity(consumer, 98304L, 98304L)
+    is Err(_),
+  )
+  held.val = None
+  original_read_consumer_finish(fixture)
+}

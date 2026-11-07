@@ -83,17 +83,46 @@ fn LocalCommandPreparationOriginal::begin_business_request(
   guard self.business is Some(business) &&
     business.request_input is Some(input) &&
     business.request_initial is Some(initial) &&
-    business.request_parent is None else {
+    business.request_parent is None &&
+    business.execution is Some(_) &&
+    !business.active &&
+    self.journal is Some(original) &&
+    physical_equal(original, capture) &&
+    !self.closing &&
+    !self.closed else {
     stop("LocalBusinessOriginalUnavailable")
   }
-  self.with_business_request(capture, () => {
-    let parent = @local_values.begin_backed_request_preparation(
-      initial,
-      input,
-      @local_values.client_local_resource_policy(),
-    ).unwrap_or_else(() => stop("LocalRequestPreparationUnavailable"))
+  // The nominal Request/census controls outlive its payload frame. Construct
+  // only this fixed entrance in the existing outer initialization lifetime,
+  // while the SAME original Journal Read is suspended. No payload runs here.
+  command_preparation_result(
+    capture
+    .suspend_original_read_for_preparation()
+    .map_err(issue => CommandAdoption(issue)),
+    stage=Some("request-control-suspend"),
+  )
+  let prepared = @local_values.begin_backed_request_preparation(
+    initial,
+    input,
+    @local_values.client_local_resource_policy(),
+  )
+  if prepared is Ok(parent) {
     business.request_parent = Some(parent)
-  })
+  }
+  let resumed = capture
+    .resume_original_read_after_preparation()
+    .map_err(issue => CommandAdoption(issue))
+  match prepared {
+    Err(issue) => {
+      self.retain_primary(CommandRequestPreparation(issue))
+      if resumed is Err(issue) {
+        self.retain_primary(issue)
+      }
+      stop("LocalRequestPreparationUnavailable")
+    }
+    Ok(_) =>
+      command_preparation_result(resumed, stage=Some("request-control-return"))
+  }
 }
 
 ///|
@@ -195,5 +224,43 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
     business.request_initial = None
     business.request_input = None
     business.request_intent = None
+  })
+}
+
+///|
+// Consume the already checked Effect and its same Request borrow inside the
+// original backed execution. This is the first sequence compiler, never a
+// second input/check compiler or a durable admission/approval/write permit.
+fn LocalCommandBusinessPreparation::compile_effect_first(
+  self : LocalCommandBusinessPreparation,
+  scope : String,
+  configuration_cid : String,
+  namespace_id : String,
+  request_id : String,
+  now : String,
+  until : String,
+) -> LocalEffectFirstCompilation raise ClientStop {
+  guard self.original.business is Some(business) &&
+    business.request_parent is Some(_) &&
+    business.request_input is Some(_) &&
+    business.request_intent is Some(intent) &&
+    physical_equal(intent, self.intent) &&
+    business.request_body is Some(@local_host.Effect(borrow)) &&
+    @local_host.native_client_submitted_preparation(self.preparation)
+    is EffectComputation(prepared) &&
+    @initial_resources.preparation_body_borrow_value(borrow) is Some(original) &&
+    physical_equal(original, prepared) else {
+    stop("LocalBusinessOriginalUnavailable")
+  }
+  self.original.with_business_request(self.capture, () => {
+    local_effect_first_compilation(
+      self.preparation,
+      scope,
+      configuration_cid,
+      namespace_id,
+      request_id,
+      now,
+      until,
+    )
   })
 }

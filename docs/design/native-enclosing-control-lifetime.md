@@ -18,8 +18,10 @@ same-root growth transaction must acquire it first.
 The private construction fact contains a maximum raw managed allocation request
 and the total number of allocator requests in a closed cohort. It counts sequential
 requests too: failed physical retirement can retain pages after their last managed
-aliases disappear. A live-object maximum is insufficient. Earlier cohorts remain
-charged until actual context retirement; observed free pages do not recycle credit.
+aliases disappear. A live-object maximum is insufficient. Only the original cohort finish can
+reconcile its acknowledged retired pages and unused permits. Escaped aliases and
+failed physical retirement remain charged; observed free pages do not recycle
+credit.
 
 For the closed small-object family, the quote uses the selected allocator's actual
 page size, rounding, block/page metadata and slab threshold. Every request must
@@ -34,11 +36,13 @@ protection call. Failed or lost activation acknowledgement retains that exact
 extent as pending retirement, even if its contents cannot safely be read. Partial
 preparation fences entry and keeps the complete admitted claim until cleanup.
 
-A prepared context consumes a private cumulative constructor-request count and
+A prepared context consumes a private constructor-request count for its selected
+cohort and
 uses only its already activated slabs. It cannot obtain another page in a
 constructor or silently use the ordinary runtime allocator. A new closed cohort
 may be activated outside the Read while old aliases remain live. Its count and
-claim are added only through the same original control path. These counts are
+claim are added only through the same original control path. The count is not a
+Host-lifetime cumulative quota. These counts are
 construction fences, not a standing application quota. Exhausting a certificate
 is an implementation error, not a normal resource-refusal mechanism; issuers must
 close all success and failure alternatives before a production caller may enter.
@@ -127,3 +131,27 @@ Revocation disables the carrier before releasing strong references. It returns
 no Resource borrow, view, loan, allocation or mapping credit. Escaped carrier
 aliases remain ordinary root Read aliases until their own last release. A
 finalizer never supplies a physical retirement acknowledgment.
+
+
+## Same-parent domain working acquisition
+
+The physical domain supplier quotes the complete new contiguous constructor
+requirement, including the actual child and root segment controls and the
+self-hosted original receipt. The existing parent capacity reservation admits
+the whole addition before acquisition. The whole addition stays in its original
+owned claim, so it cannot also be handed out as free parent capacity. This is
+physical mapping custody; it does not increase the child's logical limits or
+replace its original Read reservation.
+
+Only an exact atomic no-acquisition outcome can cancel that pending addition.
+An attached, partial or unknown result keeps the same root transaction and
+physical serial. Reconciliation uses the supplier's retained original receipt
+outside allocator scopes. Even a detached partial child segment leaves the root
+mapping charged until the original root actually closes. Child domain, view and
+loan retirement still precede root mapping retirement.
+
+This connection alone does not certify Common constructor geometry or select
+the observed Journal codec. A production constructor must retain the original
+Read and separately cover its complete control, payload, failed-child and cleanup
+coexistence before calling the physical supplier. Logical representation units
+are not a Native contiguous allocation size.

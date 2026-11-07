@@ -590,6 +590,13 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
         })
       },
       CustodyLost,
+      before_construction=operations.bind(original => {
+        if physical_equal(self.database, original.reads.database) {
+          original.before_construction
+        } else {
+          Some((_, _, _) => Err(@host.ClientJournalEncodingIssue::Encoding))
+        }
+      }),
       usage=Some(() => {
         if self.append_schema != 1 {
           return Err(CustodyLost)

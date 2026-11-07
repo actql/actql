@@ -134,6 +134,9 @@ int actql_native_owned_attach_in_process_domain_segment(
  * Quote serials only fence the same original operation; they are not handles
  * or funding. The trusted owner must reserve the complete quoted root addition
  * before acquire. Partial/unknown outcome stays charged until actual cleanup.
+ * A previously selected child allocation ceiling stays unchanged, including
+ * added allocator controls. This checked supplier does not reopen the separate
+ * public attach port or increase the child's occupied-page allowance.
  * Scalars: 0 state (idle/quoted/acquiring/attached/refused/partial/closed),
  * 1 expected root bytes, 2 expected child bytes, 3 added root bytes,
  * 4 added root controls, 5 added child bytes, 6 added child controls,
@@ -148,6 +151,25 @@ enum actql_owned_growth_outcome {
     ACTQL_OWNED_GROWTH_ATTACHED_COMMITTED = 2,
     ACTQL_OWNED_GROWTH_CHILD_RETIRED_ROOT_RETAINED = 3
 };
+
+/* Scalar original-placement observation only: 0 fits, 1 needs physical
+ * backing, -1 refuses. Neither result grants storage or acknowledges cleanup. */
+int actql_native_owned_working_request_status(actql_owned_capacity *domain,
+    size_t bytes);
+int actql_native_owned_domain_growth_eligible(actql_owned_capacity *domain,
+    actql_owned_extent_view *original_view);
+
+/* Original checked Read route only. The trusted adapter binds the issued
+ * consumer/current context and funds the complete actual parent addition.
+ * These scalar ports alone confer neither quota nor a new Read. */
+int actql_native_owned_bound_working_allocations(actql_owned_capacity *domain,
+    size_t initial_bytes, size_t maximum_bytes);
+int actql_native_owned_checked_read_working_status(actql_owned_capacity *domain, size_t bytes);
+int actql_native_owned_quote_checked_read_growth(actql_owned_capacity *domain,
+    size_t bytes, uint64_t *serial);
+
+int actql_native_owned_quote_checked_read_growth_covering(actql_owned_capacity *domain,
+    size_t contiguous_bytes, size_t minimum_usable_bytes, uint64_t *serial);
 
 int actql_native_owned_prepare_domain_growth(actql_owned_capacity *domain,
     actql_owned_extent_view *original_view);

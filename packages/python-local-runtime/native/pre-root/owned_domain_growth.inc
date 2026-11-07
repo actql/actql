@@ -35,6 +35,26 @@ static bool domain_growth_layout(actql_owned_capacity *lease, size_t payload,
     return *total <= PTRDIFF_MAX;
 }
 
+/* Actual additional Root segment for one known payload allocation. This is
+ * a read-only sizeof/alignment quote, not a reservation or physical receipt. */
+int actql_native_owned_growth_for_payload_bytes(actql_owned_capacity *lease,
+    size_t payload_bytes, uint64_t *out) {
+    if (lease == NULL || out == NULL || *out != 0 || payload_bytes == 0 ||
+        current_capacity != lease || foreign_domain_process(lease)) return ACTQL_OWNED_INVALID;
+    lock_capacity(lease);
+    size_t total = 0, controls = 0;
+    int status = ACTQL_OWNED_INVALID;
+    if (!lease->extent_domain && !lease->fd_backed && lease->transferred &&
+        !lease->closing && lease->pending_growth_domain == NULL &&
+        domain_growth_layout(lease, payload_bytes, 0, &total, &controls) &&
+        total > controls && total - controls >= payload_bytes) {
+        *out = total;
+        status = ACTQL_OWNED_OK;
+    }
+    unlock_capacity(lease);
+    return status;
+}
+
 /* Retirement uses identity without reopening either closing original. */
 static bool domain_growth_identity_locked(actql_owned_capacity *domain) {
     struct owned_domain_growth *growth = &domain->growth;
@@ -51,8 +71,61 @@ static bool domain_growth_identity_locked(actql_owned_capacity *domain) {
 
 static bool domain_growth_original_locked(actql_owned_capacity *domain) {
     return domain_growth_identity_locked(domain) && !domain->growth.parent->closing &&
-        !domain->closing && !domain->domain_borrow_attempted &&
-        !domain->allocation_ceiling_attempted;
+        !domain->closing && !domain->domain_borrow_attempted;
+}
+
+/* Actual placement observation for a known constructor before allocation.
+ * This reserves/activates nothing and cannot prove that a later constructor
+ * ran. 0 means an original span fits, 1 requires backing, -1 is refusal. */
+static int working_request_status_original(actql_owned_capacity *domain,
+    size_t bytes, bool checked_read) {
+    if (domain == NULL || bytes == 0 || current_capacity != domain ||
+        current_process != getpid() || foreign_domain_process(domain)) return -1;
+    lock_capacity(domain);
+    int result = -1;
+    size_t pages;
+    if (domain->closing || !domain->transferred ||
+        domain->pending_growth_domain != NULL || domain->growth.state != OWNED_GROWTH_IDLE ||
+        !round_pages(bytes, domain->page_size, &pages)) goto done;
+    if (domain->occupied_pages > domain->allocation_ceiling_pages ||
+        pages > domain->allocation_ceiling_pages - domain->occupied_pages) {
+        if (checked_read && domain->allocation_working_bound &&
+            domain->occupied_pages <= domain->allocation_maximum_pages &&
+            pages <= domain->allocation_maximum_pages - domain->occupied_pages &&
+            domain_growth_original_locked(domain)) result = 1;
+        goto done;
+    }
+    result = 1;
+    for (size_t start = domain->first_free_page;
+         start < domain->page_count && pages <= domain->page_count - start;) {
+        size_t free_pages = 0;
+        while (free_pages < pages && owned_extent(domain, start + free_pages)->pages == 0)
+            free_pages++;
+        if (free_pages == pages) { result = 0; break; }
+        start += free_pages + 1;
+    }
+ done:
+    unlock_capacity(domain);
+    return result;
+}
+
+int actql_native_owned_working_request_status(actql_owned_capacity *domain, size_t bytes) {
+    return working_request_status_original(domain, bytes, false);
+}
+
+/* Trusted original Read consumer only, after checking the same declared demand. This
+ * observes need, not permission. Actual parent admission/acquisition follows. */
+int actql_native_owned_checked_read_working_status(actql_owned_capacity *domain, size_t bytes) {
+    return working_request_status_original(domain, bytes, true);
+}
+
+int actql_native_owned_domain_growth_eligible(actql_owned_capacity *domain,
+    actql_owned_extent_view *view) {
+    return domain != NULL && view != NULL && view->original == view &&
+        view->local_loan != NULL && view->local_loan->owner != NULL &&
+        !domain->fd_backed && !view->local_loan->owner->fd_backed &&
+        whole_local_domain_view(view, view->local_loan->owner) &&
+        actql_native_owned_domain_matches_view(domain, view, getpid()) == ACTQL_OWNED_OK;
 }
 
 int actql_native_owned_prepare_domain_growth(actql_owned_capacity *domain,
@@ -81,8 +154,9 @@ int actql_native_owned_prepare_domain_growth(actql_owned_capacity *domain,
     return status;
 }
 
-int actql_native_owned_quote_domain_growth(actql_owned_capacity *domain,
-    size_t contiguous_payload_bytes, uint64_t *serial) {
+static int quote_domain_growth_original(actql_owned_capacity *domain,
+    size_t contiguous_payload_bytes, size_t minimum_usable_bytes,
+    uint64_t *serial, bool checked_read) {
     if (domain == NULL || serial == NULL || *serial != 0 ||
         current_capacity != domain || current_process != getpid() ||
         domain->growth.parent == NULL) return ACTQL_OWNED_INVALID;
@@ -95,11 +169,34 @@ int actql_native_owned_quote_domain_growth(actql_owned_capacity *domain,
     size_t child_bytes, child_controls, root_bytes, root_controls;
     if (growth->state != OWNED_GROWTH_IDLE || growth->serial == INT64_MAX ||
         parent->pending_growth_domain != NULL || !domain_growth_original_locked(domain) ||
-        !domain_growth_layout(domain, contiguous_payload_bytes, 0, &child_bytes, &child_controls) ||
+        !domain_growth_layout(domain,
+            contiguous_payload_bytes > minimum_usable_bytes ? contiguous_payload_bytes : minimum_usable_bytes,
+            0, &child_bytes, &child_controls) ||
         !domain_growth_layout(parent, child_bytes, sizeof(struct owned_growth_receipt),
                               &root_bytes, &root_controls) ||
         child_bytes > PTRDIFF_MAX - domain->length || root_bytes > PTRDIFF_MAX - parent->length)
         goto done;
+    const bool expand_bound = checked_read && domain->allocation_working_bound;
+    if (!expand_bound && domain->allocation_ceiling_attempted &&
+        (domain->occupied_pages > domain->allocation_ceiling_pages ||
+         child_controls / domain->page_size >
+             domain->allocation_ceiling_pages - domain->occupied_pages)) {
+        status = ACTQL_OWNED_EXHAUSTED;
+        goto done;
+    }
+    if (expand_bound) {
+        size_t pages = 0;
+        if ((contiguous_payload_bytes != 0 &&
+             !round_pages(contiguous_payload_bytes, domain->page_size, &pages)) ||
+            domain->occupied_pages > domain->allocation_maximum_pages ||
+            child_controls / domain->page_size > domain->allocation_maximum_pages - domain->occupied_pages ||
+            pages > domain->allocation_maximum_pages - domain->occupied_pages - child_controls / domain->page_size) {
+            status = ACTQL_OWNED_EXHAUSTED;
+            goto done;
+        }
+    }
+    growth->ceiling_before = domain->allocation_ceiling_pages;
+    growth->expand_read_bound = expand_bound;
     growth->expected_parent = parent->length;
     growth->expected_domain = domain->length;
     growth->parent_bytes = root_bytes;
@@ -114,6 +211,23 @@ done:
     unlock_capacity(domain);
     unlock_capacity(parent);
     return status;
+}
+
+int actql_native_owned_quote_domain_growth(actql_owned_capacity *domain,
+    size_t bytes, uint64_t *serial) {
+    return quote_domain_growth_original(domain, bytes, 0, serial, false);
+}
+
+int actql_native_owned_quote_checked_read_growth(actql_owned_capacity *domain,
+    size_t bytes, uint64_t *serial) {
+    return quote_domain_growth_original(domain, bytes, 0, serial, true);
+}
+
+/* Raw constructor placement and simultaneous acquired-pool coverage are
+ * different dimensions. Only their actual backing layout shares a maximum. */
+int actql_native_owned_quote_checked_read_growth_covering(actql_owned_capacity *domain,
+    size_t contiguous_bytes, size_t minimum_usable_bytes, uint64_t *serial) {
+    return quote_domain_growth_original(domain, contiguous_bytes, minimum_usable_bytes, serial, true);
 }
 
 int actql_native_owned_domain_growth_scalar(actql_owned_capacity *domain,
@@ -161,7 +275,8 @@ int actql_native_owned_acquire_domain_growth(actql_owned_capacity *domain,
     growth->state = OWNED_GROWTH_REFUSED;
     growth->outcome = ACTQL_OWNED_GROWTH_NO_ACQUISITION;
     if (!domain_growth_original_locked(domain) || parent->pending_growth_domain != NULL ||
-        parent->length != growth->expected_parent || domain->length != growth->expected_domain)
+        parent->length != growth->expected_parent || domain->length != growth->expected_domain ||
+        domain->allocation_ceiling_pages != growth->ceiling_before)
         goto done;
     parent->pending_growth_domain = domain;
     growth->state = OWNED_GROWTH_ACQUIRING;
@@ -197,7 +312,8 @@ int actql_native_owned_acquire_domain_growth(actql_owned_capacity *domain,
     if (status != ACTQL_OWNED_OK) goto done;
     controls = 0;
     status = attach_domain_segment_locked(domain, growth->original_view,
-        &receipt->view, growth->expected_domain, &controls);
+        &receipt->view, growth->expected_domain, &controls, true,
+        growth->expand_read_bound ? growth->domain_bytes / domain->page_size : 0);
     if (status != ACTQL_OWNED_OK) goto done;
     if (controls != growth->domain_controls) { status = ACTQL_OWNED_INVALID; goto done; }
     growth->state = OWNED_GROWTH_ATTACHED;
@@ -289,6 +405,13 @@ static bool pending_domain_growth_receipt_locked(actql_owned_capacity *domain,
         selected = segment;
     }
     *attached = selected != NULL;
+    size_t added_ceiling = (*attached && (!domain->allocation_ceiling_attempted ||
+        growth->expand_read_bound)) ? growth->domain_bytes / page : 0;
+    if (added_ceiling > SIZE_MAX - growth->ceiling_before) return false;
+    size_t expected_ceiling = growth->ceiling_before + added_ceiling;
+    if (domain->allocation_ceiling_attempted && expected_ceiling > domain->allocation_maximum_pages)
+        expected_ceiling = domain->allocation_maximum_pages;
+    if (domain->allocation_ceiling_pages != expected_ceiling) return false;
     if (*attached) {
         return receipt->allocation != NULL && !receipt->allocation_retired &&
             receipt->view.domain_live && receipt->view.domain_attempted &&

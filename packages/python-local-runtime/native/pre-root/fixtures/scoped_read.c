@@ -89,11 +89,14 @@ actql_read_context *actql_bootstrap_current_read_context(void) {
  * clock, provider callback or allocation inside the observation. */
 static bool observe_read_search;
 static size_t read_search_successors;
+static size_t read_search_pages;
 void __attribute__((no_instrument_function))
 __cyg_profile_func_enter(void *function,void *caller) {
     (void)caller;
     if(observe_read_search && function==(void *)read_heap_next)
         read_search_successors++;
+    if(observe_read_search && function==(void *)allocate_read_heap_page_locked)
+        read_search_pages++;
 }
 void __attribute__((no_instrument_function))
 __cyg_profile_func_exit(void *function,void *caller) {
@@ -662,6 +665,85 @@ static bool managed_successor_search(void) {
         assert(((unsigned char *)values[i])[31]==(unsigned char)(i+1));
         actql_native_moon_scoped_free(values[i]);
     }
+    assert(stock_mi_allocations==stock);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    finish(&lease,&context);
+    return true;
+}
+
+/* Retain a real multi-page prepared cohort, then naturally miss each full
+ * page hint. Counts observe the original allocator, never a replacement. */
+static bool managed_cohort_page_search(void) {
+    const size_t calls=192;
+    size_t page=(size_t)sysconf(_SC_PAGESIZE),bytes=page/8;
+    actql_owned_capacity *lease=NULL;
+    assert(actql_native_owned_acquire(256*page,1,recipe,&lease)==0);
+    assert(actql_native_owned_transfer(lease,1,recipe)==0);
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    assert(actql_native_owned_enter(lease)==0);
+    assert(actql_read_context_prepare_managed(context,bytes,calls)==0);
+    uint64_t generation=context->managed_generation;
+    assert(actql_native_owned_leave(lease)==0);
+    context_enter(lease,context);
+    void *values[192];
+    size_t stock=stock_mi_allocations;
+    size_t occupied=lease->occupied_pages;
+    read_search_successors=0;read_search_pages=0;observe_read_search=true;
+    for(size_t i=0;i<calls;i++) {
+        values[i]=actql_native_moon_scoped_allocate(bytes);assert(values[i]);
+        memset(values[i],(int)(i+1),bytes);
+    }
+    observe_read_search=false;
+    printf("{\"allocationCalls\":%zu,\"pageProbes\":%zu,\"successorTraversals\":%zu}\n",
+        calls,read_search_pages,read_search_successors);
+    assert(context->managed_remaining==0 && lease->occupied_pages==occupied);
+    assert(read_search_successors<=4*calls && read_search_pages<=4*calls);
+    for(size_t i=0;i<calls;i++) {
+        assert(((unsigned char *)values[i])[bytes-1]==(unsigned char)(i+1));
+        actql_native_moon_scoped_free(values[i]);
+    }
+    assert(stock_mi_allocations==stock);
+    context_leave(lease,context);
+    assert(actql_native_owned_enter(lease)==0);
+    assert(actql_read_context_finish_managed(context,generation)==0);
+    assert(actql_native_owned_leave(lease)==0);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    finish(&lease,&context);
+    return true;
+}
+
+/* The circular fallback must still wrap to an earlier fitting original slab,
+ * without acquiring a new one or hiding another context's live allocation. */
+static bool managed_page_wrap_fallback(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    size_t bytes=lease->page_size/8;
+    size_t slots=(lease->page_size-read_heap_round(sizeof(struct read_heap_page)))/
+        (read_heap_round(bytes)+read_heap_header());
+    size_t calls=8*slots;
+    assert(slots>=3 && calls<=64);
+    void *values[64];
+    for(size_t i=0;i<calls;i++) {
+        values[i]=actql_native_moon_scoped_allocate(bytes);assert(values[i]);
+        memset(values[i],(int)(i+1),bytes);
+    }
+    size_t occupied=lease->occupied_pages,stock=stock_mi_allocations;
+    actql_native_moon_scoped_free(values[0]);
+    actql_native_moon_scoped_free(values[1]);
+    actql_native_moon_scoped_free(values[calls-1]);
+    void *merged=actql_native_moon_scoped_allocate(2*bytes);
+    assert(merged==values[0] && lease->occupied_pages==occupied);
+    memset(merged,0x6b,2*bytes);
+    for(size_t i=2;i<calls-1;i++) {
+        assert(((unsigned char *)values[i])[bytes-1]==(unsigned char)(i+1));
+        actql_native_moon_scoped_free(values[i]);
+    }
+    assert(((unsigned char *)merged)[2*bytes-1]==0x6b);
+    actql_native_moon_scoped_free(merged);
     assert(stock_mi_allocations==stock);
     context_leave(lease,context);
     assert(actql_read_context_release_after_owner_ack(context)==0);
@@ -1384,6 +1466,16 @@ int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
 #ifdef ACTQL_READ_SEARCH_WORK
+    if(argc==2 && strcmp(argv[1],"--managed-page-wrap-fallback-only")==0) {
+        assert(managed_page_wrap_fallback());
+        puts("{\"case\":\"same-original-page-wrap-fallback\",\"passed\":1,\"failed\":0}");
+        return 0;
+    }
+    if(argc==2 && strcmp(argv[1],"--managed-cohort-page-search-only")==0) {
+        assert(managed_cohort_page_search());
+        puts("{\"case\":\"same-original-cohort-page-search\",\"passed\":1,\"failed\":0}");
+        return 0;
+    }
     if(argc==2 && strcmp(argv[1],"--managed-successor-search-only")==0) {
         assert(managed_successor_search());
         puts("{\"case\":\"same-original-successor-search\",\"passed\":1,\"failed\":0}");

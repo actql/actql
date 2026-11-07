@@ -1,13 +1,30 @@
-/* Private enclosing control lifetime on the same transferred root allocator.
- * Constructor inventories, not logical-byte tariffs, select each cohort. This
- * first closed family covers requests proven to fit one existing slab page;
- * it is not a variable payload limit or an installed Request layout proof.
- * Count every allocator request, including sequential ones: a failed physical
- * retirement can retain the old page after its last managed alias is gone. */
+/* Enclosing control lifetime on the same original root allocator. Fixed
+ * bookkeeping uses the finite Host/domain basis; dynamic working requests
+ * still use their original ticket and actual ABI geometry before acquisition.
+ * Slab sizing/rounding and every partial receipt remain with this provider. */
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR) && defined(ACTQL_SCOPED_READ_PROVIDER) && \
     !defined(ACTQL_BOOTSTRAP_IMPORT_PROVIDER) && !defined(ACTQL_RUNTIME_MANAGED_VALUES)
 #define ACTQL_ROOT_CONTROL_CONTEXT 1
 #endif
+
+/* Source-owned initial control block size. This is implementation granularity,
+ * not a caller policy ceiling, permission, or a whole constructor certificate. */
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_root_control_basis_maximum(
+    actql_bootstrap_backing *record) {
+#if defined(ACTQL_ROOT_CONTROL_CONTEXT)
+    if (record == NULL || record->lease == NULL || record->lease->extent_domain ||
+        record->status != ACTQL_OWNED_OK) return -1;
+    size_t page = record->lease->page_size;
+    size_t overhead = read_heap_round(sizeof(struct read_heap_page)) + read_heap_header();
+    size_t maximum = page / 2;
+    if (!maximum || overhead > page || read_heap_round(maximum) > page - overhead ||
+        sizeof(actql_read_context) > page || maximum > INT64_MAX) return -1;
+    return (int64_t)maximum;
+#else
+    (void)record;
+    return -1;
+#endif
+}
 
 MOONBIT_FFI_EXPORT int64_t actql_bootstrap_root_control_quote(
     actql_bootstrap_backing *record, int64_t maximum_request, int64_t requests,
@@ -117,6 +134,88 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_leave_root_control(
     return status;
 #else
     (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+/* The original owning root scope, outside every child/read frame. This
+ * observes the same context only; it never creates a user or grants storage. */
+#if defined(ACTQL_ROOT_CONTROL_CONTEXT)
+static bool root_control_finish_current_locked(actql_bootstrap_backing *record) {
+    return record != NULL && record->lease != NULL &&
+        record->status == ACTQL_OWNED_OK && record->control_context != NULL &&
+        known_read_context(record->control_context) && record->control_user &&
+        record->control_active == 0 && read_current == NULL && read_depth == 0 &&
+        actql_native_owned_current() == record->lease &&
+        record->control_context->lease == record->lease &&
+        record->control_context->users == 1 && record->control_context->active == 0 &&
+        !record->control_context->closing &&
+        pthread_equal(record->control_context->observation_thread, pthread_self());
+}
+#endif
+
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_root_control_generation(
+    actql_bootstrap_backing *record) {
+#if defined(ACTQL_ROOT_CONTROL_CONTEXT)
+    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
+    int64_t result = ACTQL_OWNED_INVALID;
+    if (root_control_finish_current_locked(record) &&
+        record->control_context->managed_generation > 0 &&
+        record->control_context->managed_generation <= INT64_MAX)
+        result = (int64_t)record->control_context->managed_generation;
+    unlock_read_contexts();
+    return result;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+/* Reconcile only after the SAME managed generation has actually finished.
+ * Its existing finish cancels unused constructor permissions and physically
+ * retires empty/pending cohort pages. Live old aliases keep their real pages.
+ * This is not a free-space estimate, GC liveness inference or new byte grant. */
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_finish_root_control_cohort(
+    actql_bootstrap_backing *record, int64_t generation) {
+#if defined(ACTQL_ROOT_CONTROL_CONTEXT)
+    if (generation <= 0 || !lock_read_contexts()) return ACTQL_OWNED_INVALID;
+    bool current = root_control_finish_current_locked(record) &&
+        record->control_context->managed_generation == (uint64_t)generation;
+    unlock_read_contexts();
+    if (!current) return ACTQL_OWNED_INVALID;
+    int status = actql_read_context_finish_managed(record->control_context,
+                                                  (uint64_t)generation);
+    if (status != ACTQL_OWNED_OK) return status;
+    uint64_t values[16] = {0};
+    status = actql_read_context_cleanup_snapshot(record->control_context, values, 16);
+    if (status != ACTQL_OWNED_OK) return status;
+    if (values[0] != 1 || values[1] != 0 || values[2] != 0 || values[3] != 0 ||
+        values[8] != 0 || values[9] != 0 || values[12] != 0 ||
+        values[13] != 0 || values[14] != 1) return ACTQL_OWNED_BUSY;
+    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
+    int64_t result = ACTQL_OWNED_INVALID;
+    if (root_control_finish_current_locked(record) &&
+        record->control_context->managed_generation == (uint64_t)generation &&
+        !record->control_context->managed_cohort &&
+        !record->control_context->managed_preparing &&
+        !record->control_context->managed_finishing) {
+        actql_owned_capacity *lease = record->lease;
+        lock_capacity(lease);
+        size_t index;
+        if (!lease->closing && allocation_start(lease, record->control_context, &index)) {
+            struct extent *extent = owned_extent(lease, index);
+            if (!extent->retired && extent->pages != 0 && extent->pages != SIZE_MAX &&
+                extent->pages <= lease->page_count - index &&
+                values[4] <= (uint64_t)INT64_MAX / lease->page_size &&
+                extent->pages <= (uint64_t)INT64_MAX / lease->page_size - values[4])
+                result = (int64_t)((values[4] + extent->pages) * lease->page_size);
+        }
+        unlock_capacity(lease);
+    }
+    unlock_read_contexts();
+    return result;
+#else
+    (void)record; (void)generation;
     return ACTQL_OWNED_INVALID;
 #endif
 }

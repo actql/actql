@@ -341,3 +341,11 @@ This C recovery mechanism supplies neither a Common working-capacity binding nor
 a Native constructor certificate. Entry/result/error controls, later cleanup
 cohorts and every payload allocation still need their own prior admission on
 the same original Resource owner. Primary Native extent bounds remain immutable.
+
+Scoped managed allocation first checks its original page hint. On a miss it
+continues after that page and wraps once through every other original page
+before acquiring storage. A retained cohort therefore does not restart a full
+slab-prefix scan at each page boundary. This changes only search order: original
+process/context/extent/free-block checks, constructor debits, physical capacity
+and cleanup remain unchanged. Wrapping can still select an earlier coalesced
+free block; a failed hint never grants bytes or suppresses the full fallback.

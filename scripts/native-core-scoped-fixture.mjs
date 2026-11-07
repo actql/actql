@@ -14,7 +14,7 @@ const namedBackingFiles = Object.freeze([
   'consumer-alias.backing', 'consumer-usage-alias.backing',
   'consumer-serial.backing', 'consumer-entry-first.backing',
   'consumer-entry-second.backing', 'consumer-leave-refused.backing',
-  'consumer-serial-alias.backing', 'root-binding-first.backing',
+  'consumer-serial-alias.backing', 'consumer-working-growth.backing', 'root-binding-first.backing',
   'root-binding-second.backing',
 ]);
 

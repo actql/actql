@@ -124,6 +124,10 @@ pub fn client_submitted_intent_journal_row_body(
   run_state_original? : String? = None,
   run_state_observation? : (Int64, String?)? = None,
   preparation_problem? : (String, String)? = None,
+  before_construction? : ((Int, Int, Int) -> Result[
+    Unit,
+    ClientJournalEncodingIssue,
+  ])? = None,
 ) -> Result[Bytes, ClientJournalEncodingIssue] {
   if preparation_problem is Some((code, classification)) {
     if run_admission is Some(_) ||
@@ -146,7 +150,7 @@ pub fn client_submitted_intent_journal_row_body(
   let wire = client_submitted_intent_wire(intent)
   // This physical profile is explicitly finite. Capacity does not classify
   // the caller's Program as invalid or provide permission to retry it.
-  if intent.wire_bytes > 65536 {
+  if before_construction is None && intent.wire_bytes > 65536 {
     return Err(CapacityExceeded)
   }
   if run_state_original is Some(original) &&
@@ -165,8 +169,49 @@ pub fn client_submitted_intent_journal_row_body(
       _ => ()
     }
   }
+  // This original admission wire is bounded by its existing identity Owner.
+  // Construct it once and retain it through the outer row writer.
+  let admission_wire = run_admission.map(value => {
+    client_submitted_run_admission_wire(value.0, value.1, value.2).map_err(_ => {
+      ClientJournalEncodingIssue::Encoding
+    })
+  })
+  let maximum = match before_construction {
+    None => 262144
+    Some(reserve) => {
+      // Complete fixed keys/punctuation/version, longest phase and null-key
+      // spelling. Variable immutable Strings escape by at most six UTF8 bytes
+      // per UTF16 unit. This is observed constructor geometry, not a quota.
+      let fixed = "{\"intent\":\"\",\"phase\":\"preparation_failed\",\"preparation_problem_classification\":\"\",\"preparation_problem_code\":\"\",\"reference\":\"\",\"run_admission\":\"\",\"run_state_key\":null,\"run_state_original\":\"\",\"run_state_revision\":9007199254740991,\"version\":\"actql-native-client-submitted-intent-row/0.1\"}"
+        .length()
+        .to_int64()
+      let units = wire.length().to_int64() +
+        reference_wire.length().to_int64() +
+        admission_wire
+        .map(value => value.map(wire => wire.length().to_int64()).unwrap_or(0L))
+        .unwrap_or(0L) +
+        run_state_original.map(value => value.length().to_int64()).unwrap_or(0L) +
+        run_state_observation
+        .map(value => value.1.map(key => key.length().to_int64()).unwrap_or(0L))
+        .unwrap_or(0L) +
+        preparation_problem
+        .map(value => value.0.length().to_int64() + value.1.length().to_int64())
+        .unwrap_or(0L)
+      guard @execution.checked_preparation_add_product(fixed, units, 6L)
+        is Some(bound) &&
+        bound > 0L &&
+        bound < 2147483519L else {
+        return Err(CapacityExceeded)
+      }
+      match reserve(bound.to_int(), 16, 2) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      bound.to_int()
+    }
+  }
   try {
-    let writer = @encode.writer(262144, 16, 2)
+    let writer = @encode.writer(maximum, 16, 2)
     @encode.begin_object(writer)
     @encode.key(writer, "intent")
     @encode.string_value(writer, wire)
@@ -189,11 +234,12 @@ pub fn client_submitted_intent_journal_row_body(
     }
     @encode.key(writer, "reference")
     @encode.string_value(writer, reference_wire)
-    if run_admission is Some((request, definition_cid, revision)) {
-      let wire = match
-        client_submitted_run_admission_wire(request, definition_cid, revision) {
-        Ok(value) => value
-        Err(_) => return Err(Encoding)
+    if admission_wire is Some(original) {
+      // Keep the old writer-first refusal precedence for explicit finite
+      // callers: an invalid admission does not mask earlier output overflow.
+      let wire = match original {
+        Ok(wire) => wire
+        Err(issue) => return Err(issue)
       }
       @encode.key(writer, "run_admission")
       @encode.string_value(writer, wire)

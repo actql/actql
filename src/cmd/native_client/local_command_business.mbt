@@ -39,6 +39,8 @@ priv struct LocalCommandBusinessInput {
 priv struct LocalCommandBusinessOriginal {
   profile : LocalCommandBusinessProfile
   mut selected_profile : LocalCommandBusinessProfile?
+  mut initial_window_bytes : Int64?
+  mut initial_domain_bytes : Int64?
   mut domain : @initial_arena.InstalledArenaDomain?
   mut execution : @initial_arena.InstalledArenaRetainedExecution?
   // The SAME original input and preparation survive Journal scope switches.
@@ -52,9 +54,7 @@ priv struct LocalCommandBusinessOriginal {
   mut request_parent : @local_values.ClientRequestPreparation[
     LocalCommandBusinessInput,
   ]?
-  mut request_body : @initial_resources.PreparationBodyBorrow[
-    @run_host.PreparedClientProgram,
-  ]?
+  mut request_body : @local_host.NativeClientSubmittedRequestBody?
   mut request_run : @local_values.ClientInstalledManagedRun?
   mut request_retiring : Bool
   mut operation : @local_host.NativeLocalStoreOperation?
@@ -224,14 +224,31 @@ fn LocalCommandPreparationOriginal::prepare_business_domain(
       Err(CommandUnavailable)
     }
   }
-  guard business.selected_profile is Some(selected) else {
+  guard business.selected_profile is Some(selected) &&
+    business.initial_window_bytes is Some(initial_window) &&
+    business.initial_domain_bytes is Some(initial_domain) &&
+    initial_window > 0L &&
+    initial_window <= selected.payload_facility_bytes &&
+    initial_domain > 0L &&
+    initial_domain <= selected.domain_bytes else {
     return Err(CommandUnavailable)
   }
   if business.domain is Some(_) || self.closing || self.closed {
     return Err(CommandUnavailable)
   }
+  // Back only this first block, not the complete unused business ceiling.
+  // Later original-window acquisition remains on this same Root and domain.
+  match host.grow_backing_for_allocation(scope, initial_domain) {
+    Err(issue) => return Err(CommandHost(issue))
+    Ok(_) => ()
+  }
   let acquired = host
-    .prepare_domain_in_process(scope, selected.domain_bytes, selected.limits)
+    .prepare_domain_in_process(
+      scope,
+      initial_domain,
+      selected.limits,
+      initial_window=Some(initial_window),
+    )
     .map_err(issue => CommandDomain(issue))
   match acquired {
     Err(issue) => Err(issue)
@@ -372,6 +389,9 @@ fn LocalCommandPreparationOriginal::close_business_execution(
       Ok(_) => business.domain = None
     }
   }
+  business.initial_window_bytes = None
+  business.initial_domain_bytes = None
+  business.selected_profile = None
   Ok(())
 }
 

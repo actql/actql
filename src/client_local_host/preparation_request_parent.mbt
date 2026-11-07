@@ -271,6 +271,9 @@ pub fn client_request_preparation_control_capacity(
   // the exclusive read-only capture-recovery quote/reader controls, or the
   // pre-compiler Content Graph measurement/selection call frame. This is
   // installed coarse control overhead, not variable wire/body admission.
+  // Native's completed typed body handoff uses one header/reference/tag
+  // (1H/1R/1W = 32 bytes) in this same group after its resize has returned;
+  // it retains the original borrow and introduces no second capacity.
   // The same group covers later Run growth entry. Its original owner fences
   // recursion before payload construction, so only one refused nested entry
   // overlaps. The fixed carriers are backed NOW, not by a later resize.
@@ -689,6 +692,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   }
   clear_request_source_input(owner)
   owner.submitted_intent = None
+  owner.snapshot_base = None
   owner.snapshot_key_units.val = -1
   owner.intent_base = None
   owner.intent_source_quote = None
@@ -702,14 +706,17 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.query_syntax = None
   owner.compiled_program = None
   owner.computation_limits = None
-  owner.compiled_effect = None
+  // Keep the original Effect until its last constructor borrower returns.
+  // Its cached normalization custody is severed only after logical retirement.
   owner.effect_plan = None
   owner.program_data = None
   owner.program_plan_quote = None
+  owner.program_measurement_quote = None
   owner.program_domain_quote = None
   owner.program_artifact_geometry = None
   owner.program_artifact_quote = None
   owner.program_invocation_quote = None
+  owner.program_artifact_work_issue = None
   owner.program_artifact_inputs = None
   owner.program_compilation = None
   owner.program_domain_compilation_inputs = None
@@ -722,38 +729,58 @@ pub fn[I] abort_request_preparation_after_cleanup(
 
   let retiring = owner.phase == Retiring
   owner.phase = Retiring
-  let stopped = if owner.effect_capacity is Some(capacity) {
-    if retiring || owner.program_body_attempted {
-      @resources.retire_preparation_capacity(capacity)
+  // input=None is recorded only after the selected capacity has actually
+  // retired. A later retry belongs solely to the SAME physical initial owner;
+  // the old Unit handle may already be Continued and cannot settle it again.
+  if !(retiring && owner.input is None) {
+    let stopped = if owner.effect_capacity is Some(capacity) {
+      if retiring || owner.program_body_attempted {
+        @resources.retire_preparation_capacity(capacity)
+      } else {
+        guard owner.input is Some(input) else { return Err(ForeignOriginal) }
+        @resources.abort_preparation_capacity_after_cleanup(capacity, input)
+      }
     } else {
-      guard owner.input is Some(input) else { return Err(ForeignOriginal) }
-      @resources.abort_preparation_capacity_after_cleanup(capacity, input)
+      match owner.program_capacity {
+        Some(capacity) =>
+          if retiring || owner.program_body_attempted {
+            @resources.retire_preparation_capacity(capacity)
+          } else {
+            guard owner.input is Some(input) else {
+              return Err(ForeignOriginal)
+            }
+            @resources.abort_preparation_capacity_after_cleanup(capacity, input)
+          }
+        None =>
+          if retiring {
+            @resources.retire_preparation_capacity(owner.capacity)
+          } else {
+            guard owner.input is Some(input) else {
+              return Err(ForeignOriginal)
+            }
+            @resources.abort_preparation_capacity_after_cleanup(
+              owner.capacity,
+              input,
+            )
+          }
+      }
     }
-  } else {
-    match owner.program_capacity {
-      Some(capacity) =>
-        if retiring || owner.program_body_attempted {
-          @resources.retire_preparation_capacity(capacity)
-        } else {
-          guard owner.input is Some(input) else { return Err(ForeignOriginal) }
-          @resources.abort_preparation_capacity_after_cleanup(capacity, input)
-        }
-      None =>
-        if retiring {
-          @resources.retire_preparation_capacity(owner.capacity)
-        } else {
-          guard owner.input is Some(input) else { return Err(ForeignOriginal) }
-          @resources.abort_preparation_capacity_after_cleanup(
-            owner.capacity,
-            input,
-          )
-        }
+    match stopped {
+      Err(issue) => return Err(Capacity(issue))
+      Ok(false) => return Err(WrongPhase)
+      Ok(true) => owner.input = None
     }
-  }
-  match stopped {
-    Err(issue) => return Err(Capacity(issue))
-    Ok(false) => return Err(WrongPhase)
-    Ok(true) => owner.input = None
+    // These continued controls were allocated in the payload Read. Keeping
+    // a logically closed record until that Read's ACK would pin its own last
+    // alias forever. Failed settlement/live borrowers retain the originals.
+    if owner.compiled_effect is Some(prepared) {
+      @publication_host.clear_prepared_client_effect_custody_after_cleanup(
+        prepared,
+      )
+    }
+    owner.compiled_effect = None
+    owner.program_capacity = None
+    owner.effect_capacity = None
   }
   match preparation_initial_cleanup(owner.initial) {
     Err(issue) => Err(Initial(issue))

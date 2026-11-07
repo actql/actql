@@ -119,6 +119,7 @@ fn local_effect_prepare_start(
   reference : @local_host.NativeClientSubmissionReference,
   run : LocalRunInstallation,
   scope : String,
+  business? : LocalCommandBusinessPreparation? = None,
 ) -> LocalEffectPreflightStatus raise ClientStop {
   local_effect_prepare_start_with_clocks(
     host,
@@ -130,6 +131,7 @@ fn local_effect_prepare_start(
     scope,
     local_utc_now,
     () => @env.now().to_double(),
+    business~,
   )
 }
 
@@ -146,6 +148,7 @@ fn local_effect_prepare_start_with_clocks(
   scope : String,
   utc_now : () -> String,
   epoch_now : () -> Double,
+  business? : LocalCommandBusinessPreparation? = None,
 ) -> LocalEffectPreflightStatus raise ClientStop {
   if !local_submit_allowed(host, settings, crypto, scope) {
     stop("LocalSubmissionAuthorizationDenied")
@@ -155,18 +158,33 @@ fn local_effect_prepare_start_with_clocks(
   let observed_at = utc_now()
   // The existing Owner looks up this exact request before issuing a Policy.
   // A concurrent accepted request selects its saved original, not this clock.
-  let policy = local_run_policy_binding(host, settings, crypto)
+  let policy = local_run_policy_binding(host, settings, crypto, business~)
   let (run, now) = match policy {
     None => (installed, observed_at)
     Some(binding) =>
       match
-        binding.prepare_submission_policy(
-          reference,
-          preparation,
-          request,
-          observed_at,
-          epoch_now(),
-        ) {
+        (match business {
+          None =>
+            binding.prepare_submission_policy(
+              reference,
+              preparation,
+              request,
+              observed_at,
+              epoch_now(),
+            )
+          Some(original) =>
+            local_business_policy_result(
+              original,
+              original.capture.prepare_run_policy_in_original_read(
+                binding,
+                reference,
+                preparation,
+                request,
+                observed_at,
+                epoch_now(),
+              ),
+            )
+        }) {
         Ok(Accepted(_)) => {
           if !local_submit_allowed(host, settings, crypto, scope) {
             stop("LocalSubmissionAuthorizationDenied")
@@ -186,15 +204,33 @@ fn local_effect_prepare_start_with_clocks(
   let retention = @decode.open_object(
     local_input_cursor(@publication.publication_contract_json(run.retention)),
   ).unwrap_or_else(() => stop("InvalidLocalResultRetentionPolicy"))
-  let original = local_effect_first_compilation(
-    preparation,
-    scope,
-    local_host_result(host.configuration()).configuration_cid(),
-    run.namespace_id,
-    request_id,
-    now,
-    run_text(retention, "available_until"),
-  )
+  let configuration_cid = local_host_result(
+    match business {
+      None => host.configuration()
+      Some(original) => original.capture.configuration_in_original_read()
+    },
+  ).configuration_cid()
+  let original = match business {
+    None =>
+      local_effect_first_compilation(
+        preparation,
+        scope,
+        configuration_cid,
+        run.namespace_id,
+        request_id,
+        now,
+        run_text(retention, "available_until"),
+      )
+    Some(original) =>
+      original.compile_effect_first(
+        scope,
+        configuration_cid,
+        run.namespace_id,
+        request_id,
+        now,
+        run_text(retention, "available_until"),
+      )
+  }
   // These same original bindings are consumed by the actual preflight, in
   // material-before-checked-Run order. No future dispatcher carrier is returned.
   let materials = @run_host.bind_prepared_client_effect_original_materials(

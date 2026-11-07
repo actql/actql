@@ -295,15 +295,18 @@ fn local_submission_start(
             @env.now().to_double(),
           ) {
           Ok(value) => value
-          Err(
-            @local_host.Journal(TransactionUnknown)
-            | @local_host.Journal(Epoch(TransactionUnknown))
-            | @local_host.InstallationReadTransactionFailure(
-              _,
-              TransactionUnknown
-            )
-          ) => stop("LocalSubmissionAcceptanceUnknown")
-          Err(_) => stop("LocalSubmissionAcceptanceUnavailable")
+          Err(issue) => {
+            local_report_submission_failure(issue)
+            match issue {
+              @local_host.Journal(TransactionUnknown)
+              | @local_host.Journal(Epoch(TransactionUnknown))
+              | @local_host.InstallationReadTransactionFailure(
+                _,
+                TransactionUnknown
+              ) => stop("LocalSubmissionAcceptanceUnknown")
+              _ => stop("LocalSubmissionAcceptanceUnavailable")
+            }
+          }
         }
       }
     }
@@ -344,7 +347,14 @@ fn local_submission_start(
       is Computation(prepared) else {
       match
         local_effect_prepare_start(
-          host, settings, crypto, preparation, reference, run, scope,
+          host,
+          settings,
+          crypto,
+          preparation,
+          reference,
+          run,
+          scope,
+          business~,
         ) {
         AlreadyAccepted => return observe_original()
         AuthoritySupplierUnavailable => ()
@@ -423,7 +433,11 @@ fn local_submission_start(
       Some(original) =>
         // Business preparation already admitted normalization on this exact
         // checked owner before acquiring execution or a durable attempt.
-        if !physical_equal(original.prepared, prepared) {
+        if !(@local_host.native_client_submitted_preparation(
+            original.preparation,
+          )
+          is Computation(original_prepared) &&
+          physical_equal(original_prepared, prepared)) {
           stop("LocalBusinessOriginalUnavailable")
         }
     }

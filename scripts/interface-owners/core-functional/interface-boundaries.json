@@ -34955,7 +34955,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "3f38bf49276954c119086d912b3a51806c7b8790f1ffa8f6ff50658543fac141",
+      "sha256": "d8934e8a96c7da4386bf023c2155160a19745bca20682f99eeb4d40308c7ccaa",
       "exports": [],
       "operations": [
         {
@@ -43814,7 +43814,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6fd58768a99356a6ca1864909597e94421c5b9caae302e6442227e6dbe7ed75a",
+      "sha256": "7138d63c98eb7dd2176f65b5ab05b07d0032177d22e269451434007cb396c515",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -44048,6 +44048,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "## Same Request Effect preparation lifetime"
               }
             ],
             "extension": [
@@ -44092,6 +44096,10 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"Request keeps live continuation"
               }
             ]
           }
@@ -46144,7 +46152,7 @@
     {
       "module": "src/client_local_host/preparation_request_terminal.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d3cd709bafec8b072a30be2a79615a27eabf96bec266409fab8b724086053393",
+      "sha256": "386eb38931dd2e55482cc1f4d8a6c327717dbe7165a206ecef5763b8f7182c2a",
       "role": "common-semantics",
       "owner": "Existing Request checking compiler and preparation capacity owners",
       "exports": [],
@@ -46282,6 +46290,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Before returning the selected compiler kind"
               }
             ],
             "extension": [
@@ -46314,6 +46326,10 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source terminal refuses resolved nested ARRAY"
               }
             ]
           }
@@ -63797,7 +63813,7 @@
     },
     {
       "module": "src/physical_resources/backed_initialization_admission.mbt",
-      "sha256": "3833406856aa8b8607adc24d7a91b1993d90a311aba088b7ced95a33e9e5c355",
+      "sha256": "9658cc33de738fb6fdd68f6968f0e9a105c64c89f894e7136b4738821de64e8e",
       "exports": [],
       "operations": [
         {
@@ -63829,8 +63845,12 @@
           "declaration": "[ I ] take_backed_initialization_admission ( owner : BackedInitializationAdmission [ I ] , input : I , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
         },
         {
+          "name": "[I]take_backed_initialization_for_host",
+          "declaration": "[ I ] take_backed_initialization_for_host ( owner : BackedInitializationAdmission [ I ] , input : I , request : Bool , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
+        },
+        {
           "name": "[P,C,I]prepare_backed_initialization_admission",
-          "declaration": "[ P , C , I ] prepare_backed_initialization_admission ( projection : BackedExecutionLiveProjection [ P , C , I ] , input : I , ) - > Result [ BackedInitializationAdmission [ I ] , ImportedChildLedgerIssue ]"
+          "declaration": "[ P , C , I ] prepare_backed_initialization_admission ( projection : BackedExecutionLiveProjection [ P , C , I ] , input : I , acquire_window ? : ( ( Int64 , Int64 ) - > Result [ Unit , LedgerIssue ] ) ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -63847,7 +63867,8 @@
             "[I]cleanup_backed_initialization_admission",
             "[I]start_backed_initialization_admission",
             "[I]take_backed_initialization_admission",
-            "[P,C,I]prepare_backed_initialization_admission"
+            "[P,C,I]prepare_backed_initialization_admission",
+            "[I]take_backed_initialization_for_host"
           ],
           "exports": [],
           "attributes": {
@@ -63897,6 +63918,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -63909,6 +63934,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
@@ -63918,7 +63947,7 @@
     },
     {
       "module": "src/physical_resources/backed_live_child.mbt",
-      "sha256": "f9d38436283e3ed133c92d217b207a66d0f765ab47988c997235a25d36d696c8",
+      "sha256": "2fc42f7ffa8fab69b47da666a58ed2da781294ce1ead76e1c4978769be992ea9",
       "exports": [],
       "operations": [
         {
@@ -64023,6 +64052,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -64035,6 +64068,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
@@ -64254,7 +64291,8 @@
             "stop_imported_child_ledger",
             "take_imported_child_ledger",
             "take_imported_original_child_ledger",
-            "check_imported_child_admission_current"
+            "check_imported_child_admission_current",
+            "refresh_imported_child_current"
           ],
           "exports": [],
           "attributes": {
@@ -64324,6 +64362,10 @@
               {
                 "path": "src/physical_resources/imported_child_ledger.mbt",
                 "anchor": "pub fn check_imported_original_child_ledger("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -64344,6 +64386,10 @@
               {
                 "path": "src/physical_resources/node_preparation_cleanup_wbtest.mbt",
                 "anchor": "test \"unavailable original preparation remains retained and cannot authorize cleanup cut\""
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
@@ -64558,7 +64604,7 @@
           }
         }
       ],
-      "sha256": "2e63a22d903767ba92d6e2f4c3f024f4ce7d8083c64647590a46219ca5a58ad8",
+      "sha256": "41ce70e467312babca3c97e3242d4c6e5e60975eb8c5d034216afe480610ad21",
       "exports": [],
       "operations": [
         {
@@ -64580,6 +64626,14 @@
         {
           "name": "check_imported_original_child_ledger_current",
           "declaration": "check_imported_original_child_ledger_current ( value : ImportedChildLedger , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "check_imported_original_child_ledger_retained",
+          "declaration": "check_imported_original_child_ledger_retained ( value : ImportedChildLedger , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "cleanup_ledger_usage_copy",
+          "declaration": "cleanup_ledger_usage_copy ( usage : LedgerUsage ) - > LedgerUsage"
         },
         {
           "name": "cleanup_quantity_copy",
@@ -64608,6 +64662,10 @@
         {
           "name": "prepare_imported_child_port",
           "declaration": "prepare_imported_child_port ( nonce : Int64 , admit : ( Int64 ) - > Int , current : ( Int64 ) - > Int , limit : ( Int64 , Int ) - > Int64 , capacity : ( Int64 , Int ) - > Int64 , report : ( Int64 , LedgerUsage ) - > Int , stop : ( Int64 ) - > Int , fixed_capacities ? : Bool"
+        },
+        {
+          "name": "refresh_imported_child_current",
+          "declaration": "refresh_imported_child_current ( origin : ImportedChildLedgerOrigin , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
           "name": "relocate_imported_child_cleanup_usage",
@@ -68546,7 +68604,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_program.mbt",
-      "sha256": "8c7bb804b90c25ca47bdfe7e241adb14144cfa181c09e48cbe5226fc5ca24c83",
+      "sha256": "43adaa963e126fbaf3a7e2cc38c198ff0c00da6ca5b0c211b8e45253c2d01c8e",
       "exports": [],
       "operations": [
         {
@@ -68556,6 +68614,10 @@
         {
           "name": "bind_prepared_client_effect_run",
           "declaration": "bind_prepared_client_effect_run ( computation : PreparedClientEffectComputation , admission : @ publication . RunPublicationAdmission , run_definition : @ publication . PublicationContract , ) - > Result [ PreparedClientEffectRun , ClientEffectRunIssue ]"
+        },
+        {
+          "name": "clear_prepared_client_effect_custody_after_cleanup",
+          "declaration": "clear_prepared_client_effect_custody_after_cleanup ( owner : PreparedClientEffectComputation , ) - > Unit"
         },
         {
           "name": "client_effect_program_view",
@@ -68696,7 +68758,8 @@
             "prepared_client_effect_result_count",
             "prepared_client_effect_result_name",
             "prepared_client_effect_run_computation",
-            "prepared_client_effect_run_graph"
+            "prepared_client_effect_run_graph",
+            "clear_prepared_client_effect_custody_after_cleanup"
           ],
           "exports": [],
           "attributes": {
@@ -68810,6 +68873,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retaining Source originals after Request compilation"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "## Same Request Effect preparation lifetime"
               }
             ],
             "extension": [
@@ -68854,6 +68921,10 @@
               {
                 "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
                 "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_normalization_wbtest.mbt",
+                "anchor": "test \"retired Effect custody severs cached backedges"
               }
             ]
           }
@@ -76232,7 +76303,8 @@
             "[I]request_source_input_construction_bytes",
             "[I]request_source_input_original",
             "[I]request_source_input_parts",
-            "to_repr"
+            "to_repr",
+            "[I,P]reserve_request_query_profile_scratch"
           ],
           "exports": [],
           "attributes": {
@@ -76282,6 +76354,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Before returning the selected compiler kind"
               }
             ],
             "extension": [
@@ -76298,16 +76374,24 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source terminal refuses resolved nested ARRAY"
               }
             ]
           }
         }
       ],
-      "sha256": "a8eb0f957746aa638d31f8db015c2fe02ad730826f0e2416a70bd7ad8f8fbd66",
+      "sha256": "50f301851918cadd47ddf8d4c31a15e1250c1f2cf64ca7fabb64890abf40bd5e",
       "operations": [
         {
           "name": "[I,P,D]borrow_request_source_preparation_owned",
           "declaration": "[ I , P , D ] borrow_request_source_preparation_owned ( owner : ClientRequestPreparation [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , P ] , source : @ publication_host . ClientSourceInput , prepared : D , retain_original : ( @ publication_host . ClientSourceInput , D ) - > Result [ @ publication_host . ClientSourcePreparation , @ publication_host . ClientSourcePreparationIssue , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . ClientSourcePreparation ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I,P]reserve_request_query_profile_scratch",
+          "declaration": "[ I , P ] reserve_request_query_profile_scratch ( owner : ClientRequestPreparation [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , P ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]borrow_request_source_preparation",
@@ -76362,7 +76446,8 @@
             "client_source_computation_request",
             "client_source_computation_source",
             "prepare_client_source_computation",
-            "source_prepared_publication_issue"
+            "source_prepared_publication_issue",
+            "check_client_source_array_profile"
           ],
           "exports": [],
           "attributes": {
@@ -76412,6 +76497,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retaining Source originals after Request compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Before returning the selected compiler kind"
               }
             ],
             "extension": [
@@ -76432,16 +76521,24 @@
               {
                 "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
                 "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source terminal refuses resolved nested ARRAY"
               }
             ]
           }
         }
       ],
-      "sha256": "51004e94d1c36468124775776fb1d2c1e6bd4e5de7c2787543e1c207deced9a3",
+      "sha256": "aa4928a5be7bacc447f0d24c5ceef41fb1cee9d2781f9502d3f6dfe2db08befc",
       "operations": [
         {
           "name": "[T]source_result",
           "declaration": "[ T ] source_result ( value : Result [ T , ClientSourcePreparationIssue ] , ) - > T raise ClientSourcePreparationStop"
+        },
+        {
+          "name": "check_client_source_array_profile",
+          "declaration": "check_client_source_array_profile ( checked : @ checked . CheckedProgram , ) - > Result [ Unit , ClientSourcePreparationIssue ]"
         },
         {
           "name": "client_source_computation_matches",
@@ -76547,6 +76644,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retaining Source originals after Request compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Before returning the selected compiler kind"
               }
             ],
             "extension": [
@@ -76567,6 +76668,10 @@
               {
                 "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
                 "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source terminal refuses resolved nested ARRAY"
               }
             ]
           }
@@ -76646,7 +76751,7 @@
           }
         }
       ],
-      "sha256": "105e2c1eb0671dc5a88d5993fb3fbdf2e18b320526de63a4e8dbb11e573689a8",
+      "sha256": "f565dd82085fd1292d570a6eb51a8497dd5f2c2c18cef13a65c2413bdee04393",
       "operations": [
         {
           "name": "[T]same_client_source_optional",
@@ -77915,7 +78020,7 @@
           }
         }
       ],
-      "sha256": "762a71aab3757aa4597bb54f7e78601a8a696d09fcc4ef9e1d6a4a2804b77f46",
+      "sha256": "7930ca829968215e95585916e212c7a6d361d9dc139ab0df2797e71def53d7c2",
       "operations": [
         {
           "name": "[P,C]backed_child_current",
@@ -77959,7 +78064,7 @@
         },
         {
           "name": "[P,C]reserve_backed_execution_delegation",
-          "declaration": "[ P , C ] reserve_backed_execution_delegation ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , extent : BackedExecutionExtent , access : BackedExecutionAccess , limits : LedgerLimits , overhead_retained : Int64 , overhead_execution : Int64 , ) - > Result [ BackedExecutionDelegation [ P , C ] , BackedExecutionIssue ]"
+          "declaration": "[ P , C ] reserve_backed_execution_delegation ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , extent : BackedExecutionExtent , access : BackedExecutionAccess , limits : LedgerLimits , overhead_retained : Int64 , overhead_execution : Int64 , initial_window ? : Int64 ?"
         },
         {
           "name": "[P,C]settle_backed_execution_after_owner_ack",
@@ -78077,6 +78182,10 @@
               {
                 "path": "src/physical_resources/backed_original_child_ledger.mbt",
                 "anchor": "fn[P, C, R] backed_original_child_ready("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -78097,12 +78206,16 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
         }
       ],
-      "sha256": "0172a38127ea71df30f780352759405b380d13da85dfe4c23b761f5708dab703",
+      "sha256": "d9b602e83a17fd330ae3190099496e5849f0118a5b3539f2f44c28bef2bccbd4",
       "operations": [
         {
           "name": "[P,C,R]backed_original_child_ready",
@@ -78110,7 +78223,7 @@
         },
         {
           "name": "[P,C,R]prepare_backed_original_child_ledger",
-          "declaration": "[ P , C , R ] prepare_backed_original_child_ledger ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ ImportedChildLedger , ImportedChildLedgerIssue ]"
+          "declaration": "[ P , C , R ] prepare_backed_original_child_ledger ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , acquire_window ? : ( ( Int64 , Int64 ) - > Result [ Unit , LedgerIssue ] ) ?"
         },
         {
           "name": "retire_backed_original_child_origin",
@@ -78550,7 +78663,8 @@
             "<module>",
             "[P,C]issue_platform_vm_preparation_region",
             "[P,C]platform_vm_backed_usage_fits",
-            "grow_imported_platform_working_current"
+            "grow_imported_platform_working_current",
+            "acquire_imported_child_window_current"
           ],
           "exports": [],
           "attributes": {
@@ -78632,6 +78746,10 @@
               {
                 "path": "src/physical_resources/platform_vm_preparation_region.mbt",
                 "anchor": "pub fn[P, C] issue_platform_vm_preparation_region("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -78652,12 +78770,16 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
         }
       ],
-      "sha256": "4d727be59557777931e39444ba33108866b159913199ddf42dd2c769e7e6d81f",
+      "sha256": "88643fadb611e042d270484fd7cff2e9801ae957debadd032d0fcd654d4b374f",
       "operations": [
         {
           "name": "[P,C]issue_platform_vm_preparation_region",
@@ -78666,6 +78788,10 @@
         {
           "name": "[P,C]platform_vm_backed_usage_fits",
           "declaration": "[ P , C ] platform_vm_backed_usage_fits ( region : BackedExecutionRegion [ P , C ] , usage : LedgerUsage , ) - > Bool"
+        },
+        {
+          "name": "acquire_imported_child_window_current",
+          "declaration": "acquire_imported_child_window_current ( ledger : Ledger , origin : ImportedChildLedgerOrigin , window : Ref [ Int64 ] , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
           "name": "grow_imported_platform_working_current",
@@ -82990,6 +83116,161 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/backed_child_window.mbt",
+      "sha256": "0b31224a261a271c8d69760c3083851b38d1947ae9ad34b33b5edbcf8c7b97cd",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing backed execution child and SharedCapacityGrowth Resource owner; no physical receipt issuer or new Ledger",
+      "referenceQualification": "Portable nominal Resource components and declared-policy/acquired-window correspondence only; no Native receipt, ordinary backing or physical cleanup acceptance.",
+      "operations": [
+        {
+          "name": "[P,C,R]backed_original_child_window_current",
+          "declaration": "[ P , C , R ] backed_original_child_window_current ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ BackedExecutionDelegation [ P , C ] , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]check_backed_original_child_window_demand",
+          "declaration": "[ P , C , R ] check_backed_original_child_window_demand ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , retained : Int64 , execution : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]complete_backed_original_child_window_after_acquisition",
+          "declaration": "[ P , C , R ] complete_backed_original_child_window_after_acquisition ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , growth : SharedCapacityGrowth , acquired_payload_bytes : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]read_backed_original_child_window_bytes",
+          "declaration": "[ P , C , R ] read_backed_original_child_window_bytes ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ Int64 , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]complete_backed_execution_window_after_acquisition",
+          "declaration": "[ P , C ] complete_backed_execution_window_after_acquisition ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , growth : SharedCapacityGrowth , acquired_payload_bytes : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]complete_backed_execution_window_current",
+          "declaration": "[ P , C ] complete_backed_execution_window_current ( region : BackedExecutionRegion [ P , C ] , ticket : BackedExecutionDelegation [ P , C ] , growth : SharedCapacityGrowth , acquired_payload_bytes : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        }
+      ],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P,C,R]backed_original_child_window_current",
+            "[P,C,R]check_backed_original_child_window_demand",
+            "[P,C,R]complete_backed_original_child_window_after_acquisition",
+            "[P,C,R]read_backed_original_child_window_bytes",
+            "[P,C]complete_backed_execution_window_after_acquisition",
+            "[P,C]complete_backed_execution_window_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed child policy cannot grant bytes before same-parent acquired window publication\""
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"closing original child retains pending acquired growth without publishing another window\""
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"acquired child window observation preserves usage and rejects foreign closing and retired originals\""
               }
             ]
           }

@@ -171,7 +171,7 @@ fn submitted_request_native_work(
   }
   let attempts = @resources.ledger_usage(ledger).attempts
   assert_true(execution.close())
-  @resources.return_preparation_body_borrow(holder).native_request_stage(
+  return_native_client_submitted_request_body(holder).native_request_stage(
     "Native Request stage 16",
   )
   |> ignore

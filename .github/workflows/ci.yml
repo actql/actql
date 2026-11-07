@@ -307,11 +307,17 @@ jobs:
   core:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    name: core (${{ matrix.target }})
+    name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}/2', matrix.partition) || '' }})
     strategy:
       fail-fast: false
       matrix:
         target: ${{ fromJSON(needs.select-targets.outputs.targets) }}
+        partition: [1, 2]
+        exclude:
+          - target: js
+            partition: 2
+          - target: wasm
+            partition: 2
     # Physical Native fixtures use the existing Darwin arm64 profile.
     runs-on: ${{ matrix.target == 'native' && 'macos-15' || 'ubuntu-24.04' }}
     # Native keeps its full 60-minute child after the separate cold checkpoint
@@ -359,6 +365,7 @@ jobs:
               (matrix.target != 'native' && success()) }}
         env:
           ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
+          ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}
         run: |
           if [ "${{ matrix.target }}" = native ]; then
             # Pinned Linux Native debug codegen exceeds the default 8 MiB
@@ -367,12 +374,15 @@ jobs:
               ulimit -S -s 65536
             fi
             # Reopen remains within a run; the full run below starts fresh.
-            node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
+            ACTQL_TEST_NATIVE_CORE_PARTITION= node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
             # Optimize the test IR before emitting the large full-Core C input.
             # Keep every test, strict warnings and the original generated-C
             # backend; production and the focused debug prerequisite are unchanged.
             # Compile two independent C units concurrently, while keeping
             # physical test execution serial under the original fixture roots.
+            # Partition whole ordinary test packages before C generation. Each
+            # runner keeps its own source/toolchain/build and original fixtures;
+            # only partition 1 owns the unchanged HTTP/Source/scoped profiles.
             MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
           else
             moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
@@ -395,7 +405,7 @@ jobs:
         if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: native-compiler-cause-${{ github.run_id }}-${{ github.run_attempt }}
+          name: native-compiler-cause-${{ matrix.partition }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .artifacts/native-compiler-diagnostics/
             _build/native-reader-helper-tests/callbacks-*/callback-*.json

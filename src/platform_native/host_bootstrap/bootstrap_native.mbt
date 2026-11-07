@@ -758,15 +758,50 @@ pub fn[T] NativeHostBootstrap::initial_payload_capacity(
   guard self.control is Some(control) else { return Err(Unavailable) }
   let actual = control_bytes_ffi(self.backing)
   let allocation = @resources.shared_allocation_usage(control)
+  let control_bytes = match self.root_control {
+    None => 0L
+    Some(control) => {
+      let selected = @resources.shared_allocation_usage(control.claim)
+      if control.closing ||
+        control.closed ||
+        selected.retiring ||
+        selected.released ||
+        selected.bytes != control.bytes {
+        return Err(Unavailable)
+      }
+      control.bytes
+    }
+  }
+  if control_bytes > 9223372036854775807L - actual {
+    return Err(Unavailable)
+  }
+  // One next bookkeeping block remains on this original Host. It is neither
+  // another allocation nor a child grant; its actual acquisition still checks
+  // capacity and the C supplier. Other consumers may cause a later refusal.
+  let next_control = if self.root_control is Some(_) {
+    let maximum = root_control_basis_maximum_ffi(self.backing)
+    let bytes = root_control_quote_ffi(self.backing, maximum, 64L, 0)
+    if bytes <= 0L {
+      return Err(Unavailable)
+    }
+    bytes
+  } else {
+    0L
+  }
+  if next_control > 9223372036854775807L - actual - control_bytes {
+    return Err(Unavailable)
+  }
+  let committed = actual + control_bytes
+  let payload_boundary = committed + next_control
   let usage = self.capacity_usage()
   if actual <= 0L ||
     allocation.bytes != actual ||
     allocation.retiring ||
     allocation.released ||
     usage.closing ||
-    usage.allocated != actual ||
-    usage.capacity <= actual {
+    usage.allocated != committed ||
+    usage.capacity <= payload_boundary {
     return Err(Unavailable)
   }
-  Ok(usage.capacity - actual)
+  Ok(usage.capacity - payload_boundary)
 }

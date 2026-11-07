@@ -381,22 +381,14 @@ pub fn retain_compiled_client_source_input(
     return if same { Ok(retained) } else { Err(Input) }
   }
   // Keep the existing Source profile check, not another semantic compiler.
-  let profile = match preparation {
-    Pure(prepared) =>
-      @source_frontend.check_array_profile(
-        @strategy.graph_program(prepared_client_graph(prepared)),
-        max_work=1000000,
-        max_slots=100000,
-      )
+  let checked = match preparation {
+    Pure(prepared) => @strategy.graph_program(prepared_client_graph(prepared))
     Effect(prepared) =>
-      @source_frontend.check_array_profile(
-        @checked.effect_program_static_checked_computation(prepared.candidate),
-        max_work=1000000,
-        max_slots=100000,
-      )
+      @checked.effect_program_static_checked_computation(prepared.candidate)
   }
+  let profile = check_client_source_array_profile(checked)
   if profile is Err(issue) {
-    return Err(ArrayProfile(issue))
+    return Err(issue)
   }
   let retained : ClientSourcePreparation = {
     intent: input.intent,
