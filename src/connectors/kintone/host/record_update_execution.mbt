@@ -271,6 +271,7 @@ pub fn restore_record_update_execution(
   values : @catalog.RecordValueLimits,
   write_limits : @catalog.RecordWriteLimits,
   limits : @catalog.RecordMutationLimits,
+  preview_limits? : @catalog.RecordMutationLimits = limits,
 ) -> Result[
   (RecordUpdateProposal, RecordUpdatePreview, @catalog.RecordUpdateRequest),
   RecordUpdateExecutionIssue,
@@ -278,7 +279,8 @@ pub fn restore_record_update_execution(
   if !record_update_mapping_is_original(mapping) {
     return Err(MappingMismatch)
   }
-  if !record_target_before_limits_valid(limits) {
+  if !record_target_before_limits_valid(limits) ||
+    !record_target_before_limits_valid(preview_limits) {
     return Err(InvalidLimits)
   }
   guard @scalar.admit_utf8_length(original_body, limits.max_output_bytes)
@@ -293,7 +295,9 @@ pub fn restore_record_update_execution(
     Err(issue) => return Err(issue)
   }
   let preview = match
-    prepare_record_update_preview(proposal, target_bytes, pages, values, limits) {
+    prepare_record_update_preview(
+      proposal, target_bytes, pages, values, preview_limits,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

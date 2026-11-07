@@ -5073,7 +5073,7 @@
     },
     {
       "module": "src/connectors/kintone/catalog/record_mutation.mbt",
-      "sha256": "398720854d993a89f60f49150a5cd5e95f9261ca7037d442bbe81ded00c8b0b1",
+      "sha256": "317b7ffa2c67fbe8242da4f294019026edb263dc87a1491e00f8a416f37e13e1",
       "exports": [],
       "operations": [
         {
@@ -8216,6 +8216,1104 @@
               {
                 "path": "src/connectors/kintone/host/managed_read_construction_wbtest.mbt",
                 "anchor": "managed Kintone page quote follows actual bytes and original empty table geometry"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_update_execution.mbt",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
+      "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
+      "sha256": "9a84f0c1451893c52bc4a9a46eaca27bf2903c6020fa87bd3169a4ba810acb16",
+      "exports": [],
+      "operations": [
+        {
+          "name": "finalize_record_update_request",
+          "declaration": "finalize_record_update_request ( proposal : RecordUpdateProposal , preview : RecordUpdatePreview , limits : @ catalog . RecordMutationLimits , ) - > Result [ @ catalog . RecordUpdateRequest , RecordUpdateExecutionIssue ]"
+        },
+        {
+          "name": "prepare_record_update_preview",
+          "declaration": "prepare_record_update_preview ( proposal : RecordUpdateProposal , bytes : Bytes , pages : @ catalog . RecordPageLimits , values : @ catalog . RecordValueLimits , limits : @ catalog . RecordMutationLimits , ) - > Result [ RecordUpdatePreview , RecordUpdateExecutionIssue ]"
+        },
+        {
+          "name": "prepare_record_update_proposal",
+          "declaration": "prepare_record_update_proposal ( mapping : RecordUpdateMapping , identity : String , bytes : Bytes , max_input_bytes : Int , write_limits : @ catalog . RecordWriteLimits , limits : @ catalog . RecordMutationLimits , ) - > Result [ RecordUpdateProposal , RecordUpdateExecutionIssue ]"
+        },
+        {
+          "name": "record_update_execution_matches",
+          "declaration": "record_update_execution_matches ( proposal : RecordUpdateProposal , preview : RecordUpdatePreview , request : @ catalog . RecordUpdateRequest , ) - > Bool"
+        },
+        {
+          "name": "record_update_preview_before_wire",
+          "declaration": "record_update_preview_before_wire ( preview : RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "record_update_preview_identity",
+          "declaration": "record_update_preview_identity ( preview : RecordUpdatePreview ) - > String"
+        },
+        {
+          "name": "record_update_preview_matches",
+          "declaration": "record_update_preview_matches ( preview : RecordUpdatePreview , proposal : RecordUpdateProposal , ) - > Bool"
+        },
+        {
+          "name": "record_update_preview_revision",
+          "declaration": "record_update_preview_revision ( preview : RecordUpdatePreview ) - > String"
+        },
+        {
+          "name": "record_update_preview_version_cid",
+          "declaration": "record_update_preview_version_cid ( preview : RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "record_update_proposal_identity",
+          "declaration": "record_update_proposal_identity ( proposal : RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "record_update_proposal_matches_mapping",
+          "declaration": "record_update_proposal_matches_mapping ( proposal : RecordUpdateProposal , mapping : RecordUpdateMapping , ) - > Bool"
+        },
+        {
+          "name": "record_update_proposal_value_wire",
+          "declaration": "record_update_proposal_value_wire ( proposal : RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "restore_record_update_execution",
+          "declaration": "restore_record_update_execution ( mapping : RecordUpdateMapping , identity : String , value_bytes : Bytes , target_bytes : Bytes , original_body : String , max_input_bytes : Int , pages : @ catalog . RecordPageLimits , values : @ catalog . RecordValueLimits , write_limits : @ catalog . RecordWriteLimits , limits : @ catalog . RecordMutationLimits , preview_limits ? : @ catalog . RecordMutationLimits"
+        },
+        {
+          "name": "update_mapping_values_match",
+          "declaration": "update_mapping_values_match ( mapping : RecordUpdateMapping , values : @ catalog . RecordWriteValues , ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "finalize_record_update_request",
+            "prepare_record_update_preview",
+            "prepare_record_update_proposal",
+            "record_update_execution_matches",
+            "record_update_preview_before_wire",
+            "record_update_preview_identity",
+            "record_update_preview_matches",
+            "record_update_preview_revision",
+            "record_update_preview_version_cid",
+            "record_update_proposal_identity",
+            "record_update_proposal_matches_mapping",
+            "record_update_proposal_value_wire",
+            "restore_record_update_execution",
+            "update_mapping_values_match"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_update_reads.mbt",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
+      "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
+      "sha256": "4a7fd2123778a4089ff0cac62462b5a7f394d127579800949c3c33c18eef2f70",
+      "exports": [],
+      "operations": [
+        {
+          "name": "record_update_mapping_recheck_form",
+          "declaration": "record_update_mapping_recheck_form ( mapping : RecordUpdateMapping , bytes : Bytes , limits : @ catalog . FormFieldLimits , ) - > Result [ Unit , RecordUpdateExecutionIssue ]"
+        },
+        {
+          "name": "record_update_proposal_app_id",
+          "declaration": "record_update_proposal_app_id ( proposal : RecordUpdateProposal ) - > String"
+        },
+        {
+          "name": "record_update_target_read_body",
+          "declaration": "record_update_target_read_body ( proposal : RecordUpdateProposal , max_fields : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RecordUpdateExecutionIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "record_update_mapping_recheck_form",
+            "record_update_proposal_app_id",
+            "record_update_target_read_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/kintone/host/kintone-update-request.mjs",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
+      "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
+      "sha256": "2bc66fe931e7a9b9f0bcbd7812d844e6b90a3044d0726c409dcae6eafbffdc52",
+      "exports": [
+        "createKintoneUpdateRequestAdapter"
+      ],
+      "operations": [
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration",
+            "origin",
+            "appId",
+            "connectorId",
+            "resource",
+            "siteBindingCid",
+            "generationCid",
+            "guestSpaceId",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/finalized/finalized",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/get/get",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:assertFinalized/init:assertFinalized",
+          "parameters": [
+            "request",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:capabilityRequestCid/init:capabilityRequestCid",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:finalize/init:finalize",
+          "parameters": [
+            "request",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:nativeRequest/init:nativeRequest",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:prepare/init:prepare",
+          "parameters": [
+            "value",
+            "selector"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:projectResponse/init:projectResponse",
+          "parameters": [
+            "request",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:projectTarget/init:projectTarget",
+          "parameters": [
+            "request",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:recheckForm/init:recheckForm",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:requestBody/init:requestBody",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:requestCid/init:requestCid",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:requestFacts/init:requestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:restore/init:restore",
+          "parameters": [
+            "wire",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:savedWire/init:savedWire",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/init:targetReadBody/init:targetReadBody",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/logicalIdentity/logicalIdentity",
+          "parameters": [
+            "identity",
+            "valueWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/native/native",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/observed/observed",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/physicalIdentity/physicalIdentity",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/targetBytes/targetBytes",
+          "parameters": [
+            "text"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneUpdateRequestAdapter/valueBytes/valueBytes",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "encode/encode",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "isCid/isCid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "method/method",
+          "parameters": [
+            "receiver",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "method/method/method",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own/own",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own/own#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "wireCid/wireCid",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "cid/cid",
+            "createKintoneUpdateRequestAdapter",
+            "createKintoneUpdateRequestAdapter/finalized/finalized",
+            "createKintoneUpdateRequestAdapter/get/get",
+            "createKintoneUpdateRequestAdapter/init:assertFinalized/init:assertFinalized",
+            "createKintoneUpdateRequestAdapter/init:capabilityRequestCid/init:capabilityRequestCid",
+            "createKintoneUpdateRequestAdapter/init:finalize/init:finalize",
+            "createKintoneUpdateRequestAdapter/init:nativeRequest/init:nativeRequest",
+            "createKintoneUpdateRequestAdapter/init:prepare/init:prepare",
+            "createKintoneUpdateRequestAdapter/init:projectResponse/init:projectResponse",
+            "createKintoneUpdateRequestAdapter/init:projectTarget/init:projectTarget",
+            "createKintoneUpdateRequestAdapter/init:recheckForm/init:recheckForm",
+            "createKintoneUpdateRequestAdapter/init:requestBody/init:requestBody",
+            "createKintoneUpdateRequestAdapter/init:requestCid/init:requestCid",
+            "createKintoneUpdateRequestAdapter/init:requestFacts/init:requestFacts",
+            "createKintoneUpdateRequestAdapter/init:restore/init:restore",
+            "createKintoneUpdateRequestAdapter/init:savedWire/init:savedWire",
+            "createKintoneUpdateRequestAdapter/init:targetReadBody/init:targetReadBody",
+            "createKintoneUpdateRequestAdapter/logicalIdentity/logicalIdentity",
+            "createKintoneUpdateRequestAdapter/native/native",
+            "createKintoneUpdateRequestAdapter/observed/observed",
+            "createKintoneUpdateRequestAdapter/physicalIdentity/physicalIdentity",
+            "createKintoneUpdateRequestAdapter/targetBytes/targetBytes",
+            "createKintoneUpdateRequestAdapter/valueBytes/valueBytes",
+            "encode/encode",
+            "fail/fail",
+            "isCid/isCid",
+            "method/method",
+            "method/method/method",
+            "own/own",
+            "own/own/own",
+            "own/own/own#2",
+            "positive/positive",
+            "text/text",
+            "wireCid/wireCid"
+          ],
+          "exports": [
+            "createKintoneUpdateRequestAdapter"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/kintone/host/kintone-update-driver.mjs",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
+      "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
+      "sha256": "85cfbe773344257131091dbbf94183ac5441433c2e03c12d661fa439e240af41",
+      "exports": [
+        "KINTONE_UPDATE_TARGET_VERSION",
+        "KintoneUpdateObservationFailure",
+        "kintoneUpdateDriver"
+      ],
+      "operations": [
+        {
+          "name": "capture/capture",
+          "parameters": [
+            "receiver",
+            "name",
+            "asynchronous"
+          ],
+          "async": false
+        },
+        {
+          "name": "capture/capture/capture",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "encode/encode",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "isCid/isCid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver",
+          "parameters": [
+            "moon",
+            "site",
+            "authorization",
+            "connection",
+            "origin",
+            "appId",
+            "connectorId",
+            "resource",
+            "formResource",
+            "fields",
+            "mapping",
+            "declaration",
+            "siteBindingCid",
+            "generationCid",
+            "guestSpaceId",
+            "limits",
+            "maxRows",
+            "maxMembers",
+            "maxRecoveryBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/frame/frame",
+          "parameters": [
+            "member",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
+          "parameters": [
+            "member",
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched/matched",
+          "parameters": [
+            "key",
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/init:describe/init:describe",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "kintoneUpdateDriver/init:footprint/init:footprint",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/init:observeTargets/init:observeTargets",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "kintoneUpdateDriver/init:observeTargets/init:observeTargets/observed/observed",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/init:prepareRequest/init:prepareRequest",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/init:project/init:project",
+          "parameters": [
+            "request",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/init:recheckRequests/init:recheckRequests",
+          "parameters": [
+            "member",
+            "entries",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry",
+          "parameters": [
+            "member",
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry/wires/wires",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/init:send/init:send",
+          "parameters": [
+            "member",
+            "request",
+            "current",
+            "authorization",
+            "credential",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "kintoneUpdateDriver/kintoneUpdateDriver",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/kintoneUpdateDriver#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/readScope/readScope",
+          "parameters": [
+            "options",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/readScope/readScope/decision/decision",
+          "parameters": [
+            "slot"
+          ],
+          "async": true
+        },
+        {
+          "name": "kintoneUpdateDriver/readScope/readScope/readScope",
+          "parameters": [
+            "slot",
+            "body",
+            "rowIndex",
+            "project"
+          ],
+          "async": true
+        },
+        {
+          "name": "kintoneUpdateDriver/readScope/readScope/readScope/input/input",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/readScope/readScope/readScope/value/value",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/readScope/readScope/verify/verify",
+          "parameters": [
+            "slot"
+          ],
+          "async": true
+        },
+        {
+          "name": "kintoneUpdateDriver/restore/restore",
+          "parameters": [
+            "durable",
+            "recorded",
+            "members",
+            "memberIndexes",
+            "body",
+            "requestTags"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/restore/restore/indexes/indexes",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/restore/restore/restore",
+          "parameters": [
+            "index",
+            "offset"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/restore/restore/restore/restore",
+          "parameters": [
+            "wire",
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/restore/restore/restore#2",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "kintoneUpdateDriver/selected/selected",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "cause",
+            "observations"
+          ],
+          "async": false
+        },
+        {
+          "name": "memberFacts/memberFacts",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "wireCid/wireCid",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/checkpoint-approval.mjs",
+        "../../../host-common/http-exchange.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../site/kintone-record-delete.mjs",
+        "../site/kintone-record-read.mjs",
+        "../site/kintone-record-write.mjs",
+        "./kintone-update-request.mjs",
+        "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capture/capture",
+            "capture/capture/capture",
+            "cid/cid",
+            "encode/encode",
+            "fail/fail",
+            "isCid/isCid",
+            "kintoneUpdateDriver",
+            "kintoneUpdateDriver/frame/frame",
+            "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
+            "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched",
+            "kintoneUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched/matched",
+            "kintoneUpdateDriver/init:describe/init:describe",
+            "kintoneUpdateDriver/init:footprint/init:footprint",
+            "kintoneUpdateDriver/init:observeTargets/init:observeTargets",
+            "kintoneUpdateDriver/init:observeTargets/init:observeTargets/observed/observed",
+            "kintoneUpdateDriver/init:prepareRequest/init:prepareRequest",
+            "kintoneUpdateDriver/init:project/init:project",
+            "kintoneUpdateDriver/init:recheckRequests/init:recheckRequests",
+            "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry",
+            "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry/wires/wires",
+            "kintoneUpdateDriver/init:send/init:send",
+            "kintoneUpdateDriver/kintoneUpdateDriver",
+            "kintoneUpdateDriver/kintoneUpdateDriver#2",
+            "kintoneUpdateDriver/readScope/readScope",
+            "kintoneUpdateDriver/readScope/readScope/decision/decision",
+            "kintoneUpdateDriver/readScope/readScope/readScope",
+            "kintoneUpdateDriver/readScope/readScope/readScope/input/input",
+            "kintoneUpdateDriver/readScope/readScope/readScope/value/value",
+            "kintoneUpdateDriver/readScope/readScope/verify/verify",
+            "kintoneUpdateDriver/restore/restore",
+            "kintoneUpdateDriver/restore/restore/indexes/indexes",
+            "kintoneUpdateDriver/restore/restore/restore",
+            "kintoneUpdateDriver/restore/restore/restore/restore",
+            "kintoneUpdateDriver/restore/restore/restore#2",
+            "kintoneUpdateDriver/selected/selected",
+            "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor",
+            "memberFacts/memberFacts",
+            "positive/positive",
+            "wireCid/wireCid"
+          ],
+          "exports": [
+            "KINTONE_UPDATE_TARGET_VERSION",
+            "KintoneUpdateObservationFailure",
+            "kintoneUpdateDriver"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE verification:"
               }
             ]
           }

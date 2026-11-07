@@ -83386,17 +83386,138 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_kintone_finalize_update_request",
+            "client_program_kintone_prepare_update_preview",
+            "client_program_kintone_prepare_update_proposal",
+            "client_program_kintone_restore_update_execution",
+            "client_program_kintone_update_effect_outcome",
+            "client_program_kintone_update_effect_outcome_matches_request",
+            "client_program_kintone_update_effect_outcome_response_sha256",
+            "client_program_kintone_update_effect_outcome_wire",
+            "client_program_kintone_update_execution_matches",
+            "client_program_kintone_update_mapping_recheck_form",
+            "client_program_kintone_update_preview_before_wire",
+            "client_program_kintone_update_preview_identity",
+            "client_program_kintone_update_preview_revision",
+            "client_program_kintone_update_preview_version_cid",
+            "client_program_kintone_update_proposal_app",
+            "client_program_kintone_update_proposal_identity",
+            "client_program_kintone_update_proposal_value_wire",
+            "client_program_kintone_update_target_read_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE verification:"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "9573a2c93dee0040643f62814113629aa0328c5f7f1232d70eb89d3865bd88ba",
+      "sha256": "4b04dec4860e27c00c89cd3b691fa90dddc7479b7a06e5bc506404afa4667941",
       "operations": [
         {
           "name": "client_kintone_original_update_mapping",
           "declaration": "client_kintone_original_update_mapping ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ]"
         },
         {
+          "name": "client_program_kintone_finalize_update_request",
+          "declaration": "client_program_kintone_finalize_update_request ( proposal : @ kintone_host . RecordUpdateProposal , preview : @ kintone_host . RecordUpdatePreview , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordUpdateRequest , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
           "name": "client_program_kintone_prepare_update_mapping",
           "declaration": "client_program_kintone_prepare_update_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordUpdateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_update_preview",
+          "declaration": "client_program_kintone_prepare_update_preview ( proposal : @ kintone_host . RecordUpdateProposal , bytes : Bytes , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordUpdatePreview , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_update_proposal",
+          "declaration": "client_program_kintone_prepare_update_proposal ( mapping : @ kintone_host . RecordUpdateMapping , identity : String , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordUpdateProposal , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_restore_update_execution",
+          "declaration": "client_program_kintone_restore_update_execution ( mapping : @ kintone_host . RecordUpdateMapping , identity : String , value_bytes : Bytes , target_bytes : Bytes , original_body : String , max_input_bytes : Int , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , before_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ ( @ kintone_host . RecordUpdateProposal , @ kintone_host . RecordUpdatePreview , @ kintone_catalog . RecordUpdateRequest , ) , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome",
+          "declaration": "client_program_kintone_update_effect_outcome ( request : @ kintone_catalog . RecordUpdateRequest , response : @ kintone_catalog . RecordUpdateAcknowledgement , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordUpdateEffectOutcome , @ kintone_catalog . RecordMutationIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome_matches_request",
+          "declaration": "client_program_kintone_update_effect_outcome_matches_request ( value : @ kintone_catalog . RecordUpdateEffectOutcome , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome_response_sha256",
+          "declaration": "client_program_kintone_update_effect_outcome_response_sha256 ( value : @ kintone_catalog . RecordUpdateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome_wire",
+          "declaration": "client_program_kintone_update_effect_outcome_wire ( value : @ kintone_catalog . RecordUpdateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_execution_matches",
+          "declaration": "client_program_kintone_update_execution_matches ( proposal : @ kintone_host . RecordUpdateProposal , preview : @ kintone_host . RecordUpdatePreview , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
         },
         {
           "name": "client_program_kintone_update_mapping_body",
@@ -83415,8 +83536,44 @@
           "declaration": "client_program_kintone_update_mapping_matches_request ( mapping : @ kintone_host . RecordUpdateMapping , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
         },
         {
+          "name": "client_program_kintone_update_mapping_recheck_form",
+          "declaration": "client_program_kintone_update_mapping_recheck_form ( mapping : @ kintone_host . RecordUpdateMapping , bytes : Bytes , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ Unit , @ kintone_host . RecordUpdateExecutionIssue ]"
+        },
+        {
           "name": "client_program_kintone_update_mapping_ref",
           "declaration": "client_program_kintone_update_mapping_ref ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_preview_before_wire",
+          "declaration": "client_program_kintone_update_preview_before_wire ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_preview_identity",
+          "declaration": "client_program_kintone_update_preview_identity ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_preview_revision",
+          "declaration": "client_program_kintone_update_preview_revision ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_preview_version_cid",
+          "declaration": "client_program_kintone_update_preview_version_cid ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_app",
+          "declaration": "client_program_kintone_update_proposal_app ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_identity",
+          "declaration": "client_program_kintone_update_proposal_identity ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_value_wire",
+          "declaration": "client_program_kintone_update_proposal_value_wire ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_target_read_body",
+          "declaration": "client_program_kintone_update_target_read_body ( proposal : @ kintone_host . RecordUpdateProposal , max_fields : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_host . RecordUpdateExecutionIssue ]"
         }
       ]
     },
@@ -83503,17 +83660,138 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_kintone_finalize_update_request",
+            "client_program_kintone_prepare_update_preview",
+            "client_program_kintone_prepare_update_proposal",
+            "client_program_kintone_restore_update_execution",
+            "client_program_kintone_update_effect_outcome",
+            "client_program_kintone_update_effect_outcome_matches_request",
+            "client_program_kintone_update_effect_outcome_response_sha256",
+            "client_program_kintone_update_effect_outcome_wire",
+            "client_program_kintone_update_execution_matches",
+            "client_program_kintone_update_mapping_recheck_form",
+            "client_program_kintone_update_preview_before_wire",
+            "client_program_kintone_update_preview_identity",
+            "client_program_kintone_update_preview_revision",
+            "client_program_kintone_update_preview_version_cid",
+            "client_program_kintone_update_proposal_app",
+            "client_program_kintone_update_proposal_identity",
+            "client_program_kintone_update_proposal_value_wire",
+            "client_program_kintone_update_target_read_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "UPDATE verification:"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "a54d333813951d4ff72293dee88f1ab8945da9b49386b33f1b0512309513b9c4",
+      "sha256": "ee33f9c991da06307b9547ee9bd49782f9200bf04e0087d2ff7f3fcee56de78a",
       "operations": [
         {
           "name": "client_kintone_original_update_mapping",
           "declaration": "client_kintone_original_update_mapping ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ]"
         },
         {
+          "name": "client_program_kintone_finalize_update_request",
+          "declaration": "client_program_kintone_finalize_update_request ( proposal : @ kintone_host . RecordUpdateProposal , preview : @ kintone_host . RecordUpdatePreview , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordUpdateRequest , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
           "name": "client_program_kintone_prepare_update_mapping",
           "declaration": "client_program_kintone_prepare_update_mapping ( original : @ kintone_host . RecordDeclaration , resource : String , sources : Array [ @ client_row_source_host . RowMappingSource ] , approval : String , limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ kintone_host . RecordUpdateMapping , @ client_row_source_host . RowMappingIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_update_preview",
+          "declaration": "client_program_kintone_prepare_update_preview ( proposal : @ kintone_host . RecordUpdateProposal , bytes : Bytes , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordUpdatePreview , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_prepare_update_proposal",
+          "declaration": "client_program_kintone_prepare_update_proposal ( mapping : @ kintone_host . RecordUpdateMapping , identity : String , bytes : Bytes , max_input_bytes : Int , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_host . RecordUpdateProposal , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_restore_update_execution",
+          "declaration": "client_program_kintone_restore_update_execution ( mapping : @ kintone_host . RecordUpdateMapping , identity : String , value_bytes : Bytes , target_bytes : Bytes , original_body : String , max_input_bytes : Int , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , before_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ ( @ kintone_host . RecordUpdateProposal , @ kintone_host . RecordUpdatePreview , @ kintone_catalog . RecordUpdateRequest , ) , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome",
+          "declaration": "client_program_kintone_update_effect_outcome ( request : @ kintone_catalog . RecordUpdateRequest , response : @ kintone_catalog . RecordUpdateAcknowledgement , limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ @ kintone_catalog . RecordUpdateEffectOutcome , @ kintone_catalog . RecordMutationIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome_matches_request",
+          "declaration": "client_program_kintone_update_effect_outcome_matches_request ( value : @ kintone_catalog . RecordUpdateEffectOutcome , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome_response_sha256",
+          "declaration": "client_program_kintone_update_effect_outcome_response_sha256 ( value : @ kintone_catalog . RecordUpdateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_effect_outcome_wire",
+          "declaration": "client_program_kintone_update_effect_outcome_wire ( value : @ kintone_catalog . RecordUpdateEffectOutcome , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_execution_matches",
+          "declaration": "client_program_kintone_update_execution_matches ( proposal : @ kintone_host . RecordUpdateProposal , preview : @ kintone_host . RecordUpdatePreview , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
         },
         {
           "name": "client_program_kintone_update_mapping_body",
@@ -83532,8 +83810,44 @@
           "declaration": "client_program_kintone_update_mapping_matches_request ( mapping : @ kintone_host . RecordUpdateMapping , request : @ kintone_catalog . RecordUpdateRequest , ) - > Bool"
         },
         {
+          "name": "client_program_kintone_update_mapping_recheck_form",
+          "declaration": "client_program_kintone_update_mapping_recheck_form ( mapping : @ kintone_host . RecordUpdateMapping , bytes : Bytes , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ Unit , @ kintone_host . RecordUpdateExecutionIssue ]"
+        },
+        {
           "name": "client_program_kintone_update_mapping_ref",
           "declaration": "client_program_kintone_update_mapping_ref ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_preview_before_wire",
+          "declaration": "client_program_kintone_update_preview_before_wire ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_preview_identity",
+          "declaration": "client_program_kintone_update_preview_identity ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_preview_revision",
+          "declaration": "client_program_kintone_update_preview_revision ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_preview_version_cid",
+          "declaration": "client_program_kintone_update_preview_version_cid ( preview : @ kintone_host . RecordUpdatePreview , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_app",
+          "declaration": "client_program_kintone_update_proposal_app ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_identity",
+          "declaration": "client_program_kintone_update_proposal_identity ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_proposal_value_wire",
+          "declaration": "client_program_kintone_update_proposal_value_wire ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_target_read_body",
+          "declaration": "client_program_kintone_update_target_read_body ( proposal : @ kintone_host . RecordUpdateProposal , max_fields : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_host . RecordUpdateExecutionIssue ]"
         }
       ]
     }

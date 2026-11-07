@@ -95,6 +95,8 @@ pub fn project_record_update_acknowledgement(RecordUpdateRequest, Int, Bytes, Re
 
 pub fn project_record_update_effect_outcome(RecordUpdateRequest, RecordUpdateAcknowledgement, RecordMutationLimits) -> Result[RecordUpdateEffectOutcome, RecordMutationIssue]
 
+pub fn recheck_original_record_form(FormFieldCatalog, Bytes, FormFieldLimits) -> Result[Unit, RecordMutationIssue]
+
 pub fn recheck_record_create_form(RecordCreateRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordMutationIssue]
 
 pub fn recheck_record_delete_form(RecordDeleteRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordMutationIssue]

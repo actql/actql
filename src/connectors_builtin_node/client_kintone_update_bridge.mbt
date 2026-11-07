@@ -81,3 +81,218 @@ pub fn client_program_kintone_update_mapping_matches_request(
 ) -> Bool {
   @kintone_host.record_update_mapping_matches_request(mapping, request)
 }
+
+///|
+#export_name("clientProgramKintonePrepareUpdateProposal")
+pub fn client_program_kintone_prepare_update_proposal(
+  mapping : @kintone_host.RecordUpdateMapping,
+  identity : String,
+  bytes : Bytes,
+  max_input_bytes : Int,
+  write_limits : @kintone_catalog.RecordWriteLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_host.RecordUpdateProposal,
+  @kintone_host.RecordUpdateExecutionIssue,
+] {
+  @kintone_host.prepare_record_update_proposal(
+    mapping, identity, bytes, max_input_bytes, write_limits, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneUpdateProposalIdentity")
+pub fn client_program_kintone_update_proposal_identity(
+  proposal : @kintone_host.RecordUpdateProposal,
+) -> String {
+  @kintone_host.record_update_proposal_identity(proposal)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateProposalValueWire")
+pub fn client_program_kintone_update_proposal_value_wire(
+  proposal : @kintone_host.RecordUpdateProposal,
+) -> String {
+  @kintone_host.record_update_proposal_value_wire(proposal)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateProposalApp")
+pub fn client_program_kintone_update_proposal_app(
+  proposal : @kintone_host.RecordUpdateProposal,
+) -> String {
+  @kintone_host.record_update_proposal_app_id(proposal)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateTargetReadBody")
+pub fn client_program_kintone_update_target_read_body(
+  proposal : @kintone_host.RecordUpdateProposal,
+  max_fields : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @kintone_host.RecordUpdateExecutionIssue] {
+  @kintone_host.record_update_target_read_body(
+    proposal, max_fields, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneUpdateMappingRecheckForm")
+pub fn client_program_kintone_update_mapping_recheck_form(
+  mapping : @kintone_host.RecordUpdateMapping,
+  bytes : Bytes,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> Result[Unit, @kintone_host.RecordUpdateExecutionIssue] {
+  @kintone_host.record_update_mapping_recheck_form(mapping, bytes, limits)
+}
+
+///|
+#export_name("clientProgramKintonePrepareUpdatePreview")
+pub fn client_program_kintone_prepare_update_preview(
+  proposal : @kintone_host.RecordUpdateProposal,
+  bytes : Bytes,
+  pages : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_host.RecordUpdatePreview,
+  @kintone_host.RecordUpdateExecutionIssue,
+] {
+  @kintone_host.prepare_record_update_preview(
+    proposal, bytes, pages, values, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneUpdatePreviewIdentity")
+pub fn client_program_kintone_update_preview_identity(
+  preview : @kintone_host.RecordUpdatePreview,
+) -> String {
+  @kintone_host.record_update_preview_identity(preview)
+}
+
+///|
+#export_name("clientProgramKintoneUpdatePreviewBeforeWire")
+pub fn client_program_kintone_update_preview_before_wire(
+  preview : @kintone_host.RecordUpdatePreview,
+) -> String {
+  @kintone_host.record_update_preview_before_wire(preview)
+}
+
+///|
+#export_name("clientProgramKintoneUpdatePreviewVersionCid")
+pub fn client_program_kintone_update_preview_version_cid(
+  preview : @kintone_host.RecordUpdatePreview,
+) -> String {
+  @kintone_host.record_update_preview_version_cid(preview)
+}
+
+///|
+#export_name("clientProgramKintoneUpdatePreviewRevision")
+pub fn client_program_kintone_update_preview_revision(
+  preview : @kintone_host.RecordUpdatePreview,
+) -> String {
+  @kintone_host.record_update_preview_revision(preview)
+}
+
+///|
+#export_name("clientProgramKintoneFinalizeUpdateRequest")
+pub fn client_program_kintone_finalize_update_request(
+  proposal : @kintone_host.RecordUpdateProposal,
+  preview : @kintone_host.RecordUpdatePreview,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordUpdateRequest,
+  @kintone_host.RecordUpdateExecutionIssue,
+] {
+  @kintone_host.finalize_record_update_request(proposal, preview, limits)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateExecutionMatches")
+pub fn client_program_kintone_update_execution_matches(
+  proposal : @kintone_host.RecordUpdateProposal,
+  preview : @kintone_host.RecordUpdatePreview,
+  request : @kintone_catalog.RecordUpdateRequest,
+) -> Bool {
+  @kintone_host.record_update_execution_matches(proposal, preview, request)
+}
+
+///|
+#export_name("clientProgramKintoneRestoreUpdateExecution")
+pub fn client_program_kintone_restore_update_execution(
+  mapping : @kintone_host.RecordUpdateMapping,
+  identity : String,
+  value_bytes : Bytes,
+  target_bytes : Bytes,
+  original_body : String,
+  max_input_bytes : Int,
+  pages : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  write_limits : @kintone_catalog.RecordWriteLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+  before_limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  (
+    @kintone_host.RecordUpdateProposal,
+    @kintone_host.RecordUpdatePreview,
+    @kintone_catalog.RecordUpdateRequest,
+  ),
+  @kintone_host.RecordUpdateExecutionIssue,
+] {
+  @kintone_host.restore_record_update_execution(
+    mapping,
+    identity,
+    value_bytes,
+    target_bytes,
+    original_body,
+    max_input_bytes,
+    pages,
+    values,
+    write_limits,
+    limits,
+    preview_limits=before_limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneUpdateEffectOutcome")
+pub fn client_program_kintone_update_effect_outcome(
+  request : @kintone_catalog.RecordUpdateRequest,
+  response : @kintone_catalog.RecordUpdateAcknowledgement,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_catalog.RecordUpdateEffectOutcome,
+  @kintone_catalog.RecordMutationIssue,
+] {
+  @kintone_catalog.project_record_update_effect_outcome(
+    request, response, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneUpdateEffectOutcomeWire")
+pub fn client_program_kintone_update_effect_outcome_wire(
+  value : @kintone_catalog.RecordUpdateEffectOutcome,
+) -> String {
+  @kintone_catalog.record_update_effect_outcome_wire(value)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateEffectOutcomeMatchesRequest")
+pub fn client_program_kintone_update_effect_outcome_matches_request(
+  value : @kintone_catalog.RecordUpdateEffectOutcome,
+  request : @kintone_catalog.RecordUpdateRequest,
+) -> Bool {
+  @kintone_catalog.record_update_effect_outcome_matches_request(value, request)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateEffectOutcomeResponseSha256")
+pub fn client_program_kintone_update_effect_outcome_response_sha256(
+  value : @kintone_catalog.RecordUpdateEffectOutcome,
+) -> String {
+  @kintone_catalog.record_update_effect_outcome_response_sha256(value)
+}

@@ -132,6 +132,61 @@ The existing Site must still bind the actual authenticated same-App live
 requests, generation and current authority. Equal data/revisions are not that
 authority or an ACK.
 
+## Installed UPDATE request and driver
+
+UPDATE responsibility: the provider adapter connects the existing same-runtime
+native Mapping, proposal, original target, revision-checked request and typed
+acknowledgement to the installed row Effect. The shared Host owns Preview,
+Checkpoint approval, durable claims, Unknown, settlement and physical cleanup.
+
+UPDATE inputs and outputs: the bounded mapped object and exact API-id String
+produce a logical proposal. The complete original Form is rechecked around the
+target read. The native checked before object includes `$id` and every declared
+before field. The original observed revision enters the native PUT body only
+after that target has been projected; no default or guessed revision is used.
+
+UPDATE identity: the immutable binding includes connector, origin, app, resource,
+Site and generation, Mapping ref/CID and codec. Final request identity also binds
+the original logical request, dispatch tag, complete original target-body digest
+and exact serialized PUT body. Equal copied opaque carriers cannot supply it.
+
+UPDATE ownership: the adapter retains native DATA originals and captured runtime
+methods. It issues no Account decision, permission, claim or physical ACK. The
+driver passes the SAME Site-issued metadata authorization to its physical child;
+the invocation useId is separate. Target reads use their original same-row grant.
+
+UPDATE synchronization: each describe and target phase performs fresh authorized
+Form reads. Target current, cancellation and credential fences remain in the
+existing physical child. An immutable metadata holder is not a reusable current
+proof. Captured native, Site and Account methods keep their original receivers.
+
+UPDATE failure: schema, complete before-value, revision, id, Mapping, request-tag,
+body and member/claim mismatches refuse. Non-success, incomplete or unrelated
+responses remain unclassified, never absence, known nonacceptance or a resend.
+Failed physical read observations remain attached to their original cause.
+
+UPDATE cancellation: existing signals are checked before reads and sends. A late
+abort must not discard an already observed write response. Socket and response
+custody, pending cleanup and Root retirement remain the existing Host duties.
+
+UPDATE resources: parser, value, identity, comparison and writer bounds remain
+distinct. Cold before output uses its response bound, independently of the PUT
+output bound. Full saved wire and decoded target bytes are bounded before
+restoration. Positive limits are not funding: the standard installer must reserve
+the simultaneous original material, construction and physical-child backing.
+
+UPDATE extension: cold restoration checks the complete saved binding, original
+request tag, native values/target/body, approved row and claim correspondence.
+It performs no I/O, new request selection or resend. Node and generated RelA
+delegate to the same native validators; no parallel validation implementation is
+introduced. This driver alone does not establish a funded standard installation.
+
+UPDATE verification: actual compiled native boundary cases cover wide id/revision
+strings, independent before/PUT bounds, copied and substituted material, complete
+Form/target drift, metadata versus target grants, response correlation, lost
+reply and cancellation custody, original Checkpoint binding and cold tampering.
+Explicit component ports do not establish ordinary approval or provider sends.
+
 ## Original Common acquisition and checked-contract handoff
 
 The connector's record declaration retains the original Form projection and

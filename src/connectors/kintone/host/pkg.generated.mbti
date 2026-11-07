@@ -188,6 +188,8 @@ pub fn record_update_mapping_matches_declaration(RecordUpdateMapping, RecordDecl
 
 pub fn record_update_mapping_matches_request(RecordUpdateMapping, @catalog.RecordUpdateRequest) -> Bool
 
+pub fn record_update_mapping_recheck_form(RecordUpdateMapping, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordUpdateExecutionIssue]
+
 pub fn record_update_preview_before_wire(RecordUpdatePreview) -> String
 
 pub fn record_update_preview_identity(RecordUpdatePreview) -> String
@@ -198,17 +200,21 @@ pub fn record_update_preview_revision(RecordUpdatePreview) -> String
 
 pub fn record_update_preview_version_cid(RecordUpdatePreview) -> String
 
+pub fn record_update_proposal_app_id(RecordUpdateProposal) -> String
+
 pub fn record_update_proposal_identity(RecordUpdateProposal) -> String
 
 pub fn record_update_proposal_matches_mapping(RecordUpdateProposal, RecordUpdateMapping) -> Bool
 
 pub fn record_update_proposal_value_wire(RecordUpdateProposal) -> String
 
+pub fn record_update_target_read_body(RecordUpdateProposal, Int, Int, Int, Int) -> Result[String, RecordUpdateExecutionIssue]
+
 pub fn restore_record_create_execution_proposal(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
 pub fn restore_record_create_execution_request(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
-pub fn restore_record_update_execution(RecordUpdateMapping, String, Bytes, Bytes, String, Int, @catalog.RecordPageLimits, @catalog.RecordValueLimits, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[(RecordUpdateProposal, RecordUpdatePreview, @catalog.RecordUpdateRequest), RecordUpdateExecutionIssue]
+pub fn restore_record_update_execution(RecordUpdateMapping, String, Bytes, Bytes, String, Int, @catalog.RecordPageLimits, @catalog.RecordValueLimits, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits, preview_limits? : @catalog.RecordMutationLimits) -> Result[(RecordUpdateProposal, RecordUpdatePreview, @catalog.RecordUpdateRequest), RecordUpdateExecutionIssue]
 
 pub fn retire_managed_record(ManagedRecordRead) -> Unit
 
