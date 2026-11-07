@@ -431,12 +431,62 @@ fn execute_native_project_selection(
     Ok(value) => value
     Err(original) => return Err(original)
   }
-  // No nominal profile cycle may survive the original command's Read.
-  // This also runs when the still-unavailable runtime assembler refuses.
-  defer (if selected is Some(project) &&
+  // Retain the original Project in the existing command BEFORE assembling
+  // cyclic Model originals. Pending retirement remains on that same carrier.
+  let retained = match command_preparation_invocation.val {
+    Some(original) => {
+      match original.prepare_project_input(selected) {
+        Ok(_) => ()
+        Err(issue) => {
+          original.retain_primary(issue)
+          stop("InvalidProjectBindings")
+        }
+      }
+      true
+    }
+    None => false
+  }
+  // The standalone Reader component has no command carrier or Model users.
+  defer (if !retained &&
+    selected is Some(project) &&
     project.mock_declarations is Some(original) {
     original.retire()
   })
   local_project_apply_selection(matches, selected)
   Ok(execute(matches))
+}
+
+///|
+// The same command retains this Project before any Model original is made.
+// Its current physical Read is required; metadata/Bool/capacity DATA cannot
+// substitute for that live scope. No Host, Request or Ledger is created here.
+fn LocalCommandPreparationOriginal::prepare_project_input(
+  self : LocalCommandPreparationOriginal,
+  selected : LocalProjectConfiguration?,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard !self.closing &&
+    !self.closed &&
+    self.primary is None &&
+    self.project is None &&
+    self.host is Some(host) &&
+    self.read is Some(read) else {
+    return Err(CommandUnavailable)
+  }
+  match host.require_domain_original_read_current(read) {
+    Ok(_) => ()
+    Err(issue) => return Err(CommandRead(issue))
+  }
+  self.project = selected
+  if selected is Some(project) && project.mock_declarations is Some(mock) {
+    match
+      mock.prepare_models(
+        local_project_mock_task_limits(),
+        local_project_mock_answer_limits(),
+        local_utc_now,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(CommandProjectMock(issue))
+    }
+  }
+  Ok(())
 }

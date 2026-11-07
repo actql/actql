@@ -49,6 +49,7 @@ priv enum LocalCommandPreparationIssue {
   CommandAdoption(@local_host.NativeLocalAdoptionIssue)
   CommandCapture(@local_host.NativeLocalAdoptionCaptureIssue)
   CommandApplication(String)
+  CommandProjectMock(LocalProjectMockModelIssue)
   CommandFilesystem(@files.NativeBoundedTextIssue)
   CommandFilesystemCleanup(@local_filesystem.NativeFilesystemIssue)
 }
@@ -79,6 +80,7 @@ priv struct LocalCommandPreparationOriginal {
   mut read_inventory_recorded : Bool
   mut business_inventory_recorded : Bool
   mut run_observation : LocalCommandRunObservationOriginal?
+  mut project : LocalProjectConfiguration?
   cancellation_recovery : Ref[String?]
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
@@ -189,6 +191,7 @@ fn prepare_local_command_preparation_original(
     read_inventory_recorded: false,
     business_inventory_recorded: false,
     run_observation: None,
+    project: None,
     cancellation_recovery: Ref(None),
     business: business.map(candidate => {
       profile: candidate,
@@ -937,6 +940,16 @@ fn LocalCommandPreparationOriginal::close_checked(
           )
           self.outer_library = None
         }
+        self.cleanup_stage = "project-originals"
+        if self.project is Some(project) &&
+          project.mock_declarations is Some(original) {
+          match original.retire_originals() {
+            Ok(true) => ()
+            Ok(false) => return Err(CommandUnavailable)
+            Err(issue) => return Err(CommandProjectMock(issue))
+          }
+        }
+        self.project = None
         // These closed records still retain Read-managed aliases. Keep them
         // through their real close and then retire our own last references.
         // The closed Journal and Adoption still retain their actual SQLite DB.
