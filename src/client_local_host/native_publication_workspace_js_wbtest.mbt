@@ -80,6 +80,7 @@ fn native_publication_workspace_component(
   check_legacy : Bool,
   snapshot? : Bool = false,
   chain? : Bool = false,
+  only_foreign? : Bool = false,
 ) -> Unit raise {
   let (parent, _input, prepared) = native_publication_workspace_fixture(rows)
   let assets = @publication_host.client_local_product_assets()
@@ -200,6 +201,36 @@ fn native_publication_workspace_component(
       fail("Component completed-output setup: " + detail)
     }
   }
+  let original_publication = if snapshot {
+    Some(reserve_program_publication(run, prepared).unwrap())
+  } else {
+    None
+  }
+  if only_foreign {
+    let original = original_publication.unwrap()
+    let copied = { ..original, }
+    let before = @resources.ledger_usage(parent.ledger)
+    assert_true(
+      execution.prepare_result_export(
+        0,
+        row_limits,
+        bridge_entries,
+        65536,
+        limits,
+        publication=Some(copied),
+      )
+      is Err(Transformation(@publication_host.ForeignSelection)),
+    )
+    let after = @resources.ledger_usage(parent.ledger)
+    assert_eq(after.held_bytes, before.held_bytes)
+    assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+    assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+    assert_true(publication_export_original_matches(original, execution.run))
+    assert_true(execution.close())
+    retire_installed_managed_run(run).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    return
+  }
   // The old, tighter request refuses the projection without revoking the
   // existing completed output. No business operation is replayed below.
   if check_legacy {
@@ -214,7 +245,14 @@ fn native_publication_workspace_component(
     )
   }
   let output = execution
-    .prepare_result_export(0, row_limits, bridge_entries, 65536, limits)
+    .prepare_result_export(
+      0,
+      row_limits,
+      bridge_entries,
+      65536,
+      limits,
+      publication=original_publication,
+    )
     .unwrap()
   let stream = output.output_export()
   let mut streamed_bytes = 0
@@ -269,7 +307,7 @@ fn native_publication_workspace_component(
     assert_eq(replayed_bytes, streamed_bytes)
   }
   if snapshot {
-    let publication = reserve_program_publication(run, prepared).unwrap()
+    let publication = original_publication.unwrap()
     stream
     .issue_result_evidence(
       if chain {
@@ -651,5 +689,15 @@ test "original numeric publication snapshot capture and chain validation share e
     false,
     snapshot=true,
     chain=true,
+  )
+}
+
+///|
+test "ordinary export refuses copied publication continuation before bridge construction" {
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    only_foreign=true,
   )
 }

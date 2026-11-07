@@ -28,9 +28,11 @@ test "Local Values publication retains original checked plan and separate decode
   assert_eq(output.max_result_fields, 1)
   assert_eq(output.max_result_mapping_work, 3)
   assert_eq(output.max_result_order_work, 1)
-  // Preserve Native's independent complete-publication validation guard;
-  // one row's index storage is not a receipt/Manifest traversal allowance.
-  assert_eq(output.max_result_workspace_entries, 10000)
+  // The original one-row/one-column envelope has two row slots and thirteen
+  // field slots, below the existing workspace floor100. Metadata/receipt
+  // traversal has its independent original entry ceilings, never this bound.
+  assert_eq(output.max_result_workspace_entries, 100)
+  assert_eq(original.publication_entry_limits(prepared), Some((10000, 10000)))
   assert_eq(output.values.max_nodes, 2)
   assert_eq(output.values.max_text_bytes, 1)
   assert_eq(output.values.max_depth, 100)
