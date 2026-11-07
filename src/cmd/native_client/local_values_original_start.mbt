@@ -161,6 +161,7 @@ fn local_execute_original_publish_values(
       }
       Err(issue) => {
         business._retained_publication_commit_failure = Some(issue)
+        local_publication_commit_failure_tags(issue, native_timing_amount)
         stop("LocalPublicationNeedsReconciliation")
       }
     }
