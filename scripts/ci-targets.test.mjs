@@ -605,6 +605,29 @@ test('CI selection follows the owned contract baseline without a legacy exceptio
 });
 
 
+test('reviewed evaluation test modifications retain the existing light gate', () => {
+  const paths = ['examples/infer-evaluation/evaluate.test.mjs',
+    'examples/infer-evaluation/compare-source-instructions.test.mjs'];
+  for (const path of paths) {
+    assert(readFileSync(new URL('../' + path, import.meta.url), 'utf8').includes('test('));
+    const value = validateSelection(maintenanceSelection([path]));
+    assert.equal(value.profile, 'maintenance', path);
+    assert.equal(deepProofRequired(value), false);
+    assert.equal(verifyGate(plan(value), results(value), context).length, gateJobs.length);
+  }
+  assert.equal(maintenanceSelection([...paths, 'docs/development.md']).profile, 'maintenance');
+  for (const input of ['examples/infer-evaluation/evaluate.mjs',
+    'examples/infer-evaluation/compare-source-instructions.mjs',
+    'examples/infer-evaluation/evidence-reference.mjs',
+    'packages/sdk/host-port.mjs', 'src/client_local_host/moon.pkg',
+    'package.json', 'toolchain.json', '.github/workflows/ci.yml',
+    'proofs/relation-pipeline/inventory.mjs', 'examples/infer-evaluation/new.test.mjs']) {
+    const value = maintenanceSelection([paths[0], input]);
+    assert.equal(value.profile, 'full', input);
+    assert.equal(deepProofRequired(value), true, input);
+  }
+});
+
 test('maintenance inventory is exact and every existing reviewed modification qualifies', () => {
   assert.equal(maintenanceFiles.length, 17);
   assert.equal(new Set(maintenanceFiles).size, 17);
