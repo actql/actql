@@ -204,3 +204,57 @@ test('Native Resident reconciliation observer crash retains unknown evidence wit
   assert.deepEqual(await readFile(join(f.directory, 'unknown.txt')), original);
   // No release/close response or physical resource observation was supplied.
 });
+
+
+test('Resident preparation timings preserve the exact original six producer calls and return values', () => {
+  const declaration = syntax.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'timedResidentPreparation');
+  assert(declaration, 'Resident prerequisite time must be separated from test execution');
+  const records = []; let clock = 0;
+  const timed = Function('performance', 'console', `return (${source.slice(declaration.start, declaration.end)});`)(
+    {now: () => clock++}, {error: line => records.push(JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length)))});
+  for (const retainedConsumerMode of [false, true]) {
+    const calls = [], originals = Array.from({length: 6}, () => ({}));
+    const record = name => (...args) => {calls.push({name, args}); return originals[calls.length - 1];};
+    const begin = source.indexOf('  const httpLibrary = '), end = source.indexOf('  const moonModule = ', begin);
+    assert(begin >= 0 && end > begin);
+    const values = Function('timedResidentPreparation', 'prepareNativeResidentHttpLibrary',
+      'prepareNativeResidentSite', 'execFileSync', 'prepareNativeRuntimeBundle',
+      'prepareNativeRuntimeBundleLibraries', 'moon', 'repository', 'root', 'join', 'retainedConsumerMode',
+      source.slice(begin, end) + '\nreturn [httpLibrary, executable, bundleTool, bundleLibraries];')(
+      timed, record('http'), record('resident'), record('command'), record('bundle'), record('components'),
+      '/selected/moon', '/original/source', '/owned/case', join, retainedConsumerMode);
+    assert.deepEqual(calls, [
+      {name: 'http', args: []},
+      {name: 'resident', args: ['/original/source', '/owned/case/resident-producer']},
+      {name: 'command', args: ['/selected/moon', ['build', '--target', 'js', '--release',
+        'src/connectors_builtin_node'], {cwd: '/original/source', stdio: 'inherit'}]},
+      {name: 'command', args: [process.execPath, ['scripts/build-runtime-packages.mjs',
+        'coordinator-core', 'run-host-core', ...(retainedConsumerMode ? ['transfer-core'] : [])],
+        {cwd: '/original/source', stdio: 'inherit'}]},
+      {name: 'bundle', args: ['/original/source', '/owned/case/runtime-bundle-producer']},
+      {name: 'components', args: ['/original/source', '/owned/case/runtime-bundle-components']},
+    ]);
+    for (const [index, value] of values.entries()) assert.strictEqual(value, originals[[0, 1, 4, 5][index]]);
+  }
+  assert.equal(records.length, 12);
+  for (const offset of [0, 6]) assert.deepEqual(records.slice(offset, offset + 6),
+    ['http-component', 'resident-command', 'portable-core-build', 'portable-owner-build', 'bundle-command', 'bundle-components']
+      .map(phase => ({scope: 'resident-preparation', phase, milliseconds: 1, succeeded: true})));
+});
+
+test('Resident preparation timing retains original failure and never turns observer failure into execution failure', () => {
+  const declaration = syntax.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'timedResidentPreparation');
+  assert(declaration);
+  const records = [], original = new Error('Original producer failure'); let calls = 0;
+  const create = observe => Function('performance', 'console', `return (${source.slice(declaration.start, declaration.end)});`)(
+    {now: () => 10}, {error: observe});
+  const timed = create(line => records.push(JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length))));
+  assert.throws(() => timed('portable-core-build', () => {calls++; throw original;}), error => error === original);
+  assert.equal(calls, 1);
+  assert.deepEqual(records, [{scope: 'resident-preparation', phase: 'portable-core-build', milliseconds: 0, succeeded: false}]);
+  const broken = create(() => {throw new Error('Diagnostic sink failure');});
+  assert.throws(() => broken('portable-core-build', () => {throw original;}), error => error === original);
+  const value = {}; assert.strictEqual(broken('portable-core-build', () => value), value);
+});

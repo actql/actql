@@ -46,6 +46,19 @@ import {openSqliteTransferJournal} from
   '../adapters/site-node/sqlite-transfer-journal.mjs';
 import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
 
+// Attribute existing preparation work separately from fixture and execution time.
+// These closed phase labels contain no paths, case values or private failure data.
+function timedResidentPreparation(phase, prepare) {
+  const started = performance.now(); let succeeded = false;
+  try { const original = prepare(); succeeded = true; return original; }
+  finally {
+    try {
+      console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({scope: 'resident-preparation',
+        phase, milliseconds: Math.round(performance.now() - started), succeeded}));
+    } catch { /* Timing output cannot replace the original return or failure. */ }
+  }
+}
+
 // This harness's post-install watchdog owns only its fresh test process group.
 // Phase DATA is not a child stop, Store release, Site capacity or Host ACK.
 const residentPhaseKinds = new Set([
@@ -325,18 +338,18 @@ let acceptanceFailed = false;
 async function runAcceptance() {
 try {
   // Build the resident Site and the portable owners the test drives.
-  const httpLibrary = prepareNativeResidentHttpLibrary();
-  const executable = prepareNativeResidentSite(repository,
-    join(root, 'resident-producer'));
-  execFileSync(moon, ['build', '--target', 'js', '--release',
-    'src/connectors_builtin_node'], {cwd: repository, stdio: 'inherit'});
-  execFileSync(process.execPath, ['scripts/build-runtime-packages.mjs',
+  const httpLibrary = timedResidentPreparation('http-component', () => prepareNativeResidentHttpLibrary());
+  const executable = timedResidentPreparation('resident-command', () => prepareNativeResidentSite(repository,
+    join(root, 'resident-producer')));
+  timedResidentPreparation('portable-core-build', () => execFileSync(moon, ['build', '--target', 'js', '--release',
+    'src/connectors_builtin_node'], {cwd: repository, stdio: 'inherit'}));
+  timedResidentPreparation('portable-owner-build', () => execFileSync(process.execPath, ['scripts/build-runtime-packages.mjs',
     'coordinator-core', 'run-host-core', ...(retainedConsumerMode ? ['transfer-core'] : [])],
-  {cwd: repository, stdio: 'inherit'});
-  const bundleTool = prepareNativeRuntimeBundle(repository,
-    join(root, 'runtime-bundle-producer'));
-  const bundleLibraries = prepareNativeRuntimeBundleLibraries(repository,
-    join(root, 'runtime-bundle-components'));
+  {cwd: repository, stdio: 'inherit'}));
+  const bundleTool = timedResidentPreparation('bundle-command', () => prepareNativeRuntimeBundle(repository,
+    join(root, 'runtime-bundle-producer')));
+  const bundleLibraries = timedResidentPreparation('bundle-components', () => prepareNativeRuntimeBundleLibraries(repository,
+    join(root, 'runtime-bundle-components')));
   const moonModule = await import(pathToFileURL(join(repository,
     '_build/js/release/build/connectors_builtin_node/' +
     'connectors_builtin_node.js')).href);
