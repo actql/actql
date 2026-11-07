@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -202,4 +203,47 @@ test('complete repository scan checks tracked and unstaged paths beyond one MiB'
     error.message.includes(paths[0]) && error.message.includes(paths.at(-1)));
   for (const path of paths) writeFileSync(join(directory, path), source('0.1'));
   assert.doesNotThrow(() => checkRepository(directory));
+});
+
+
+test('owned occurrence locations preserve LF counts and exact contexts across skipped URL and baseline tokens', () => {
+  const path = 'controlled-source.mjs';
+  const first = 'actql-private/' + future, second = 'urn:aoa:frame:' + future;
+  const text = 'astral \u{1f642}\r\nactql-same/0.1\n' +
+    "'https://pypi.org/project/actql/" + future + "/'\n" + first + '\r\n\u2028' + second + '\n';
+  const expected = [[first, 4], [second, 5]].map(([token, line]) => {
+    const offset = text.indexOf(token);
+    return {path, token, line, contextSha256: createHash('sha256')
+      .update(text.slice(Math.max(0, offset - 80), offset + token.length + 80)).digest('hex')};
+  });
+  assert.deepEqual(occurrences(text, path), expected);
+  assert.equal(violations(expected, empty).length, 2);
+});
+
+test('owned scanner visits line and URL prefixes once per immutable input instead of once per occurrence', () => {
+  for (const prefix of ['', "'https://registry.npmjs.org/actql/" + future + "'\n"]) {
+    const text = prefix + Array.from({length: 160}, (_, index) =>
+      'x'.repeat(1500) + ' actql-owned-' + index + '/' + future + '\n').join('');
+    let inspected = 0;
+    const original = {
+      matchAll: expression => text.matchAll(expression),
+      slice(start, end = text.length) {inspected += Math.max(0, end - start); return text.slice(start, end);},
+      lastIndexOf(needle, offset) {inspected += offset + 1; return text.lastIndexOf(needle, offset);},
+      indexOf(needle, offset = 0) {
+        const found = text.indexOf(needle, offset);
+        inspected += (found < 0 ? text.length : found + needle.length) - offset;
+        return found;
+      },
+      toString: () => text,
+    };
+    const textView = new Proxy(original, {get(target, name) {
+      if (typeof name === 'string' && /^(?:0|[1-9][0-9]*)$/u.test(name)) return text[name];
+      return Reflect.get(target, name);
+    }});
+    const found = occurrences(textView, 'controlled-source.mjs');
+    assert.deepEqual(found, occurrences(text, 'controlled-source.mjs'));
+    assert.equal(found.length, 160);
+    assert(inspected <= text.length * 5 + found.length * 200,
+      `prefix inspection exceeded the linear fixture bound: ${inspected} for ${text.length} source units`);
+  }
 });
