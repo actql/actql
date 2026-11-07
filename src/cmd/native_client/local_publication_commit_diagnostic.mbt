@@ -10,7 +10,14 @@ fn local_publication_commit_cause(
     CommitEvidence(EvidenceWrongContract(_)) => 103L
     CommitEvidence(EvidenceMissingField(_)) => 104L
     CommitEvidence(EvidenceReferenceMismatch(_)) => 105L
-    CommitEvidence(EvidenceEmbeddedIdentity(_)) => 106L
+    CommitEvidence(EvidenceEmbeddedIdentity(field)) =>
+      match field {
+        "prepared_invocation_cid" => 1061L
+        "run_authorization_cid" => 1062L
+        "observation_set_cid" => 1063L
+        "authoring_context_cid" => 1064L
+        _ => 1060L
+      }
     CommitEvidence(EvidenceInventoryMismatch(_)) => 107L
     CommitEvidence(EvidenceNotEffectFree) => 108L
     CommitResultEvidence(_) => 2L
