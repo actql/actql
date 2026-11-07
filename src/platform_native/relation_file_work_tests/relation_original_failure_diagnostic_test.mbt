@@ -2,13 +2,18 @@
 // Test-only use of the already source-qualified closed error discriminants.
 // The exact failed original call is observed without formatting its SQL,
 // identity, paths or receivers, and without allocating a diagnostic payload.
-extern "C" fn relation_original_submission_amount(tag : Int, amount : Int64) -> Unit = "actql_native_timing_amount"
+extern "C" fn relation_original_submission_amount(
+  tag : Int,
+  amount : Int64,
+) -> Unit = "actql_native_timing_amount"
 
 ///|
 // Closed diagnostic tags only, using the existing opt-in Native counters.
 // No String, SQL, path, identity, receiver or cleanup capability is serialized.
 // These scalar projections allocate no diagnostic payload in the failed Read.
-fn relation_original_submission_ledger_tag(issue : @resources.LedgerIssue) -> Int64 {
+fn relation_original_submission_ledger_tag(
+  issue : @resources.LedgerIssue,
+) -> Int64 {
   match issue {
     InvalidLimits => 1L
     PlanningLimit => 2L
@@ -31,7 +36,9 @@ fn relation_original_submission_ledger_tag(issue : @resources.LedgerIssue) -> In
 }
 
 ///|
-fn relation_original_submission_sql_tag(issue : @sqlite.NativeSqliteIssue) -> Int64 {
+fn relation_original_submission_sql_tag(
+  issue : @sqlite.NativeSqliteIssue,
+) -> Int64 {
   match issue {
     UnsupportedTarget => 1L
     InvalidName => 2L
@@ -106,7 +113,8 @@ fn relation_original_submission_pair_tags(
   emit : (Int, Int64) -> Unit,
 ) -> Unit {
   match issue {
-    Read(Domain(cause)) => relation_original_submission_backing_tags(cause, 1100L, emit)
+    Read(Domain(cause)) =>
+      relation_original_submission_backing_tags(cause, 1100L, emit)
     Read(Child(cause)) => {
       let tag = match cause {
         Unavailable => 1L
@@ -137,12 +145,14 @@ fn relation_original_submission_pair_tags(
       emit(11, 1300L + tag)
     }
     Read(Buffer(_)) => emit(11, 1400L)
-    Sqlite(Domain(cause)) => relation_original_submission_backing_tags(cause, 2000L, emit)
+    Sqlite(Domain(cause)) =>
+      relation_original_submission_backing_tags(cause, 2000L, emit)
     Sqlite(Library(cause)) => {
       emit(11, 3000L)
       emit(15, relation_original_submission_sql_tag(cause))
     }
-    Domain(cause) => relation_original_submission_backing_tags(cause, 4000L, emit)
+    Domain(cause) =>
+      relation_original_submission_backing_tags(cause, 4000L, emit)
   }
 }
 
@@ -228,4 +238,3 @@ fn relation_original_submission_failure_tags(
     _ => relation_original_submission_original_tags(issue, 0L, 4, emit)
   }
 }
-
