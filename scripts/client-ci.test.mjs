@@ -34,7 +34,7 @@ import {machineCid} from './actql-spec-family.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const normal = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
-const groups = ['client-packages', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce'];
+const groups = ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce'];
 const consumers = ['client-distribution', 'client-distribution-callers',
   'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition'];
 const runs = name => jobs[name].steps.filter(step => step.run).map(step => step.run.trim());
@@ -802,7 +802,7 @@ done`,
   ]);
   for (const name of Object.keys(partitions)) for (const step of jobs[name].steps.filter(step => step.name?.startsWith('Test ')))
     assert.deepEqual(step.env, {TMPDIR: '${{ github.workspace }}/_build'});
-  for (const name of groups) {
+  for (const name of groups.filter(name => name !== 'client-supported-versions')) {
     assert.equal(jobs[name].if, normal);
     assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
     assert.equal(jobs[name]['timeout-minutes'], 30);
