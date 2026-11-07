@@ -2243,6 +2243,479 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
+      "sha256": "4af88ebe378be1112e5aadf4939914f8188f17ed7b6222819c30cda0f50fd1ab",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",
+      "exports": [
+        "HUBSPOT_INSTALLED_UPDATE_OPERATION",
+        "HUBSPOT_UPDATE_TARGET_VERSION",
+        "hubspotUpdateDriver"
+      ],
+      "operations": [
+        {
+          "name": "capture/capture",
+          "parameters": [
+            "receiver",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "capture/capture/capture",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "capture/capture/capture/capture",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "encode/encode",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver",
+          "parameters": [
+            "moon",
+            "site",
+            "authorization",
+            "connection",
+            "origin",
+            "portalId",
+            "connectorId",
+            "siteBindingCid",
+            "generationCid",
+            "installedFor",
+            "metadataResources",
+            "requestLimits",
+            "readLimits",
+            "writeLimits",
+            "maxRows",
+            "maxMembers",
+            "maxRecoveryBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/authorize/authorize",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/frame/frame",
+          "parameters": [
+            "member",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/hubspotUpdateDriver",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
+          "parameters": [
+            "member",
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched/matched",
+          "parameters": [
+            "key",
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:describe/init:describe",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "hubspotUpdateDriver/init:footprint/init:footprint",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:observeTargets/init:observeTargets",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:prepareRequest/init:prepareRequest",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:project/init:project",
+          "parameters": [
+            "request",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:recheckRequests/init:recheckRequests",
+          "parameters": [
+            "member",
+            "entries",
+            "current",
+            "controlConstruction"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:recheckRequests/init:recheckRequests/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry",
+          "parameters": [
+            "member",
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry/wires/wires",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/init:send/init:send",
+          "parameters": [
+            "member",
+            "request",
+            "current",
+            "authorization",
+            "credential",
+            "signal",
+            "callResource"
+          ],
+          "async": true
+        },
+        {
+          "name": "hubspotUpdateDriver/metadataReader/metadataReader",
+          "parameters": [
+            "member",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "signal",
+            "controlConstruction",
+            "targetAuthorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/metadataReader/metadataReader/decision/decision",
+          "parameters": [
+            "slot"
+          ],
+          "async": true
+        },
+        {
+          "name": "hubspotUpdateDriver/metadataReader/metadataReader/init:authorizationFor/init:authorizationFor",
+          "parameters": [
+            "slot",
+            "rowIndex"
+          ],
+          "async": true
+        },
+        {
+          "name": "hubspotUpdateDriver/metadataReader/metadataReader/init:verify/init:verify",
+          "parameters": [
+            "slot"
+          ],
+          "async": true
+        },
+        {
+          "name": "hubspotUpdateDriver/metadataReader/metadataReader/resourceFor/resourceFor",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/responsePolicy/responsePolicy",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/restore/restore",
+          "parameters": [
+            "durable",
+            "recorded",
+            "members",
+            "memberIndexes",
+            "body",
+            "requestTags"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/restore/restore/indexes/indexes",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/restore/restore/restore",
+          "parameters": [
+            "index",
+            "offset"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/restore/restore/restore/restore",
+          "parameters": [
+            "wire",
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/restore/restore/restore#2",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "hubspotUpdateDriver/selected/selected",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "isCid/isCid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "memberFacts/memberFacts",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "segment/segment/segment",
+          "parameters": [
+            "unit"
+          ],
+          "async": false
+        },
+        {
+          "name": "wireCid/wireCid",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/checkpoint-approval.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../site/hubspot-account-read.mjs",
+        "../site/hubspot-object-read.mjs",
+        "../site/hubspot-record-write.mjs",
+        "../site/hubspot-target-read.mjs",
+        "./hubspot-update-observations.mjs",
+        "./hubspot-update-request.mjs",
+        "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capture/capture",
+            "capture/capture/capture",
+            "capture/capture/capture/capture",
+            "cid/cid",
+            "encode/encode",
+            "fail/fail",
+            "hubspotUpdateDriver",
+            "hubspotUpdateDriver/authorize/authorize",
+            "hubspotUpdateDriver/frame/frame",
+            "hubspotUpdateDriver/hubspotUpdateDriver",
+            "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
+            "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched",
+            "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched/matched",
+            "hubspotUpdateDriver/init:describe/init:describe",
+            "hubspotUpdateDriver/init:footprint/init:footprint",
+            "hubspotUpdateDriver/init:observeTargets/init:observeTargets",
+            "hubspotUpdateDriver/init:prepareRequest/init:prepareRequest",
+            "hubspotUpdateDriver/init:project/init:project",
+            "hubspotUpdateDriver/init:recheckRequests/init:recheckRequests",
+            "hubspotUpdateDriver/init:recheckRequests/init:recheckRequests/check/check",
+            "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry",
+            "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry/wires/wires",
+            "hubspotUpdateDriver/init:send/init:send",
+            "hubspotUpdateDriver/metadataReader/metadataReader",
+            "hubspotUpdateDriver/metadataReader/metadataReader/decision/decision",
+            "hubspotUpdateDriver/metadataReader/metadataReader/init:authorizationFor/init:authorizationFor",
+            "hubspotUpdateDriver/metadataReader/metadataReader/init:verify/init:verify",
+            "hubspotUpdateDriver/metadataReader/metadataReader/resourceFor/resourceFor",
+            "hubspotUpdateDriver/responsePolicy/responsePolicy",
+            "hubspotUpdateDriver/restore/restore",
+            "hubspotUpdateDriver/restore/restore/indexes/indexes",
+            "hubspotUpdateDriver/restore/restore/restore",
+            "hubspotUpdateDriver/restore/restore/restore/restore",
+            "hubspotUpdateDriver/restore/restore/restore#2",
+            "hubspotUpdateDriver/selected/selected",
+            "isCid/isCid",
+            "memberFacts/memberFacts",
+            "positive/positive",
+            "segment/segment",
+            "segment/segment/segment",
+            "wireCid/wireCid"
+          ],
+          "exports": [
+            "HUBSPOT_INSTALLED_UPDATE_OPERATION",
+            "HUBSPOT_UPDATE_TARGET_VERSION",
+            "hubspotUpdateDriver"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/hubspot/host/installed-update.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
