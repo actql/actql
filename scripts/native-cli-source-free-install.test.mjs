@@ -503,7 +503,7 @@ test('Native numeric operator harness uses one selected install and preserves di
       if (low) {
         assert.deepEqual(args, ['run', 'low.json', '--format', 'json', '--json']);
         assert.equal(expected, 1);
-        return {code: 1, signal: null, stdout: '', stderr: JSON.stringify({code: 'ACTQL_E_PREPARATION_FAILED'})};
+        return {code: 1, signal: null, stdout: '', stderr: JSON.stringify({code: 'ACTQL_E_PROGRAM_INVALID'})};
       }
       if (args[0] === 'result') {
         assert.equal(args[1], original.run_id);
