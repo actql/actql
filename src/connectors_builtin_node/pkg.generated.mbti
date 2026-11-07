@@ -1272,6 +1272,8 @@ pub fn client_program_export_source_capture(@execution_query.CapturedInputSource
 
 pub fn client_program_export_source_original_read(@execution_relation.SuppliedRelationRead) -> Result[(String, String, Array[String]), @client_row_source_host.RowOriginalCaptureIssue]
 
+pub fn client_program_export_whole_source_capture(@execution_query.CapturedInputSource, @client_local_host.ClientInstalledWholeSourceCapacity, String) -> Result[(Array[String], String, String, Array[String]), @client_local_host.ClientSourceCaptureIssue]
+
 pub fn client_program_finish_capture(@client_local_host.ClientProgramCapture) -> Result[@run_publication.PublicationContract, @client_local_host.ClientClosedValuesPreparationIssue]
 
 pub fn client_program_finish_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIdentityScanIssue]
@@ -3354,6 +3356,8 @@ pub fn client_program_restore_requested_effect_stop(@run_publication_host.Client
 
 pub fn client_program_restore_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger?, @client_local_host.ClientInstalledCaptureCapacity, () -> Bool, @value_admission.ReferenceIssuer?, (String, String, Array[String])?) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
 
+pub fn client_program_restore_whole_source_capture(@client_local_host.ClientInstalledWholeSourceCapacity, String, String, Array[String], String, String, Array[String], @physical_resources.Ledger, () -> Bool, @value_admission.ReferenceIssuer?) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
+
 pub fn client_program_restored_infer_source_originals(@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[Array[(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue)], @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_restrict_infer_send_slots(@client_infer_host.Execution, Array[Bool]) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
@@ -3777,6 +3781,8 @@ pub fn client_program_source_capture_export_requirement(@client_local_host.Clien
 pub fn client_program_source_capture_export_rows(@client_local_host.ClientSourceCaptureExport) -> Array[String]
 
 pub fn client_program_source_capture_original_read(@client_local_host.ClientAccountedSourceCapture) -> @execution_relation.SuppliedRelationRead?
+
+pub fn client_program_source_capture_retain_input(@client_local_host.ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, @client_local_host.ClientSourceCaptureIssue]
 
 pub fn client_program_source_capture_retain_task(@client_local_host.ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, @client_local_host.ClientSourceCaptureIssue]
 
