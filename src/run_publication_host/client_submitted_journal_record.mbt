@@ -20,7 +20,7 @@ pub(all) struct ClientSubmittedJournalEncoding {
 /// from that SAME completed preserving parse, without another sizing traversal.
 pub(all) enum ClientSubmittedJournalConstruction {
   SubmittedJournalParse(Int)
-  SubmittedJournalCanonical(Int, Int, Int)
+  SubmittedJournalCanonical(Int, Int64, Int, Int)
 }
 
 ///|
@@ -92,6 +92,7 @@ fn decode_client_submitted_journal_row_profile(
   // Only the original intent's bound changes in the observed profile. Keep
   // every other original field's finite string obligation; a larger intent
   // must not silently widen the retained Run/control schema.
+  let mut other_text_units = 0L
   if observed {
     for
       key in [
@@ -99,9 +100,12 @@ fn decode_client_submitted_journal_row_profile(
         "reference", "run_admission", "run_state_key", "run_state_original", "version",
       ] {
       if @decode.lookup(object, key) is Some(value) &&
-        @decode.text(value) is Ok(text) &&
-        @scalar.admit_utf8_length(text, 131072) is Err(_) {
-        return Err(CustodyLost)
+        @decode.text(value) is Ok(text) {
+        if @scalar.admit_utf8_length(text, 131072) is Err(_) {
+          return Err(CustodyLost)
+        }
+        // Fixed closed-row fields, not a second input sizing traversal.
+        other_text_units += text.length().to_int64()
       }
     }
   }
@@ -123,7 +127,7 @@ fn decode_client_submitted_journal_row_profile(
     Some(reserve) =>
       match
         restore_observed_client_submitted_intent(
-          intent_wire, row_bytes, reserve,
+          intent_wire, row_bytes, other_text_units, reserve,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
@@ -272,6 +276,7 @@ pub fn validate_client_submitted_retained_run(
 fn restore_observed_client_submitted_intent(
   wire : String,
   row_bytes : Int,
+  other_text_units : Int64,
   reserve : (ClientSubmittedJournalConstruction) -> Result[
     Unit,
     ClientJournalDecodingIssue,
@@ -299,6 +304,10 @@ fn restore_observed_client_submitted_intent(
     reserve(
       SubmittedJournalCanonical(
         row_bytes,
+        // The complete parsed intent's canonical wire cannot exceed its
+        // original byte count on an accepted exact-row comparison. Larger
+        // transient candidates remain execution scratch and still refuse.
+        parsed.usage.input_bytes.to_int64() + 2L * other_text_units,
         parsed.usage.nodes,
         parsed.usage.depth,
       ),

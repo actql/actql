@@ -4629,7 +4629,7 @@ pub(all) enum ClientSubmittedJournalAppendPlan {
 
 pub(all) enum ClientSubmittedJournalConstruction {
   SubmittedJournalParse(Int)
-  SubmittedJournalCanonical(Int, Int, Int)
+  SubmittedJournalCanonical(Int, Int64, Int, Int)
 }
 
 pub(all) struct ClientSubmittedJournalEncoding {

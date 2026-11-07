@@ -18,7 +18,7 @@ test "observed cold row retains exact original identity and same-parse geometry"
     before_construction=Some(stage => {
       match stage {
         SubmittedJournalParse(bytes) => observed.push((bytes, 0, 0))
-        SubmittedJournalCanonical(bytes, nodes, depth) =>
+        SubmittedJournalCanonical(bytes, _text_units, nodes, depth) =>
           observed.push((bytes, nodes, depth))
       }
       Ok(())
@@ -72,7 +72,7 @@ test "observed cold row resource refusal cannot replace canonical admission" {
       before_construction=Some(stage => {
         match stage {
           SubmittedJournalParse(_) => Ok(())
-          SubmittedJournalCanonical(_, _, _) => {
+          SubmittedJournalCanonical(_, _, _, _) => {
             canonical_calls += 1
             Err(CustodyLost)
           }
