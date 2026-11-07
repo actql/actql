@@ -1052,9 +1052,9 @@ pub fn start_original_effect_free_captured_run(PublicationContract, PublicationC
 
 pub fn start_planned_captured_run(CapturedRunConstructionPlan) -> CapturedRunIssuancePreparation?
 
-pub fn start_planned_chain_validation(PublicationValidationPlan) -> ComputationEvidenceCheck?
+pub fn start_planned_chain_validation(PublicationValidationPlan, max_workspace? : Int?) -> ComputationEvidenceCheck?
 
-pub fn start_planned_commit_validation(PublicationValidationPlan) -> PublicationCommitPreparation?
+pub fn start_planned_commit_validation(PublicationValidationPlan, max_workspace? : Int?) -> PublicationCommitPreparation?
 
 pub fn stored_generated_content_reference_storage(StoredGeneratedContentReference) -> (String, String, String, String, Int)
 
