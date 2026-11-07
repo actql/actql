@@ -172,10 +172,10 @@ test('current Source JSON review binds only its checked normalization count depe
   }
 });
 
-test('current Local Host successor preserves its capacity import and binds four JS callback selectors', () => {
+test('current Local Host successor preserves its capacity import and binds five JS callback selectors', () => {
   const path = 'src/client_local_host/moon.pkg';
-  const revision = '131b446df837e49f6277c8582460e521dd97c153';
-  const digest = '2d1cea3783b4e932e2dd107b4159e8b32dad4f1f57470ee8d3cbd1d30e319802';
+  const revision = 'd3aed5e30374353163fe2beb3f7a8b4f784b2ea9';
+  const digest = '508773432a6b071bb057fc41d51008054462a6f8006f862ce6638e91e448d00e';
   const rule = 'literal-target-selectors-with-bound-source-membership';
   assert.deepEqual(currentPackageConfigurations[path], {revision, digest, rule});
   execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
@@ -195,13 +195,18 @@ test('current Local Host successor preserves its capacity import and binds four 
   }
   assert.equal(reconstructed, previous, 'all other imports, targets and options retain their original bytes');
   const successorSelectors = ['preparation_request_native_intake_retirement_js_wbtest.mbt',
-    'preparation_request_artifact_retention_js_wbtest.mbt'].map(name => `    "${name}": [ "js" ],\n`);
+    'preparation_request_artifact_retention_js_wbtest.mbt', 'native_publication_workspace_js_wbtest.mbt'].map(name => `    "${name}": [ "js" ],\n`);
   let reconstructedIntroduction = body;
   for (const selector of successorSelectors) {
     assert.equal(body.split(selector).length, 2);
     reconstructedIntroduction = reconstructedIntroduction.replace(selector, '');
   }
-  assert.equal(reconstructedIntroduction, introduced, 'the successor adds only its two reviewed JS fixtures');
+  assert.equal(reconstructedIntroduction, introduced, 'the successor adds only its three reviewed JS fixtures');
+  const intakeRevision = gitTree(root, '131b446df837e49f6277c8582460e521dd97c153').read(path).toString();
+  assert.equal(hash(intakeRevision), '2d1cea3783b4e932e2dd107b4159e8b32dad4f1f57470ee8d3cbd1d30e319802');
+  assert.equal(body.replace(successorSelectors[2], ''), intakeRevision,
+    'the new publication fixture preserves the two original intake/artifact selectors');
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(intakeRevision))), null);
   assert.deepEqual(packageImports(body).imports,
     [...packageImports(previous).imports, 'actql/actql/capacity_policy'].sort());
   assert.equal(currentTree.read(path).toString(), body);
