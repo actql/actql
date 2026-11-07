@@ -1948,7 +1948,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0682b35df00116abe8c9e57880f98e6255d04ec775637fa55e64a284e454d39a",
+      "sha256": "82878aa0d0f1329c701fc1f94c361aac7be0fcfdbb28ae5738626e52461d5cc5",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -2289,7 +2289,8 @@
             "record",
             "recordCid",
             "captureCid",
-            "wire"
+            "wire",
+            "recoveryResources"
           ],
           "async": true
         },
@@ -2798,7 +2799,8 @@
             "control",
             "runDefinition",
             "contractLimits",
-            "beforeRead"
+            "beforeRead",
+            "recoveryResources"
           ],
           "async": true
         },
@@ -3331,6 +3333,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/store-local/private-evidence-consumer-lifetime.test.mjs",
+                "anchor": "decoded capture capacity refuses before JSON.parse"
               }
             ]
           }
@@ -133006,7 +133012,7 @@
     {
       "module": "adapters/host-node/effect-capture-resources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e377c1e155a34e5b579c51ebf18eedaca63a5fb9a6f72a84cd6a24c6d5b27627",
+      "sha256": "1814b4826b9c920f602489b6a5ceda2696738770008eb50a76c1cbc60ca04b7e",
       "role": "physical-io",
       "owner": "Existing Request preparation and same adopted Effect Run resource/cleanup ownership through the installed Node Host; no independent grant, Ledger or semantic issuer",
       "exports": [
@@ -133096,6 +133102,13 @@
           "async": false
         },
         {
+          "name": "recoveryView/init:reserveDecoded/init:reserveDecoded",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
           "name": "recoveryView/init:retainCleanup/init:retainCleanup",
           "parameters": [
             "operation"
@@ -133140,7 +133153,8 @@
             "recoveryView/init:finish/init:finish",
             "recoveryView/init:retainCleanup/init:retainCleanup",
             "recoveryView/recoveryView",
-            "recoveryView/reserve/reserve"
+            "recoveryView/reserve/reserve",
+            "recoveryView/init:reserveDecoded/init:reserveDecoded"
           ],
           "exports": [
             "prepareEffectCaptureResources"
@@ -133204,6 +133218,10 @@
               {
                 "path": "adapters/host-node/effect-capture-resources.test.mjs",
                 "anchor": "import test from 'node:test';"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "live capture uses SAME adopted Run"
               }
             ]
           }

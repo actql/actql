@@ -745,15 +745,17 @@ test "recovered input control vector follows actual members independently of fut
     ).unwrap()
     // Same existing collection Owner:3 reference slots per actual vector
     // item cover the old/new growth peak, independently of held row calls.
+    // The original same-flight grow lookup adds Map entry/link/bucket roles:
+    // 4 headers16 +11 refs8 +13 words8 for each actual member, not future rows.
     assert_eq(
       @execution.execution_capacity_retained_bytes(selected) -
       @execution.execution_capacity_retained_bytes(base),
-      2L * 3L * 8L,
+      2L * (3L * 8L + 4L * 16L + 11L * 8L + 13L * 8L),
     )
     assert_eq(
       @execution.execution_capacity_execution_bytes(selected) -
       @execution.execution_capacity_execution_bytes(base),
-      2L * 3L * 8L,
+      2L * (3L * 8L + 4L * 16L + 11L * 8L + 13L * 8L),
     )
   }
   assert_true(

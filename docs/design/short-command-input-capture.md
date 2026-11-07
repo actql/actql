@@ -290,3 +290,24 @@ remains unavailable. Private Preview correspondence is not approval or apply.
   new recovery owner, permission cache or independent execution path.
 - Verification: the original recovery-constructor, hot observation, changed
   parent, pending child and final control-retirement tests exercise these seams.
+
+## Nested original recovery construction
+
+An installed Effect recovery constructor may have an input prelude followed by
+one or more nested constructors on its same original member token. The prelude
+funds the immutable recovery wire's JSON forest, binary decoding and bounded
+Source lexical controls. After observing the actual nested bytes, a synchronous
+caller can grow that already-selected construction reservation within the same
+immutable Plan maximum. This neither selects another operation nor spends an
+attempt, transfer, grant or mutation permission. Physical operations do not use
+this continuation. The grow callback expires when its original synchronous
+constructor returns; completion and retirement cannot reopen it.
+
+Salesforce named recovery uses the existing Describe Source geometry before
+entering the unchanged complete Catalog recovery validator. Its full retained
+Catalog allowance remains reserved across both phases; only private workspace
+uses the actual forest. The original Preview, observation wire/CID, raw response
+digest, Mapping, claim, current authorization and complete request validation
+remain mandatory. Whole Catalog, changed limits, wider inventories and refused
+lexical observations retain their complete original path. Failed growth keeps
+the preceding backing and exact failure until the existing cleanup completes.

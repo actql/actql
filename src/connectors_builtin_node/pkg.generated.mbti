@@ -1714,6 +1714,8 @@ pub fn client_program_installed_effect_operation_extent_transfer(@client_local_h
 
 pub fn client_program_installed_effect_operation_input_begin(@client_local_host.ClientInstalledEffectOperationBorrow, @client_local_host.ClientInstalledEffectOperationExtent) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_operation_input_grow(@client_local_host.ClientInstalledEffectOperationBorrow, @client_local_host.ClientInstalledEffectOperationExtent) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_operation_ledger_codec_begin(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, String?, Int, Int) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_ledger_codec_complete(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
@@ -3321,6 +3323,8 @@ pub fn client_program_requires_task_compilation(@run_publication_host.PreparedCl
 pub fn client_program_reserve_captured_content_workspace(@physical_resources.Ledger, Int, Int) -> Result[@physical_resources.Reservation, @physical_resources.LedgerIssue]
 
 pub fn client_program_reserve_infer_evidence_copy(Int) -> Result[(@physical_resources.Ledger, @physical_resources.Reservation), @physical_resources.LedgerIssue]
+
+pub fn client_program_reserve_installed_effect_capture_decoded(@client_local_host.ClientInstalledEffectCaptureRecovery, String) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_reserve_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery, Int) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 

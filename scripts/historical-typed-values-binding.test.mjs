@@ -7,22 +7,23 @@ import {parse} from 'acorn';
 import {selectInstalledLocalMaterializationEnvironment} from '../adapters/host-node/installed-host-policy.mjs';
 import {contentCid} from '../adapters/host-node/local-account-config.mjs';
 
+const select = (source, predicate) => {
+  const found = [];
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (predicate(node)) found.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  })(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(found.length, 1);
+  return source.slice(found[0].start, found[0].end);
+};
+
 test('historical typed-value binding independently matches the same Local materialization environment', () => {
   const fixture = readFileSync(new URL('./fixtures/synthetic-historical-held-typed-values.mjs', import.meta.url), 'utf8');
   const host = readFileSync(new URL('../adapters/host-node/client-checkpoints.mjs', import.meta.url), 'utf8');
-  const select = (source, predicate) => {
-    const found = [];
-    (function visit(node) {
-      if (!node || typeof node !== 'object') return;
-      if (predicate(node)) found.push(node);
-      for (const value of Object.values(node)) {
-        if (Array.isArray(value)) value.forEach(visit);
-        else if (value && typeof value === 'object') visit(value);
-      }
-    })(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
-    assert.equal(found.length, 1);
-    return source.slice(found[0].start, found[0].end);
-  };
   const capacity = select(fixture, node => node.type === 'AssignmentExpression' &&
     node.left.property?.name === 'capacity' && node.left.object.property?.name === 'host_policy_profile' &&
     node.left.object.object?.name === 'environmentBody');
@@ -89,3 +90,41 @@ test('historical typed-value binding independently matches the same Local materi
   const changed = structuredClone(fixtureBody); changed.host_policy_profile.capacity.max_artifact_rows--;
   assert.notEqual(cid(changed), cid(actualBody), 'changed policy remains a distinct Environment preimage');
 });
+
+for (const [name, file] of [['Values', 'values'], ['Query', 'query']]) {
+  test(`historical ${name} independently binds default Local policy while retaining explicit and Effect policy`, () => {
+    const fixture = readFileSync(new URL(`./fixtures/synthetic-historical-held-${file}.mjs`, import.meta.url), 'utf8');
+    const assignment = select(fixture, node => node.type === 'AssignmentExpression' &&
+      node.left.property?.name === 'capacity' && node.left.object.property?.name === 'host_policy_profile' &&
+      node.left.object.object?.name === 'environmentBody');
+    const project = compileFunction(assignment + '; return environmentBody;',
+      ['environmentBody', 'effectEnvironmentWire', 'effectiveHostCapacityPolicy', 'hostCapacityPolicy']);
+    const {evidence_bundle_cid: ignored, ...raw} = JSON.parse(readFileSync(
+      new URL('../spec/local-check-environment.json', import.meta.url), 'utf8')); void ignored;
+    const generic = {max_graph_construction_edges: 1000,
+      max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
+      ...raw.host_policy_profile.capacity};
+    // Independent installed-policy preimage. The fixture cannot learn this
+    // identity from a prepared Host or turn the numerical window into supply.
+    const expected = {...generic, max_relation_output_rows: 536870912 / 256,
+      max_artifact_rows: 536870912 / 256, max_file_listing_items: 536870912 / 256,
+      max_model_request_bytes_per_item: 65536};
+    const current = project(structuredClone(raw), undefined, undefined, undefined);
+    assert.deepEqual(current.host_policy_profile.capacity, expected);
+    const publishedEffect = project(structuredClone(raw), 'published-effect-environment', undefined, undefined);
+    assert.deepEqual(publishedEffect.host_policy_profile.capacity, generic,
+      'an independent published Effect keeps its generic policy');
+    const explicit = {...generic, max_relation_output_rows: 31, max_artifact_rows: 17};
+    delete explicit.max_file_listing_items;
+    for (const original of [explicit, {...explicit, max_file_listing_items: 7}]) {
+      const body = structuredClone(raw);
+      body.host_policy_profile.capacity = structuredClone(original);
+      assert.deepEqual(project(body, undefined, original, original).host_policy_profile.capacity, original,
+        'an explicit optional listing policy stays absent or keeps its original value');
+    }
+    const prior = structuredClone(current);
+    delete prior.host_policy_profile.capacity.max_file_listing_items;
+    assert.notEqual(contentCid(prior), contentCid(current),
+      'a previous original Environment remains a different binding');
+  });
+}

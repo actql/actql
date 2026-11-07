@@ -329,6 +329,15 @@ pub fn client_program_installed_effect_operation_input_begin(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectOperationInputGrow")
+pub fn client_program_installed_effect_operation_input_grow(
+  original : @client_local_host.ClientInstalledEffectOperationBorrow,
+  input : @client_local_host.ClientInstalledEffectOperationExtent,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.grow_installed_effect_operation_input(original, input)
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationLedgerCodecBegin")
 pub fn client_program_installed_effect_operation_ledger_codec_begin(
   owner : @client_local_host.ClientInstalledManagedRun,

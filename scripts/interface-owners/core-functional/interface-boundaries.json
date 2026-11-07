@@ -56041,7 +56041,8 @@
             "client_program_retire_installed_effect_capture_recovery",
             "strategy_begin_original_effect_free_captured_run",
             "strategy_captured_run_preparation_limits",
-            "client_program_complete_installed_effect_capture_recovery"
+            "client_program_complete_installed_effect_capture_recovery",
+            "client_program_reserve_installed_effect_capture_decoded"
           ],
           "exports": [],
           "attributes": {
@@ -56107,6 +56108,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_effect_capture_recovery_js_wbtest.mbt",
+                "anchor": "capture geometry distinguishes long String bytes"
               }
             ]
           }
@@ -57045,6 +57050,10 @@
           "declaration": "client_program_request_submitted_intent_original ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > @ publication_host . ClientSubmittedIntent ?"
         },
         {
+          "name": "client_program_reserve_installed_effect_capture_decoded",
+          "declaration": "client_program_reserve_installed_effect_capture_decoded ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , wire : String , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_reserve_installed_effect_capture_recovery",
           "declaration": "client_program_reserve_installed_effect_capture_recovery ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , encrypted_bytes : Int , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
@@ -57089,7 +57098,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "642008857473b79e5be35745dd544a4e6c3d3afb22e3a9e4536336f95fc5fdba"
+      "sha256": "b7c92459c1d9bbf8bc700a3ae98e2d862d1858230df06a1e402fe406736184c5"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
