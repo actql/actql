@@ -6,7 +6,7 @@ import {parse} from 'yaml';
 import {focusedPattern, focusedFixtureObjects, stableFocusedFiles, focusedPlan,
   eligibleFocusedChanges, checkFocusedSource, readFocusedTests, validateFocusedTests,
   runFocusedPlan} from './ci-focused-tests.mjs';
-import {readChanges, selectTargets, validateSelection, verifyGate, gateJobs} from './ci-targets.mjs';
+import {readChanges, selectTargets, validateSelection, verifyGate, gateJobs, gateJobRequired} from './ci-targets.mjs';
 import {testExecutionResult} from './test-execution.mjs';
 import {fullCheckpointJobs, policyPaths, resolveMainBaseline} from './ci-main-base.mjs';
 
@@ -75,6 +75,57 @@ function selection(changes = [change()], options = {}) {
 const results = value => Object.fromEntries(gateJobs.map(name => [name, {result:
   ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || name === 'focused-tests' && ['focused-tests', 'draft-focused'].includes(value.profile)
     || name !== 'focused-tests' && value.profile === 'full' && (name !== 'native-macos' || value.macos) ? 'success' : 'skipped'}]));
+
+test('known maintenance and focused changes select their required job union', () => {
+  const entries = [change(), change('docs/development.md')];
+  const inspect = changes => {
+    const {git} = gitFixture({changes});
+    const read = readChanges({pull_request: {base: {sha: old}}}, git);
+    return validateSelection(selectTargets(read.paths, read));
+  };
+  const value = inspect(entries);
+  assert.equal(value.profile, 'focused-tests');
+  assert.deepEqual(value.focusedChanges, [entries[0]]);
+  assert.deepEqual(value.maintenanceChanges, [entries[1]]);
+  const separate = [selection(), selectTargets([entries[1].path], {maintenanceChanges: [entries[1]]})];
+  const required = new Set(separate.flatMap(item => gateJobs.filter(name => gateJobRequired(item, name))));
+  assert.deepEqual(gateJobs.filter(name => gateJobRequired(value, name)), gateJobs.filter(name => required.has(name)));
+  const envelope = {sourceRevision: head, selection: value}, context = {sourceRevision: head, event: 'pull_request'};
+  assert.equal(verifyGate(envelope, results(value), context).length, gateJobs.length);
+  for (const name of required) for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+    const needs = results(value); needs[name] = {result};
+    assert.throws(() => verifyGate(envelope, needs, context));
+  }
+  for (const path of ['package.json', '.github/workflows/ci.yml', 'src/query_integration/moon.pkg',
+    'proofs/relation-pipeline/inventory.mjs', 'examples/infer-evaluation/new.test.mjs'])
+    assert.equal(inspect([...entries, change(path)]).profile, 'full', path);
+  for (const bad of [
+    {...entries[1], before: {mode: '000000', object: zero}},
+    {...entries[1], after: {mode: '000000', object: zero}},
+    {...entries[1], after: {mode: '100755', object: fresh}},
+  ]) assert.equal(inspect([entries[0], bad]).profile, 'full');
+  for (const mutate of [input => {input.maintenanceChanges = null;},
+    input => {input.paths.push('unregistered');}, input => {input.focusedChanges = [];}]) {
+    const invalid = structuredClone(value); mutate(invalid); assert.throws(() => validateSelection(invalid));
+  }
+});
+
+test('mixed reviewed Draft preparation never becomes merge evidence', () => {
+  const entries = [change(), change('docs/development.md')];
+  const {git} = gitFixture({changes: entries});
+  const read = readChanges({pull_request: {base: {sha: old}}}, git);
+  const value = validateSelection(selectTargets(read.paths, {...read, draft: true}));
+  assert.equal(value.profile, 'draft-focused');
+  assert.deepEqual(value.maintenanceChanges, [entries[1]]);
+  assert.deepEqual(value.focusedChanges, [entries[0]]);
+  assert.throws(() => verifyGate({sourceRevision: head, selection: value}, results(value),
+    {event: 'pull_request', sourceRevision: head, draft: true}), /Draft preparation/);
+  const {git: bad} = gitFixture({changes: entries, badPin: true});
+  const unavailable = readChanges({pull_request: {base: {sha: old}}}, bad);
+  const refused = validateSelection(selectTargets(unavailable.paths, {...unavailable, draft: true}));
+  assert.equal(refused.profile, 'draft');
+  assert.equal(refused.focusedTests, null); assert.equal(refused.maintenanceChanges, null);
+});
 
 test('registered family includes existing siblings and NEW fixed-compute/join tests', () => {
   for (const path of [current, stableFocusedFiles[1], added, 'src/query_integration/fixed_join_ordered_ports_wbtest.mbt']) {

@@ -727,6 +727,25 @@ test('source-only Client wire and scratch tests do not wait for a producer or ru
     assert(mutation.includes(`node scripts/${script}.mjs`), 'mutation baseline and restoration stay in their original owner');
 });
 
+test('source-only evaluation tests have one early bounded CI owner', () => {
+  const files = ['examples/infer-evaluation/evaluate.test.mjs',
+    'examples/infer-evaluation/compare-source-instructions.test.mjs'];
+  const step = jobs.lint.steps.find(step => step.name === 'Test source-only INFER evaluation contracts');
+  assert(step);
+  assert.deepEqual(jobs.lint.needs, ['select-targets', 'preflight']);
+  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  assert.equal(step.run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- ' + files.join(' '));
+  assert(jobs.lint.steps.indexOf(step) < jobs.lint.steps.findIndex(step => step.name === 'Type-check public SDK and Client wire declarations'));
+  const owners = ['lint', ...groups].flatMap(name => jobs[name].steps.filter(step => step.run)
+    .map(step => ({name, command: step.run})));
+  const local = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts['check:distribution-client'];
+  for (const file of files) {
+    const selected = owners.filter(owner => owner.command.split(/\s+/u).includes(file));
+    assert.deepEqual(selected.map(owner => owner.name), ['lint']);
+    assert(local.split(/\s+/u).includes(file));
+  }
+});
+
 test('each Client group retains its acceptance commands exactly once', () => {
   const original = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
     .scripts['check:distribution-client'].split(' && ');
@@ -736,7 +755,8 @@ test('each Client group retains its acceptance commands exactly once', () => {
   // The full local command still executes these source-only contracts. Hosted
   // CI executes them once in lint, without package/runtime preparation.
   const earlyContracts = new Set(['packages/client-wire/cancel-identity.test.mjs',
-    'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs']);
+    'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs',
+    'examples/infer-evaluation/evaluate.test.mjs', 'examples/infer-evaluation/compare-source-instructions.test.mjs']);
   const distributionContracts = original[4].split(' ').filter(argument => !earlyContracts.has(argument)).join(' ');
   const partitions = {
     'client-distribution': [4],
