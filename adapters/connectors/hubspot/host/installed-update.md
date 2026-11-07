@@ -30,8 +30,9 @@ then the same-parent Native Mapping/Environment preparation. No provider
 property is created. The original request constructor validates the marker
 against the complete Catalog before any update can be sent.
 
-The installed factory opens the shared original Row Site with the existing
-Common reader policy, retains its Account/context and physical cleanup, and
+The installed factory opens the shared original Row Site without caller-supplied
+credential implementation bounds. The Host selects the existing Common policy
+once on its same Effect constructor; the factory retains its Account/context and physical cleanup, and
 installs the original driver plus one UPDATE recipe through the existing
 constructor owner. Site and generation digests bind current Site/context,
 runtime, metadata, full Environment, mappings and marker configuration. The

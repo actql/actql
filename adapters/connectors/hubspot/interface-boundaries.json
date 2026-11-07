@@ -3061,7 +3061,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs",
-      "sha256": "92bc32a951aee561489e0342de93f3502bf4ce6b7f3c6cdc16b079f8e9f36c67",
+      "sha256": "ab6aa22e80baf54ced728402fa87e768e6544e847cf3cde0b1674a56a676bc95",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Effect, Common initialization/Mapping/Checkpoint/current/dispatch and original Row Site owners",
@@ -3306,31 +3306,24 @@
         {
           "name": "loadInstalledHubSpotEffect/loadInstalledHubSpotEffect",
           "parameters": [
-            "value"
+            "write"
           ],
           "async": false
         },
         {
           "name": "loadInstalledHubSpotEffect/loadInstalledHubSpotEffect#2",
           "parameters": [
-            "write"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledHubSpotEffect/loadInstalledHubSpotEffect#3",
-          "parameters": [
             "resource"
           ],
           "async": false
         },
         {
-          "name": "loadInstalledHubSpotEffect/loadInstalledHubSpotEffect#4",
+          "name": "loadInstalledHubSpotEffect/loadInstalledHubSpotEffect#3",
           "parameters": [],
           "async": true
         },
         {
-          "name": "loadInstalledHubSpotEffect/loadInstalledHubSpotEffect#5",
+          "name": "loadInstalledHubSpotEffect/loadInstalledHubSpotEffect#4",
           "parameters": [
             "value"
           ],
@@ -3467,8 +3460,8 @@
             "loadInstalledHubSpotEffect/constructed/init:capacity/init:capacity/value/value",
             "loadInstalledHubSpotEffect/constructed/init:project/init:project",
             "loadInstalledHubSpotEffect/constructed/init:project/init:project/init:project",
-            "loadInstalledHubSpotEffect/constructed/init:project/init:project/init:project/init:project",
             "loadInstalledHubSpotEffect/constructed/init:project/init:project/init:project#2",
+            "loadInstalledHubSpotEffect/constructed/init:project/init:project/init:project/init:project",
             "loadInstalledHubSpotEffect/constructed/init:project/init:project/installedFor/installedFor",
             "loadInstalledHubSpotEffect/constructed/init:project/init:project/installedFor/installedFor/installedFor",
             "loadInstalledHubSpotEffect/constructed/init:project/init:project/recipe/recipe",
@@ -3476,15 +3469,14 @@
             "loadInstalledHubSpotEffect/loadInstalledHubSpotEffect#2",
             "loadInstalledHubSpotEffect/loadInstalledHubSpotEffect#3",
             "loadInstalledHubSpotEffect/loadInstalledHubSpotEffect#4",
-            "loadInstalledHubSpotEffect/loadInstalledHubSpotEffect#5",
             "loadInstalledHubSpotEffect/textUnits/textUnits",
-            "loadInstalledHubSpotEffect/textUnits/textUnits/textUnits",
             "loadInstalledHubSpotEffect/textUnits/textUnits#2",
             "loadInstalledHubSpotEffect/textUnits/textUnits#3",
+            "loadInstalledHubSpotEffect/textUnits/textUnits/textUnits",
             "membersOf",
             "membersOf/members/members",
-            "membersOf/members/members/mapping/mapping",
             "membersOf/members/members#2",
+            "membersOf/members/members/mapping/mapping",
             "membersOf/membersOf",
             "method/method",
             "method/method/method",
@@ -3557,6 +3549,10 @@
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-mapping-parent.fixture.mjs",
+                "anchor": "test('HubSpot real material factory leaves credential policy selection"
               }
             ]
           }

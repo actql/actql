@@ -12,6 +12,7 @@ import {createInstalledHostServices, retainInstalledHostServiceInstallation,
   from '../../../host-node/installed-host-services.mjs';
 import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
 import {prepareInstalledHubSpotUpdateMappings} from '../host/hubspot-effect-mappings.mjs';
+import {loadInstalledHubSpotEffect} from '../host/installed-hubspot-effect.mjs';
 
 const mappingLimits = Object.freeze({maxProperties: 10, maxFields: 4, maxNameBytes: 100,
   maxBytes: 4096, maxNodes: 1000, maxDepth: 20});
@@ -146,5 +147,62 @@ export function registerHubSpotMappingParentTests(common, native, baseEnvironmen
       assert.throws(() => f.context.prepareNativeInput(projection), {code: 'ForeignInstalledSourceInitialization'});
       assert.equal(projected, 1);
     } finally {f.close();}
+  });
+
+  test('HubSpot real material factory leaves credential policy selection to the original Host Site owner', async () => {
+    const root = '/unopened-hubspot-credential-selection', state = {};
+    let pending = false, retired = false, siteCalls = 0;
+    const current = () => assert.equal(retired, false);
+    const parent = openHostInitializationPreparation(state, common, Object.freeze({root}), current, () => pending);
+    const services = createInstalledHostServices({root, principalId: 'component', moon: common,
+      initialPreparation: parent, assertCurrent: current});
+    pending = true;
+    const installation = installedConnectors.find(value => value.name === 'hubspot');
+    retainInstalledHostServiceInstallation(services, installation, runtimeCid);
+    const context = beginInstalledSourceInitialization(services, installation, 'hubspot', baseEnvironmentWire, 'effect');
+    const site = {version: 'actql-installed-hubspot-site/0.1', apiOrigin: 'https://api.hubapi.com',
+      credentialAuthorityId: 'component', credentialKeyId: 'key', credentialPrivateKeyPath: '/unopened/key',
+      environment: 'component', journalRoot: '/unopened/journal', namespaceId: 'component',
+      siteGeneration: 1, siteKey: 'component', tokenEnvironment: 'ACTQL_HUBSPOT_COMPONENT'};
+    const source = {version: 'actql-installed-hubspot-source/0.1', connectorId: 'hubspot', portalId: '7',
+      resources: [{resource: 'companies', objectType: 'companies'}], metadataPath: '/metadata.json',
+      siteProfilePath: '/site.json', metadataResources: {account: 'account', properties: 'properties'},
+      accountConfigurationWire: '{}', limits: {maxResponseBytes: 4096, maxNodes: 1000, maxDepth: 20,
+        maxProperties: 10, maxNameUnits: 100, maxPages: 2, maxRows: 2, maxRequests: 5, perPage: 1,
+        maxColumns: 3, maxCursorUnits: 64, maxValueNodes: 100, maxValueTextBytes: 4096,
+        maxRowsWireBytes: 4096, maxRowsWireNodes: 100, maxRowsWireDepth: 10,
+        maxObjects: 2, maxDeclarationBytes: 4096, maxDeclarationNodes: 1000, maxSecretBytes: 128}};
+    const metadata = {version: 'actql-hubspot-read-metadata/0.1', connectorId: 'hubspot', portalId: '7',
+      apiOrigin: site.apiOrigin, accountBody: Buffer.from('{"portalId":7}').toString('base64'),
+      objects: [{resource: 'companies', objectType: 'companies', propertiesBody: body.toString('base64')}]};
+    const boundary = new Error('original Host Site credential selection boundary');
+    const construction = Object.freeze({configurationReader: Object.freeze({async readJson(path) {
+      return ({'/source.json': source, '/site.json': site, '/metadata.json': metadata})[path];
+    }}), prepareNativeInput: projection => context.prepareNativeInput(projection),
+    prepareDeclaration: views => context.prepareDeclaration(views),
+    prepareNativeMappings: (declared, originals) => context.prepareNativeMappings(declared, originals),
+    prepareEffectDriverConstruction() {assert.fail('no driver before Site');},
+    openRowSite(options) {
+      siteCalls++;
+      assert.equal(Object.hasOwn(options, 'runAcquisitionLimits'), false);
+      assert.equal(options.connection, 'hubspot:hubspot');
+      assert.equal(options.profile.credentialAuthorityId, site.credentialAuthorityId);
+      throw boundary;
+    }});
+    const callerMoon = {...common, clientProgramInstalledSourceReaderPolicy() {
+      assert.fail('Only the original Host selects its credential policy');
+    }};
+    try {
+      await assert.rejects(loadInstalledHubSpotEffect({version: 'actql-installed-hubspot-effect/0.1',
+        connectorId: 'hubspot', sourceProfilePath: '/source.json',
+        writes: [{resource: 'companies', fields: ['name'], markerProperty: 'actql_request_id'}]},
+      {moon: callerMoon, providerMoon: native, construction, ledgerRoot: '/unopened/ledger', runtimeBundleCid: runtimeCid}),
+      error => error === boundary);
+      assert.equal(siteCalls, 1);
+    } finally {
+      finishInstalledSourceInitialization(context, undefined, boundary, true);
+      assert.equal(retireInstalledSourceInitialization(services), true);
+      pending = false; closeHostInitializationPreparation(state); retired = true;
+    }
   });
 }

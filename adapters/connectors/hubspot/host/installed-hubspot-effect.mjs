@@ -175,10 +175,6 @@ export async function loadInstalledHubSpotEffect(profile, {moon, providerMoon, c
   }
   const prepareDriver = method(construction, 'prepareEffectDriverConstruction');
   const quantity = method(moon, 'clientProgramHubSpotEffectConstructorCapacity');
-  const policy = method(moon, 'clientProgramInstalledSourceReaderPolicy')();
-  if (!Array.isArray(policy) || policy.length !== 3 || policy.some(value => !Number.isSafeInteger(value) || value < 1)) {
-    fail('HubSpotEffectCredentialPolicyUnavailable');
-  }
   const sourceProfile = await construction.configurationReader.readJson(selected.sourceProfilePath);
   if (sourceProfile?.connectorId !== selected.connectorId) fail('HubSpotEffectSourceIdentityMismatch');
   const {providerProfile} = splitSourceAliasProfile(sourceProfile);
@@ -212,7 +208,6 @@ export async function loadInstalledHubSpotEffect(profile, {moon, providerMoon, c
   const {site, authorization} = await construction.openRowSite({profile: Object.freeze({...siteProfile,
     resourceOrigin: siteProfile.apiOrigin}), accountConfiguration: source.accountConfigurationWire, connection,
     ca, responseHeaders: installation?.responseHeaders ?? [], admitsApprovalTarget, admitsEffectTargetRead,
-    runAcquisitionLimits: Object.freeze({maxSecretBytes: policy[0], maxBindings: policy[1]}),
     resolveSecret: resolveSecret ?? (async () => {
       const secret = process.env[siteProfile.tokenEnvironment];
       if (!text(secret)) fail('RemoteCredentialSecretUnavailable'); return secret;
