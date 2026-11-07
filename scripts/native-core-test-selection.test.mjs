@@ -144,6 +144,32 @@ test('Native compiler partition rejects foreign overlapping omitted and changed 
   }
 });
 
+test('actual Native compiler partition isolates nested package drivers using original parent file inputs', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-nested-partition-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  writeFileSync(join(root, 'moon.mod'), 'name = "fixture/native_nested"\nversion = "0.0.0"\n');
+  for (const directory of ['src/parent', 'src/parent/child', 'src/other']) {
+    mkdirSync(join(root, directory), {recursive: true});
+    writeFileSync(join(root, directory, 'moon.pkg'), '');
+    writeFileSync(join(root, directory, 'main.mbt'), 'test "original case" { assert_eq(7, 7) }\n');
+  }
+  mkdirSync(join(root, 'src/other/testless-child'), {recursive: true});
+  writeFileSync(join(root, 'src/other/testless-child/moon.pkg'), '');
+  writeFileSync(join(root, 'src/other/testless-child/main.mbt'), 'pub fn answer() -> Int { 7 }\n');
+  const selected = nativeCoreTestSelection(root, ['--release'], {
+    partitionProfiles: true, ordinaryPartitions: true,
+  });
+  const parts = selected.profiles.ordinary.partitions;
+  assert.equal(selected.profiles.ordinary.cases, 3);
+  assert.equal(parts.reduce((sum, p) => sum + p.cases, 0), 3);
+  assert(!parts.some(p => p.args.includes('src/parent')));
+  assert(!parts.some(p => p.args.includes('src/other')));
+  assert.equal(parts.filter(p => p.args.includes('src/parent/main.mbt')).length, 1);
+  const drivers = parts.flatMap(p => p.drivers);
+  assert.equal(new Set(drivers).size, drivers.length);
+  assert(parts.every(p => p.cases > 0));
+});
+
 test('Native metadata selection retains opaque doc/skip identities and refuses a changed selected inventory', t => {
   const root = fixture(t), args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'];
   const command = name => ['moon', 'generate-test-driver', '--output-driver', '_build/'+name+'/driver.mbt',

@@ -142,7 +142,7 @@ export function nativeCorePartitionProfiles(profiles, value) {
     scoped: {args: null, cases: 0, tests: []}, physicalCases: 0, repeatedGeometryCases: 0};
 }
 
-function partitionProfiles(args, records, ordinaryPartitions) {
+function partitionProfiles(args, records, ordinaryPartitions, compilerDirectories) {
   const scopedFiles = new Set(nativeScopedTestFiles);
   const physical = records.filter(record => scopedFiles.has(record.source));
   // These existing transport cases require the real mTLS/bearer peers from
@@ -159,6 +159,14 @@ function partitionProfiles(args, records, ordinaryPartitions) {
   const geometry = ordinary.filter(record => !record.benchmark && selectedGeometryFiles.has(record.source));
   assert.equal(ordinary.length + physical.length + http.length + source.length, records.length);
   const affected = new Set([...physical, ...source, ...http].map(record => record.directory));
+  if (ordinaryPartitions) {
+    // Moon directory inputs include nested test packages. Use the parent's
+    // original files when another package lives below it, rather than compile
+    // or execute that child's cases again on the parent's runner.
+    const directories = [...new Set([...compilerDirectories, ...records.map(record => record.directory)])];
+    for (const directory of directories) if (directories.some(other =>
+      other.startsWith(directory === '.' ? '' : directory + '/'))) affected.add(directory);
+  }
   const ordinaryPaths = [...new Set(ordinary.map(record =>
     affected.has(record.directory) ? record.source : record.directory))];
   const selectedRecords = records.filter(record =>
@@ -229,7 +237,7 @@ export function nativeCoreTestSelection(repository, args, {
     assert(drivers.size > 0, 'No compiler-owned Native test drivers');
     return drivers;
   };
-  const full = discover([]), packages = new Set(), cases = [], records = [];
+  const full = discover([]), packages = new Set(), cases = [], records = [], compilerDirectories = new Set();
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-test-metadata-')));
   let complete = false, ordinal = 0;
   try {
@@ -250,6 +258,11 @@ export function nativeCoreTestSelection(repository, args, {
       assert(metadata.tests && typeof metadata.tests === 'object' && !Array.isArray(metadata.tests));
       driver.cases = [];
       const sources = driver.command.slice(2).filter(arg => arg.endsWith('.mbt') && arg !== driver.output);
+      if (ordinaryPartitions) for (const source of sources) {
+        const directory = relative(repository, dirname(realpathSync(resolve(repository, source)))).split(sep).join('/') || '.';
+        assert(directory !== '..' && !directory.startsWith('../'));
+        compilerDirectories.add(directory);
+      }
       for (const [file, tests] of Object.entries(metadata.tests)) {
         assert(Array.isArray(tests));
         if (tests.length === 0) continue;
@@ -291,7 +304,7 @@ export function nativeCoreTestSelection(repository, args, {
       prunedDrivers: full.size - selected.size};
     const benchmarks = records.filter(record => record.benchmark).length;
     if (benchmarks) result.benchmarkDeclarations = benchmarks;
-    if (splitProfiles) result.profiles = partitionProfiles(args, records, ordinaryPartitions);
+    if (splitProfiles) result.profiles = partitionProfiles(args, records, ordinaryPartitions, compilerDirectories);
     if (ordinaryPartitions) {
       const ownedDrivers = new Set();
       for (const partition of result.profiles.ordinary.partitions) {
@@ -310,7 +323,7 @@ export function nativeCoreTestSelection(repository, args, {
           const sources = original.command.slice(2).filter(arg => arg.endsWith('.mbt') && arg !== original.output);
           assert(sources.length > 0 && sources.every(source => directories.has(
             relative(repository, dirname(realpathSync(resolve(repository, source)))).split(sep).join('/') || '.')),
-          'Native partition selected a foreign or nested package driver');
+          'Native partition selected a foreign or nested package driver: ' + key);
         }
         assert(assigned.every(record => drivers.has(record.entry[0])),
           'Native partition omitted an original compiler case driver');
