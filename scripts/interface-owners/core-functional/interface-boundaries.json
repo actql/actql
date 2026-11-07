@@ -43418,7 +43418,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_native_query.mbt",
-      "sha256": "aba2f833e1055df4bf32858f191e71b009510468d65ea09c60f5cca0a02770cc",
+      "sha256": "bf6579e9b59b0525a4b0e8ea1903ab5b82ebd57c488aae013aff613fe0e7a51e",
       "exports": [],
       "operations": [
         {
@@ -56961,7 +56961,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "4951dcc360a31a913583d5bb90b39864e014eba1e3e7d4d87daac709f0141103"
+      "sha256": "642008857473b79e5be35745dd544a4e6c3d3afb22e3a9e4536336f95fc5fdba"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -82546,6 +82546,109 @@
         }
       ],
       "referenceQualification": "Same-emitter construction DATA only; not text, admitted tree, semantic identity, Resource permission or backend physical supply."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_default_document.mbt",
+      "sha256": "1dd03dd1bea5c8885b73489901192f84e6c6488e10af260c14efce3b8bd6b462",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,T]prepare_request_default_source_computation_check",
+          "declaration": "[ I , T ] prepare_request_default_source_computation_check ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , values_max_rows : Int ? , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I]prepare_request_default_json_computation_input",
+          "declaration": "[ I ] prepare_request_default_json_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request, Program JSON preflight and Resource preparation owners",
+      "referenceQualification": "Same Request/default JSON source, selected component and canonical API only; matching normal packages and complete public execution remain separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,T]prepare_request_default_source_computation_check",
+            "[I]prepare_request_default_json_computation_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_document_js_wbtest.mbt",
+                "anchor": "test \"default Source JSON observes actual nodes"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_document_js_wbtest.mbt",
+                "anchor": "test \"default Source JSON refuses current loss"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_document_js_wbtest.mbt",
+                "anchor": "test \"default Source JSON carries the original input selection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

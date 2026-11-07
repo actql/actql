@@ -270,6 +270,7 @@ fn[I, T] prepare_request_native_source_computation_input(
   limits : @checked.CheckLimits,
   supplied? : T? = None,
   public_primary? : Bool = true,
+  default_json? : Bool = false,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   guard owner.phase == Open &&
     !owner.native_parameters_ready &&
@@ -316,6 +317,11 @@ fn[I, T] prepare_request_native_source_computation_input(
       prepare_request_native_query_input(owner, input, reader, supplied, None) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
+    }
+    if default_json && selected == @frontend.Json {
+      return prepare_request_default_json_computation_input(
+        owner, input, document,
+      )
     }
     return prepare_request_document_computation_input(
       owner,

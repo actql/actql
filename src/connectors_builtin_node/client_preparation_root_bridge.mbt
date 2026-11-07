@@ -1497,7 +1497,7 @@ pub fn client_program_prepare_request_source_computation(
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   values_max_rows : Int?,
 ) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
-  @client_local_host.prepare_request_native_source_computation_check(
+  @client_local_host.prepare_request_default_source_computation_check(
     parent,
     input,
     captured,
@@ -1505,10 +1505,7 @@ pub fn client_program_prepare_request_source_computation(
     environment,
     publication,
     [],
-    {
-      ..@publication_host.client_standard_program_preparation_limits(),
-      values_max_rows,
-    },
+    values_max_rows,
     @publication_host.client_standard_effect_computation_limits(),
     supplied=if native_json_parameter_is_absent(parameters) {
       None
