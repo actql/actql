@@ -186,7 +186,7 @@ fn local_project_mock_write_installations(
 }
 
 ///|
-fn LocalProjectMockDeclarations::bind_runtime_writes(
+fn LocalProjectMockDeclarations::bind_runtime(
   self : Self,
   runtime : @local_host.NativeLocalPackagedRuntime,
   capture : @local_host.NativeLocalJournalCapture,
@@ -209,7 +209,9 @@ fn LocalProjectMockDeclarations::bind_runtime_writes(
       Err(ForeignOriginal)
     }
   }
-  if !self.sources.any(source => !source._retained_writes.is_empty()) {
+  if !self.sources.any(source => {
+      !source._retained_writes.is_empty() || !source._retained_files.is_empty()
+    }) {
     return Ok(())
   }
   if self.source_environment is Some(_) ||
@@ -223,6 +225,7 @@ fn LocalProjectMockDeclarations::bind_runtime_writes(
   self.write_capture = Some(capture)
   self.write_principal = Some(principal)
   self.write_installations = Some([])
+  self.file_sources = Some([])
   let refuse = issue => {
     self.model_failure = Some(issue)
     Err(issue)
@@ -239,7 +242,7 @@ fn LocalProjectMockDeclarations::bind_runtime_writes(
       @utf8.encode(@run_host.client_native_local_runtime_original(manifest)),
     )
   for source in self.sources {
-    if source._retained_writes.is_empty() {
+    if source._retained_writes.is_empty() && source._retained_files.is_empty() {
       continue
     }
     let scope = match
@@ -249,6 +252,18 @@ fn LocalProjectMockDeclarations::bind_runtime_writes(
       ) {
       Ok(value) => value
       Err(issue) => return refuse(WriteHost(issue))
+    }
+    // The original Host operation may observe retirement. Do not attach new
+    // Source or write holders after that boundary; no second I/O check is needed.
+    if self.closing || self.retired || self.file_sources is None {
+      return refuse(ForeignOriginal)
+    }
+    if !source._retained_files.is_empty() {
+      let files = match local_project_mock_file_source(source, scope) {
+        Ok(value) => value
+        Err(issue) => return refuse(Source(issue))
+      }
+      self.file_sources.unwrap().push(files)
     }
     let installations = match
       local_project_mock_write_installations(source, runtime_cid, scope) {
@@ -284,7 +299,7 @@ fn LocalProjectMockDeclarations::update_aliases(self : Self) -> Array[Json] {
 }
 
 ///|
-fn LocalCommandPreparationOriginal::bind_project_mock_writes(
+fn LocalCommandPreparationOriginal::bind_project_mock_runtime(
   self : Self,
   runtime : @local_host.NativeLocalPackagedRuntime,
   capture : @local_host.NativeLocalJournalCapture,
@@ -300,7 +315,7 @@ fn LocalCommandPreparationOriginal::bind_project_mock_writes(
       !self.closed else {
       stop("LocalBusinessOriginalUnavailable")
     }
-    match mock.bind_runtime_writes(runtime, capture, principal) {
+    match mock.bind_runtime(runtime, capture, principal) {
       Ok(_) => ()
       Err(issue) => {
         self.retain_primary(CommandProjectMock(issue))

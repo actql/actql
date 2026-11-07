@@ -2,6 +2,7 @@
 // Original declaration DATA only. The actual Source owner must separately
 // open the retained payload locator under its checked Request/current scope.
 priv struct LocalProjectMockSourceDeclaration {
+  _retained_provider_namespace : String
   _retained_connection : String
   _retained_entry : Json
   _retained_scope_cid : String
@@ -186,6 +187,7 @@ fn LocalProjectMockDeclarations::prepare_source_declarations(
     // Keep the same declaration before constructing the next sibling. These
     // are contracts, not installation members, physical Sources or read grants.
     self.sources.push({
+      _retained_provider_namespace: provider,
       _retained_connection: connection,
       _retained_entry: entry,
       _retained_scope_cid: scope,
