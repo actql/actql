@@ -59,12 +59,22 @@ function commands(name, target, raw = false) {
     .replaceAll('${{ github.workspace }}', root.replace(/\/$/u, ''))
     .replaceAll('${{ runner.temp }}', scratch)
     .replaceAll('${{ github.sha }}', 'local');
+  const environment = ([key, value]) => {
+    if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_PARTITION') {
+      if (value !== "${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}") {
+        fail('Unsupported Native Core partition expression; local CI must retain complete coverage');
+      }
+      // One local runner keeps the complete original campaign, rather than
+      // silently selecting one half of the hosted two-runner matrix.
+      return [key, ''];
+    }
+    return [key, resolve(value)];
+  };
   return job.steps.filter(step => typeof step.run === 'string' &&
     !preparation(step)).map(step => ({
     name: step.name ?? step.run.split('\n')[0],
     run: resolve(step.run),
-    env: Object.fromEntries(Object.entries(step.env ?? {})
-      .map(([key, value]) => [key, resolve(value)])),
+    env: Object.fromEntries(Object.entries(step.env ?? {}).map(environment)),
     scratch,
   }));
 }
