@@ -1583,6 +1583,54 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
   }
 });
 
+test('failed Native compiler forwarding drains original pipe tails before its unchanged failure', async () => {
+  const source = readFileSync(new URL('test-native-salesforce-effect-preview.mjs', import.meta.url), 'utf8');
+  const spawnAt = source.indexOf("child = spawn(process.execPath, ['--input-type=module', '-e',");
+  const start = source.indexOf('  if (compilerDriver) {', spawnAt);
+  const end = source.indexOf('  // This observer', start);
+  const settled = source.indexOf("  const [code, signal] = await once(child, 'close');", end);
+  const failure = source.indexOf('  if (code !== 0 && compilerDriver)', settled);
+  assert(spawnAt >= 0 && start > spawnAt && end > start && settled > end && failure > settled);
+  const bytes = 2 * 1024 * 1024, stdout = 'O'.repeat(bytes) + '\nFINAL_NATIVE_SUMMARY\n',
+    stderr = 'E'.repeat(bytes) + '\nORIGINAL_CHILD_FAILURE_END\n';
+  const producer = `process.stdout.write('O'.repeat(${bytes})+'\\nFINAL_NATIVE_SUMMARY\\n');` +
+    `process.stderr.write('E'.repeat(${bytes})+'\\nORIGINAL_CHILD_FAILURE_END\\n');process.exitCode=7;`;
+  const script = `import {spawn} from 'node:child_process';import {once} from 'node:events';import assert from 'node:assert/strict';
+const compilerDriver={write(){}},stopProgress=()=>{};
+let child=spawn(process.execPath,['--input-type=module','-e',${JSON.stringify(producer)}],{stdio:['ignore','pipe','pipe']});
+${source.slice(start, end)}
+${source.slice(settled, failure)}
+assert.equal(code,0,\`Native target observation failed: \${signal??code}\`);`;
+  const env = {...process.env}; delete env.NODE_TEST_CONTEXT;
+  const child = spawn(process.execPath, ['--input-type=module', '-e', script],
+    {env, stdio:['ignore', 'pipe', 'pipe']});
+  const output = [], errors = [];
+  let delayed = false, resume;
+  const collect = (target, chunk) => {
+    target.push(chunk);
+    if (!delayed) {
+      delayed = true; child.stdout.pause(); child.stderr.pause();
+      resume = setTimeout(() => {child.stdout.resume(); child.stderr.resume();}, 1000);
+    }
+  };
+  child.stdout.on('data', chunk => collect(output, chunk));
+  child.stderr.on('data', chunk => collect(errors, chunk));
+  const timeout = setTimeout(() => child.kill('SIGKILL'), 10000);
+  let status, signal;
+  try {
+    [status, signal] = await new Promise((resolve, reject) => {
+      child.once('error', reject); child.once('close', (code, signal) => resolve([code, signal]));
+    });
+  } finally {clearTimeout(timeout); clearTimeout(resume);}
+  assert.equal(signal, null); assert.equal(status, 1, 'the original failed child must still fail its wrapper');
+  const observed = Buffer.concat(output), diagnostic = Buffer.concat(errors);
+  assert.equal(observed.length, Buffer.byteLength(stdout), 'queued stdout tail was lost');
+  assert.equal(observed.toString(), stdout);
+  assert(diagnostic.length >= Buffer.byteLength(stderr), 'queued stderr tail was lost');
+  assert(diagnostic.toString().startsWith(stderr));
+  assert.match(diagnostic.toString(), /Native target observation failed: 7/u);
+});
+
 test('Native target child keeps a finite cold Core budget without widening ordinary fixture timeouts', () => {
   const source = readFileSync(new URL('test-native-salesforce-effect-preview.mjs', import.meta.url), 'utf8');
   const start = source.indexOf("child = spawn(process.execPath, ['--input-type=module', '-e',");
