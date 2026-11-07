@@ -204,3 +204,110 @@ test "completed Host child aliases retire before enclosing controls while escape
   assert_true(host.root_control.unwrap().physical_retired)
   assert_eq(host.usage().reserved_execution_bytes, 0L)
 }
+
+///|
+test "actual root cohort finish reconciles retired pages while escaped controls stay charged" {
+  let original : BootstrapTestOriginal = { identity: 908, }
+  let page = test_page_bytes_ffi()
+  let supplier = prepare_installed_arena_supplier(
+    original,
+    "0123456789012345678901234567890123456789",
+    Bytes::make(32, 17),
+    1L,
+    12L * page,
+    {
+      planning_work: 20,
+      attempts: 8,
+      holdings: 4,
+      transfer_bytes: 30L,
+      retained_bytes: 0L,
+      execution_bytes: 32L * page,
+    },
+    65536L,
+  ).unwrap()
+  let host = match supplier.acquire(original).unwrap() {
+    Acquired(host) => host
+    Pending(_, _) => fail("root cohort fixture acquisition refused")
+  }
+  host.claim(original, supplier.source, supplier.recipe, 1L).unwrap()
+  let scope = host.borrow_backing(original).unwrap()
+  host.enter_borrow_scope(original, scope).unwrap()
+  // SAME closed constructor used by the earlier physical control fixture.
+  // Three requests bound this cohort, never the Host's lifetime call count.
+  let construction : NativeControlConstruction = {
+    maximum_managed_request: managed_value_layout_ffi(0) + 33L,
+    allocation_requests: 3L,
+  }
+  let first : Ref[Bytes?] = Ref(None)
+  let second : Ref[Bytes?] = Ref(None)
+  host.prepare_root_control(original, scope, construction).unwrap()
+  let control = host.root_control.unwrap()
+  let claim = control.claim
+  let usage = host.usage()
+  assert_eq(control.bytes, 4L * page)
+  let generation = root_control_generation_ffi(host.backing)
+  assert_true(generation > 0L)
+  assert_true(
+    finish_root_control_cohort_ffi(host.backing, generation + 1L) < 0L,
+  )
+  assert_true(host.enter_root_control(original, scope))
+  first.val = Some(Bytes::make(32, 71))
+  let active_finish = finish_root_control_cohort_ffi(host.backing, generation)
+  host.leave_root_control(original).unwrap()
+  assert_true(active_finish < 0L)
+  host.finish_root_control_cohort(original, scope).unwrap()
+  assert_eq(control.bytes, 2L * page)
+  assert_true(physical_equal(control.claim, claim))
+  assert_eq(host.usage(), usage)
+  assert_eq(first.val.unwrap()[0], 71)
+  host
+  .extend_root_control(original, scope, {
+    maximum_managed_request: construction.maximum_managed_request,
+    allocation_requests: 2L,
+  })
+  .unwrap()
+  assert_eq(control.bytes, 4L * page)
+  assert_true(root_control_generation_ffi(host.backing) > generation)
+  assert_true(host.enter_root_control(original, scope))
+  second.val = Some(Bytes::make(32, 72))
+  host.leave_root_control(original).unwrap()
+  host.finish_root_control_cohort(original, scope).unwrap()
+  assert_true(control.bytes >= 2L * page && control.bytes <= 3L * page)
+  assert_eq(first.val.unwrap()[0], 71)
+  assert_eq(second.val.unwrap()[0], 72)
+  first.val = None
+  host.finish_root_control_cohort(original, scope).unwrap()
+  assert_eq(control.bytes, 2L * page)
+  assert_eq(second.val.unwrap()[0], 72)
+  second.val = None
+  host.finish_root_control_cohort(original, scope).unwrap()
+  assert_eq(control.bytes, page)
+  // More actual cohorts than the initial window could retain simultaneously.
+  // Physical retirement, not constructor-history reset, keeps the charge flat.
+  let mut previous_generation = root_control_generation_ffi(host.backing)
+  for _ in 0..<4 {
+    host
+    .extend_root_control(original, scope, {
+      maximum_managed_request: construction.maximum_managed_request,
+      allocation_requests: 1L,
+    })
+    .unwrap()
+    let next_generation = root_control_generation_ffi(host.backing)
+    assert_true(next_generation > previous_generation)
+    previous_generation = next_generation
+    assert_true(host.enter_root_control(original, scope))
+    second.val = Some(Bytes::make(32, 73))
+    host.leave_root_control(original).unwrap()
+    assert_eq(second.val.unwrap()[0], 73)
+    second.val = None
+    host.finish_root_control_cohort(original, scope).unwrap()
+    assert_eq(control.bytes, page)
+    assert_true(physical_equal(control.claim, claim))
+    assert_eq(host.usage(), usage)
+  }
+  host.leave_borrow_scope(original, scope).unwrap()
+  host.return_borrow(original, scope).unwrap()
+  host.try_close(original).unwrap()
+  assert_true(control.closed && control.owner is None)
+  assert_eq(host.usage().reserved_execution_bytes, 0L)
+}
