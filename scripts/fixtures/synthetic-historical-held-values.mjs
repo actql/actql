@@ -158,6 +158,7 @@ export async function writeSyntheticHistoricalHeldValues({directory, document,
     ...(effectEnvironmentWire === undefined ? effectiveHostCapacityPolicy ?? {
       max_relation_output_rows: 536870912 / 256,
       max_artifact_rows: 536870912 / 256,
+      max_file_listing_items: 536870912 / 256,
       max_model_request_bytes_per_item: 65536} : {})};
   if (hostCapacityPolicy !== undefined) {
     assert.deepEqual(environmentBody.host_policy_profile.capacity, effectiveHostCapacityPolicy,
