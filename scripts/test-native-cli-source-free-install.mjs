@@ -146,6 +146,38 @@ export async function observeTimingEnabledPlainInitialization({root, cli, enviro
   return {scope: 'plain-initialization-with-diagnostics', diagnostics};
 }
 
+// A failed ordinary request is never retried. This independent actor uses the
+// same verified installation with fresh project/home/state and one new request.
+export async function observeFreshSubmissionFailureDiagnostic({root, cli, environment}) {
+  await mkdir(root, {mode: 0o700});
+  const saved = Object.fromEntries(['HOME', 'TMPDIR', 'ACTQL_NATIVE_TIMINGS']
+    .map(key => [key, environment[key]]));
+  try {
+    for (const name of ['home', 'tmp']) await mkdir(join(root, name), {mode: 0o700});
+    environment.HOME = join(root, 'home'); environment.TMPDIR = join(root, 'tmp');
+    environment.ACTQL_NATIVE_TIMINGS = '1';
+    await cli(['init', 'project'], root);
+    const result = await cli(['sql', 'SELECT 2 AS id', '--format', 'jsonl'], root);
+    assert.deepEqual(result.stdout.trim().split('\n').map(line => JSON.parse(line)), [{id: 2}]);
+    return {scope: 'fresh-submission-failure-diagnostic-only', newRequests: 1,
+      commandSucceeded: true, ordinaryAcceptance: false};
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete environment[key]; else environment[key] = value;
+    }
+  }
+}
+
+export async function preserveOrdinaryFailureWithDiagnostic(primary, diagnose) {
+  try {
+    return {failure: primary, diagnostic: {status: 'observed', ...await diagnose()}};
+  } catch (error) {
+    return {failure: new AggregateError([primary, error],
+      'Ordinary Local failure and independent diagnostic failure'),
+    diagnostic: {status: 'failed', error: error.message}};
+  }
+}
+
 async function observeInstalledSourceFree(input, observationPath) {
   const directory = resolve(input), manifest = await verifyNativeCliRelease(directory);
   const source = checkoutState(repository);
@@ -185,7 +217,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     return record;
   }
   const rows = text => text.trim().split('\n').map(line => JSON.parse(line));
-  let receipt, failure, runIngress, verifyInstalledOriginals;
+  let receipt, failure, failureDiagnostic, diagnoseFailure, runIngress, verifyInstalledOriginals;
   try {
     for (const path of [prefix, env.HOME, env.TMPDIR, join(root, 'empty-path')]) await mkdir(path);
     await writeFile(join(root, 'npmrc'), `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
@@ -225,6 +257,8 @@ async function observeInstalledSourceFree(input, observationPath) {
     // can discover a compiler, a repository executable, a provider or a Node Host.
     env.PATH = join(root, 'empty-path');
     const cli = (args, cwd = project, code = 0) => run(process.execPath, [launcher, ...args], cwd, code);
+    diagnoseFailure = () => observeFreshSubmissionFailureDiagnostic({
+      root: join(root, 'submission-failure-diagnostic'), cli, environment: env});
     assert.equal((await cli(['--version'], root)).stdout, `${manifest.cohort.packageVersion}\n`);
     const mockInitialization = await observeUnsupportedMockInitialization({root, cli});
     const catalogOnlyMockRefusal = await observeCatalogOnlyMockRefusal({root, cli});
@@ -294,7 +328,13 @@ async function observeInstalledSourceFree(input, observationPath) {
       mockInitialization, catalogOnlyMockRefusal, plainInitialization,
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
-  } catch (error) { failure = error; }
+  } catch (error) {
+    failure = error;
+    if (diagnoseFailure && /LocalSubmissionAcceptanceUnknown/u.test(error.message)) {
+      const observed = await preserveOrdinaryFailureWithDiagnostic(error, diagnoseFailure);
+      failure = observed.failure; failureDiagnostic = observed.diagnostic;
+    }
+  }
   // Independent Local controls share only the verified installed cohort. A
   // business-case failure cannot hide their result, and either failure rejects
   // the consumer before its existing registry/physical cleanup certification.
@@ -318,7 +358,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       `${JSON.stringify({version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
         cliSourceSha: manifest.sourceSha, platform, status: 'failed', error: error.message,
         failures: (error instanceof AggregateError ? error.errors : [error]).map(value => value.message),
-        consumer: root, records}, null, 2)}\n`, {flag: 'wx'}),
+        consumer: root, records, failureDiagnostic}, null, 2)}\n`, {flag: 'wx'}),
   });
   scratch.passed();
 }
