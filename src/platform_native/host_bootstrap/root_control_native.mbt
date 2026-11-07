@@ -2,8 +2,9 @@
 // Closed source-owned construction facts. These are not SDK input or a byte
 // allowance. Each real issuer must certify its selected emitted object sizes
 // and complete allocation-request count before using this control family.
-// Count sequential constructors too: a failed physical retirement can retain
-// their pages after the managed alias is gone. No implicit credit is reused.
+// Count every sequential constructor in the selected cohort too. Only its
+// original physical finish can reconcile unused/retired pages; a failed
+// retirement or escaped alias keeps those bytes charged.
 // Intentionally private: only scoped diagnostics construct this prerequisite
 // until a complete product constructor certificate exists.
 #warnings("-struct_never_constructed")
@@ -17,6 +18,7 @@ priv struct NativeRootControl[T] {
   mut owner : NativeHostBootstrap[T]?
   claim : @resources.SharedAllocation
   mut bytes : Int64
+  mut reconciling : Bool
   mut closing : Bool
   mut physical_retired : Bool
   mut closed : Bool
@@ -106,6 +108,7 @@ fn[T] NativeHostBootstrap::prepare_root_control(
     owner: Some(self),
     claim,
     bytes,
+    reconciling: false,
     closing: false,
     physical_retired: false,
     closed: false,
@@ -126,7 +129,8 @@ fn[T] NativeHostBootstrap::prepare_root_control(
 
 ///|
 // A new independently certified cohort may coexist with every earlier alias.
-// No old credit is recycled from observed free pages or a lowered live count.
+// Only an acknowledged original finish can reconcile the previous claim;
+// observed free pages or a lowered live count never authorize credit reuse.
 // The caller can first acquire more actual root backing through grow_backing;
 // the initial control prefix is therefore not a permanent growth ceiling.
 #warnings("-unused_value")
@@ -144,7 +148,8 @@ fn[T] NativeHostBootstrap::extend_root_control(
     self.root_control is Some(control) &&
     control.owner is Some(selected) &&
     physical_equal(selected, self) &&
-    !control.closing else {
+    !control.closing &&
+    !control.reconciling else {
     return Err(Unavailable)
   }
   let additional = root_control_quote_ffi(
@@ -202,7 +207,8 @@ fn[T] NativeHostBootstrap::enter_root_control(
     self.root_control is Some(control) &&
     control.owner is Some(selected) &&
     physical_equal(selected, self) &&
-    !control.closing else {
+    !control.closing &&
+    !control.reconciling else {
     return false
   }
   enter_root_control_ffi(self.backing) == 0
@@ -239,6 +245,9 @@ fn[T] NativeHostBootstrap::close_root_control(
   if control.closed {
     return Ok(())
   }
+  if control.reconciling {
+    return Err(ReadersPending)
+  }
   control.closing = true
   if !control.physical_retired {
     let status = close_root_control_ffi(self.backing)
@@ -267,3 +276,72 @@ extern "C" fn request_control_scope_ffi(
   backing : Backing,
   domain : PhysicalExtentDomain,
 ) -> Int = "actql_bootstrap_request_control_scope"
+
+///|
+#borrow(backing)
+extern "C" fn root_control_generation_ffi(backing : Backing) -> Int64 = "actql_bootstrap_root_control_generation"
+
+///|
+#borrow(backing)
+extern "C" fn finish_root_control_cohort_ffi(
+  backing : Backing,
+  generation : Int64,
+) -> Int64 = "actql_bootstrap_finish_root_control_cohort"
+
+///|
+// Private until an actual caller's complete fixed constructor certificate is
+// selected. This is the existing control context's cleanup, not a new Owner.
+#warnings("-unused_value")
+fn[T] NativeHostBootstrap::finish_root_control_cohort(
+  self : NativeHostBootstrap[T],
+  original : T,
+  scope : NativeBootstrapBorrow[T],
+) -> Result[Unit, NativeBootstrapIssue] {
+  match self.require_borrow_current(original, scope) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard scope.scopes > 0L &&
+    self.root_control is Some(control) &&
+    control.owner is Some(selected) &&
+    physical_equal(selected, self) &&
+    !control.closing &&
+    !control.reconciling else {
+    return Err(Unavailable)
+  }
+  control.reconciling = true
+  defer {
+    control.reconciling = false
+  }
+  let generation = root_control_generation_ffi(self.backing)
+  if generation <= 0L {
+    return Err(Unavailable)
+  }
+  let remaining = finish_root_control_cohort_ffi(self.backing, generation)
+  if remaining <= 0L {
+    // Any partial/unknown physical finish remains on this exact claim. The
+    // original close path, never a fresh cohort, owns subsequent cleanup.
+    control.closing = true
+    return Err(Physical(remaining.to_int()))
+  }
+  if remaining > control.bytes {
+    control.closing = true
+    return Err(Unavailable)
+  }
+  match
+    @resources.reconcile_unborrowed_shared_allocation_after_cleanup(
+      self.capacity,
+      control.claim,
+      control.bytes,
+      remaining,
+    ) {
+    Err(issue) => {
+      control.closing = true
+      Err(Resource(issue))
+    }
+    Ok(_) => {
+      control.bytes = remaining
+      Ok(())
+    }
+  }
+}

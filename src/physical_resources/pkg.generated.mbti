@@ -484,6 +484,8 @@ pub fn quantity_neutral_amounts(Ledger) -> QuantityAmounts?
 
 pub fn quantity_usage(Ledger) -> QuantityUsage
 
+pub fn reconcile_unborrowed_shared_allocation_after_cleanup(SharedCapacity, SharedAllocation, Int64, Int64) -> Result[Unit, LedgerIssue]
+
 pub fn[I, P] reconcile_working_preparation_phase(PreparationCapacity[I, P], I, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn reduce_execution_reservation(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
