@@ -52,21 +52,28 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_read_context(
   child : C,
   execution_ceiling? : Int64,
 ) -> Result[Unit, NativeBackedExecutionIssue] {
-  match self.require_domain_current(original, domain, child) {
+  let prepared = self.with_backed_read_bookkeeping(original, () => {
+    match self.require_domain_current(original, domain, child) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    if !domain.transferred || read_context_supported_ffi() != 1 {
+      return Err(Bootstrap(Unavailable))
+    }
+    if domain.read_attempted {
+      return Err(Bootstrap(AlreadyConsumed))
+    }
+    match self.borrow_backed_domain_read_use(original, domain, child) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    domain.read_attempted = true
+    Ok(())
+  })
+  match prepared {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if !domain.transferred || read_context_supported_ffi() != 1 {
-    return Err(Bootstrap(Unavailable))
-  }
-  if domain.read_attempted {
-    return Err(Bootstrap(AlreadyConsumed))
-  }
-  match self.borrow_backed_domain_read_use(original, domain, child) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  domain.read_attempted = true
   let status = match execution_ceiling {
     None => prepare_read_context_ffi(domain.physical)
     Some(bytes) => prepare_bounded_read_context_ffi(domain.physical, bytes)
@@ -240,7 +247,10 @@ pub fn[T, C] NativeHostBootstrap::enter_backed_read_context(
   domain : NativeBackedExecutionDomain[T, C],
   child : C,
 ) -> Result[Unit, NativeBackedExecutionIssue] {
-  match self.require_backed_read_context_current(original, domain, child) {
+  match
+    self.with_backed_read_bookkeeping(original, () => {
+      self.require_backed_read_context_current(original, domain, child)
+    }) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -282,25 +292,32 @@ pub fn[T, C] NativeHostBootstrap::enter_backed_read_cleanup(
   domain : NativeBackedExecutionDomain[T, C],
   child : C,
 ) -> Result[Unit, NativeBackedExecutionIssue] {
-  let read_use = match self.original_read_carrier(original, domain, child) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  // A live child may hold only the Common use. Its own physical read context
-  // and aliases retire in the child; this parent has no C cleanup frame.
-  if !domain.read_attempted || domain.read_retired {
-    return Err(Bootstrap(Unavailable))
-  }
-  let loan = domain.view.loan
   match
-    @resources.stop_backed_execution_read_use(
-      loan.region.accounting,
-      self,
-      child,
-      loan.accounting,
-      read_use,
+    self.with_backed_read_bookkeeping(
+      original,
+      () => {
+        let read_use = match
+          self.original_read_carrier(original, domain, child) {
+          Err(issue) => return Err(issue)
+          Ok(value) => value
+        }
+        // A live child can own only the Common use. It has no parent C cleanup
+        // frame; its physical context/aliases remain that child's obligation.
+        if !domain.read_attempted || domain.read_retired {
+          return Err(Bootstrap(Unavailable))
+        }
+        let loan = domain.view.loan
+        @resources.stop_backed_execution_read_use(
+          loan.region.accounting,
+          self,
+          child,
+          loan.accounting,
+          read_use,
+        ).map_err(issue => Accounting(issue))
+      },
+      cleanup=true,
     ) {
-    Err(issue) => return Err(Accounting(issue))
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   let status = enter_read_context_ffi(domain.physical)
@@ -371,20 +388,31 @@ pub fn[T, C] NativeHostBootstrap::close_backed_read_context(
   domain : NativeBackedExecutionDomain[T, C],
   child : C,
 ) -> Result[Unit, NativeBackedExecutionIssue] {
-  let read_use = match self.original_read_carrier(original, domain, child) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  match self.finish_failed_backed_read_bookkeeping(original) {
+    Err(issue) => return Err(Bootstrap(issue))
+    Ok(_) => ()
   }
-  let loan = domain.view.loan
   match
-    @resources.stop_backed_execution_read_use(
-      loan.region.accounting,
-      self,
-      child,
-      loan.accounting,
-      read_use,
+    self.with_backed_read_bookkeeping(
+      original,
+      () => {
+        let read_use = match
+          self.original_read_carrier(original, domain, child) {
+          Err(issue) => return Err(issue)
+          Ok(value) => value
+        }
+        let loan = domain.view.loan
+        @resources.stop_backed_execution_read_use(
+          loan.region.accounting,
+          self,
+          child,
+          loan.accounting,
+          read_use,
+        ).map_err(issue => Accounting(issue))
+      },
+      cleanup=true,
     ) {
-    Err(issue) => return Err(Accounting(issue))
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   if !domain.read_retired {
@@ -394,22 +422,34 @@ pub fn[T, C] NativeHostBootstrap::close_backed_read_context(
         return Err(Bootstrap(Physical(status)))
       }
     }
-    // With no local attempt this proves only no parent context acquisition.
-    // It cannot acknowledge a child VM, channel, FD or escaped child alias.
+    // No local attempt proves only no parent acquisition, never child/FD ACK.
     domain.read_retired = true
   }
-  match
-    @resources.return_backed_execution_read_use_after_owner_ack(
-      loan.region.accounting,
-      self,
-      child,
-      loan.accounting,
-      read_use,
-    ) {
-    Err(issue) => return Err(Accounting(issue))
-    Ok(_) => domain.read_use = None
-  }
-  Ok(())
+  self.with_backed_read_bookkeeping(
+    original,
+    () => {
+      let read_use = match self.original_read_carrier(original, domain, child) {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
+      }
+      let loan = domain.view.loan
+      match
+        @resources.return_backed_execution_read_use_after_owner_ack(
+          loan.region.accounting,
+          self,
+          child,
+          loan.accounting,
+          read_use,
+        ) {
+        Err(issue) => Err(Accounting(issue))
+        Ok(_) => {
+          domain.read_use = None
+          Ok(())
+        }
+      }
+    },
+    cleanup=true,
+  )
 }
 
 ///|

@@ -283,6 +283,10 @@ pub fn[T, C] NativeHostBootstrap::close_backed_domain(
   if domain.live_channel is Some(_) {
     return Err(Accounting(@resources.CleanupPending))
   }
+  match self.finish_failed_backed_read_bookkeeping(original) {
+    Err(issue) => return Err(Bootstrap(issue))
+    Ok(_) => ()
+  }
   if domain.read_use is Some(_) {
     match self.close_backed_read_context(original, domain, child) {
       Err(issue) => return Err(issue)

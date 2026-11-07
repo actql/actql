@@ -1,13 +1,30 @@
-/* Private enclosing control lifetime on the same transferred root allocator.
- * Constructor inventories, not logical-byte tariffs, select each cohort. This
- * first closed family covers requests proven to fit one existing slab page;
- * it is not a variable payload limit or an installed Request layout proof.
- * Count every allocator request, including sequential ones: a failed physical
- * retirement can retain the old page after its last managed alias is gone. */
+/* Enclosing control lifetime on the same original root allocator. Fixed
+ * bookkeeping uses the finite Host/domain basis; dynamic working requests
+ * still use their original ticket and actual ABI geometry before acquisition.
+ * Slab sizing/rounding and every partial receipt remain with this provider. */
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR) && defined(ACTQL_SCOPED_READ_PROVIDER) && \
     !defined(ACTQL_BOOTSTRAP_IMPORT_PROVIDER) && !defined(ACTQL_RUNTIME_MANAGED_VALUES)
 #define ACTQL_ROOT_CONTROL_CONTEXT 1
 #endif
+
+/* Source-owned initial control block size. This is implementation granularity,
+ * not a caller policy ceiling, permission, or a whole constructor certificate. */
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_root_control_basis_maximum(
+    actql_bootstrap_backing *record) {
+#if defined(ACTQL_ROOT_CONTROL_CONTEXT)
+    if (record == NULL || record->lease == NULL || record->lease->extent_domain ||
+        record->status != ACTQL_OWNED_OK) return -1;
+    size_t page = record->lease->page_size;
+    size_t overhead = read_heap_round(sizeof(struct read_heap_page)) + read_heap_header();
+    size_t maximum = page / 2;
+    if (!maximum || overhead > page || read_heap_round(maximum) > page - overhead ||
+        sizeof(actql_read_context) > page || maximum > INT64_MAX) return -1;
+    return (int64_t)maximum;
+#else
+    (void)record;
+    return -1;
+#endif
+}
 
 MOONBIT_FFI_EXPORT int64_t actql_bootstrap_root_control_quote(
     actql_bootstrap_backing *record, int64_t maximum_request, int64_t requests,

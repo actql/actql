@@ -60,8 +60,7 @@ extern "C" fn reconcile_domain_growth_ffi(
 // Select the exact unborrowed local view BEFORE entering any allocator scope.
 // No FD/exported domain can acquire this path. Child policy/Read limits remain
 // unchanged; the original parent owns the later self-hosted receipts.
-#warnings("-unused_value")
-fn[T, C] NativeHostBootstrap::prepare_backed_domain_growth(
+pub fn[T, C] NativeHostBootstrap::prepare_backed_domain_growth(
   self : NativeHostBootstrap[T],
   original : T,
   domain : NativeBackedExecutionDomain[T, C],

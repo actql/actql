@@ -1,13 +1,7 @@
 ///|
-// Closed source-owned construction facts. These are not SDK input or a byte
-// allowance. Each real issuer must certify its selected emitted object sizes
-// and complete allocation-request count before using this control family.
-// Count every sequential constructor in the selected cohort too. Only its
-// original physical finish can reconcile unused/retired pages; a failed
-// retirement or escaped alias keeps those bytes charged.
-// Intentionally private: only scoped diagnostics construct this prerequisite
-// until a complete product constructor certificate exists.
-#warnings("-struct_never_constructed")
+// Source-owned control blocks, not SDK policy, caller byte grants or a new
+// constructor-proof gate. Initial fixed bookkeeping uses the Host/domain's
+// finite basis; larger actual work extends this same owned cohort before entry.
 priv struct NativeControlConstruction {
   maximum_managed_request : Int64
   allocation_requests : Int64
@@ -16,9 +10,14 @@ priv struct NativeControlConstruction {
 ///|
 priv struct NativeRootControl[T] {
   mut owner : NativeHostBootstrap[T]?
+  mut scope : NativeBootstrapBorrow[T]?
   claim : @resources.SharedAllocation
   mut bytes : Int64
   mut reconciling : Bool
+  mut cohort_finished : Bool
+  mut active : Bool
+  mut entered_parent : Bool
+  mut bookkeeping_pending : Bool
   mut closing : Bool
   mut physical_retired : Bool
   mut closed : Bool
@@ -69,10 +68,102 @@ extern "C" fn leave_root_control_ffi(backing : Backing) -> Int = "actql_bootstra
 extern "C" fn close_root_control_ffi(backing : Backing) -> Int = "actql_bootstrap_close_root_control"
 
 ///|
+#borrow(backing)
+extern "C" fn root_control_basis_maximum_ffi(backing : Backing) -> Int64 = "actql_bootstrap_root_control_basis_maximum"
+
+///|
+/// Prepare fixed bookkeeping before selecting a payload from the same Host.
+/// Scope identity/current is checked by the existing Owner. No caller numeric
+/// quotation can substitute for the original ABI/provider or fund a new Root.
+pub fn[T] NativeHostBootstrap::prepare_backed_read_control(
+  self : NativeHostBootstrap[T],
+  original : T,
+  scope : NativeBootstrapBorrow[T],
+) -> Result[Unit, NativeBootstrapIssue] {
+  match self.require_borrow_current(original, scope) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if scope.scopes <= 0L {
+    return Err(Unavailable)
+  }
+  if self.root_control is Some(control) {
+    return if control.scope is Some(selected) &&
+      physical_equal(selected, scope) &&
+      !control.closing &&
+      !control.closed {
+      Ok(())
+    } else {
+      Err(Unavailable)
+    }
+  }
+  if !self.children.is_empty() || !self.delegations.is_empty() {
+    return Err(AlreadyConsumed)
+  }
+  let maximum = root_control_basis_maximum_ffi(self.backing)
+  if maximum <= 0L {
+    return Err(Unavailable)
+  }
+  // A finite block of ordinary bookkeeping, priced/aligned by the actual C
+  // supplier. Exhaustion is a refusal; it never admits a larger child budget.
+  let construction : NativeControlConstruction = {
+    maximum_managed_request: maximum,
+    allocation_requests: 64L,
+  }
+  let bytes = root_control_quote_ffi(self.backing, maximum, 64L, 1)
+  if bytes <= 0L || bytes > self.supplier.control_envelope_bytes {
+    return Err(Unavailable)
+  }
+  self.prepare_root_control(original, scope, construction)
+}
+
+///|
+/// Enter the already prepared fixed control on the original borrower. Scalar
+/// return avoids constructing a result between physical entry and its caller.
+/// No caller quantity, new context, permission or reservation is issued here.
+pub fn[T] NativeHostBootstrap::enter_backed_read_control(
+  self : NativeHostBootstrap[T],
+  original : T,
+  scope : NativeBootstrapBorrow[T],
+) -> Bool {
+  self.enter_root_control(original, scope)
+}
+
+///|
+/// Finish the original preparation cohort before leaving its parent scope.
+/// Failure retains the same active/control/claim; it is not a child stop ACK.
+pub fn[T] NativeHostBootstrap::leave_backed_read_control(
+  self : NativeHostBootstrap[T],
+  original : T,
+  scope : NativeBootstrapBorrow[T],
+) -> Result[Unit, NativeBootstrapIssue] {
+  if !physical_equal(self.supplier.original, original) ||
+    !physical_equal(scope.owner, self) {
+    return Err(ForeignOriginal)
+  }
+  guard self.root_control is Some(control) &&
+    control.scope is Some(selected) &&
+    physical_equal(selected, scope) else {
+    return Err(ForeignOriginal)
+  }
+  if control.active {
+    match self.leave_root_control(original) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  if !control.cohort_finished {
+    self.finish_root_control_cohort(original, scope)
+  } else {
+    Ok(())
+  }
+}
+
+///|
 // Called in the original outer bootstrap lifetime, before this root Read is
 // entered. The same reservation pays context and constructor storage first.
 // Partial C creation stays registered on the existing backing, including an
-// unknown outcome. Initial Request inventory certification remains separate.
+// unknown outcome. Dynamic payload geometry remains with its original caller.
 #warnings("-unused_value")
 fn[T] NativeHostBootstrap::prepare_root_control(
   self : NativeHostBootstrap[T],
@@ -106,9 +197,14 @@ fn[T] NativeHostBootstrap::prepare_root_control(
   }
   let control : NativeRootControl[T] = {
     owner: Some(self),
+    scope: Some(scope),
     claim,
     bytes,
     reconciling: false,
+    cohort_finished: false,
+    active: false,
+    entered_parent: false,
+    bookkeeping_pending: false,
     closing: false,
     physical_retired: false,
     closed: false,
@@ -128,7 +224,7 @@ fn[T] NativeHostBootstrap::prepare_root_control(
 }
 
 ///|
-// A new independently certified cohort may coexist with every earlier alias.
+// The next fixed cohort may coexist with every earlier alias.
 // Only an acknowledged original finish can reconcile the previous claim;
 // observed free pages or a lowered live count never authorize credit reuse.
 // The caller can first acquire more actual root backing through grow_backing;
@@ -139,6 +235,7 @@ fn[T] NativeHostBootstrap::extend_root_control(
   original : T,
   scope : NativeBootstrapBorrow[T],
   construction : NativeControlConstruction,
+  cleanup? : Bool = false,
 ) -> Result[Unit, NativeBootstrapIssue] {
   match self.require_borrow_current(original, scope) {
     Err(issue) => return Err(issue)
@@ -148,7 +245,7 @@ fn[T] NativeHostBootstrap::extend_root_control(
     self.root_control is Some(control) &&
     control.owner is Some(selected) &&
     physical_equal(selected, self) &&
-    !control.closing &&
+    (!control.closing || cleanup) &&
     !control.reconciling else {
     return Err(Unavailable)
   }
@@ -182,6 +279,7 @@ fn[T] NativeHostBootstrap::extend_root_control(
     construction.allocation_requests,
   )
   if status == 0 {
+    control.cohort_finished = false
     Ok(())
   } else {
     // The same claim keeps every partially activated slab until actual close.
@@ -198,6 +296,7 @@ fn[T] NativeHostBootstrap::enter_root_control(
   self : NativeHostBootstrap[T],
   original : T,
   scope : NativeBootstrapBorrow[T],
+  cleanup? : Bool = false,
 ) -> Bool {
   match self.require_borrow_current(original, scope) {
     Err(_) => return false
@@ -207,11 +306,17 @@ fn[T] NativeHostBootstrap::enter_root_control(
     self.root_control is Some(control) &&
     control.owner is Some(selected) &&
     physical_equal(selected, self) &&
-    !control.closing &&
+    (!control.closing || cleanup) &&
     !control.reconciling else {
     return false
   }
-  enter_root_control_ffi(self.backing) == 0
+  let status = enter_root_control_ffi(self.backing)
+  if status == 0 {
+    control.active = true
+    true
+  } else {
+    false
+  }
 }
 
 ///|
@@ -225,6 +330,9 @@ fn[T] NativeHostBootstrap::leave_root_control(
   }
   let status = leave_root_control_ffi(self.backing)
   if status == 0 {
+    if self.root_control is Some(control) {
+      control.active = false
+    }
     Ok(())
   } else {
     Err(Physical(status))
@@ -249,6 +357,10 @@ fn[T] NativeHostBootstrap::close_root_control(
     return Err(ReadersPending)
   }
   control.closing = true
+  match self.finish_failed_backed_read_bookkeeping(original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if !control.physical_retired {
     let status = close_root_control_ffi(self.backing)
     if status != 0 {
@@ -265,6 +377,7 @@ fn[T] NativeHostBootstrap::close_root_control(
     Ok(_) => {
       control.closed = true
       control.owner = None
+      control.scope = None
     }
   }
   Ok(())
@@ -289,13 +402,14 @@ extern "C" fn finish_root_control_cohort_ffi(
 ) -> Int64 = "actql_bootstrap_finish_root_control_cohort"
 
 ///|
-// Private until an actual caller's complete fixed constructor certificate is
-// selected. This is the existing control context's cleanup, not a new Owner.
+// Finish this actual cohort after its callers leave. Existing escaped aliases
+// keep their original pages charged; this creates no new read or cleanup ACK.
 #warnings("-unused_value")
 fn[T] NativeHostBootstrap::finish_root_control_cohort(
   self : NativeHostBootstrap[T],
   original : T,
   scope : NativeBootstrapBorrow[T],
+  cleanup? : Bool = false,
 ) -> Result[Unit, NativeBootstrapIssue] {
   match self.require_borrow_current(original, scope) {
     Err(issue) => return Err(issue)
@@ -305,7 +419,7 @@ fn[T] NativeHostBootstrap::finish_root_control_cohort(
     self.root_control is Some(control) &&
     control.owner is Some(selected) &&
     physical_equal(selected, self) &&
-    !control.closing &&
+    (!control.closing || cleanup) &&
     !control.reconciling else {
     return Err(Unavailable)
   }
@@ -341,7 +455,135 @@ fn[T] NativeHostBootstrap::finish_root_control_cohort(
     }
     Ok(_) => {
       control.bytes = remaining
+      control.cohort_finished = true
       Ok(())
     }
   }
+}
+
+///|
+// Unwind only an enclosing control entrance owned by a failed bookkeeping
+// operation. This never leaves a live child Read or re-executes its action.
+// Failed physical exits retain these exact scope/control aliases for retry.
+fn[T] NativeHostBootstrap::finish_failed_backed_read_bookkeeping(
+  self : NativeHostBootstrap[T],
+  original : T,
+) -> Result[Unit, NativeBootstrapIssue] {
+  if !physical_equal(self.supplier.original, original) {
+    return Err(ForeignOriginal)
+  }
+  guard self.root_control is Some(control) else { return Ok(()) }
+  if !control.closing || control.closed || !control.bookkeeping_pending {
+    return Ok(())
+  }
+  guard control.owner is Some(owner) &&
+    physical_equal(owner, self) &&
+    control.scope is Some(scope) &&
+    physical_equal(scope.owner, self) else {
+    return Err(ForeignOriginal)
+  }
+  if control.active {
+    match self.leave_root_control(original) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  if !control.cohort_finished {
+    match self.finish_root_control_cohort(original, scope, cleanup=true) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  if control.entered_parent {
+    match self.leave_borrow_scope(original, scope) {
+      Err(issue) => return Err(issue)
+      Ok(_) => control.entered_parent = false
+    }
+  }
+  control.bookkeeping_pending = false
+  Ok(())
+}
+
+///|
+// Fixed ordinary bookkeeping on the SAME retained Root/control/scope. Payload
+// constructors and their actual domain working requests stay with the Read.
+fn[T] NativeHostBootstrap::with_backed_read_bookkeeping(
+  self : NativeHostBootstrap[T],
+  original : T,
+  action : () -> Result[Unit, NativeBackedExecutionIssue],
+  cleanup? : Bool = false,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  // Existing imported profiles keep their original entrance. The ordinary
+  // Resident installs enclosing control before selecting its payload.
+  guard self.root_control is Some(control) else { return action() }
+  guard control.scope is Some(scope) &&
+    (!control.closing || cleanup) &&
+    !control.closed &&
+    !control.active &&
+    !control.entered_parent &&
+    !control.bookkeeping_pending else {
+    return Err(Bootstrap(Unavailable))
+  }
+  if scope.scopes == 0L {
+    match self.enter_borrow_scope(original, scope) {
+      Err(issue) => return Err(Bootstrap(issue))
+      Ok(_) => control.entered_parent = true
+    }
+  }
+  control.bookkeeping_pending = true
+  if control.cohort_finished {
+    let maximum = root_control_basis_maximum_ffi(self.backing)
+    match
+      self.extend_root_control(
+        original,
+        scope,
+        { maximum_managed_request: maximum, allocation_requests: 64L, },
+        cleanup~,
+      ) {
+      Err(issue) => {
+        control.closing = true
+        return Err(Bootstrap(issue))
+      }
+      Ok(_) => ()
+    }
+  }
+  if !self.enter_root_control(original, scope, cleanup~) {
+    control.closing = true
+    return Err(Bootstrap(Unavailable))
+  }
+  let result = action()
+  match self.leave_root_control(original) {
+    Err(issue) => {
+      control.closing = true
+      return match result {
+        Err(original) => Err(original)
+        Ok(_) => Err(Bootstrap(issue))
+      }
+    }
+    Ok(_) => ()
+  }
+  match self.finish_root_control_cohort(original, scope, cleanup~) {
+    Err(issue) => {
+      control.closing = true
+      return match result {
+        Err(original) => Err(original)
+        Ok(_) => Err(Bootstrap(issue))
+      }
+    }
+    Ok(_) => ()
+  }
+  if control.entered_parent {
+    match self.leave_borrow_scope(original, scope) {
+      Err(issue) => {
+        control.closing = true
+        return match result {
+          Err(original) => Err(original)
+          Ok(_) => Err(Bootstrap(issue))
+        }
+      }
+      Ok(_) => control.entered_parent = false
+    }
+  }
+  control.bookkeeping_pending = false
+  result
 }
