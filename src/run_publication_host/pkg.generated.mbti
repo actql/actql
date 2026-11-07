@@ -889,6 +889,8 @@ pub fn client_local_run_policy_original_read_expires_at(ClientLocalRunPolicyOrig
 
 pub fn client_local_run_policy_original_retention(ClientLocalRunPolicyOriginal) -> @run_publication.PublicationContract
 
+pub fn client_local_run_policy_original_run_dependencies(ClientLocalRunPolicyOriginal, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[(String, String), ClientLocalRunPolicyProfileIssue]
+
 pub fn client_local_run_policy_profile(ClientLocalProductCommonOriginals) -> Result[ClientLocalRunPolicyProfile, ClientLocalRunPolicyProfileIssue]
 
 pub fn client_local_run_policy_profile_cid(ClientLocalRunPolicyProfile) -> String

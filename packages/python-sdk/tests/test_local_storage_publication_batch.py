@@ -113,7 +113,7 @@ with LocalByteStore(Path(sys.argv[1]),max_records=8,max_record_bytes=256,max_pay
                 return super().execute(sql, *args, **kwargs)
         physical = sqlite3.connect
         with TemporaryDirectory() as directory, patch('actql_sdk._local_storage.sqlite3.connect',
-                side_effect=lambda *a, **k: physical(*a, **k, factory=FailInsert)):
+                side_effect=lambda *a, **k: physical(*a, **(k | {'factory': FailInsert}))):
             with self.store(Path(directory) / 'core.sqlite') as store:
                 originals = self.originals(store)
                 store._connection.armed = True
@@ -138,7 +138,7 @@ with LocalByteStore(Path(sys.argv[1]),max_records=8,max_record_bytes=256,max_pay
                 return result
         physical = sqlite3.connect
         with TemporaryDirectory() as directory, patch('actql_sdk._local_storage.sqlite3.connect',
-                side_effect=lambda *a, **k: physical(*a, **k, factory=LostAck)):
+                side_effect=lambda *a, **k: physical(*a, **(k | {'factory': LostAck}))):
             with self.store(Path(directory) / 'core.sqlite') as store:
                 originals = self.originals(store)
                 store._connection.armed = True
@@ -212,7 +212,7 @@ with LocalByteStore(Path(sys.argv[1]),max_records=8,max_record_bytes=256,max_pay
                 return result
         physical = sqlite3.connect
         with TemporaryDirectory() as directory, patch('actql_sdk._local_storage.sqlite3.connect',
-                side_effect=lambda *a, **k: physical(*a, **k, factory=ChangeAfterBegin)):
+                side_effect=lambda *a, **k: physical(*a, **(k | {'factory': ChangeAfterBegin}))):
             with self.store(Path(directory) / 'core.sqlite') as store:
                 originals = self.originals(store)
                 store._connection.armed = True

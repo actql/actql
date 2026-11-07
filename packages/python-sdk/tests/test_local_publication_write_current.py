@@ -120,7 +120,7 @@ class PublicationWriteCurrentTests(unittest.TestCase):
                 return result
         connect = sqlite3.connect
         with patch('actql_sdk._local_storage.sqlite3.connect',
-                   side_effect=lambda *a, **k: connect(*a, **k, factory=LostAck)):
+                   side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostAck}))):
             store, _, binding, originals, writes = self.fixture()
             store._connection.armed = True
             with self.assertRaises(LocalStorageCommitUnknown) as failure:

@@ -210,3 +210,13 @@ class LocalSubmissionAuthority:
         # The admission Owner separately decides whether a fresh intent is allowed.
         return LocalSubmissionIdentity(projection['request_id'], projection['epoch_cid'],
                                        projection['validity'])
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(LocalSubmissionAuthority, (
+        '_clock', '_clock_locked', 'custody_fence',
+        'observe_custody',
+    )),
+)

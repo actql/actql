@@ -48,18 +48,11 @@ class PhysicalFixture:
                 ('publisher_finish', [i32], self.publisher_finish),
                 ('journal_current', [i32], self.journal_refuse),
                 ('journal_current_operation', [i32], self.journal_refuse),
-                ('journal_schema', [i32], self.journal_refuse),
-                ('journal_begin', [i32, i32, i32, i32], self.journal_refuse),
-                ('journal_query_byte', [i32, i32, i32], self.journal_refuse),
-                ('journal_query', [i32], self.journal_refuse),
-                ('journal_length', [i32, i32], self.journal_refuse),
-                ('journal_byte', [i32, i32, i32], self.journal_refuse),
-                ('journal_revision', [i32], self.journal_refuse),
-                ('journal_release', [i32], self.journal_refuse)):
+                ('journal_schema', [i32], self.journal_refuse)):
 
                 self.linker.define_func('actql_host', name,
                     wasmtime.FuncType(params, [wasmtime.ValType.i64() if _IMPORT_SIGNATURES.get(name, ('', 'i32'))[1] == 'i64' else i32]), callback)
-            for name in ('input_copy', 'publisher_copy', 'journal_query_copy', 'journal_copy'):
+            for name in ('input_copy', 'publisher_copy', 'journal_query_header', 'journal_copy_row'):
                 params, result = _IMPORT_SIGNATURES[name]
                 self.linker.define_func('actql_host', name, wasmtime.FuncType(
                     [i32 for _ in params.split()], [i32]),
@@ -134,10 +127,10 @@ class PhysicalFixture:
     def publisher_copy(self, *args):
         return -2
 
-    def journal_query_copy(self, *args):
+    def journal_query_header(self, *args):
         return -41
 
-    def journal_copy(self, *args):
+    def journal_copy_row(self, *args):
         return -41
 
     def journal_refuse(self, *args):

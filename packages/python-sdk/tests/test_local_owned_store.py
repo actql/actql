@@ -266,7 +266,7 @@ print('original physical phase complete', flush=True)
         path, root, original = self.fixture()
         connect = sqlite3.connect
         with patch('actql_sdk._local_storage.sqlite3.connect',
-                   side_effect=lambda *a, **k: connect(*a, **k, factory=NoJson)):
+                   side_effect=lambda *a, **k: connect(*a, **(k | {'factory': NoJson}))):
             store = self.open(path / original.name, root, original)
         self.assertEqual(store._connection.execute('PRAGMA user_version').fetchone(), (2,))
         store._physical.begin_read()
@@ -290,7 +290,7 @@ print('original physical phase complete', flush=True)
         connect = sqlite3.connect
         opened = []
         def acquire(*args, **kwargs):
-            value = connect(*args, **kwargs, factory=ProbeFailure)
+            value = connect(*args, **(kwargs | {'factory': ProbeFailure}))
             opened.append(value)
             return value
         with patch('actql_sdk._local_storage.sqlite3.connect', side_effect=acquire):
