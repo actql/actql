@@ -1073,6 +1073,11 @@ pub fn client_program_prepare_request_program_compilation(
   @publication_host.ClientRunCompilation,
   ClientRequestProgramModuleBridgeIssue,
 ] {
+  let compilation_limits = match
+    @client_local_host.request_program_compilation_limits(parent, input) {
+    Ok(value) => value
+    Err(issue) => return Err(Preparation(issue))
+  }
   let manifests = match client_generated_compilation_manifests() {
     Ok(value) => value
     Err(issue) => return Err(Manifests(issue))
@@ -1082,7 +1087,7 @@ pub fn client_program_prepare_request_program_compilation(
     input,
     contracts,
     manifests~,
-    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    compilation_limits~,
     retained_output~,
     provider_factory=installed_client_family_providers,
   ).map_err(issue => Preparation(issue))
@@ -1118,6 +1123,11 @@ pub fn client_program_prepare_request_program_module_body(
     @publication.PublicationContract,
   )?,
 ) -> Result[Unit, ClientRequestProgramModuleBridgeIssue] {
+  let compilation_limits = match
+    @client_local_host.request_program_compilation_limits(parent, input) {
+    Ok(value) => value
+    Err(issue) => return Err(Preparation(issue))
+  }
   let manifests = match client_generated_compilation_manifests() {
     Ok(value) => value
     Err(issue) => return Err(Manifests(issue))
@@ -1127,7 +1137,7 @@ pub fn client_program_prepare_request_program_module_body(
     input,
     contracts,
     manifests~,
-    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    compilation_limits~,
     retained_output~,
     provider_factory=installed_client_family_providers,
     invocation~,
@@ -1489,7 +1499,7 @@ pub fn client_program_prepare_request_source_computation(
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   values_max_rows : Int?,
 ) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue] {
-  @client_local_host.prepare_request_native_source_computation_check(
+  @client_local_host.prepare_request_default_source_computation_check(
     parent,
     input,
     captured,
@@ -1497,10 +1507,7 @@ pub fn client_program_prepare_request_source_computation(
     environment,
     publication,
     [],
-    {
-      ..@publication_host.client_standard_program_preparation_limits(),
-      values_max_rows,
-    },
+    values_max_rows,
     @publication_host.client_standard_effect_computation_limits(),
     supplied=if native_json_parameter_is_absent(parameters) {
       None
@@ -2319,6 +2326,15 @@ pub fn client_program_request_model_recovery_source_coordinates(
     coordinates.push([stage, input, task])
   }
   Ok(coordinates)
+}
+
+///|
+#export_name("clientProgramReserveInstalledEffectCaptureDecoded")
+pub fn client_program_reserve_installed_effect_capture_decoded(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+  wire : String,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.reserve_installed_effect_capture_decoded(original, wire)
 }
 
 ///|

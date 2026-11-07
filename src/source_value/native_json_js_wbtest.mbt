@@ -334,3 +334,38 @@ test "native key offsets bind the same detached JSON representation across conta
   assert_eq(native.node.span.start_byte, 0)
   assert_eq(native.node.span.end_byte, 0)
 }
+
+///|
+test "same native key visits retain the maximum without changing admission or Unicode refusal" {
+  let limits : ParseLimits = {
+    max_input_bytes: 2048,
+    max_nodes: 64,
+    max_depth: 8,
+  }
+  let observed = Ref(-1)
+  let native = native_json_test_input(
+    "{\"é😀\":1,\"x\":{\"longer-key\":null}}",
+  )
+  let original = admit_captured_json(native, native_json_reader, limits).unwrap()
+  let actual = admit_captured_json(
+    native,
+    native_json_reader,
+    limits,
+    max_key_units_out=Some(observed),
+  ).unwrap()
+  assert_true(native_json_same_node(original.node, actual.node))
+  assert_eq(actual.usage, original.usage)
+  assert_eq(observed.val, 10)
+  let malformed = native_json_test_input("{\"\\ud800\":1}")
+  assert_true(
+    admit_captured_json(
+      malformed,
+      native_json_reader,
+      limits,
+      max_key_units_out=Some(observed),
+    )
+    is Err(_),
+  )
+  // The observation is DATA, never an admission receipt after refusal.
+  assert_eq(observed.val, 1)
+}

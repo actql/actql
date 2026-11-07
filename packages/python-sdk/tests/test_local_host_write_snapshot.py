@@ -129,7 +129,7 @@ class OriginalHostWriteSnapshotTests(unittest.TestCase):
                 return result
         connect = sqlite3.connect
         with patch('actql_sdk._local_storage.sqlite3.connect',
-                   side_effect=lambda *a, **k: connect(*a, **k, factory=LostAck)):
+                   side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostAck}))):
             _, store, core, _, _, _, _, _, _, _, binding = self.fixture()
         original_connection = store._connection
         before = original_connection.inserts
@@ -164,7 +164,7 @@ class OriginalHostWriteSnapshotTests(unittest.TestCase):
                 return super().execute(sql, *args, **kwargs)
         connect = sqlite3.connect
         with patch('actql_sdk._local_storage.sqlite3.connect',
-                   side_effect=lambda *a, **k: connect(*a, **k, factory=PendingCleanup)):
+                   side_effect=lambda *a, **k: connect(*a, **(k | {'factory': PendingCleanup}))):
             _, store, core, _, _, _, _, _, _, _, binding = self.fixture()
         original_connection = store._connection
         original_connection.refuse = True

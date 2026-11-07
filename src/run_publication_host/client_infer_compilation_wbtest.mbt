@@ -74,6 +74,11 @@ test "Infer compilation reaches the shared Run owner with the checked barrier" {
       "sha256:" + "b".repeat(64),
       "2099-01-01T00:00:00.000Z",
     ).unwrap()
+    assert_eq(client_compiled_run_has_infers(admitted), true)
+    assert_eq(
+      client_compiled_run_has_infers(admitted),
+      !client_compiled_run_infers(admitted).is_empty(),
+    )
     assert_true(client_compiled_run_matches(admitted, prepared))
     // An egress contract alone cannot authorize Result retention.
     assert_eq(client_compiled_run_infer_observation_policy(admitted), None)

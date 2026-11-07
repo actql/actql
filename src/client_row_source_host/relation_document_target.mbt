@@ -751,6 +751,48 @@ pub fn accept_charged_relation_document(
   document : RelationTargetDocument,
   max_work : Int,
 ) -> Result[Int, RowHostIssue] {
+  accept_charged_relation_document_original(
+    run,
+    charge,
+    RelationDocumentQuery(acquisition),
+    document,
+    max_work,
+  )
+}
+
+///|
+/// The complete checked Source input uses the SAME response ticket/document
+/// owner. No Query requirement is fabricated and no physical byte is refunded.
+pub fn accept_charged_relation_input_document(
+  run : RowRun,
+  charge : RowPageCharge,
+  acquisition : RowInputAcquisition,
+  document : RelationTargetDocument,
+  max_work : Int,
+) -> Result[Int, RowHostIssue] {
+  accept_charged_relation_document_original(
+    run,
+    charge,
+    RelationDocumentInput(acquisition),
+    document,
+    max_work,
+  )
+}
+
+///|
+priv enum RelationDocumentAcquisition {
+  RelationDocumentQuery(RowAcquisition)
+  RelationDocumentInput(RowInputAcquisition)
+}
+
+///|
+fn accept_charged_relation_document_original(
+  run : RowRun,
+  charge : RowPageCharge,
+  original : RelationDocumentAcquisition,
+  document : RelationTargetDocument,
+  max_work : Int,
+) -> Result[Int, RowHostIssue] {
   guard !run.closed && run.attempt.state is Reading(read) else {
     return Err(InvalidState)
   }
@@ -759,11 +801,26 @@ pub fn accept_charged_relation_document(
     Err(issue) => return Err(issue)
   }
   let result = try {
+    let original_matches = match original {
+      RelationDocumentQuery(acquisition) =>
+        match run.attempt.preparation {
+          DirectPreparation(preparation) =>
+            physical_equal(preparation, acquisition.preparation) &&
+            physical_equal(read.schema, preparation.schema) &&
+            physical_equal(preparation.view, document.view)
+          _ => false
+        }
+      RelationDocumentInput(acquisition) =>
+        match run.attempt.preparation {
+          InputPreparation(preparation) =>
+            physical_equal(preparation, acquisition.preparation) &&
+            physical_equal(read.schema, preparation.schema) &&
+            physical_equal(preparation.view, document.view)
+          _ => false
+        }
+    }
     guard relation_target_original(document) &&
-      run.attempt.preparation is DirectPreparation(preparation) &&
-      physical_equal(preparation, acquisition.preparation) &&
-      physical_equal(read.schema, preparation.schema) &&
-      physical_equal(preparation.view, document.view) &&
+      original_matches &&
       charge.received_bytes == document.bytes.length().to_int64() &&
       document.bytes.length() <= read.page_limits.max_bytes &&
       document.usage.nodes <= read.page_limits.max_nodes &&
@@ -808,7 +865,22 @@ pub fn accept_charged_relation_document(
         })
       })
     })
-    accept_row_source_values(read, read.columns, rows)
+    if original is RelationDocumentInput(_) && run.physical is Some(_) {
+      let selected = match row_source_value_indices(read, read.columns, rows) {
+        Ok(value) => value
+        Err(issue) => raise RelationDocumentStop(issue)
+      }
+      match fund_row_input_values(run, read, rows) {
+        Ok(_) => ()
+        Err(issue) => {
+          abort_row_run(run)
+          return Err(issue)
+        }
+      }
+      append_row_source_values(read, read.columns, rows, selected)
+    } else {
+      accept_row_source_values(read, read.columns, rows)
+    }
   } catch {
     RelationDocumentStop(issue) => Err(issue)
   }

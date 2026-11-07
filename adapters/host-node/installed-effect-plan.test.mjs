@@ -1512,3 +1512,44 @@ test('recovered Effect inventory keeps original refusal and post-current replace
     assert.deepEqual(f.events, []);
   }
 });
+
+test('constructor nested input grows only its captured original during the same synchronous flight', () => {
+  const events = [], initial = {}, full = {}, output = {};
+  let retainedGrow;
+  const f = constructorControlFixture(grow => {
+    events.push('construct');retainedGrow = grow;
+    grow(full);return output;
+  });
+  f.inputExtent = () => initial;
+  f.run.runtime.clientProgramInstalledEffectOperationInputBegin = (original, extent) => {
+    assert.strictEqual(original, f.originalToken);assert.strictEqual(extent, initial);
+    events.push('preflight');return {$tag: 1, _0: undefined};
+  };
+  f.run.runtime.clientProgramInstalledEffectOperationInputGrow = function(original, extent) {
+    assert.strictEqual(this, f.run.runtime);assert.strictEqual(original, f.originalToken);
+    assert.strictEqual(extent, full);events.push('grow');return {$tag: 1, _0: undefined};
+  };
+  const child = prepareInstalledEffectRequestChild(f);
+  f.run.runtime.clientProgramInstalledEffectOperationInputGrow = () => assert.fail('replacement');
+  assert.strictEqual(child.prepare(), output);
+  assert.deepEqual(events, ['preflight', 'construct', 'grow']);
+  assert.throws(() => retainedGrow(full), {code: 'InstalledEffectOperationRuntimeUnavailable'});
+  assert.equal(f.debits(), 1);assert.equal(child.release(), false);
+  f.retireAliases();assert.equal(child.retry(), true);assert.equal(f.settlements(), 1);
+});
+
+test('nested constructor input refusal preserves the first failure and original cleanup backing', () => {
+  const first = new Error('original input refused');
+  let constructedAfterRefusal = false;
+  const f = constructorControlFixture(grow => {
+    grow({});constructedAfterRefusal = true;
+  });
+  f.inputExtent = () => ({});
+  f.run.runtime.clientProgramInstalledEffectOperationInputBegin = () => ({$tag: 1, _0: undefined});
+  f.run.runtime.clientProgramInstalledEffectOperationInputGrow = () => {throw first;};
+  const child = prepareInstalledEffectRequestChild(f);
+  assert.throws(() => child.prepare(), error => error === first);
+  assert.equal(constructedAfterRefusal, false);assert.equal(f.settlements(), 0);
+  assert.equal(child.release(), false);f.retireAliases();assert.equal(child.retry(), true);
+  assert.equal(f.settlements(), 1);
+});

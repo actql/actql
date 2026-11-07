@@ -83,7 +83,7 @@ export function loadResourceAccountingSources({
     if (entries.some(entry => entry.name === 'moon.pkg' && entry.isFile())) {
       const file = path.join(directory, 'moon.pkg');
       files[file] ??= Object.freeze({exists: true, text: fs.readFileSync(file, 'utf8')});
-      if (boundedSorterAliases(files[file].text ?? '').size) {
+      if (boundedSorterAliases(files[file].text ?? '', files[file]).size) {
         for (const entry of entries) {
           if (entry.isFile() && isProductionMoonSource(entry.name)) {
             consumerPaths.push(path.join(directory, entry.name));

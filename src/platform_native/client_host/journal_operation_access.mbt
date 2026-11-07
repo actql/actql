@@ -4,6 +4,10 @@
 // Journal, permission, initialization route or acknowledgement.
 priv struct NativeClientJournalOperationAccess {
   reads : NativeClientJournalReadAccess
+  before_construction : ((Int, Int, Int) -> Result[
+    Unit,
+    @host.ClientJournalEncodingIssue,
+  ])?
   read_evidence_usage : (String, Int64, Int64) -> Result[
     (Int64, Int64),
     @sqlite.NativeSqliteIssue,

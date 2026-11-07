@@ -320,3 +320,61 @@ test "original YAML port leaves legacy JSON outcomes byte identical" {
     assert_eq(selected, previous)
   }
 }
+
+///|
+test "original Program parse refusal projects the first typed issue without checking again" {
+  for
+    (document, format) in [
+      ("{\"version\":", @syntax.Json),
+      ("version: [unterminated", @syntax.Yaml),
+      ("{\"version\":\"actql/0.1\",\"stages\":false}", @syntax.Json),
+    ] {
+    let checking = @host.client_standard_program_preparation_limits().checking
+    let issue = @syntax.parse(document, checking.input, format~).unwrap_err()
+    let diagnostic = @checked.program_input_diagnostic(issue)
+    let expected : Array[CheckFinding] = []
+    let expected_stop = check_program_diagnostic(
+      expected,
+      diagnostic,
+      document,
+      None,
+      None,
+      _ => (),
+      format~,
+    )
+    let actual : Array[CheckFinding] = []
+    let actual_stop = check_program_findings(
+      actual,
+      document,
+      environment(),
+      "{\"aliases\":[]}",
+      None,
+      _ => (),
+      BoundInput,
+      None,
+      format,
+    )
+    // Compare complete findings and stop kinds, including retained source
+    // locations. Neither branch may turn malformed input into an exception.
+    assert_true(actual_stop is Report && expected_stop is Report)
+    let documents : CheckDocuments = {
+      scope: BoundInput,
+      structured_program: true,
+      program_pointer: None,
+      source_revision: "rev:" + "b".repeat(64),
+      source_bytes: @utf8.encode(document).length(),
+      declarations_revision: None,
+      declarations_bytes: 0,
+      parameters_revision: None,
+      parameters_bytes: 0,
+    }
+    assert_eq(
+      check_outcome_json(
+        actual, actual_stop, "ctx:original", "corr:original", documents,
+      ),
+      check_outcome_json(
+        expected, expected_stop, "ctx:original", "corr:original", documents,
+      ),
+    )
+  }
+}

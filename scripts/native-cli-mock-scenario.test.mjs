@@ -112,3 +112,39 @@ for (const [name, mutate, pattern] of [
   const options = await fixture(t, 'deal-review-mock', mutate);
   await assert.rejects(runNativeCliMockScenario(options), pattern);
 });
+
+
+test('harness refuses deferring the approved Effect until status', async t => {
+  let before, deferred;
+  const options = await fixture(t, 'deal-review-mock', async ({args, file}) => {
+    if (args[0] === 'run') before = await readFile(file);
+    if (args[0] === 'approve') {
+      deferred = await readFile(file);
+      await writeFile(file, before);
+    } else if (args[0] === 'status' && deferred) {
+      await writeFile(file, deferred);
+    }
+  });
+  await assert.rejects(runNativeCliMockScenario(options), /expected target fields/u);
+});
+
+test('harness refuses same-byte Effect replay during completed status', async t => {
+  const options = await fixture(t, 'deal-review-mock', async ({args, record, file}) => {
+    if (args[0] === 'status' && JSON.parse(record.stdout).status === 'succeeded') {
+      await writeFile(file, await readFile(file));
+    }
+  });
+  await assert.rejects(runNativeCliMockScenario(options), /Completed status must not rewrite/u);
+});
+
+
+for (const operation of ['approve', 'result']) {
+  test(`harness refuses consulting Model answers during ${operation} recovery`, async t => {
+    const options = await fixture(t, 'deal-review-mock', async ({args, file}) => {
+      if (args[0] === operation) {
+        await readFile(join(file, '..', 'deal-review.v1.answers.yaml'));
+      }
+    });
+    await assert.rejects(runNativeCliMockScenario(options), {code: 'ENOENT'});
+  });
+}

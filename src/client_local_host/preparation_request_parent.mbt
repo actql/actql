@@ -120,9 +120,13 @@ struct ClientRequestPreparation[I] {
   mut snapshot_base : (Int64, Int64)?
   mut snapshot_units : Int64
   mut snapshot_values : Int64
+  snapshot_key_units : Ref[Int]
   mut submitted_intent : @publication_host.ClientSubmittedIntent?
   mut source_input : ClientRequestSourceInput?
   mut intent_base : (Int64, Int64)?
+  mut intent_source_quote : (Int64, Int64)?
+  mut native_intake_base : (Int64, Int64)?
+  mut native_intake_wire_bytes : Int
   mut intent_attempted : Bool
   mut intent_peak_live : Bool
   mut intent_work : @resources.PreparationPhaseWork64?
@@ -229,15 +233,21 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 // and Result wrapper (5H/7R/10W) before the native Source constructor grow:
 // Cache one extra scalar word for that same artifact quote's retired scratch,
 // so a declined grow reuses the original split without interpreting it again:
-// 10,616 logical bytes and the existing separate 4,096-byte installed group.
+// One observed-input ParseLimits record/Some (2H/1R/3W) also precedes its
+// constructor grow. Its original key-extent observation Ref/Some and field
+// (2H/2R/1W) share this fixed control group:10,736 bytes plus4,096 installed.
+// The Native retained-wire parser keeps one absolute quote tuple/Some and
+// its Request field (2H/2R/2W); declined growth never adds that demand twice.
+// Native wire intake retains one same-parent baseline tuple/Some and its
+// monotone byte observation (2H/2R/3W) before any payload constructor.
 // This is intentionally independent of JS closure, carrier and array spelling.
 // Input/AST/wire/row/operation storage, selected domain construction and live
 // child overlap remain separately charged before their actual constructors.
 // The fixed envelope is immutable DATA, not a reservation, phase or RSS bound.
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
-  record_headers: 225L,
-  reference_slots: 409L,
-  scalar_words: 468L,
+  record_headers: 233L,
+  reference_slots: 416L,
+  scalar_words: 477L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -261,6 +271,9 @@ pub fn client_request_preparation_control_capacity(
   // the exclusive read-only capture-recovery quote/reader controls, or the
   // pre-compiler Content Graph measurement/selection call frame. This is
   // installed coarse control overhead, not variable wire/body admission.
+  // Native's completed typed body handoff uses one header/reference/tag
+  // (1H/1R/1W = 32 bytes) in this same group after its resize has returned;
+  // it retains the original borrow and introduces no second capacity.
   // The same group covers later Run growth entry. Its original owner fences
   // recursion before payload construction, so only one refused nested entry
   // overlaps. The fixed carriers are backed NOW, not by a later resize.
@@ -342,9 +355,13 @@ fn[I] begin_request_preparation_original(
     snapshot_base: None,
     snapshot_units: 0L,
     snapshot_values: 0L,
+    snapshot_key_units: Ref(-1),
     submitted_intent: None,
     source_input: None,
     intent_base: None,
+    intent_source_quote: None,
+    native_intake_base: None,
+    native_intake_wire_bytes: 0,
     intent_attempted: false,
     intent_peak_live: false,
     intent_work: None,
@@ -675,7 +692,12 @@ pub fn[I] abort_request_preparation_after_cleanup(
   }
   clear_request_source_input(owner)
   owner.submitted_intent = None
+  owner.snapshot_base = None
+  owner.snapshot_key_units.val = -1
   owner.intent_base = None
+  owner.intent_source_quote = None
+  owner.native_intake_base = None
+  owner.native_intake_wire_bytes = 0
   owner.intent_peak_live = false
   owner.held_program = None
   owner.native_parameters = None
@@ -684,14 +706,17 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.query_syntax = None
   owner.compiled_program = None
   owner.computation_limits = None
-  owner.compiled_effect = None
+  // Keep the original Effect until its last constructor borrower returns.
+  // Its cached normalization custody is severed only after logical retirement.
   owner.effect_plan = None
   owner.program_data = None
   owner.program_plan_quote = None
+  owner.program_measurement_quote = None
   owner.program_domain_quote = None
   owner.program_artifact_geometry = None
   owner.program_artifact_quote = None
   owner.program_invocation_quote = None
+  owner.program_artifact_work_issue = None
   owner.program_artifact_inputs = None
   owner.program_compilation = None
   owner.program_domain_compilation_inputs = None
@@ -704,38 +729,58 @@ pub fn[I] abort_request_preparation_after_cleanup(
 
   let retiring = owner.phase == Retiring
   owner.phase = Retiring
-  let stopped = if owner.effect_capacity is Some(capacity) {
-    if retiring || owner.program_body_attempted {
-      @resources.retire_preparation_capacity(capacity)
+  // input=None is recorded only after the selected capacity has actually
+  // retired. A later retry belongs solely to the SAME physical initial owner;
+  // the old Unit handle may already be Continued and cannot settle it again.
+  if !(retiring && owner.input is None) {
+    let stopped = if owner.effect_capacity is Some(capacity) {
+      if retiring || owner.program_body_attempted {
+        @resources.retire_preparation_capacity(capacity)
+      } else {
+        guard owner.input is Some(input) else { return Err(ForeignOriginal) }
+        @resources.abort_preparation_capacity_after_cleanup(capacity, input)
+      }
     } else {
-      guard owner.input is Some(input) else { return Err(ForeignOriginal) }
-      @resources.abort_preparation_capacity_after_cleanup(capacity, input)
+      match owner.program_capacity {
+        Some(capacity) =>
+          if retiring || owner.program_body_attempted {
+            @resources.retire_preparation_capacity(capacity)
+          } else {
+            guard owner.input is Some(input) else {
+              return Err(ForeignOriginal)
+            }
+            @resources.abort_preparation_capacity_after_cleanup(capacity, input)
+          }
+        None =>
+          if retiring {
+            @resources.retire_preparation_capacity(owner.capacity)
+          } else {
+            guard owner.input is Some(input) else {
+              return Err(ForeignOriginal)
+            }
+            @resources.abort_preparation_capacity_after_cleanup(
+              owner.capacity,
+              input,
+            )
+          }
+      }
     }
-  } else {
-    match owner.program_capacity {
-      Some(capacity) =>
-        if retiring || owner.program_body_attempted {
-          @resources.retire_preparation_capacity(capacity)
-        } else {
-          guard owner.input is Some(input) else { return Err(ForeignOriginal) }
-          @resources.abort_preparation_capacity_after_cleanup(capacity, input)
-        }
-      None =>
-        if retiring {
-          @resources.retire_preparation_capacity(owner.capacity)
-        } else {
-          guard owner.input is Some(input) else { return Err(ForeignOriginal) }
-          @resources.abort_preparation_capacity_after_cleanup(
-            owner.capacity,
-            input,
-          )
-        }
+    match stopped {
+      Err(issue) => return Err(Capacity(issue))
+      Ok(false) => return Err(WrongPhase)
+      Ok(true) => owner.input = None
     }
-  }
-  match stopped {
-    Err(issue) => return Err(Capacity(issue))
-    Ok(false) => return Err(WrongPhase)
-    Ok(true) => owner.input = None
+    // These continued controls were allocated in the payload Read. Keeping
+    // a logically closed record until that Read's ACK would pin its own last
+    // alias forever. Failed settlement/live borrowers retain the originals.
+    if owner.compiled_effect is Some(prepared) {
+      @publication_host.clear_prepared_client_effect_custody_after_cleanup(
+        prepared,
+      )
+    }
+    owner.compiled_effect = None
+    owner.program_capacity = None
+    owner.effect_capacity = None
   }
   match preparation_initial_cleanup(owner.initial) {
     Err(issue) => Err(Initial(issue))

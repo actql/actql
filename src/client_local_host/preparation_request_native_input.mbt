@@ -7,6 +7,7 @@ fn request_native_tree_units(
   units : Int64,
   values : Int64,
   limits : @syntax.Limits,
+  max_key_units? : Int? = None,
 ) -> @execution.PreparationRepresentationUnits? {
   guard request_native_input_geometry(
       units,
@@ -14,14 +15,27 @@ fn request_native_tree_units(
       limits.source.max_input_bytes,
       limits.source.max_depth,
     )
-    is Some((bytes, nodes, depth)) else {
+    is Some((_, nodes, depth)) else {
     return None
   }
-  guard @source.json_construction_extent(
-      bytes,
+  // SDK quantities are independently rounded high-water bounds. Their
+  // difference is not a bound on key text; the original total units are.
+  let key_units = units
+  let key_bound = match max_key_units {
+    Some(original) => original
+    None => {
+      if key_units > 2147483647L {
+        return None
+      }
+      key_units.to_int()
+    }
+  }
+  guard @source.captured_json_construction_extent(
       nodes,
       depth,
       normalize_keys=true,
+      key_units~,
+      max_key_units=key_bound,
     )
     is Some(source) &&
     @decode.admission_construction_inventory(nodes, nodes, nodes, nodes, depth)
@@ -48,8 +62,10 @@ fn request_native_input_units(
   units : Int64,
   values : Int64,
   limits : @syntax.Limits,
+  max_key_units? : Int? = None,
 ) -> @execution.PreparationRepresentationUnits? {
-  guard request_native_tree_units(units, values, limits) is Some(tree) else {
+  guard request_native_tree_units(units, values, limits, max_key_units~)
+    is Some(tree) else {
     return None
   }
   @execution.compose_preparation_representation([
@@ -86,6 +102,12 @@ pub fn[I, T] prepare_request_native_program_input(
       owner.snapshot_units,
       owner.snapshot_values,
       limits,
+      max_key_units=if owner.submitted_intent is Some(_) &&
+        owner.snapshot_key_units.val >= 0 {
+        Some(owner.snapshot_key_units.val)
+      } else {
+        None
+      },
     ) {
     None => return Err(Policy)
     Some(value) => value
@@ -114,8 +136,16 @@ pub fn[I, T] prepare_request_native_program_input(
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
   }
+  // Existing retained-index reconciliation also executes the fixed quote
+  // controller after the constructor returns. Fund that same scratch BEFORE
+  // entry; small inputs cannot borrow accidental tree/Map peak slack.
   guard @execution.checked_preparation_add_product(r0, bytes, 1L) is Some(r) &&
-    @execution.checked_preparation_add_product(e0, bytes, 1L) is Some(e) else {
+    @execution.checked_preparation_add_product(
+      bytes, program_json_quote_control_bytes, 1L,
+    )
+    is Some(execution_bytes) &&
+    @execution.checked_preparation_add_product(e0, execution_bytes, 1L)
+    is Some(e) else {
     return Err(Policy)
   }
   owner.phase = Selecting
@@ -148,11 +178,45 @@ pub fn[I, T] prepare_request_native_program_input(
     }
     Ok(value) => value
   }
+  // The native Source/index constructor has returned. Its transient Source
+  // tree, key Maps and ancestry are gone; the original immutable index stays.
+  // Reuse the existing retained-index projection and admission's cached DATA,
+  // never walk/parse the input again. Without separate Parameter geometry the
+  // supplied-Parameter branch conservatively keeps its original whole quote.
+  let retained = if owner.native_parameters is None {
+    let root = @syntax.program_input_cursor(indexed)
+    let actual = @decode.admission_usage(root)
+    let observed = @decode.admission_preparation_data(root)
+    match
+      program_index_retained_units(
+        indexed,
+        observed.fields,
+        observed.fields + observed.texts,
+        actual.nodes,
+        actual.nodes,
+      ) {
+      Some(value) => value
+      None => {
+        owner.phase = ProgramJsonFailed
+        return Err(Policy)
+      }
+    }
+  } else {
+    units
+  }
   let child = request_program_index_preparation(
-    owner, input, indexed, units, limits, r0, e0,
+    owner, input, indexed, retained, limits, r0, e0,
   )
   owner.native_parameters_ready = true
   owner.program_json = Some(child)
+  child.phase = Indexed
+  match reconcile_program_json_preparation_index(child) {
+    Err(issue) => {
+      owner.phase = ProgramJsonFailed
+      return Err(ProgramJson(issue))
+    }
+    Ok(_) => ()
+  }
   owner.phase = ProgramJson
   Ok(child)
 }

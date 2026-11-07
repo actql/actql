@@ -417,12 +417,15 @@ export function prepareClientHostRequest(operation, original, retainSnapshot = f
   return Object.freeze({body, connection});
 }
 
+// Program size belongs to the selected Host preparation owner, whose one
+// snapshot observer reserves actual demand. This closed envelope does not add
+// an independent UTF-16 support ceiling or relax transport ingress policy.
 function validProgramInput(body) {
   return (body.kind === 'aql' &&
     (exact(body.input, ['text', 'format']) ||
       exact(body.input, ['text', 'format', 'parameterDeclarations'])) &&
     typeof body.input.text === 'string' &&
-    body.input.text.length > 0 && body.input.text.length <= 65536 &&
+    body.input.text.length > 0 &&
     !body.input.text.includes('\u0000') &&
     clientSourceFormats.includes(body.input.format) &&
     (body.input.parameterDeclarations === undefined ||
@@ -488,7 +491,7 @@ export function validClientBody(operation, body) {
     return (exact(body.input, ['text', 'format']) ||
         exact(body.input, ['text', 'format', 'parameterDeclarations'])) &&
       typeof body.input.text === 'string' &&
-      body.input.text.length > 0 && body.input.text.length <= 65536 &&
+      body.input.text.length > 0 &&
       body.input.text.isWellFormed() &&
       !body.input.text.includes('\u0000') &&
       ['aql', 'aql-text', 'sql'].includes(body.input.format) &&

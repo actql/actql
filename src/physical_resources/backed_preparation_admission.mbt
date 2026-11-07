@@ -5,6 +5,7 @@
 struct BackedPreparationAdmission[I] {
   mut original : BackedPreparationAdmission[I]?
   initial : BackedInitializationAdmission[I]
+  initialized : Bool
   mut transitioning : Bool
   mut transferred : Bool
 }
@@ -24,6 +25,40 @@ pub fn[P, C, I] prepare_backed_preparation_admission(
   let owner : BackedPreparationAdmission[I] = {
     original: None,
     initial,
+    initialized: false,
+    transitioning: false,
+    transferred: false,
+  }
+  owner.original = Some(owner)
+  Ok(owner)
+}
+
+///|
+/// Continue the SAME Native initializer after its actual physical frame and
+/// frame exists but BEFORE any Source bootstrap or Host body consumes it.
+/// This checked view cannot convert a started Read, completed Request, raw
+/// Ledger or numerical allowance into another preparation grant.
+pub fn[I] prepare_initialized_backed_preparation_admission(
+  initial : BackedInitializationAdmission[I],
+  input : I,
+) -> Result[BackedPreparationAdmission[I], ImportedChildLedgerIssue] {
+  match check_backed_initialization_input(initial, input) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if initial.host_taken || initial.preparation_selected {
+    return Err(AlreadyConsumed)
+  }
+  guard initial.frame.taken &&
+    initial.frame.ledger is Some(ledger) &&
+    backed_request_ledger_pristine(ledger) else {
+    return Err(Unavailable)
+  }
+  initial.preparation_selected = true
+  let owner : BackedPreparationAdmission[I] = {
+    original: None,
+    initial,
+    initialized: true,
     transitioning: false,
     transferred: false,
   }
@@ -72,6 +107,9 @@ pub fn[I] start_backed_preparation_admission(
   }
   if owner.initial.host_taken {
     return Err(AlreadyConsumed)
+  }
+  if owner.initialized {
+    return take_backed_initialization_for_host(owner.initial, input, true)
   }
   owner.initial.host_taken = true
   owner.transitioning = true
@@ -350,4 +388,14 @@ pub fn[P] cleanup_backed_prepared_run_admission(
     owner.cleaned = true
   }
   result
+}
+
+///|
+fn backed_request_ledger_pristine(ledger : Ledger) -> Bool {
+  ledger.original_inventory is None &&
+  ledger.next_capacity_serial == Some(-1) &&
+  ledger.next_attempt_serial == Some(0) &&
+  ledger.next_holding_serial == Some(0) &&
+  !(ledger.imported_child is Some(origin) && origin.fixed_capacities) &&
+  original_ledger_has_no_child_usage(ledger, 0L, 0L)
 }

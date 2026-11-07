@@ -65,6 +65,12 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
       if (reserveFailure !== undefined) throw reserveFailure;
       return ok(undefined);
     },
+    clientProgramReserveInstalledEffectCaptureDecoded(actual, wire) {
+      assert.equal(actual, value); assert.equal(typeof wire, 'string');
+      events.push(['live-decoded', wire]);
+      if (reserveFailure !== undefined) throw reserveFailure;
+      return ok(undefined);
+    },
     clientProgramCompleteInstalledEffectCaptureRecovery(actual) {
       assert.equal(this, moon);assert.equal(actual, value);
       assert.equal(view.status().busy, true);events.push('live-complete');
@@ -111,11 +117,11 @@ test('cold saved Request retains before opening and grows SAME parent before the
 
 test('live capture uses SAME adopted Run and never opens a second Request Resource', async () => {
   const f = fixture({live:true}), view = f.open();
-  view.begin(); view.reserve(123); view.finish(false);
+  view.begin(); view.reserve(123); view.reserveDecoded('{"original":true}'); view.finish(false);
   assert.equal(await view.close(), true);
   assert.equal(f.events.includes('initial'), false); assert.equal(f.events.includes('parent'), false);
   assert.equal(f.events.includes('abort'), false);
-  assert.deepEqual(f.events.filter(Array.isArray), [['live-grow',123]]);
+  assert.deepEqual(f.events.filter(Array.isArray), [['live-grow',123], ['live-decoded','{"original":true}']]);
   assert.equal(f.events.filter(value => value === 'live-complete').length, 1);
   assert.equal(f.events.filter(value => value === 'live-retire').length, 1);
 });

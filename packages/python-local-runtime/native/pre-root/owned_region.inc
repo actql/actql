@@ -48,6 +48,7 @@ int actql_native_owned_acquire_fd(int fd, size_t capacity, uint64_t generation,
     lease->first_free_page = control_pages;
     lease->occupied_pages = lease->peak_occupied_pages = control_pages;
     lease->allocation_ceiling_pages = count;
+    lease->allocation_maximum_pages = count;
     lease->backing_device = (uint64_t)before.st_dev;
     lease->backing_inode = (uint64_t)before.st_ino;
     lease->fd_backed = true;
@@ -420,6 +421,7 @@ int actql_native_owned_acquire_extent_domain(actql_owned_extent_view *view,
     lease->first_free_page = control_pages;
     lease->occupied_pages = lease->peak_occupied_pages = control_pages;
     lease->allocation_ceiling_pages = count;
+    lease->allocation_maximum_pages = count;
     lease->backing_device = view->extent.device;
     lease->backing_inode = view->extent.inode;
     lease->fd_backed = view->local_loan == NULL;
@@ -459,7 +461,8 @@ static bool whole_local_domain_view(actql_owned_extent_view *view,
 
 static int attach_domain_segment_locked(actql_owned_capacity *domain,
     actql_owned_extent_view *original_view, actql_owned_extent_view *addition_view,
-    size_t expected_domain_bytes, uint64_t *control_bytes) {
+    size_t expected_domain_bytes, uint64_t *control_bytes, bool preserve_ceiling,
+    size_t acquired_bound_pages) {
     actql_owned_capacity *parent = original_view->local_loan->owner;
     int status = ACTQL_OWNED_INVALID;
     if (foreign_domain_process(parent) || foreign_domain_process(domain) ||
@@ -469,7 +472,7 @@ static int attach_domain_segment_locked(actql_owned_capacity *domain,
     }
     if (!parent->transferred || parent->fd_backed || !domain->transferred ||
         domain->fd_backed || !domain->extent_domain || domain->domain_borrow_attempted ||
-        domain->allocation_ceiling_attempted ||
+        (domain->allocation_ceiling_attempted && !preserve_ceiling) ||
         atomic_load_explicit(&domain->domain_borrower_pid, memory_order_acquire) != 0 ||
         actql_native_owned_domain_matches_view(domain, original_view, getpid()) != ACTQL_OWNED_OK ||
         !whole_local_domain_view(original_view, parent) ||
@@ -480,6 +483,21 @@ static int attach_domain_segment_locked(actql_owned_capacity *domain,
         goto done;
     size_t count, controls;
     if (!owned_growth_layout(domain, addition_view->length, &count, &controls)) goto done;
+    /* Only the checked Read supplier can extend a bound, by this exact
+     * already-acquired addition. No requested cap or logical byte deficit is
+     * copied here. Bare attach and ordinary checked growth still keep it. */
+    if (acquired_bound_pages != 0 &&
+        (acquired_bound_pages != count || !domain->allocation_working_bound)) goto done;
+    if (acquired_bound_pages > SIZE_MAX - domain->allocation_ceiling_pages) goto done;
+    size_t ceiling = domain->allocation_ceiling_pages + acquired_bound_pages;
+    if (domain->allocation_ceiling_attempted && ceiling > domain->allocation_maximum_pages)
+        ceiling = domain->allocation_maximum_pages;
+    if (domain->allocation_ceiling_attempted &&
+        (domain->occupied_pages > ceiling ||
+         controls > ceiling - domain->occupied_pages)) {
+        status = ACTQL_OWNED_EXHAUSTED;
+        goto done;
+    }
     struct owned_segment *segment = addition_view->mapping;
     /* The exact private parent allocation already funds the added controls.
      * No fallible operation remains after this clear and atomic publication. */
@@ -493,7 +511,12 @@ static int attach_domain_segment_locked(actql_owned_capacity *domain,
     domain->segments = segment;
     domain->page_count += count;
     domain->length += addition_view->length;
-    domain->allocation_ceiling_pages += count;
+    if (!domain->allocation_ceiling_attempted) {
+        domain->allocation_ceiling_pages += count;
+        domain->allocation_maximum_pages += count;
+    } else {
+        domain->allocation_ceiling_pages = ceiling;
+    }
     domain->occupied_pages += controls;
     if (domain->occupied_pages > domain->peak_occupied_pages)
         domain->peak_occupied_pages = domain->occupied_pages;
@@ -524,7 +547,7 @@ int actql_native_owned_attach_in_process_domain_segment(
     lock_capacity(domain);
     int status = parent->pending_growth_domain != NULL ? ACTQL_OWNED_BUSY :
         attach_domain_segment_locked(domain, original_view, addition_view,
-                                     expected_domain_bytes, control_bytes);
+                                     expected_domain_bytes, control_bytes, false, 0);
     unlock_capacity(domain);
     unlock_capacity(parent);
     return status;

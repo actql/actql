@@ -235,6 +235,9 @@ fn NativeLocalJournalReadQueries::operation_access(
 ) -> NativeClientJournalOperationAccess {
   {
     reads: self.access(),
+    before_construction: Some((bytes, nodes, depth) => {
+      self.prepare_row_construction(bytes, nodes, depth)
+    }),
     install_read_evidence_schema: max_rows => {
       (self.invalidate_snapshot)(Some("client_local_read_evidence"))
       self

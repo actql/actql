@@ -550,3 +550,26 @@ fn source_publication_input(
     _ => raise PublicationStop(Publication)
   }
 }
+
+///|
+/// One original textual declaration read for a funded native Request. The
+/// caller holds the actual parser/index/typed-declaration coexistence before
+/// entry. These selected syntax limits supply no capacity or authority.
+pub fn admit_query_declarations_document(
+  document : String,
+  source_limits : @source.ParseLimits,
+  tree_limits : @decode.Limits,
+) -> Result[(@decode.Cursor, @parameter_binding.Declarations), PublicationIssue] {
+  let source = match
+    @source.parse_json_bytes(@utf8.encode(document), source_limits) {
+    Err(_) => return Err(Declarations)
+    Ok(value) => value
+  }
+  let indexed = match @decode.admit(source, tree_limits) {
+    Err(_) => return Err(Declarations)
+    Ok(value) => value
+  }
+  read_source_parameter_declarations(indexed)
+  .map(value => (indexed, value))
+  .map_err(_ => Declarations)
+}

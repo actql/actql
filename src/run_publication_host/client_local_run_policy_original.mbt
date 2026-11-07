@@ -5,6 +5,13 @@ struct ClientLocalRunPolicyOriginal {
   body : Bytes
   retention : @publication.PublicationContract
   issued_at : String
+  // The body getter can expose a mutable Host/FFI byte view. The private
+  // fixed-size digest gates reuse of these already-admitted scalar facts.
+  body_digest : Bytes
+  request : ClientRequestIdentity
+  run_definition_cid : String
+  host_adoption_cid : String
+  read_selection_cid : String
 }
 
 ///|
@@ -116,7 +123,16 @@ pub fn bind_client_local_run_policy_original(
     Ok(value) => value
     Err(_) => return Err(Encoding)
   }
-  Ok({ body, retention, issued_at, })
+  Ok({
+    body,
+    retention,
+    issued_at,
+    body_digest: @sha.digest(body),
+    request,
+    run_definition_cid: @publication.publication_contract_identity(definition),
+    host_adoption_cid,
+    read_selection_cid,
+  })
 }
 
 ///|
@@ -195,9 +211,9 @@ pub fn client_local_run_policy_original_issued_at(
 pub fn client_local_run_policy_original_read_expires_at(
   original : ClientLocalRunPolicyOriginal,
 ) -> String {
-  run_profile_value(@publication.publication_contract_json(original.retention))
-  .bind(value => run_profile_text(value, "available_until"))
-  .unwrap_or("")
+  @publication.result_retention_available_until(original.retention).unwrap_or(
+    "",
+  )
 }
 
 ///|
@@ -212,6 +228,41 @@ pub fn client_local_run_policy_original_read_dependencies(
   )
   .map(fields => (fields[0], fields[3]))
   .map_err(_ => InvalidOriginal)
+}
+
+///|
+/// Project the original Run correspondence and its dependent read metadata
+/// together, without reparsing an unchanged admitted packet. Request equality
+/// includes its immutable scope and every intent component. A Run definition's
+/// admitted canonical identity also binds its issuance and expiry timestamps;
+/// independently admitted equal values need no shared object identity.
+///
+/// Bytes can be mutated through a Host/FFI alias. A changed body follows the
+/// original raw checks, including their acceptance of valid changed metadata.
+/// This is structural metadata only, never custody or current permission.
+pub fn client_local_run_policy_original_run_dependencies(
+  original : ClientLocalRunPolicyOriginal,
+  request : ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+) -> Result[(String, String), ClientLocalRunPolicyProfileIssue] {
+  if original.body.length() > 8192 {
+    return Err(InvalidOriginal)
+  }
+  if @sha.digest(original.body) == original.body_digest &&
+    original.request == request &&
+    original.run_definition_cid ==
+    @publication.publication_contract_identity(definition) {
+    return Ok((original.host_adoption_cid, original.read_selection_cid))
+  }
+  match
+    validate_client_local_run_policy_original_run(
+      original.body,
+      request,
+      definition,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(_) => client_local_run_policy_original_read_dependencies(original)
+  }
 }
 
 ///|

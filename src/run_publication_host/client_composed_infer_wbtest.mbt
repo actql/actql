@@ -697,6 +697,11 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
     100,
     8,
   ).unwrap()
+  assert_eq(client_compiled_run_has_infers(model_run), true)
+  assert_eq(
+    client_compiled_run_has_infers(model_run),
+    !client_compiled_run_infers(model_run).is_empty(),
+  )
   assert_true(
     client_effect_allowed_infer_run_with_policy_body(
       allowed,

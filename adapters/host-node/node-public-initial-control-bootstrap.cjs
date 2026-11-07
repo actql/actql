@@ -406,15 +406,14 @@ function prepareResult(held) {
   const entry = resultInstallation = {original: freeze(Object.create(null)), originals: held,
     service: state.resultService, journal, ownership: journal.ownership, subject: undefined,
     openAttempted: false, openFlight: undefined, store: undefined, storeClose: undefined, storeStatus: undefined,
-    operations: 0, storeOperations: 0, readAttempts: 0, runAttempted: false, candidate: undefined, failure: undefined,
+    runAttempted: false, candidate: undefined, failure: undefined,
     cleanup: undefined, cleanupStatus: undefined, cleanupRetry: undefined, unknownCleanup: false,
     closing: false, closed: false, closeFlight: undefined};
   entry.current = () => resultCurrent(entry.original, held);
-  entry.storeCurrent = () => {
-    if (entry.storeOperations >= entry.service.recipe.maxStoreOperations) resultUnavailable();
-    entry.storeOperations++;
-    return void resultCurrent(entry.original, held);
-  };
+  // Each Store operation still checks this SAME live owner. Actual object,
+  // inventory, durable byte/debt and pending-I/O limits belong to that Store;
+  // a historical number of current checks is not a lifetime resource quota.
+  entry.storeCurrent = () => void resultCurrent(entry.original, held);
   try {
     entry.subject = apply(entry.service.callbacks.read, entry.service.namespace, [held]);
     resultCurrent(entry.original, held);
@@ -453,21 +452,17 @@ function openResultStore(original, held, options, control) {
   return flight;
 }
 function beforeResultOperation(original, held, operation) {
-  const entry = resultCurrent(original, held);
-  if (typeof operation !== 'string' || operation.length > 128 ||
-      entry.operations >= entry.service.recipe.maxHostOperations) resultUnavailable();
-  // Historical attempts are not refilled by failure, release or close.
-  entry.operations++;
+  resultCurrent(original, held);
+  if (typeof operation !== 'string' || operation.length > 128) resultUnavailable();
 }
 function beforeResultRead(held, schemaOrOptions, options) {
   if (resultInstallation?.originals !== held) resultUnavailable();
-  const entry = resultCurrent(resultInstallation.original, held);
-  if (entry.readAttempts >= entry.service.recipe.maxHostOperations) resultUnavailable();
-  entry.readAttempts++;
-  // This first selected read recipe supports original absent options only.
-  // Valid unsupported schemas/options remain backend Unavailable, not public
-  // invalid input. Never enumerate caller keys, evaluate getters or callbacks.
-  if (schemaOrOptions !== undefined || options !== undefined) resultUnavailable();
+  resultCurrent(resultInstallation.original, held);
+  // The SDK captures selected row/transfer/collection limits and charges the
+  // original decoded row before retaining all() or invoking a validator. Do
+  // not read getters or replace that policy with absent-options-only support.
+  // Each actual Reader retains its original attempt and pending cleanup; this
+  // current check grants neither a new Run nor a refund of any live debt.
 }
 function admitResultRun(original, held, prepared) {
   const entry = resultCurrent(original, held);

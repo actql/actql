@@ -111,7 +111,7 @@ class LocalJournalPhysicalPortTests(unittest.TestCase):
         self.store.close()
         connect = sqlite3.connect
         with patch('actql_sdk._local_storage.sqlite3.connect',
-                   side_effect=lambda *a, **k: connect(*a, **k, factory=QueryFailure)):
+                   side_effect=lambda *a, **k: connect(*a, **(k | {'factory': QueryFailure}))):
             self.store = LocalByteStore(self.path, max_records=12, max_record_bytes=512, max_payload_bytes=4096)
         self.addCleanup(self.store.close)
         self.store._connection.fail = True
@@ -339,8 +339,11 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
         self.assertEqual(_JOURNAL_SIGNATURES, {
             'reserve': ('i64 i32 i32 i32 i64', 'i32'), 'inspect': ('i64 i32', 'i32'),
             'revision': ('i64 i32 i32', 'i64'), 'admission_length': ('i64 i32', 'i32'), 'close': ('i64 i32', 'i32')})
-        self.assertEqual(_IMPORT_SIGNATURES['journal_revision'], ('i32', 'i64'))
-        self.assertEqual(_IMPORT_SIGNATURES['journal_begin'], ('i32 i32 i32 i32', 'i32'))
+        self.assertEqual(_IMPORT_SIGNATURES['journal_query_header'],
+                         ('i32 i32 i32 i32 i32 i32 i32', 'i32'))
+        self.assertEqual(_IMPORT_SIGNATURES['journal_copy_row'], ('i32 i32 i32 i32 i32', 'i32'))
+        self.assertNotIn('journal_revision', _IMPORT_SIGNATURES)
+        self.assertNotIn('journal_begin', _IMPORT_SIGNATURES)
 
     def admission_bridge(self):
         core, material, calls, code = self.bridge()

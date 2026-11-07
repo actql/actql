@@ -233,13 +233,32 @@ pub fn source_input_dag_matches_read(
   run : CapturedDAG,
   read : @execution.SuppliedRelationRead,
 ) -> Bool {
+  source_input_dag_matches_read_at(run, read, 0)
+}
+
+///|
+/// The selected task borrows this exact live original input binding.
+pub fn source_input_dag_matches_read_at(
+  run : CapturedDAG,
+  read : @execution.SuppliedRelationRead,
+  task : Int,
+) -> Bool {
   !run.stopped &&
   run.graph.captured_prefix_value() == 0 &&
   !run.graph.source_free_root_value() &&
-  run.supplied_reads.get(0).bind(ports => ports.get(0)).bind(value => value)
-  is Some(actual) &&
-  @execution.supplied_relation_read_same_binding(actual, read) &&
-  @execution.supplied_relation_read_available(actual)
+  run.supplied_reads
+  .get(task)
+  .map(ports => {
+    ports.any(value => {
+      value
+      .map(actual => {
+        @execution.supplied_relation_read_same_binding(actual, read) &&
+        @execution.supplied_relation_read_available(actual)
+      })
+      .unwrap_or(false)
+    })
+  })
+  .unwrap_or(false)
 }
 
 ///|
@@ -417,7 +436,13 @@ pub fn captured_effect_run_matches_preparation(
   graph : CheckedDAG,
 ) -> Bool {
   physical_equal(value.captured, run) &&
-  physical_equal(checked_effect_run_graph(value.checked), graph)
+  (
+    physical_equal(checked_effect_run_graph(value.checked), graph) ||
+    @graph.source_inputs_dag_matches_original(
+      graph,
+      checked_effect_run_graph(value.checked),
+    )
+  )
 }
 
 ///|
@@ -2206,12 +2231,20 @@ pub fn captured_task_source_matches(
   task : Int,
   source : @query.CapturedInputSource,
 ) -> Bool {
-  task >= 0 &&
-  task < run.graph.captured_prefix_value() &&
+  guard task >= 0 &&
+    task < run.graph.captured_prefix_value() &&
+    run.lifetimes[task].live &&
+    run.original_sources[task] is Some(expected) &&
+    physical_equal(expected, source) &&
+    @query.captured_source_available(source) else {
+    return false
+  }
+  // The original verifier may retire this DAG port while its independently
+  // owned Source remains live. Recheck the same port after that callback.
+  // Stopping new work alone does not retire an original captured output.
   run.lifetimes[task].live &&
-  run.original_sources[task] is Some(expected) &&
-  physical_equal(expected, source) &&
-  @query.captured_source_available(source)
+  run.original_sources[task] is Some(current) &&
+  physical_equal(current, source)
 }
 
 ///|
@@ -2233,4 +2266,104 @@ pub fn captured_task_retirement_pending(run : CapturedDAG) -> Bool {
   run.executions.any(execution => execution is Some(_)) ||
   run.resources.any(resource => resource is Some(_)) ||
   run.lifetimes.any(lifetime => lifetime.pins != 0)
+}
+
+///|
+/// Supply whole Source reads to the same checked Effect tasks. These input
+/// captures never enter completed task slots and keep their RowRun custody.
+pub fn open_source_inputs_effect_run_dag(
+  checked : CheckedEffectRunDAG,
+  graph : CheckedDAG,
+  sources : Array[@query.CapturedInputSource],
+  ledger : @resources.Ledger,
+  keyed? : (Int, Int, @execution.SuppliedRelationRead)? = None,
+  models? : Array[(Int, Int, @execution.CompletedOutput)] = [],
+) -> Result[CapturedEffectRunDAG, RunIssue] {
+  guard @graph.source_inputs_dag_matches_original(
+    graph,
+    checked.computation.graph_value(),
+  ) else {
+    return Err(ForeignCapture)
+  }
+  let reads = []
+  let seen : Array[(Int, Int)] = []
+  for source in sources {
+    guard @query.captured_source_original_input_read(source) is Some(read) else {
+      return Err(ForeignCapture)
+    }
+    let mut selected = None
+    for slot in graph.supplied_slots_iter() {
+      let owner = graph.owners_at(slot.consumer).unwrap()
+      if @query.captured_source_matches(
+          source,
+          @checked.source_identity(graph.program_value()),
+          owner,
+        ) &&
+        @execution.supplied_relation_read_matches_input(
+          read,
+          owner,
+          slot.source_input,
+        ) {
+        if selected is Some(_) {
+          return Err(ForeignCapture)
+        }
+        selected = Some(slot)
+      }
+    }
+    guard selected is Some(slot) && !seen.contains((slot.consumer, slot.input)) else {
+      return Err(ForeignCapture)
+    }
+    seen.push((slot.consumer, slot.input))
+    reads.push((slot.consumer, slot.input, read))
+  }
+  let graph = match keyed {
+    None => graph
+    Some((task, step, read)) => {
+      guard @graph.graph_with_completed_keyed_model_input(
+          graph, task, step, read,
+        )
+        is Some(selected) else {
+        return Err(ForeignCapture)
+      }
+      let mut input = None
+      for slot in selected.supplied_slots_iter() {
+        if !seen.contains((slot.consumer, slot.input)) &&
+          slot.consumer == task &&
+          @execution.supplied_relation_read_matches_input(
+            read,
+            selected.owners_at(task).unwrap(),
+            slot.source_input,
+          ) {
+          input = Some(slot.input)
+        }
+      }
+      guard input is Some(input) else { return Err(ForeignCapture) }
+      reads.push((task, input, read))
+      selected
+    }
+  }
+  if reads.length() != graph.supplied_slots_count() {
+    return Err(ForeignCapture)
+  }
+  let dependencies = match
+    effect_dependency_ports(checked.computation, 4096, 65536, 64) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let captured = match
+    open_checked_dag(
+      graph,
+      [],
+      ledger,
+      [],
+      supplied_reads=reads,
+      retained_models=models,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  for dependency in dependencies {
+    captured.effect_dependency_outputs[dependency.task] = true
+  }
+  Ok({ checked, captured, })
 }

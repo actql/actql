@@ -161,9 +161,11 @@ pub fn relation_document_mapping_construction_inventory(
       relation_construction_collection_units(schema.scratch),
       relation_construction_collection_units(wrappers),
       {
-        record_headers: hash.record_headers + 12L,
-        reference_slots: hash.reference_slots + 24L,
-        scalar_words: hash.scalar_words + 12L,
+        // Same document-consumption original selector (Query or whole Source).
+        // One H/R/S remains live across the response-ticket/current boundary.
+        record_headers: hash.record_headers + 13L,
+        reference_slots: hash.reference_slots + 25L,
+        scalar_words: hash.scalar_words + 13L,
         owned_utf16_units: hash.owned_utf16_units +
         schema.scratch_utf16_units +
         4L * limits.max_bytes.to_int64(),

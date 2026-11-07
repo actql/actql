@@ -325,3 +325,24 @@ test "indexed append refuses missing stale noncanonical and exhausted quota with
     is Err(CapacityExceeded),
   )
 }
+
+///|
+test "original intent encoding retains exact canonical byte inventory for Journal callers" {
+  for text in ["ASCII", "日本語😀", "é\\r\\n", "\\\"\\\\"] {
+    let original = "{\"parameters\":null,\"kind\":\"program\",\"input\":{\"value\":\"" +
+      text +
+      "\"}}"
+    let intent = prepare_client_submitted_intent(original, 4096, 64, 8).unwrap()
+    let expected = "{\"input\":{\"value\":\"" +
+      text +
+      "\"},\"kind\":\"program\",\"parameters\":null}"
+    assert_eq(intent.wire, expected)
+    assert_eq(intent.wire_bytes, @utf8.encode(expected).length())
+    let restored = prepare_client_submitted_intent(expected, 4096, 64, 8).unwrap()
+    assert_eq(restored, intent)
+    assert_eq(
+      client_submitted_intent_cid(restored),
+      client_submitted_intent_cid(intent),
+    )
+  }
+}

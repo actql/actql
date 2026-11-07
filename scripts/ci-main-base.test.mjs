@@ -43,7 +43,7 @@ test('full checkpoint binds tested SHA, ancestry, policy and exact successful at
 // Independent full-workflow inventory: focused-tests runs only in its own
 // narrow profile and is skipped alongside the successful full families.
 const fullWorkflowJobs = ['check', 'select-targets', 'preflight', 'lint',
-  'core (js)', 'core (wasm)', 'core (native)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native',
+  'core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native',
   'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
   'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
 function fullWorkflowFixture() {
@@ -60,6 +60,17 @@ test('real gate inventory accepts complete full main with skipped focused-only j
   const {options} = fullWorkflowFixture();
   assert.equal((await resolveMainBaseline(options)).baseSha, base);
   assert.deepEqual(options.requiredJobs, fullWorkflowJobs);
+});
+test('full checkpoint requires both original Native partitions and refuses missing failed cancelled or skipped coverage', async () => {
+  for (const name of ['core (native 1/2)', 'core (native 2/2)']) {
+    for (const outcome of ['missing', 'failure', 'cancelled', 'skipped']) {
+      const f = fullWorkflowFixture();
+      if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== name);
+      else f.state.jobs.jobs.find(job => job.name === name).conclusion = outcome;
+      f.state.jobs.total_count = f.state.jobs.jobs.length;
+      assert.equal((await resolveMainBaseline(f.options)).baseSha, null, `${name}: ${outcome}`);
+    }
+  }
 });
 test('missing, skipped or failed Linux Local acceptance cannot supply a full checkpoint', async () => {
   for (const outcome of ['missing', 'skipped', 'failure']) {

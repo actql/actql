@@ -138,22 +138,3 @@ fn local_explain_for_environment(
     verbose=child.flags.get("verbose").unwrap_or(false),
   )
 }
-
-///|
-// The same selected Host/configuration/current observation used by Local check
-// remains live across input reading and static compilation. Its command-local
-// reporting key stays private and is never a signing or execution authority.
-fn LocalCheckContext::explain(
-  self : LocalCheckContext,
-  input_root : String,
-  child : @argparse.Matches,
-) -> String raise ClientStop {
-  if !self.current() {
-    stop("LocalCheckContextUnavailable")
-  }
-  let reply = local_explain_for_environment(self.environment, input_root, child)
-  if !self.current() {
-    stop("LocalCheckContextUnavailable")
-  }
-  reply
-}

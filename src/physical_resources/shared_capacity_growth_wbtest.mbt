@@ -102,3 +102,41 @@ test "unknown growth outcome stays charged and cancellation is not cleanup" {
   settle_shared_capacity(capacity).unwrap()
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
 }
+
+///|
+test "whole physical addition stays in the same parent claim until actual cleanup" {
+  let ledger = growth_test_ledger()
+  let capacity = reserve_shared_capacity(ledger, 100L).unwrap()
+  let control = allocate_shared_capacity(capacity, 10L).unwrap()
+  let old = allocate_shared_capacity(capacity, 90L).unwrap()
+  let reader = borrow_shared_capacity(capacity, old).unwrap()
+  let token = capacity.reservation
+  let serial = ledger.next_attempt_serial
+  let growth = begin_shared_capacity_growth(capacity, control, 300L, 200L).unwrap()
+  assert_true(physical_equal(capacity.reservation, token))
+  assert_eq(shared_capacity_usage(capacity).allocated, 300L)
+  assert_eq(shared_allocation_usage(control).bytes, 210L)
+  assert_eq(shared_allocation_usage(old).bytes, 90L)
+  assert_eq(shared_allocation_usage(old).readers, 1)
+  assert_eq(ledger.next_attempt_serial, serial)
+  assert_true(allocate_shared_capacity(capacity, 1L) is Err(_))
+  assert_true(release_shared_capacity(control) is Err(_))
+  // Only this original transaction's acknowledged no-acquisition can undo it.
+  abort_shared_capacity_growth_after_cleanup(growth).unwrap()
+  assert_eq(shared_capacity_usage(capacity).capacity, 100L)
+  assert_eq(shared_capacity_usage(capacity).allocated, 100L)
+  let second = begin_shared_capacity_growth(capacity, control, 300L, 200L).unwrap()
+  complete_shared_capacity_growth_after_acquisition(second).unwrap()
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 300L)
+  assert_true(allocate_shared_capacity(capacity, 1L) is Err(RetentionLimit))
+  close_shared_capacity(capacity).unwrap()
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 300L)
+  retire_shared_capacity(old).unwrap()
+  return_shared_capacity(reader).unwrap()
+  release_shared_capacity(old).unwrap()
+  retire_shared_capacity(control).unwrap()
+  release_shared_capacity(control).unwrap()
+  settle_shared_capacity(capacity).unwrap()
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
+  assert_eq(ledger.next_attempt_serial, serial)
+}

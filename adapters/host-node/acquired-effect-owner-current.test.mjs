@@ -34,6 +34,8 @@ function managedComposition(acquired, count) {
   };
   const moon = {
     clientProgramEffectAcquisitionCount(actual) {assert.strictEqual(actual, prepared); return count;},
+    clientProgramEffectDirectSourceCoordinates(actual) {assert.strictEqual(actual, prepared);
+      return ok(Array.from({length: count}, (_, index) => [index, 0, index, index]));},
     clientProgramInstalledEffectManagedOperationPlan(parent, actual, identity) {
       assert.strictEqual(this, moon); same(parent, actual, identity); return ok(operationPlan);
     },

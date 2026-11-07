@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "b76a5b1ac9ad9ff300ab8507e493d1dd1aec2c5a1412c0b1e9b63c3644d9e937",
+      "sha256": "b721cfa805464f2209b42454fd30ed329614f9f9d70c7c119432c0e8cc222fdb",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -301,6 +301,11 @@
           "async": false
         },
         {
+          "name": "acquiredEffectModelGroup/retirePublication",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "acquiredEffectModelGroup/same/same",
           "parameters": [],
           "async": false
@@ -501,7 +506,8 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
           "parameters": [
-            "value"
+            "value",
+            "index"
           ],
           "async": false
         },
@@ -608,6 +614,18 @@
           "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/sourceEvidence/sourceEvidence",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openAcquiredEffectComputation/wholeInputs/wholeInputs",
+          "parameters": [
+            "source"
           ],
           "async": false
         },
@@ -787,7 +805,10 @@
             "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted#2",
             "acquiredEffectModelGroup/same/same",
             "acquiredEffectModelGroup/same/same/same",
-            "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited"
+            "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
+            "acquiredEffectModelGroup/retirePublication",
+            "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
+            "openAcquiredEffectComputation/wholeInputs/wholeInputs"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -1347,7 +1368,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
-      "sha256": "25a743c9e5d9b29001707d8af6c2587ddc752ee2c8b6318dadc2bf5ebfe7309d",
+      "sha256": "37a6bbf7b292b86bdc9783672050b62b2016feba63eeb5a6410fa6433c8cbad3",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -1566,20 +1587,46 @@
           "async": false
         },
         {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/captured/init:originalCapturedInput/init:originalCapturedInput",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectContinuation/init:restore/init:restore/close/close",
           "parameters": [],
           "async": true
         },
         {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/custodyAvailable/custodyAvailable",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore",
           "parameters": [
-            "row"
+            "key"
           ],
           "async": false
         },
         {
-          "name": "acquiredEffectContinuation/init:restore/init:restore/owner/owner",
-          "parameters": [],
+          "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectContinuation/init:restore/init:restore/init:restore#4",
+          "parameters": [
+            "row"
+          ],
           "async": false
         },
         {
@@ -1716,7 +1763,6 @@
             "acquiredEffectContinuation/init:restore/init:restore/captured/captured#3",
             "acquiredEffectContinuation/init:restore/init:restore/close/close",
             "acquiredEffectContinuation/init:restore/init:restore/init:restore",
-            "acquiredEffectContinuation/init:restore/init:restore/owner/owner",
             "acquiredEffectContinuation/init:retainAll/init:retainAll",
             "acquiredEffectContinuation/nextJournal/nextJournal",
             "acquiredEffectContinuation/nextJournal/nextJournal#2",
@@ -1730,7 +1776,12 @@
             "bindingFor/bindingFor",
             "fail/fail",
             "same/same",
-            "sourceScope/sourceScope"
+            "sourceScope/sourceScope",
+            "acquiredEffectContinuation/init:restore/init:restore/custodyAvailable/custodyAvailable",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#2",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#3",
+            "acquiredEffectContinuation/init:restore/init:restore/init:restore#4",
+            "acquiredEffectContinuation/init:restore/init:restore/captured/init:originalCapturedInput/init:originalCapturedInput"
           ],
           "exports": [
             "acquiredEffectContinuation"
@@ -8818,11 +8869,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -23002,6 +23053,7 @@
         "./effect-target-read-inventory.mjs",
         "./embedded-local-lifecycle.mjs",
         "./entry.mjs",
+        "./host-result-service-recipe.cjs",
         "./host-root-format.mjs",
         "./http-request-preparation.mjs",
         "./in-process-client.mjs",
@@ -23066,12 +23118,12 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "2d7b5959815ab92a763458949f1eb4b5241fc893d86f463be892c3439c7529ff"
+      "sha256": "c0a847a253d4d3db8350b8612e4a60a55e323f5c490e68bf97f31329d9915dd9"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -24016,7 +24068,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "e410a4db88c534e862deb28891fa1e01b1dad7a9fee115d4f47113f3bac8064d",
+      "sha256": "5cc5b4ee41d3ec48ab5fadf4597a9c90fa3db55a2b2453804dd9d75b2793f739",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -24913,7 +24965,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -25216,7 +25268,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -25737,7 +25789,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -25899,6 +25951,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/result-output-limits.mjs",
         "../host-common/runtime-result.mjs",
+        "./host-result-service-recipe.cjs",
         "./local-values-capacity.mjs",
         "./query-evaluation-clock.mjs",
         "node:crypto"

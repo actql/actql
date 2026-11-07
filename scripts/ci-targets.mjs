@@ -29,6 +29,10 @@ export const maintenanceFiles = Object.freeze([
   'scripts/ci-session-costs.mjs', 'scripts/ci-session-costs.test.mjs',
   'scripts/verification-actions.mjs', 'scripts/verification-actions.test.mjs',
   'scripts/worktree-inventory.mjs', 'scripts/worktree-inventory.test.mjs',
+  // Reviewed callback-only units. Their implementation helpers are also used
+  // by packed/public consumers and deliberately remain full-coverage inputs.
+  'examples/infer-evaluation/evaluate.test.mjs',
+  'examples/infer-evaluation/compare-source-instructions.test.mjs',
 ]);
 const maintenance = new Set(maintenanceFiles);
 export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'core', 'host', 'client',
@@ -112,6 +116,7 @@ export function pullRequestDraft(event, payload) {
 export function selectTargets(paths, {draft = null, event = 'pull_request', mainIntegration = event === 'push', nativeMacos = false, failure = null,
   targetSensitiveDiff = false, maintenanceChanges = null, focusedChanges = null, focusedTests = null} = {}) {
   const validPaths = Array.isArray(paths) && paths.every(validPath);
+  const focusedPaths = validPaths ? partitionFocusedPaths(paths, maintenanceChanges) : null;
   const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], macos: true, reason,
     profile: 'full', event, paths: validPaths && !failure ? [...paths] : [], maintenanceChanges: null, focusedChanges: null, focusedTests: null});
   // Main runtime integration is unconditional; only deep campaigns use the
@@ -126,11 +131,12 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
     assert.equal(typeof draft, 'boolean', 'Invalid PR draft state');
     if (draft) {
       let focused = false;
-      if (!failure && focusedTests && eligibleFocusedChanges(paths, focusedChanges)) {
-        try { validateFocusedTests(paths, focusedChanges, focusedTests); focused = true; } catch {}
+      if (!failure && focusedTests && focusedPaths && eligibleFocusedChanges(focusedPaths, focusedChanges)) {
+        try { validateFocusedTests(focusedPaths, focusedChanges, focusedTests); focused = true; } catch {}
       }
       return {...full('Draft preparation with targeted Python acceptance when applicable; full verification deferred until ready_for_review; not mergeable'),
         profile: focused ? 'draft-focused' : 'draft', targets: ['js'], macos: false,
+        maintenanceChanges: focused ? maintenanceChanges : null,
         focusedChanges: focused ? focusedChanges : null, focusedTests: focused ? focusedTests : null};
     }
   }
@@ -144,11 +150,11 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
   if (!Array.isArray(paths) || !paths.length || !paths.every(validPath)) return full('Empty or invalid change inventory');
   if (eligibleMaintenance(paths, maintenanceChanges)) return {...full('Reviewed maintenance files: lint and spec required; runtime and proof families not applicable'),
     profile: 'maintenance', targets: ['js'], macos: false, maintenanceChanges};
-  if (focusedTests && eligibleFocusedChanges(paths, focusedChanges)) {
-    try { validateFocusedTests(paths, focusedChanges, focusedTests); }
+  if (focusedTests && focusedPaths && eligibleFocusedChanges(focusedPaths, focusedChanges)) {
+    try { validateFocusedTests(focusedPaths, focusedChanges, focusedTests); }
     catch { return full('Invalid focused test family inventory'); }
     return {...full('Reviewed fixed-request tests: execute changed files and owning JS family; unrelated runtime/proof families not applicable'),
-      profile: 'focused-tests', targets: ['js'], macos: false, focusedChanges, focusedTests};
+      profile: 'focused-tests', targets: ['js'], macos: false, maintenanceChanges, focusedChanges, focusedTests};
   }
   if (targetSensitiveDiff) return full('Target-specific syntax or runtime boundary changed');
   const path = paths.find(path => sensitive.test(path) || !reviewedPortableFiles.has(path));
@@ -165,6 +171,17 @@ function eligibleMaintenance(paths, changes) {
         && identity.mode === '100644' && sha.test(identity.object) && identity.object !== '0'.repeat(40))
       && entry.before.object !== entry.after.object);
 }
+// Existing reviewed profiles compose by union: lint/spec plus the owning
+// focused family. Every path and original Git identity must be accounted for;
+// an unknown path or structural maintenance edit still falls back to full.
+function partitionFocusedPaths(paths, maintenanceChanges) {
+  const focused = paths.filter(path => focusedPattern.test(path));
+  const lightweight = paths.filter(path => maintenance.has(path));
+  if (!focused.length || focused.length + lightweight.length !== paths.length ||
+      (lightweight.length ? !eligibleMaintenance(lightweight, maintenanceChanges) : maintenanceChanges !== null)) return null;
+  return focused;
+}
+
 export function validateSelection(selection) {
   assert.deepEqual(Object.keys(selection ?? {}).sort(), ['schema', 'targets', 'macos', 'reason',
     'profile', 'event', 'paths', 'maintenanceChanges', 'focusedChanges', 'focusedTests'].sort(), 'Invalid selection fields');
@@ -176,18 +193,21 @@ export function validateSelection(selection) {
   assert(typeof selection.event === 'string' && selection.event.length, 'Missing selection event');
   assert(Array.isArray(selection.paths) && selection.paths.every(validPath), 'Invalid selection paths');
   if (selection.profile !== 'full') assert.equal(selection.event, 'pull_request', 'Narrow selection requires a PR event');
+  const focused = ['focused-tests', 'draft-focused'].includes(selection.profile);
   if (selection.profile === 'maintenance') {
     assert(eligibleMaintenance(selection.paths, selection.maintenanceChanges), 'Invalid maintenance inventory');
     assert.deepEqual(selection.targets, ['js']);
     assert.equal(selection.macos, false);
-  } else assert.equal(selection.maintenanceChanges, null, 'Unexpected maintenance inventory');
+  } else if (!focused) assert.equal(selection.maintenanceChanges, null, 'Unexpected maintenance inventory');
   if (selection.profile.startsWith('draft')) {
     assert.equal(selection.event, 'pull_request', 'Draft profile requires a PR event');
     assert.deepEqual(selection.targets, ['js']);
     assert.equal(selection.macos, false);
   }
-  if (['focused-tests', 'draft-focused'].includes(selection.profile)) {
-    validateFocusedTests(selection.paths, selection.focusedChanges, selection.focusedTests);
+  if (focused) {
+    const focusedPaths = partitionFocusedPaths(selection.paths, selection.maintenanceChanges);
+    assert(focusedPaths, 'Invalid focused/maintenance path inventory');
+    validateFocusedTests(focusedPaths, selection.focusedChanges, selection.focusedTests);
     assert.deepEqual(selection.targets, ['js']);
     assert.equal(selection.macos, false);
   } else {
@@ -231,9 +251,10 @@ export function readChanges(payload, git = args => execFileSync('git', args,
   const changedLines = patch.split('\n').filter(line => /^[+-](?![+-])/u.test(line)).join('\n');
   const paths = output.split('\0').filter(Boolean);
   let maintenanceChanges = null, focusedChanges = null, focusedTests = null, structuralChange = false;
-  const focusedOnly = paths.length > 0 && paths.every(path => focusedPattern.test(path));
-  const lightweightOnly = paths.length > 0 && paths.every(path => maintenance.has(path));
-  if (focusedOnly || lightweightOnly) {
+  const focusedPaths = paths.filter(path => focusedPattern.test(path));
+  const lightweightPaths = paths.filter(path => maintenance.has(path));
+  const reviewedOnly = paths.length > 0 && focusedPaths.length + lightweightPaths.length === paths.length;
+  if (reviewedOnly) {
     // Exact raw Git identities distinguish ordinary edits from additions,
     // deletions, renames, symlinks and mode changes. No text/extension guess.
     const raw = git(['diff', '--no-renames', '--raw', '--no-abbrev', '-z', base, head, '--']);
@@ -247,13 +268,18 @@ export function readChanges(payload, git = args => execFileSync('git', args,
       const [, beforeMode, afterMode, beforeObject, afterObject, status] = match;
       changes.push({path: records[index + 1], before: {mode: beforeMode, object: beforeObject},
         after: {mode: afterMode, object: afterObject}});
-      if (!(focusedOnly ? ['A', 'M'].includes(status) : status === 'M')) changes[index / 2].before.mode = 'unsupported';
+      if (!(focusedPattern.test(records[index + 1]) ? ['A', 'M'].includes(status) : status === 'M')) changes[index / 2].before.mode = 'unsupported';
     }
-    if (focusedOnly && eligibleFocusedChanges(paths, changes)) {
-      focusedTests = readFocusedTests(paths, changes, git);
-      if (focusedTests) focusedChanges = changes;
-      else structuralChange = true;
-    } else if (eligibleMaintenance(paths, changes)) maintenanceChanges = changes;
+    const focused = changes.filter(change => focusedPattern.test(change.path));
+    const lightweight = changes.filter(change => maintenance.has(change.path));
+    if (focusedPaths.length && eligibleFocusedChanges(focusedPaths, focused) &&
+        (!lightweightPaths.length || eligibleMaintenance(lightweightPaths, lightweight))) {
+      focusedTests = readFocusedTests(focusedPaths, focused, git);
+      if (focusedTests) {
+        focusedChanges = focused;
+        maintenanceChanges = lightweightPaths.length ? lightweight : null;
+      } else structuralChange = true;
+    } else if (!focusedPaths.length && eligibleMaintenance(paths, changes)) maintenanceChanges = changes;
     else structuralChange = true;
   }
   const boundary = /\b(?:extern|supported_targets|targets|native-stub|unsafe|malloc|realloc|sizeof)\b|\b(?:free|release|retain|dispose|cleanup)\s*\(|#(?:cfg|external|borrow|owned)\b|\btarget\s*=|\b\w*(?:cid|sha256|canonical|preimage|hash)\w*\b/iu;

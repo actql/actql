@@ -178,6 +178,51 @@ class InstalledAuditTests(unittest.TestCase):
 
 
 class FailureLocationTests(unittest.TestCase):
+    def test_known_core_seal_status_is_observed_without_private_values_or_retry(self):
+        import io
+        diagnostics = load('ci_installed_seal_status', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        core_error = type('LocalCoreError', (RuntimeError,), {'__module__': 'actql_sdk._local_core'})
+        original = core_error('private Core message')
+        original.operation = 'seal'
+        original.code = -123
+        original.private_reference = 'private-reference-secret'
+        outer = RuntimeError('public cleanup pending')
+        outer.original_error = original
+        stream = io.StringIO()
+        diagnostics.report_contexts(outer, stream)
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertNotIn('core_buffer_seal_code', records[0])
+        self.assertEqual(records[1]['core_buffer_seal_code'], -123)
+        self.assertIs(outer.original_error, original)
+        self.assertEqual(original.code, -123)
+        self.assertNotIn('private Core message', stream.getvalue())
+        self.assertNotIn('private-reference-secret', stream.getvalue())
+
+    def test_foreign_operations_and_nonplain_or_unbounded_statuses_are_not_reported(self):
+        import io
+        diagnostics = load('ci_installed_seal_status_refusals', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        class ForeignOperation:
+            def __eq__(self, other):
+                raise AssertionError('Do not inspect a foreign operation')
+        for module, operation, code in [
+                ('foreign', 'seal', -1),
+                ('actql_sdk._local_core', 'private-operation-secret', -1),
+                ('actql_sdk._local_core', ForeignOperation(), -1),
+                ('actql_sdk._local_core', 'seal', True),
+                ('actql_sdk._local_core', 'seal', 'private-code-secret'),
+                ('actql_sdk._local_core', 'seal', 1 << 31),
+                ('actql_sdk._local_core', 'seal', -(1 << 31) - 1),
+                ('actql_sdk._local_core', 'seal', object())]:
+            with self.subTest(module=module, operation=operation, code_type=type(code).__name__):
+                core_error = type('LocalCoreError', (RuntimeError,), {'__module__': module})
+                original = core_error('private message')
+                original.operation, original.code = operation, code
+                stream = io.StringIO()
+                diagnostics.report_contexts(original, stream)
+                record = json.loads(stream.getvalue())
+                self.assertNotIn('core_buffer_seal_code', record)
+                self.assertNotIn('private-', stream.getvalue())
+
     def test_suppressed_context_reports_locations_not_private_values(self):
         import io
         diagnostics = load('ci_installed_run', SCRIPTS / 'fixtures/ci-python-installed-run.py')

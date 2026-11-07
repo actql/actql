@@ -21,6 +21,16 @@ construction. Failed admission stops that original Run and retains its cleanup
 responsibilities. Consumers requiring a simultaneous envelope still require
 that envelope; this does not turn its absence into an admission witness.
 
+The same distinction applies to acquired Effect operation controls. A checked
+JOIN or TAKE row ceiling after an external Source remains the original Plan's
+rejection bound; it does not establish that those rows or their per-row control
+payloads are resident before Source execution. Initial retention funds fixed
+member controls. The existing completed-input/Preview witness then retains the
+actual row inventory on that same adopted Run and grows its original control
+reservation before row-dependent construction. A finite policy can still refuse
+that growth without changing its ceiling, granting an operation or returning
+pending cleanup. Source-free closed material keeps its existing prepaid route.
+
 ## Separate units
 
 Value-node and text demand come from the original checked schema/occurrence

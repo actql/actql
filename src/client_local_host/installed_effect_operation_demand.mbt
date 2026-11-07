@@ -392,6 +392,10 @@ struct ClientInstalledEffectManagedPlan {
   direct_occurrences : @publication_host.ClientDirectAcquisitionOccurrences?
   acquisitions : Array[@row_source_host.RowAcquisition]
   captures : Array[ClientInstalledCaptureCapacity]
+  whole_sources : Array[
+    (@row_source_host.RowDeclaration, ClientInstalledWholeSourceCapacity)?,
+  ]
+  graph : @strategy.CheckedDAG
   transport_bytes : Array[Int64]
   transport_execution_bytes : Array[Int64]
   installed_contracts : ClientInstalledSequenceContracts
@@ -645,7 +649,7 @@ fn prepare_installed_effect_managed_plan_owned(
       }
       let mut providers = 0
       for input in inputs {
-        if input is InstalledEffectRowSource(_, Some(_)) {
+        if input is InstalledEffectRowSource(_, Some(_), _) {
           providers += 1
         }
       }
@@ -697,12 +701,30 @@ fn prepare_installed_effect_managed_plan_owned(
       },
     )
   }
-  let (declarations, acquisitions, captures) = match source_inputs {
+  let sequences = match source_free {
+    Some(value) => value.sequences
+    None =>
+      match
+        prepare_client_local_sequences_owned(
+          Effect(prepared),
+          installed_contracts,
+          values_body,
+          fragment_body,
+          ordered_body,
+          query_time=invocation,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+  }
+  let (declarations, acquisitions, captures, whole_sources) = match
+    source_inputs {
     Some(inputs) =>
       match
         prepare_installed_effect_source_inputs(
           prepared, inputs, query_contract_body, evidence_contract_body, installed_contracts,
-          values_body, fragment_body, ordered_body, direct_occurrences, invocation,
+          values_body, fragment_body, ordered_body, direct_occurrences, transport_execution_bytes,
+          sequences, invocation,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
@@ -737,24 +759,29 @@ fn prepare_installed_effect_managed_plan_owned(
         guard selected is Some(capacity) else { return Err(Unsupported) }
         captures.push(capacity)
       }
-      (declarations, acquisitions, captures)
+      (
+        declarations,
+        acquisitions,
+        captures,
+        Array::make(captures.length(), None),
+      )
     }
   }
-  let sequences = match source_free {
-    Some(value) => value.sequences
-    None =>
-      match
-        prepare_client_local_sequences_owned(
-          Effect(prepared),
-          installed_contracts,
-          values_body,
-          fragment_body,
-          ordered_body,
-          query_time=invocation,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
+  let whole = whole_sources.filter_map(value => {
+    value.map(pair => pair.1.original)
+  })
+  let graph = if whole.is_empty() {
+    graph
+  } else {
+    // Whole inputs are Input ports, never completed captured tasks. Mixed
+    // Query/whole roots need a distinct checked graph and are refused here.
+    if !captures.is_empty() {
+      return Err(Unsupported)
+    }
+    match @strategy.prepare_source_inputs_dag(graph, whole) {
+      Ok(value) => value
+      Err(_) => return Err(Unsupported)
+    }
   }
   let compute = match
     prepare_installed_compute_preparation(
@@ -777,6 +804,8 @@ fn prepare_installed_effect_managed_plan_owned(
         }
       },
       runtime_admission~,
+      physical_graph=Some(graph),
+      whole_sources~,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -789,7 +818,9 @@ fn prepare_installed_effect_managed_plan_owned(
   let original_compute_limits = compute_limits
   let mut reading_execution = compute_limits.execution_bytes
   let mut completed_execution = compute_limits.execution_bytes
-  if provider_sources > 0 && provider_sources == captures.length() {
+  if provider_sources > 0 &&
+    provider_sources == captures.length() &&
+    whole.is_empty() {
     guard installed_effect_provider_execution_phases(
         captures,
         transport_execution_bytes,
@@ -841,10 +872,20 @@ fn prepare_installed_effect_managed_plan_owned(
       ),
     )
   }
-  let closed_rows = proof.bind(value => value.closed_rows)
-  let rows = closed_rows.unwrap_or(
+  let row_bound = proof.bind(value => value.closed_rows)
+  let rows = row_bound.unwrap_or(
     @publication_host.client_standard_values_sequence_limits().max_rows,
   )
+  // A checked JOIN/TAKE ceiling after external capture is still a rejection
+  // bound, not already owned input rows. Keep that SAME bound above; only
+  // source-free closed material can prepay row controls before input exists.
+  // Captured input uses the existing same-Run inventory/grow entrance before
+  // any row-dependent callback, including a bounded captured Result.
+  let closed_rows = if captures.is_empty() && whole_sources.is_empty() {
+    row_bound
+  } else {
+    None
+  }
   // Absence is not a zero-row fact. Retain the executor's original rejection
   // ceiling above, but fund only fixed member controls until completed inputs
   // supply their original inventory on this SAME adopted Run.
@@ -1038,7 +1079,7 @@ fn prepare_installed_effect_managed_plan_owned(
   // extents, contract/Program bodies and generated originals once at their
   // actual owners. Array spare capacity uses the existing pinned builtin rule.
   let members = selected_operations.length().to_int64()
-  let sources = captures.length().to_int64()
+  let sources = whole_sources.length().to_int64()
   let time_holder = if query_time is Some(_) { 1L } else { 0L }
   let model_holder = if model is Some(_) { 1L } else { 0L }
   let acquisition_slots = closed_values_append_capacity(captures.length()).unwrap()
@@ -1068,7 +1109,7 @@ fn prepare_installed_effect_managed_plan_owned(
   // Each staged maximum retains its resolved extent/capacity and Some pair
   // beside the initial extent (4H8R8W). Immutable installation inputs are borrowed.
   let controls = @execution.preparation_representation_cost({
-    record_headers: 17L +
+    record_headers: 19L +
     (if closed_rows is Some(_) { 1L } else { 0L }) +
     5L * members +
     controlled_members +
@@ -1077,7 +1118,8 @@ fn prepare_installed_effect_managed_plan_owned(
     3L * model_holder +
     3L * provider_sources.to_int64() +
     4L * staged_extents,
-    reference_slots: 28L +
+    reference_slots: 31L +
+    closed_values_append_capacity(whole_sources.length()).unwrap() +
     members +
     sources +
     2L * acquisition_slots +
@@ -1090,7 +1132,7 @@ fn prepare_installed_effect_managed_plan_owned(
     9L * model_holder +
     7L * provider_sources.to_int64() +
     8L * staged_extents,
-    scalar_words: 26L +
+    scalar_words: 27L +
     (if closed_rows is Some(_) { 1L } else { 0L }) -
     model_holder +
     controlled_members +
@@ -1162,9 +1204,7 @@ fn prepare_installed_effect_managed_plan_owned(
     temporary > 9223372036854775807L - phase_workspace {
     return Err(Unsupported)
   }
-  guard installed_direct_occurrences_layout(
-      @strategy.graph_captured_prefix(graph),
-    )
+  guard installed_direct_occurrences_layout(whole_sources.length())
     is Some((selector_retained, _)) &&
     @execution.checked_preparation_add_product(controls, selector_retained, 1L)
     is Some(controls) &&
@@ -1243,6 +1283,8 @@ fn prepare_installed_effect_managed_plan_owned(
     acquisitions,
     direct_occurrences,
     captures,
+    whole_sources,
+    graph,
     transport_bytes: transport_bytes.copy(),
     transport_execution_bytes: transport_execution_bytes.copy(),
     installed_contracts,
@@ -1308,7 +1350,9 @@ pub fn prepared_installed_effect_managed_source(
   guard installed_effect_source_row_index(plan, occurrence) is Some(row_index) &&
     plan.declarations.get(row_index) is Some(declaration) &&
     plan.acquisitions.get(row_index) is Some(acquisition) &&
-    plan.captures.get(occurrence) is Some(capacity) else {
+    installed_effect_source_capture_index(plan, occurrence)
+    is Some(capture_index) &&
+    plan.captures.get(capture_index) is Some(capacity) else {
     return Err(Unsupported)
   }
   Ok(

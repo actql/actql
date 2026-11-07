@@ -1948,7 +1948,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0682b35df00116abe8c9e57880f98e6255d04ec775637fa55e64a284e454d39a",
+      "sha256": "82878aa0d0f1329c701fc1f94c361aac7be0fcfdbb28ae5738626e52461d5cc5",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -2289,7 +2289,8 @@
             "record",
             "recordCid",
             "captureCid",
-            "wire"
+            "wire",
+            "recoveryResources"
           ],
           "async": true
         },
@@ -2798,7 +2799,8 @@
             "control",
             "runDefinition",
             "contractLimits",
-            "beforeRead"
+            "beforeRead",
+            "recoveryResources"
           ],
           "async": true
         },
@@ -3331,6 +3333,10 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              },
+              {
+                "path": "adapters/store-local/private-evidence-consumer-lifetime.test.mjs",
+                "anchor": "decoded capture capacity refuses before JSON.parse"
               }
             ]
           }
@@ -17405,7 +17411,7 @@
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bf77361515af3f2deb5fbede29928071eaf53b4d10e6685928bda876d9045e58",
+      "sha256": "a7b0c393813204abdf3724d4f11ae2733eeba81a1d91d167c1b894c31cc2bf85",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -17414,6 +17420,36 @@
         "selectAcquiredEffectSources"
       ],
       "operations": [
+        {
+          "name": "effectSourceInputs",
+          "parameters": [
+            "moon",
+            "preparedEffect"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectSourceInputs/effectSourceInputs",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectSourceInputs/effectSourceInputs/effectSourceInputs",
+          "parameters": [
+            "number"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectSourceInputs/effectSourceInputs/effectSourceInputs#2",
+          "parameters": [
+            "previous"
+          ],
+          "async": false
+        },
         {
           "name": "prepareInstalledAcquiredEffectLedger",
           "parameters": [
@@ -17582,7 +17618,11 @@
             "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#3",
             "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#4",
             "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#5",
-            "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#6"
+            "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#6",
+            "effectSourceInputs",
+            "effectSourceInputs/effectSourceInputs",
+            "effectSourceInputs/effectSourceInputs/effectSourceInputs",
+            "effectSourceInputs/effectSourceInputs/effectSourceInputs#2"
           ],
           "exports": [
             "prepareInstalledAcquiredEffectLedger",
@@ -27988,7 +28028,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28151,7 +28191,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28783,7 +28823,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -36925,11 +36965,11 @@
               },
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -37585,11 +37625,11 @@
               },
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -47964,10 +48004,11 @@
     },
     {
       "module": "adapters/host-node/host-result-service-recipe.cjs",
-      "sha256": "2fe3abdb2ae2243e194ec85edc64e183c00169698f5aaaf193a14386102e0884",
+      "sha256": "e95dbeddc989d02b633410c28b7d0f9012ab04b9c4dfeb3e351dbe8e53d33893",
       "exports": [
         "commonjs:declareHostResultServiceRecipe",
         "commonjs:facilityFields",
+        "commonjs:hostResultStorePolicy",
         "commonjs:validOriginalResultPublicationExtent"
       ],
       "operations": [
@@ -48004,6 +48045,13 @@
           "async": false
         },
         {
+          "name": "selectHostResultStoreArguments/selectHostResultStoreArguments",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "unavailable/unavailable",
           "parameters": [],
           "async": false
@@ -48034,11 +48082,13 @@
             "declareHostResultServiceRecipe/declareHostResultServiceRecipe",
             "record/record",
             "selectHostResultStoreArguments",
-            "unavailable/unavailable"
+            "unavailable/unavailable",
+            "selectHostResultStoreArguments/selectHostResultStoreArguments"
           ],
           "exports": [
             "commonjs:declareHostResultServiceRecipe",
-            "commonjs:facilityFields"
+            "commonjs:facilityFields",
+            "commonjs:hostResultStorePolicy"
           ],
           "attributes": {
             "responsibility": [
@@ -48106,11 +48156,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               }
             ],
             "extension": [
@@ -48312,11 +48362,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               }
             ],
             "extension": [
@@ -68714,7 +68764,7 @@
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f57c9819670faff1065f165bd4901e05751c76b04a730075a8e5f6a93f90c58e",
+      "sha256": "cbfce7282cedc7f12eae050f2e6f40a0ff044629e7c3efbc840f3722b9a28ef7",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -84555,11 +84605,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -84699,11 +84749,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -85462,7 +85512,7 @@
     },
     {
       "module": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-      "sha256": "79b5801d474f2504c807e75a21dc77067bde10034836fba17f425f1d65d2d233",
+      "sha256": "bc142f53cd4468f9e94f68ec78f37a97551b2d550c26afcaec3117bd8b7f56a7",
       "exports": [
         "commonjs:admitHostJournalRootFormat",
         "commonjs:admitHostResultPublicationRun",
@@ -87736,11 +87786,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               }
             ],
             "extension": [
@@ -88594,11 +88644,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               }
             ],
             "extension": [
@@ -125346,7 +125396,7 @@
       "sha256": "536000de4ea4495ead7ea93e73619a306a3438fce97da23fb0ad5118db2225b4",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -127563,7 +127613,7 @@
       "sha256": "ba6eba0f710ef5f0ff4eae835ecde613fabf8685982989f9c6817bd862da38e4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -132962,7 +133012,7 @@
     {
       "module": "adapters/host-node/effect-capture-resources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e377c1e155a34e5b579c51ebf18eedaca63a5fb9a6f72a84cd6a24c6d5b27627",
+      "sha256": "1814b4826b9c920f602489b6a5ceda2696738770008eb50a76c1cbc60ca04b7e",
       "role": "physical-io",
       "owner": "Existing Request preparation and same adopted Effect Run resource/cleanup ownership through the installed Node Host; no independent grant, Ledger or semantic issuer",
       "exports": [
@@ -133052,6 +133102,13 @@
           "async": false
         },
         {
+          "name": "recoveryView/init:reserveDecoded/init:reserveDecoded",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
           "name": "recoveryView/init:retainCleanup/init:retainCleanup",
           "parameters": [
             "operation"
@@ -133096,7 +133153,8 @@
             "recoveryView/init:finish/init:finish",
             "recoveryView/init:retainCleanup/init:retainCleanup",
             "recoveryView/recoveryView",
-            "recoveryView/reserve/reserve"
+            "recoveryView/reserve/reserve",
+            "recoveryView/init:reserveDecoded/init:reserveDecoded"
           ],
           "exports": [
             "prepareEffectCaptureResources"
@@ -133160,6 +133218,10 @@
               {
                 "path": "adapters/host-node/effect-capture-resources.test.mjs",
                 "anchor": "import test from 'node:test';"
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "live capture uses SAME adopted Run"
               }
             ]
           }
@@ -133865,7 +133927,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -134080,7 +134142,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -134724,7 +134786,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [

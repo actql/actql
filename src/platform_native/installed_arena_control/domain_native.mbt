@@ -67,11 +67,12 @@ pub fn InstalledArenaHost::prepare_domain_in_process(
   scope : InstalledArenaBackingBorrow,
   bytes : Int64,
   limits : @resources.LedgerLimits,
+  initial_window? : Int64? = None,
 ) -> Result[
   InstalledArenaDomainAcquisition,
   @bootstrap.NativeBackedExecutionIssue,
 ] {
-  self.prepare_domain_original(scope, None, bytes, limits)
+  self.prepare_domain_original(scope, None, bytes, limits, initial_window~)
 }
 
 ///|
@@ -81,6 +82,7 @@ fn InstalledArenaHost::prepare_domain_original(
   fd : Int?,
   bytes : Int64,
   limits : @resources.LedgerLimits,
+  initial_window? : Int64? = None,
 ) -> Result[
   InstalledArenaDomainAcquisition,
   @bootstrap.NativeBackedExecutionIssue,
@@ -113,7 +115,7 @@ fn InstalledArenaHost::prepare_domain_original(
     closed: false,
   }
   self.domains.push(record)
-  match record.prepare_original(scope, fd, bytes, limits) {
+  match record.prepare_original(scope, fd, bytes, limits, initial_window~) {
     Err(issue) => Ok(PendingDomain(record, issue))
     Ok(_) => Ok(PreparedDomain(record))
   }
@@ -168,6 +170,7 @@ fn InstalledArenaDomain::prepare_original(
   fd : Int?,
   bytes : Int64,
   limits : @resources.LedgerLimits,
+  initial_window? : Int64? = None,
 ) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
   let acquired = match fd {
     Some(_) => self.backing.allocate(self.host, bytes)
@@ -213,6 +216,7 @@ fn InstalledArenaDomain::prepare_original(
         limits,
         0L,
         0L,
+        initial_window~,
       )
   }
   let loan = match lent {

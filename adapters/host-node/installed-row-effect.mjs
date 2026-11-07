@@ -2985,12 +2985,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // exactly the request its durable claim names, the value the Preview
   // approved and, for an update, the Preview's target.
   const recoveredEntries = ({members, body, durable, recorded,
-    previewWire, runInvocationCid, dispatches, requestTags, controlConstruction}) => {
+    previewWire, runInvocationCid, dispatches, requestTags, controlConstruction, reserveRecoveryInput}) => {
     const restore = (owned, method, facts) => controlConstruction === undefined || owned.finalizeRequest === undefined
       ? Reflect.apply(method, owned, [facts]) : controlConstruction(owned, method, [facts]);
     const rebuilt = singular?.owned.recoverRequests === undefined ? undefined :
       restore(singular.owned, singular.owned.recoverRequests, {durable, recorded, previewWire, body,
-        members, runInvocationCid, dispatches, requestTags,
+        members, runInvocationCid, dispatches, requestTags, reserveRecoveryInput,
         ...resourceFields(members[0])});
     const requests = members.map((_, index) => rebuilt?.requests?.[index]);
     const usesRecovery = members.map(() => rebuilt !== undefined);
@@ -3002,7 +3002,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           ownerOf(member) === owner ? [index] : []));
         if (memberIndexes.length === 0) continue;
         const recovered = restore(owner.owned, owner.owned.recoverMemberRequests, {durable, recorded,
-          previewWire, body, memberIndexes, members, runInvocationCid, dispatches, requestTags,
+          previewWire, body, memberIndexes, members, runInvocationCid, dispatches, requestTags, reserveRecoveryInput,
           ...resourceFields(members[memberIndexes[0]])});
         if (!Array.isArray(recovered?.requests) ||
             recovered.requests.length !== memberIndexes.length ||
@@ -3077,7 +3077,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       }), []);
       managedEffect.recoveredRequestInput = input;
       try {
-        const calls = [], members = facts.members;
+        const calls = [], growers = new Map(), members = facts.members;
+        const reserveRecoveryInput = (memberIndex, metadata) => {
+          const grow = growers.get(memberIndex);
+          if (typeof grow !== 'function') fail('InstalledEffectRecoveryConstructionUnavailable');
+          grow(metadata);
+        };
         for (const [index, member] of members.entries()) {
           const recipe = recipeOf(member), selected = recipe?.recoveryConstruction;
           const operation = selected === undefined ? undefined : recipe.memberOperations[selected.operationIndex]?.operation;
@@ -3089,7 +3094,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             operationIndex: selected.operationIndex, operation,
             ...(selected.inputExtent === undefined ? {} : {inputExtent: () =>
               selected.inputExtent(facts.previewWire, facts.durable.connectorRecovery, member.memberIndex)}),
-            construct: () => index + 1 === members.length ? recoveredEntries(facts) : calls[index + 1](),
+            construct: grow => {
+              if (selected.inputExtent !== undefined) growers.set(member.memberIndex, metadata =>
+                grow(selected.inputExtent(facts.previewWire, facts.durable.connectorRecovery, member.memberIndex, metadata)));
+              try {
+                return index + 1 === members.length
+                  ? recoveredEntries({...facts, reserveRecoveryInput}) : calls[index + 1]();
+              } finally {growers.delete(member.memberIndex);}
+            },
             requestsRetired: () => input.retiring && input.borrowers === 0 && input.result === undefined});
           // The raw selected constructor is synchronous. Retain before any
           // subsequent fence/failure; only final control retirement releases it.

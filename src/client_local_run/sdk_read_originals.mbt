@@ -43,7 +43,7 @@ fn validate_sdk_read_original_binding(
   result_name : String,
   format : String,
   attempt_id : String,
-) -> Result[Unit, LocalSDKReadOriginalsIssue] {
+) -> Result[(String, String), LocalSDKReadOriginalsIssue] {
   match source.validate_current(account, result_name) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -62,16 +62,12 @@ fn validate_sdk_read_original_binding(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  if @host.validate_client_local_run_policy_original_run(
-      @host.client_local_run_policy_original_body(original),
+  let (adoption, read_cid) = match
+    @host.client_local_run_policy_original_run_dependencies(
+      original,
       source.request(),
       source.definition(),
-    )
-    is Err(_) {
-    return Err(InvalidOriginal)
-  }
-  let (adoption, read_cid) = match
-    @host.client_local_run_policy_original_read_dependencies(original) {
+    ) {
     Ok(value) => value
     Err(_) => return Err(InvalidOriginal)
   }
@@ -79,7 +75,7 @@ fn validate_sdk_read_original_binding(
     read_cid != @publication.local_sdk_result_read_selection_cid(selection) {
     return Err(InvalidOriginal)
   }
-  Ok(())
+  Ok((adoption, read_cid))
 }
 
 ///|
@@ -102,22 +98,17 @@ pub fn prepare_local_sdk_read_originals_for_source(
   observed_at : String,
   max_results : Int,
 ) -> Result[LocalSDKReadOriginals, LocalSDKReadOriginalsIssue] {
-  match
+  let (adoption, read_cid) = match
     validate_sdk_read_original_binding(
       source, account, original, selection, host_adoption_cid, result_name, format,
       attempt_id,
     ) {
     Err(issue) => return Err(issue)
-    Ok(_) => ()
+    Ok(pair) => pair
   }
   let (principal, connection, purpose, _, _, max_bytes, max_uses) = @publication.local_sdk_result_read_selection_parameters(
     selection,
   )
-  let (adoption, read_cid) = match
-    @host.client_local_run_policy_original_read_dependencies(original) {
-    Ok(pair) => pair
-    Err(_) => return Err(InvalidOriginal)
-  }
   match source.validate_view(owner, view) {
     Ok(_) => ()
     Err(issue) => return Err(issue)

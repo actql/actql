@@ -644,6 +644,7 @@ fn capture_fixture_retirement_issue(
   match issue {
     @arena.Domain(issue) => "Domain(" + @debug.to_string(issue) + ")"
     @arena.Child(issue) => "Child(" + @debug.to_string(issue) + ")"
+    @arena.Initialization(_) => "Initialization"
   }
 }
 
@@ -846,3 +847,263 @@ let capture_fixture_query_contract : String = "{\"version\":\"actql-query-acquis
 
 ///|
 let capture_fixture_evidence_contract : String = "{\"version\":\"actql-query-process-evidence-contract/0.1\",\"dependencies\":{\"query_acquisition\":{\"path\":\"spec/contracts/actql-query-acquisition.json\",\"pointer\":\"\",\"cid\":\"sha256:5a95e60847276d02229eba9550dd9808a8a8c2764decd4dad667954f020db7cc\"}},\"schemas\":{\"record\":{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"issuer\",\"attempt\",\"requirement_cid\",\"role\",\"snapshot\",\"scan_scope_cid\",\"actual_access\",\"output\"],\"properties\":{\"version\":{\"const\":\"actql-query-process-evidence/0.1\"},\"issuer\":{\"type\":\"string\",\"minLength\":1},\"attempt\":{\"type\":\"string\",\"minLength\":1},\"requirement_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"role\":{\"enum\":[\"source_validation\",\"filter\",\"select\"]},\"snapshot\":{\"anyOf\":[{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"contract_cid\",\"token_cid\"],\"properties\":{\"contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"token_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}},{\"type\":\"null\"}]},\"scan_scope_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"actual_access\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"scope_cid\",\"provider_scope_cid\",\"received_rows\",\"received_fields\",\"received_bytes\"],\"properties\":{\"scope_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"provider_scope_cid\":{\"anyOf\":[{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},{\"type\":\"null\"}]},\"received_rows\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"received_fields\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"minLength\":1},\"uniqueItems\":true},\"received_bytes\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}}},\"output\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"contract_cid\",\"rows_cid\",\"row_count\"],\"properties\":{\"contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"rows_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"row_count\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}}}}}},\"semantics\":{\"preimage\":\"entire_record_canonical_json_utf8_sha256_no_self_cid\",\"authority\":\"authorized_host_private_issuer_and_live_opaque_success_handle_not_wire_or_cid_alone\",\"issuance\":\"after_complete_scan_validation_filter_select_limits_and_immutable_output_retention\",\"attempt\":\"host_allocated_unique_within_unique_process_issuer_never_reused_or_caller_selected\",\"binding\":\"exact_requirement_attempt_snapshot_scan_scope_actual_access_and_retained_output_for_all_three_roles\",\"native\":\"authorized_source_execution_covers_full_selected_scan_not_only_host_received_rows_or_columns\",\"source_order\":\"null_only_in_this_profile_relative_order_is_not_total_order_evidence\",\"lifetime\":\"same_process_no_deserialization_rehydration_or_durable_capture\",\"host_adapter\":\"host_authorized_execution_with_owned_consistent_read_view_full_scan_validation_and_query_not_driver_location_or_sql_success\",\"read_view\":\"private_task_session_transaction_binding_not_snapshot_token_no_cross_attempt_or_read_view_substitution\",\"access_accounting\":\"engine_internal_scan_host_row_receipt_and_retention_are_distinct_auxiliary_row_receipts_are_not_hidden_or_double_counted\",\"receipt_scope\":\"one_logical_received_sequence_only_independent_validation_and_query_receipts_require_an_additional_admitted_contract\",\"scan_failure\":\"invalid_excluded_rows_still_fail_no_global_diagnostic_order_or_total_order_from_validation_traversal\"}}"
+
+///|
+fn capture_fixture_whole_logical() -> (
+  @rows.RowDeclaration,
+  @rows.RowInputAcquisition,
+) raise {
+  let declaration = capture_fixture_declaration()
+  let (wire, cid) = capture_fixture_environment(declaration)
+  let environment = @publication_host.admit_client_check_environment(
+    wire,
+    cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let document =
+    #|{"version":"actql/0.1","id":"native-file-capture","stages":[{"id":"acquire","inputs":{"remote":{"connector":"native-file-fixture","resource":"records"}},"steps":[{"select":["id","value"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","value"]}}},{"id":"compute","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"value > 0"},{"select":["id","value"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","value"]}}}],"results":{"rows":{"from":{"stage":"compute","result":"rows"}}}}
+  let prepared = @publication_host.prepare_effect_free_client_program(
+    document,
+    Json,
+    environment,
+    None,
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  let contracts = @local.prepare_installed_sequence_contracts(
+    capture_fixture_registry,
+    capture_fixture_values,
+    Some(capture_fixture_fragment),
+    None,
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "native-whole-source-file",
+  ).unwrap()
+  let selected = @local.select_installed_source_input(prepared, request, 0, 0).unwrap()
+  guard selected is @sourceviews.WholeInputRoute(original) else {
+    fail("unfiltered Source must retain its whole-input original")
+  }
+  let page = capture_fixture_limits().page
+  let capacity = @local.prepare_installed_whole_source_capacity(
+    prepared,
+    original,
+    declaration,
+    contracts,
+    {
+      max_rows: 2,
+      page,
+      retention: {
+        max_nodes: 512,
+        max_text_bytes: 8192,
+        max_depth: 8,
+        max_work: 1000000,
+      },
+      wire: {
+        max_columns: 2,
+        max_order_work: 10000,
+        max_bytes: 8192,
+        max_nodes: 512,
+        max_depth: 8,
+      },
+    },
+    None,
+  ).unwrap()
+  (declaration, @local.installed_whole_source_acquisition(capacity))
+}
+
+///|
+fn capture_fixture_whole_work(
+  arena : @arena.InstalledArenaHost,
+  execution : @arena.InstalledArenaRetainedExecution,
+  declaration : @rows.RowDeclaration,
+  foreign : @rows.RowDeclaration,
+  acquisition : @rows.RowInputAcquisition,
+  selection : NativeRelationFileSelection,
+) -> Unit raise {
+  arena.enter_domain_retained_execution(execution).unwrap()
+  // Cleanup metadata never becomes an entry point into a currently entered Read.
+  assert_true(
+    arena.observe_domain_retained_execution_cleanup(execution) is Err(_),
+  )
+  let ledger = arena.borrow_domain_retained_execution_ledger(execution).unwrap()
+  let limits = capture_fixture_limits()
+  let before = @resources.ledger_usage(ledger)
+  assert_eq(before.transferred_bytes, 0L)
+  assert_eq(before.reserved_attempts, 0)
+  assert_eq(before.reserved_transfer_bytes, 0L)
+  assert_eq(before.reserved_retention_bytes, 0L)
+  assert_eq(before.reserved_execution_bytes, 0L)
+  // Equal logical declaration bytes never replace the admitted original.
+  assert_eq(foreign.catalog_cid, declaration.catalog_cid)
+  let refused = prepare_native_relation_file_input_capture(
+    arena, execution, foreign, acquisition, "native-file-foreign", selection, limits,
+  )
+  guard refused is Err(failure) else {
+    fail("foreign declaration unexpectedly acquired a native reader")
+  }
+  assert_true(failure.issue() is Row(@rows.ForeignDeclaration))
+  assert_true(failure.retry_cleanup().unwrap())
+  assert_eq(@resources.ledger_usage(ledger), before)
+  let owner = capture_fixture_prepared(
+    prepare_native_relation_file_input_capture(
+      arena, execution, declaration, acquisition, "native-file-original", selection,
+      limits,
+    ),
+    "positive file prepare",
+  )
+  assert_true(owner.capture() is Err(Unavailable))
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 0L)
+  let mut completed = false
+  let mut charged_before_admission = false
+  for _ in 0..<10000 {
+    if owner.advance(32).unwrap() {
+      completed = true
+      break
+    }
+    if owner.phase is Received {
+      assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 62L)
+      charged_before_admission = true
+    }
+  }
+  assert_true(completed)
+  assert_true(charged_before_admission)
+  // This is the exact original document, including its envelope, charged once.
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 62L)
+  let capture = owner.capture().unwrap()
+  assert_true(physical_equal(owner.capture().unwrap(), capture))
+  let captured_usage = @resources.ledger_usage(ledger)
+  arena.leave_domain_retained_execution(execution).unwrap()
+  // A completed capture is not borrowable outside its original entered scope.
+  // Do not advance here: that would intentionally record a sticky failure.
+  assert_true(owner.capture() is Err(Unavailable))
+  arena.enter_domain_retained_execution(execution).unwrap()
+  assert_true(
+    physical_equal(
+      ledger,
+      arena.borrow_domain_retained_execution_ledger(execution).unwrap(),
+    ),
+  )
+  assert_eq(@resources.ledger_usage(ledger), captured_usage)
+  assert_true(owner.advance(32).unwrap())
+  assert_true(physical_equal(owner.capture().unwrap(), capture))
+  let source = @rows.row_capture_source(capture).unwrap()
+  let original = @rows.row_capture_original_read(capture).unwrap()
+  assert_true(@query.captured_source_available(source))
+  assert_eq(@query.captured_source_row_count(source), Some(2))
+  assert_true(@execution.supplied_relation_read_available(original))
+  assert_eq(@execution.supplied_relation_read_row_count(original), 2)
+  assert_true(
+    @execution.supplied_relation_read_cell(original, 0, 0)
+    is Some(@admitted.Text("first")),
+  )
+  assert_true(
+    @execution.supplied_relation_read_cell(original, 1, 0)
+    is Some(@admitted.Text("second")),
+  )
+  assert_true(
+    @execution.supplied_relation_read_cell(original, 0, 1)
+    is Some(@admitted.Number(1)),
+  )
+  assert_true(
+    @execution.supplied_relation_read_cell(original, 1, 1)
+    is Some(@admitted.Number(2)),
+  )
+  let mut closed = false
+  for _ in 0..<10000 {
+    match owner.close() {
+      Ok(true) => {
+        closed = true
+        break
+      }
+      Ok(false) | Err(Row(@rows.InvalidState)) => ()
+      Err(_) => fail("native relation file cleanup failed")
+    }
+  }
+  assert_true(closed)
+  assert_true(owner.close().unwrap())
+  assert_true(owner.capture() is Err(Unavailable))
+  assert_true(@rows.row_capture_source(capture) is Err(_))
+  assert_true(@rows.row_capture_original_read(capture) is None)
+  assert_false(@query.captured_source_available(source))
+  assert_false(@execution.supplied_relation_read_available(original))
+  let retired = @resources.ledger_usage(ledger)
+  assert_eq(retired.transferred_bytes, 62L)
+  assert_eq(retired.held_bytes, 0L)
+  assert_eq(retired.reserved_transfer_bytes, 0L)
+  assert_eq(retired.reserved_retention_bytes, 0L)
+  assert_eq(retired.reserved_execution_bytes, 0L)
+  arena.leave_domain_retained_execution(execution).unwrap()
+  // No owner, capture, original read or child-allocated usage snapshot escapes.
+}
+
+///|
+test "finite Native whole Source file captures original input and retires same physical owner" {
+  let (declaration, acquisition) = capture_fixture_whole_logical()
+  let foreign = capture_fixture_declaration()
+  let directory = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
+  // The external scoped-test namespace creates these exclusive fixture files
+  // before this process. This test neither creates nor mutates their contents.
+  let selection : NativeRelationFileSelection = {
+    directory,
+    name: "row-source-input",
+    resource: "records",
+    items_path: ["items"],
+    key_path: None,
+    primary_identity: "id",
+  }
+  let backing_path = @utf8.encode(directory + "/row-source-backing\u{0000}")
+  let parent_bytes = 384L * 1024L * 1024L
+  let fd = capture_fixture_open(backing_path, 2)
+  assert_true(fd >= 0)
+  let arena = @arena.prepare_installed_arena_host(
+    "0123456789012345678901234567890123456789",
+    Bytes::make(32, 17),
+    1L,
+    parent_bytes,
+    {
+      planning_work: 20,
+      attempts: 8,
+      holdings: 4,
+      transfer_bytes: 65536L,
+      retained_bytes: 0L,
+      execution_bytes: parent_bytes,
+    },
+    65536L,
+  ).unwrap()
+  arena.acquire_fd(fd).unwrap()
+  let backing = arena.borrow_backing().unwrap()
+  arena.enter_backing_borrow_scope(backing).unwrap()
+  let domain = match
+    arena
+    .prepare_domain(backing, fd, 256L * 1024L * 1024L, {
+      planning_work: 8,
+      attempts: 4,
+      holdings: 2,
+      transfer_bytes: 16384L,
+      retained_bytes: capture_fixture_retained_bytes,
+      execution_bytes: capture_fixture_execution_bytes,
+    })
+    .unwrap() {
+    @arena.PreparedDomain(domain) => domain
+    @arena.PendingDomain(_, _) => fail("finite native file domain is partial")
+  }
+  arena.transfer_domain(domain).unwrap()
+  arena.leave_backing_borrow_scope(backing).unwrap()
+  arena.return_backing_borrow(backing).unwrap()
+  arena.prepare_domain_read(domain).unwrap()
+  let execution = match
+    arena.prepare_domain_retained_execution(domain).unwrap() {
+    @arena.ReadyRetainedExecution(execution) => execution
+    @arena.PendingRetainedExecution(_, _) =>
+      fail("finite native file retained execution is partial")
+  }
+  capture_fixture_whole_work(
+    arena, execution, declaration, foreign, acquisition, selection,
+  )
+  arena.close_domain_retained_execution(execution).unwrap()
+  arena.close_domain_after_owner_ack(domain).unwrap()
+  arena.try_close().unwrap()
+  assert_eq(capture_fixture_close(fd), 0)
+}

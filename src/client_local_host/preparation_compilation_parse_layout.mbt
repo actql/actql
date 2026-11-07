@@ -5,4 +5,7 @@
 priv struct CompilationParseLayout {
   value : @execution.PreparationRepresentationUnits
   temporary : @execution.PreparationRepresentationUnits
+  // Included in temporary until the caller proves this SAME output slot
+  // is already reserved or used only at a nonoverlapping constructor phase.
+  output_tree : @execution.PreparationRepresentationUnits
 }

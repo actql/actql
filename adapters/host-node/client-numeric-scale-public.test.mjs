@@ -1,58 +1,68 @@
 import assert from 'node:assert/strict';
-import {before, test} from 'node:test';
+import {after, before, test} from 'node:test';
 import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
+import {prepareNumericScaleConsumer} from '../../scripts/numeric-scale-installed-fixture.mjs';
+import {verifyNodeBenchmarkPackages} from '../../scripts/benchmark-node-operations.mjs';
+import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {verifyLocalSourceRuntime, assertSourceRuntimeReceiptCurrent} from '../../scripts/verify-local-source-runtime.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-let open, coherence;
+let coherence, prepared, scratch, startedCases = 0, completedCases = 0;
 before(async () => {
   coherence = await verifyLocalSourceRuntime(root);
-  ({open} = await import('../../packages/node/index.mjs'));
+  scratch = await createOwnedScratch({parent: join(root, '..', '.codex-scratch'), prefix: 'actql-numeric-consumer-',
+    label: 'Matching normal numeric consumer'});
+  prepared = await prepareNumericScaleConsumer({repository: root, directory: scratch.path,
+    command(command, args, {cwd}) {
+      const env = {...process.env}; delete env.NODE_PATH; delete env.NODE_OPTIONS;
+      const child = spawnSync(command, args, {cwd, env, encoding: 'utf8', timeout: 120000,
+        maxBuffer: 8 * 1024 * 1024});
+      assert.ifError(child.error); assert.equal(child.signal, null, child.stderr);
+      assert.equal(child.status, 0, child.stderr);
+    }});
+});
+after(async () => {
+  if (coherence) assertSourceRuntimeReceiptCurrent(coherence);
+  if (prepared) await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
+  if (startedCases > 0 && completedCases === startedCases) scratch.passed();
 });
 
-async function assertAllRows(current, count) {
-  let read = 0, sum = 0n, squares = 0n;
-  for await (const row of current.result('answer0').rows()) {
-    assert.deepEqual(Object.keys(row), ['v0']);
-    assert.equal(row.v0, read);
-    const value = BigInt(row.v0);
-    read++; sum += value; squares += value * value;
-  }
-  const n = BigInt(count);
-  assert.equal(read, count);
-  assert.equal(sum, n * (n - 1n) / 2n);
-  assert.equal(squares, n * (n - 1n) * (2n * n - 1n) / 6n);
+function runPhase(phase, directory, referencePath, count) {
+  const env = {...process.env}; delete env.NODE_PATH; delete env.NODE_OPTIONS;
+  const child = spawnSync(process.execPath, [prepared.actor, phase, directory, referencePath, String(count)],
+    {cwd: prepared.consumer, env, encoding: 'utf8', timeout: 360000, maxBuffer: 8 * 1024 * 1024});
+  assert.ifError(child.error);
+  assert.equal(child.signal, null, child.stderr);
+  assert.equal(child.status, 0, child.stderr);
+  const lines = child.stdout.trim().split('\n');
+  const report = JSON.parse(lines.at(-1));
+  const {inputWireBytes, ...completion} = report;
+  assert.deepEqual(completion, {phase, rowsVerified: count, closeReturned: true, pid: child.pid});
+  if (phase === 'produce-source') {
+    assert(Number.isSafeInteger(inputWireBytes) && inputWireBytes > 1048576);
+    console.log(`Numeric JSON Source input: ${inputWireBytes} UTF8 bytes, ${count} rows`);
+  } else assert.equal(inputWireBytes, undefined);
 }
 
-for (const count of [1000, 10000, 10001, 100000]) {
-  test(`ordinary numeric ${count} rows streams exact values before and after reopen with confirmed stop`, async () => {
-    const program = {
-      version: 'actql/0.1', id: 'numeric-scale',
-      stages: [{id: 'main', inputs: {}, steps: [{as: 'v', values: {
-        schema: {v0: {type: 'number', nullable: false}},
-        rows: Array.from({length: count}, (_, v0) => ({v0})),
-      }}], results: {rows: {from: 'v', fields: ['v0']}}}],
-      results: {answer0: {from: {stage: 'main', result: 'rows'}}},
-    };
+for (const {count, source} of [
+  ...[1000, 10000, 10001, 100000].map(count => ({count, source: false})),
+  {count: 100000, source: true},
+]) {
+  test(`ordinary ${source ? 'JSON Source ' : ''}numeric ${count} rows streams exact values across separate-process Saved with confirmed stop`, async () => {
+    startedCases++;
     const directory = await mkdtemp(join(tmpdir(), 'actql-numeric-scale-test-'));
-    let db = await open({stateDir: directory}), completed = false;
+    let completed = false;
     try {
-      const run = await db.start(program);
-      const outcome = await run.wait({signal: AbortSignal.timeout(300000)});
-      assert.equal(outcome.status, 'succeeded', JSON.stringify(outcome));
-      await assertAllRows(run, count);
-      const ref = run.ref;
-      await db.close(); db = undefined;
-      db = await open({stateDir: directory});
-      const restored = await db.attach(ref);
-      assert.equal((await restored.status()).control.physical_stop, 'confirmed');
-      await assertAllRows(restored, count);
+      const referencePath = join(directory, 'original-run-reference.json');
+      runPhase(source ? 'produce-source' : 'produce', directory, referencePath, count);
+      runPhase('restore', directory, referencePath, count);
       completed = true;
+      completedCases++;
     } finally {
-      if (db) await db.close();
       assertSourceRuntimeReceiptCurrent(coherence);
       if (completed) await rm(directory, {recursive: true, force: true});
     }

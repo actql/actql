@@ -23,7 +23,8 @@
 // docs/reviews/2026-10-15-scoped-bounded-read-configuration-review.md and
 // docs/reviews/2026-10-15-sqlite-body-limit-configuration-review.md and
 // docs/reviews/2026-10-15-filesystem-child-custody-configuration-review.md and
-// docs/reviews/2026-10-15-bounded-catalog-configuration-review.md.
+// docs/reviews/2026-10-15-bounded-catalog-configuration-review.md and
+// docs/reviews/2026-11-07-session-source-counts-configuration-review.md.
 // Changes to this table, the toolchain or any configuration force fresh work.
 // Unknown options and other targets require separate review; matching a digest
 // is configuration identity, not a proof of compiler or OS correctness.
@@ -78,13 +79,14 @@ const foreignLibraryConfigurations = Object.freeze({
 // Current updates: docs/reviews/2026-11-02-session-current-input-review.md and
 // docs/reviews/2026-11-03-session-current-input-successor-review.md and
 // docs/reviews/2026-11-04-session-current-recovery-configuration-review.md and
-// docs/reviews/2026-11-06-session-source-test-target-review.md.
+// docs/reviews/2026-11-06-session-source-test-target-review.md and
+// docs/reviews/2026-11-07-session-local-host-successor-review.md.
 // Constants below are reviewed bytes, never hashes computed from current files.
 // A per-entry revision records only that exact reviewed input; the default
 // revision still applies to every unchanged entry.
 export const currentConfigurationReviewRevision = '38e95bfac2907700456de6c53ed0cad3620bb72d';
 export const currentPackageConfigurations = Object.freeze({
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '8596c0cb5e158a33b98214e9d09a6185dbce3925b3d947def6036ec75bb7dfda', rule: 'literal-target-selectors-with-bound-source-membership', revision: '65dd1da4c260610e9a88e430665fdc8f6106bc94'}),
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '73b0cddc426eb97a56302dc76c8e9438fb113508302532dd29e34157c8186969', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'ff880c0fee559efd6d6f2d4fe86a6c229ad86979'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: '707ebd62113403d8c1a08c3db9ea28d5e899c3c80d6ac7dc5cfadd545045ac38', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/physical_resources/moon.pkg': Object.freeze({digest: '508d45513dd76478ece212cd3e9a2da45aa93f2e100d99c44076a31afa46be23', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'bf198225499436c26be2f7d763582b0efaeeae2b'}),
@@ -102,7 +104,7 @@ export const currentPackageConfigurations = Object.freeze({
   'src/platform_native/trusted_clock/moon.pkg': Object.freeze({digest: '19f2c6b1beb2a401a9152b82e679f0df352d11da6efeb1bc79f56ab516537ab0', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/query_integration/moon.pkg': Object.freeze({digest: '85c6a9e865217e88e0322ca57208d43cc60742d508da3f04d5be00c724f8c15b', rule: 'literal-native-options-with-bound-source-membership', revision: 'd0a65454c66690c3725c9cfbcc31ee84fdd4c3f1'}),
   'src/connectors/kintone/host/moon.pkg': Object.freeze({digest: '85ba3f07ed79308b595b1c00cf085a87f2d7ec9f9f40c88be4ffc1c264d216bd', rule: 'literal-target-selectors-with-bound-source-membership', revision: '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c'}),
-  'src/source_value/moon.pkg': Object.freeze({digest: 'a2ea86ea9291b3f4a0ed85711aa9cb95cdbd6fe84ae336de0d57f3a90c761053', rule: 'literal-target-selectors-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
+  'src/source_value/moon.pkg': Object.freeze({digest: '7924497475b1578e83add3ebe773c473b6eba23182ed7c8e9b54ec38ecfba44b', rule: 'literal-target-selectors-with-bound-source-membership', revision: '3ce2057976a7c88a13246a6349fbd7a584d11478'}),
 });
 
 export const currentNestedFixtureConfigurations = Object.freeze({

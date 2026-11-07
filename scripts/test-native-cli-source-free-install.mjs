@@ -4,11 +4,13 @@
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
+import {createReadStream} from 'node:fs';
 import {lstat, mkdir, readFile, readdir, writeFile, unlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {promisify} from 'node:util';
+import {createInterface} from 'node:readline';
 import {platformKey} from '../packages/native-cli/bin/actql.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
@@ -17,6 +19,70 @@ import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+
+// Read the actual delivered file, including its last row. A count, preview or
+// aggregate alone cannot establish the contents of the original stored Result.
+export async function verifyNativeNumericRows(path, count = 100000) {
+  const input = createReadStream(path), lines = createInterface({input, crlfDelay: Infinity});
+  const closed = new Promise(resolve => input.once('close', resolve));
+  let rows = 0, sum = 0n, squares = 0n;
+  try {
+    for await (const line of lines) {
+      const row = JSON.parse(line);
+      assert(rows < count, 'Unexpected extra numeric Result row');
+      assert.deepEqual(Object.keys(row), ['v0']);
+      assert.equal(row.v0, rows, `Numeric Result row ${rows}`);
+      const value = BigInt(row.v0);
+      sum += value; squares += value * value; rows++;
+    }
+  } finally {lines.close(); input.destroy(); await closed;}
+  const n = BigInt(count);
+  assert.equal(rows, count, 'Complete numeric Result required');
+  assert.equal(sum, n * (n - 1n) / 2n);
+  assert.equal(squares, n * (n - 1n) * (2n * n - 1n) / 6n);
+  return {rows, sum: String(sum), squares: String(squares)};
+}
+
+// Each cli call below launches the same installed Native entry in a new
+// process. Its successful reply/exit is gated by the entry's real command
+// cleanup; it is not independent FD inspection or a whole-Host stop claim.
+export async function observeNativeNumericScale({project, cli}) {
+  const count = 100000, input = join(project, 'numeric-scale.json');
+  const first = join(project, 'numeric-first.jsonl'), saved = join(project, 'numeric-saved.jsonl');
+  const program = {version: 'actql/0.1', id: 'numeric-scale',
+    stages: [{id: 'main', inputs: {}, steps: [{as: 'v', values: {
+      schema: {v0: {type: 'number', nullable: false}},
+      rows: Array.from({length: count}, (_, v0) => ({v0})),
+    }}], results: {rows: {from: 'v', fields: ['v0']}}}],
+    results: {answer0: {from: {stage: 'main', result: 'rows'}}}};
+  const wire = JSON.stringify(program), inputWireBytes = Buffer.byteLength(wire);
+  assert(inputWireBytes > 1048576, 'The public JSON Source must exceed one MiB');
+  await writeFile(input, wire, {flag: 'wx', mode: 0o600});
+  const command = async args => {
+    const reply = await cli(args, project);
+    assert.equal(reply.code, 0); assert.equal(reply.signal, null);
+    return reply;
+  };
+  const original = JSON.parse((await command(['run', 'numeric-scale.json', '--format', 'json', '--json'])).stdout);
+  assert.equal(original.version, 'actql-run-state/0.1');
+  assert.equal(original.status, 'succeeded');
+  assert.equal(typeof original.run_id, 'string'); assert(original.run_id.length > 0);
+  await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', first]);
+  const firstRows = await verifyNativeNumericRows(first, count);
+  // No second submission or source-file fallback is available to Saved.
+  await unlink(input);
+  const restored = JSON.parse((await command(['status', original.run_id, '--json'])).stdout);
+  assert.equal(restored.version, original.version);
+  assert.equal(restored.run_id, original.run_id); assert.equal(restored.status, 'succeeded');
+  await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', saved]);
+  const savedRows = await verifyNativeNumericRows(saved, count);
+  assert.deepEqual(savedRows, firstRows);
+  return {scope: 'installed-native-json-source-values', inputWireBytes, runId: original.run_id,
+    inputRemovedBeforeSaved: true, first: firstRows, saved: savedRows,
+    cleanup: 'successful Native command cleanup before reply and process exit',
+    independentFdInspection: false};
+}
+
 // Registry close permits provisional observations only. The consumer must still
 // exit and complete owned-scratch cleanup before the parent can publish success.
 export async function finishSourceFreeObservations(receipt, primaryFailure,
@@ -146,6 +212,38 @@ export async function observeTimingEnabledPlainInitialization({root, cli, enviro
   return {scope: 'plain-initialization-with-diagnostics', diagnostics};
 }
 
+// A failed ordinary request is never retried. This independent actor uses the
+// same verified installation with fresh project/home/state and one new request.
+export async function observeFreshSubmissionFailureDiagnostic({root, cli, environment}) {
+  await mkdir(root, {mode: 0o700});
+  const saved = Object.fromEntries(['HOME', 'TMPDIR', 'ACTQL_NATIVE_TIMINGS']
+    .map(key => [key, environment[key]]));
+  try {
+    for (const name of ['home', 'tmp']) await mkdir(join(root, name), {mode: 0o700});
+    environment.HOME = join(root, 'home'); environment.TMPDIR = join(root, 'tmp');
+    environment.ACTQL_NATIVE_TIMINGS = '1';
+    await cli(['init', 'project'], root);
+    const result = await cli(['sql', 'SELECT 2 AS id', '--format', 'jsonl'], root);
+    assert.deepEqual(result.stdout.trim().split('\n').map(line => JSON.parse(line)), [{id: 2}]);
+    return {scope: 'fresh-submission-failure-diagnostic-only', newRequests: 1,
+      commandSucceeded: true, ordinaryAcceptance: false};
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete environment[key]; else environment[key] = value;
+    }
+  }
+}
+
+export async function preserveOrdinaryFailureWithDiagnostic(primary, diagnose) {
+  try {
+    return {failure: primary, diagnostic: {status: 'observed', ...await diagnose()}};
+  } catch (error) {
+    return {failure: new AggregateError([primary, error],
+      'Ordinary Local failure and independent diagnostic failure'),
+    diagnostic: {status: 'failed', error: error.message}};
+  }
+}
+
 async function observeInstalledSourceFree(input, observationPath) {
   const directory = resolve(input), manifest = await verifyNativeCliRelease(directory);
   const source = checkoutState(repository);
@@ -185,7 +283,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     return record;
   }
   const rows = text => text.trim().split('\n').map(line => JSON.parse(line));
-  let receipt, failure, runIngress, verifyInstalledOriginals;
+  let receipt, failure, failureDiagnostic, diagnoseFailure, runIngress, verifyInstalledOriginals;
   try {
     for (const path of [prefix, env.HOME, env.TMPDIR, join(root, 'empty-path')]) await mkdir(path);
     await writeFile(join(root, 'npmrc'), `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
@@ -225,6 +323,8 @@ async function observeInstalledSourceFree(input, observationPath) {
     // can discover a compiler, a repository executable, a provider or a Node Host.
     env.PATH = join(root, 'empty-path');
     const cli = (args, cwd = project, code = 0) => run(process.execPath, [launcher, ...args], cwd, code);
+    diagnoseFailure = () => observeFreshSubmissionFailureDiagnostic({
+      root: join(root, 'submission-failure-diagnostic'), cli, environment: env});
     assert.equal((await cli(['--version'], root)).stdout, `${manifest.cohort.packageVersion}\n`);
     const mockInitialization = await observeUnsupportedMockInitialization({root, cli});
     const catalogOnlyMockRefusal = await observeCatalogOnlyMockRefusal({root, cli});
@@ -286,15 +386,22 @@ async function observeInstalledSourceFree(input, observationPath) {
     }
     await cli(['result', state.run_id, '--format', 'jsonl', '--output', 'saved.jsonl']);
     assert.deepEqual(rows(await readFile(join(project, 'saved.jsonl'), 'utf8')), [{id: 1}]);
+    const numericScale = await observeNativeNumericScale({project, cli});
     receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
       cliSourceSha: manifest.sourceSha, platform, node: process.version, glibc: glibc ?? null,
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, catalogOnlyMockRefusal, plainInitialization,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization, numericScale,
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
-  } catch (error) { failure = error; }
+  } catch (error) {
+    failure = error;
+    if (diagnoseFailure && /LocalSubmissionAcceptanceUnknown/u.test(error.message)) {
+      const observed = await preserveOrdinaryFailureWithDiagnostic(error, diagnoseFailure);
+      failure = observed.failure; failureDiagnostic = observed.diagnostic;
+    }
+  }
   // Independent Local controls share only the verified installed cohort. A
   // business-case failure cannot hide their result, and either failure rejects
   // the consumer before its existing registry/physical cleanup certification.
@@ -318,7 +425,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       `${JSON.stringify({version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
         cliSourceSha: manifest.sourceSha, platform, status: 'failed', error: error.message,
         failures: (error instanceof AggregateError ? error.errors : [error]).map(value => value.message),
-        consumer: root, records}, null, 2)}\n`, {flag: 'wx'}),
+        consumer: root, records, failureDiagnostic}, null, 2)}\n`, {flag: 'wx'}),
   });
   scratch.passed();
 }

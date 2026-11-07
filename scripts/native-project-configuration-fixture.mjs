@@ -1,7 +1,8 @@
 // Only populate the invocation's existing owned namespace. These files are
 // reader test inputs, never installed project configuration or Run authority.
 import {mkdirSync, symlinkSync, writeFileSync} from 'node:fs';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
+import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 
 export function nativeProjectConfigurationFixture(namespace) {
   const root = join(namespace, 'project-configuration');
@@ -58,6 +59,35 @@ export function nativeProjectConfigurationFixture(namespace) {
     else if (name === 'directory-bindings') mkdirSync(join(path, 'connectors.json'), {mode: 0o700});
     else write(path, 'connectors.json', name === 'oversize-bindings'
       ? Buffer.alloc(65537, 0x20) : Buffer.from([0xc3, 0x28]));
+  }
+  // Exact public authored inputs, not an old business-state fixture.
+  for (const name of ['deal-review', 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry', 'deal-review-wrong-answer', 'deal-review-missing-task']) {
+    const path = directory(name);
+    for (const [originalPath, original] of Object.entries(projectTemplateFiles('deal-review-mock'))) {
+      if (name === 'deal-review-missing' && originalPath === 'mock/data.json') continue;
+      if (name === 'deal-review-missing-task' && originalPath === 'model-tasks/deal-review.v1.yaml') {
+        // Reach the actual missing-file Reader boundary, with its owned Root
+        // present. An absent parent instead tests Root construction refusal.
+        mkdirSync(dirname(join(path, originalPath)), {recursive: true, mode: 0o700});
+        continue;
+      }
+      let relative = originalPath;
+      let body = name === 'deal-review-wrong-task' && relative === 'model-tasks/deal-review.v1.yaml'
+        ? original.replace('task: model-task:deal-review.v1', 'task: model-task:foreign.v1') : original;
+      if (name === 'deal-review-wrong-answer' && relative === 'mock/deal-review.v1.answers.yaml') {
+        body = original.replace('changed: true', 'changed: "not-a-boolean"');
+      }
+      if (name === 'deal-review-nested-registry') {
+        // A distinct locator-only case, never retagged as the exact template.
+        if (relative === 'actql.config.json') body = original.replace('./model-tasks.json', './registry/model-tasks.json');
+        if (relative === 'model-tasks.json') {
+          relative = 'registry/model-tasks.json';
+          body = original.replace('./model-tasks/deal-review.v1.yaml', '../model-tasks/deal-review.v1.yaml');
+        }
+      }
+      mkdirSync(dirname(join(path, relative)), {recursive: true, mode: 0o700});
+      write(path, relative, body);
+    }
   }
   return {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: root};
 }

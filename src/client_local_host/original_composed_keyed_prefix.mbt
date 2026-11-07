@@ -28,13 +28,17 @@ pub fn start_client_original_composed_keyed_prefix(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue] {
+  let inputs = rows.filter_map(@row_source_host.row_capture_input)
+  if inputs.length() != rows.length() {
+    return Err(Unavailable)
+  }
   start_client_original_composed_keyed_prefix_owned(
     scope,
     compiled,
     definition,
     plan,
     keyed,
-    rows,
+    inputs,
     input_prefix,
     execution,
     measurement,
@@ -45,14 +49,14 @@ pub fn start_client_original_composed_keyed_prefix(
 ///|
 // The shared ordinary Effect Run already owns its finite sequence and its
 // one prefix slot. A failed constructor stays attached to that SAME owner.
-pub fn start_installed_original_composed_keyed_prefix(
+pub fn start_installed_original_composed_keyed_input_prefix(
   owner : ClientInstalledManagedRun,
   scope : @publication_host.ClientModelReadScope,
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   plan : @publication_host.ClientInferPlanGraph,
   keyed : @publication_host.ClientKeyedAcquisition,
-  rows : Array[@row_source_host.RowSourceCapture],
+  rows : Array[@row_source_host.RowCapturedInput],
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue] {
@@ -100,22 +104,22 @@ fn start_client_original_composed_keyed_prefix_owned(
   definition : @publication.PublicationContract,
   plan : @publication_host.ClientInferPlanGraph,
   keyed : @publication_host.ClientKeyedAcquisition,
-  rows : Array[@row_source_host.RowSourceCapture],
+  rows : Array[@row_source_host.RowCapturedInput],
   input_prefix : @execution.GeneratedSequence,
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   installed : ClientInstalledManagedRun?,
+  borrowed_inputs? : Bool = false,
 ) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue] {
-  let selected = match installed {
-    None =>
-      @publication_host.retain_client_original_composed_keyed_captures(
-        scope, compiled, definition, plan, keyed, rows,
-      )
-    Some(_) =>
-      @publication_host.borrow_client_original_composed_keyed_captures(
-        scope, compiled, definition, plan, keyed, rows,
-      )
-  }
+  let selected = @publication_host.borrow_client_original_composed_keyed_input_captures(
+    scope,
+    compiled,
+    definition,
+    plan,
+    keyed,
+    rows,
+    installed=borrowed_inputs || installed is Some(_),
+  )
   let (ledger, captures, sources) = match selected {
     Ok(value) => value
     Err(issue) => return Err(Original(issue))
@@ -282,4 +286,25 @@ pub fn complete_client_original_composed_keyed_prefix(
     value.left = Some(left)
     left
   })
+}
+
+///|
+pub fn start_installed_original_composed_keyed_prefix(
+  owner : ClientInstalledManagedRun,
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  rows : Array[@row_source_host.RowSourceCapture],
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue] {
+  let inputs = rows.filter_map(@row_source_host.row_capture_input)
+  if inputs.length() != rows.length() {
+    return Err(Unavailable)
+  }
+  start_installed_original_composed_keyed_input_prefix(
+    owner, scope, compiled, definition, plan, keyed, inputs, execution, measurement,
+  )
 }

@@ -1,0 +1,6 @@
+SELECT r.Id AS Id, r.Name AS previous_name, @next_name AS next_name
+FROM salesforce.accounts AS r
+WHERE r.Id = @record_id
+|> ASSERT UNIQUE BY (Id)
+|> RESULT updates
+|> EFFECT UPDATE salesforce.Account ID Id SET (Name = next_name);

@@ -307,7 +307,7 @@ class ReaderFactsTests(unittest.TestCase):
                 return result
         physical = sqlite3.connect
         with self.file() as (_, root, _, final), TemporaryDirectory() as directory, patch(
-                'actql_sdk._local_storage.sqlite3.connect', side_effect=lambda *a, **kw: physical(*a, **kw, factory=LostAck)):
+                'actql_sdk._local_storage.sqlite3.connect', side_effect=lambda *a, **kw: physical(*a, **(kw | {'factory': LostAck}))):
             reader = self.transfer_ready(root, final)
             _, _, publisher, projection, facts, calls, _, _ = self.bridge(root, reader)
             with self.store(Path(directory) / 'core.sqlite') as store:

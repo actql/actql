@@ -366,3 +366,89 @@ test "original prepared response projection refuses foreign and closed physical 
   retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
   cleanup_prepared_run_admission(admission).unwrap()
 }
+
+///|
+test "initialized Native Request preserves the original started frame and one Host take" {
+  let (parent, access, projection, input) = backed_original_child_fixture()
+  let before = ledger_usage(parent)
+  let initial = prepare_backed_initialization_admission(projection, input).unwrap()
+  assert_true(
+    prepare_initialized_backed_preparation_admission(initial, input)
+    is Err(Unavailable),
+  )
+  let ledger = start_backed_initialization_admission(initial).unwrap()
+  let frame = backed_initialization_original_frame(initial, input).unwrap()
+  assert_true(
+    prepare_initialized_backed_preparation_admission({ ..initial, }, input)
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    prepare_initialized_backed_preparation_admission(initial, Ref(3))
+    is Err(ForeignOriginal),
+  )
+  let request = prepare_initialized_backed_preparation_admission(initial, input).unwrap()
+  assert_true(
+    prepare_initialized_backed_preparation_admission(initial, input)
+    is Err(AlreadyConsumed),
+  )
+  assert_true(
+    take_backed_initialization_admission(initial, input) is Err(AlreadyConsumed),
+  )
+  let original = start_backed_preparation_admission(request, input).unwrap()
+  assert_true(physical_equal(original, ledger))
+  assert_true(
+    physical_equal(
+      backed_preparation_original_frame(request, input).unwrap(),
+      frame,
+    ),
+  )
+  assert_true(
+    start_backed_preparation_admission(request, input) is Err(AlreadyConsumed),
+  )
+  let body : PreparationCapacity[Ref[Int], Unit] = reserve_preparation_capacity_inventory(
+    original,
+    input,
+    3L,
+    2L,
+    max_borrowers=4,
+  ).unwrap()
+  abort_preparation_capacity_after_cleanup(body, input).unwrap() |> ignore
+  assert_true(cleanup_backed_preparation_admission(request) is Err(Unavailable))
+  report_imported_child_ledger(frame).unwrap()
+  retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
+  cleanup_backed_preparation_admission(request).unwrap()
+  assert_eq(ledger_usage(parent), before)
+}
+
+///|
+test "initialized Native Request rejects an already installed Source bootstrap" {
+  let (parent, access, projection, input) = backed_original_child_fixture()
+  let before_parent = ledger_usage(parent)
+  let initial = prepare_backed_initialization_admission(projection, input).unwrap()
+  let ledger = start_backed_initialization_admission(initial).unwrap()
+  let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+  begin_original_ledger_inventory(ledger, bootstrap, 1, 0, 0).unwrap() |> ignore
+  let before = ledger_usage(ledger)
+  assert_true(
+    prepare_initialized_backed_preparation_admission(initial, input)
+    is Err(Unavailable),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  // Its original Source/Native take remains intact; refusing the Request
+  // cannot spend that other purpose or remove its bootstrap/history.
+  assert_true(
+    physical_equal(
+      take_backed_initialization_admission(initial, input).unwrap(),
+      ledger,
+    ),
+  )
+  let frame = backed_initialization_original_frame(initial, input).unwrap()
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
+  assert_true(
+    cleanup_backed_initialization_admission(initial) is Err(Unavailable),
+  )
+  report_imported_child_ledger(frame).unwrap()
+  retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
+  cleanup_backed_initialization_admission(initial).unwrap()
+  assert_eq(ledger_usage(parent), before_parent)
+}

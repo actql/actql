@@ -9,11 +9,13 @@ import {isAbsolute, join} from 'node:path';
 const namedBackingFiles = Object.freeze([
   'initialization-original.backing', 'initialization-budget-refused.backing',
   'request-original.backing', 'request-run-transfer.backing', 'request-unstarted.backing',
+  'common-request-entrance.backing',
+  'source-frame-original.backing', 'source-frame-left.backing', 'source-frame-right.backing',
   'consumer-current.backing', 'consumer-managed-graph.backing',
   'consumer-alias.backing', 'consumer-usage-alias.backing',
   'consumer-serial.backing', 'consumer-entry-first.backing',
   'consumer-entry-second.backing', 'consumer-leave-refused.backing',
-  'consumer-serial-alias.backing', 'root-binding-first.backing',
+  'consumer-serial-alias.backing', 'consumer-working-growth.backing', 'root-binding-first.backing',
   'root-binding-second.backing',
 ]);
 

@@ -5,6 +5,7 @@ priv struct LocalProjectConfiguration {
   metadata : @run_host.ClientProjectConfiguration
   directory : String
   source_free_bindings : @run_host.ClientSourceFreeProjectBindings?
+  mock_declarations : LocalProjectMockDeclarations?
   state_directory : String
   profile : String?
 }
@@ -73,6 +74,7 @@ fn local_project_select_loaded(
     metadata,
     directory,
     source_free_bindings: None,
+    mock_declarations: None,
     state_directory,
     profile: match optional(matches, "profile") {
       Some(value) => Some(value)
@@ -337,7 +339,28 @@ fn local_project_read_execution_bindings(
     local_project_execution_operation(operation) else {
     return Ok(selected)
   }
-  // Unsupported mock/profile/lock installation refuses before other input IO.
+  // Intake the exact public Mock documents independently of installation.
+  // The later execution gate remains closed until the real same-Request
+  // Source/Model/Effect assembler exists; these DATA cannot select live mode.
+  let metadata = project.metadata
+  if project.profile == Some("mock") &&
+    metadata.lock_file() is None &&
+    metadata.connectors_file() is Some(_) &&
+    metadata.model_tasks_file() is Some(_) &&
+    metadata.mock_catalog_file() is Some(_) &&
+    metadata.mock_data_file() is Some(_) &&
+    metadata.mock_answer_count() > 0 {
+    return match
+      local_project_read_mock_declarations(
+        project,
+        local_project_mock_task_limits(),
+      ) {
+      Ok(original) =>
+        Ok(Some({ ..project, mock_declarations: Some(original), }))
+      Err(original) => Err(original)
+    }
+  }
+  // Other unsupported profiles still refuse before declaration IO.
   local_project_require_supported_profile(project, operation)
   let connectors = match
     local_project_read_declaration(project, project.metadata.connectors_file()) {
@@ -408,6 +431,89 @@ fn execute_native_project_selection(
     Ok(value) => value
     Err(original) => return Err(original)
   }
+  // Retain the original Project in the existing command BEFORE assembling
+  // cyclic Model originals. Pending retirement remains on that same carrier.
+  let retained = match command_preparation_invocation.val {
+    Some(original) => {
+      match original.prepare_project_input(selected) {
+        Ok(_) => ()
+        Err(issue) => {
+          original.retain_primary(issue)
+          stop("InvalidProjectBindings")
+        }
+      }
+      true
+    }
+    None => false
+  }
+  // The standalone Reader component has no command carrier or Model users.
+  defer (if !retained &&
+    selected is Some(project) &&
+    project.mock_declarations is Some(original) {
+    original.retire()
+  })
   local_project_apply_selection(matches, selected)
   Ok(execute(matches))
+}
+
+///|
+// The same command retains this Project before any Model original is made.
+// Its current physical Read is required; metadata/Bool/capacity DATA cannot
+// substitute for that live scope. No Host, Request or Ledger is created here.
+fn local_project_input_read_current(
+  host : @initial_arena.InstalledArenaHost,
+  read : @initial_arena.InstalledArenaOriginalRead,
+  pair : @initial_arena.InstalledArenaLocalHostResources?,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  match pair {
+    None =>
+      host
+      .require_domain_original_read_current(read)
+      .map_err(issue => CommandRead(issue))
+    Some(pair) =>
+      // The actual Command has spent its available-read claim. Match this
+      // SAME consuming pair/read and its entered physical allocation scope.
+      // Standalone declaration readers keep the original available-read port.
+      match host.observe_local_host_consuming_read_scope(pair, read) {
+        Ok(ReadEntered) => Ok(())
+        Ok(ReadUnentered) => Err(CommandUnavailable)
+        Err(issue) => Err(CommandPair(issue))
+      }
+  }
+}
+
+///|
+fn LocalCommandPreparationOriginal::prepare_project_input(
+  self : LocalCommandPreparationOriginal,
+  selected : LocalProjectConfiguration?,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard !self.closing &&
+    !self.closed &&
+    self.primary is None &&
+    self.project is None &&
+    self.host is Some(host) &&
+    self.read is Some(read) else {
+    return Err(CommandUnavailable)
+  }
+  match local_project_input_read_current(host, read, self.pair) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  self.project = selected
+  if selected is Some(project) && project.mock_declarations is Some(mock) {
+    match mock.prepare_source_declarations() {
+      Ok(_) => ()
+      Err(issue) => return Err(CommandProjectMock(issue))
+    }
+    match
+      mock.prepare_models(
+        local_project_mock_task_limits(),
+        local_project_mock_answer_limits(),
+        local_utc_now,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(CommandProjectMock(issue))
+    }
+  }
+  Ok(())
 }

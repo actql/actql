@@ -212,6 +212,21 @@ test('captured original input Ref is a reviewed public DATA type only for its ex
   assert.throws(() => inspectCore(f.root, [owner]), /UnreviewedPublicType: pipeline_check_context/);
 });
 
+test('Source native key extent Ref is reviewed DATA without permitting foreign Owners or Host imports', t => {
+  const f = fixture(t), owner = 'source_value';
+  f.put(owner, 'moon.pkg', manifest);
+  f.put(owner, 'main.mbt', 'pub fn observe(out : Ref[Int]) -> Unit { out.val = 0 }');
+  f.put(owner, 'pkg.generated.mbti', 'import { "moonbitlang/core/ref" @ref }\npub fn observe(@ref.Ref[Int]) -> Unit');
+  assert.deepEqual(inspectCore(f.root, [owner]).packages, [owner]);
+  f.put('root', 'pkg.generated.mbti', 'import { "moonbitlang/core/ref" @ref }\npub fn retain(@ref.Ref[Int]) -> Unit');
+  assert.throws(f.check, /UnreviewedPublicType: root/);
+  f.put(owner, 'pkg.generated.mbti', 'import { "moonbitlang/core/ref" @ref; "cloudflare:workers" @host }\npub fn leak(@ref.Ref[@host.Binding]) -> Unit');
+  assert.throws(() => inspectCore(f.root, [owner]), /UnreviewedPublicType: source_value/);
+  f.put(owner, 'pkg.generated.mbti', 'import { "moonbitlang/core/ref" @ref }\npub fn observe(@ref.Ref[Int]) -> Unit');
+  f.put(owner, 'moon.pkg', manifest + 'import { "moonbitlang/core/ref" @ref }');
+  assert.throws(() => inspectCore(f.root, [owner]), /UnreviewedExternal: source_value/);
+});
+
 test('actual explicitly rooted product closure passes', () => {
   const result = inspectCore(new URL('../', import.meta.url).pathname);
   assert.ok(result.roots.includes('program_check'));

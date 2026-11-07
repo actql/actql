@@ -25,7 +25,7 @@ async function fixture(t, phase, mode, syncFailure = false) {
   const syncError = Object.freeze(new Error('OriginalOpeningDirectorySync'));
   const open = fs.open, from = Buffer.from;
   let original, originalClose, allow = false, store, failure, ownedKey, ownerBytes;
-  let syncs = 0, closes = 0, selectedOpens = 0;
+  let syncs = 0, closes = 0, selectedOpens = 0, ownerMetadataPath;
   Buffer.from = function(value, ...args) {
     const bytes = Reflect.apply(from, this, [value, ...args]);
     if (value === key) ownedKey = bytes;
@@ -34,13 +34,17 @@ async function fixture(t, phase, mode, syncFailure = false) {
   fs.open = async (...args) => {
     const handle = await Reflect.apply(open, fs, args);
     const acquisition = new Error().stack.includes('acquireStoreOwnership');
-    const selected = phase === 'owner' ? args[0] === ownerDirectory && acquisition
+    const staged = typeof args[0] === 'string' && args[0].startsWith(directory + '/.owner-opening-') && !args[0].slice((directory + '/.owner-opening-').length).includes('/');
+    const selected = phase === 'owner' ? (args[0] === ownerDirectory || staged) && acquisition
       : args[0] === directory && (phase === 'owned-root' ? acquisition : !acquisition);
     if (!selected) return handle;
     selectedOpens++;
     if (original !== undefined) return handle;
     original = handle;
-    if (phase !== 'format-root') ownerBytes = await fs.readFile(join(ownerDirectory, 'owner.json'));
+    if (phase !== 'format-root') {
+      ownerMetadataPath = join(phase === 'owner' ? args[0] : ownerDirectory, 'owner.json');
+      ownerBytes = await fs.readFile(ownerMetadataPath);
+    }
     const sync = handle.sync.bind(handle);
     originalClose = handle.close.bind(handle);
     handle.sync = async () => {
@@ -69,12 +73,12 @@ async function fixture(t, phase, mode, syncFailure = false) {
     // only this fresh diagnostic's FD above, then remove its observed original
     // record under the test-owned scratch, never an old/foreign owner.
     if (store === undefined && ownerBytes !== undefined) {
-      const path = join(ownerDirectory, 'owner.json');
+      const path = ownerMetadataPath;
       try {
         const current = await fs.readFile(path);
         assert.deepEqual(current, ownerBytes);
         assert.equal(JSON.parse(current).pid, process.pid);
-        await fs.unlink(path); await fs.rmdir(ownerDirectory);
+        await fs.unlink(path); await fs.rmdir(phase === 'owner' ? path.slice(0, -'/owner.json'.length) : ownerDirectory);
       } catch (error) { if (error.code !== 'ENOENT') throw error; }
     }
     ownedKey?.fill(0);

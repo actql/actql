@@ -20,6 +20,8 @@ acceptance. The workflow now schedules these independent workloads:
 - `client-packed` uses the shared tarballs for normal Local asset and Sheets
   consumers, and runs the unchanged Embedded Checkpoint, single INFER,
   public SQL/Pipe and Result description acceptance, with existing evidence uploads
+- `client-packed-composition` uses the same exact tarballs for the complete
+  Source JOIN INFER Effect approval and process-recovery acceptance
 - `client-salesforce` runs the unchanged Salesforce and recovery gates, including
   both Compute-count probes and all nine process-death boundaries
 
@@ -27,7 +29,10 @@ The package consumers and source-backed distribution jobs depend on the exact
 package producer. Native Client transport and Salesforce start independently.
 Salesforce's source-backed recovery imports require the Local runtime bridges;
 it prepares these in its own checkout before the existing gates.
-Each workload retains the previous 30-minute limit. The old 53-command
+Each workload retains the previous 30-minute limit. Source composition has its
+own runner so the other installed-query consumers cannot consume that budget.
+Its complete command is unchanged and remains required by `client`.
+The old 53-command
 `check:distribution-client` local umbrella is unchanged. Its independent CI
 workloads retain all 49 remaining commands once; the four common source
 preparation commands repeat only in the three source-backed jobs. Each job has
@@ -73,7 +78,7 @@ node --test scripts/client-ci.test.mjs scripts/packed-client-packages.test.mjs
 
 Each independent workload remains available through
 `node scripts/local-checks.mjs run <job>`, including the five
-`client-distribution*` jobs, `client-packed` and `client-salesforce`.
+`client-distribution*` jobs, both `client-packed*` jobs and `client-salesforce`.
 `npm run check:distribution-client` retains the complete original local sequence.
 Local execution does not emulate Actions artifact transport;
 without `ACTQL_PACKED_CLIENT_PACKAGES`, scripts retain their existing normal-pack
@@ -225,7 +230,7 @@ directory. The successful installation is reclaimed only after every child
 and Host has ended. Failed campaigns and their custody are retained.
 
 Report both elapsed wall span (first Client dependency start to aggregate finish)
-and summed runner duration across all five Client jobs, including setup, packing,
+and summed runner duration across all Client jobs, including setup, packing,
 artifact transfer, private runtime/native builds and aggregation. Also report
 queue/dependency delay separately when available. A shorter wall span can cost
 more total runner time; added cold native compilation must remain visible.

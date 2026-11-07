@@ -44,8 +44,8 @@
       "record_sites": 8,
       "some_sites": 4,
       "array_sites": 1,
-      "source_sha256": "dfe620a1466c16e5b491721d4fe423167761704ca749749c41361622927f0d83",
-      "body_sha256": "8d88e83a6830da50b45b84bb72d522b8782eb4b87d6cba1f60b8dfb25279d7fa"
+      "source_sha256": "5e0eb128c3700960aacf9118f8616b504d1e6a843b4675fe40fce0a8922416f1",
+      "body_sha256": "eebb5fb2fdf6ec6c31f3fe02972d18812c4fb9020c52f4edd8c79e8012f3c188"
     },
     {
       "path": "src/client_local_host/preparation_closed_values_compiler_layout.mbt",

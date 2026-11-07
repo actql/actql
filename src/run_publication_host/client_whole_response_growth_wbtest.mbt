@@ -158,7 +158,12 @@ test "WholeInput response growth refuses one short byte dimension atomically" {
 ///|
 test "WholeInput announced body reserves the same original before transfer then consumes its actual ticket once" {
   let (_, _, selected) = whole_row_selection()
-  let (run, ledger) = whole_response_growth_start(selected, 20L, 30L)
+  // This case also admits an actual page, unlike the separate one-short
+  // provider-growth cases. Use the existing whole_row_run fixture's finite
+  // 16/32MiB page-construction backing, not a future-input startup allocation.
+  let (run, ledger) = whole_response_growth_start(
+    selected, 16777216L, 33554432L,
+  )
   let borrow = @row_host.borrow_row_input_run_responses(run, selected).unwrap()
   let capacity = @execution.execution_capacity(11L, 23L).unwrap()
   assert_true(
@@ -202,6 +207,13 @@ test "WholeInput announced body reserves the same original before transfer then 
     @resources.ledger_usage(ledger).transferred_bytes,
     body.length().to_int64(),
   )
+  let admitted = @resources.ledger_usage(ledger)
+  assert_true(
+    admitted.reserved_retention_bytes >= grown.reserved_retention_bytes,
+  )
+  assert_true(
+    admitted.reserved_execution_bytes >= grown.reserved_execution_bytes,
+  )
   assert_true(
     @row_host.consume_row_run_response_charge(run, charge)
     is Err(Physical(InvalidCharge)),
@@ -211,7 +223,7 @@ test "WholeInput announced body reserves the same original before transfer then 
   )
   assert_eq(
     @resources.ledger_usage(ledger).reserved_execution_bytes,
-    grown.reserved_execution_bytes,
+    admitted.reserved_execution_bytes,
   )
   stopped.val = true
   @row_host.close_accounted_row_run(run).unwrap()

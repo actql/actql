@@ -53,7 +53,10 @@ for (const entrance of ['local', 'https']) {
     const phase = async phase => {
       const outcome = spawnSync(process.execPath, [processFixture], {input: JSON.stringify({
         root: scratch.path, phase, entrance, runtime: acceptance.runtime, text, parameters}),
-      encoding: 'utf8', timeout: 45000, maxBuffer: 4 * 1024 * 1024});
+      encoding: 'utf8', timeout: 45000, maxBuffer: 4 * 1024 * 1024,
+      // Load this test's own Host certificate before the child initializes TLS.
+      env: entrance === 'https' ? {...process.env,
+        NODE_EXTRA_CA_CERTS: join(scratch.path, 'host.crt')} : process.env});
       assert.equal(outcome.error, undefined, String(outcome.error));
       const report = JSON.parse(await readFile(join(scratch.path, `${phase}.json`), 'utf8'));
       assert.equal(outcome.status, 0, `${JSON.stringify(report)}\n${outcome.stderr}`);

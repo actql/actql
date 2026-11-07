@@ -248,3 +248,227 @@ test "journal packet shape checks Run correspondence without authenticating sele
     is Err(_),
   )
 }
+
+///|
+fn local_run_policy_packet_original(
+  body : Bytes,
+) -> ClientLocalRunPolicyOriginal {
+  admit_client_local_run_policy_original(
+    body,
+    client_local_run_policy_profile(product_common_test_originals()).unwrap(),
+    local_run_policy_packet_reference(),
+    local_run_policy_packet_request(),
+    local_run_policy_packet_definition(),
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "f".repeat(64),
+  ).unwrap()
+}
+
+///|
+// Model an actual mutable Host/FFI view, not a detached test array.
+fn local_run_policy_packet_buffer(value : Bytes) -> FixedArray[Byte] = "%identity"
+
+///|
+test "typed policy Run dependencies accept independently admitted equal identities" {
+  let original = local_run_policy_packet_original(
+    @utf8.encode(local_run_policy_packet_fixture),
+  )
+  let request = local_run_policy_packet_request()
+  let definition = local_run_policy_packet_definition()
+  assert_false(physical_equal(request, original.request))
+  assert_eq(request, original.request)
+  assert_eq(
+    client_local_run_policy_original_run_dependencies(
+      original,
+      original.request,
+      definition,
+    ),
+    Ok(("sha256:" + "a".repeat(64), "sha256:" + "f".repeat(64))),
+  )
+  assert_eq(
+    client_local_run_policy_original_run_dependencies(
+      original, request, definition,
+    ),
+    client_local_run_policy_original_read_dependencies(original),
+  )
+  for
+    foreign in [
+      saved_submission_changed_request, saved_submission_other_request, saved_submission_scope_request,
+    ] {
+    assert_eq(
+      client_local_run_policy_original_run_dependencies(
+        original,
+        admit_client_request_identity_record_wire(foreign).unwrap(),
+        definition,
+      ),
+      Err(InvalidOriginal),
+    )
+  }
+  assert_eq(
+    client_local_run_policy_original_run_dependencies(
+      original,
+      request,
+      saved_submission_definition(),
+    ),
+    Err(InvalidOriginal),
+  )
+}
+
+///|
+test "typed policy keeps admission input detached and returned buffer mutations visible" {
+  let input = @utf8.encode(local_run_policy_packet_fixture)
+  let original = local_run_policy_packet_original(input)
+  let request = local_run_policy_packet_request()
+  let definition = local_run_policy_packet_definition()
+  let body = client_local_run_policy_original_body(original)
+  assert_false(physical_equal(input, body))
+  local_run_policy_packet_buffer(input)[0] = b'!'
+  assert_eq(
+    client_local_run_policy_original_run_dependencies(
+      original, request, definition,
+    ),
+    Ok(("sha256:" + "a".repeat(64), "sha256:" + "f".repeat(64))),
+  )
+  let exposed = local_run_policy_packet_buffer(body)
+  exposed[0] = b'!'
+  assert_eq(
+    client_local_run_policy_original_run_dependencies(
+      original, request, definition,
+    ),
+    Err(InvalidOriginal),
+  )
+  assert_eq(
+    client_local_run_policy_original_read_dependencies(original),
+    Err(InvalidOriginal),
+  )
+  // Expiry has always depended on the original immutable retention, not on
+  // a mutated exposed packet. Restoring bytes does not refresh the baseline.
+  assert_eq(
+    client_local_run_policy_original_read_expires_at(original),
+    "2026-10-14T00:00:00.001Z",
+  )
+  exposed[0] = b'{'
+  assert_eq(
+    client_local_run_policy_original_run_dependencies(
+      original, request, definition,
+    ),
+    Ok(("sha256:" + "a".repeat(64), "sha256:" + "f".repeat(64))),
+  )
+}
+
+///|
+test "typed policy changed body retains raw acceptance and dependency semantics" {
+  let original = local_run_policy_packet_original(
+    @utf8.encode(local_run_policy_packet_fixture),
+  )
+  let request = local_run_policy_packet_request()
+  let definition = local_run_policy_packet_definition()
+  let body = client_local_run_policy_original_body(original)
+  let exposed = local_run_policy_packet_buffer(body)
+  let baseline_digest = original.body_digest
+  for
+    (old, replacement, expected) in [
+      ("a", "0", ("sha256:" + "0".repeat(64), "sha256:" + "f".repeat(64))),
+      ("f", "1", ("sha256:" + "a".repeat(64), "sha256:" + "1".repeat(64))),
+    ] {
+    let changed = @utf8.encode(
+      local_run_policy_packet_fixture.replace(
+        old="sha256:" + old.repeat(64),
+        new="sha256:" + replacement.repeat(64),
+      ),
+    )
+    assert_eq(body.length(), changed.length())
+    for index in 0..<body.length() {
+      exposed[index] = changed[index]
+    }
+    assert_eq(
+      validate_client_local_run_policy_original_run(body, request, definition),
+      Ok(()),
+    )
+    assert_eq(
+      client_local_run_policy_original_run_dependencies(
+        original, request, definition,
+      ),
+      Ok(expected),
+    )
+    assert_eq(
+      client_local_run_policy_original_read_dependencies(original),
+      Ok(expected),
+    )
+    assert_eq(original.body_digest, baseline_digest)
+  }
+  let invalid = @utf8.encode(
+    local_run_policy_packet_fixture.replace(old="86400000", new="86400001"),
+  )
+  assert_eq(body.length(), invalid.length())
+  for index in 0..<body.length() {
+    exposed[index] = invalid[index]
+  }
+  assert_eq(
+    client_local_run_policy_original_run_dependencies(
+      original, request, definition,
+    ),
+    Err(InvalidOriginal),
+  )
+  let oversized : ClientLocalRunPolicyOriginal = {
+    ..original,
+    body: Bytes::make(8193, b' '),
+  }
+  assert_eq(
+    client_local_run_policy_original_run_dependencies(
+      oversized, request, definition,
+    ),
+    Err(InvalidOriginal),
+  )
+}
+
+///|
+test "typed policy changed request body follows the original structural validator" {
+  let original = local_run_policy_packet_original(
+    @utf8.encode(local_run_policy_packet_fixture),
+  )
+  let fields = client_local_original_record_fields(
+    original.body,
+    local_run_policy_original_keys(),
+  ).unwrap()
+  fields[4] = saved_submission_changed_request
+  let changed = client_local_original_record_body(
+    local_run_policy_original_keys().mapi((index, key) => (key, fields[index])),
+  ).unwrap()
+  let request = admit_client_request_identity_record_wire(
+    saved_submission_changed_request,
+  ).unwrap()
+  let definition = local_run_policy_packet_definition()
+  let changed_original : ClientLocalRunPolicyOriginal = {
+    ..original,
+    body: changed,
+  }
+  assert_eq(
+    validate_client_local_run_policy_original_run(changed, request, definition),
+    Ok(()),
+  )
+  assert_eq(
+    client_local_run_policy_original_run_dependencies(
+      changed_original, request, definition,
+    ),
+    Ok(("sha256:" + "a".repeat(64), "sha256:" + "f".repeat(64))),
+  )
+  assert_eq(
+    client_local_run_policy_original_run_dependencies(
+      changed_original,
+      original.request,
+      definition,
+    ),
+    Err(InvalidOriginal),
+  )
+  // Decoded field arrays are detached from the retained request and packet.
+  fields[0] = "foreign"
+  assert_eq(
+    client_local_run_policy_original_run_dependencies(
+      original,
+      original.request,
+      definition,
+    ),
+    Ok(("sha256:" + "a".repeat(64), "sha256:" + "f".repeat(64))),
+  )
+}

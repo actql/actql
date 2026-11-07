@@ -1609,6 +1609,41 @@ fn measure_client_values_pipeline_graph(
 }
 
 ///|
+// Same original pipeline emitter, retaining construction DATA during its
+// existing visits. No second pipeline traversal or wire is constructed.
+fn measure_prepared_client_values_pipeline_construction(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@encode.EncodingConstructionGeometry, ClientValuesPipelineIssue] {
+  let writer = @encode.construction_measuring_writer(
+    max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  match
+    emit_client_values_pipeline_into(
+      value.graph,
+      task,
+      limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      writer,
+      preparation=Some(value),
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  Ok(@encode.finish_construction_measurement(writer)) catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
 /// Canonical AoA identity of one checked source-free Values pipeline. This
 /// identifies the fragment body, not the complete Executable Plan or Run.
 pub struct ClientValuesAoAIdentity {

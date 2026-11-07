@@ -165,7 +165,9 @@ test "actual Common Request entrance keeps its controller outside child Read ret
   let frame = @resources.backed_preparation_original_frame(initial, input).unwrap()
   let policy = @client.client_local_resource_policy()
   let quoted = @client.client_request_preparation_control_capacity(policy).unwrap()
-  assert_eq(quoted, (14712L, 0L))
+  // Current shared fixed control: 233 headers, 416 references, 477 words,
+  // plus the unchanged installed 4096-byte group; no variable body capacity.
+  assert_eq(quoted, (233L * 16L + 416L * 8L + 477L * 8L + 4096L, 0L))
   // Native's issued limits narrow the immutable ordinary policy. No policy
   // ceiling is allocated or asserted to be the actual physical fixture size.
   let owner = @client.begin_backed_request_preparation(initial, input, policy).unwrap()

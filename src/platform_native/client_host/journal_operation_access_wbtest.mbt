@@ -7,6 +7,7 @@ fn journal_test_operation_access(
 ) -> NativeClientJournalOperationAccess {
   {
     reads: journal_test_read_access(database, calls),
+    before_construction: None,
     install_read_evidence_schema: max_rows => {
       calls.push("install read evidence schema")
       database.install_client_read_evidence_schema(max_rows)

@@ -24,6 +24,7 @@ class OriginalHostBindingTests(unittest.TestCase):
         def inspect_frame(owner, inspect, fences, current, **kwargs):
             def inspect_reader(reader):
                 readers.append(reader)
+                object.__setattr__(reader, 'check_inventory', None)
                 query, scan = reader.query_current, reader.scan_after
                 def direct(view, mode, namespace, key, observer):
                     result = query(view, mode, namespace, key, observer)
@@ -76,7 +77,9 @@ class OriginalHostBindingTests(unittest.TestCase):
                 with patch.object(type(store._physical), 'scan_range', changed):
                     with self.assertRaises(error):
                         binding.inspect(lambda _: self.fail('Changed original inventory reached Core'))
-                self.assertEqual(len(queries), 1)
+                # The closed singleton comparison may read its EOF before the
+                # final file fence. No row or Core decision escapes the batch.
+                self.assertEqual(len(queries), 2 if mutation == 'file' else 1)
                 self.assertEqual(len(calls), before)
                 self.assertIs(core._loans[original.ticket], original)
                 self.assertIsNone(core._journal_callbacks(original.ticket).reader)
@@ -119,6 +122,7 @@ class OriginalHostBindingTests(unittest.TestCase):
         def incomplete(owner, inspect, fences, current, **kwargs):
             def inspect_reader(reader):
                 object.__setattr__(reader, 'query_current', None)
+                object.__setattr__(reader, 'check_inventory', None)
                 return inspect(reader)
             return raw(owner, inspect_reader, fences, current, **kwargs)
         before = len(calls)

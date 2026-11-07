@@ -1,7 +1,7 @@
 # Native relation-file capture component
 
 This package connects one actually observed Native file to the existing Common
-RowAcquisition/RowRun owners. It is a component for trusted Host assembly, not an
+RowAcquisition or whole-Source RowInputAcquisition/RowRun owners. It is a component for trusted Host assembly, not an
 installed Source or mock profile. It does not enable the CLI, select an Account,
 issue a journal/permission decision, or establish full mock workflow support.
 
@@ -12,7 +12,8 @@ execution's original Ledger. It accepts no arbitrary Ledger or caller permission
 callback. Caller-supplied declarations, acquisitions, strings and limits must
 already be retained and funded by their original owners.
 
-Preparation checks the declaration/requirement/acquisition originals, reserves
+Preparation checks the declaration/requirement/acquisition originals (or the
+whole-Source acquisition's stored original declaration), reserves
 metadata before copying paths or parsing mapping originals, and reserves the
 complete transport/document overlap before opening the Root or receiving bytes.
 The transport spends its original attempt before opening the Root, uses an actual
@@ -23,6 +24,11 @@ observation after reading and closes the Reader before the Root. The completed
 ticket must match the exact document length at admission; no chunk
 ticket or copied byte count replaces that original. Common owns typed projection,
 query execution, captured Source and the supplied original relation Read.
+Whole Source input consumes the same response ticket before nominal/schema
+checks and funds its real typed input through the existing RowRun owner. It
+never fabricates a Query requirement, replaces the Native execution Ledger or
+refunds received bytes. Listing/Content and current Account authorization remain
+separate existing obligations; this entry does not supply them.
 
 Call `advance` with a positive quantum while the original execution is entered.
 A completed `capture` borrows the same result, not a detached copy. A construction
@@ -41,6 +47,23 @@ path/buffer/diagnostic extents and the filesystem's actual compiled `sizeof`
 facts, including observation and acquisition objects. It is a logical accounting
 recipe, not a measured heap bound or a new funding/profile issuer. The original
 Native domain independently enforces physical allocation.
+
+## Caller preparation inventory
+
+`native_relation_file_caller_preparation_inventory` describes the allocations
+before Source's metadata token exists: one original mapping construction, its
+quote evaluators, bounded Contract walks, validation and refusal carriers. It
+uses the exact selection and page limits. It excludes the later Source-owned
+mapping, transport and retained payload, and excludes the caller's arena borrow
+and Resource reservation constructors. Those have separate owners.
+
+The companion evaluation inventory describes the query's own construction,
+which must be funded before evaluating that query. Neither function issues
+capacity, authorization or an installation original. For the accepted minimum,
+the diagnostic page (8192 bytes, 512 nodes, depth 8, two rows, one path item),
+and the maximum accepted page/path shape, the independently authored full
+caller totals are 222451, 23075950 and 296410702 logical bytes. The larger bound
+does not imply that any installed envelope can admit it.
 
 ## Explicit scoped diagnostic
 

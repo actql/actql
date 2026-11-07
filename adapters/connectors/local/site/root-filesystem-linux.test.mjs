@@ -63,7 +63,7 @@ test('Linux create refuses dangling symlink and namespace contains only shared F
   assert.deepEqual(Object.keys(native).sort(),['openFileRoot','openFileDirectory','openRootFile',
     'fileRootCurrent','fileRootStat','fileRootNext','fileRootRead','fileRootClose','fileRootEntryKind',
     'openRootFileWriter','fileRootWrite','fileRootPublish',
-    'openStoreOwnerLease','storeOwnerLeaseReceipt','localFileWriteConstructionProfile'].sort());
+    'openStoreOwnerLease','storeOwnerLeaseReceipt','localFileWriteConstructionProfile','publishStoreOwnerDirectory','replaceStoreOwnerMetadata'].sort());
   symlinkSync(directory+'/absent',directory+'/result');
   const writer=make();writer.start();writer.write(Buffer.from('exact'));
   assert.throws(()=>writer.publish(),{code:'LocalFileDestinationExists'});

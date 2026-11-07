@@ -963,15 +963,13 @@ fn new_installed_managed_run_owned(
     request,
     ledger: Some(ledger),
     reads: Array::make(
-      @strategy.graph_captured_prefix(
-        installed_managed_owner_graph(
-          match preparation {
-            PureManaged(_, prepared) => Pure(prepared)
-            PlannedEffectManaged(_, plan) => Effect(plan.prepared)
-            PreparationContentManaged(_, prepared) => Pure(prepared)
-          },
-        ),
-      ),
+      match preparation {
+        PlannedEffectManaged(_, plan) => plan.whole_sources.length()
+        PureManaged(_, prepared) | PreparationContentManaged(_, prepared) =>
+          @strategy.graph_captured_prefix(
+            @publication_host.prepared_client_graph(prepared),
+          )
+      },
       None,
     ),
     content: NoContent,
@@ -1398,6 +1396,7 @@ pub fn open_installed_managed_source_free_host(
   fragment_body : String?,
   ordered_body : String?,
   retained_output : Bool,
+  backing? : @resources.Ledger? = None,
   provider_factory? : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ] = _ => [],
@@ -1405,6 +1404,12 @@ pub fn open_installed_managed_source_free_host(
   @builtin.ConfiguredComputeHost[@strategy.RunIssue]?,
   ClientInstalledManagedRunIssue,
 ] {
+  // The trusted Native caller already owns an entered physical frame. This
+  // immutable identity comparison supplies no grant and invokes no callback.
+  if backing is Some(original) &&
+    !(value.ledger is Some(selected) && physical_equal(selected, original)) {
+    return Err(ForeignOriginal)
+  }
   if value.source_free_opening || value.source_free_captured is Some(_) {
     return Err(AlreadyBound)
   }

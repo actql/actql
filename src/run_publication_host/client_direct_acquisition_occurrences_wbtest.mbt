@@ -86,11 +86,19 @@ test "Direct occurrence selection preserves Effect ownership without granting Pu
 }
 
 ///|
-test "Direct occurrence selection refuses unsupported unfiltered capture rather than substituting a shape" {
+test "Direct occurrence selection retains unfiltered Input without manufacturing a Query capture" {
   let prepared = source_input_unfiltered_program()
+  let selected = select_client_direct_acquisition_occurrences(prepared, 1000000).unwrap()
+  assert_eq(client_direct_acquisition_occurrence_count(selected), 1)
+  assert_eq(
+    client_direct_acquisition_occurrence_at(selected, 0),
+    Some((0, 0, 0)),
+  )
+  let original = prepare_client_source_acquisition(prepared, 0, 0).unwrap()
+  assert_eq(@acquisition.source_acquisition_input(original), @pipeline.Input(0))
   assert_true(
-    select_client_direct_acquisition_occurrences(prepared, 1000000)
-    is Err(UnsupportedShape),
+    prepare_client_query_acquisition(prepared, 0, 0)
+    is Err(UnsupportedAcquisition(_)),
   )
 }
 

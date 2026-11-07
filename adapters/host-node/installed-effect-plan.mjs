@@ -12,6 +12,15 @@ const nativePromiseThen = Promise.prototype.then;
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const text = value => typeof value === 'string' && value.length > 0;
 
+// Allocation bounds for the SAME already-owned Preview. A larger Catalog or
+// request-recovery wire does not enlarge this independent parser input. The
+// original decoder still receives its complete configured limits unchanged.
+export function effectRecoveryPreviewBounds(bytes, limits) {
+  const extent = Math.max(1, bytes);
+  return Object.freeze([Math.min(extent, limits.maxWireBytes),
+    Math.min(extent, limits.maxNodes), Math.min(extent, limits.maxDepth)]);
+}
+
 // Fixed installed implementation metadata, not caller tuning or a Resource
 // allowance. Capture the native method/receiver once; no fallback numeric table
 // can silently disagree with the mapper/projector's original implementation.
@@ -227,10 +236,8 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
     // Every JSON node/nesting level occupies an original UTF-8 byte. The
     // saved decoder's existing node/depth limits remain additional bounds;
     // no second parse or serialization is needed to quantify this constructor.
-    const bytes = Math.max(previewBytes, recoveryBytes);
     return checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare(captureOperation,
-      quote(controlEntryBytes, previewBytes, Math.min(bytes, inputLimits.preview.maxNodes),
-        Math.min(bytes, inputLimits.preview.maxDepth), recoveryBytes)));
+      quote(controlEntryBytes, ...effectRecoveryPreviewBounds(previewBytes, inputLimits.preview), recoveryBytes)));
   };
 
   const extent = (name, capacity, transfer, physical) => checked(
@@ -639,6 +646,7 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
   const complete = runtime?.clientProgramInstalledEffectOperationConstructionComplete;
   const completeOutput = runtime?.clientProgramInstalledEffectOperationConstructionCompleteOutput;
   const beginInput = runtime?.clientProgramInstalledEffectOperationInputBegin;
+  const growInput = runtime?.clientProgramInstalledEffectOperationInputGrow;
   if (originalInputExtent !== undefined && (typeof originalInputExtent !== 'function' || typeof beginInput !== 'function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
@@ -690,7 +698,20 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
           checked(Reflect.apply(beginInput, runtime, [token, extent]));
         }
         originalRecord();
-        const value = construct();
+        // The constructor may observe its actual nested input under this
+        // first funded prelude. Only its SAME synchronous flight may grow the
+        // original selected token before entering the complete nested codec.
+        let constructing = true;
+        const grow = extent => {
+          if (!constructing || !preparing || state !== 'preparing' || typeof growInput !== 'function') {
+            fail('InstalledEffectOperationRuntimeUnavailable');
+          }
+          originalRecord();
+          checked(Reflect.apply(growInput, runtime, [token, extent]));
+          originalRecord();
+        };
+        let value;
+        try {value = construct(grow);} finally {constructing = false;}
         if (nodeTypes.isPromise(value)) {
           pendingConstructor = value;
           if (ownedChild) {

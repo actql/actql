@@ -229,7 +229,7 @@ async function effectFixture({splitSource = false,
     mappingCid: mapping.mapping_contract_cid};
 }
 
-test('public Effect submit rejects an unsupported checked acquisition shape before Run acceptance',
+test('public Effect submit rejects more than two independent acquired roots before Run acceptance',
   async t => {
     const terminal = await effectFixture({splitSource: true,
       writeKind: 'create', memberIds: ['save', 'save_again'],
@@ -244,9 +244,8 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
     const acquired = await effectFixture({splitSource: true,
       writeKind: 'update', memberIds: ['save', 'save_again']});
     const program = JSON.parse(acquired.document);
-    // The installed single-acquisition profile supports one terminal Local
-    // Unit, not this checked acquisition followed by two Local Units. Keep
-    // a genuinely unsupported Host shape instead of rejecting source-free DAGs.
+    // The checked acquired prefix may feed multiple Local Units. Their number
+    // is not an unsupported-shape witness for the current compiler.
     program.stages[0].inputs = {remote: {connector: 'crm/main', resource: 'r'}};
     program.stages[0].steps = [{select: ['id'], as: 'selected'}];
     const environmentDocument = JSON.parse(acquired.environmentWire);
@@ -263,10 +262,24 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
     const environment = moon.clientProgramCheckEnvironment(canonicalJson(environmentDocument),
       environmentDocument.evidence_bundle_cid, false, false, true, false, false, false, false);
     assert.ok(environment);
-    const unsupported = {document: JSON.stringify(program), environment};
     const preparation = await fundedClientPreparation(t, {moon, environment, allowEffects: true, http: true});
     assert.equal(typeof preparation.prepareRequest, 'function');
     const prepare = preparation.prepare;
+    const acquiredPrepared = await prepare({kind: 'aql',
+      input: {text: JSON.stringify(program), format: 'json'},
+      parameters: null});
+    checked(moon.clientProgramCompileLocalEffects(acquiredPrepared));
+    // Keep a separate checked negative at the existing installed compiler's
+    // one-or-two acquired-prefix boundary. Each additional root is retained by
+    // a public Result, so it cannot disappear as an unused input. This records
+    // an implementation limit, not a language restriction or provider grant.
+    for (const id of ['source_b', 'source_c']) {
+      const source = structuredClone(program.stages[0]);
+      source.id = id;
+      program.stages.splice(1, 0, source);
+      program.results[id] = {from: {stage: id, result: 'rows'}};
+    }
+    const unsupported = {document: JSON.stringify(program), environment};
     const prepared = await prepare({kind: 'aql',
       input: {text: unsupported.document, format: 'json'},
       parameters: null});

@@ -1,10 +1,49 @@
 ///|
-// Existing normal submitted-intent admission limits, selected once for both
-// construction and its input-derived quote; these are not a resource grant.
-let request_intent_limits : @source.ParseLimits = {
-  max_input_bytes: 1048576,
-  max_nodes: 65536,
-  max_depth: 64,
+// Default native intake derives byte/node bounds from this original Request's
+// observed SDK snapshot. The existing recursion bound and all explicitly
+// selected limits remain separate; these counts never grant Resource capacity.
+let request_intent_max_depth : Int = 64
+
+///|
+fn request_captured_intent_limits(
+  units : Int64,
+  values : Int64,
+) -> @source.ParseLimits? {
+  if units < 1L || values < 1L || values > units {
+    return None
+  }
+  // SAME constructor geometry as native Program intake: six bytes per
+  // observed key/Text code unit; at most32 per value for Number spelling,
+  // keys' delimiters and container punctuation. This is not a new traversal.
+  guard @execution.checked_preparation_add_product(0L, units - values, 6L)
+    is Some(text) &&
+    @execution.checked_preparation_add_product(text, values, 32L) is Some(bytes) &&
+    bytes <= 2147483519L &&
+    values <= 2147483643L else {
+    return None
+  }
+  Some({
+    max_input_bytes: bytes.to_int(),
+    max_nodes: values.to_int(),
+    max_depth: request_intent_max_depth,
+  })
+}
+
+///|
+// A retained intent already belongs to the original Journal/Host admission.
+// Its SAME immutable wire bounds preflight; that original cursor returns actual
+// node/Text geometry before native decoding. No legacy node/byte ceiling or
+// second scan is inserted between this owner and its new process Request.
+fn request_retained_intent_limits(wire : String) -> @source.ParseLimits? {
+  let units = wire.length().to_int64()
+  if units < 1L || units > 2147483519L / 3L {
+    return None
+  }
+  Some({
+    max_input_bytes: (3L * units).to_int(),
+    max_nodes: units.to_int(),
+    max_depth: request_intent_max_depth,
+  })
 }
 
 ///|
@@ -25,18 +64,25 @@ pub fn[I] request_default_program_preparation_limits(
   guard owner.phase == Open && request_intent_input_ready(owner) else {
     return Err(Preparation(WrongPhase))
   }
+  guard request_captured_intent_limits(
+      owner.snapshot_units,
+      owner.snapshot_values,
+    )
+    is Some(selected) else {
+    return Err(Preparation(Policy))
+  }
   let standard = @publication_host.client_standard_program_preparation_limits()
   Ok({
     ..standard,
     checking: {
       ..standard.checking,
       input: {
-        source: request_intent_limits,
+        source: selected,
         tree: {
-          max_nodes: request_intent_limits.max_nodes,
-          max_depth: request_intent_limits.max_depth,
-          max_string_bytes: request_intent_limits.max_input_bytes,
-          max_total_string_bytes: request_intent_limits.max_input_bytes,
+          max_nodes: selected.max_nodes,
+          max_depth: selected.max_depth,
+          max_string_bytes: selected.max_input_bytes,
+          max_total_string_bytes: selected.max_input_bytes,
         },
         max_stages: standard.checking.input.max_stages,
       },
@@ -49,27 +95,37 @@ pub fn[I] request_default_program_preparation_limits(
 // emission. SDK-owned native DATA stays on its already retained snapshot.
 // Source's generic Unicode/key inventory applies; no ClosedValues eligibility,
 // Program geometry, policy-sized padding or second whole-input scan is used.
-fn request_intent_construction_bytes(units : Int64, values : Int64) -> Int64? {
+fn request_intent_construction_bytes(
+  units : Int64,
+  values : Int64,
+  limits : @source.ParseLimits,
+  captured? : Bool = true,
+) -> Int64? {
   guard request_native_input_geometry(
       units,
       values,
-      request_intent_limits.max_input_bytes,
-      request_intent_limits.max_depth,
+      limits.max_input_bytes,
+      limits.max_depth,
     )
     is Some((bytes, observed_nodes, depth)) &&
-    @source.json_construction_extent(
-      bytes,
-      observed_nodes,
-      depth,
-      normalize_keys=false,
-    )
+    (if captured {
+      @source.captured_json_construction_extent(observed_nodes, depth)
+    } else {
+      @source.json_construction_extent(
+        bytes,
+        observed_nodes,
+        depth,
+        normalize_keys=false,
+      )
+    })
     is Some(source) else {
     return None
   }
   // Key enumeration may precede the node-limit refusal, so the Source quote
   // above retains ALL observed slots. Canonical conversion starts only after
-  // that bounded Source succeeds; no more than its admitted 65536 nodes live.
-  let nodes = Int::min(observed_nodes, request_intent_limits.max_nodes)
+  // that bounded Source succeeds; its SAME selected node envelope bounds the
+  // canonical constructor without borrowing policy capacity.
+  let nodes = Int::min(observed_nodes, limits.max_nodes)
   let n = nodes.to_int64()
   let d = depth.to_int64() + 1L
   guard @shape.map_construction_extent(n, n) is Some(maps) &&
@@ -140,7 +196,7 @@ fn request_intent_construction_bytes(units : Int64, values : Int64) -> Int64? {
       {
         record_headers: hash.record_headers + 3L,
         reference_slots: hash.reference_slots + 2L,
-        scalar_words: hash.scalar_words + 2L,
+        scalar_words: hash.scalar_words + 3L,
         owned_utf16_units: hash.owned_utf16_units + bytes.to_int64() + 71L,
         owned_wire_bytes: hash.owned_wire_bytes,
       },
@@ -169,9 +225,15 @@ pub fn[I, T] prepare_request_submitted_intent(
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
-  guard request_intent_construction_bytes(
+  guard request_captured_intent_limits(
       owner.snapshot_units,
       owner.snapshot_values,
+    )
+    is Some(limits) &&
+    request_intent_construction_bytes(
+      owner.snapshot_units,
+      owner.snapshot_values,
+      limits,
     )
     is Some(bytes) else {
     return Err(Policy)
@@ -226,9 +288,10 @@ pub fn[I, T] prepare_request_submitted_intent(
       let result = @publication_host.prepare_captured_client_submitted_intent(
         captured,
         reader,
-        request_intent_limits.max_input_bytes,
-        request_intent_limits.max_nodes,
-        request_intent_limits.max_depth,
+        limits.max_input_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+        max_key_units_out=Some(owner.snapshot_key_units),
       )
       match @resources.finish_preparation_phase_work64(work) {
         Err(issue) => return Err(Work(issue))
@@ -273,7 +336,7 @@ pub fn[I] finish_request_submitted_intent(
   guard @execution.preparation_representation_cost({
       record_headers: 3L,
       reference_slots: 2L,
-      scalar_words: 2L,
+      scalar_words: 3L,
       owned_utf16_units: @publication_host.client_submitted_intent_wire(intent)
       .length()
       .to_int64() +
@@ -406,6 +469,9 @@ pub fn[I] retain_request_submitted_intent(
   owner.intent_attempted = true
   owner.submitted_intent = Some(intent)
   let wire = @publication_host.client_submitted_intent_wire(intent)
+  guard request_retained_intent_limits(wire) is Some(limits) else {
+    return Err(Policy)
+  }
   let mut cursor : @source.JsonSourcePreflight? = None
   let geometry : Result[
     @source.JsonSourceGeometry,
@@ -424,11 +490,7 @@ pub fn[I] retain_request_submitted_intent(
       }
       owner.intent_work = Some(work)
       let source = match
-        @source.start_json_source_preflight(
-          wire,
-          request_intent_limits,
-          data_keys=true,
-        ) {
+        @source.start_json_source_preflight(wire, limits, data_keys=true) {
         Err(_) => return Err(Intent(InvalidEnvelope))
         Ok(value) => value
       }
@@ -487,6 +549,9 @@ pub fn[I] retain_request_submitted_intent(
   // the existing grow-only snapshot API must not be used as a shrink request.
   let values = geometry.node_upper.to_int64()
   let units = values + geometry.quoted_raw_utf16_units.to_int64()
+  // The existing retained-wire preflight already observed quoted extents.
+  // Its longest token bounds any decoded key without another scan or issuer.
+  owner.snapshot_key_units.val = geometry.longest_quoted_raw_utf16
   let bytes = match request_snapshot_data_bytes(units, values) {
     None => return Err(Policy)
     Some(value) => value
@@ -577,4 +642,182 @@ pub fn[I] reserve_request_retained_program_material(
     },
     () => owner.phase = Open,
   )
+}
+
+///|
+/// Back the Native caller's original retained wire decoder BEFORE UTF8/Source
+/// construction. Reuse the existing Source parser inventory and the SAME
+/// preflight's observed node count; a long wire never fabricates tree nodes.
+/// This adds no checker, intent, permission or new Resource owner.
+pub fn[I] reserve_request_retained_intent_source(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[@source.ParseLimits, ClientRequestPreparationIssue] {
+  guard owner.phase == Open &&
+    !owner.native_parameters_ready &&
+    owner.intent_attempted &&
+    !owner.intent_peak_live &&
+    owner.submitted_intent is Some(intent) &&
+    owner.snapshot_values > 0L &&
+    owner.snapshot_values < 2147483647L else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  guard request_retained_intent_limits(
+      @publication_host.client_submitted_intent_wire(intent),
+    )
+    is Some(wire_limits) else {
+    return Err(Policy)
+  }
+  let limits : @source.ParseLimits = {
+    max_input_bytes: wire_limits.max_input_bytes,
+    max_nodes: owner.snapshot_values.to_int(),
+    max_depth: wire_limits.max_depth,
+  }
+  let absolute = match owner.intent_source_quote {
+    Some(original) => original
+    None => {
+      guard @decode.preserving_json_parser_construction_inventory(
+          limits.max_input_bytes,
+          limits.max_nodes,
+          Int::min(limits.max_nodes, limits.max_depth),
+        )
+        is Some(parser) &&
+        @execution.preparation_representation_cost({
+          record_headers: parser.record_headers + 1L,
+          reference_slots: parser.reference_slots,
+          scalar_words: parser.scalar_words,
+          owned_utf16_units: parser.owned_utf16_units,
+          owned_wire_bytes: limits.max_input_bytes.to_int64(),
+        })
+        is Some(bytes) else {
+        return Err(Policy)
+      }
+      owner.phase = Selecting
+      let before : Result[(Int64, Int64), ClientRequestPreparationIssue] = preparation_module_call(
+        () => {
+          @resources.preparation_capacity_working_extents(owner.capacity, input).map_err(issue => {
+              Capacity(issue)
+            },
+          )
+        },
+        () => owner.phase = Open,
+      )
+      let (r, e) = match before {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
+      }
+      guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+        @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+        return Err(Policy)
+      }
+      owner.intent_source_quote = Some((r, e))
+      (r, e)
+    }
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      @resources.reserve_working_preparation_phase(
+        owner.capacity,
+        input,
+        absolute.0,
+        absolute.1,
+      ).map_err(issue => ClientRequestPreparationIssue::Capacity(issue))
+    },
+    () => owner.phase = Open,
+  ).map(_ => limits)
+}
+
+///|
+/// The Native command's original input frame precedes its admitted intent.
+/// Back the observed transport/encoding envelope on that SAME Request before
+/// reading file payload, encoding or issuing the intent. The fixed original
+/// syntax node/depth policy is preserved; bytes are actual input demand.
+/// A declined grow retains the same baseline and cannot add it twice.
+pub fn[I] reserve_request_native_intake_wire(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  wire_bytes : Int,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard owner.phase == Open &&
+    !owner.intent_attempted &&
+    owner.submitted_intent is None &&
+    wire_bytes > 0 &&
+    wire_bytes < 2147483519 &&
+    wire_bytes >= owner.native_intake_wire_bytes else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  if wire_bytes == owner.native_intake_wire_bytes {
+    // A new constructor boundary still needs currentness even when its SAME
+    // existing debit already fits. Do not manufacture a no-op resize/debit.
+    owner.phase = Selecting
+    return preparation_module_call(
+      () => {
+        @resources.check_working_preparation_capacity_current(
+          owner.capacity,
+          input,
+        ).map_err(issue => ClientRequestPreparationIssue::Capacity(issue))
+      },
+      () => owner.phase = Open,
+    )
+  }
+  let standard = @publication_host.client_standard_program_preparation_limits().checking.input.source
+  let nodes = Int::min(wire_bytes, standard.max_nodes)
+  let limits : @source.ParseLimits = {
+    max_input_bytes: wire_bytes,
+    max_nodes: nodes,
+    max_depth: standard.max_depth,
+  }
+  guard request_intent_construction_bytes(
+      wire_bytes.to_int64(),
+      nodes.to_int64(),
+      limits,
+      captured=false,
+    )
+    is Some(intent) &&
+    @execution.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 16L,
+      scalar_words: 16L,
+      owned_utf16_units: wire_bytes.to_int64() * 2L,
+      // Original bounded Reader quantum plus its accumulating/copy buffers.
+      owned_wire_bytes: 65536L + wire_bytes.to_int64() * 4L,
+    })
+    is Some(transport) &&
+    @execution.checked_preparation_add_product(intent, transport, 1L)
+    is Some(bytes) else {
+    return Err(Policy)
+  }
+  let base = match owner.native_intake_base {
+    Some(value) => value
+    None => {
+      let value = match
+        @resources.preparation_capacity_working_extents(owner.capacity, input) {
+        Err(issue) => return Err(Capacity(issue))
+        Ok(value) => value
+      }
+      owner.native_intake_base = Some(value)
+      value
+    }
+  }
+  guard @execution.checked_preparation_add_product(base.0, bytes, 1L) is Some(r) &&
+    @execution.checked_preparation_add_product(base.1, bytes, 1L) is Some(e) else {
+    return Err(Policy)
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      @resources.reserve_working_preparation_phase(owner.capacity, input, r, e).map_err(issue => {
+          ClientRequestPreparationIssue::Capacity(issue)
+        },
+      )
+    },
+    () => owner.phase = Open,
+  ).map(_ => owner.native_intake_wire_bytes = wire_bytes)
 }

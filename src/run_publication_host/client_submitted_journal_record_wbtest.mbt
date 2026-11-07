@@ -289,3 +289,73 @@ test "retained admission refuses foreign Reference and Run Definition" {
     is Err(CustodyLost),
   )
 }
+
+///|
+test "observed submitted row restores large original intent and preserves canonical refusal" {
+  let original = decode_client_submitted_journal_row(
+    @utf8.encode(saved_submission_preparing),
+  ).unwrap()
+  let wire = "{\"input\":{\"text\":\"" +
+    "x".repeat(300000) +
+    "\"},\"kind\":\"aql\",\"parameters\":null}"
+  let intent = prepare_client_submitted_intent(wire, 400000, 64, 8).unwrap()
+  let reference = client_submission_reference_record_wire(original.reference)
+  // Explicit source-only construction scope. No Native allocator, Read grow,
+  // physical transaction or Saved runtime is substituted by this fixture.
+  let body = client_submitted_intent_journal_row_body(
+    reference,
+    intent,
+    before_construction=Some((_, _, _) => Ok(())),
+  ).unwrap()
+  assert_true(body.length() > 262144)
+  assert_true(decode_client_submitted_journal_row(body) is Err(CustodyLost))
+  let decoded = decode_client_submitted_journal_row_profile(body, true).unwrap()
+  assert_eq(client_submitted_intent_wire(decoded.intent), wire)
+  assert_eq(
+    client_submitted_intent_cid(decoded.intent),
+    client_submitted_intent_cid(intent),
+  )
+  assert_eq(decoded.intent.wire_bytes, intent.wire_bytes)
+  assert_eq(
+    client_submission_reference_record_wire(decoded.reference),
+    reference,
+  )
+  assert_true(decoded.run_admission is None)
+  let text = @utf8.decode(body)
+  for
+    invalid in [
+      " " + text,
+      text.replace(old="\"phase\":\"preparing\"", new="\"phase\":null"),
+      text.replace(
+        old="\"phase\":\"preparing\"",
+        new="\"phase\":\"preparing\",\"phase\":\"ready\"",
+      ),
+      text.replace(
+        old="actql-native-client-submitted-intent-row/0.1",
+        new="foreign-client-submitted-intent-row/0.1",
+      ),
+    ] {
+    assert_true(
+      decode_client_submitted_journal_row_profile(@utf8.encode(invalid), true)
+      is Err(CustodyLost),
+    )
+  }
+}
+
+///|
+test "observed submitted row keeps nonintent string profile unchanged" {
+  let original = decode_client_submitted_journal_row(
+    @utf8.encode(saved_submission_ready),
+  ).unwrap()
+  let body = client_submitted_intent_journal_row_body(
+    client_submission_reference_record_wire(original.reference),
+    original.intent,
+    run_admission=original.run_admission,
+    run_state_original=Some("{}"),
+    run_state_observation=Some((1L, Some("x".repeat(131073)))),
+    before_construction=Some((_, _, _) => Ok(())),
+  ).unwrap()
+  assert_true(
+    decode_client_submitted_journal_row_profile(body, true) is Err(CustodyLost),
+  )
+}

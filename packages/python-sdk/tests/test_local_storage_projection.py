@@ -286,7 +286,7 @@ class ProjectedAttachmentTests(unittest.TestCase):
 
         physical = sqlite3.connect
         with TemporaryDirectory() as directory, patch('actql_sdk._local_storage.sqlite3.connect',
-                side_effect=lambda *a, **k: physical(*a, **k, factory=FailWrite)):
+                side_effect=lambda *a, **k: physical(*a, **(k | {'factory': FailWrite}))):
             with self.store(Path(directory) / 'core.sqlite') as store:
                 originals = self.originals(store)
                 store._connection.armed = True
@@ -313,7 +313,7 @@ class ProjectedAttachmentTests(unittest.TestCase):
 
         physical = sqlite3.connect
         with TemporaryDirectory() as directory, patch('actql_sdk._local_storage.sqlite3.connect',
-                side_effect=lambda *a, **k: physical(*a, **k, factory=LostAck)):
+                side_effect=lambda *a, **k: physical(*a, **(k | {'factory': LostAck}))):
             with self.store(Path(directory) / 'core.sqlite') as store:
                 originals = self.originals(store)
                 calls = []
@@ -344,7 +344,7 @@ class ProjectedAttachmentTests(unittest.TestCase):
 
         physical = sqlite3.connect
         with TemporaryDirectory() as directory, patch('actql_sdk._local_storage.sqlite3.connect',
-                side_effect=lambda *a, **k: physical(*a, **k, factory=FailedRollback)):
+                side_effect=lambda *a, **k: physical(*a, **(k | {'factory': FailedRollback}))):
             with self.store(Path(directory) / 'core.sqlite') as store:
                 originals = self.originals(store)
                 handle = store._connection

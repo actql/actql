@@ -92,10 +92,20 @@ fn require_installed_source_read_current(
       physical_equal(selected, value) else {
       return Err(ForeignOriginal)
     }
-    return match check_installed_source_read_retained_ledger(value, ledger) {
-      Err(issue) => Err(issue)
-      Ok(_) => Ok(ledger)
+    // The current callback may retire this read but leave the parent's slot.
+    // These scalar/reference guards add no Result/Unit constructor to existing
+    // Source paths; preserve their original single returned Ledger Result.
+    guard value.original is Some(retained) && physical_equal(retained, value) else {
+      return Err(ForeignOriginal)
     }
+    guard value.ledger is Some(retained_ledger) else { return Err(Retired) }
+    guard physical_equal(retained_ledger, ledger) &&
+      value.managed_run is Some((retained_run, retained_occurrence)) &&
+      physical_equal(retained_run, run) &&
+      retained_occurrence == occurrence else {
+      return Err(ForeignOriginal)
+    }
+    return Ok(ledger)
   }
   guard value.child is Some(child) else { return Err(Retired) }
   match @resources.check_imported_original_child_ledger(child, ledger) {
@@ -104,8 +114,19 @@ fn require_installed_source_read_current(
   }
   match @resources.check_original_resources_mutable(ledger) {
     Err(issue) => Err(Resource(issue))
-    Ok(_) =>
-      check_installed_source_read_retained_ledger(value, ledger).map(_ => ledger)
+    Ok(_) => {
+      guard value.original is Some(retained) && physical_equal(retained, value) else {
+        return Err(ForeignOriginal)
+      }
+      guard value.ledger is Some(retained_ledger) else { return Err(Retired) }
+      guard physical_equal(retained_ledger, ledger) &&
+        value.child is Some(retained_child) &&
+        physical_equal(retained_child, child) &&
+        value.managed_run is None else {
+        return Err(ForeignOriginal)
+      }
+      Ok(ledger)
+    }
   }
 }
 
@@ -213,6 +234,11 @@ pub fn check_installed_source_read_frame_retained(
   if !physical_equal(observation.read, value) ||
     !physical_equal(observation.frame, frame) {
     return Err(ForeignOriginal)
+  }
+  if value.managed_run is None {
+    guard value.child is Some(child) && physical_equal(child, frame) else {
+      return Err(ForeignOriginal)
+    }
   }
   match
     @resources.check_imported_original_child_ledger_retained(

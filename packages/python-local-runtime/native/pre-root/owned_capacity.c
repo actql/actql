@@ -71,7 +71,9 @@ struct owned_domain_growth {
     uint64_t serial;
     size_t expected_parent, expected_domain;
     size_t parent_bytes, parent_controls, domain_bytes, domain_controls;
-    unsigned state;
+    size_t ceiling_before;
+    bool expand_read_bound;
+    unsigned state, outcome;
 };
 
 struct actql_owned_capacity {
@@ -97,7 +99,9 @@ struct actql_owned_capacity {
     /* Optional one-shot physical ceiling, including original control pages.
      * It never changes mapping size, ownership, reservations or retirement. */
     size_t allocation_ceiling_pages;
+    size_t allocation_maximum_pages;
     bool allocation_ceiling_attempted;
+    bool allocation_working_bound;
     size_t rust_available[8];
     uint64_t rust_serial;
     atomic_int rust_process;
@@ -250,6 +254,7 @@ int actql_native_owned_acquire(size_t capacity, uint64_t generation,
     lease->first_free_page = control_pages;
     lease->occupied_pages = lease->peak_occupied_pages = control_pages;
     lease->allocation_ceiling_pages = count;
+    lease->allocation_maximum_pages = count;
     lease->backing_device = 0;
     lease->backing_inode = 0;
     lease->fd_backed = false;
@@ -339,6 +344,7 @@ static int grow_capacity_locked(actql_owned_capacity *lease, size_t expected_byt
     lease->page_count += count;
     lease->length += additional_bytes;
     lease->allocation_ceiling_pages += count;
+    lease->allocation_maximum_pages += count;
     lease->occupied_pages += controls;
     if (lease->occupied_pages > lease->peak_occupied_pages)
         lease->peak_occupied_pages = lease->occupied_pages;
@@ -439,8 +445,8 @@ int actql_native_owned_control_bytes(actql_owned_capacity *lease, uint64_t *out)
 /* Trusted same-original supplier only, before the first payload allocation.
  * Failed selection is consumed too. Freeing an extent never changes this
  * ceiling or discharges the mapping, domain, loan or descriptor responsibility. */
-int actql_native_owned_bound_allocations(actql_owned_capacity *lease,
-                                        size_t bytes) {
+static int bound_allocations_original(actql_owned_capacity *lease,
+    size_t initial_bytes, size_t maximum_bytes, bool working) {
     if (lease == NULL || current_capacity != lease || current_depth == 0 ||
         foreign_domain_process(lease)) return ACTQL_OWNED_INVALID;
     lock_capacity(lease);
@@ -450,16 +456,33 @@ int actql_native_owned_bound_allocations(actql_owned_capacity *lease,
         !lease->closing && !foreign_domain_process(lease)) {
         lease->allocation_ceiling_attempted = true;
         lease->allocation_ceiling_pages = lease->control_pages;
-        if (bytes != 0 && bytes % lease->page_size == 0 &&
-            bytes <= lease->length && bytes / lease->page_size > lease->control_pages &&
+        lease->allocation_maximum_pages = lease->control_pages;
+        if (initial_bytes != 0 && initial_bytes % lease->page_size == 0 &&
+            maximum_bytes >= initial_bytes && maximum_bytes <= PTRDIFF_MAX &&
+            maximum_bytes % lease->page_size == 0 && initial_bytes <= lease->length &&
+            initial_bytes / lease->page_size > lease->control_pages &&
             lease->occupied_pages == lease->control_pages &&
             lease->peak_occupied_pages == lease->control_pages) {
-            lease->allocation_ceiling_pages = bytes / lease->page_size;
+            lease->allocation_ceiling_pages = initial_bytes / lease->page_size;
+            lease->allocation_maximum_pages = maximum_bytes / lease->page_size;
+            lease->allocation_working_bound = working;
             status = ACTQL_OWNED_OK;
         }
     }
     unlock_capacity(lease);
     return status;
+}
+
+int actql_native_owned_bound_allocations(actql_owned_capacity *lease, size_t bytes) {
+    return bound_allocations_original(lease, bytes, bytes, false);
+}
+
+/* Same immutable selected maximum, smaller actually backed initial prefix.
+ * Selection creates no mapping or semantic allowance. Only checked acquisition
+ * can extend the current bound, and never beyond this original maximum. */
+int actql_native_owned_bound_working_allocations(actql_owned_capacity *lease,
+    size_t initial_bytes, size_t maximum_bytes) {
+    return bound_allocations_original(lease, initial_bytes, maximum_bytes, true);
 }
 
 int actql_native_owned_rounded_bytes(actql_owned_capacity *lease, size_t bytes,
@@ -525,6 +548,27 @@ int actql_native_owned_domain_returned(actql_owned_capacity *lease,
         ? ACTQL_OWNED_OK : ACTQL_OWNED_BUSY;
 }
 
+/* Publish exact placement in the existing extent table. Private growth must
+ * retain its candidate even when page activation returns an uncertain result. */
+static void publish_storage_locked(actql_owned_capacity *lease, size_t start,
+    size_t pages, bool domain_storage) {
+    owned_extent(lease, start)->pages = pages;
+    owned_extent(lease, start)->retired = false;
+    owned_extent(lease, start)->domain_storage = domain_storage;
+    lease->occupied_pages += pages;
+    if (lease->occupied_pages > lease->peak_occupied_pages)
+        lease->peak_occupied_pages = lease->occupied_pages;
+    for (size_t i = 1; i < pages; i++) owned_extent(lease, start + i)->pages = SIZE_MAX;
+    /* Preserve first-fit, including earlier holes skipped for alignment or
+     * size. Only a consumed first free page advances this cached prefix. */
+    if (start == lease->first_free_page) {
+        size_t next = start + pages;
+        while (next < lease->page_count && owned_extent(lease, next)->pages != 0)
+            next++;
+        lease->first_free_page = next;
+    }
+}
+
 /* Existing generic placement, called under the original capacity lock. */
 static int allocate_storage_original_locked(actql_owned_capacity *lease, size_t bytes,
     size_t alignment, void **out, bool domain_storage, actql_owned_capacity *growth) {
@@ -563,6 +607,13 @@ static int allocate_storage_original_locked(actql_owned_capacity *lease, size_t 
             return ACTQL_OWNED_INVALID;
         void *base = (void *)address;
         size_t length = pages * lease->page_size;
+        if (growth != NULL) {
+            /* This output is the same supplier receipt's cleanup custody, not
+             * a successful payload grant. Its original fence excludes reuse. */
+            publish_storage_locked(lease, start, pages, domain_storage);
+            owned_extent(lease, start)->retired = true;
+            *out = base;
+        }
         if (mprotect(base, length, PROT_READ | PROT_WRITE) != 0) {
             status = ACTQL_OWNED_PHYSICAL_FAILURE;
             break;
@@ -577,21 +628,8 @@ static int allocate_storage_original_locked(actql_owned_capacity *lease, size_t 
                 lease->extent_work_overflow = true;
             else lease->extent_work[i] += work[i];
         }
-        owned_extent(lease, start)->pages = pages;
-        owned_extent(lease, start)->retired = false;
-        owned_extent(lease, start)->domain_storage = domain_storage;
-        lease->occupied_pages += pages;
-        if (lease->occupied_pages > lease->peak_occupied_pages)
-            lease->peak_occupied_pages = lease->occupied_pages;
-        for (size_t i = 1; i < pages; i++) owned_extent(lease, start + i)->pages = SIZE_MAX;
-        /* Preserve first-fit, including earlier holes skipped for alignment or
-         * size. Only a consumed first free page advances this cached prefix. */
-        if (start == lease->first_free_page) {
-            size_t next = start + pages;
-            while (next < lease->page_count && owned_extent(lease, next)->pages != 0)
-                next++;
-            lease->first_free_page = next;
-        }
+        if (growth == NULL) publish_storage_locked(lease, start, pages, domain_storage);
+        else owned_extent(lease, start)->retired = false;
         *out = base;
         status = ACTQL_OWNED_OK;
         break;

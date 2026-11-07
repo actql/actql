@@ -1,11 +1,28 @@
 """Bounded physical query transport; original Core Owners decide inventory facts."""
 from dataclasses import dataclass
 from collections.abc import Callable
+from typing import NamedTuple
 from ._local_storage import _NamespaceReader, StoredBytes, LocalByteStore
 
 _QUERY_BYTES = 8192
 _KEY_BYTES = 4096
 _ROW_BYTES = 262144
+
+
+class _JournalRowTransfer(NamedTuple):
+    # A true immutable tuple, including against object.__setattr__. Callback
+    # mutations cannot rewrite the comparison baseline or retained originals.
+    # These are physical aliases only, never a Store or permission owner.
+    physical: object
+    reader: _NamespaceReader
+    memory: object
+    row: tuple[bytes, StoredBytes]
+    ticket: int
+    store: LocalByteStore
+    current: Callable[[], object]
+    key: bytes
+    body: bytes
+    generation: int
 
 
 @dataclass(slots=True)
@@ -22,6 +39,9 @@ class _JournalCallbacks:
     mode: int = -1
     row: tuple[bytes, StoredBytes] | None = None
     queried: bool = False
+    transfer: _JournalRowTransfer | None = None
+    transfer_ready: bool = False
+    transfer_started: bool = False
 
     def _fail(self, error: BaseException) -> int:
         if self.failure is None:
@@ -84,6 +104,7 @@ class _JournalCallbacks:
     def begin(self, mode: int, namespace_length: int, key_length: int) -> int:
         try:
             if (self.request is not None or self.queried or self.row is not None
+                    or self.transfer is not None
                     or type(mode) is not int or mode not in (0, 1)
                     or type(namespace_length) is not int or not 0 < namespace_length <= _KEY_BYTES
                     or type(key_length) is not int or not 0 <= key_length <= _KEY_BYTES
@@ -193,10 +214,22 @@ class _JournalCallbacks:
                 reader.scan_after(namespace, key, consume)
             else:
                 reader.read(namespace, key, consume)
+            # Keep independent returned DATA across the final reader/current
+            # callback. Frozen StoredBytes is not a mutable comparison baseline.
+            original = self.row
+            original_key = None if original is None else original[0]
+            original_body = None if original is None else original[1].payload
+            original_generation = None if original is None else original[1].generation
             if (self.check_current() if query_current is None else self.check_frame()) != 0:
                 return -41
+            if (self.reader is not reader or self.row is not original
+                    or original is not None and (original[0] is not original_key
+                        or original[1].payload is not original_body
+                        or type(original[1].generation) is not int
+                        or original[1].generation != original_generation)):
+                raise ValueError('Original Local journal returned row changed')
             # Only the actual physical reader's confirmed miss/end yields 1.
-            return 1 if self.row is None else 0
+            return 1 if original is None else 0
         except BaseException as error:
             return self._fail(error)
 
@@ -223,6 +256,9 @@ class _JournalCallbacks:
     def release(self) -> int:
         # Release only the transient query copy. This is not transaction
         # cleanup, COMMIT, acknowledgement, Run completion or buffer retirement.
+        self.transfer = None
+        self.transfer_ready = False
+        self.transfer_started = False
         self.row = None
         self.request = None
         self.received = 0
@@ -230,3 +266,16 @@ class _JournalCallbacks:
         self.mode = -1
         self.queried = False
         return 0 if self.failure is None else -41
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(_JournalCallbacks, (
+        '_fail', 'begin', 'byte',
+        'check_current', 'check_frame', 'length',
+        'query', 'query_copy', 'release',
+        'revision', 'row_byte', 'row_copy',
+        'schema',
+    )),
+)

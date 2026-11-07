@@ -127,6 +127,12 @@ await writeFile(join(root, 'values.json'), document);
 const expected = JSON.parse(document).stages[0].steps[0].values.rows;
 await writeFile(join(root, 'expected.json'), JSON.stringify(expected));
 
+// Retain one explicit policy from this exact installed package for both the
+// published Source environment and every restarted Host installation.
+const sourceBaseEnvironment = JSON.parse(await readFile(join(root, 'node_modules',
+  '@actql', 'local-node', 'spec', 'local-check-environment.json'), 'utf8'));
+const hostCapacityPolicy = sourceBaseEnvironment.host_policy_profile.capacity;
+
 // The installed DuckDB source for Programs with real input: a real table,
 // its checked Catalog view and the source's own read account (delegate).
 await writeFile(join(root, 'source-program.json'), await readFile(join(
@@ -134,9 +140,7 @@ await writeFile(join(root, 'source-program.json'), await readFile(join(
 {
   const environment = JSON.parse(await readFile(join(repository,
     'adapters/host-node/fixtures/query-amount-environment.json'), 'utf8'));
-  const base = JSON.parse(await readFile(join(root, 'node_modules', '@actql',
-    'local-node', 'spec', 'local-check-environment.json'), 'utf8'));
-  environment.host_policy_profile = base.host_policy_profile;
+  environment.host_policy_profile = sourceBaseEnvironment.host_policy_profile;
   delete environment.evidence_bundle_cid;
   environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
     .update(canonicalText(environment)).digest('hex');
@@ -202,7 +206,8 @@ const configuration = outcome === 'missing' ? undefined : canonical({
       connection: {any_of: ['actql-remote-host']},
       operation: {any_of: ['read']}, outcome: 'allow',
       principal: {any_of: [userInfo().username]},
-      resource: {any_of: ['result/answer', 'run']}},
+      resource: {any_of: process.env.ACQUIRED === '1'
+        ? ['result/b', 'result/c', 'run'] : ['result/answer', 'run']}},
     {entry_id: 'run-acceptance', exclusions: [],
       connection: {any_of: ['actql-remote-host']},
       operation: {any_of: ['write']}, outcome, principal: {all: true},
@@ -239,6 +244,7 @@ const decide = process.env.DECIDE === 'none' ? undefined : view => {
 };
 const installation = {
   directory: process.env.STATE,
+  hostCapacityPolicy: ${JSON.stringify(hostCapacityPolicy)},
   ...(process.env.ACQUIRED === '1' ?
     {sourceProfilePath: new URL('source-profile.json',
       'file://' + process.cwd() + '/').pathname} : {}),
@@ -277,6 +283,7 @@ if (process.env.HISTORICAL_REQUESTS !== undefined) {
     const document = JSON.stringify(parsed);
     const options = {directory: process.env.STATE, document, requestId,
       authorization: installation.authorization,
+      hostCapacityPolicy: installation.hostCapacityPolicy,
       expressionContractUrl: new URL('actql-expressions.json', import.meta.url),
       runtimeRootUrl: new URL('.', import.meta.resolve('@actql/local-node')), mode: 'remote'};
     const original = acquired
@@ -573,13 +580,14 @@ const steps = {
     assert.equal((await execution.status()).status, 'cancelled');
   },
   // A historical original remains observable/attachable after restart and
-  // can start only under its resumed authorization. Bare ingress stays refused.
+  // can start only under its resumed authorization. Risk restart without a
+  // current submitted reference stays refused; a public name is not that ref.
   async recoveredAgain() {
     const owner = await as('owner-token');
     const lookup = await owner.lookupRequest(requestId);
     assert.equal(lookup.kind, 'found');
     const execution = await owner.attach(lookup.ref);
-    await assert.rejects(owner.startSource(text, {format: 'json', requestId}),
+    await assert.rejects(owner.startSource(text, {format: 'json', requestId, unresolvedHistory: lookup}),
       {code: 'SubmissionReferenceRequired'});
     let state;
     for (let attempt = 0; attempt < 400; attempt++) {

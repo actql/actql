@@ -26,10 +26,28 @@ test('signed-literal controls fix grouped values independently and retain typed 
   assert.deepEqual(cases.get('unary-plus-signed-literal-alias-receiver').expected,
     [{amount: 5}, {amount: 1}, {amount: null}]);
   assert.deepEqual(signedLiteralRefusals.map(item => item.expectedCode),
-    ['ClientProgramInvalidInput', 'ClientProgramInvalidInput', 'ClientProgramImplementationLimit']);
+    ['ClientProgramInvalidInput', 'ClientProgramImplementationLimit']);
   for (const item of [...signedLiteralSuccesses, ...signedLiteralRefusals]) {
     assert.equal(item.sourceReadSessionCount ?? 1, 1);
   }
+});
+
+test('signed expression zero grouping retains the original source and unordered multiplicities', () => {
+  const name = 'unary-plus-signed-literal-negative-zero-key';
+  const item = signedLiteralSuccesses.find(value => value.name === name);
+  assert(item);
+  assert.equal(item.text, 'SELECT amount + -(-0) AS bucket, COUNT(*) AS n FROM records '
+    + 'GROUP BY amount + -(-0)');
+  assert.deepEqual(item.sourceRows, [{id: 3, amount: 30}, {id: 1, amount: null},
+    {id: 2, amount: 20}, {id: 3, amount: 30}]);
+  assert.deepEqual(item.expected, [{bucket: 20, n: 1}, {bucket: 30, n: 2}, {bucket: null, n: 1}]);
+  assert.deepEqual(item.columns, [{name: 'bucket', contract: {type: 'number', nullable: true}},
+    {name: 'n', contract: {type: 'number', nullable: false}}]);
+  assert.deepEqual(item.results, {main: {rows: item.expected, columns: item.columns, unordered: true}});
+  assert.equal(item.sourceReadCount, undefined);
+  assert.equal(item.sourceReadSessionCount, 1);
+  assert(!signedLiteralRefusals.some(value => value.name === name));
+  assert(signedLiteralRefusals.some(value => value.name.endsWith('-different-key')));
 });
 
 test('numeric identity fixtures retain NULL, duplicates, negative values and ordered contracts', () => {
