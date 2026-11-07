@@ -313,7 +313,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       moon.clientProgramRowSourceCaptureSource(captured));
     const capturedSource = source();
     const {checkedOwner, effectful, occurrence} = owner;
-    if ((effectful
+    if (!(effectful && wholeInput) && (effectful
       ? occurrence.task === 0
         ? moon.clientProgramEffectCapturedSourceMatches(checkedOwner, capturedSource)
         : moon.clientProgramEffectCapturedSourceMatchesAt(checkedOwner,
@@ -326,8 +326,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       ? moon.clientProgramIdentifyCapturedEffectSourceRelation(capturedSource)
       : moon.clientProgramIdentifyCapturedSourceRelation(capturedSource));
     const logicalInput = checked(wholeInput
-      ? moon.clientProgramIssueWholeSourceInputLogical(checkedOwner,
-        capturedSource, identity, owner.providerCaptureCapacity)
+      ? effectful
+        ? moon.clientProgramIssueEffectWholeSourceInputLogical(checkedOwner,
+          capturedSource, identity, owner.providerCaptureCapacity)
+        : moon.clientProgramIssueWholeSourceInputLogical(checkedOwner,
+          capturedSource, identity, owner.providerCaptureCapacity)
       : effectful
       ? occurrence.task === 0
         ? moon.clientProgramEffectIssueCapturedSourceLogical(checkedOwner,

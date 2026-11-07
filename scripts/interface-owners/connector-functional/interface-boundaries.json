@@ -12404,7 +12404,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "45249d2f5216fdd75c7b707c517c93744677d67be0f7fbd016c1eb58ca1c597e",
+      "sha256": "faf7bfd357bab763afa152779c53e418c7e7d318f1c2d1d16d021fcad30829f7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -13839,7 +13839,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "a879c9823e31d76ec86ad3cd0bc5dd712f1132873bb1cb190b4976ec1408393c",
+      "sha256": "e6b6c16458f6e47db8e9883eb827d959bb7bfd9ba8473d90f5c32932305f7254",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -14179,7 +14179,8 @@
             "occurrence",
             "checkedOwner",
             "wholeInput",
-            "plannedAcquisition"
+            "plannedAcquisition",
+            "effectful"
           ],
           "async": false
         },

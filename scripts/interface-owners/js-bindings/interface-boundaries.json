@@ -32125,7 +32125,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2e5a550f0717b3b6e90d2e084215ffba0d2e735b4f9c3a035bd2023d2e07992c",
+      "sha256": "b721cfa805464f2209b42454fd30ed329614f9f9d70c7c119432c0e8cc222fdb",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32625,7 +32625,8 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
           "parameters": [
-            "value"
+            "value",
+            "index"
           ],
           "async": false
         },
@@ -32739,6 +32740,13 @@
           "name": "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "openAcquiredEffectComputation/wholeInputs/wholeInputs",
+          "parameters": [
+            "source"
+          ],
+          "async": false
         },
         {
           "name": "selectRestoredKeyedSource",
@@ -32915,7 +32923,8 @@
             "acquiredEffectModelGroup/same/same/same",
             "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
             "acquiredEffectModelGroup/retirePublication",
-            "openAcquiredEffectComputation/retireInferPublication/retireInferPublication"
+            "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
+            "openAcquiredEffectComputation/wholeInputs/wholeInputs"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -86782,7 +86791,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "45249d2f5216fdd75c7b707c517c93744677d67be0f7fbd016c1eb58ca1c597e",
+      "sha256": "faf7bfd357bab763afa152779c53e418c7e7d318f1c2d1d16d021fcad30829f7",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -88524,7 +88533,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a879c9823e31d76ec86ad3cd0bc5dd712f1132873bb1cb190b4976ec1408393c",
+      "sha256": "e6b6c16458f6e47db8e9883eb827d959bb7bfd9ba8473d90f5c32932305f7254",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -88877,7 +88886,8 @@
             "occurrence",
             "checkedOwner",
             "wholeInput",
-            "plannedAcquisition"
+            "plannedAcquisition",
+            "effectful"
           ],
           "async": false
         },

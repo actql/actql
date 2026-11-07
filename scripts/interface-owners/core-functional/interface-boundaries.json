@@ -32572,7 +32572,7 @@
     },
     {
       "module": "src/client_local_host/captured_ledger.mbt",
-      "sha256": "b9cb0b96b355837669d812dd7cb7900b73f8b409427511c8b8ff8aaa398a4e9f",
+      "sha256": "65c4eb94227ac47f8898b2ac343d01b932a5b853e88982a1d3d09de860c95dd8",
       "exports": [],
       "operations": [
         {
@@ -32626,6 +32626,10 @@
         {
           "name": "installed_row_capture_capacity",
           "declaration": "installed_row_capture_capacity ( selected : @ row_source_host . RowAcquisition , ) - > ClientInstalledCaptureCapacity ?"
+        },
+        {
+          "name": "installed_source_compute_count",
+          "declaration": "installed_source_compute_count ( compute : Int , sources : Int ) - > Int ?"
         },
         {
           "name": "multi_captured_capacity_limits_owned",
@@ -32748,7 +32752,8 @@
             "prepare_single_captured_local_installed_ledger",
             "single_captured_capacity_limits",
             "single_captured_compute_limits",
-            "single_captured_local_ledger_limits"
+            "single_captured_local_ledger_limits",
+            "installed_source_compute_count"
           ],
           "exports": [],
           "attributes": {
@@ -33901,7 +33906,7 @@
     },
     {
       "module": "src/client_local_host/installed_compute_preparation.mbt",
-      "sha256": "d37fa5012497eb6e4b28f29f8ea365137211acf32a060ff401febf0e8e92d1e3",
+      "sha256": "5c384bfd127de6684ff16e443c56d1607ed2a0a3fc568012b6eaaa4911bfb846",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Compute preparation and original capacity Plan; no new runtime or Resource owner",
@@ -34878,7 +34883,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "d29ad016b228016f22a78736ac55851b651ef0fa487b900a713487615dd30df4",
+      "sha256": "3f38bf49276954c119086d912b3a51806c7b8790f1ffa8f6ff50658543fac141",
       "exports": [],
       "operations": [
         {
@@ -36326,7 +36331,7 @@
         },
         {
           "name": "open_installed_managed_source_free_host",
-          "declaration": "open_installed_managed_source_free_host ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output : Bool , provider_factory ? : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ]"
+          "declaration": "open_installed_managed_source_free_host ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output : Bool , backing ? : @ resources . Ledger ?"
         },
         {
           "name": "open_installed_managed_source_free_host_original",
@@ -36373,7 +36378,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "bc6ee72e92e010f066171f442bd3140f62654aa22ea4587f27ea6f27bf9a80d0"
+      "sha256": "627f265ad9dd5b394b6018402b2484620c04a310e670366f54732bd98d8589d0"
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
@@ -37887,7 +37892,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "024675bbf64577c9b66944d00c05fbf88650c293ace18afd05476415d1fb8bd7",
+      "sha256": "f4a3b25099e74d197f27634bdfcaa0051a701f92e9bfdb28691c72f4b22de8ce",
       "exports": [],
       "operations": [
         {
@@ -37909,6 +37914,10 @@
         {
           "name": "installed_managed_whole_source_ledger",
           "declaration": "installed_managed_whole_source_ledger ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : ClientInstalledWholeSourceCapacity , transfer : Int64 , scratch : Int64 , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_row_input_policy",
+          "declaration": "installed_row_input_policy ( max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > @ row_source_host . RowInputLimits"
         },
         {
           "name": "installed_whole_source_acquisition",
@@ -37975,7 +37984,8 @@
             "prepare_installed_whole_source_capacity",
             "select_installed_effect_source_input",
             "select_installed_source_input_graph",
-            "start_installed_whole_source_read_rows"
+            "start_installed_whole_source_read_rows",
+            "installed_row_input_policy"
           ],
           "exports": [],
           "attributes": {
@@ -41762,7 +41772,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "e39d0711d0d953bf5fefbab70e747b54724aee4a4c289bb75a65a16d9219a7e9",
+      "sha256": "082d37fd9201c9b7623cae01f7de2e0998454765482f5cc04c6b8bf9f8888617",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -48428,7 +48438,7 @@
     },
     {
       "module": "src/client_row_source_host/input_acquisition.mbt",
-      "sha256": "ff59cc95bb096204e1b57a94000ba018d945f7a7f9bd74a4717c3e9ed03b718d",
+      "sha256": "f9a297ff95493158031a6bd1d2e1cff51a201342153093153b8ae59acc617476",
       "exports": [],
       "operations": [
         {
@@ -53530,7 +53540,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "133a04736af0d3a7bf43f1a3abf46143bb9e7494f2377c226f4c99a8dcd316bd",
+      "sha256": "de6eb9be779d8d2cb3f758353537c664226a0327a4a7f9ef97741156000435d8",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -53659,7 +53669,7 @@
         },
         {
           "name": "client_program_installed_effect_row_source_input_prepare",
-          "declaration": "client_program_installed_effect_row_source_input_prepare ( declaration : @ client_row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , ) - > Result [ @ client_local_host . ClientInstalledEffectSourceInput , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_program_installed_effect_row_source_input_prepare ( declaration : @ client_row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , input_limits : @ client_row_source_host . RowInputLimits ? , ) - > Result [ @ client_local_host . ClientInstalledEffectSourceInput , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_file_effect_construction_capacity",
@@ -56969,7 +56979,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "3c6046ed62fbd7486ece4d4d528e54d5723574daefc391dd77806b47700a7704",
+      "sha256": "25cdbf765a2772d60c8151354a55bdf9ce2937ff235cbd9e1350dc87002baac7",
       "exports": [],
       "operations": [
         {
@@ -60758,9 +60768,33 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "ca3078d97fd8cd1000e16a816cc923adfa451c58cc8338628e64d55ab26eac3f",
+      "sha256": "025d96adf4b1d883b3e2dc181f8f46d373db6dbd961e0ff1efe767985e05c101",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_effect_direct_source_coordinates",
+          "declaration": "client_program_effect_direct_source_coordinates ( prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ Array [ Array [ Int ] ] , @ publication_host . ClientDirectAcquisitionOccurrenceIssue , ]"
+        },
+        {
+          "name": "client_program_effect_whole_source_input_identity",
+          "declaration": "client_program_effect_whole_source_input_identity ( prepared : @ publication_host . PreparedClientEffectComputation , original : @ acquisition . SourceAcquisition , ) - > Array [ String ] ?"
+        },
+        {
+          "name": "client_program_installed_effect_managed_plan_whole_source",
+          "declaration": "client_program_installed_effect_managed_plan_whole_source ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ ( @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_source_input_kind",
+          "declaration": "client_program_installed_effect_managed_source_input_kind ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , occurrence : Int , ) - > Result [ String , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_sources_ledger",
+          "declaration": "client_program_installed_effect_managed_sources_ledger ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_whole_source_read",
+          "declaration": "client_program_installed_effect_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
         {
           "name": "client_program_installed_managed_publication_source_kind",
           "declaration": "client_program_installed_managed_publication_source_kind ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ String , @ client_local_host . ClientInstalledManagedRunIssue ]"
@@ -60782,8 +60816,16 @@
           "declaration": "client_program_installed_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_row_input_policy",
+          "declaration": "client_program_installed_row_input_policy ( max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > @ client_row_source_host . RowInputLimits"
+        },
+        {
           "name": "client_program_installed_whole_source_read_start_rows",
           "declaration": "client_program_installed_whole_source_read_start_rows ( read : @ client_local_host . ClientInstalledSourceRead , acquisition : @ client_row_source_host . RowInputAcquisition , nonce : String , stop : ( @ client_row_source_host . RowAttempt ) - > Bool , transfer : Int64 , scratch : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        },
+        {
+          "name": "client_program_issue_effect_whole_source_input_logical",
+          "declaration": "client_program_issue_effect_whole_source_input_logical ( prepared : @ publication_host . PreparedClientEffectComputation , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ publication . RunEvidenceValue , @ publication_host . ClientCapturedSourceLogicalIssue , ]"
         },
         {
           "name": "client_program_issue_whole_source_input_logical",
@@ -60901,7 +60943,14 @@
             "client_program_whole_source_issue_source_evidence",
             "client_program_whole_source_issue_source_evidence_wire",
             "client_program_whole_source_request_wire",
-            "client_program_whole_source_target"
+            "client_program_whole_source_target",
+            "client_program_effect_whole_source_input_identity",
+            "client_program_installed_effect_managed_plan_whole_source",
+            "client_program_installed_effect_managed_source_input_kind",
+            "client_program_installed_effect_managed_sources_ledger",
+            "client_program_installed_effect_managed_whole_source_read",
+            "client_program_installed_row_input_policy",
+            "client_program_issue_effect_whole_source_input_logical"
           ],
           "exports": [],
           "attributes": {
@@ -60971,7 +61020,8 @@
           "operations": [
             "client_program_select_installed_source_input",
             "client_program_selected_source_input_kind",
-            "client_program_selected_source_input_ref"
+            "client_program_selected_source_input_ref",
+            "client_program_effect_direct_source_coordinates"
           ],
           "exports": [],
           "attributes": {
@@ -61701,9 +61751,33 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "210f285c099ed3fd61371e20abbb77a7f44a3a214d710d4652f74660de857e12",
+      "sha256": "95a8c11926395f199735b6b13fe1a380b9f5794c7a49abf866f7c2401a49842c",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_effect_direct_source_coordinates",
+          "declaration": "client_program_effect_direct_source_coordinates ( prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ Array [ Array [ Int ] ] , @ publication_host . ClientDirectAcquisitionOccurrenceIssue , ]"
+        },
+        {
+          "name": "client_program_effect_whole_source_input_identity",
+          "declaration": "client_program_effect_whole_source_input_identity ( prepared : @ publication_host . PreparedClientEffectComputation , original : @ acquisition . SourceAcquisition , ) - > Array [ String ] ?"
+        },
+        {
+          "name": "client_program_installed_effect_managed_plan_whole_source",
+          "declaration": "client_program_installed_effect_managed_plan_whole_source ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ ( @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_source_input_kind",
+          "declaration": "client_program_installed_effect_managed_source_input_kind ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , occurrence : Int , ) - > Result [ String , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_sources_ledger",
+          "declaration": "client_program_installed_effect_managed_sources_ledger ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_whole_source_read",
+          "declaration": "client_program_installed_effect_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
         {
           "name": "client_program_installed_managed_publication_source_kind",
           "declaration": "client_program_installed_managed_publication_source_kind ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ String , @ client_local_host . ClientInstalledManagedRunIssue ]"
@@ -61725,8 +61799,16 @@
           "declaration": "client_program_installed_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_row_input_policy",
+          "declaration": "client_program_installed_row_input_policy ( max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > @ client_row_source_host . RowInputLimits"
+        },
+        {
           "name": "client_program_installed_whole_source_read_start_rows",
           "declaration": "client_program_installed_whole_source_read_start_rows ( read : @ client_local_host . ClientInstalledSourceRead , acquisition : @ client_row_source_host . RowInputAcquisition , nonce : String , stop : ( @ client_row_source_host . RowAttempt ) - > Bool , transfer : Int64 , scratch : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        },
+        {
+          "name": "client_program_issue_effect_whole_source_input_logical",
+          "declaration": "client_program_issue_effect_whole_source_input_logical ( prepared : @ publication_host . PreparedClientEffectComputation , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ publication . RunEvidenceValue , @ publication_host . ClientCapturedSourceLogicalIssue , ]"
         },
         {
           "name": "client_program_issue_whole_source_input_logical",
@@ -61844,7 +61926,14 @@
             "client_program_whole_source_issue_source_evidence",
             "client_program_whole_source_issue_source_evidence_wire",
             "client_program_whole_source_request_wire",
-            "client_program_whole_source_target"
+            "client_program_whole_source_target",
+            "client_program_effect_whole_source_input_identity",
+            "client_program_installed_effect_managed_plan_whole_source",
+            "client_program_installed_effect_managed_source_input_kind",
+            "client_program_installed_effect_managed_sources_ledger",
+            "client_program_installed_effect_managed_whole_source_read",
+            "client_program_installed_row_input_policy",
+            "client_program_issue_effect_whole_source_input_logical"
           ],
           "exports": [],
           "attributes": {
@@ -61914,7 +62003,8 @@
           "operations": [
             "client_program_select_installed_source_input",
             "client_program_selected_source_input_kind",
-            "client_program_selected_source_input_ref"
+            "client_program_selected_source_input_ref",
+            "client_program_effect_direct_source_coordinates"
           ],
           "exports": [],
           "attributes": {
@@ -65666,12 +65756,20 @@
     },
     {
       "module": "src/physical_strategy/source_input_graph.mbt",
-      "sha256": "02f30811d1dbcc53f37d6634e26491aeb997b3c72660859bd3558460219e60f6",
+      "sha256": "fa44e431776ee52d14c763d31d5e4ddda6097d2f079c56c8c06e744a51164d6d",
       "exports": [],
       "operations": [
         {
           "name": "prepare_source_input_dag",
           "declaration": "prepare_source_input_dag ( original : CheckedDAG , acquisition : @ acquisition . SourceAcquisition , ) - > Result [ CheckedDAG , GraphIssue ]"
+        },
+        {
+          "name": "prepare_source_inputs_dag",
+          "declaration": "prepare_source_inputs_dag ( original : CheckedDAG , acquisitions : Array [ @ acquisition . SourceAcquisition ] , ) - > Result [ CheckedDAG , GraphIssue ]"
+        },
+        {
+          "name": "source_inputs_dag_matches_original",
+          "declaration": "source_inputs_dag_matches_original ( graph : CheckedDAG , original : CheckedDAG , ) - > Bool"
         }
       ],
       "responsibilityFacet": "primary",
@@ -65681,7 +65779,9 @@
         {
           "operations": [
             "<module>",
-            "prepare_source_input_dag"
+            "prepare_source_input_dag",
+            "prepare_source_inputs_dag",
+            "source_inputs_dag_matches_original"
           ],
           "exports": [],
           "attributes": {
@@ -65751,7 +65851,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "4cfc1a1a96e1fe2906a5a19744aa00bcf8403851701de12cb2a632cfcd94b2a7",
+      "sha256": "00bf7a342d8fa81f1b446cf891b6b28826f433e2e59bcb39758d1ac17ce59b79",
       "exports": [],
       "operations": [
         {
@@ -66027,12 +66127,20 @@
           "declaration": "open_source_input_dag ( graph : CheckedDAG , source : @ query . CapturedInputSource , ledger : @ resources . Ledger , ) - > Result [ CapturedDAG , RunIssue ]"
         },
         {
+          "name": "open_source_inputs_effect_run_dag",
+          "declaration": "open_source_inputs_effect_run_dag ( checked : CheckedEffectRunDAG , graph : CheckedDAG , sources : Array [ @ query . CapturedInputSource ] , ledger : @ resources . Ledger , keyed ? : ( Int , Int , @ execution . SuppliedRelationRead ) ?"
+        },
+        {
           "name": "select_captured_managed_registration",
           "declaration": "select_captured_managed_registration ( run : CapturedDAG , task : Int , registration : @ connector . CapabilityRegistration , ) - > Result [ Unit , RunIssue ]"
         },
         {
           "name": "source_input_dag_matches_read",
           "declaration": "source_input_dag_matches_read ( run : CapturedDAG , read : @ execution . SuppliedRelationRead , ) - > Bool"
+        },
+        {
+          "name": "source_input_dag_matches_read_at",
+          "declaration": "source_input_dag_matches_read_at ( run : CapturedDAG , read : @ execution . SuppliedRelationRead , task : Int , ) - > Bool"
         },
         {
           "name": "stop_captured_dag",
@@ -66126,7 +66234,9 @@
             "source_input_dag_matches_read",
             "stop_captured_dag",
             "task_done",
-            "valid_source_free_root"
+            "valid_source_free_root",
+            "open_source_inputs_effect_run_dag",
+            "source_input_dag_matches_read_at"
           ],
           "exports": [],
           "attributes": {
@@ -66244,7 +66354,7 @@
     },
     {
       "module": "src/physical_strategy_host/checked_graph.mbt",
-      "sha256": "6dc11c2bd2061b7fbcba1a3f50b9cd164ead6d9bb9ce068c776184c965dd3461",
+      "sha256": "ec52921fcfc2c9d071b3c5211355d4b95acbc21e480f9665544f425ec1f2daa1",
       "exports": [],
       "operations": [
         {
@@ -68004,7 +68114,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_compilation.mbt",
-      "sha256": "d5700647dfd0525388f224b16d6e70377cc703cbd6955529e29aac61b74f8a4f",
+      "sha256": "cb5df21bf9d08f4caee6b86876e2710dcaf684045c9f5053f428ba0a95a2a933",
       "operations": [
         {
           "name": "admit_client_effect_allowed_run",
@@ -73196,7 +73306,7 @@
     },
     {
       "module": "src/sourceview_resolution/source_acquisition_route.mbt",
-      "sha256": "1750e27c40f5466af14f42ee64ae3a4814fdff39874ae679cbeb2e50ab13b5c8",
+      "sha256": "5ac4c4e8330059b2d7a86590a84fac0b460e53bd57e9e83ad022de08cd91b585",
       "exports": [],
       "operations": [
         {

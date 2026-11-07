@@ -1,6 +1,7 @@
 ///|
 // Actual checked Effect, two complete Direct Source inputs in one task, the
 // existing admitted managed parent, two RowRuns and the same physical host.
+#cfg(target="js")
 test "Effect whole inputs keep distinct Source slots and execute their original same-stage task" {
   let plan = effect_operation_source_plan_fixture(whole_inputs=true)
   assert_eq(plan.captures.length(), 0)
@@ -239,6 +240,7 @@ test "Effect whole inputs keep distinct Source slots and execute their original 
 }
 
 ///|
+#cfg(target="js")
 test "Effect whole read fences reentrant retirement without replacing its sibling input" {
   let plan = effect_operation_source_plan_fixture(whole_inputs=true)
   let selected_owner : Ref[ClientInstalledManagedRun?] = Ref(None)
@@ -314,6 +316,7 @@ test "Effect whole read fences reentrant retirement without replacing its siblin
 }
 
 ///|
+#cfg(target="js")
 test "Effect whole input consumes the installed row and page policy without an extra clamp" {
   let policy = installed_row_input_policy(128, 2097152, 10000, 32, 128)
   let plan = effect_operation_source_plan_fixture(

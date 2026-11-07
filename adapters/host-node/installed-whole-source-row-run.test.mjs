@@ -116,7 +116,7 @@ test('whole input cannot select a bare, keyed or listing RowRun', () => {
   }
 });
 
-async function failedPreparationFixture({pendingRetirement = false, validFacts = false, identity, authorization} = {}) {
+async function failedPreparationFixture({pendingRetirement = false, validFacts = false, identity, authorization, effectful = false} = {}) {
   const {types} = await import('node:util');
   const {runtimeField, runtimeIsOk, runtimeIsBoxedSome} = await import('../host-common/compiler-binding.generated.mjs');
   const {checked} = await import('../host-common/runtime-result.mjs');
@@ -128,6 +128,20 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
   const read = {}, managedRun = {}, preparedProgram = {}, declaration = {};
   let retireCalls = 0, siteCloses = 0;
   const moon = {
+    clientProgramEffectDirectSourceCoordinates(actual) {
+      assert.equal(actual, preparedProgram);return ok([[0, 0, 0, 0], [0, 1, 1, 0]]);
+    },
+    clientProgramInstalledEffectManagedRunCheck(actual, owner) {
+      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);return ok();
+    },
+    clientProgramInstalledEffectManagedSourceInputKind(actual, owner, request, slot) {
+      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);assert.equal(slot, 1);return ok('whole-input');
+    },
+    clientProgramInstalledEffectManagedSourceRead() {assert.fail('whole Effect input cannot borrow a Query acquisition');},
+    clientProgramInstalledEffectManagedWholeSourceRead(actual, owner, request, declared, slot) {
+      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);assert.equal(declared, declaration);assert.equal(slot, 1);
+      return ok({_0: read, _1: {}, _2: {}, _3: {}});
+    },
     clientProgramInstalledManagedSourceInputKind(actual, owner) {
       assert.equal(actual, managedRun); assert.equal(owner, preparedProgram); return ok('whole-input');
     },
@@ -141,6 +155,7 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
     clientProgramWholeSourceFacts: () => validFacts ? ['source', 'contract', 'carrier', 'policy', 'class', 'view'] : [],
     clientProgramWholeSourceTarget: () => ['resource', 'field'],
     clientProgramWholeSourceInputIdentity: () => identity,
+    clientProgramEffectWholeSourceInputIdentity: () => identity,
     clientProgramInstalledSourceReadBindProgram(actual, owner) {
       assert.equal(actual, read); assert.equal(owner, preparedProgram); return ok();
     },
@@ -164,10 +179,31 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
     source.slice(describePreparedSourceDeclaration.start, describePreparedSourceDeclaration.end) + '\n' +
     source.slice(start, end) +
     '\nreturn {prepare,' + source.slice(closeStart, closeEnd) + '};')(...Object.values(bindings));
-  return {fixture, originalRead: read, pendingReads: bindings.preparingSourceReads, input: {preparedProgram, managedRun},
+  return {fixture, originalRead: read, pendingReads: bindings.preparingSourceReads, input: effectful
+    ? {preparedEffect: preparedProgram, managedRun, occurrence: {stage: 0, input: 1, task: 1, computeTask: 0}}
+    : {preparedProgram, managedRun},
     retireCalls: () => retireCalls, siteCloses: () => siteCloses,
     allowRetirement() {pendingRetirement = false;}, retireOriginal() {checked(moon.clientProgramInstalledSourceReadRetire(read));}};
 }
+
+test('whole Effect preparation retains its second Source read on the first Compute task before a fallible observation', async () => {
+  const f = await failedPreparationFixture({effectful: true, pendingRetirement: true});
+  await assert.rejects(f.fixture.prepare(f.input), {code: 'InstalledSourceEvidenceFactsUnavailable'});
+  assert.equal(f.retireCalls(), 1);
+  assert(f.pendingReads.has(f.originalRead));
+  assert.throws(() => f.fixture.close(), error => error.cause === 'original-read-still-pending');
+  f.allowRetirement();
+  f.fixture.close();
+  assert(!f.pendingReads.has(f.originalRead));
+});
+
+test('whole Effect preparation refuses a substituted Compute task before retaining a read', async () => {
+  const f = await failedPreparationFixture({effectful: true});
+  await assert.rejects(f.fixture.prepare({...f.input, occurrence: {...f.input.occurrence, computeTask: 1}}),
+    {code: 'InstalledSourcePreparationMismatch'});
+  assert.equal(f.retireCalls(), 0);
+  assert.equal(f.pendingReads.size, 0);
+});
 
 test('whole Source failed preparation retires the same unopened read before parent cleanup', async () => {
   const f = await failedPreparationFixture();
