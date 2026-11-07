@@ -1612,10 +1612,11 @@ test('packed expired recovery supplies its original unresolved lookup before SDK
 
 test('computation cleanup keeps shared reservations and cumulative use', async () => {
   const source = await readFile(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
-  const declaration = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
-    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'assertCompletedComputationCleanup');
-  assert.ok(declaration);
-  const check = new Function('assert', source.slice(declaration.start, declaration.end) +
+  const declarations = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body;
+  const functions = ['assertReleasedComputationCleanup', 'assertCompletedComputationCleanup']
+    .map(name => declarations.find(node => node.type === 'FunctionDeclaration' && node.id.name === name));
+  assert.ok(functions.every(Boolean));
+  const check = new Function('assert', functions.map(node => source.slice(node.start, node.end)).join('\n') +
     '; return assertCompletedComputationCleanup;')(assert);
   const snapshot = (heldBytes, transferredBytes, planningWork) => ({resourceUsage: {
     reservedExecutionBytes: '100', reservedRetentionBytes: '50', reservedTransferBytes: '10',

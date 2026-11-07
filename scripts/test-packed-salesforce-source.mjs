@@ -99,21 +99,30 @@ function runChild(script, env, args = [], expectedExit = 0) {
   });
 }
 
-function assertCompletedComputationCleanup(completed, pending, released) {
-  assert.ok(completed && pending && released,
-    'the original completed computation must report pending and then actual release');
-  assert.ok(BigInt(pending.resourceUsage.reservedExecutionBytes) > 0n);
-  assert.equal(released.resourceUsage.heldBytes, '0');
+function assertReleasedComputationCleanup(completed, released) {
+  assert.ok(completed && released,
+    'the same completed computation owner must report its actual release');
+  assert.equal(released.resourceUsage.heldBytes, '0',
+    'temporary computation holdings must be released');
   // These snapshots cover the shared Request Ledger. Preview and control
   // reservations can remain after the computation's actual custody retires;
   // its later Preview read may also charge transfer and work. Neither that
   // progress nor cleanup may refund cumulative use. The caller separately
   // verifies original Model/Source call counts and no unapproved Effect send.
   for (const name of ['transferredBytes', 'planningWork']) {
+    assert.ok(BigInt(released.resourceUsage[name]) >= BigInt(completed.resourceUsage[name]),
+      name + ' must not be refunded by cleanup');
+  }
+}
+
+function assertCompletedComputationCleanup(completed, pending, released) {
+  assert.ok(completed && pending && released,
+    'the original completed computation must report pending and then actual release');
+  assert.ok(BigInt(pending.resourceUsage.reservedExecutionBytes) > 0n);
+  assertReleasedComputationCleanup(pending, released);
+  for (const name of ['transferredBytes', 'planningWork']) {
     assert.ok(BigInt(pending.resourceUsage[name]) >= BigInt(completed.resourceUsage[name]),
       name + ' must not be refunded while cleanup is pending');
-    assert.ok(BigInt(released.resourceUsage[name]) >= BigInt(pending.resourceUsage[name]),
-      name + ' must not be refunded by cleanup');
   }
 }
 
@@ -1696,10 +1705,10 @@ try {
           'source-free Graph acceptance must not borrow an unused Source Policy');
         const custody = (await readFile(join(root, 'composition-custody.jsonl'), 'utf8'))
           .trim().split('\n').filter(Boolean).slice(custodyBefore).map(line => JSON.parse(line));
+        const completed = custody.find(item => item.name === 'effect_computation_completed');
         const released = custody.find(item => item.name === 'effect_computation_cleanup_completed');
         assert.ok(released, 'the original owner confirms cleanup before the capture-waiting crash');
-        for (const field of ['heldBytes', 'reservedTransferBytes',
-          'reservedRetentionBytes', 'reservedExecutionBytes']) assert.equal(released.resourceUsage[field], '0');
+        assertReleasedComputationCleanup(completed, released);
         assert.deepEqual(normalResult.retainedNamedResults.map(({name, rows}) => ({name, rows})),
           [{name:'classified', rows:2}, {name:'updates', rows:1}]);
         observation.temporaryRetention = {cleanupConfirmed:true, resourceUsage:released.resourceUsage};
