@@ -314,8 +314,19 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_read_working(
   match
     working_request_status_ffi(self.backing, domain.physical, contiguous_bytes) {
     0 => Ok(())
-    1 if domain.working_growth_prepared =>
-      self.grow_backed_domain_working(original, domain, child, contiguous_bytes)
+    1 if domain.working_growth_prepared => {
+      match
+        self.grow_backed_domain_working(
+          original, domain, child, contiguous_bytes,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      // Acquisition/accounting may invoke the same parent's current callback.
+      // A stopped original Read cannot turn that physical result into a new
+      // constructor entrance; the acquired bytes remain on the same owner.
+      self.require_backed_read_context_current(original, domain, child)
+    }
     _ => Err(Bootstrap(Unavailable))
   }
 }
