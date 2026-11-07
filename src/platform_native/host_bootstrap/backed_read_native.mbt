@@ -52,6 +52,14 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_read_context(
   child : C,
   execution_ceiling? : Int64,
 ) -> Result[Unit, NativeBackedExecutionIssue] {
+  // The actual supplier decides whether this is its complete local view.
+  // FD/exported profiles retain their existing no-growth contract.
+  if domain_growth_eligible_ffi(self.backing, domain.physical) == 1 {
+    match self.prepare_backed_domain_growth(original, domain, child) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
   let prepared = self.with_backed_read_bookkeeping(original, () => {
     match self.require_domain_current(original, domain, child) {
       Err(issue) => return Err(issue)

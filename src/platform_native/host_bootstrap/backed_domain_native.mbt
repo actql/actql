@@ -51,6 +51,7 @@ struct NativeBackedExecutionDomain[T, C] {
   // Original pre-spawn process binding also owns partial FD/view retirement.
   mut process_region : NativeBackedProcessRegion[T, C]?
   // The same pending root transaction and physical receipt, never a new owner.
+  mut working_growth_prepared : Bool
   mut working_growth_serial : Int64?
 }
 
@@ -133,6 +134,7 @@ pub fn[T, C] NativeHostBootstrap::acquire_backed_domain(
     live_channel: None,
     live_channel_attempted: false,
     process_region: None,
+    working_growth_prepared: false,
     working_growth_serial: None,
   }
   view.domain = Some(domain)
@@ -289,6 +291,12 @@ pub fn[T, C] NativeHostBootstrap::close_backed_domain(
   }
   if domain.read_use is Some(_) {
     match self.close_backed_read_context(original, domain, child) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  if domain.working_growth_serial is Some(_) {
+    match self.reconcile_backed_domain_working(original, domain, child) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }

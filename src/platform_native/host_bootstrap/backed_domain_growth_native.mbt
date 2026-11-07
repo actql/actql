@@ -1,4 +1,19 @@
 ///|
+#borrow(backing, domain)
+extern "C" fn domain_growth_eligible_ffi(
+  backing : Backing,
+  domain : PhysicalExtentDomain,
+) -> Int = "actql_bootstrap_domain_growth_eligible"
+
+///|
+#borrow(backing, domain)
+extern "C" fn working_request_status_ffi(
+  backing : Backing,
+  domain : PhysicalExtentDomain,
+  bytes : Int64,
+) -> Int = "actql_bootstrap_working_request_status"
+
+///|
 // Actual same-domain supplier ports. Scalar quotations describe one original
 // physical serial, not a caller-provided byte budget or authority.
 #borrow(backing, domain)
@@ -73,8 +88,12 @@ pub fn[T, C] NativeHostBootstrap::prepare_backed_domain_growth(
   if !domain.transferred {
     return Err(Bootstrap(Unavailable))
   }
+  if domain.working_growth_prepared {
+    return Ok(())
+  }
   let status = prepare_domain_growth_ffi(self.backing, domain.physical)
   if status == 0 {
+    domain.working_growth_prepared = true
     Ok(())
   } else {
     Err(Bootstrap(Physical(status)))
@@ -149,6 +168,47 @@ fn[T, C] NativeHostBootstrap::grow_backed_domain_working(
   }
   self.growth = Some(growth)
   domain.working_growth_serial = Some(serial)
+  // The parent's one current callback may have stopped this original child.
+  // Recheck only retained child/current facts after it, with no new callback
+  // or allocation between the final fence and the physical acquisition.
+  let current = if self.closing ||
+    domain.closed ||
+    domain.view.closed ||
+    domain.view.loan.region.closing {
+    Err(Accounting(@resources.RegionClosing))
+  } else {
+    let loan = domain.view.loan
+    match domain.read_use {
+      Some(read_use) =>
+        @resources.require_backed_execution_read_use_current(
+          loan.region.accounting,
+          self,
+          child,
+          loan.accounting,
+          read_use,
+        ).map_err(issue => Accounting(issue))
+      None =>
+        @resources.check_backed_execution_delegation_current(
+          loan.region.accounting,
+          self,
+          child,
+          loan.accounting,
+        ).map_err(issue => Accounting(issue))
+    }
+  }
+  if current is Err(issue) {
+    if cancel_domain_growth_quote_ffi(self.backing, domain.physical, serial) ==
+      0 {
+      match @resources.abort_shared_capacity_growth_after_cleanup(growth) {
+        Err(_) => () // Keep the exact logical pending original for cleanup.
+        Ok(_) => {
+          self.growth = None
+          domain.working_growth_serial = None
+        }
+      }
+    }
+    return Err(issue)
+  }
   let status = acquire_domain_growth_ffi(self.backing, domain.physical, serial)
   if status != 0 {
     let outcome = domain_growth_scalar_ffi(
@@ -209,6 +269,16 @@ fn[T, C] NativeHostBootstrap::reconcile_backed_domain_working(
     domain.physical,
     serial,
   )
+  if outcome == 1L {
+    match @resources.abort_shared_capacity_growth_after_cleanup(growth) {
+      Err(issue) => return Err(Bootstrap(Resource(issue)))
+      Ok(_) => {
+        self.growth = None
+        domain.working_growth_serial = None
+        return Ok(())
+      }
+    }
+  }
   if outcome != 2L && outcome != 3L {
     return Err(Bootstrap(ReadersPending))
   }
@@ -219,5 +289,33 @@ fn[T, C] NativeHostBootstrap::reconcile_backed_domain_working(
       domain.working_growth_serial = None
       Ok(())
     }
+  }
+}
+
+///|
+/// Actual constructor preflight in this SAME current Read. The raw size comes
+/// from the selected Native ABI/constructor, never a logical R/E deficit.
+/// Success describes backing now; only the following constructor can execute.
+pub fn[T, C] NativeHostBootstrap::prepare_backed_read_working(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+  contiguous_bytes : Int64,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.require_backed_read_context_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match self.require_backed_read_context_entered(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match
+    working_request_status_ffi(self.backing, domain.physical, contiguous_bytes) {
+    0 => Ok(())
+    1 if domain.working_growth_prepared =>
+      self.grow_backed_domain_working(original, domain, child, contiguous_bytes)
+    _ => Err(Bootstrap(Unavailable))
   }
 }

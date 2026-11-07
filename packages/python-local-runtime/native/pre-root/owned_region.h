@@ -152,6 +152,13 @@ enum actql_owned_growth_outcome {
     ACTQL_OWNED_GROWTH_CHILD_RETIRED_ROOT_RETAINED = 3
 };
 
+/* Scalar original-placement observation only: 0 fits, 1 needs physical
+ * backing, -1 refuses. Neither result grants storage or acknowledges cleanup. */
+int actql_native_owned_working_request_status(actql_owned_capacity *domain,
+    size_t bytes);
+int actql_native_owned_domain_growth_eligible(actql_owned_capacity *domain,
+    actql_owned_extent_view *original_view);
+
 int actql_native_owned_prepare_domain_growth(actql_owned_capacity *domain,
     actql_owned_extent_view *original_view);
 int actql_native_owned_quote_domain_growth(actql_owned_capacity *domain,

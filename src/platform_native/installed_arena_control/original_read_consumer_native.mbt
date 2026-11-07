@@ -17,6 +17,8 @@ struct InstalledArenaOriginalReadConsumer {
   read : InstalledArenaOriginalRead
   consumer : @resources.FundedReadConsumer[InstalledArenaOriginalRead]
   workspace : @buffers.WorkspaceLoan
+  initial_retained_bytes : Int64
+  initial_execution_bytes : Int64
   mut retained_bytes : Int64
   mut execution_bytes : Int64
   // A control relocation duty, never a physical retirement acknowledgement.
@@ -59,6 +61,8 @@ pub fn InstalledArenaHost::prepare_domain_original_read_consumer(
     read,
     consumer,
     workspace,
+    initial_retained_bytes: retained_bytes,
+    initial_execution_bytes: execution_bytes,
     retained_bytes,
     execution_bytes,
     working_snapshot_pending: false,
@@ -273,4 +277,55 @@ pub fn InstalledArenaHost::grow_domain_original_read_consumer_capacity(
   view.retained_bytes = retained_bytes
   view.execution_bytes = execution_bytes
   Ok(())
+}
+
+///|
+/// Fund the next original constructor peak, then obtain actual backing on its
+/// SAME Native domain. Repeated phases take a maximum over the original base;
+/// they do not accumulate temporary peaks or refund an earlier reservation.
+pub fn InstalledArenaHost::prepare_domain_original_read_construction(
+  self : InstalledArenaHost,
+  read : InstalledArenaOriginalRead,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  contiguous_bytes : Int64,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  guard physical_equal(read.domain.host, self) &&
+    read.consumer is Some(view) &&
+    read.domain.domain is Some(domain) &&
+    retained_bytes >= 0L &&
+    execution_bytes >= 0L &&
+    contiguous_bytes > 0L &&
+    retained_bytes <= 9223372036854775807L - view.initial_retained_bytes &&
+    execution_bytes <= 9223372036854775807L - view.initial_execution_bytes else {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  let retained = Int64::max(
+    view.retained_bytes,
+    view.initial_retained_bytes + retained_bytes,
+  )
+  let execution = Int64::max(
+    view.execution_bytes,
+    view.initial_execution_bytes + execution_bytes,
+  )
+  match
+    self.grow_domain_original_read_consumer_capacity(view, retained, execution) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // A logical resize alone is never successful physical acquisition. The
+  // original consumer and pending supplier receipt stay cleanup-only on error.
+  match
+    read.domain.backing.prepare_backed_read_working(
+      self,
+      domain,
+      read.domain,
+      contiguous_bytes,
+    ) {
+    Err(issue) => {
+      view.scope = ConsumerScopeCleanupOnly
+      Err(Domain(issue))
+    }
+    Ok(_) => Ok(())
+  }
 }

@@ -54,6 +54,44 @@ static bool domain_growth_original_locked(actql_owned_capacity *domain) {
         !domain->closing && !domain->domain_borrow_attempted;
 }
 
+/* Actual placement observation for a known constructor before allocation.
+ * This reserves/activates nothing and cannot prove that a later constructor
+ * ran. 0 means an original span fits, 1 requires backing, -1 is refusal. */
+int actql_native_owned_working_request_status(actql_owned_capacity *domain,
+    size_t bytes) {
+    if (domain == NULL || bytes == 0 || current_capacity != domain ||
+        current_process != getpid() || foreign_domain_process(domain)) return -1;
+    lock_capacity(domain);
+    int result = -1;
+    size_t pages;
+    if (domain->closing || !domain->transferred ||
+        domain->pending_growth_domain != NULL || domain->growth.state != OWNED_GROWTH_IDLE ||
+        !round_pages(bytes, domain->page_size, &pages) ||
+        domain->occupied_pages > domain->allocation_ceiling_pages ||
+        pages > domain->allocation_ceiling_pages - domain->occupied_pages) goto done;
+    result = 1;
+    for (size_t start = domain->first_free_page;
+         start < domain->page_count && pages <= domain->page_count - start;) {
+        size_t free_pages = 0;
+        while (free_pages < pages && owned_extent(domain, start + free_pages)->pages == 0)
+            free_pages++;
+        if (free_pages == pages) { result = 0; break; }
+        start += free_pages + 1;
+    }
+ done:
+    unlock_capacity(domain);
+    return result;
+}
+
+int actql_native_owned_domain_growth_eligible(actql_owned_capacity *domain,
+    actql_owned_extent_view *view) {
+    return domain != NULL && view != NULL && view->original == view &&
+        view->local_loan != NULL && view->local_loan->owner != NULL &&
+        !domain->fd_backed && !view->local_loan->owner->fd_backed &&
+        whole_local_domain_view(view, view->local_loan->owner) &&
+        actql_native_owned_domain_matches_view(domain, view, getpid()) == ACTQL_OWNED_OK;
+}
+
 int actql_native_owned_prepare_domain_growth(actql_owned_capacity *domain,
     actql_owned_extent_view *original_view) {
     if (domain == NULL || original_view == NULL || original_view->original != original_view ||

@@ -10,6 +10,19 @@ static bool bootstrap_growth_original(actql_bootstrap_backing *root,
         domain->view->view.local_loan == &domain->view->loan->loan;
 }
 
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_domain_growth_eligible(
+    actql_bootstrap_backing *root, actql_bootstrap_domain *domain) {
+    return bootstrap_growth_original(root, domain) &&
+        actql_native_owned_domain_growth_eligible(domain->lease, &domain->view->view);
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_working_request_status(
+    actql_bootstrap_backing *root, actql_bootstrap_domain *domain, int64_t bytes) {
+    if (!bootstrap_growth_original(root, domain) || bytes <= 0 ||
+        (uint64_t)bytes > PTRDIFF_MAX) return -1;
+    return actql_native_owned_working_request_status(domain->lease, (size_t)bytes);
+}
+
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_prepare_domain_growth(
     actql_bootstrap_backing *root, actql_bootstrap_domain *domain) {
     if (!bootstrap_growth_original(root, domain)) return ACTQL_OWNED_INVALID;
