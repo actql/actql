@@ -6,6 +6,31 @@ extern "js" fn request_document_test_source(
   #|(text,format) => ({text,format})
 
 ///|
+test "default Source Request rejects the original incompatible membership annotation" {
+  let text = "SELECT 2 IN UNNEST(ARRAY<STRING>[1]) AS found"
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(text)
+  let result = prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(text, "sql"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  )
+  assert_true(
+    result is Err(CheckOutcome(@checked.Rejected(_))),
+    msg="the original Request must preserve the annotation's semantic refusal",
+  )
+  assert_true(parent.compiled_program is None && parent.compiled_effect is None)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
 let request_document_yaml : String =
   #|version: actql/0.1
   #|id: source-document
