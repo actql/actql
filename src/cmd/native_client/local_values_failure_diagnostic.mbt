@@ -74,7 +74,12 @@ fn local_values_failure_tags(
           MissingOutput => 1L
           UnknownResult => 2L
           Bridge(_) => 3L
-          Export(cause) => 100L + local_publication_export_tag(cause)
+          Export(cause) => {
+            if cause is @run_host.Output(original) {
+              emit(13, local_completed_export_issue_tag(original))
+            }
+            100L + local_publication_export_tag(cause)
+          }
         },
       )
       8L
