@@ -33,10 +33,12 @@ function fixture(native) {
       state.nativeCalls.push(name); return Reflect.apply(value, native, args);
     }])));
   const quote = name => (...args) => {
-    state.quotes.push({name, args}); return Object.freeze({originalQuote: state.quotes.length});
+    const capacity = Object.freeze({originalQuote: state.quotes.length + 1});
+    state.quotes.push({name, args, capacity}); return capacity;
   };
   const moon = Object.freeze({clientProgramHubSpotAccountConstructionCapacity: quote('account'),
-    clientProgramHubSpotObjectConstructionCapacity: quote('object')});
+    clientProgramHubSpotObjectConstructionCapacity: quote('object'),
+    clientProgramHubSpotSourceReaderCapacity: quote('source-reader')});
   const construction = {
     configurationReader: {async readJson(path) {
       state.reads.push(path);
@@ -55,6 +57,25 @@ function fixture(native) {
       state.events.push('declaration');
       state.declaration = Object.freeze({originalViews: views}); return {declared: state.declaration};
     },
+    sourceReaderImplementation(options) {
+      assert.equal(state.events.at(-1), 'declaration');
+      const original = state.quotes.at(-1);
+      assert.equal(original.name, 'source-reader');
+      assert.strictEqual(options.readSequenceConstruction.capacity, original.capacity);
+      assert.equal(options.columnCount, 3);
+      assert.equal(options.limits.maxTotalResponseBytes, 65536);
+      assert.equal(options.limits.maxRows, 2); assert.equal(options.limits.maxTotalRows, 10);
+      assert.deepEqual(options.readSequenceConstruction.sequence, {
+        operation: 'hubspot:objects:list', maxUses: 2, children: [
+          {operation: 'hubspot:account:details', resource: 'account', maxUses: 8},
+          {operation: 'hubspot:properties:read', resource: 'properties', maxUses: 8},
+        ]});
+      state.events.push('reader-implementation');
+      state.implementation = Object.freeze({capacity: original.capacity,
+        runAcquisitionLimits: Object.freeze({originalImplementation: true})});
+      return state.implementation;
+    },
+    createSourceReader() {assert.fail('no Source reader after failed Site');},
   };
   return {profile, site, metadata, state, construction, moon, provider, encode,
     prepare: () => prepareInstalledHubSpotMaterials(profile, {moon, providerMoon: provider, construction})};
@@ -86,7 +107,8 @@ export function registerHubSpotInstallationMaterialTests(native) {
     const f = fixture(native), marker = new Error('original Site boundary');
     f.construction.openRowSite = async options => {
       assert.equal(options.connection, 'hubspot:fixture');
-      assert.equal(f.state.retained.length, 3); assert.strictEqual(f.state.events.at(-1), 'declaration');
+      assert.equal(f.state.retained.length, 3); assert.strictEqual(f.state.events.at(-1), 'reader-implementation');
+      assert.strictEqual(options.runAcquisitionLimits, f.state.implementation.runAcquisitionLimits);
       assert.equal(options.admitsApprovalTarget({version: 'actql-installed-hubspot-target/0.1',
         apiOrigin: f.site.apiOrigin, portalId: '7', resource: 'companies', objectType: 'companies',
         metadataCid: 'foreign', fields: ['amount']}, 'companies'), false);
@@ -104,7 +126,9 @@ export function registerHubSpotInstallationMaterialTests(native) {
       construction: f.construction, runtimeBundleCid: 'unused', resolveSecret: () => assert.fail('no secret')}),
     error => error === marker);
     assert.deepEqual(f.state.reads, [f.profile.siteProfilePath, f.profile.metadataPath]);
-    assert.equal(f.state.quotes.length, 3);
+    assert.deepEqual(f.state.quotes.map(value => value.name), ['account', 'object', 'object', 'source-reader']);
+    assert.deepEqual(f.state.events, ['reserve:account', 'retained', 'reserve:object', 'retained',
+      'reserve:object', 'retained', 'declaration', 'reader-implementation']);
   });
 
   test('HubSpot shared installation preserves account and Catalog refusal order without Site or later constructor', async () => {

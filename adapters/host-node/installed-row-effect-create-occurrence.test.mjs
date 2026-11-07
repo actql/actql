@@ -7,7 +7,7 @@ import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
+import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
 // driver request/claim, Resource and physical ports are explicit here.
@@ -29,7 +29,7 @@ const recipePort = ownerOf => expression('recipeOf', {ownerOf,
   controlRecipes: {get: original => original}});
 const readPorts = (ownerOf, resourceFields = () => ({})) => {
   const recipeOf = recipePort(ownerOf);
-  const managedReadChild = expression('managedReadChild', {ownerOf, recipeOf, fail});
+  const managedReadChild = expression('managedReadChild', {ownerOf, recipeOf, fail, selectInstalledEffectCredentialOperation});
   const describeMember = expression('describeMember', {ownerOf, managedReadChild, resourceFields});
   return {recipeOf, managedReadChild, describeMember};
 };
@@ -418,6 +418,7 @@ test('actual capture operation retains the original bound child before invoking 
   const recipe={rowOperations:[{},{},{},{operation:'form-read'}],credentialOperations:[
     {phase:'capture-check',operationIndex:3,maxRequestBytes:64,maxResponseBytes:64}]};
   const actual=expression('prepareCredentialOperation',{moon,ownerOf:()=>({managedPlanRecipe:recipe}),fail,
+    selectInstalledEffectCredentialOperation,
     installedRowCredentialOperationSite:original=>{assert.equal(original,credential);return originalSite;},
     prepareInstalledRowCaptureChild,prepareInstalledEffectCredentialChild});
   const input={member:selected,rowIndex:0,phase:'capture-check',operation:'form-read',site:{credential},originalAuthorization:raw,
@@ -901,7 +902,7 @@ test('managed Salesforce read handoff retains exact issuer originals across memb
         return current;
       }});
   };
-  const managedReadChild = expression('managedReadChild', {recipeOf, ownerOf, fail});
+  const managedReadChild = expression('managedReadChild', {recipeOf, ownerOf, fail, selectInstalledEffectCredentialOperation});
   const describe = expression('describeMember', {ownerOf, managedReadChild, resourceFields: () => ({})});
   assert.strictEqual(await describe({member, runInvocationCid: 'run', dispatchRequestCid: 'dispatch',
     physicalOperations, operationPhase: 'capture', label: 'original', assertCurrent() {}}), current);
