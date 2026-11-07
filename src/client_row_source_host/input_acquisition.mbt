@@ -22,6 +22,8 @@ priv struct RowInputPreparation {
   limits : RowInputLimits
   facts : @planning.QuerySourceEvidenceFacts
   members : @environment.ConnectorSourceEvidenceMembers
+  file_listing : @environment.FileListProfile?
+  listing_rows : RowListingRows?
 }
 
 ///|
@@ -70,6 +72,7 @@ pub fn prepare_row_input_acquisition(
   contracts : @execution.RegisteredRelationContracts,
   declaration : RowDeclaration,
   limits : RowInputLimits,
+  listing_policy? : @capacity.Policy? = None,
 ) -> Result[RowInputAcquisition, RowHostIssue] {
   if limits.max_rows < 0 ||
     limits.page.max_bytes <= 0 ||
@@ -108,13 +111,26 @@ pub fn prepare_row_input_acquisition(
     declared.resource != view.resource {
     return Err(Source(ForeignSource))
   }
-  // Native listings have different retained inventories and Resource custody.
-  // They must select their complete recipe, never this ordinary JSON lane.
-  if @environment.source_request_file_listing(
-      @sourcequery.selected_contract(source),
-    )
-    is Some(_) {
-    return Err(Source(ListingProtocol))
+  let file_listing = @environment.source_request_file_listing(
+    @sourcequery.selected_contract(source),
+  )
+  let listing_rows = match file_listing {
+    None => None
+    Some(profile) => {
+      // The same checked Source subject selects the original Catalog/Host
+      // ceiling. max_rows is a capture bound, never a Host listing grant.
+      let resolved = match
+        @environment.resolve_file_listing_rows(
+          profile,
+          listing_policy,
+          facts.source_ref,
+        ) {
+        Ok(value) => value
+        Err(_) =>
+          return Err(Source(ListingLimitUnresolved("max_listing_items")))
+      }
+      Some(ResolvedListingRows(resolved))
+    }
   }
   let owner = @lower.sequence_owner(sequence)
   guard @sourcequery.source_acquisition_input(original)
@@ -159,6 +175,8 @@ pub fn prepare_row_input_acquisition(
     limits,
     facts,
     members,
+    file_listing,
+    listing_rows,
   }
   guard @connector.prepare_capability_registry(
       [
@@ -200,6 +218,11 @@ pub fn row_input_acquisition_columns(
   value : RowInputAcquisition,
 ) -> Array[String] {
   value.preparation.columns.copy()
+}
+
+///|
+pub fn row_input_acquisition_is_listing(value : RowInputAcquisition) -> Bool {
+  value.preparation.file_listing is Some(_)
 }
 
 ///|
@@ -334,6 +357,30 @@ fn begin_input_row_run(
     page.max_bytes.to_int64() > physical.execution_scratch {
     return Err(Physical(InvalidCharge))
   }
+  let listing = match
+    prepare_row_listing_progress(
+      preparation.file_listing,
+      @sourcequery.source_acquisition_request(preparation.original),
+      page.max_bytes,
+      reference_issuer,
+      preparation.listing_rows,
+      retention=if preparation.file_listing is Some(_) {
+        Some({
+          max_nodes: limits.retention.max_nodes,
+          max_text: limits.retention.max_text_bytes,
+          nodes: 0,
+          text: 0,
+        })
+      } else {
+        None
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      abort_row_attempt(run.attempt)
+      return Err(Source(issue))
+    }
+  }
   match
     new_row_source_read(
       preparation.owner,
@@ -345,7 +392,7 @@ fn begin_input_row_run(
       max_rows,
       limits.retention,
       reference_issuer,
-      None,
+      listing,
       None,
     ) {
     Ok(read) => {
@@ -540,7 +587,20 @@ pub fn row_input_acquisition_capacity(
   value : RowInputAcquisition,
   provider : @execution.ExecutionCapacity?,
 ) -> @execution.ExecutionCapacity? {
-  let (retained, execution) = row_original_input_capacity()
+  let (base_retained, base_execution) = row_original_input_capacity()
+  let (retained, execution) = match
+    row_input_listing_capacity(value.preparation) {
+    Some(extra) => {
+      let r = @execution.execution_capacity_retained_bytes(extra)
+      let e = @execution.execution_capacity_execution_bytes(extra)
+      if r > 9223372036854775807L - base_retained ||
+        e > 9223372036854775807L - base_execution {
+        return None
+      }
+      (base_retained + r, base_execution + e)
+    }
+    None => return None
+  }
   guard @execution.execution_capacity_inventory_add(
       0L,
       @execution.CanonicalWireBytes,
