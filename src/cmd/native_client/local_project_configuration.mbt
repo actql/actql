@@ -463,9 +463,23 @@ fn execute_native_project_selection(
 fn local_project_input_read_current(
   host : @initial_arena.InstalledArenaHost,
   read : @initial_arena.InstalledArenaOriginalRead,
-  _pair : @initial_arena.InstalledArenaLocalHostResources?,
+  pair : @initial_arena.InstalledArenaLocalHostResources?,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
-  host.require_domain_original_read_current(read).map_err(issue => CommandRead(issue))
+  match pair {
+    None =>
+      host
+      .require_domain_original_read_current(read)
+      .map_err(issue => CommandRead(issue))
+    Some(pair) =>
+      // The actual Command has spent its available-read claim. Match this
+      // SAME consuming pair/read and its entered physical allocation scope.
+      // Standalone declaration readers keep the original available-read port.
+      match host.observe_local_host_consuming_read_scope(pair, read) {
+        Ok(ReadEntered) => Ok(())
+        Ok(ReadUnentered) => Err(CommandUnavailable)
+        Err(issue) => Err(CommandPair(issue))
+      }
+  }
 }
 
 ///|
