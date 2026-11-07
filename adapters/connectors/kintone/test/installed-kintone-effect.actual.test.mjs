@@ -68,7 +68,7 @@ async function fixture(t, {field = 'Subject'} = {}) {
     appId: '12', apiOrigin: tls.origin, formBody: Buffer.from(JSON.stringify(form)).toString('base64')}));
   const accountConfigurationWire = canonicalJson({version: 'actql-execution-account-config/0.1', account_id: 'kintone-component',
     entries: [{entry_id: 'records', outcome: 'allow', principal: {all: true}, connection: {any_of: ['kintone:kintone']},
-      resource: {any_of: ['inquiries', 'form']}, operation: {any_of: ['read', 'update']}, exclusions: []}]}, {dataKeys: true});
+      resource: {any_of: ['form', 'inquiries']}, operation: {any_of: ['read', 'update']}, exclusions: []}]}, {dataKeys: true});
   const limits = {maxResponseBytes: 16384, maxNodes: 8000, maxDepth: 32, maxFields: 16, maxNameUnits: 512,
     maxColumns: 8, maxCells: 32, maxTableRows: 16, maxValueNodes: 8000, maxValueDepth: 32,
     maxValueTextBytes: 16384, maxContractPairs: 100, maxRequestBytes: 2048, maxRequests: 6,
@@ -118,9 +118,9 @@ test('standard kintone UPDATE initialization uses real parent reservations and r
   assert.deepEqual(Object.keys(mapping.target_schema.fields).sort(), ['$id', 'Computed', 'Subject', 'Tags']);
   assert.equal(f.secretReads(), 0); assert.deepEqual(f.tls.seen(), []);
   assert(f.events.length > 0 && f.events.every(event => event.returned && event.accepted));
-  assert(f.completions.length >= 3, 'declaration, Mapping and installed driver each close their own construction');
-  assert.equal(f.completions.filter(value => value.retained.peak < value.original.peak).length, 2,
-    'new Mapping and driver inventories close their workspace; the existing declaration keeps its own quantity');
+  assert.equal(f.completions.length, 2, 'the existing native owner completes declaration and Mapping construction');
+  assert.equal(f.completions.filter(value => value.retained.peak < value.original.peak).length, 1,
+    'Mapping removes ended workspace; the existing declaration and generic driver keep their complete original quotes');
   for (const completion of f.completions) {
     assert(completion.retained.peak <= completion.original.peak, 'only ended workspace can be removed');
     assert(completion.retained.retained > 0n, 'actual output remains held');

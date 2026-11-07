@@ -304,8 +304,10 @@ restoration itself never sends or creates a new request.
 Installation ownership: the existing Host initialization owner reserves each
 Native/Host constructor before projection. Borrowed immutable Form, declaration,
 Site and field Strings are references, not additional payload copies. Mapping
-and driver success replace their own construction quote with its retained-only
-projection; failed construction retains its complete original responsibility.
+success replaces its own construction quote with its retained-only projection.
+The generic installed driver owner conservatively retains its complete quote;
+this connector does not change that shared lifetime contract. Failed
+construction retains its complete original responsibility.
 
 Installation synchronization: capture, apply and resume each retain a separate
 Form describe slot and schema-before/target/schema-after slots. The target uses
