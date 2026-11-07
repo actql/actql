@@ -116,6 +116,9 @@ function managedRecipeFixture() {
       provider.salesforceEffectCurrentMetadataConstructionProfile = () => assert.fail('replacement');
       return profile;
     },
+    salesforceEffectRecoveryInputConstructionProfile(...args) {
+      assert.strictEqual(this, provider);captureInputs.push(args);return capture;
+    },
     salesforceEffectInputCaptureConstructionProfile(...args) {
       assert.strictEqual(this, provider);assert.strictEqual(args[0], profile);
       captureInputs.push(args);
@@ -520,4 +523,26 @@ test('Salesforce Effect refuses an absent or malformed original Credential polic
     {code: 'InstalledEffectCredentialPolicyUnavailable'});
   }
   assert.equal(sites, 0);assert.equal(accessors, 0);
+});
+
+test('named recovery stages actual immutable wire and exact body before the full Catalog constructor', () => {
+  const f = managedRecipeFixture(), recipes = captureSalesforceEffectPlanRecipeBuilder(f.options)(f.options);
+  const preview = '{"effects":[]}', body = Buffer.from('{"name":"Account","fields":[]}');
+  const wire = JSON.stringify({evidence: {describeBodyBase64: [body.toString('base64')]}});
+  const entries = [{memberIndex: 3, kind: 'salesforce-named-catalog', wire}];
+  const recover = recipes.update.recoveryConstruction.inputExtent;
+  recover(preview, entries, 3);
+  const before = f.captureInputs.at(-1);
+  assert.equal(before.at(-1).byteLength, 0, 'first entry is only the funded lexical prelude');
+  assert(before.at(-2) < wire.length, 'Base64 text is not one JSON value per byte');
+  const evidence = {names: ['Account'], maxObservationBytes: f.options.catalogLimits.maxObservationBytes,
+    describeLimits: {...f.options.catalogLimits.describe}};
+  recover(preview, entries, 3, {evidence, bodies: [body]});
+  const full = f.captureInputs.at(-1);
+  assert.strictEqual(full.at(-1), body, 'the SAME original decoded bytes reach the existing Source preflight');
+  assert.equal(full.at(-2), before.at(-2));
+  assert.deepEqual(full.slice(1, 4), before.slice(1, 4));
+  recover(preview, entries, 3, {evidence: {...evidence,
+    describeLimits: {...evidence.describeLimits, maxNodes: 1}}, bodies: [body]});
+  assert.equal(f.captureInputs.at(-1).at(-1), Buffer.byteLength(wire), 'changed bounds keep the complete original quote');
 });

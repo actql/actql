@@ -12798,7 +12798,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "27ebeec739f2cafe940ff046d07142b53a62e18256c372868076214c2fb41bf8",
+      "sha256": "0a1ce17c467141884de62ef53ce5852dd39f29f38e69d36da3372031ad23767a",
       "role": "physical-io",
       "owner": "Named describe exchange and historical evidence reprojection; MoonBit keeps incomplete Catalog semantics and original scope",
       "exports": [
@@ -12900,7 +12900,15 @@
           "parameters": [
             "moon",
             "evidence",
-            "expectedObservationCid"
+            "expectedObservationCid",
+            "beforeRecover"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverNamedSalesforceObservation/bodies/bodies",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -12913,13 +12921,6 @@
         },
         {
           "name": "recoverNamedSalesforceObservation/observation/observation#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoverNamedSalesforceObservation/observation/observation#3",
           "parameters": [
             "value"
           ],
@@ -12985,7 +12986,7 @@
             "recoverNamedSalesforceObservation",
             "recoverNamedSalesforceObservation/observation/observation",
             "recoverNamedSalesforceObservation/observation/observation#2",
-            "recoverNamedSalesforceObservation/observation/observation#3"
+            "recoverNamedSalesforceObservation/bodies/bodies"
           ],
           "exports": [
             "NAMED_EVIDENCE_VERSION",
@@ -13698,7 +13699,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b12d568e0ee3dc2eb0db3a735c4bd27b1512e06c084993518bff39d8b823ff00",
+      "sha256": "29d996cf18913af61e38cf8d9b09b26d93397afd48cf80cfe92f9b22dfbea0b5",
       "role": "connector-semantics",
       "owner": "Salesforce bounded retained Catalog and exact prepared request recovery; no restored current, credential, dispatch or response authority",
       "exports": [
@@ -13728,7 +13729,8 @@
             "maxMembers",
             "maxRows",
             "maxRetainedBytes",
-            "memberIndexes"
+            "memberIndexes",
+            "reserveRecoveryInput"
           ],
           "async": false
         },
@@ -13736,6 +13738,14 @@
           "name": "recoverCapturedSalesforceSingleRequests/members/members",
           "parameters": [
             "memberIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoverCapturedSalesforceSingleRequests/members/members/catalog/catalog",
+          "parameters": [
+            "evidence",
+            "bodies"
           ],
           "async": false
         },
@@ -13819,7 +13829,8 @@
             "recoverPreparedSalesforceSingleRequests/requests/requests",
             "recoverPreparedSalesforceSingleRequests/requests/requests/requests",
             "selectedMemberIndexes",
-            "selectedMemberIndexes/selectedMemberIndexes"
+            "selectedMemberIndexes/selectedMemberIndexes",
+            "recoverCapturedSalesforceSingleRequests/members/members/catalog/catalog"
           ],
           "exports": [
             "recoverCapturedSalesforceSingleRequests",

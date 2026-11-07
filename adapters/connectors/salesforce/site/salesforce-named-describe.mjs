@@ -230,7 +230,7 @@ export function withSalesforceNamedDescribeOriginals(result, credential, consume
 /// observation (`expectedObservationCid`); no credential or provider I/O is
 /// used, and the result stays incomplete.
 export function recoverNamedSalesforceObservation({moon, evidence,
-  expectedObservationCid}) {
+  expectedObservationCid, beforeRecover}) {
   if (!moon || evidence?.version !== NAMED_EVIDENCE_VERSION ||
       !Array.isArray(evidence.names) ||
       typeof evidence.observationJson !== 'string' ||
@@ -246,10 +246,18 @@ export function recoverNamedSalesforceObservation({moon, evidence,
   }
   const binding = JSON.parse(evidence.observationJson).binding;
   const limits = evidence.describeLimits;
+  // The caller's existing member token already funds the encoded input and
+  // binary/lexical prelude. Wider inventories keep the complete old quote
+  // BEFORE allocation; the exact one-body case grows after observing bytes.
+  if (beforeRecover !== undefined && typeof beforeRecover !== 'function') {
+    fail('InvalidSalesforceNamedEvidence');
+  }
+  if (n !== 1) beforeRecover?.(evidence, undefined);
+  const bodies = evidence.describeBodyBase64.map(value => value === null ? undefined
+    : Buffer.from(value, 'base64'));
+  if (n === 1) beforeRecover?.(evidence, bodies);
   const observation = checked(moon.salesforceRecoverNamedCatalogObservation(
-    evidence.observationJson, [...evidence.names],
-    evidence.describeBodyBase64.map(value => value === null ? undefined
-      : Buffer.from(value, 'base64')),
+    evidence.observationJson, [...evidence.names], bodies,
     [...evidence.outcomes],
     binding.namespace_id, binding.principal, binding.environment,
     binding.connection_revision, binding.org_id, binding.site_key,

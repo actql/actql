@@ -646,6 +646,7 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
   const complete = runtime?.clientProgramInstalledEffectOperationConstructionComplete;
   const completeOutput = runtime?.clientProgramInstalledEffectOperationConstructionCompleteOutput;
   const beginInput = runtime?.clientProgramInstalledEffectOperationInputBegin;
+  const growInput = runtime?.clientProgramInstalledEffectOperationInputGrow;
   if (originalInputExtent !== undefined && (typeof originalInputExtent !== 'function' || typeof beginInput !== 'function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
@@ -697,7 +698,20 @@ function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
           checked(Reflect.apply(beginInput, runtime, [token, extent]));
         }
         originalRecord();
-        const value = construct();
+        // The constructor may observe its actual nested input under this
+        // first funded prelude. Only its SAME synchronous flight may grow the
+        // original selected token before entering the complete nested codec.
+        let constructing = true;
+        const grow = extent => {
+          if (!constructing || !preparing || state !== 'preparing' || typeof growInput !== 'function') {
+            fail('InstalledEffectOperationRuntimeUnavailable');
+          }
+          originalRecord();
+          checked(Reflect.apply(growInput, runtime, [token, extent]));
+          originalRecord();
+        };
+        let value;
+        try {value = construct(grow);} finally {constructing = false;}
         if (nodeTypes.isPromise(value)) {
           pendingConstructor = value;
           if (ownedChild) {

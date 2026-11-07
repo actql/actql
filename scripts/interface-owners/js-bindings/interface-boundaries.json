@@ -11101,7 +11101,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "818fe1c779963a8c45efb8b93866fc59191e9ebb6fb7d877cb8ce10a9d9f1fed",
+      "sha256": "c3cc6d7d8139b3a0caa5acb9a1a0a48ac96e3be59fc66e5b3ce0850ded3368c4",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -11327,7 +11327,8 @@
             "recorded",
             "previewWire",
             "body",
-            "memberIndexes"
+            "memberIndexes",
+            "reserveRecoveryInput"
           ],
           "async": false
         },
@@ -77481,7 +77482,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f9692317cec85319d68903b9d07c6449542cf2c63cb5315919221dde95274dbb",
+      "sha256": "3ecfe7ba11a760c4b8dadc3bc145da31248371d50443b1fb34538f5278c8c7f1",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -79328,8 +79329,17 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original/original",
+          "parameters": [
+            "metadata"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original#2",
-          "parameters": [],
+          "parameters": [
+            "grow"
+          ],
           "async": false
         },
         {
@@ -79384,6 +79394,14 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput",
+          "parameters": [
+            "memberIndex",
+            "metadata"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/readDecision/readDecision",
           "parameters": [
             "member",
@@ -79419,7 +79437,8 @@
             "runInvocationCid",
             "dispatches",
             "requestTags",
-            "controlConstruction"
+            "controlConstruction",
+            "reserveRecoveryInput"
           ],
           "async": false
         },
@@ -86781,7 +86800,9 @@
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/claimBySource/claimBySource",
-            "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries"
+            "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original/original",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput"
           ],
           "exports": [],
           "attributes": {

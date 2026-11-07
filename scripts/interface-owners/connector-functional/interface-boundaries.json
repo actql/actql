@@ -3639,7 +3639,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
-      "sha256": "818fe1c779963a8c45efb8b93866fc59191e9ebb6fb7d877cb8ce10a9d9f1fed",
+      "sha256": "c3cc6d7d8139b3a0caa5acb9a1a0a48ac96e3be59fc66e5b3ce0850ded3368c4",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce request/projection/target-read/capability/response and recovery functions under Common installed Effect",
@@ -3866,7 +3866,8 @@
             "recorded",
             "previewWire",
             "body",
-            "memberIndexes"
+            "memberIndexes",
+            "reserveRecoveryInput"
           ],
           "async": false
         },
@@ -4840,7 +4841,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "f9692317cec85319d68903b9d07c6449542cf2c63cb5315919221dde95274dbb",
+      "sha256": "3ecfe7ba11a760c4b8dadc3bc145da31248371d50443b1fb34538f5278c8c7f1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -6688,8 +6689,17 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original/original",
+          "parameters": [
+            "metadata"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original#2",
-          "parameters": [],
+          "parameters": [
+            "grow"
+          ],
           "async": false
         },
         {
@@ -6744,6 +6754,14 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput",
+          "parameters": [
+            "memberIndex",
+            "metadata"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/readDecision/readDecision",
           "parameters": [
             "member",
@@ -6779,7 +6797,8 @@
             "runInvocationCid",
             "dispatches",
             "requestTags",
-            "controlConstruction"
+            "controlConstruction",
+            "reserveRecoveryInput"
           ],
           "async": false
         },
@@ -12293,7 +12312,9 @@
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries",
             "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/claimBySource/claimBySource",
-            "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries"
+            "createRowEffectStage/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries/validateRecoveredEntries",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/original/original/original",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/reserveRecoveryInput/reserveRecoveryInput"
           ],
           "exports": [],
           "attributes": {
@@ -21208,6 +21229,13 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/grow/grow",
+          "parameters": [
+            "extent"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/init:prepare",
           "parameters": [
             "resolve",
@@ -21827,7 +21855,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "e6d472cc103d9c5dcd2fd97e290ec6278fb845d16fe791f1d4f959de98f3a76c",
+      "sha256": "7ac292691de351c52bca667e6baea543066121ad4cc0e86d2e9603055d445b90",
       "contracts": [
         {
           "operations": [
@@ -21895,7 +21923,8 @@
             "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
             "prepareInstalledStandardCreatePlanRecipe/physical/physical",
             "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
-            "text/text"
+            "text/text",
+            "prepareInstalledEffectConstructorChild/init:prepare/init:prepare/grow/grow"
           ],
           "exports": [
             "captureInstalledEffectPlanRecipe",
@@ -23191,7 +23220,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-plan.mjs",
-      "sha256": "1a7f76e350736c2a1481d88aaebbfe875469a45143a8694be92feafea6700663",
+      "sha256": "d2bf1a81c76f1a9afacc5211030da497f7468966fafb74a71af35a1440c74651",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -23222,7 +23251,23 @@
           "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent",
           "parameters": [
             "previewWire",
-            "recovery"
+            "recovery",
+            "memberIndex",
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/entry/entry",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/inputExtent",
+          "parameters": [
+            "key"
           ],
           "async": false
         },
@@ -23340,7 +23385,9 @@
             "fail/fail",
             "integer/integer",
             "originalMethod",
-            "originalMethod/originalMethod"
+            "originalMethod/originalMethod",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/entry/entry",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent/inputExtent"
           ],
           "exports": [
             "captureSalesforceEffectPlanRecipeBuilder"
@@ -23422,6 +23469,7 @@
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/effect-ledger-implementation-bounds.mjs",
         "../../../host-node/installed-effect-plan.mjs",
+        "../../../host-node/installed-source-construction-geometry.mjs",
         "../../../host-node/local-values-plan.mjs",
         "../../../site-node/https-credential-resource.mjs",
         "../site/salesforce-named-describe.mjs",
