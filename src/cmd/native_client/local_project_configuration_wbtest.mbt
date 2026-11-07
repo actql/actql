@@ -765,3 +765,44 @@ test "Native Project Mock preserves missing Reader and rejects foreign registere
     },
   )
 }
+
+///|
+fn native_project_mock_nested_original() -> @run_host.ClientProjectProfileSelection raise {
+  let directory = @env.get_env_var(
+      "ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT",
+    ).unwrap() +
+    "/deal-review-nested-registry"
+  let project = local_project_read_from(
+      command().parse(argv=["check", "never-read.aql"]),
+      directory,
+    )
+    .unwrap()
+    .unwrap()
+  let selected = local_project_read_execution_bindings(Some(project), "check")
+    .unwrap()
+    .unwrap()
+  let original = selected.mock_declarations.unwrap()
+  defer original.retire()
+  let (task, selection, answers) = original._retained_tasks[0]
+  assert_eq(
+    @run_host.client_project_model_task_selection_for(
+      selection,
+      original._retained_registry,
+      task,
+    ),
+    Some(("openai", None, "../model-tasks/deal-review.v1.yaml")),
+  )
+  // These two original paths remain Project-relative, not registry-relative.
+  assert_true(original._retained_data.contains("006Acme"))
+  assert_true(answers.contains("006Globex"))
+  original.profile
+}
+
+///|
+test "Native Project Mock nested registry keeps original path bases and retires its nominal profile" {
+  let original = native_project_mock_nested_original()
+  assert_true(
+    original.selected_profile()
+    is Err(@run_host.ClientProjectProfileIssue::Retired),
+  )
+}

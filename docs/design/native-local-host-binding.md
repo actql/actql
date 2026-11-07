@@ -67,9 +67,10 @@ profile's nominal cycle retires on both refusal and ordinary command exit,
 before the enclosing Read can acknowledge cleanup. Partial intake retires that
 profile while preserving any original Reader failure. This is declaration DATA,
 not Source installation, a Model provider, Account permission, Reviewer or a
-Run grant. In particular, Native Mock execution availability remains false until
-the actual same-Request Source/Model/Effect assembly and approval supplier are
-connected. Intake cannot select the packaged source-free Host as a substitute.
+Run grant. Declaration intake does not select Native execution availability.
+Only the actual same-Request Source/Model/Effect assembly, installed Host and
+approval supplier can admit execution. Intake cannot select the packaged
+source-free Host as a substitute.
 
 ## Ordinary literal query caller
 

@@ -61,13 +61,22 @@ export function nativeProjectConfigurationFixture(namespace) {
       ? Buffer.alloc(65537, 0x20) : Buffer.from([0xc3, 0x28]));
   }
   // Exact public authored inputs, not an old business-state fixture.
-  for (const name of ['deal-review', 'deal-review-missing', 'deal-review-wrong-task']) {
+  for (const name of ['deal-review', 'deal-review-missing', 'deal-review-wrong-task', 'deal-review-nested-registry']) {
     const path = directory(name);
-    for (const [relative, original] of Object.entries(projectTemplateFiles('deal-review-mock'))) {
-      if (name === 'deal-review-missing' && relative === 'mock/data.json') continue;
-      mkdirSync(dirname(join(path, relative)), {recursive: true, mode: 0o700});
-      const body = name === 'deal-review-wrong-task' && relative === 'model-tasks/deal-review.v1.yaml'
+    for (const [originalPath, original] of Object.entries(projectTemplateFiles('deal-review-mock'))) {
+      if (name === 'deal-review-missing' && originalPath === 'mock/data.json') continue;
+      let relative = originalPath;
+      let body = name === 'deal-review-wrong-task' && relative === 'model-tasks/deal-review.v1.yaml'
         ? original.replace('task: model-task:deal-review.v1', 'task: model-task:foreign.v1') : original;
+      if (name === 'deal-review-nested-registry') {
+        // A distinct locator-only case, never retagged as the exact template.
+        if (relative === 'actql.config.json') body = original.replace('./model-tasks.json', './registry/model-tasks.json');
+        if (relative === 'model-tasks.json') {
+          relative = 'registry/model-tasks.json';
+          body = original.replace('./model-tasks/deal-review.v1.yaml', '../model-tasks/deal-review.v1.yaml');
+        }
+      }
+      mkdirSync(dirname(join(path, relative)), {recursive: true, mode: 0o700});
       write(path, relative, body);
     }
   }
