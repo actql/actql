@@ -12,6 +12,8 @@ import {createInstalledHostServices, retainInstalledHostServiceInstallation,
   from '../../../host-node/installed-host-services.mjs';
 import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
 import {prepareInstalledHubSpotUpdateMappings} from '../host/hubspot-effect-mappings.mjs';
+import {captureHubSpotEffectPlanRecipeBuilder} from '../host/hubspot-effect-plan.mjs';
+import {hubSpotEffectPlanFixture} from './hubspot-effect-plan.fixture.mjs';
 import {loadInstalledHubSpotEffect} from '../host/installed-hubspot-effect.mjs';
 
 const mappingLimits = Object.freeze({maxProperties: 10, maxFields: 4, maxNameBytes: 100,
@@ -205,4 +207,12 @@ export function registerHubSpotMappingParentTests(common, native, baseEnvironmen
       pending = false; closeHostInitializationPreparation(state); retired = true;
     }
   });
+  test('HubSpot actual Common builds the complete staged recipe through the JavaScript caller', () => {
+    const {options} = hubSpotEffectPlanFixture();
+    const recipe = captureHubSpotEffectPlanRecipeBuilder({moon: common})(options);
+    assert.equal(recipe.memberOperations.length, 8);
+    assert.equal(recipe.rowOperations.length, 15);
+    assert.equal(recipe.credentialOperations.length, 19);
+  });
+
 }

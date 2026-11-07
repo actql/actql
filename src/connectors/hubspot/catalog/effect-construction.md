@@ -17,3 +17,11 @@ metadata traversal, including resources not selected for writes. Larger borrowed
 metadata text changes workspace, not permanently retained text. The private
 Common tag passes mapping count, selected-field count, full resource count and
 original text units; it never accepts a provider Catalog or foreign capacity.
+
+The private Node recipe bridge receives the complete four-entry Array directly.
+It wraps that vector in the generic optional profile inside MoonBit before
+calling the unchanged shared composer. JavaScript does not manufacture that
+compiler-specific Option representation. The original finalization quantity,
+full vector/limit checks and typed Core capacities remain mandatory. A real
+compiled-Common JavaScript caller case complements the explicit-port recipe
+tests; the latter alone cannot establish this representation boundary.

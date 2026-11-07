@@ -155,7 +155,7 @@ pub fn client_program_hubspot_effect_constructor_capacity(
 pub fn client_program_hubspot_effect_recipe_capacities(
   original : Array[
     (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
-  ]?,
+  ],
   finalization_original : @execution.ExecutionCapacity?,
   limits : Array[Int],
   metadata_units : Int64,
@@ -180,7 +180,9 @@ pub fn client_program_hubspot_effect_recipe_capacities(
     @execution.execution_capacity(retained, retained).unwrap()
   }
   @client_local_host.installed_described_effect_recipe_capacities(
-    original,
+    // JavaScript supplies the complete vector. Keep its generic Option
+    // representation inside this typed bridge, just like capture_original.
+    Some(original),
     Some([zero, cold_row, zero]),
     limits[0],
     limits[1],

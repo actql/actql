@@ -41,12 +41,12 @@ test "HubSpot actual typed recipe adds cold marked output once and keeps origina
     [],
     [],
   ).unwrap()
-  let profile = Some([
+  let profile = [
     (request, None, None),
     (target, None, None),
     (response, None, None),
     (metadata, None, None),
-  ])
+  ]
   let bounds = [
     256, 16, 4, 128, 8, 2, 64, 32, 16, 32, 16, 64, 16, 7, 32, 256, 64, 4,
   ]
@@ -306,7 +306,7 @@ test "HubSpot private constructor port refuses unknown tags and incomplete quant
     is None,
   )
   assert_true(
-    client_program_hubspot_effect_recipe_capacities(None, None, [], 0L, 1, 0, 0)
+    client_program_hubspot_effect_recipe_capacities([], None, [], 0L, 1, 0, 0)
     is Err(Unsupported),
   )
 }
