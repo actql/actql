@@ -218,6 +218,59 @@ test "same physical owner publishes usable window before any projection or child
 }
 
 ///|
+test "acquired child window observation preserves usage and rejects foreign closing and retired originals" {
+  let (parent, capacity, control, projection, runtime, _, ledger) = backed_window_fixture()
+  let parent_before = ledger_usage(parent)
+  let child_before = ledger_usage(ledger)
+  assert_eq(
+    read_backed_original_child_window_bytes(projection, runtime),
+    Ok(56L),
+  )
+  assert_eq(
+    read_backed_original_child_window_bytes(projection, Ref(3)),
+    Err(ForeignOriginal),
+  )
+  assert_eq(ledger_usage(parent), parent_before)
+  assert_eq(ledger_usage(ledger), child_before)
+  let growth = begin_shared_capacity_growth(capacity, control, 208L, 128L).unwrap()
+  let pending = ledger_usage(parent)
+  assert_eq(
+    read_backed_original_child_window_bytes(projection, runtime),
+    Ok(56L),
+  )
+  assert_eq(ledger_usage(parent), pending)
+  complete_backed_original_child_window_after_acquisition(
+    projection, runtime, growth, 96L,
+  ).unwrap()
+  assert_eq(
+    read_backed_original_child_window_bytes(projection, runtime),
+    Ok(152L),
+  )
+  assert_eq(ledger_usage(parent), pending)
+  assert_eq(ledger_usage(ledger), child_before)
+  let access = projection.access.unwrap()
+  let ticket = access.ticket.unwrap()
+  assert_eq(ticket.extent.payload_length, 56L)
+  assert_eq(ticket.limits.retained_bytes, 64L)
+  assert_eq(ticket.limits.execution_bytes, 128L)
+  assert_eq(ticket.peak_retention, 0L)
+  assert_false(ticket.live_usage_reported)
+  stop_backed_execution_live_child(access, runtime).unwrap()
+  assert_eq(
+    read_backed_original_child_window_bytes(projection, runtime),
+    Err(RegionClosing),
+  )
+  // Explicit Owner ACK port only; this component proves no physical cleanup.
+  retire_backed_execution_live_child_after_owner_ack(access, runtime).unwrap()
+  assert_eq(
+    read_backed_original_child_window_bytes(projection, runtime),
+    Err(Retired),
+  )
+  assert_eq(ledger_usage(parent), pending)
+  assert_eq(ledger_usage(ledger), child_before)
+}
+
+///|
 test "negative backed byte reports refuse before window subtraction without state or history mutation" {
   let (parent, _, _, projection, runtime, _, ledger) = backed_window_fixture()
   let before_parent = ledger_usage(parent)

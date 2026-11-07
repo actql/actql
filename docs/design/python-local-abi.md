@@ -3648,6 +3648,14 @@ existing closed Resource cut, before usage or serial mutation. Reporting also
 cannot claim bytes outside that window. No external current callback or I/O
 is added merely to read the window.
 
+`read_backed_original_child_window_bytes` observes that same acquired pool
+through the original projection/runtime and the shared current/closing fence.
+It does not return a reusable current proof, grant a reservation or describe a
+contiguous Native allocation. The physical owner keeps raw constructor geometry
+separate from the pool needed by all simultaneously held/reserved bytes; the
+later canonical Read resize still admits actual demand against both policy and
+the acquired pool. A pending parent reservation does not change this value.
+
 The physical owner next reserves the complete addition on the same parent,
 retains that original `SharedCapacityGrowth`, and acquires its actual payload
 and receipt. Only then may it call

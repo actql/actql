@@ -490,6 +490,8 @@ pub fn quantity_neutral_amounts(Ledger) -> QuantityAmounts?
 
 pub fn quantity_usage(Ledger) -> QuantityUsage
 
+pub fn[P, C, R] read_backed_original_child_window_bytes(BackedExecutionLiveProjection[P, C, R], R) -> Result[Int64, BackedExecutionIssue]
+
 pub fn reconcile_unborrowed_shared_allocation_after_cleanup(SharedCapacity, SharedAllocation, Int64, Int64) -> Result[Unit, LedgerIssue]
 
 pub fn[I, P] reconcile_working_preparation_phase(PreparationCapacity[I, P], I, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
