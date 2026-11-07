@@ -170,15 +170,22 @@ fn LocalCommandBusinessPreparation::request_compilation(
         stop("LocalCompilerLimitsUnavailable")
       },
     )
-    @local_values.prepare_request_program_compilation(
-      parent,
-      input,
-      self.installed_contracts,
-      manifests=native_request_manifests,
-      compilation_limits=limits,
-      retained_output=false,
-      provider_factory=native_request_provider_factory,
-    ).unwrap_or_else(() => stop("LocalCompilationNotReady"))
+    match
+      @local_values.prepare_request_program_compilation(
+        parent,
+        input,
+        self.installed_contracts,
+        manifests=native_request_manifests,
+        compilation_limits=limits,
+        retained_output=false,
+        provider_factory=native_request_provider_factory,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        local_compilation_failure_tags(issue, native_timing_amount)
+        stop("LocalCompilationNotReady")
+      }
+    }
   })
 }
 
