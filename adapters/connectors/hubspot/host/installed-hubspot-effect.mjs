@@ -14,7 +14,8 @@ import {installedRowCredentialOperationSite} from '../../../host-node/installed-
 import {installedRowEffectUnit, retainInstalledRowEffectAdapter, validateInstalledUpdateOwnerSelections}
   from '../../../host-node/installed-row-effect.mjs';
 import {assertUpdateTargetSelectionMembersCurrent} from '../../../host-node/update-target-original-shape.mjs';
-import {installedHubSpotSourceIdentityParts, prepareInstalledHubSpotMaterials} from './installed-hubspot-source.mjs';
+import {installedHubSpotSourceIdentityParts, installedHubSpotSiteBinding,
+  prepareInstalledHubSpotMaterials} from './installed-hubspot-source.mjs';
 import {prepareInstalledHubSpotUpdateMappings} from './hubspot-effect-mappings.mjs';
 import {captureHubSpotEffectPlanRecipeBuilder} from './hubspot-effect-plan.mjs';
 import {hubspotUpdateDriver, HUBSPOT_UPDATE_TARGET_VERSION} from './hubspot-update-driver.mjs';
@@ -231,8 +232,8 @@ export async function loadInstalledHubSpotEffect(profile, {moon, providerMoon, c
     project() {
       mappings = Object.freeze(originals.map(original => Object.freeze({...original,
         catalog: catalogs.get(original.resource), markerProperty: selected.writes.find(write => write.resource === original.resource).markerProperty})));
-      siteBindingCid = cid({version: 'actql-installed-hubspot-effect-site-binding/0.1',
-        contextCid: authorization.context.contextCid, runtimeBundleCid, site: siteProfile, metadataCid: cid(metadata)});
+      siteBindingCid = installedHubSpotSiteBinding({contextCid: authorization.context.contextCid,
+        runtimeBundleCid, site: siteProfile, metadata});
       generationCid = cid({version: 'actql-installed-hubspot-effect-generation/0.1', siteBindingCid,
         environmentCid: prepared.environment.evidenceCid, writes: mappings.map(value => ({resource: value.resource,
           mappingRef: value.mappingRef, mappingCid: value.mappingCid, markerProperty: value.markerProperty}))});

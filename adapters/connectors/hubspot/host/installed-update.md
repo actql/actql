@@ -55,6 +55,14 @@ same requirement as the legacy single-recipe path; a missing per-kind recipe
 does not become a missing legacy Plan. Neither path can reuse its request
 construction slot or proceed to opening the Ledger with incomplete backing.
 
+Source and Effect each derive their non-secret physical binding from their own
+observed Account context, runtime, complete Site profile and metadata digest.
+They use the existing Source binding domain through one pure helper, preserving
+the complete Source preimage. The Host still compares both independent results
+before provider I/O; neither equal declarations nor the helper grants authority
+or makes changed material current. Effect generation remains a distinct identity
+that additionally binds its full Environment, Mapping and marker inventory.
+
 Host-owned `queryAliases` in the referenced Source profile are checked and
 separated by the existing `splitSourceAliasProfile` owner before the connector's
 closed provider-profile validator runs. Their exact immutable DATA remains in

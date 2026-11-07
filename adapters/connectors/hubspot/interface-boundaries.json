@@ -593,7 +593,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "a68b108a62739741ac377414f4bb5a904d617b519923c667d190aeced599dfda",
+      "sha256": "c237ba4789b30a4522cfa96a991f1116af06f9250fe71aaed946b4ab24b93945",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -601,6 +601,7 @@
         "INSTALLED_HUBSPOT_SITE_VERSION",
         "INSTALLED_HUBSPOT_SOURCE_VERSION",
         "checkInstalledHubSpotSourceProfile",
+        "installedHubSpotSiteBinding",
         "installedHubSpotSourceIdentityParts",
         "loadInstalledHubSpotSource",
         "prepareInstalledHubSpotMaterials"
@@ -704,6 +705,16 @@
           "parameters": [
             "code",
             "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedHubSpotSiteBinding",
+          "parameters": [
+            "contextCid",
+            "runtimeBundleCid",
+            "metadata",
+            "site"
           ],
           "async": false
         },
@@ -891,6 +902,7 @@
             "closed/closed",
             "decodeMetadataBody",
             "fail/fail",
+            "installedHubSpotSiteBinding",
             "installedHubSpotSourceIdentityParts",
             "installedHubSpotSourceIdentityParts/readers/readers",
             "loadInstalledHubSpotSource",
@@ -898,11 +910,11 @@
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledHubSpotSource/admitsApprovalTarget/admitsApprovalTarget/view/view",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource",
+            "loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/authorize/authorize",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/current/current",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource",
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
-            "loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
             "loadInstalledHubSpotSource/target/target",
             "metadataBodyBytes",
             "positive/positive",
@@ -919,6 +931,7 @@
             "INSTALLED_HUBSPOT_SITE_VERSION",
             "INSTALLED_HUBSPOT_SOURCE_VERSION",
             "checkInstalledHubSpotSourceProfile",
+            "installedHubSpotSiteBinding",
             "installedHubSpotSourceIdentityParts",
             "loadInstalledHubSpotSource",
             "prepareInstalledHubSpotMaterials"
@@ -982,6 +995,10 @@
               {
                 "path": "adapters/connectors/hubspot/host/README.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/installed-hubspot-effect.test.mjs",
+                "anchor": "test('HubSpot authored Source and Effect binding callers agree"
               }
             ]
           }
@@ -3070,7 +3087,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs",
-      "sha256": "ab6aa22e80baf54ced728402fa87e768e6544e847cf3cde0b1674a56a676bc95",
+      "sha256": "c6db1ba3d819d5d920e50b75c5db6cbefbd84c3820c9e1b6af8b1c16bba6a9bf",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Effect, Common initialization/Mapping/Checkpoint/current/dispatch and original Row Site owners",
@@ -3562,6 +3579,10 @@
               {
                 "path": "adapters/connectors/hubspot/test/hubspot-mapping-parent.fixture.mjs",
                 "anchor": "test('HubSpot real material factory leaves credential policy selection"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/installed-hubspot-effect.test.mjs",
+                "anchor": "test('HubSpot authored Source and Effect binding callers agree"
               }
             ]
           }

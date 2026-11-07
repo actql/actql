@@ -129,6 +129,13 @@ export async function installedHubSpotSourceIdentityParts(profile, providerProfi
     {metadataCid: cid(metadata), ...(ca === undefined ? {} : {caSha256: createHash('sha256').update(ca).digest('hex')})}];
 }
 
+export function installedHubSpotSiteBinding({contextCid, runtimeBundleCid, metadata, site}) {
+  // Preserve the Source's complete original non-secret physical binding.
+  // Each role supplies its own observed material; this issues no permission.
+  return cid({version: 'actql-installed-hubspot-binding/0.1', contextCid,
+    runtimeBundleCid, metadataCid: cid(metadata), site});
+}
+
 // Source and Effect borrow the same original metadata preparation. This does
 // not open a Site, authorize a read/write, resolve a secret or send a request.
 // Provider Catalogs stay in their original runtime; the Common declaration is
@@ -218,8 +225,8 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
     })});
   {
     return await construction.createRowSource({readOperation: HUBSPOT_OBJECT_LIST_OPERATION,
-      physicalTarget: target, bindingCid: cid({version: 'actql-installed-hubspot-binding/0.1',
-        contextCid: authorization.context.contextCid, runtimeBundleCid, metadataCid: cid(metadata), site: siteProfile}),
+      physicalTarget: target, bindingCid: installedHubSpotSiteBinding({
+        contextCid: authorization.context.contextCid, runtimeBundleCid, metadata, site: siteProfile}),
       limits: {maxPages: limits.maxRequests, maxPageBytes: limits.maxResponseBytes,
         maxPageRows: limits.perPage, maxCaptureRows: limits.maxRows},
       readPages: async options => {
