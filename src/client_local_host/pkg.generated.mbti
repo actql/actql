@@ -560,6 +560,8 @@ pub fn installed_source_child_grant_construction_capacity() -> @execution_relati
 
 pub fn installed_source_construction_capacity(Int64, Int64, Int64, Int64, Int64, Int64) -> @execution_relation.ExecutionCapacity?
 
+pub fn installed_source_read_provider_matches(ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity) -> Bool
+
 pub fn installed_source_reader_policy() -> Array[Int]
 
 pub fn installed_standard_create_constructor_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]

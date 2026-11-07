@@ -1803,7 +1803,7 @@
               },
               {
                 "path": "docs/design/gmail-label-reader-custody.md",
-                "anchor": "is bounded by min((P + T) \u00d7 B, L + B)"
+                "anchor": "is bounded by min((P + T) × B, L + B)"
               }
             ],
             "extension": [

@@ -387,7 +387,7 @@
               },
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
-                "anchor": "physical_equal(configuration, acquisition.configuration)"
+                "anchor": "row_response_configuration_matches("
               },
               {
                 "path": "src/client_local_host/provider_capture_capacity.mbt",
@@ -803,7 +803,7 @@
               },
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
-                "anchor": "physical_equal(configuration, acquisition.configuration)"
+                "anchor": "row_response_configuration_matches("
               },
               {
                 "path": "src/client_local_host/provider_capture_capacity.mbt",

@@ -1267,6 +1267,7 @@ fn managed_capture_fixture_work(
   listing? : NativeRelationFileListingProvider? = None,
   program? : String? = None,
   clock_refusal? : Int = 0,
+  query? : Bool = false,
 ) -> @local.ClientInstalledManagedRun raise {
   let parent = @local.begin_backed_request_preparation(
     initial,
@@ -1278,7 +1279,17 @@ fn managed_capture_fixture_work(
     .managed_capture_stage("original stage 85")
   let original_program =
     #|{"version":"actql/0.1","id":"native-file-capture","stages":[{"id":"acquire","inputs":{"remote":{"connector":"native-file-fixture","resource":"records"}},"steps":[{"select":["id","value"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","value"]}}},{"id":"compute","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"value > 0"},{"select":["id","value"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","value"]}}}],"results":{"rows":{"from":{"stage":"compute","result":"rows"}}}}
+  // Query's existing installed profile is scan/filter/select. Whole-input
+  // keeps its original select-only Program, with no fallback between routes.
   let document = program.unwrap_or(original_program)
+  let document = if query {
+    document.replace(
+      old="\"steps\":[{\"select\"",
+      new="\"steps\":[{\"filter\":\"true\"},{\"select\"",
+    )
+  } else {
+    document
+  }
   let limits = @publication_host.client_standard_program_preparation_limits()
   let source = @local.prepare_request_program_json_preparation(
     parent,
@@ -1406,53 +1417,94 @@ fn managed_capture_fixture_work(
   arena
   .enter_domain_retained_execution(physical)
   .managed_capture_stage("same payload after original identity")
-  guard @local.select_installed_source_input(prepared, request, 0, 0).managed_capture_stage(
-      "original stage 160",
+  let (plan, selected, query_original) = if query {
+    let requirement = @local.prepare_local_query_requirement(
+      prepared,
+      0,
+      0,
+      contracts,
+      capture_fixture_values,
+      Some(capture_fixture_fragment),
+      None,
+    ).managed_capture_stage("original Query requirement")
+    let acquisition = @rows.prepare_row_acquisition(
+      declaration, requirement, capture_fixture_query_contract, capture_fixture_evidence_contract,
+    ).managed_capture_stage("original Query acquisition")
+    let capacity = if listing is Some(_) {
+      @local.installed_listing_row_capture_capacity(acquisition, Some(provider))
+    } else {
+      @local.installed_provider_row_capture_capacity(
+        acquisition,
+        Some(provider),
+      )
+    }
+    let capacity = capacity.managed_capture_stage(
+      "same selected Query provider",
     )
-    is @sourceviews.WholeInputRoute(original) else {
-    fail("whole Source original missing")
-  }
-  let selected = @local.prepare_installed_whole_source_capacity(
-    prepared,
-    original,
-    declaration,
-    contracts,
-    {
-      max_rows: 2,
-      page: file_limits.page,
-      retention: {
-        max_nodes: 512,
-        max_text_bytes: 8192,
-        max_depth: 8,
-        max_work: 1000000,
-      },
-      wire: {
-        max_columns: if listing is Some(_) {
-          7
-        } else {
-          2
+    let plan = @local.prepare_installed_managed_capture_plan(
+      prepared,
+      request,
+      [capacity],
+      [file_limits.page.max_bytes.to_int64()],
+      [file_limits.page.max_bytes.to_int64()],
+      contracts,
+      capture_fixture_values,
+      Some(capture_fixture_fragment),
+      None,
+      retained_output=true,
+      provider_factory=_ => [],
+    ).managed_capture_stage("same Query Plan before original module")
+    (plan, None, Some((requirement, acquisition)))
+  } else {
+    guard @local.select_installed_source_input(prepared, request, 0, 0).managed_capture_stage(
+        "original stage 160",
+      )
+      is @sourceviews.WholeInputRoute(original) else {
+      fail("whole Source original missing")
+    }
+    let selected = @local.prepare_installed_whole_source_capacity(
+      prepared,
+      original,
+      declaration,
+      contracts,
+      {
+        max_rows: 2,
+        page: file_limits.page,
+        retention: {
+          max_nodes: 512,
+          max_text_bytes: 8192,
+          max_depth: 8,
+          max_work: 1000000,
         },
-        max_order_work: 10000,
-        max_bytes: 8192,
-        max_nodes: 512,
-        max_depth: 8,
+        wire: {
+          max_columns: if listing is Some(_) {
+            7
+          } else {
+            2
+          },
+          max_order_work: 10000,
+          max_bytes: 8192,
+          max_nodes: 512,
+          max_depth: 8,
+        },
       },
-    },
-    Some(provider),
-  ).managed_capture_stage("original stage 198")
-  let plan = @local.prepare_installed_managed_whole_source_plan(
-    prepared,
-    request,
-    selected,
-    file_limits.page.max_bytes.to_int64(),
-    file_limits.page.max_bytes.to_int64(),
-    contracts,
-    capture_fixture_values,
-    Some(capture_fixture_fragment),
-    None,
-    retained_output=true,
-    provider_factory=_ => [],
-  ).managed_capture_stage("original stage 211")
+      Some(provider),
+    ).managed_capture_stage("original stage 198")
+    let plan = @local.prepare_installed_managed_whole_source_plan(
+      prepared,
+      request,
+      selected,
+      file_limits.page.max_bytes.to_int64(),
+      file_limits.page.max_bytes.to_int64(),
+      contracts,
+      capture_fixture_values,
+      Some(capture_fixture_fragment),
+      None,
+      retained_output=true,
+      provider_factory=_ => [],
+    ).managed_capture_stage("original stage 211")
+    (plan, Some(selected), None)
+  }
   @local.prepare_request_capture_module_body(
     parent,
     input,
@@ -1491,67 +1543,129 @@ fn managed_capture_fixture_work(
   let caller = @resources.reserve_capacity(ledger, bytes, bytes).managed_capture_stage(
     "Native constructor reservation",
   )
-  let (read, _, acquisition, same_selected) = @local.begin_installed_managed_whole_source_read(
-    owner, prepared, request, declaration,
-  ).managed_capture_stage("original stage 230")
-  assert_true(physical_equal(same_selected, selected))
-  assert_true(
-    @local.installed_whole_source_read_capacity_matches(
-      read, selected, acquisition, provider,
-    ),
-  )
-  let unchanged = @resources.ledger_usage(ledger)
-  if listing is None {
-    let foreign_provider = native_relation_file_provider_capacity(
-      declaration, selection, file_limits,
-    ).managed_capture_stage("original stage 239")
-    assert_false(
+  let (read, capture_owner, before) = if query_original
+    is Some((requirement, acquisition)) {
+    let (read, original_requirement, original_acquisition, _) = @local.begin_installed_managed_capture_source_read(
+      owner, prepared, request, declaration, 0,
+    ).managed_capture_stage("same original Query read slot")
+    assert_true(physical_equal(original_requirement, requirement))
+    assert_true(physical_equal(original_acquisition, acquisition))
+    assert_true(
+      @local.installed_source_read_provider_matches(read, acquisition, provider),
+    )
+    let unchanged = @resources.ledger_usage(ledger)
+    if listing is None {
+      let foreign = native_relation_file_provider_capacity(
+        declaration, selection, file_limits,
+      ).managed_capture_stage("equal foreign Query provider")
+      assert_false(
+        @local.installed_source_read_provider_matches(
+          read, acquisition, foreign,
+        ),
+      )
+      let refused = prepare_native_managed_relation_file_query_capture(
+        arena, physical, declaration, read, acquisition, foreign, "foreign-query-provider",
+        selection, file_limits,
+      )
+      guard refused is Err(failure) else {
+        fail("foreign Query provider opened a child")
+      }
+      assert_true(failure.issue() is ForeignOriginal)
+      assert_true(
+        failure
+        .retry_cleanup()
+        .managed_capture_stage("foreign Query has no owned child"),
+      )
+      assert_eq(@resources.ledger_usage(ledger), unchanged)
+    }
+    let capture = match listing {
+      Some(original) =>
+        capture_fixture_prepared(
+          prepare_native_managed_relation_file_query_listing_capture(
+            arena, physical, read, acquisition, original, "same-query-listing",
+          ),
+          "same managed Query listing",
+        )
+      None =>
+        capture_fixture_prepared(
+          prepare_native_managed_relation_file_query_capture(
+            arena,
+            physical,
+            declaration,
+            read,
+            acquisition,
+            provider,
+            "same-query-source",
+            selection,
+            file_limits,
+            prepared_provider~,
+          ),
+          "same managed Query Source",
+        )
+    }
+    (read, capture, unchanged.transferred_bytes)
+  } else {
+    let selected = selected.unwrap()
+    let (read, _, acquisition, same_selected) = @local.begin_installed_managed_whole_source_read(
+      owner, prepared, request, declaration,
+    ).managed_capture_stage("original stage 230")
+    assert_true(physical_equal(same_selected, selected))
+    assert_true(
       @local.installed_whole_source_read_capacity_matches(
-        read, selected, acquisition, foreign_provider,
+        read, selected, acquisition, provider,
       ),
     )
-    let refused = prepare_native_managed_relation_file_input_capture(
-      arena, physical, declaration, read, selected, foreign_provider, "foreign-provider",
-      selection, file_limits,
-    )
-    guard refused is Err(failure) else {
-      fail("copied provider unexpectedly read a file")
-    }
-    assert_true(failure.issue() is ForeignOriginal)
-    assert_true(
-      failure
-      .retry_cleanup()
-      .managed_capture_stage("foreign provider has no child"),
-    )
-    assert_eq(@resources.ledger_usage(ledger), unchanged)
-  }
-  let before = unchanged.transferred_bytes
-  let capture_owner = match listing {
-    Some(listing) =>
-      capture_fixture_prepared(
-        prepare_native_managed_relation_file_listing_capture(
-          arena, physical, read, selected, listing, "native-managed-listing-original",
+    let unchanged = @resources.ledger_usage(ledger)
+    if listing is None {
+      let foreign = native_relation_file_provider_capacity(
+        declaration, selection, file_limits,
+      ).managed_capture_stage("original stage 239")
+      assert_false(
+        @local.installed_whole_source_read_capacity_matches(
+          read, selected, acquisition, foreign,
         ),
-        "same Plan listing prepare",
       )
-    None => {
-      let capture_owner = capture_fixture_prepared(
-        prepare_native_managed_relation_file_input_capture(
-          arena,
-          physical,
-          declaration,
-          read,
-          selected,
-          provider,
-          "native-managed-original",
-          selection,
-          file_limits,
-          prepared_provider~,
-        ),
-        "same Plan file prepare",
+      let refused = prepare_native_managed_relation_file_input_capture(
+        arena, physical, declaration, read, selected, foreign, "foreign-provider",
+        selection, file_limits,
       )
-      capture_owner
+      guard refused is Err(failure) else {
+        fail("copied provider unexpectedly read a file")
+      }
+      assert_true(failure.issue() is ForeignOriginal)
+      assert_true(
+        failure
+        .retry_cleanup()
+        .managed_capture_stage("foreign provider has no child"),
+      )
+      assert_eq(@resources.ledger_usage(ledger), unchanged)
     }
+    let capture = match listing {
+      Some(original) =>
+        capture_fixture_prepared(
+          prepare_native_managed_relation_file_listing_capture(
+            arena, physical, read, selected, original, "native-managed-listing-original",
+          ),
+          "same Plan listing prepare",
+        )
+      None =>
+        capture_fixture_prepared(
+          prepare_native_managed_relation_file_input_capture(
+            arena,
+            physical,
+            declaration,
+            read,
+            selected,
+            provider,
+            "native-managed-original",
+            selection,
+            file_limits,
+            prepared_provider~,
+          ),
+          "same Plan file prepare",
+        )
+    }
+    (read, capture, unchanged.transferred_bytes)
   }
   if clock_refusal != 0 {
     let result = if clock_refusal == 4 {
@@ -1619,6 +1733,9 @@ fn managed_capture_fixture_work(
     }
   }
   assert_true(completed)
+  @local.check_installed_source_read_ledger(read, ledger).managed_capture_stage(
+    "same Source read after physical I/O",
+  )
   assert_eq(
     @resources.ledger_usage(ledger).transferred_bytes - before,
     expected_transfer,
@@ -1634,6 +1751,7 @@ fn managed_capture_fixture_work(
   )
   assert_eq(@query.captured_source_row_count(captured), Some(2))
   if listing is Some(_) {
+    // This is the original seven-field scan, before Query projection.
     assert_true(
       @execution.supplied_relation_read_cell(original_read, 0, 2)
       is Some(@admitted.Text("Acme🌱")),
@@ -1671,11 +1789,17 @@ fn managed_capture_fixture_work(
     request,
     [captured],
   ).managed_capture_stage("original stage 287")
-  @rows.check_row_input_compute_binding(capture, dag, 0).managed_capture_stage(
-    "original stage 288",
-  )
-  assert_false(@strategy.captured_task_completed(dag, 0))
-  assert_eq(@strategy.next_captured_task(dag), Some(0))
+  if query {
+    assert_true(@rows.check_row_capture_compute_binding(capture, dag, 0))
+    assert_true(@strategy.captured_task_completed(dag, 0))
+    assert_eq(@strategy.next_captured_task(dag), Some(1))
+  } else {
+    @rows.check_row_input_compute_binding(capture, dag, 0).managed_capture_stage(
+      "original stage 288",
+    )
+    assert_false(@strategy.captured_task_completed(dag, 0))
+    assert_eq(@strategy.next_captured_task(dag), Some(0))
+  }
   arena
   .leave_domain_retained_execution(physical)
   .managed_capture_stage("original stage 291")
@@ -1746,6 +1870,7 @@ fn managed_capture_fixture_case(
   file_limits : NativeRelationFileLimits,
   expected_transfer : Int64,
   input_name? : String = "row-source-input",
+  query? : Bool = false,
 ) -> Unit raise {
   let selection : NativeRelationFileSelection = {
     directory: @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").managed_capture_stage(
@@ -1807,8 +1932,20 @@ fn managed_capture_fixture_case(
   .enter_domain_retained_execution(physical)
   .managed_capture_stage("original stage 340")
   let owner = managed_capture_fixture_work(
-    arena, physical, initial, input, selection, declaration, provider, environment,
-    contracts, manifests, file_limits, expected_transfer, prepared_provider,
+    arena,
+    physical,
+    initial,
+    input,
+    selection,
+    declaration,
+    provider,
+    environment,
+    contracts,
+    manifests,
+    file_limits,
+    expected_transfer,
+    prepared_provider,
+    query~,
   )
   match arena.close_domain_retained_execution(physical) {
     Ok(_) => ()
@@ -1879,4 +2016,9 @@ test "Native managed Source funds the selected Mock byte profile beyond componen
     70062L,
     input_name="row-source-large-input",
   )
+}
+
+///|
+test "Native managed Query Source reads on the same original Request Plan and physical Ledger" {
+  managed_capture_fixture_case(capture_fixture_limits(), 62L, query=true)
 }

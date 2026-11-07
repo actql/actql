@@ -78,7 +78,10 @@ fn managed_listing_fixture_declaration() -> @rows.RowDeclaration raise {
 }
 
 ///|
-fn managed_listing_fixture_case(clock_mode : Int) -> Unit raise {
+fn managed_listing_fixture_case(
+  clock_mode : Int,
+  query? : Bool = false,
+) -> Unit raise {
   let (prototype, temporary, fields) = file_listing_page_fixture()
   assert_true(@rows.discard_relation_document_original(temporary))
   let selection = {
@@ -189,6 +192,7 @@ fn managed_listing_fixture_case(clock_mode : Int) -> Unit raise {
     listing=Some(listing),
     program=Some(program),
     clock_refusal=if clock_mode >= 2 { clock_mode } else { 0 },
+    query~,
   )
   arena
   .close_domain_retained_execution(execution)
@@ -225,4 +229,9 @@ test "Native listing clock failure regression and replacement fence the original
   for mode in [2, 3, 4] {
     managed_listing_fixture_case(mode)
   }
+}
+
+///|
+test "Native managed Query listing preserves its original Plan issuer and physical Ledger" {
+  managed_listing_fixture_case(1, query=true)
 }

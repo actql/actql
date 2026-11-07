@@ -4,7 +4,8 @@
 // variants conservatively, including mutually exclusive failure paths:
 //
 // * Original acquisition selector: H1/R4/S1. The managed-input arm retains
-//   acquisition/read/selected-capacity/provider; ordinary arms borrow one.
+//   acquisition/read/selected-capacity/provider; managed Query arms borrow
+//   acquisition/read/provider (R3), within the same R4 peak; ordinary arms borrow one.
 // * Capture holder: H1/R24/S7 (23 optional references plus borrowed limits;
 //   offset, three progression flags, phase, two listing clock observations). Its Some wrappers: H23/R23/S23.
 // * Selection snapshot: record + two path arrays + optional key path Some,

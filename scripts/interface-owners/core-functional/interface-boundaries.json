@@ -49206,7 +49206,7 @@
     },
     {
       "module": "src/client_row_source_host/response_borrow.mbt",
-      "sha256": "be9d3490399a661752c6195e97f2d4e84c2af1614b3dd3d521322d8b06139337",
+      "sha256": "2171bf3c1007e0fecb634fefddbdf40fe71c960596bdb89cb8529ce70a522ef2",
       "exports": [],
       "operations": [
         {
@@ -49246,6 +49246,10 @@
           "declaration": "retire_row_run_response_workspace ( value : RowRunResponseBorrow , ) - > Result [ Unit , RowHostIssue ]"
         },
         {
+          "name": "row_response_configuration_matches",
+          "declaration": "row_response_configuration_matches ( actual : RowHostConfiguration , original : RowHostConfiguration , ) - > Bool"
+        },
+        {
           "name": "row_response_workspace_capture_current",
           "declaration": "row_response_workspace_capture_current ( value : RowRunResponseBorrow ) - > Bool"
         },
@@ -49265,7 +49269,8 @@
             "borrow_row_input_run_responses",
             "borrow_row_run_responses",
             "check_row_acquisition_original",
-            "check_row_run_response_borrow_current"
+            "check_row_run_response_borrow_current",
+            "row_response_configuration_matches"
           ],
           "exports": [],
           "attributes": {
