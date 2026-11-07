@@ -133,21 +133,6 @@
       "sha256": "a9b8ef9ff1cc4457a7e40ab4eed988d064ef25d6d8b1ad82d0191de32a24f483"
     },
     {
-      "path": "src/platform_native/host_bootstrap/backed_live_child_native.mbt",
-      "bytes": 14904,
-      "sha256": "ababbdf41be623d581c48558ca418f216446f38c8bdfe49954de282dbd3587f5"
-    },
-    {
-      "path": "src/platform_native/host_bootstrap/backed_request_preparation_native.mbt",
-      "bytes": 13711,
-      "sha256": "6793462127526a6ee7c49293a1575cfe4bdecf6a9a427102dd0c71b9c8727327"
-    },
-    {
-      "path": "src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt",
-      "bytes": 8357,
-      "sha256": "e3733a5ba9fbbf141e99cfc0dfe1531d1c55827fccb6723384b62a442e9a04c0"
-    },
-    {
       "path": "src/platform_native/host_bootstrap/backing_growth_native.mbt",
       "bytes": 2805,
       "sha256": "602ae75dedac4b3e0c6669ad601d6291fe74998b3cf5c5feb1d446b796eccc39"
