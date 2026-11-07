@@ -20,6 +20,7 @@ pub(all) enum NativeRunPublicationIssue {
 /// physical cleanup observation.
 pub(all) enum NativePublicationOutputIssue {
   InvalidOutputConfiguration
+  Preparation(@local.ClientClosedValuesPreparationIssue)
   Output(@publication_host.PublicationOutputExportIssue)
   Payload(@payload.PublicationPayloadIssue)
   Store(@store.NativePublicationStoreIssue)
@@ -75,6 +76,7 @@ pub(all) struct NativePublishedOutput {
 ///|
 pub(all) enum NativeRunPublicationAssemblyIssue {
   InvalidAssembly
+  Preparation(@local.ClientClosedValuesPreparationIssue)
   Manifest(@publication.ResultManifestIssuanceIssue)
   Receipt(@publication.RunReceiptIssuanceIssue)
   Capture(@publication.CapturedRunIssuanceIssue)
@@ -304,6 +306,7 @@ pub fn persist_publication_output_native(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  publication? : @local.ClientProgramPublication? = None,
 ) -> Result[NativePublishedOutput, NativePublicationOutputIssue] {
   if max_wire_bytes < 1 ||
     max_nodes < 1 ||
@@ -380,12 +383,43 @@ pub fn persist_publication_output_native(
     output.cancel()
     return Err(InvalidOutputConfiguration)
   }
-  let snapshot = match
-    output.admit_captured_snapshot(max_wire_bytes, max_nodes, max_depth) {
+  let snapshot_result = match publication {
+    None =>
+      output
+      .admit_captured_snapshot(max_wire_bytes, max_nodes, max_depth)
+      .map_err(issue => NativePublicationOutputIssue::Output(issue))
+    Some(original) => {
+      // The same adopted preparation funds and retains the full Result copy;
+      // service B/N/depth continue to bound only metadata issuers below.
+      let cursor = match @local.begin_program_snapshot(original, output) {
+        Ok(value) => value
+        Err(issue) => {
+          output.cancel()
+          return Err(Preparation(issue))
+        }
+      }
+      let mut done = false
+      while !done {
+        match @local.advance_program_snapshot(cursor, 256) {
+          Ok((ready, _)) => done = ready
+          Err(issue) => {
+            @local.cancel_program_snapshot(cursor)
+            output.cancel()
+            return Err(Preparation(issue))
+          }
+        }
+      }
+      @local.finish_program_snapshot(cursor).map_err(issue => {
+        @local.cancel_program_snapshot(cursor)
+        NativePublicationOutputIssue::Preparation(issue)
+      })
+    }
+  }
+  let snapshot = match snapshot_result {
     Ok(value) => value
     Err(issue) => {
       output.cancel()
-      return Err(Output(issue))
+      return Err(issue)
     }
   }
   let payload_request = match
@@ -528,6 +562,7 @@ pub fn assemble_native_effect_free_publication(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  publication? : @local.ClientProgramPublication? = None,
 ) -> Result[
   NativeEffectFreePublicationEvidence,
   NativeRunPublicationAssemblyIssue,
@@ -578,24 +613,69 @@ pub fn assemble_native_effect_free_publication(
     Ok(value) => value
     Err(issue) => return Err(Receipt(issue))
   }
-  let captured_run = match
-    @publication.issue_effect_free_captured_run(
-      context.run_definition,
-      context.invocation,
-      definitions,
-      artifacts,
-      manifest,
-      receipt,
-      snapshots,
-      context.source_advances,
-      context.authoring,
-      context.model_evidence,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
+  let captured_result = match publication {
+    Some(original) => {
+      if !context.source_advances.is_empty() {
+        return Err(InvalidAssembly)
+      }
+      let capture = match
+        @local.prepare_program_capture(
+          original,
+          context.run_definition,
+          context.invocation,
+          definitions,
+          artifacts,
+          manifest,
+          receipt,
+          snapshots,
+          context.authoring,
+          context.model_evidence,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Preparation(issue))
+      }
+      match @local.start_program_capture(capture) {
+        Ok(_) => ()
+        Err(issue) => {
+          @local.cancel_program_capture(capture)
+          return Err(Preparation(issue))
+        }
+      }
+      let mut done = false
+      while !done {
+        match @local.advance_program_capture(capture, 256) {
+          Ok((ready, _)) => done = ready
+          Err(issue) => {
+            @local.cancel_program_capture(capture)
+            return Err(Preparation(issue))
+          }
+        }
+      }
+      @local.finish_program_capture(capture).map_err(issue => {
+        @local.cancel_program_capture(capture)
+        NativeRunPublicationAssemblyIssue::Preparation(issue)
+      })
+    }
+    None =>
+      @publication.issue_effect_free_captured_run(
+        context.run_definition,
+        context.invocation,
+        definitions,
+        artifacts,
+        manifest,
+        receipt,
+        snapshots,
+        context.source_advances,
+        context.authoring,
+        context.model_evidence,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ).map_err(issue => Capture(issue))
+  }
+  let captured_run = match captured_result {
     Ok(value) => value
-    Err(issue) => return Err(Capture(issue))
+    Err(issue) => return Err(issue)
   }
   Ok({
     run_definition: context.run_definition,

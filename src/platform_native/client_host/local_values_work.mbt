@@ -13,6 +13,12 @@ struct NativeClientValuesWork {
   mut requirements : @local.ClientLocalRequirements?
   current : () -> Bool
   original_access : NativeLocalValuesOriginalAccess?
+  managed : @local.ClientInstalledManagedRun?
+  mut publication_invocation : (
+    @publication.RunEvidenceValue,
+    @publication.PublicationContract,
+  )?
+  mut publication : @local.ClientProgramPublication?
 }
 
 ///|
@@ -307,6 +313,9 @@ fn open_native_client_local_values_work(
     requirements: Some(requirements),
     current,
     original_access,
+    managed,
+    publication_invocation: None,
+    publication: None,
   })
 }
 
