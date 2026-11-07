@@ -34955,7 +34955,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "3f38bf49276954c119086d912b3a51806c7b8790f1ffa8f6ff50658543fac141",
+      "sha256": "d8934e8a96c7da4386bf023c2155160a19745bca20682f99eeb4d40308c7ccaa",
       "exports": [],
       "operations": [
         {

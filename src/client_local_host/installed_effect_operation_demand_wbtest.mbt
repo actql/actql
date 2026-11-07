@@ -257,6 +257,7 @@ test "original implementation control material shares the checked row inventory 
 // generated, and expected identities/rows are not taken from execution output.
 fn effect_operation_source_plan_fixture(
   bounded_output? : Bool = false,
+  controls_per_row? : @execution.ExecutionCapacity? = None,
   source_width? : Int = 1,
   additional_source? : Bool = false,
   second_result? : Bool = false,
@@ -493,6 +494,22 @@ fn effect_operation_source_plan_fixture(
     [extent],
     [extent],
   ).unwrap()
+  let demand = match controls_per_row {
+    None => demand
+    Some(capacity) =>
+      prepare_installed_effect_operation_demand_with_controls(
+        prepared,
+        if additional_source {
+          2
+        } else {
+          1
+        },
+        "save",
+        demand.member_extents,
+        demand.row_extents,
+        capacity,
+      ).unwrap()
+  }
   let demands = if second_result {
     [
       demand,
@@ -1335,13 +1352,13 @@ test "standard capture extent refuses overflow and row-slot reuse without changi
 test "Source Effect operations use their SAME checked Result bound after unknown input" {
   let plan = effect_operation_source_plan_fixture(bounded_output=true)
   assert_eq(plan.rows, 1)
-  // Two distinct original occurrences: one member and one row. The source
-  // still has its independent original acquisition/Compute allowance.
+  // Both original occurrence ceilings remain. Before captured input exists,
+  // only the fixed member is funded; its row is retained on the same Run.
   assert_eq(plan.held_children, 2)
-  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 2)
+  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 1)
   assert_eq(
     plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes,
-    14L,
+    7L,
   )
   assert_true(plan.capacity_plan.demand_inventory.unwrap().closed_rows is None)
 }
@@ -1394,10 +1411,12 @@ test "Effect Result bounds keep multiple original member occurrences and endpoin
   )
   assert_eq(plan.rows, 3)
   assert_eq(plan.held_children, 8)
-  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 8)
+  // The two fixed members are funded first, preserving all eight original
+  // member/row coordinate ceilings for later actual captured input.
+  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 2)
   assert_eq(
     plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes,
-    56L,
+    14L,
   )
 }
 

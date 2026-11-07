@@ -872,10 +872,20 @@ fn prepare_installed_effect_managed_plan_owned(
       ),
     )
   }
-  let closed_rows = proof.bind(value => value.closed_rows)
-  let rows = closed_rows.unwrap_or(
+  let row_bound = proof.bind(value => value.closed_rows)
+  let rows = row_bound.unwrap_or(
     @publication_host.client_standard_values_sequence_limits().max_rows,
   )
+  // A checked JOIN/TAKE ceiling after external capture is still a rejection
+  // bound, not already owned input rows. Keep that SAME bound above; only
+  // source-free closed material can prepay row controls before input exists.
+  // Captured input uses the existing same-Run inventory/grow entrance before
+  // any row-dependent callback, including a bounded captured Result.
+  let closed_rows = if captures.is_empty() && whole_sources.is_empty() {
+    row_bound
+  } else {
+    None
+  }
   // Absence is not a zero-row fact. Retain the executor's original rejection
   // ceiling above, but fund only fixed member controls until completed inputs
   // supply their original inventory on this SAME adopted Run.
