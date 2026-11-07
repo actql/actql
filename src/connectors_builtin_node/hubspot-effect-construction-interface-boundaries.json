@@ -1,0 +1,95 @@
+{
+  "qualification": "Source-owned private quantity projection only; not runtime/authority/physical/funding/performance admission",
+  "declarations": [
+    {
+      "module": "src/connectors_builtin_node/client_hubspot_effect_construction_bridge.mbt",
+      "sha256": "7285c2f0ed1acb801f95fd0833504197fa03b0bad989f0d095a8ad248bdeaba3",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common constructor/Plan/Grant/HTTP quantity owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_hubspot_effect_constructor_capacity",
+          "declaration": "client_program_hubspot_effect_constructor_capacity ( kind : Int , input : Array [ Int ] , output : Array [ Int ] , counts : Array [ Int ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_hubspot_effect_recipe_capacities",
+          "declaration": "client_program_hubspot_effect_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] , finalization_original : @ execution . ExecutionCapacity ? , limits : Array [ Int ] , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_hubspot_effect_constructor_capacity",
+            "client_program_hubspot_effect_recipe_capacities"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -127610,7 +127610,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "ba6eba0f710ef5f0ff4eae835ecde613fabf8685982989f9c6817bd862da38e4",
+      "sha256": "0b607891445d996589a755eb2aaa72325c282b34b638cef0b918a1379e04d8b3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -128294,6 +128294,33 @@
           "async": false
         },
         {
+          "name": "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput/init:prepareNativeInput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings",
+          "parameters": [
+            "declared",
+            "mappingOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/environment/environment",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/init:prepareNativeMappings",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect",
           "parameters": [
             "site",
@@ -128390,7 +128417,9 @@
         },
         {
           "name": "createInstalledSourceContext/validateNativeInputContext/validateNativeInputContext",
-          "parameters": [],
+          "parameters": [
+            "prepared"
+          ],
           "async": false
         },
         {
@@ -130017,6 +130046,7 @@
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime#2",
+            "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput/init:prepareNativeInput",
             "createInstalledSourceContext/retainNativeInput/retainNativeInput",
             "createInstalledSourceContext/validateNativeInputContext/validateNativeInputContext",
             "installedSourceConfigurationReader/reader/init:prepareNativeInput/init:prepareNativeInput",
@@ -130087,6 +130117,10 @@
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-mapping-parent.fixture.mjs",
+                "anchor": "test('HubSpot real initial parent funds Native Mapping"
               }
             ]
           }
@@ -130312,6 +130346,76 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Normal Table same-Request reader"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings",
+            "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/environment/environment",
+            "createInstalledSourceContext/context/init:prepareNativeMappings/init:prepareNativeMappings/init:prepareNativeMappings"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/mapping-initialization.md",
+                "anchor": "- Verification:"
               }
             ]
           }

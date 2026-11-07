@@ -1676,3 +1676,60 @@ test('Run binding current fence cannot replace retained material during a later 
   assert.deepEqual(setup.journal.recover().map(row => row.outcome), ['succeeded', 'failed']);
   assert.equal(closeHttpsCredentialBinding(f.binding), 'closed');
 });
+
+
+test('same-original Resource bindings reject replacement secret before the first data send', async t => {
+  const setup = await fixture(t, {retain:true});
+  const parentScope=scope(setup.origin),childScope=scope(setup.origin,'metadata:read');
+  const parentGrant=control.prepare(parentScope),childGrant=control.prepare(childScope);
+  for(const grant of [parentGrant,childGrant])setup.journal.acceptGrant(setup.sign(grant),control);
+  let material='provider-secret',resolutions=0;
+  const resolveSecret=async()=>{resolutions++;return material;};
+  const parent=openHttpsCredentialBinding({scope:parentScope,control,journal:setup.journal,
+    resolveSecret,maxSecretBytes:64,assertCurrent(){}});
+  const child=openHttpsCredentialBinding({scope:childScope,control,journal:setup.journal,
+    resolveSecret,maxSecretBytes:64,assertCurrent(){},originalSecretBinding:parent});
+  try {
+    const metadataOperations=new Map([['metadata:read',Object.freeze({method:'GET',path:'/records'})]]);
+    await call(setup,childGrant,childScope,'original-metadata',{binding:child,resolveSecret,
+      operations:metadataOperations,currentBeforeSend:async()=>{}});
+    material='foreign-account-secret';
+    await assert.rejects(call(setup,parentGrant,parentScope,'refused-data',
+      {binding:parent,resolveSecret,currentBeforeSend:async()=>{}}),{code:'RemoteCredentialBindingChanged'});
+    assert.equal(setup.requests(),1);assert.equal(resolutions,2);
+  } finally {
+    assert.equal(closeHttpsCredentialBinding(child),'closed');
+    assert.equal(closeHttpsCredentialBinding(parent),'closed');
+  }
+});
+
+test('same-original secret association keeps independent close/current and refuses foreign binding provenance', async t => {
+  const setup=await fixture(t,{retain:true}),original=scope(setup.origin);
+  const resolveSecret=async()=>{assert.fail('No secret lookup in custody-only control');};
+  const options={scope:original,control,journal:setup.journal,resolveSecret,maxSecretBytes:64,assertCurrent(){}};
+  const parent=openHttpsCredentialBinding(options);
+  assert.throws(()=>openHttpsCredentialBinding({...options,originalSecretBinding:{}}),{code:'ForeignRemoteCredentialSecretOriginal'});
+  assert.throws(()=>openHttpsCredentialBinding({...options,scope:{...original,namespaceId:'other'},
+    originalSecretBinding:parent}),{code:'ForeignRemoteCredentialSecretOriginal'});
+  const child=openHttpsCredentialBinding({...options,originalSecretBinding:parent});
+  assert.equal(closeHttpsCredentialBinding(parent),'pending');
+  assert.equal(closeHttpsCredentialBinding(child),'closed');
+  assert.equal(closeHttpsCredentialBinding(parent),'closed');
+  assert.equal(setup.requests(),0);assert.equal(setup.journal.recover().length,0);
+});
+
+
+test('same-original secret association requires both original current fences without resolving a secret', async t => {
+  const setup=await fixture(t,{retain:true}),original=scope(setup.origin);
+  const resolveSecret=async()=>{assert.fail('No resolver during original association');};
+  const options={scope:original,control,journal:setup.journal,resolveSecret,maxSecretBytes:64};
+  const unfenced=openHttpsCredentialBinding(options);
+  assert.throws(()=>openHttpsCredentialBinding({...options,assertCurrent(){},originalSecretBinding:unfenced}),
+    {code:'ForeignRemoteCredentialSecretOriginal'});
+  assert.equal(closeHttpsCredentialBinding(unfenced),'closed');
+  const parent=openHttpsCredentialBinding({...options,assertCurrent(){}});
+  assert.throws(()=>openHttpsCredentialBinding({...options,originalSecretBinding:parent}),
+    {code:'ForeignRemoteCredentialSecretOriginal'});
+  assert.equal(closeHttpsCredentialBinding(parent),'closed');
+  assert.equal(setup.requests(),0);assert.equal(setup.journal.recover().length,0);
+});

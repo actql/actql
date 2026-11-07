@@ -69,3 +69,60 @@ HubSpot's [list endpoint](https://developers.hubspot.com/docs/api-reference/lega
 defines limit as the per-page result maximum and after as the original
 forward cursor. No response-provided link is followed. The same operation,
 properties and archived selector remain selected by the existing reader.
+
+The private `prepareInstalledHubSpotMaterials` entry is the same metadata and
+Catalog constructor used by the standard Source loader and the installed Effect
+assembly. It retains every declared resource and observed property, including
+read-only fields; an Effect mapping must not replace this full Source inventory.
+It runs through the supplied original parent construction ports, returns the
+same provider-runtime Catalogs and Common declaration, and opens no Site or
+authorization. Native-only explicit-port component cases check this material
+correspondence and failure ordering; they do not establish whole-initialization
+Ledger funding or a normal installed Effect flow.
+
+
+## Managed Source protocol
+
+The standard HubSpot loader registers its original `providerReader` through
+`sourceReaderImplementation` and `createSourceReader` before creating the Row
+Source. The same Plan selects that reader; the old physical `readPages` port is
+not a fallback for a missing managed constructor. Account identity, initial and
+final property Catalog checks and complete page projection remain provider
+rules. Metadata resources require their own fresh Account decisions and
+original grants; a data grant cannot authorize either metadata resource.
+
+The generic Reader owns physical response custody, charge-before-decode,
+current/cancellation fences and cleanup-bound RowRun retirement. The private
+Common quantity composes that reader's original inventory with the bounded
+HubSpot sequence. Each charged body adds its actual byte extent before any
+native projection, including complete earlier/failed prefixes. Empty Sets and
+body arrays carry no future row/page/request entries. Their current prefix and
+one predecode page are bounded from received extents and the original per-page
+limit; increasing unused total ceilings adds no initial allocation. Row output and
+writer bounds stay independent; no limit, permission or Ledger is issued by
+these quantities. Duplicate ids/cursors, page/request/row limits and the final
+Catalog recheck remain mandatory before successful completion. Protocol tests
+with explicit Reader ports prove provider rules only; actual normal distribution,
+approval, UPDATE, Saved and physical cleanup require their respective consumers.
+
+
+Effect metadata authorizations retain the exact Site-issued original beside
+their physical `useId`. The observation adapter passes that original unchanged
+to the existing managed Credential child; the useId stays in its physical input.
+Target rows keep their existing same-row authorization lookup. A copied grant
+scope/body cannot establish issuer purpose, and no new grant or permission is
+inferred from equal fields. This two-field metadata view replaces the former
+three-field copied envelope and needs no additional constructor representation.
+
+Each physical Effect occurrence stages its own Account, property or target
+constructor at both the initial and maximum extents. Received-input growth uses
+that same constructor, operation and transfer inventory. The shared capture may
+keep a combined metadata bound, but that bound cannot replace an Account-only
+operation's initial retained material. Core still requires the live physical
+backing to fit the received-input extent and its original maximum; response
+projection completion and actual child retirement keep their existing duties.
+
+Cold request reconstruction keeps the original policy wire/text envelope.
+Only its actual owned Preview/recovery byte extent selects the existing Host
+parser staging port. A smaller saved input cannot replace the already retained
+policy ceiling; Core retains the original maximum and checked-row quantities.

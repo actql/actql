@@ -5694,7 +5694,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           effectResumeFlights.set(key, flight);
           const settlement = flight.catch(error => {
             diagnostic('effect_resume_failed', {ref,
-              code: error?.code ?? error?.message});
+              code: error?.code ?? error?.message, cause: error});
           }).finally(() => {
             effectResumeFlights.delete(key);
             if (checkpoints.journal.getRunState(view.runId)?.status !==
@@ -5706,7 +5706,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           if (observing) await flight;
         } catch (error) {
           diagnostic('effect_resume_failed', {ref,
-            code: error?.code ?? error?.message});
+            code: error?.code ?? error?.message, cause: error});
           if (reconcileRef !== undefined) throw error;
         }
         busy = true;

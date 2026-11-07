@@ -72,7 +72,7 @@ export async function installedHubSpotFixture(t, {account = 'allow', propertyRea
   const load = () => loaderParent.load(loadInstalledSource, path, {root: f.root, principalId: 'operator',
     moon: common, runtimeUrl, baseEnvironmentWire: base,
     resolveSecret: f.options.credential.resolveSecret});
-  const identity = () => installedSourceIdentity(path, {
+  const identity = () => installedSourceIdentity(path, {moon: common,
     configurationReader: installedSourceConfigurationReader(loaderParent.services)});
   const prepare = async source => {
     const env = JSON.parse(source.environmentWire);

@@ -177,3 +177,12 @@ test('registered HubSpot retains every original resource on the same initial par
   assert.deepEqual(source.sourceReadAccesses.map(value=>value.resource).sort(),['companies','contacts']);
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });
+
+
+test('HubSpot standard Source publishes its actual same-owner managed Effect Plan selection before provider I/O', async t => {
+  const f = await fixture(t), source = await f.load();
+  const selected = source.managedEffectPlanSelection();
+  assert(selected.declaration);assert(selected.provider);assert(selected.inputLimits);
+  assert.equal(typeof selected.transferBytes, 'bigint');assert.equal(typeof selected.executionBytes, 'bigint');
+  assert.equal(f.state.requests.length, 0);assert.equal(f.state.resolutions, 0);
+});
