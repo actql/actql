@@ -1483,7 +1483,7 @@ pub fn decode_client_run_journal_row_with_observation_originals(Bytes) -> Result
 
 pub fn decode_client_run_journal_row_with_retained_identity(Bytes, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[(ClientRunJournalEncoding, String?, String?), ClientJournalDecodingIssue]
 
-pub fn decode_client_submitted_journal_row(Bytes) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue]
+pub fn decode_client_submitted_journal_row(Bytes, before_construction? : ((ClientSubmittedJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue]
 
 pub fn decode_client_submitted_name_row(Bytes) -> Result[ClientSubmittedNameRow, ClientSubmittedNameIssue]
 
@@ -2201,7 +2201,7 @@ pub fn read_client_run_policy_originals(String) -> Result[Array[@run_publication
 
 pub fn[E] read_client_saved_run_reference(String, String, String, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientSavedSubmissionSnapshot, E]
 
-pub fn[E] read_client_saved_submission(ClientSubmissionReferenceRecord, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientSavedSubmissionSnapshot?, E]
+pub fn[E] read_client_saved_submission(ClientSubmissionReferenceRecord, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E, before_construction? : ((ClientSubmittedJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[ClientSavedSubmissionSnapshot?, E]
 
 pub fn[E] read_client_task_material_original(String, String, (String, String) -> Result[ClientJournalPhysicalRow?, E], E) -> Result[String, E]
 
@@ -4625,6 +4625,11 @@ pub(all) enum ClientSubmittedJournalAppendIssue[E] {
 pub(all) enum ClientSubmittedJournalAppendPlan {
   Retained(ClientSavedSubmissionSnapshot)
   Append(ClientSubmittedJournalAppend)
+}
+
+pub(all) enum ClientSubmittedJournalConstruction {
+  SubmittedJournalParse(Int)
+  SubmittedJournalCanonical(Int, Int, Int)
 }
 
 pub(all) struct ClientSubmittedJournalEncoding {
