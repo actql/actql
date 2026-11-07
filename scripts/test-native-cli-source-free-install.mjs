@@ -47,9 +47,9 @@ export async function verifyNativeNumericRows(path, count = 100000) {
 // Each cli call below launches the same installed Native entry in a new
 // process. Its successful reply/exit is gated by the entry's real command
 // cleanup; it is not independent FD inspection or a whole-Host stop claim.
-export async function observeNativeNumericScale({project, cli}) {
+export async function observeNativeNumericScale({project, cli, outputDirectory = project}) {
   const count = 100000, input = join(project, 'numeric-scale.json');
-  const first = join(project, 'numeric-first.jsonl'), saved = join(project, 'numeric-saved.jsonl');
+  const first = join(outputDirectory, 'numeric-first.jsonl'), saved = join(outputDirectory, 'numeric-saved.jsonl');
   const program = {version: 'actql/0.1', id: 'numeric-scale',
     stages: [{id: 'main', inputs: {}, steps: [{as: 'v', values: {
       schema: {v0: {type: 'number', nullable: false}},
@@ -112,6 +112,14 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
     metadata_retention_policy_cid: dependencies[1].cid, metadata_delete_by: '2099-01-03T00:00:00.000Z',
     clock_contract_cid: dependencies[2].cid};
   retention.effective_retention_policy_cid = cid(retention);
+  // Select the existing finite profile from these same dependency originals.
+  // The Native Owner admits it and binds first acceptance; this DATA assembly
+  // does not issue a Run policy or reinterpret the absolute retention original.
+  const profile = {version: 'actql-local-run-policy-profile/0.1',
+    available_for_ms: 86400000, delete_after_ms: 172800000,
+    metadata_after_ms: 604800000, read_for_ms: 86400000,
+    effective_data_policy_cid: policyCid, retention_contract_cid: dependencies[0].cid,
+    metadata_retention_policy_cid: dependencies[1].cid, clock_contract_cid: dependencies[2].cid};
   const principal = 'numeric-operator', connection = 'cli';
   const permission = (entry_id, resource, operations) => ({entry_id, outcome: 'allow',
     principal: {any_of: [principal]}, connection: {any_of: [connection]},
@@ -122,8 +130,8 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
   const storeCid = 'sha256:' + createHash('sha256').update(storeWire).digest('hex');
   const files = {
     'account.json': {version: 'actql-execution-account-config/0.1', account_id: principal,
-      entries: [permission('numeric-run', 'run', ['cancel', 'publish', 'read', 'submit']),
-        permission('numeric-result', 'result/answer0', ['read'])]},
+      entries: [permission('numeric-result', 'result/answer0', ['read']),
+        permission('numeric-run', 'run', ['cancel', 'publish', 'read', 'submit'])]},
     'environment.json': environment,
     'run.json': {version: 'actql-config/0.1', native: {run: {
       namespace_id: 'numeric', store_name: 'results', store_authority_cid: storeCid,
@@ -135,18 +143,24 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
     'read.json': {version: 'actql-config/0.1', native: {result_read: {
       enabled: true, principal, connection, result_names: ['answer0'], formats: ['jsonl'],
       purpose: 'cli-read', sink: 'stdout', data_policy_cids: [policyCid], max_bytes: 16777216,
-      max_uses: 1, expires_at: '2099-01-01T00:00:00.000Z',
+      max_uses: 1, run_policy_profile_cid: cid(profile),
+      run_file: 'run.json', retention_file: 'retention.json', store_file: 'store.json',
     }}},
     'retention.json': dependencies,
+    'profile.json': profile,
     'operator.json': {version: 'actql-config/0.1', account_config: 'account.json', native: {
       check_environment: {file: 'environment.json', evidence_bundle_cid: environment.evidence_bundle_cid},
       local: {account_id: principal, principal, connection, state_parent: project, state_name: 'host',
         managed_root: project, sqlite_library: libraries.sqlite, signature_library: libraries.crypto,
         submission_ttl_ms: 86400000, journal_record_limit: 8, journal_snapshot_bytes: 8388608,
-        installation_files: ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json'],
-        run_file: 'run.json', read_file: 'read.json'},
+        installation_files: ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json', 'profile.json', 'file-read.json'],
+        run_file: 'run.json', read_file: 'read.json', run_policy_profile_file: 'profile.json'},
     }},
   };
+  // File output has its own adopted selection; a later --output destination
+  // cannot manufacture it from the stdout read original.
+  files['file-read.json'] = structuredClone(files['read.json']);
+  Object.assign(files['file-read.json'].native.result_read, {sink: 'file', purpose: 'cli-file'});
   await mkdir(project, {mode: 0o700});
   for (const [name, value] of Object.entries(files)) {
     await writeFile(join(project, name), canonicalText(value), {flag: 'wx', mode: 0o600});
@@ -162,7 +176,11 @@ export async function observeNativeNumericOperatorScale({project, cli, assets, l
   const operator = (args, cwd = project, code = 0) => cli([...selected.configuration, ...args], cwd, code);
   const adopted = await operator(['adopt', '--initialize-signing', '--json']);
   assert.equal(JSON.parse(adopted.stdout).kind, 'local_host_adopted');
-  const result = await observeNativeNumericScale({project, cli: operator});
+  // Presentation output must be outside the adopted managed namespace. Keep
+  // its original protected boundary; select a distinct owned directory instead.
+  const outputDirectory = project + '-output';
+  await mkdir(outputDirectory, {mode: 0o700});
+  const result = await observeNativeNumericScale({project, cli: operator, outputDirectory});
   // A distinct fresh operator deliberately selects a lower finite row policy.
   // Its original refusal is neither retried nor a reason to weaken enforcement.
   const lowProject = project + '-low-policy';

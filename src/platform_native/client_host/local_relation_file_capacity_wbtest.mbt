@@ -178,6 +178,18 @@ test "relation entry authored minimum fixture and maximum constructor totals" {
   let outer = native_relation_file_entry_outer_capacity().unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(outer), 2842L)
   assert_eq(@execution.execution_capacity_execution_bytes(outer), 2842L)
+  // Work capacity is quantity DATA; the standalone Read retains admission.
+  let quoted_bytes = { ..maximal, page: { ..maximal.page, max_bytes: 65537, }, }
+  assert_false(
+    @row_file.native_relation_file_input_valid(selection, quoted_bytes),
+  )
+  assert_true(
+    native_relation_file_work_control_capacity(selection, quoted_bytes)
+    is Some(_),
+  )
+  assert_true(
+    native_relation_file_entry_read_capacity(selection, quoted_bytes) is None,
+  )
   let excessive = { ..paths, items_path: Array::make(17, "items"), }
   assert_true(
     native_relation_file_work_control_capacity(excessive, maximal) is None,
