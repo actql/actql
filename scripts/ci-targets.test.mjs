@@ -498,6 +498,40 @@ const changes = paths => paths.map(path => ({path, before: {mode: '100644', obje
   after: {mode: '100644', object: 'd'.repeat(40)}}));
 const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: changes(paths)});
 
+test('Native Core matrix owns two required isolated partitions without multiplying portable targets', t => {
+  const core = jobs.core, matrix = core.strategy.matrix;
+  assert.deepEqual(matrix.partition, [1, 2]);
+  assert.deepEqual(matrix.exclude, [{target: 'js', partition: 2}, {target: 'wasm', partition: 2}]);
+  const selected = all.flatMap(target => matrix.partition.map(partition => ({target, partition})))
+    .filter(row => !matrix.exclude.some(excluded => excluded.target === row.target && excluded.partition === row.partition));
+  assert.deepEqual(selected, [{target: 'js', partition: 1}, {target: 'wasm', partition: 1},
+    {target: 'native', partition: 1}, {target: 'native', partition: 2}]);
+  assert.equal(core.name, "core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}/2', matrix.partition) || '' }})");
+  assert.equal(core.strategy['fail-fast'], false);
+  assert(jobs.check.needs.includes('core'));
+  assert.equal(core['continue-on-error'], undefined);
+  const command = core.steps.find(step => step.name === 'Test common core');
+  const artifact = core.steps.find(step => step.name === 'Retain only sanitized current Native compiler diagnostics');
+  assert(artifact.with.name.includes('${{ matrix.partition }}'));
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-partition-workflow-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  writeFileSync(join(root, 'node'), '#!/bin/sh\nprintf "%s|%s|%s\\n" "$ACTQL_TEST_NATIVE_CORE_PARTITION" "$MOONBIT_NEW_NATIVE" "$*"\nexit "$ACTQL_FIXTURE_EXIT"\n');
+  chmodSync(join(root, 'node'), 0o755);
+  for (const partition of [1, 2]) for (const status of [0, 7]) {
+    const run = command.run.replaceAll('${{ matrix.target }}', 'native')
+      .replaceAll('${{ matrix.partition }}', String(partition));
+    const env = {...process.env, PATH: root + ':' + process.env.PATH, ACTQL_FIXTURE_EXIT: String(status)};
+    delete env.ACTQL_TEST_NATIVE_CORE_PARTITION; delete env.MOONBIT_NEW_NATIVE;
+    const result = spawnSync('bash', ['-eo', 'pipefail', '-c', run], {cwd: root, env, encoding: 'utf8', timeout: 5000});
+    assert.equal(result.error, undefined); assert.equal(result.signal, null);
+    assert.equal(result.status, status, result.stderr);
+    const lines = result.stdout.trim().split('\n');
+    assert.equal(lines[0], '||scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock');
+    assert.equal(lines.length, status === 0 ? 2 : 1);
+    if (status === 0) assert.equal(lines[1], `${partition}/2|0|scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose`);
+  }
+});
+
 test('required aggregate rejects failed, cancelled, skipped and missing selected jobs', () => {
   const selection = selectTargets(['src/unregistered/engine.mbt']);
   assert.equal(verifyGate(plan(selection), results(selection), context).length, gateJobs.length);

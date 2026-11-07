@@ -14,7 +14,7 @@ import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreTestSelection, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
-  nativeRelationWorkTestFile} from './native-core-test-selection.mjs';
+  nativeRelationWorkTestFile, nativeCorePartitionProfiles} from './native-core-test-selection.mjs';
 import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
 import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
@@ -40,6 +40,8 @@ for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file'
 const bundle = nativeCompletedRestorationBundle();
 const args = process.argv.slice(2);
 const full = !['focused', 'reporting'].includes(classifyMoon('test', args).classification);
+const partition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
+if (partition && !full) throw new Error('Native Core partitions require the complete original selection');
 // Select the test-only compiler once before either original checkpoint
 // producer. Changing its executable PATH before the full child invalidates the
 // same release/strip test C cache. Every phase keeps the original backend,
@@ -51,7 +53,13 @@ const compilerEnvironment = {...process.env, ...testCompiler};
 // Keep the original full classification and fixture/budget decisions. These
 // compiler-selected directories omit only packages with no Native test cases.
 const selection = full ? nativeCoreTestSelection(root, args,
-  {env: compilerEnvironment, partitionProfiles: true}) : undefined;
+  {env: compilerEnvironment, partitionProfiles: true, ordinaryPartitions: Boolean(partition)}) : undefined;
+if (selection && partition) {
+  const originalCases = selection.profiles.ordinary.cases;
+  selection.profiles = nativeCorePartitionProfiles(selection.profiles, partition);
+  console.log('Native Core ordinary partition: ' + JSON.stringify({partition,
+    originalCases, selectedCases: selection.profiles.ordinary.cases}));
+}
 if (selection) console.log('Native test selection: ' + JSON.stringify({cases: selection.cases,
   packages: selection.packages, prunedDrivers: selection.prunedDrivers,
   ...(selection.benchmarkDeclarations ? {benchmarkDeclarations: selection.benchmarkDeclarations} : {}),

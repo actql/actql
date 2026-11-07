@@ -14,6 +14,7 @@ import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {failedCoreDriver, diagnoseFailedCoreDriver} from './native-compiler-stop-diagnostic.mjs';
 import {runFocusedTests} from './test-execution.mjs';
+import {nativeCorePartitionProfiles} from './native-core-test-selection.mjs';
 // This file is selected by the canonical CI lint job. Keep the Native fixture
 // and compiler/linker regressions on that existing execution path.
 import './native-private-host-fixture.test.mjs';
@@ -399,6 +400,35 @@ test('Native Core full campaign remains selected after callback diagnosis failur
       success: () => previousSuccess && !cancelled, cancelled: () => cancelled},
     {timeout: 100});
     assert.equal(selected, expected, `${target}/${previousSuccess}/${startOutcome}/${cancelled}`);
+  }
+});
+
+test('Native partition caller passes the complete compiler inventory before selecting the original profile', () => {
+  const source = readFileSync(new URL('test-native-core.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('const selection = full ? nativeCoreTestSelection');
+  const end = source.indexOf('if (selection) console.log', start);
+  assert(start >= 0 && end > start);
+  const parts = [{args: ['src/a'], cases: 2}, {args: ['src/b'], cases: 3}];
+  const profiles = {ordinary: {cases: 5, partitions: parts},
+    http: {args: ['src/http'], cases: 1}, source: {args: ['src/source'], cases: 1},
+    scoped: {args: ['src/scoped'], cases: 1, tests: []}};
+  for (const partition of ['1/2', '2/2']) {
+    let discoveries = 0;
+    const args = ['--release', '--strip'], env = {original: true};
+    const selected = runInNewContext(source.slice(start, end) + '\nselection;', {
+      full: true, root: '/original', args, compilerEnvironment: env, partition,
+      nativeCorePartitionProfiles,
+      nativeCoreTestSelection(root, originalArgs, options) {
+        discoveries++;
+        assert.equal(root, '/original'); assert.equal(originalArgs, args);
+        assert.equal(options.env, env); assert.equal(options.partitionProfiles, true);
+        assert.equal(options.ordinaryPartitions, true);
+        return {profiles};
+      }, console: {log() {}},
+    });
+    assert.equal(discoveries, 1);
+    assert.equal(selected.profiles.ordinary, parts[Number(partition[0]) - 1]);
+    assert.equal(selected.profiles.http.args === null, partition === '2/2');
   }
 });
 

@@ -271,7 +271,7 @@ test('focused runner installs only Node and MoonBit while preserving upstream ar
 test('full success checkpoint accepts focused-only job skipped but requires every full family', async () => {
   const fullJobs = fullCheckpointJobs(gateJobs.filter(name => name !== 'focused-tests'));
   assert(!fullJobs.includes('focused-tests'));
-  for (const name of ['core (js)', 'core (wasm)', 'core (native)', 'host', 'client', 'native',
+  for (const name of ['core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'host', 'client', 'native',
     'session-evidence', 'pipeline-evidence', 'native-macos', 'workers', 'duckdb-node']) assert(fullJobs.includes(name));
   const run = {id: 101, run_attempt: 1, workflow_id: 7, path: '.github/workflows/ci.yml',
     event: 'push', head_branch: 'main', repository: {id: 12, full_name: 'actql/actql'},
@@ -294,7 +294,7 @@ test('full success checkpoint accepts focused-only job skipped but requires ever
   const focused = selection([change()], {event: 'push', mainIntegration: false});
   assert.equal(validateSelection(focused).profile, 'full', 'normal main selection never reuses a prior run to narrow coverage');
   verifyGate({selection: focused, sourceRevision: head}, results(focused), {event: 'push', sourceRevision: head});
-  jobs.find(job => job.name === 'core (native)').conclusion = 'skipped';
+  jobs.find(job => job.name === 'core (native 2/2)').conclusion = 'skipped';
   assert.equal((await resolveMainBaseline(options)).baseSha, null);
 });
 

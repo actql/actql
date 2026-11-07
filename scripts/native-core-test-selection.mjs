@@ -81,7 +81,65 @@ const selectedGeometryFiles = new Set([
   'src/cmd/native_client/local_command_installed_profile_wbtest.mbt',
 ]);
 
-function partitionProfiles(args, records) {
+// Keep each package's original test drivers together: splitting individual
+// cases would compile the same large generated C executable on both runners.
+// Balance compiler units first, then case counts; this is not a time estimate.
+export function nativeCoreOrdinaryPartitions(args, paths, records) {
+  assert(Array.isArray(args) && args.every(value => typeof value === 'string'));
+  assert(Array.isArray(paths) && new Set(paths).size === paths.length);
+  const groups = new Map(), identities = new Set();
+  for (const record of records) {
+    const identity = JSON.stringify(record.entry);
+    assert(!identities.has(identity), 'Duplicate original Native partition case');
+    identities.add(identity);
+    assert(typeof record.directory === 'string' && typeof record.source === 'string');
+    assert(paths.includes(record.directory) || paths.includes(record.source),
+      'Native partition case has no original selected input');
+    if (!groups.has(record.directory)) groups.set(record.directory,
+      {directory: record.directory, drivers: new Set(), cases: 0, records: []});
+    const group = groups.get(record.directory);
+    group.drivers.add(record.entry[0]);
+    group.cases += record.benchmark ? 0 : 1;
+    group.records.push(record);
+  }
+  assert([...groups.values()].filter(group => group.cases > 0).length >= 2,
+    'Two nonempty Native ordinary package partitions required');
+  const partitions = Array.from({length: 2}, () => ({drivers: 0, cases: 0, directories: new Set()}));
+  for (const group of [...groups.values()].sort((a, b) =>
+    b.drivers.size - a.drivers.size || b.cases - a.cases ||
+    (a.directory < b.directory ? -1 : a.directory > b.directory ? 1 : 0))) {
+    const selected = partitions[0].drivers < partitions[1].drivers ||
+      partitions[0].drivers === partitions[1].drivers && partitions[0].cases <= partitions[1].cases
+      ? partitions[0] : partitions[1];
+    selected.drivers += group.drivers.size;
+    selected.cases += group.cases;
+    selected.directories.add(group.directory);
+  }
+  const result = partitions.map(partition => ({
+    args: [...args, ...paths.filter(path => partition.directories.has(path) ||
+      partition.directories.has(dirname(path)))], cases: partition.cases,
+  }));
+  const selectedPaths = result.flatMap(partition => partition.args.slice(args.length));
+  assert.equal(selectedPaths.length, paths.length, 'Native partition omitted an original input');
+  assert.equal(new Set(selectedPaths).size, paths.length, 'Native partitions overlap');
+  assert(result.every(partition => partition.cases > 0), 'Empty Native ordinary partition');
+  assert.equal(result.reduce((sum, partition) => sum + partition.cases, 0),
+    records.filter(record => !record.benchmark).length);
+  return result;
+}
+
+export function nativeCorePartitionProfiles(profiles, value) {
+  if (value === undefined || value === '') return profiles;
+  assert(value === '1/2' || value === '2/2', 'Invalid Native Core partition');
+  assert.equal(profiles.ordinary.partitions?.length, 2, 'Missing Native Core partitions');
+  const ordinary = profiles.ordinary.partitions[Number(value[0]) - 1];
+  assert(ordinary.cases > 0 && ordinary.args?.length > 0, 'Empty Native Core partition');
+  return value === '1/2' ? {...profiles, ordinary} : {...profiles, ordinary,
+    http: {args: null, cases: 0}, source: {args: null, cases: 0},
+    scoped: {args: null, cases: 0, tests: []}, physicalCases: 0, repeatedGeometryCases: 0};
+}
+
+function partitionProfiles(args, records, ordinaryPartitions) {
   const scopedFiles = new Set(nativeScopedTestFiles);
   const physical = records.filter(record => scopedFiles.has(record.source));
   // These existing transport cases require the real mTLS/bearer peers from
@@ -113,7 +171,9 @@ function partitionProfiles(args, records) {
   // Empty PATH would run the whole project, never an empty profile.
   return {
     ordinary: {args: ordinaryPaths.length ? [...args, ...ordinaryPaths] : null,
-      cases: runnable(ordinary)},
+      cases: runnable(ordinary), ...(ordinaryPartitions ? {
+        partitions: nativeCoreOrdinaryPartitions(args, ordinaryPaths, ordinary),
+      } : {})},
     http: {args: http.length ? [...args, ...new Set(http.map(record =>
       record.directory === 'src/platform_native/http_client' ? record.directory : record.source))] : null,
       cases: runnable(http)},
@@ -130,7 +190,9 @@ function partitionProfiles(args, records) {
 
 export function nativeCoreTestSelection(repository, args, {
   env = process.env, execute = execFileSync, partitionProfiles: splitProfiles = false,
+  ordinaryPartitions = false,
 } = {}) {
+  assert(!ordinaryPartitions || splitProfiles, 'Native partitions require original profile discovery');
   repository = realpathSync(repository);
   const deadline = Date.now() + 60000;
   const run = values => {
@@ -226,7 +288,7 @@ export function nativeCoreTestSelection(repository, args, {
       prunedDrivers: full.size - selected.size};
     const benchmarks = records.filter(record => record.benchmark).length;
     if (benchmarks) result.benchmarkDeclarations = benchmarks;
-    if (splitProfiles) result.profiles = partitionProfiles(args, records);
+    if (splitProfiles) result.profiles = partitionProfiles(args, records, ordinaryPartitions);
     complete = true;
     return result;
   } finally {

@@ -5,7 +5,8 @@ import {existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathS
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, resolve} from 'node:path';
 import test from 'node:test';
-import {nativeCoreTestSelection, nativeCoreHttpArguments, nativeCoreHttpTestFiles} from './native-core-test-selection.mjs';
+import {nativeCoreTestSelection, nativeCoreHttpArguments, nativeCoreHttpTestFiles,
+  nativeCoreOrdinaryPartitions, nativeCorePartitionProfiles} from './native-core-test-selection.mjs';
 import {assertTestExecution} from './test-execution.mjs';
 
 function fixture(t) {
@@ -17,6 +18,93 @@ function fixture(t) {
   }
   return root;
 }
+
+test('Native ordinary partitions preserve complete original package drivers and exhaustive disjoint inputs', () => {
+  const args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'];
+  const records = [], paths = [];
+  for (const [directory, files] of [
+    ['src/a', ['public_test.mbt', 'private_wbtest.mbt']],
+    ['src/b', ['original_test.mbt']], ['src/c', ['original_test.mbt']],
+    ['src/mixed', ['ordinary_wbtest.mbt']],
+  ]) {
+    paths.push(directory === 'src/mixed' ? directory + '/ordinary_wbtest.mbt' : directory);
+    for (const file of files) for (let index = 0; index < 3; index++) {
+      records.push({directory, source: directory + '/' + file, benchmark: index === 2,
+        entry: [directory + '/' + file, file, {index, name: 'original-' + index, attrs: ['opaque']}]});
+    }
+  }
+  const parts = nativeCoreOrdinaryPartitions(args, paths, records);
+  assert.equal(parts.length, 2);
+  assert(parts.every(part => part.cases > 0));
+  assert.equal(parts.reduce((sum, part) => sum + part.cases, 0), 10);
+  assert.deepEqual(parts.flatMap(part => part.args.slice(args.length)).sort(), [...paths].sort());
+  for (const path of paths) assert.equal(parts.filter(part => part.args.includes(path)).length, 1);
+  for (const part of parts) {
+    assert.deepEqual(part.args.slice(0, args.length), args);
+    const originalRecords = records.filter(record => part.args.includes(record.directory) || part.args.includes(record.source));
+    assert.equal(part.cases, originalRecords.filter(record => !record.benchmark).length);
+  }
+  assert.deepEqual(nativeCoreOrdinaryPartitions(args, paths, [...records].reverse()), parts,
+    'Compiler metadata traversal order cannot choose a different partition');
+  assert.equal(JSON.stringify(records).includes('opaque'), true);
+});
+
+test('Native ordinary partitions refuse duplicate missing foreign and empty original inventories', () => {
+  const record = (directory, index = 0) => ({directory, source: directory + '/original_test.mbt',
+    benchmark: false, entry: [directory, 'original_test.mbt', {index}]});
+  const records = [record('src/a'), record('src/b')], paths = ['src/a', 'src/b'];
+  assert.throws(() => nativeCoreOrdinaryPartitions([], paths, [...records, records[0]]), /Duplicate/u);
+  assert.throws(() => nativeCoreOrdinaryPartitions([], paths, [...records, record('src/foreign')]), /no original/u);
+  assert.throws(() => nativeCoreOrdinaryPartitions([], [...paths, 'src/missing'], records), /omitted/u);
+  assert.throws(() => nativeCoreOrdinaryPartitions([], paths, []), /nonempty/u);
+  assert.throws(() => nativeCoreOrdinaryPartitions([], ['src/a'], [record('src/a')]), /nonempty/u);
+  assert.throws(() => nativeCoreOrdinaryPartitions([], paths, records.map(r => ({...r, benchmark: true}))), /nonempty/u);
+});
+
+test('Native partition ownership runs HTTP Source scoped and repeated geometry exactly once', () => {
+  const parts = [{args: ['--release', 'src/a'], cases: 4}, {args: ['--release', 'src/b'], cases: 7}];
+  const profiles = {ordinary: {args: ['--release', 'src/a', 'src/b'], cases: 11, partitions: parts},
+    http: {args: ['src/http'], cases: 3}, source: {args: ['src/source'], cases: 5},
+    scoped: {args: ['src/scoped'], cases: 2, tests: [{source: 'src/scoped/original_test.mbt', index: 0}]},
+    physicalCases: 1, repeatedGeometryCases: 1, uniqueCases: 20};
+  assert.equal(nativeCorePartitionProfiles(profiles, undefined), profiles);
+  assert.equal(nativeCorePartitionProfiles(profiles, ''), profiles);
+  const first = nativeCorePartitionProfiles(profiles, '1/2'), second = nativeCorePartitionProfiles(profiles, '2/2');
+  assert.equal(first.ordinary, parts[0]); assert.equal(second.ordinary, parts[1]);
+  for (const name of ['http', 'source', 'scoped']) {
+    assert.equal(first[name], profiles[name]);
+    assert.equal(second[name].args, null); assert.equal(second[name].cases, 0);
+  }
+  assert.equal(first.physicalCases, 1); assert.equal(first.repeatedGeometryCases, 1);
+  assert.equal(second.physicalCases, 0); assert.equal(second.repeatedGeometryCases, 0);
+  for (const value of ['0/2', '3/2', '1/3', '1', ' 1/2'])
+    assert.throws(() => nativeCorePartitionProfiles(profiles, value), /Invalid/u);
+  assert.throws(() => nativeCorePartitionProfiles({...profiles, ordinary: {cases: 11}}, '1/2'), /Missing/u);
+  assert.throws(() => nativeCorePartitionProfiles({...profiles, ordinary: {partitions: [parts[0], {args: [], cases: 0}]}}, '2/2'), /Empty/u);
+});
+
+test('Native compiler discovery connects both partitions to unchanged original driver inputs without C compilation', t => {
+  const root = fixture(t);
+  const command = name => ['moon', 'generate-test-driver', '--output-driver', '_build/'+name+'/driver.mbt',
+    '--output-metadata', '_build/'+name+'/info.json', name+'/main.mbt', '--target', 'native',
+    '--pkg-name', 'fixture/'+name, '--driver-kind', 'blackbox'].join(' ');
+  let generated = 0;
+  const execute = (_tool, values) => {
+    if (values[0] === 'test') return [command('active'), command('empty')].join('\n');
+    assert.equal(values[0], 'generate-test-driver'); generated++;
+    const path = values[values.indexOf('--output-metadata') + 1];
+    writeFileSync(path, JSON.stringify({tests: {'main.mbt': [
+      {index: 0, name: 'original', attrs: [], line_number: 1},
+    ]}}));
+    return '';
+  };
+  const selected = nativeCoreTestSelection(root, ['--release'], {execute,
+    partitionProfiles: true, ordinaryPartitions: true});
+  assert.equal(generated, 2);
+  assert.equal(selected.profiles.ordinary.cases, 2);
+  assert.deepEqual(selected.profiles.ordinary.partitions.map(p => p.cases), [1, 1]);
+  assert.deepEqual(selected.profiles.ordinary.partitions.flatMap(p => p.args.slice(1)).sort(), ['active', 'empty']);
+});
 
 test('Native metadata selection retains opaque doc/skip identities and refuses a changed selected inventory', t => {
   const root = fixture(t), args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'];
