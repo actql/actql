@@ -161,9 +161,11 @@ pub fn relation_document_mapping_construction_inventory(
       relation_construction_collection_units(schema.scratch),
       relation_construction_collection_units(wrappers),
       {
-        record_headers: hash.record_headers + 12L,
-        reference_slots: hash.reference_slots + 24L,
-        scalar_words: hash.scalar_words + 12L,
+        // Same document-consumption original selector (Query or whole Source).
+        // One H/R/S remains live across the response-ticket/current boundary.
+        record_headers: hash.record_headers + 13L,
+        reference_slots: hash.reference_slots + 25L,
+        scalar_words: hash.scalar_words + 13L,
         owned_utf16_units: hash.owned_utf16_units +
         schema.scratch_utf16_units +
         4L * limits.max_bytes.to_int64(),
@@ -550,4 +552,52 @@ pub fn relation_document_projection_contract(
     Ok((_, original)) => Ok(original)
     Err(issue) => Err(issue)
   }
+}
+
+///|
+/// Construct ONCE under the caller's original metadata allowance. The same
+/// declaration and immutable mapping bounds must accompany later projection.
+/// This retains the original checker result, never caller-provided schema DATA.
+pub fn prepare_relation_document_contract(
+  declaration : RowDeclaration,
+  resource : String,
+  primary_identity : String,
+  limits : RowPageLimits,
+) -> Result[RelationDocumentPreparedContract, RowMappingIssue] {
+  let contract = match
+    relation_document_projection_contract(
+      declaration, resource, primary_identity, limits,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard @schema.from_object(contract) is Ok(schema) else {
+    return Err(InvalidSpecification)
+  }
+  let columns = @schema.fields(schema).map(@schema.field_reference_name)
+  guard columns.search(primary_identity) is Some(identity_index) else {
+    return Err(InvalidSpecification)
+  }
+  let identity = @schema.field_at(schema, identity_index).unwrap().contract
+  if identity.nullable || !(identity.shape is @contract.Text(_)) {
+    return Err(InvalidSpecification)
+  }
+  Ok({
+    declaration,
+    resource,
+    primary_identity,
+    limits,
+    contract,
+    schema,
+    columns,
+    identity_index,
+  })
+}
+
+///|
+/// Borrowed immutable quantity input, not a projection, resource or permission.
+pub fn relation_document_prepared_contract(
+  original : RelationDocumentPreparedContract,
+) -> @contract.Contract {
+  original.contract
 }

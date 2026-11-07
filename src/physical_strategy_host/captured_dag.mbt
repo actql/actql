@@ -1888,6 +1888,14 @@ pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
   }
   for index in 0..<run.inputs.length() {
     clear_captured_inputs(run, index)
+    // Each supplied Read is restricted by a closure over this same DAG.
+    // Stop already revoked that gate and cancelled the original execution;
+    // remove only our cached borrow instead of keeping the reciprocal root.
+    // An active child retains its own admitted inputs until actual cleanup.
+    // The Source owner still owns the original Read, bytes and physical ACK.
+    for port in 0..<run.supplied_reads[index].length() {
+      run.supplied_reads[index][port] = None
+    }
   }
 }
 

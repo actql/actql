@@ -402,7 +402,7 @@ pub fn[I, P] return_preparation_capacity_borrow(
 /// private closure retains the exact original phase owner; all borrowers and
 /// bytes remain governed by that owner, with no second counter or reservation.
 struct PreparationRetirement {
-  retire_original : () -> Result[Bool, PreparationCapacityIssue]
+  mut retire_original : () -> Result[Bool, PreparationCapacityIssue]
 }
 
 ///|
@@ -443,7 +443,20 @@ fn[I, P] claim_preparation_run_retirement(
 pub fn retire_transferred_preparation(
   value : PreparationRetirement,
 ) -> Result[Bool, PreparationCapacityIssue] {
-  (value.retire_original)()
+  let result = (value.retire_original)()
+  if result is Ok(true) {
+    // The original owner really closed its reservation and every borrower.
+    // The enclosing Run may still await its separate physical ACK. Retain
+    // that duty without a closure rooting the now-closed payload controls.
+    // Pending/failed retirement keeps its exact original callback unchanged.
+    value.retire_original = completed_preparation_retirement
+  }
+  result
+}
+
+///|
+fn completed_preparation_retirement() -> Result[Bool, PreparationCapacityIssue] {
+  Ok(true)
 }
 
 ///|

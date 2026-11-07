@@ -68,3 +68,12 @@ currentness paths inline their post-callback identity guards and keep their
 original Result construction shape; they do not call another Result-returning
 helper. The new opaque observation and its control/error wrappers require
 already funded enclosing capacity and do not certify installed Source funding.
+
+The whole-input Native consumer uses this same Plan-held read and provider.
+`installed_whole_source_read_capacity_matches` is a callback-free original-tuple
+predicate, not an admission. The optional expected Ledger on the existing start
+entry is compared after original currentness and before spending its start slot.
+Existing callers retain the default signature. A stopped DAG removes its own
+reciprocal supplied-Read cache; the original active child and Source keep their
+actual cleanup duties. Closed read markers and cached array slots are cut only
+after that read's cleanup, while the enclosing Run still awaits physical ACK.

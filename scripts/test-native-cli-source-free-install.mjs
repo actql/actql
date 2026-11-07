@@ -4,19 +4,183 @@
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
+import {createReadStream} from 'node:fs';
 import {lstat, mkdir, readFile, readdir, writeFile, unlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {promisify} from 'node:util';
+import {createInterface} from 'node:readline';
 import {platformKey} from '../packages/native-cli/bin/actql.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
+import {canonicalText} from './check-canonical-json.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+
+// Read the actual delivered file, including its last row. A count, preview or
+// aggregate alone cannot establish the contents of the original stored Result.
+export async function verifyNativeNumericRows(path, count = 100000) {
+  const input = createReadStream(path), lines = createInterface({input, crlfDelay: Infinity});
+  const closed = new Promise(resolve => input.once('close', resolve));
+  let rows = 0, sum = 0n, squares = 0n;
+  try {
+    for await (const line of lines) {
+      const row = JSON.parse(line);
+      assert(rows < count, 'Unexpected extra numeric Result row');
+      assert.deepEqual(Object.keys(row), ['v0']);
+      assert.equal(row.v0, rows, `Numeric Result row ${rows}`);
+      const value = BigInt(row.v0);
+      sum += value; squares += value * value; rows++;
+    }
+  } finally {lines.close(); input.destroy(); await closed;}
+  const n = BigInt(count);
+  assert.equal(rows, count, 'Complete numeric Result required');
+  assert.equal(sum, n * (n - 1n) / 2n);
+  assert.equal(squares, n * (n - 1n) * (2n * n - 1n) / 6n);
+  return {rows, sum: String(sum), squares: String(squares)};
+}
+
+// Each cli call below launches the same installed Native entry in a new
+// process. Its successful reply/exit is gated by the entry's real command
+// cleanup; it is not independent FD inspection or a whole-Host stop claim.
+export async function observeNativeNumericScale({project, cli}) {
+  const count = 100000, input = join(project, 'numeric-scale.json');
+  const first = join(project, 'numeric-first.jsonl'), saved = join(project, 'numeric-saved.jsonl');
+  const program = {version: 'actql/0.1', id: 'numeric-scale',
+    stages: [{id: 'main', inputs: {}, steps: [{as: 'v', values: {
+      schema: {v0: {type: 'number', nullable: false}},
+      rows: Array.from({length: count}, (_, v0) => ({v0})),
+    }}], results: {rows: {from: 'v', fields: ['v0']}}}],
+    results: {answer0: {from: {stage: 'main', result: 'rows'}}}};
+  const wire = JSON.stringify(program), inputWireBytes = Buffer.byteLength(wire);
+  assert(inputWireBytes > 1048576, 'The public JSON Source must exceed one MiB');
+  await writeFile(input, wire, {flag: 'wx', mode: 0o600});
+  const command = async args => {
+    const reply = await cli(args, project);
+    assert.equal(reply.code, 0); assert.equal(reply.signal, null);
+    return reply;
+  };
+  const original = JSON.parse((await command(['run', 'numeric-scale.json', '--format', 'json', '--json'])).stdout);
+  assert.equal(original.version, 'actql-run-state/0.1');
+  assert.equal(original.status, 'succeeded');
+  assert.equal(typeof original.run_id, 'string'); assert(original.run_id.length > 0);
+  await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', first]);
+  const firstRows = await verifyNativeNumericRows(first, count);
+  // No second submission or source-file fallback is available to Saved.
+  await unlink(input);
+  const restored = JSON.parse((await command(['status', original.run_id, '--json'])).stdout);
+  assert.equal(restored.version, original.version);
+  assert.equal(restored.run_id, original.run_id); assert.equal(restored.status, 'succeeded');
+  await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', saved]);
+  const savedRows = await verifyNativeNumericRows(saved, count);
+  assert.deepEqual(savedRows, firstRows);
+  return {scope: 'installed-native-json-source-values', inputWireBytes, runId: original.run_id,
+    inputRemovedBeforeSaved: true, first: firstRows, saved: savedRows,
+    cleanup: 'successful Native command cleanup before reply and process exit',
+    independentFdInspection: false};
+}
+
+// Explicit operator configuration through the existing Native adopt path. The
+// same installed assets/libraries remain originals; no product default changes
+// and no accepted Host is reconfigured. The actual Owners still decide admission.
+export async function prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows}) {
+  assert(Number.isSafeInteger(maxRows) && maxRows > 0 && maxRows <= 100000);
+  assert(isAbsolute(project) && isAbsolute(libraries.sqlite) && isAbsolute(libraries.crypto));
+  assert.equal(typeof runtimeWire, 'string'); JSON.parse(runtimeWire);
+  const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
+  const environment = JSON.parse(assets.environment);
+  delete environment.evidence_bundle_cid;
+  Object.assign(environment.host_policy_profile.capacity, {
+    max_relation_output_rows: maxRows, max_artifact_rows: maxRows, max_artifact_bytes: 16777216,
+  });
+  environment.evidence_bundle_cid = cid(environment);
+  const policy = JSON.parse(assets['result-policy']), policyCid = cid(policy);
+  const dependencies = [['retention_contract', 'local-result-retention'],
+    ['metadata_retention_policy', 'local-result-metadata'], ['clock_contract', 'local-clock']]
+    .map(([kind, name]) => {
+      const body = {name, version: 'actql-installed-local-policy/0.1'};
+      return {kind, cid: cid(body), wire: canonicalText(body)};
+    });
+  const retention = {version: 'actql-result-retention-policy/0.1',
+    retention_contract_cid: dependencies[0].cid, effective_data_policy_cid: policyCid,
+    available_until: '2099-01-01T00:00:00.000Z', delete_by: '2099-01-02T00:00:00.000Z',
+    extension_ceiling_at: '2099-01-02T00:00:00.000Z',
+    metadata_retention_policy_cid: dependencies[1].cid, metadata_delete_by: '2099-01-03T00:00:00.000Z',
+    clock_contract_cid: dependencies[2].cid};
+  retention.effective_retention_policy_cid = cid(retention);
+  const principal = 'numeric-operator', connection = 'cli';
+  const permission = (entry_id, resource, operations) => ({entry_id, outcome: 'allow',
+    principal: {any_of: [principal]}, connection: {any_of: [connection]},
+    resource: {any_of: [resource]}, operation: {any_of: operations}, exclusions: []});
+  // This existing Store owner uses its declared original property order.
+  const storeWire = JSON.stringify({version: 'actql-local-store-owner/0.1',
+    root: join(project, 'results'), principalId: principal});
+  const storeCid = 'sha256:' + createHash('sha256').update(storeWire).digest('hex');
+  const files = {
+    'account.json': {version: 'actql-execution-account-config/0.1', account_id: principal,
+      entries: [permission('numeric-run', 'run', ['cancel', 'publish', 'read', 'submit']),
+        permission('numeric-result', 'result/answer0', ['read'])]},
+    'environment.json': environment,
+    'run.json': {version: 'actql-config/0.1', native: {run: {
+      namespace_id: 'numeric', store_name: 'results', store_authority_cid: storeCid,
+      store_capacity_bytes: 33554432, store_objects: 32, store_record_bytes: 16777216,
+      result_payload_bytes: 16777216, retention_policy_wire: canonicalText(retention),
+      source_free: {registry: assets.registry, values: assets.values, fragment: assets.fragment,
+        ordered: assets.ordered, result_policy_cid: policyCid, result_policy_wire: assets['result-policy']},
+    }}},
+    'read.json': {version: 'actql-config/0.1', native: {result_read: {
+      enabled: true, principal, connection, result_names: ['answer0'], formats: ['jsonl'],
+      purpose: 'cli-read', sink: 'stdout', data_policy_cids: [policyCid], max_bytes: 16777216,
+      max_uses: 1, expires_at: '2099-01-01T00:00:00.000Z',
+    }}},
+    'retention.json': dependencies,
+    'operator.json': {version: 'actql-config/0.1', account_config: 'account.json', native: {
+      check_environment: {file: 'environment.json', evidence_bundle_cid: environment.evidence_bundle_cid},
+      local: {account_id: principal, principal, connection, state_parent: project, state_name: 'host',
+        managed_root: project, sqlite_library: libraries.sqlite, signature_library: libraries.crypto,
+        submission_ttl_ms: 86400000, journal_record_limit: 8, journal_snapshot_bytes: 8388608,
+        installation_files: ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json'],
+        run_file: 'run.json', read_file: 'read.json'},
+    }},
+  };
+  await mkdir(project, {mode: 0o700});
+  for (const [name, value] of Object.entries(files)) {
+    await writeFile(join(project, name), canonicalText(value), {flag: 'wx', mode: 0o600});
+  }
+  await writeFile(join(project, 'store.json'), storeWire, {flag: 'wx', mode: 0o600});
+  await writeFile(join(project, 'runtime.json'), runtimeWire, {flag: 'wx', mode: 0o600});
+  return {configuration: ['--mode', 'local', '--config-root', project, '--config-file', 'operator.json'],
+    environmentCid: environment.evidence_bundle_cid, maxRows};
+}
+
+export async function observeNativeNumericOperatorScale({project, cli, assets, libraries, runtimeWire}) {
+  const selected = await prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows: 100000});
+  const operator = (args, cwd = project, code = 0) => cli([...selected.configuration, ...args], cwd, code);
+  const adopted = await operator(['adopt', '--initialize-signing', '--json']);
+  assert.equal(JSON.parse(adopted.stdout).kind, 'local_host_adopted');
+  const result = await observeNativeNumericScale({project, cli: operator});
+  // A distinct fresh operator deliberately selects a lower finite row policy.
+  // Its original refusal is neither retried nor a reason to weaken enforcement.
+  const lowProject = project + '-low-policy';
+  const low = await prepareNativeNumericOperator({project: lowProject, assets, libraries, runtimeWire, maxRows: 1});
+  const lowCli = (args, code = 0) => cli([...low.configuration, ...args], lowProject, code);
+  await lowCli(['adopt', '--initialize-signing', '--json']);
+  const small = {version: 'actql/0.1', id: 'numeric-low-policy', stages: [{id: 'main', inputs: {},
+    steps: [{as: 'v', values: {schema: {v0: {type: 'number', nullable: false}}, rows: [{v0: 0}, {v0: 1}]}}],
+    results: {rows: {from: 'v', fields: ['v0']}}}],
+    results: {answer0: {from: {stage: 'main', result: 'rows'}}}};
+  await writeFile(join(lowProject, 'low.json'), JSON.stringify(small), {flag: 'wx', mode: 0o600});
+  const refused = await lowCli(['run', 'low.json', '--format', 'json', '--json'], 1);
+  assert.equal(refused.stdout, ''); assert.equal(refused.signal, null);
+  assert.equal(JSON.parse(refused.stderr).code, 'ACTQL_E_PREPARATION_FAILED');
+  return {...result, operator: {environmentCid: selected.environmentCid, maxRows: selected.maxRows,
+    lowPolicyRows: low.maxRows, lowPolicyRefused: true}};
+}
+
 // Registry close permits provisional observations only. The consumer must still
 // exit and complete owned-scratch cleanup before the parent can publish success.
 export async function finishSourceFreeObservations(receipt, primaryFailure,
@@ -320,12 +484,21 @@ async function observeInstalledSourceFree(input, observationPath) {
     }
     await cli(['result', state.run_id, '--format', 'jsonl', '--output', 'saved.jsonl']);
     assert.deepEqual(rows(await readFile(join(project, 'saved.jsonl'), 'utf8')), [{id: 1}]);
+    const numericAssets = {};
+    for (const asset of localRuntime.assets) {
+      numericAssets[asset.role] = await readFile(join(platformRoot, asset.path), 'utf8');
+    }
+    const numericLibraries = Object.fromEntries(localRuntime.libraries.map(item =>
+      [item.role, join(platformRoot, item.path)]));
+    const numericScale = await observeNativeNumericOperatorScale({project: join(root, 'numeric-operator'),
+      cli, assets: numericAssets, libraries: numericLibraries,
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
     receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
       cliSourceSha: manifest.sourceSha, platform, node: process.version, glibc: glibc ?? null,
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, catalogOnlyMockRefusal, plainInitialization,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization, numericScale,
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
   } catch (error) {

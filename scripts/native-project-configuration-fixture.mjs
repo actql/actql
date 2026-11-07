@@ -65,7 +65,12 @@ export function nativeProjectConfigurationFixture(namespace) {
     const path = directory(name);
     for (const [originalPath, original] of Object.entries(projectTemplateFiles('deal-review-mock'))) {
       if (name === 'deal-review-missing' && originalPath === 'mock/data.json') continue;
-      if (name === 'deal-review-missing-task' && originalPath === 'model-tasks/deal-review.v1.yaml') continue;
+      if (name === 'deal-review-missing-task' && originalPath === 'model-tasks/deal-review.v1.yaml') {
+        // Reach the actual missing-file Reader boundary, with its owned Root
+        // present. An absent parent instead tests Root construction refusal.
+        mkdirSync(dirname(join(path, originalPath)), {recursive: true, mode: 0o700});
+        continue;
+      }
       let relative = originalPath;
       let body = name === 'deal-review-wrong-task' && relative === 'model-tasks/deal-review.v1.yaml'
         ? original.replace('task: model-task:deal-review.v1', 'task: model-task:foreign.v1') : original;

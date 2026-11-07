@@ -12,7 +12,8 @@ pub(all) struct NativeRelationFileSelection {
 }
 
 ///|
-/// A bounded physical component envelope, not a normal installed CLI profile.
+/// Selected physical decoder bounds. Independent diagnostics enforce their
+/// finite component envelope; a managed caller funds its actual selected profile.
 pub(all) struct NativeRelationFileLimits {
   page : @rows.RowPageLimits
   max_work : Int
@@ -33,6 +34,19 @@ pub(all) enum NativeRelationFileIssue {
   Row(@rows.RowHostIssue)
   Document(@rows.RowSourceIssue)
   Mapping(@rows.RowMappingIssue)
+  ManagedRead(@local.ClientInstalledSourceReadIssue)
+}
+
+///|
+priv enum NativeRelationFileAcquisition {
+  FileQueryAcquisition(@rows.RowAcquisition)
+  FileInputAcquisition(@rows.RowInputAcquisition)
+  ManagedFileInputAcquisition(
+    @rows.RowInputAcquisition,
+    @local.ClientInstalledSourceRead,
+    @local.ClientInstalledWholeSourceCapacity,
+    @execution.ExecutionCapacity
+  )
 }
 
 ///|
@@ -61,8 +75,8 @@ struct NativeRelationFileCapture {
   mut selection : NativeRelationFileSelection?
   limits : NativeRelationFileLimits
   mut declaration : @rows.RowDeclaration?
-  mut acquisition : @rows.RowAcquisition?
-  mut contract : @contract.Contract?
+  mut acquisition : NativeRelationFileAcquisition?
+  mut prepared_contract : @rows.RelationDocumentPreparedContract?
   mut run : @rows.RowRun?
   mut responses : @rows.RowRunResponseBorrow?
   mut root : @files.Root?
@@ -154,8 +168,41 @@ fn NativeRelationFileCapture::current(self : Self) -> Bool {
     self.ledger is Some(ledger) else {
     return false
   }
-  arena.borrow_domain_retained_execution_ledger(execution) is Ok(original) &&
-  physical_equal(original, ledger)
+  guard arena.borrow_domain_retained_execution_ledger(execution) is Ok(original) &&
+    physical_equal(original, ledger) else {
+    return false
+  }
+  if self.acquisition
+    is Some(ManagedFileInputAcquisition(acquisition, read, selected, provider)) {
+    guard @local.check_installed_source_read_ledger(read, ledger) is Ok(_) else {
+      return false
+    }
+    // Parent currentness can synchronously retire the Native holder. This
+    // final fence observes retained references only, without another callback.
+    return self.same() &&
+      self.failure is None &&
+      !(self.phase is Closing) &&
+      !(self.phase is Closed) &&
+      self.ledger is Some(retained) &&
+      physical_equal(retained, ledger) &&
+      self.acquisition
+      is Some(
+        ManagedFileInputAcquisition(
+          actual,
+          original_read,
+          original_capacity,
+          original_provider
+        )
+      ) &&
+      physical_equal(actual, acquisition) &&
+      physical_equal(original_read, read) &&
+      physical_equal(original_capacity, selected) &&
+      physical_equal(original_provider, provider) &&
+      @local.installed_whole_source_read_capacity_matches(
+        read, selected, acquisition, provider,
+      )
+  }
+  true
 }
 
 ///|
@@ -196,6 +243,20 @@ pub fn native_relation_file_input_valid(
   value : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
 ) -> Bool {
+  // The independent component keeps its original finite fixture envelope.
+  // An admitted managed Source instead funds its selected profile below.
+  file_capture_selected_input_valid(value, limits) &&
+  limits.page.max_bytes <= 65536
+}
+
+///|
+// Same physical implementation shape. A managed original must quote/fund the
+// actual supplied byte ceiling before allocation; component maxima are not a
+// second normal Source policy. All other implemented protocol bounds remain.
+fn file_capture_selected_input_valid(
+  value : NativeRelationFileSelection,
+  limits : NativeRelationFileLimits,
+) -> Bool {
   file_capture_text(value.directory, 4096) &&
   file_capture_text(value.name, 64) &&
   !value.name.contains("/") &&
@@ -215,7 +276,6 @@ pub fn native_relation_file_input_valid(
       path.all(item => file_capture_text(item, 4096))
   }) &&
   limits.page.max_bytes > 0 &&
-  limits.page.max_bytes <= 65536 &&
   limits.page.max_nodes > 0 &&
   limits.page.max_nodes <= 8192 &&
   limits.page.max_depth > 0 &&
@@ -250,16 +310,129 @@ pub fn prepare_native_relation_file_capture(
     @rows.row_acquisition_is_listing(acquisition) {
     return Err({ issue: InvalidInput, owner: None, })
   }
-  let ledger = match arena.borrow_domain_retained_execution_ledger(execution) {
-    Ok(value) => value
-    Err(issue) => return Err({ issue: Execution(issue), owner: None, })
-  }
   match
     @rows.check_row_acquisition_original(acquisition, declaration, requirement) {
     Err(issue) => return Err({ issue: Row(issue), owner: None, })
     Ok(_) => ()
   }
-  let metadata_bytes = match file_capture_metadata_capacity(selection, limits) {
+  prepare_native_relation_file_capture_original(
+    arena,
+    execution,
+    declaration,
+    @planning.query_requirement_source(requirement).0,
+    FileQueryAcquisition(acquisition),
+    nonce,
+    selection,
+    limits,
+  )
+}
+
+///|
+/// Open the original whole-Source acquisition on the SAME entered Native
+/// execution/Ledger. Its owner retains every partial file/response through ACK.
+/// The caller still supplies its actual checked Plan and current read authority.
+pub fn prepare_native_relation_file_input_capture(
+  arena : @arena.InstalledArenaHost,
+  execution : @arena.InstalledArenaRetainedExecution,
+  declaration : @rows.RowDeclaration,
+  acquisition : @rows.RowInputAcquisition,
+  nonce : String,
+  selection : NativeRelationFileSelection,
+  limits : NativeRelationFileLimits,
+) -> Result[NativeRelationFileCapture, NativeRelationFileFailure] {
+  if !file_capture_text(nonce, 128) ||
+    !native_relation_file_input_valid(selection, limits) ||
+    @rows.row_input_acquisition_is_listing(acquisition) {
+    return Err({ issue: InvalidInput, owner: None, })
+  }
+  match
+    @rows.check_row_input_acquisition_declaration(acquisition, declaration) {
+    Err(issue) => return Err({ issue: Row(issue), owner: None, })
+    Ok(_) => ()
+  }
+  prepare_native_relation_file_capture_original(
+    arena,
+    execution,
+    declaration,
+    @rows.row_input_acquisition_facts(acquisition).source_ref,
+    FileInputAcquisition(acquisition),
+    nonce,
+    selection,
+    limits,
+  )
+}
+
+///|
+/// Consume the SAME Plan-selected read/acquisition/provider and the Native
+/// execution's original Ledger. No read, Run, Root or accounting view is issued.
+/// The caller retains the read with its managed Run before calling this entry.
+pub fn prepare_native_managed_relation_file_input_capture(
+  arena : @arena.InstalledArenaHost,
+  execution : @arena.InstalledArenaRetainedExecution,
+  declaration : @rows.RowDeclaration,
+  read : @local.ClientInstalledSourceRead,
+  selected : @local.ClientInstalledWholeSourceCapacity,
+  provider : @execution.ExecutionCapacity,
+  nonce : String,
+  selection : NativeRelationFileSelection,
+  limits : NativeRelationFileLimits,
+  prepared_provider? : NativeRelationFilePreparedProvider? = None,
+) -> Result[NativeRelationFileCapture, NativeRelationFileFailure] {
+  if prepared_provider is Some(original) &&
+    (
+      !physical_equal(original.declaration, declaration) ||
+      !physical_equal(original.capacity, provider) ||
+      !file_capture_provider_matches(original, selection, limits)
+    ) {
+    return Err({ issue: ForeignOriginal, owner: None, })
+  }
+  let acquisition = @local.installed_whole_source_acquisition(selected)
+  if !file_capture_text(nonce, 128) ||
+    !file_capture_selected_input_valid(selection, limits) ||
+    @rows.row_input_acquisition_is_listing(acquisition) {
+    return Err({ issue: InvalidInput, owner: None, })
+  }
+  if !@local.installed_whole_source_read_capacity_matches(
+      read, selected, acquisition, provider,
+    ) {
+    return Err({ issue: ForeignOriginal, owner: None, })
+  }
+  match
+    @rows.check_row_input_acquisition_declaration(acquisition, declaration) {
+    Err(issue) => return Err({ issue: Row(issue), owner: None, })
+    Ok(_) => ()
+  }
+  prepare_native_relation_file_capture_original(
+    arena,
+    execution,
+    declaration,
+    @rows.row_input_acquisition_facts(acquisition).source_ref,
+    ManagedFileInputAcquisition(acquisition, read, selected, provider),
+    nonce,
+    selection,
+    limits,
+    prepared_provider~,
+  )
+}
+
+///|
+fn prepare_native_relation_file_capture_original(
+  arena : @arena.InstalledArenaHost,
+  execution : @arena.InstalledArenaRetainedExecution,
+  declaration : @rows.RowDeclaration,
+  source_ref : String,
+  original : NativeRelationFileAcquisition,
+  nonce : String,
+  selection : NativeRelationFileSelection,
+  limits : NativeRelationFileLimits,
+  prepared_provider? : NativeRelationFilePreparedProvider? = None,
+) -> Result[NativeRelationFileCapture, NativeRelationFileFailure] {
+  let ledger = match arena.borrow_domain_retained_execution_ledger(execution) {
+    Ok(value) => value
+    Err(issue) => return Err({ issue: Execution(issue), owner: None, })
+  }
+  let metadata_bytes = match
+    file_capture_metadata_capacity(selection, limits, prepared_provider~) {
     Some(value) => value
     None => return Err({ issue: Capacity, owner: None, })
   }
@@ -282,8 +455,10 @@ pub fn prepare_native_relation_file_capture(
     selection: Some(selected),
     limits,
     declaration: Some(declaration),
-    acquisition: Some(acquisition),
-    contract: None,
+    acquisition: Some(original),
+    prepared_contract: prepared_provider.map(original => {
+      original.prepared_contract
+    }),
     run: None,
     responses: None,
     root: None,
@@ -306,36 +481,75 @@ pub fn prepare_native_relation_file_capture(
   }
   owner.original = Some(owner)
   try {
-    let (source_ref, _) = @planning.query_requirement_source(requirement)
     guard @rows.row_declaration_view(declaration, source_ref) is Some(view) &&
       view.resource == selected.resource else {
       raise FileCaptureStop(ForeignOriginal)
     }
-    let contract = file_require(
-      @rows.relation_document_projection_contract(
-        declaration,
-        selected.resource,
-        selected.primary_identity,
-        limits.page,
-      ).map_err(issue => Mapping(issue)),
-    )
-    owner.contract = Some(contract)
-    let capacity = file_capture_provider_capacity(
-      selected,
-      limits,
-      owner.contract.unwrap(),
-    ).unwrap_or_else(() => raise FileCaptureStop(Capacity))
-    let run = file_require(
-      @rows.start_accounted_provider_row_acquisition(
-        acquisition,
-        Some(capacity),
-        nonce,
-        attempt => owner.verify(attempt),
-        ledger,
-        limits.page.max_bytes.to_int64(),
-        limits.page.max_bytes.to_int64(),
-      ).map_err(issue => Row(issue)),
-    )
+    let capacity = match prepared_provider {
+      Some(original) => original.capacity
+      None => {
+        let contract = file_require(
+          @rows.relation_document_projection_contract(
+            declaration,
+            selected.resource,
+            selected.primary_identity,
+            limits.page,
+          ).map_err(issue => Mapping(issue)),
+        )
+        let capacity = file_capture_provider_capacity(
+          selected, limits, contract,
+        ).unwrap_or_else(() => raise FileCaptureStop(Capacity))
+        capacity
+      }
+    }
+    let run = match original {
+      FileQueryAcquisition(acquisition) =>
+        file_require(
+          @rows.start_accounted_provider_row_acquisition(
+            acquisition,
+            Some(capacity),
+            nonce,
+            attempt => owner.verify(attempt),
+            ledger,
+            limits.page.max_bytes.to_int64(),
+            limits.page.max_bytes.to_int64(),
+          ).map_err(issue => Row(issue)),
+        )
+      FileInputAcquisition(acquisition) =>
+        file_require(
+          @rows.start_accounted_row_input_acquisition(
+            acquisition,
+            Some(capacity),
+            nonce,
+            attempt => owner.verify(attempt),
+            ledger,
+            limits.page.max_bytes.to_int64(),
+            limits.page.max_bytes.to_int64(),
+          ).map_err(issue => Row(issue)),
+        )
+      ManagedFileInputAcquisition(acquisition, read, selected, provider) => {
+        if !@local.installed_whole_source_read_capacity_matches(
+            read, selected, acquisition, provider,
+          ) ||
+          @execution.execution_capacity_retained_bytes(provider) <
+          @execution.execution_capacity_retained_bytes(capacity) ||
+          @execution.execution_capacity_execution_bytes(provider) <
+          @execution.execution_capacity_execution_bytes(capacity) {
+          raise FileCaptureStop(ForeignOriginal)
+        }
+        file_require(
+          @local.start_installed_whole_source_read_rows(
+            read,
+            acquisition,
+            nonce,
+            attempt => owner.verify(attempt),
+            limits.page.max_bytes.to_int64(),
+            limits.page.max_bytes.to_int64(),
+            expected_ledger=Some(ledger),
+          ).map_err(issue => ManagedRead(issue)),
+        )
+      }
+    }
     owner.run = Some(run)
     file_require(
       @rows.begin_row_run_with_page_limits(
@@ -344,11 +558,14 @@ pub fn prepare_native_relation_file_capture(
         limits.page.max_rows,
       ).map_err(issue => Row(issue)),
     )
-    let responses = file_require(
-      @rows.borrow_row_run_responses(run, acquisition).map_err(issue => {
-        Row(issue)
-      }),
-    )
+    let borrowed = match original {
+      FileQueryAcquisition(acquisition) =>
+        @rows.borrow_row_run_responses(run, acquisition)
+      FileInputAcquisition(acquisition)
+      | ManagedFileInputAcquisition(acquisition, _, _, _) =>
+        @rows.borrow_row_input_run_responses(run, acquisition)
+    }
+    let responses = file_require(borrowed.map_err(issue => Row(issue)))
     owner.responses = Some(responses)
     file_require(
       @rows.bind_row_run_response_borrow_cleanup(responses, () => {
@@ -509,19 +726,30 @@ fn NativeRelationFileCapture::admit_response(
       selected.key_path,
       selected.primary_identity,
       [],
+      prepared_contract=self.prepared_contract,
     ).map_err(issue => Document(issue)),
   )
   self.target = Some(target)
-  file_require(
-    @rows.accept_charged_relation_document(
-      run,
-      self.charge.unwrap(),
-      self.acquisition.unwrap(),
-      self.target.unwrap(),
-      self.limits.max_work,
-    ).map_err(issue => Row(issue)),
-  )
-  |> ignore
+  let accepted = match self.acquisition.unwrap() {
+    FileQueryAcquisition(acquisition) =>
+      @rows.accept_charged_relation_document(
+        run,
+        self.charge.unwrap(),
+        acquisition,
+        self.target.unwrap(),
+        self.limits.max_work,
+      )
+    FileInputAcquisition(acquisition)
+    | ManagedFileInputAcquisition(acquisition, _, _, _) =>
+      @rows.accept_charged_relation_input_document(
+        run,
+        self.charge.unwrap(),
+        acquisition,
+        self.target.unwrap(),
+        self.limits.max_work,
+      )
+  }
+  file_require(accepted.map_err(issue => Row(issue))) |> ignore
   self.charge = None
   file_require(@rows.finish_row_run(run).map_err(issue => Row(issue)))
   // Only this adapter's private construction originals are discarded. The
@@ -650,16 +878,25 @@ pub fn NativeRelationFileCapture::close(
     self.bytes = None
     self.buffer = None
     self.transient_retired = true
-    if self.run is Some(run) {
-      file_require(
-        @rows.close_accounted_row_run(run).map_err(issue => Row(issue)),
-      )
-      self.run = None
+    match self.acquisition {
+      Some(ManagedFileInputAcquisition(_, read, _, _)) =>
+        file_require(
+          @local.retire_installed_source_read(read).map_err(issue => {
+            ManagedRead(issue)
+          }),
+        )
+      _ =>
+        if self.run is Some(run) {
+          file_require(
+            @rows.close_accounted_row_run(run).map_err(issue => Row(issue)),
+          )
+        }
     }
+    self.run = None
     self.result = None
     self.charge = None
     self.responses = None
-    self.contract = None
+    self.prepared_contract = None
     self.declaration = None
     self.acquisition = None
     self.selection = None

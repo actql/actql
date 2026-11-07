@@ -2,6 +2,7 @@
 package "actql/actql/platform_native/row_source"
 
 import {
+  "actql/actql/client_local_host",
   "actql/actql/client_row_source_host",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
@@ -13,13 +14,23 @@ import {
 // Values
 pub fn native_relation_file_caller_preparation_evaluation_inventory(NativeRelationFileSelection) -> @execution_relation.PreparationRepresentationUnits
 
-pub fn native_relation_file_caller_preparation_inventory(NativeRelationFileSelection, NativeRelationFileLimits) -> @execution_relation.PreparationRepresentationUnits?
+pub fn native_relation_file_caller_preparation_inventory(NativeRelationFileSelection, NativeRelationFileLimits, prepared_provider? : NativeRelationFilePreparedProvider?) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn native_relation_file_capture_limits(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[@physical_resources.LedgerLimits, NativeRelationFileIssue]
 
+pub fn native_relation_file_input_capture_limits(@client_row_source_host.RowDeclaration, @client_row_source_host.RowInputAcquisition, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[@physical_resources.LedgerLimits, NativeRelationFileIssue]
+
 pub fn native_relation_file_input_valid(NativeRelationFileSelection, NativeRelationFileLimits) -> Bool
 
+pub fn native_relation_file_provider_capacity(@client_row_source_host.RowDeclaration, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[@execution_relation.ExecutionCapacity, NativeRelationFileIssue]
+
+pub fn prepare_native_managed_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledWholeSourceCapacity, @execution_relation.ExecutionCapacity, String, NativeRelationFileSelection, NativeRelationFileLimits, prepared_provider? : NativeRelationFilePreparedProvider?) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
+
 pub fn prepare_native_relation_file_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
+
+pub fn prepare_native_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_row_source_host.RowInputAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
+
+pub fn prepare_native_relation_file_provider(@client_row_source_host.RowDeclaration, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFilePreparedProvider, NativeRelationFileIssue]
 
 // Errors
 
@@ -45,6 +56,7 @@ pub(all) enum NativeRelationFileIssue {
   Row(@client_row_source_host.RowHostIssue)
   Document(@client_row_source_host.RowSourceIssue)
   Mapping(@client_row_source_host.RowMappingIssue)
+  ManagedRead(@client_local_host.ClientInstalledSourceReadIssue)
 }
 
 pub(all) struct NativeRelationFileLimits {
@@ -53,6 +65,9 @@ pub(all) struct NativeRelationFileLimits {
   chunk_bytes : Int
   diagnostic_ceiling : Int
 }
+
+type NativeRelationFilePreparedProvider
+pub fn NativeRelationFilePreparedProvider::capacity(Self) -> @execution_relation.ExecutionCapacity
 
 pub(all) struct NativeRelationFileSelection {
   directory : String

@@ -9,6 +9,7 @@ import {isAbsolute, join} from 'node:path';
 const namedBackingFiles = Object.freeze([
   'initialization-original.backing', 'initialization-budget-refused.backing',
   'request-original.backing', 'request-run-transfer.backing', 'request-unstarted.backing',
+  'common-request-entrance.backing',
   'source-frame-original.backing', 'source-frame-left.backing', 'source-frame-right.backing',
   'consumer-current.backing', 'consumer-managed-graph.backing',
   'consumer-alias.backing', 'consumer-usage-alias.backing',
@@ -59,6 +60,17 @@ function backingFixture(namespace) {
   return {root, backing};
 }
 
+// The Model frame correspondence cases use only the existing real FD-backed
+// Request originals. They do not acquire a Crypto or SQLite component, so do
+// not select an unrelated library merely to populate an unused environment.
+export function nativeCoreModelFrameFixture(namespace) {
+  const {root, backing} = backingFixture(namespace);
+  for (const name of ['source-frame-original', 'source-frame-left', 'source-frame-right']) {
+    backing(name + '.backing', 64);
+  }
+  return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root};
+}
+
 export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary, backingPages}) {
   for (const library of [cryptoLibrary, sqliteLibrary]) {
     assert(typeof library === 'string' && isAbsolute(library) && !library.includes('\0'),
@@ -86,8 +98,10 @@ export function nativeRelationFileCaptureFixture(namespace) {
   const root = join(realpathSync(namespace), 'installed-process');
   mkdirSync(root, {mode: 0o700});
   assert.equal(statSync(root).mode & 0o777, 0o700, 'Private capture fixture required');
+  const input = Buffer.from('{"items":[{"id":"first","value":1},{"id":"second","value":2}]}');
   const files = [
-    ['row-source-input', Buffer.from('{"items":[{"id":"first","value":1},{"id":"second","value":2}]}')],
+    ['row-source-input', input],
+    ['row-source-large-input', Buffer.concat([input, Buffer.alloc(70000, 0x20)])],
     ['row-source-malformed', Buffer.from('{"items":[')],
     ['row-source-oversized', 8193],
     ['row-source-backing', 384 * 1024 ** 2],

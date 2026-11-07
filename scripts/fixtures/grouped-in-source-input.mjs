@@ -53,6 +53,9 @@ export const groupedInSuccesses = [
     {columns: flagColumns, parameterDeclarations: {p: {type: 'number', nullable: true}},
       parameters: {p: null}}),
   success('empty', 'sql', sql, [], {sourceRows: []}),
+  // Grouping preserves a signed literal; zero normalizes before membership.
+  success('negative-zero', 'sql', 'SELECT id FROM records WHERE id IN (-(0))', [],
+    {parameterDeclarations: undefined, parameters: undefined}),
 ];
 export const groupedInRefusals = [
   {name: 'undeclared', text: sql, parameters: {p: 3}},
@@ -61,7 +64,6 @@ export const groupedInRefusals = [
     parameters: {p: 'secret-value'}},
   {name: 'dynamic-column', text: 'SELECT id FROM records WHERE id IN ((amount))'},
   {name: 'dynamic-expression', text: 'SELECT id FROM records WHERE id IN ((1 + 2))'},
-  {name: 'negative-zero', text: 'SELECT id FROM records WHERE id IN (-(0))'},
 ].map(item => ({...item, name: 'grouped-in-' + item.name, format: 'sql'}));
 
 // Common membership projections assert all three truth values directly. The

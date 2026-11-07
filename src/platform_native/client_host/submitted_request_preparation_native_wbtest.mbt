@@ -1,4 +1,49 @@
 ///|
+// Closed cause labels only: no Cursor, diagnostic message, value or path.
+fn native_request_checked_cause_label(
+  value : @checked.CheckDiagnostic,
+) -> String {
+  let category = match @checked.diagnostic_category(value) {
+    InvalidInput => "invalid-input"
+    InvalidConfiguration => "invalid-configuration"
+    UnsupportedImplementation => "unsupported"
+    CompileLimit => "compile-limit"
+    MissingInput => "missing-input"
+    UnclassifiedFailure => "unclassified"
+  }
+  let cause = match @checked.diagnostic_cause(value) {
+    InvalidLimits => "invalid-limits"
+    Program(_) => "program"
+    CapacityInputs(_) => "capacity-inputs"
+    Environment(BudgetExceeded) => "environment-budget"
+    Environment(_) => "environment"
+    Source(_) => "source"
+    Closure(BudgetExceeded) => "closure-budget"
+    Closure(Values(InvalidLimits)) => "closure-values-invalid-limits"
+    Closure(Values(BudgetExceeded)) => "closure-values-budget"
+    Closure(Values(ForeignOccurrence(_))) => "closure-values-foreign"
+    Closure(Values(RowsExceeded(_))) => "closure-values-row-count"
+    Closure(Values(Wire(_, _))) => "closure-values-wire"
+    Closure(Values(Rows(_, _))) => "closure-values-rows"
+    Closure(Values(Recursive(_, _))) => "closure-values-recursive"
+    Closure(Values(Encoding(_))) => "closure-values-encoding"
+    Closure(Values(Host(_))) => "closure-values-host"
+    Closure(Values(Admission(_))) => "closure-values-admission"
+    Closure(Values(Arithmetic(_))) => "closure-values-arithmetic"
+    Closure(Requirements(_)) => "closure-requirements"
+    Closure(_) => "closure-other"
+    Units(BudgetExceeded) => "unit-budget"
+    Units(PublicationHost(_)) => "unit-publication-host"
+    Units(PublicationRows(_)) => "unit-publication-rows"
+    Units(PublicationWire(_)) => "unit-publication-wire"
+    Units(PublicationArithmetic(_)) => "unit-publication-arithmetic"
+    Units(_) => "unit-other"
+    Template(_, _) => "template"
+  }
+  category + "/" + cause
+}
+
+///|
 fn[T, E] Result::native_request_stage(
   self : Result[T, E],
   stage : String,
@@ -27,6 +72,7 @@ fn submitted_request_native_work(
   initial : @resources.BackedPreparationAdmission[@host.ClientSubmittedIntent],
   input : @host.ClientSubmittedIntent,
   expected_rows? : Array[String]? = None,
+  selected_environment? : @checked.CheckEnvironment? = None,
 ) -> @local.ClientInstalledManagedRun raise {
   arena
   .enter_domain_retained_execution(physical)
@@ -36,7 +82,7 @@ fn submitted_request_native_work(
     input,
     @local.client_local_resource_policy(),
   ).native_request_stage("Native Request stage 2")
-  let environment = preparation_environment()
+  let environment = selected_environment.unwrap_or_else(preparation_environment)
   let publication = @source_publication.prepare_published_query_environment(
     environment,
     "{\"environmentCid\":\"" +
@@ -55,6 +101,20 @@ fn submitted_request_native_work(
       fail("Native Request capacity RetentionLimit")
     Err(Request(Preparation(Capacity(_)))) =>
       fail("Native Request capacity other")
+    Err(
+      Request(
+        Preparation(
+          ProgramJson(Syntax(Parse({ issue: @source.NodeLimit, .. })))
+        )
+      )
+    ) => fail("Native Request original JSON Source NodeLimit")
+    Err(
+      Request(
+        Preparation(
+          ProgramJson(Source(Syntax(Parse({ issue: @source.NodeLimit, .. }))))
+        )
+      )
+    ) => fail("Native Request original JSON Source input NodeLimit")
     Err(Request(Preparation(ProgramJson(_)))) =>
       fail("Native Request ProgramJson")
     Err(Request(Preparation(ProgramCheck(Capacity(Resource(ExecutionLimit)))))) =>
@@ -80,6 +140,11 @@ fn submitted_request_native_work(
     Err(Request(Preparation(Policy))) => fail("Native Request Policy")
     Err(Request(Preparation(WrongPhase))) => fail("Native Request WrongPhase")
     Err(Request(Preparation(_))) => fail("Native Request other preparation")
+    Err(Request(CheckOutcome(@checked.Rejected(diagnostic)))) =>
+      fail(
+        "Native Request check outcome code: " +
+        native_request_checked_cause_label(diagnostic),
+      )
     Err(Request(CheckOutcome(_))) => fail("Native Request check outcome")
     Err(Request(_)) => fail("Native Request other terminal")
     Err(_) => fail("Native Request source transport refused")
@@ -153,7 +218,12 @@ fn submitted_request_native_work(
   ).native_request_stage("Native Request stage 14")
   let rows = execution.rows().native_request_stage("Native Request stage 15")
   match expected_rows {
-    Some(expected) => assert_eq(rows, expected)
+    Some(expected) => {
+      assert_eq(rows.length(), expected.length())
+      for index in 0..<expected.length() {
+        assert_eq(rows[index], expected[index])
+      }
+    }
     None => {
       assert_eq(rows.length(), 104)
       let mut bytes = 0

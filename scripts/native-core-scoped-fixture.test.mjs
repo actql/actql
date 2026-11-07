@@ -5,7 +5,7 @@ import {closeSync, fstatSync, mkdirSync, mkdtempSync, openSync, readSync,
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {nativeCoreOrdinaryProcessFixture, nativeCoreScopedFixture, nativeRelationFileCaptureFixture} from './native-core-scoped-fixture.mjs';
+import {nativeCoreOrdinaryProcessFixture, nativeCoreScopedFixture, nativeRelationFileCaptureFixture, nativeCoreModelFrameFixture} from './native-core-scoped-fixture.mjs';
 
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-scoped-case-fixture-')));
@@ -13,6 +13,26 @@ function fixture(t) {
   return root;
 }
 const libraries = {cryptoLibrary: '/actual/crypto.dylib', sqliteLibrary: '/usr/lib/libsqlite3.dylib'};
+
+test('Model frame fixtures retain real private backings without selecting unused components', t => {
+  const root = fixture(t), environment = nativeCoreModelFrameFixture(root);
+  const path = join(root, 'installed-process');
+  assert.deepEqual(environment, {ACTQL_TEST_INSTALLED_PROCESS_ROOT: path});
+  assert.deepEqual(readdirSync(path).sort(), ['source-frame-left.backing',
+    'source-frame-original.backing', 'source-frame-right.backing']);
+  const page = Number(execFileSync('/usr/bin/getconf', ['PAGESIZE'], {encoding: 'utf8'}).trim());
+  for (const name of readdirSync(path)) {
+    const fd = openSync(join(path, name), 2);
+    try {
+      assert.equal(fstatSync(fd).mode & 0o777, 0o600);
+      assert.equal(fstatSync(fd).size, 64 * page);
+      const original = Buffer.alloc(128, 1);
+      assert.equal(readSync(fd, original, 0, original.length, 0), original.length);
+      assert.deepEqual(original, Buffer.alloc(128));
+    } finally {closeSync(fd);}
+  }
+  assert.throws(() => nativeCoreModelFrameFixture(root), {code: 'EEXIST'});
+});
 
 test('selected physical case inputs use actual pages, exact private backing sizes and original library selections', t => {
   const root = fixture(t);
@@ -31,6 +51,7 @@ test('selected physical case inputs use actual pages, exact private backing size
       ['backing',backingPages],['backing-0',256],['backing-3',256],['backing-4',256],
       ['initialization-original.backing',64],['initialization-budget-refused.backing',64],
       ['request-original.backing',64],['request-run-transfer.backing',64],['request-unstarted.backing',64],
+      ['common-request-entrance.backing',64],
       ['source-frame-original.backing',64],['source-frame-left.backing',64],['source-frame-right.backing',64],
       ['consumer-current.backing',64],['consumer-managed-graph.backing',64],
       ['consumer-alias.backing',64],['consumer-usage-alias.backing',64],
@@ -78,7 +99,7 @@ test('relation capture has independent exact real-file inputs and never resets a
   const root = join(namespace, 'installed-process');
   assert.deepEqual(env, {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root});
   assert.equal(statSync(root).mode & 0o777, 0o700);
-  const sizes = {'row-source-input':62, 'row-source-malformed':10,
+  const sizes = {'row-source-input':62, 'row-source-large-input':70062, 'row-source-malformed':10,
     'row-source-oversized':8193, 'row-source-backing':384*1024**2};
   assert.deepEqual(readdirSync(root).sort(), Object.keys(sizes).sort());
   for (const [name, size] of Object.entries(sizes)) {
@@ -88,6 +109,11 @@ test('relation capture has independent exact real-file inputs and never resets a
   }
   assert.equal(readFileSync(join(root,'row-source-input'),'utf8'),
     '{"items":[{"id":"first","value":1},{"id":"second","value":2}]}');
+  const large = readFileSync(join(root,'row-source-large-input'));
+  assert.deepEqual(large.subarray(0,62), readFileSync(join(root,'row-source-input')));
+  assert(large.subarray(62).every(byte => byte === 0x20));
+  assert.deepEqual(JSON.parse(large.toString('utf8')),
+    {items:[{id:'first',value:1},{id:'second',value:2}]});
   assert.equal(readFileSync(join(root,'row-source-malformed'),'utf8'), '{"items":[');
   const backing = join(root,'row-source-backing');
   const fd = openSync(backing,2);
