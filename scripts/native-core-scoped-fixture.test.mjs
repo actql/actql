@@ -36,7 +36,7 @@ test('selected physical case inputs use actual pages, exact private backing size
       ['consumer-alias.backing',64],['consumer-usage-alias.backing',64],
       ['consumer-serial.backing',64],['consumer-entry-first.backing',64],
       ['consumer-entry-second.backing',64],['consumer-leave-refused.backing',64],
-      ['consumer-serial-alias.backing',64],['root-binding-first.backing',64],['root-binding-second.backing',64],
+      ['consumer-serial-alias.backing',64],['consumer-working-growth.backing',64],['root-binding-first.backing',64],['root-binding-second.backing',64],
     ]);
     assert.deepEqual(readdirSync(path).sort(), [...expected.keys(),'store'].sort());
     assert.equal(statSync(join(path, 'store')).mode & 0o777, 0o700);
