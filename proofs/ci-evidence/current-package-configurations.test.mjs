@@ -65,6 +65,30 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
         assert.equal(currentTree.entries.get(source)?.mode, '100644');
       }
     }
+    if (path === 'src/platform_native/publication_store/moon.pkg') {
+      assert.equal(entry.revision, '5f2e0ecdeeaea9fb011c514806ef4dee80b03dad');
+      const prior = tree.read(path).toString();
+      const selectors = ['    "captured_content_custody_native.mbt": [ "native" ],\n',
+        '    "captured_content_custody_native_wbtest.mbt": [ "native" ],\n',
+        '    "captured_content_custody_unsupported.mbt": [ "not", "native" ],\n'];
+      let reconstructed = body;
+      for (const selector of selectors) {
+        assert.equal(body.split(selector).length, 2);
+        reconstructed = reconstructed.replace(selector, '');
+      }
+      assert.equal(reconstructed, prior, 'only the three reviewed Native custody selectors changed');
+      assert.deepEqual(packageImports(body).imports, packageImports(prior).imports);
+      assert.equal(currentTree.read(path).toString(), body);
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(prior))), null);
+      const selected = packageSourceInputs({tree: currentTree, packages: ['src/platform_native/publication_store'], target: 'js'});
+      for (const member of ['captured_content_custody_native.mbt', 'captured_content_custody_native_wbtest.mbt',
+        'captured_content_custody_unsupported.mbt', 'store_format_stub.c']) {
+        const source = `src/platform_native/publication_store/${member}`;
+        assert(selected.paths.includes(source));
+        assert.equal(currentTree.entries.get(source)?.kind, 'blob');
+        assert.equal(currentTree.entries.get(source)?.mode, '100644');
+      }
+    }
     const changes = [body + '\noptions(pre_build: {command: "unreviewed"})\n',
       body.replace(/"(?:actql\/actql|moonbitlang\/core)\/[^"\n]+"/, '"actql/actql/unreviewed_resource_owner"'),
       body.replace(/"js"|"native"|"wasm"/, '"unreviewed-target"')];
@@ -383,7 +407,7 @@ test('current query configuration binds both JS-only files without changing impo
 
 test('single current map binds exact per-entry reviews and full literal import closure', () => {
   assert.equal(Object.keys(currentPackageConfigurations).length, 19);
-  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 12);
+  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 13);
   const head = gitTree(root, execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
   for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
     const revision = entry.revision ?? currentConfigurationReviewRevision;
