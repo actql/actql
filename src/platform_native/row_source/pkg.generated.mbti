@@ -35,7 +35,7 @@ pub fn prepare_native_relation_file_capture(@installed_arena_control.InstalledAr
 
 pub fn prepare_native_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_row_source_host.RowInputAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
-pub fn prepare_native_relation_file_listing_provider(@client_row_source_host.RowDeclaration, String, NativeRelationFilePreparedProvider, NativeRelationFileListingFields, @value_admission.ReferenceIssuer, (String) -> Result[@value_admission.CheckedValue, NativeRelationFileIssue]) -> Result[NativeRelationFileListingProvider, NativeRelationFileIssue]
+pub fn prepare_native_relation_file_listing_provider(@client_row_source_host.RowDeclaration, String, NativeRelationFilePreparedProvider, NativeRelationFileListingFields, @value_admission.ReferenceIssuer, (String) -> Result[@value_admission.CheckedValue, NativeRelationFileIssue], now_ms? : (() -> Int64)?) -> Result[NativeRelationFileListingProvider, NativeRelationFileIssue]
 
 pub fn prepare_native_relation_file_provider(@client_row_source_host.RowDeclaration, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFilePreparedProvider, NativeRelationFileIssue]
 

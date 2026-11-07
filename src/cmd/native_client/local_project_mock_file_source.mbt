@@ -100,6 +100,7 @@ fn local_project_mock_file_source(
         identity => {
           references.observe_identity(issuer, contract, binding, identity)
         },
+        now_ms=Some(local_status_watch_now_ffi),
       ) {
       Ok(value) => value
       Err(_) => return Err(@row_host.RowHostIssue::InvalidSpecification)

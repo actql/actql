@@ -1266,6 +1266,7 @@ fn managed_capture_fixture_work(
   prepared_provider : NativeRelationFilePreparedProvider?,
   listing? : NativeRelationFileListingProvider? = None,
   program? : String? = None,
+  clock_refusal? : Int = 0,
 ) -> @local.ClientInstalledManagedRun raise {
   let parent = @local.begin_backed_request_preparation(
     initial,
@@ -1552,6 +1553,52 @@ fn managed_capture_fixture_work(
       capture_owner
     }
   }
+  if clock_refusal != 0 {
+    let result = if clock_refusal == 4 {
+      capture_owner.advance_listing(32, 0L)
+    } else {
+      capture_owner.advance(32)
+    }
+    guard result is Err(first) else {
+      fail("clock refusal unexpectedly read a file")
+    }
+    if clock_refusal == 4 {
+      assert_true(first.issue() is InvalidInput)
+    } else {
+      assert_true(first.issue() is Unavailable)
+    }
+    guard capture_owner.advance(32) is Err(repeated) else {
+      fail("failed clock resumed")
+    }
+    assert_true(physical_equal(first, repeated))
+    assert_eq(@resources.ledger_usage(ledger).transferred_bytes, before)
+    let mut closed = false
+    for _ in 0..<10000 {
+      match capture_owner.close() {
+        Ok(true) => {
+          closed = true
+          break
+        }
+        Ok(false) | Err(ManagedRead(@local.Acquisition(@rows.InvalidState))) =>
+          ()
+        Err(_) => fail("clock-failed original Source cleanup failed")
+      }
+    }
+    assert_true(closed)
+    arena
+    .leave_domain_retained_execution(physical)
+    .managed_capture_stage("clock-failed Read leaves")
+    @resources.settle_capacity(ledger, caller).managed_capture_stage(
+      "clock-failed caller retirement",
+    )
+    @local.quiesce_installed_managed_run(owner).managed_capture_stage(
+      "clock-failed original Run quiescent",
+    )
+    assert_true(@local.retire_installed_managed_run(owner) is Err(_))
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+    assert_true(@local.installed_preparation_payload_severed(owner, request))
+    return owner
+  }
   let mut completed = false
   // One original transport chunk per advance, then the existing bounded
   // parser/capture progression. Derive only the transport portion from this
@@ -1559,7 +1606,7 @@ fn managed_capture_fixture_work(
   let transport_steps = (expected_transfer / file_limits.chunk_bytes.to_int64() +
   1L).to_int()
   for step in 0..<(transport_steps + 10000) {
-    let advanced = if listing is Some(_) {
+    let advanced = if listing is Some(original) && original.now_ms is None {
       // Explicit finite protocol elapsed DATA. This fixture does not qualify
       // a normal Host monotonic-clock binding or real deadline enforcement.
       capture_owner.advance_listing(32, step.to_int64())

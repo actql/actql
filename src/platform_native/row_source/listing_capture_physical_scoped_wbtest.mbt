@@ -78,7 +78,7 @@ fn managed_listing_fixture_declaration() -> @rows.RowDeclaration raise {
 }
 
 ///|
-test "Native listing uses the SAME managed Plan ticket issuer and physical Ledger" {
+fn managed_listing_fixture_case(clock_mode : Int) -> Unit raise {
   let (prototype, temporary, fields) = file_listing_page_fixture()
   assert_true(@rows.discard_relation_document_original(temporary))
   let selection = {
@@ -110,6 +110,21 @@ test "Native listing uses the SAME managed Plan ticket issuer and physical Ledge
       None
     }
   })
+  let clock_calls = Ref(0)
+  let now_ms : (() -> Int64)? = if clock_mode == 0 {
+    None
+  } else {
+    Some(() => {
+      clock_calls.val += 1
+      if clock_calls.val > 1 && clock_mode == 2 {
+        -1L
+      } else if clock_calls.val > 1 && clock_mode == 3 {
+        999L
+      } else {
+        1000L + clock_calls.val.to_int64()
+      }
+    })
+  }
   let listing = prepare_native_relation_file_listing_provider(
     declaration,
     "files",
@@ -125,6 +140,7 @@ test "Native listing uses the SAME managed Plan ticket issuer and physical Ledge
         Err(ForeignOriginal)
       }
     },
+    now_ms~,
   ).managed_capture_stage("same Source listing provider original")
   let (wire, cid) = capture_fixture_environment(declaration)
   let environment = @publication_host.admit_client_check_environment(
@@ -172,6 +188,7 @@ test "Native listing uses the SAME managed Plan ticket issuer and physical Ledge
     Some(physical_provider),
     listing=Some(listing),
     program=Some(program),
+    clock_refusal=if clock_mode >= 2 { clock_mode } else { 0 },
   )
   arena
   .close_domain_retained_execution(execution)
@@ -184,4 +201,28 @@ test "Native listing uses the SAME managed Plan ticket issuer and physical Ledge
   .managed_capture_stage("listing physical domain ACK")
   arena.try_close().managed_capture_stage("listing arena close")
   live.val = false
+  if clock_mode == 1 {
+    assert_true(clock_calls.val > 1)
+  } else if clock_mode == 2 || clock_mode == 3 {
+    assert_eq(clock_calls.val, 2)
+  } else if clock_mode == 4 {
+    assert_eq(clock_calls.val, 1)
+  }
+}
+
+///|
+test "Native listing uses the SAME managed Plan ticket issuer and physical Ledger" {
+  managed_listing_fixture_case(0)
+}
+
+///|
+test "Native listing bound Host clock drives the SAME managed read without elapsed injection" {
+  managed_listing_fixture_case(1)
+}
+
+///|
+test "Native listing clock failure regression and replacement fence the original read without resampling" {
+  for mode in [2, 3, 4] {
+    managed_listing_fixture_case(mode)
+  }
 }

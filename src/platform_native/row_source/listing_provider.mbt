@@ -10,6 +10,7 @@ struct NativeRelationFileListingProvider {
   physical : NativeRelationFilePreparedProvider
   fields : NativeRelationFileListingFields
   capacity : @execution.ExecutionCapacity
+  now_ms : (() -> Int64)?
   issuer : @admitted.ReferenceIssuer
   issue_resource : (String) -> Result[
     @admitted.CheckedValue,
@@ -18,6 +19,9 @@ struct NativeRelationFileListingProvider {
 }
 
 ///|
+/// Bind an optional original Host monotonic clock. A managed capture retains
+/// its own start/last observations; sharing this immutable provider never
+/// shares or resets another Read's timer. This port issues no read authority.
 pub fn prepare_native_relation_file_listing_provider(
   declaration : @rows.RowDeclaration,
   resource : String,
@@ -28,6 +32,7 @@ pub fn prepare_native_relation_file_listing_provider(
     @admitted.CheckedValue,
     NativeRelationFileIssue,
   ],
+  now_ms? : (() -> Int64)? = None,
 ) -> Result[NativeRelationFileListingProvider, NativeRelationFileIssue] {
   if !declaration.views.any(view => view.resource == resource) ||
     !file_listing_fields_valid(physical, fields) {
@@ -58,6 +63,7 @@ pub fn prepare_native_relation_file_listing_provider(
     fields,
     capacity,
     issuer,
+    now_ms,
     issue_resource,
   })
 }
