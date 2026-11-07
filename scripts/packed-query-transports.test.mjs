@@ -184,6 +184,19 @@ test('packed cause observer retains a closed Node failure code without collectin
   assert.doesNotMatch(JSON.stringify(reports), /private-SQL/u);
 });
 
+test('packed cause observer omits a plausible private code and forged MoonBit constructor name', async t => {
+  const target = await diagnosticTarget(t), reports = [];
+  class _MPrivateInputSecret extends Error {}
+  const primary = Object.assign(new _MPrivateInputSecret('private-message'), {code:'ClientPrivateInputSecret'});
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report:value=>reports.push(value)});
+  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
+  finally {await observer.close();}
+  assert.equal(reports[0].available, true);
+  assert.deepEqual(reports[0].originalCauseTypes, [[{edge:'original',type:'MoonBit',codeOmitted:true}]]);
+  assert.doesNotMatch(JSON.stringify(reports), /PrivateInputSecret|private-message/u);
+});
+
 test('complete transport inventory rejects missing, duplicate, extra and reordered identities', () => {
   // Independently authored expected identities, not generated from a partition.
   const expected = ['standard/success/a', 'standard/failure/b', 'standard/refusal/c'];

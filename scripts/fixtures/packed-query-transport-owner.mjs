@@ -104,14 +104,30 @@ async function runSubmissionCauseObserver() {
   const alive = setInterval(() => {}, 1000);
   const originals = new Set();
   let breakpoint, captured = false;
+  // Emit only fixed categories and explicitly listed codes. Even a plausible
+  // private code prefix or forged compiled constructor name is not evidence.
   const expression = `(()=>{const out=[],queue=[['original',error,0]],seen=new Set();
 while(queue.length&&out.length<32){const [edge,value,depth]=queue.shift();
 if(value===null||typeof value!=='object'||seen.has(value))continue;seen.add(value);
 const own=Object.getOwnPropertyDescriptors(value),proto=Object.getPrototypeOf(value);
 const ctor=proto&&Object.getOwnPropertyDescriptor(proto,'constructor')?.value;
 const name=typeof ctor==='function'?Object.getOwnPropertyDescriptor(ctor,'name')?.value:'';
-const type=['Object','Array','Error','TypeError','RangeError','SyntaxError','ClientError','DOMException'].includes(name)||typeof name==='string'&&/^_M[A-Za-z0-9_]{1,157}$/.test(name)?name:'Other';
-const row={edge,type},code=own.code;if(code&&'value'in code&&typeof code.value==='string'&&(['ENOENT','EACCES','EPERM','EIO','EBUSY','ENOMEM','ENOSPC','EMFILE','EEXIST','ENOTDIR','EISDIR','EBADF','ERR_SQLITE_ERROR','ERR_INVALID_STATE','ERR_BUFFER_TOO_LARGE','ERR_OUT_OF_RANGE','ERR_INVALID_ARG_TYPE'].includes(code.value)||/^(Client|Installed|Invalid|Foreign|Unknown|Resource|Request|Sqlite|SQLite|RowSource|Local|Managed|Original|Unsupported|Check|Host|Program|Preparation|Journal)[A-Za-z0-9]{0,80}$/.test(code.value)))row.code=code.value;
+const type=['Object','Array','Error','TypeError','RangeError','SyntaxError','ClientError','DOMException'].includes(name)?name:typeof name==='string'&&/^_M[A-Za-z0-9_]{1,157}$/.test(name)?'MoonBit':'Other';
+const safeCodes=[
+'ENOENT','EACCES','EPERM','EIO','EBUSY','ENOMEM','ENOSPC','EMFILE','EEXIST','ENOTDIR','EISDIR','EBADF',
+'ERR_SQLITE_ERROR','ERR_INVALID_STATE','ERR_BUFFER_TOO_LARGE','ERR_OUT_OF_RANGE','ERR_INVALID_ARG_TYPE',
+'ClientOperationUnavailable','ClientPreparedSubmissionUnavailable','ClientProgramPreparationFailure',
+'ClientProgramRejected','ClientProgramUnsupported','ClientProgramInvalidInput','ClientProgramImplementationLimit',
+'ClientProgramAnalysisLimit','ClientRequestLookupDenied','ClientSubmissionUnresolvable','ClientSubmittedIntentConflict',
+'InvalidClientHostSubmissionLookup','InvalidClientHostSubmissionOutcome','InvalidClientProgramPreparationInstallation',
+'InvalidClientRequest','InvalidClientSubmissionAttempt','InvalidClientSubmissionInstallation','InvalidClientSubmittedIntent',
+'InvalidHostRuntimeResult','InvalidLocalValuesRowLimit','NodeLocalPreparationAdmissionUnavailable',
+'PreparationCapacityExceeded','SourceManagedPreparationUnavailable','StaleClientProgramErrorProjection','SubmissionAttemptRejected',
+'ClientSubmittedIntentCustodyLost','ClientSubmittedIntentCapacity','ClientSubmittedIntentCorrupt',
+'ClientRequestJournalInspectionUnavailable','ClientRequestJournalSqlUnavailable','ClientRequestJournalSqlCleanupPending',
+'SqliteSchemaPreparationUnavailable','UnknownClientRequestJournalFormat','ClientSubmissionEpochExpired',
+'ClientSubmissionEpochNotYetValid','ForeignRequestOriginal'];
+const row={edge,type},code=own.code;if(code){if('value'in code&&safeCodes.includes(code.value))row.code=code.value;else row.codeOmitted=true;}
 out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=own[key];if(d&&'value'in d)queue.push([key,d.value,depth+1]);}}return out;})()`;
   session.on('Debugger.scriptParsed', async ({params}) => {
     if (params.url !== workerData.url) return;
@@ -131,9 +147,11 @@ out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','
         returnByValue: true, silent: true});
       assert.equal(exceptionDetails, undefined);
       parentPort.postMessage({kind: 'primary', types: result.value});
-      await post('Debugger.removeBreakpoint', {breakpointId: breakpoint});
     } catch {parentPort.postMessage({kind: 'unavailable'});}
-    finally {await post('Debugger.resume').catch(() => session.disconnect());}
+    finally {
+      await post('Debugger.removeBreakpoint', {breakpointId: breakpoint}).catch(() => {});
+      await post('Debugger.resume').catch(() => session.disconnect());
+    }
   });
   parentPort.on('message', async value => {
     if (value.kind !== 'close') return;
