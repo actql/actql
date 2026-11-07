@@ -227,6 +227,8 @@ pub fn record_write_values_body(RecordWriteValues) -> String
 
 pub fn record_write_values_fields(RecordWriteValues) -> Array[String]
 
+pub fn record_write_values_json(RecordWriteValues, Int, Int, Int) -> Result[String, RecordWriteJsonIssue]
+
 pub fn record_write_values_match_catalog(RecordWriteValues, FormFieldCatalog) -> Bool
 
 pub fn require_form_unique_key(FormFieldCatalog, String) -> Result[FormFieldMetadata, FormFieldIssue]
