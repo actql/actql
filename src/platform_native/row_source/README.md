@@ -49,6 +49,25 @@ facts, including observation and acquisition objects. It is a logical accounting
 recipe, not a measured heap bound or a new funding/profile issuer. The original
 Native domain independently enforces physical allocation.
 
+## Keyed file Content DATA
+
+`project_native_relation_file_content_bytes` consumes an admitted original
+physical document and the Source's selected file roles. The Source must resolve
+the keyed request's nominal ResourceRef to its original identity first. The
+projection checks the same full-row version definition as listing, measures
+UTF-8 length before allocating the returned bytes, and preserves Unicode, line
+endings and empty content. A reused authored version label cannot conceal a
+changed row. Temporary typed row/document projections retire on either outcome;
+the original response and returned bytes stay in their caller's custody.
+
+The companion construction inventory counts this projection, before-wire and
+version writers, control carriers and output buffer. Raw response, physical
+Reader, Store construction and failed-child overlap require their separate
+same-parent backing. This entry supplies no ContentRef, Store persistence,
+keyed-request completion, authorization or physical cleanup acknowledgement.
+Only the existing checked capture/Store/ReferenceIssuer connection may turn the
+returned DATA into an admitted ContentRef.
+
 ## Caller preparation inventory
 
 `native_relation_file_caller_preparation_inventory` describes the allocations

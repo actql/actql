@@ -228,19 +228,7 @@ pub fn native_relation_file_listing_construction_inventory(
   provider : NativeRelationFilePreparedProvider,
 ) -> @execution.PreparationRepresentationUnits? {
   let limits = provider.limits.page
-  let selection = provider.selection
-  guard @rows.relation_document_projection_construction_inventory(
-      {
-        original: @rows.relation_document_prepared_contract(
-          provider.prepared_contract,
-        ),
-        items_path_depth: selection.items_path.length(),
-        key_path_depth: selection.key_path.map(path => path.length()),
-        writable_fields: 0,
-      },
-      limits,
-    )
-    is Some(projected) &&
+  guard file_provider_projection_inventory(provider) is Some(projected) &&
     @encode.text_writer_construction_inventory(
       limits.max_bytes,
       limits.max_nodes,

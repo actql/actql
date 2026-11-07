@@ -13,6 +13,7 @@ import {
   "actql/actql/value_admission" @admitted,
   "actql/actql/encode_core" @encode,
   "actql/actql/canonical_json" @identity,
+  "actql/actql/decode_scalar" @scalar,
   "moonbitlang/core/encoding/utf8",
 }
 

@@ -78,3 +78,23 @@ fn file_capture_provider_matches(
   original.selection.items_path == selected.items_path &&
   original.selection.key_path == selected.key_path
 }
+
+///|
+// One original typed projection inventory for listing and keyed Content DATA.
+// This borrows the admitted Contract; it does not rebuild or authorize it.
+fn file_provider_projection_inventory(
+  provider : NativeRelationFilePreparedProvider,
+) -> @execution.PreparationRepresentationUnits? {
+  let selection = provider.selection
+  @rows.relation_document_projection_construction_inventory(
+    {
+      original: @rows.relation_document_prepared_contract(
+        provider.prepared_contract,
+      ),
+      items_path_depth: selection.items_path.length(),
+      key_path_depth: selection.key_path.map(path => path.length()),
+      writable_fields: 0,
+    },
+    provider.limits.page,
+  )
+}
