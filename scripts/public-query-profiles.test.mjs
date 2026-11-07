@@ -318,8 +318,8 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // Seven negated-predicate, six membership and four CONCAT DISTINCT scope
   // refusals retain InvalidInput; no refusal predicate or bound is widened.
   assert.equal(pin.totalCases, 4240);
-  assert.deepEqual(pin.counts, {"successes":2652,"executionFailures":54,"refusals":1534});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2598,"executionFailures":52,"refusals":1495}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  assert.deepEqual(pin.counts, {"successes":2653,"executionFailures":54,"refusals":1533});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2599,"executionFailures":52,"refusals":1494}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
     {name: 'graph-subtraction-null-is-not-zero', positions: [29, 50]},
     {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 51]},
