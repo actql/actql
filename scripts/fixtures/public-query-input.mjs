@@ -938,7 +938,7 @@ export async function exercisePublicQueryInput(connect, options,
         }
         assert.ok(!String(error.message).includes('secret-value'));
         return true;
-      });
+      }, `${requestPrefix}/${name}`);
       const afterRefusal = await counters();
       assert.deepEqual(afterRefusal, before,
         'rejected source must not accept a Run or perform source I/O');

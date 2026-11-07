@@ -17,8 +17,7 @@ priv struct LocalCommandBusinessPreparation {
   scope : String
   intent : @run_host.ClientSubmittedIntent
   preparation : @local_host.NativeClientSubmittedPreparation
-  prepared : @run_host.PreparedClientProgram
-  requirements : @local_values.ClientLocalRequirements
+  requirements : @local_values.ClientLocalRequirements?
   installed_contracts : @local_values.ClientInstalledSequenceContracts
   submission : LocalRunSubmission?
 }
@@ -76,7 +75,9 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   let settings = configuration.settings
   let environment_name = configuration.environment_name
   let environment_body = configuration.environment_body
-  let environment = configuration.checked_environment()
+  let environment = local_command_project_environment(
+    configuration.checked_environment(),
+  )
   let account = local_host_result(capture.configuration_in_original_read())
   if account.account_id() != settings.account_id {
     stop("LocalConfigurationChanged")
@@ -100,51 +101,53 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       "runtime.json",
     ),
   )
-  let intent = match original_input {
-    Some((_, intent)) => intent
-    None =>
-      @run_host.prepare_client_submitted_intent(
-        local_intent_wire(input_root, operation, child),
-        65536,
-        8192,
-        64,
-      ).unwrap_or_else(() => stop("LocalSubmittedInputNotAdmitted"))
+  let producer : LocalCommandBusinessInput = {
+    root: input_root,
+    operation,
+    arguments: child,
+    retained_intent: original_input.map(value => value.1),
   }
-  let preparation = local_prepare_submitted_run_program(intent, environment)
-  guard @local_host.native_client_submitted_preparation(preparation)
-    is Computation(prepared) else {
-    stop("LocalBusinessProgramUnavailable")
-  }
-  // Admit the existing normalization profile on this exact checked owner
-  // before activating business operations or allocating a durable attempt.
-  // The later submission join reads this same retained original; unsupported
-  // defaults or completions cannot become an empty normalization journal.
-  @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
-    stop("LocalOriginalNormalizationNotInstalled")
+  command_preparation_result(
+    self.prepare_business_request_capacity(capture, producer),
+    stage=Some("business-request-capacity"),
+  )
+  self.begin_business_request(capture)
+  let intent = self.with_business_request(capture, () => {
+    self.construct_business_intent()
   })
-  |> ignore
-  let assets = runtime.assets
-  let requirements = @local_values.prepare_source_free_local_requirements(
-    prepared,
-    runtime.installed_contracts,
-    assets.values,
-    Some(assets.fragment),
-    assets.ordered,
-  ).unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
-  command_preparation_result(
-    self.prepare_business_capacity(capture, requirements),
-    stage=Some("business-capacity"),
-  )
-  command_preparation_result(
-    self.require_business_program(
-      prepared,
-      runtime.installed_contracts,
-      assets,
-      requirements,
-    ),
-    stage=Some("business-program"),
-  )
-  |> ignore
+  let preparation = self.prepare_business_request(capture, intent, environment)
+  let requirements = match
+    @local_host.native_client_submitted_preparation(preparation) {
+    Computation(prepared) => {
+      // This original Pure route retains its unchanged normalization and
+      // requirements. An Effect is never coerced into its body or authority.
+      @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
+          stop("LocalOriginalNormalizationNotInstalled")
+        },
+      )
+      |> ignore
+      let assets = runtime.assets
+      let requirements = @local_values.prepare_source_free_local_requirements(
+        prepared,
+        runtime.installed_contracts,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+      ).unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
+      command_preparation_result(
+        self.require_business_program(
+          prepared,
+          runtime.installed_contracts,
+          assets,
+          requirements,
+        ),
+        stage=Some("business-program"),
+      )
+      |> ignore
+      Some(requirements)
+    }
+    EffectComputation(_) => None
+  }
   let selection : LocalCommandBusinessPreparation = {
     original: self,
     host,
@@ -160,7 +163,6 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     scope,
     intent,
     preparation,
-    prepared,
     requirements,
     installed_contracts: runtime.installed_contracts,
     submission: original_input.map(value => value.0),
@@ -174,10 +176,14 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   }
   // The receiver was retained in outer control before Read entry. Only this
   // exact admitted Runtime/Program/current selection may activate its route.
-  command_preparation_result(
-    original_operation.activate().map_err(issue => CommandStoreOperation(issue)),
-    stage=Some("business-activation"),
-  )
+  if requirements is Some(_) {
+    command_preparation_result(
+      original_operation
+      .activate()
+      .map_err(issue => CommandStoreOperation(issue)),
+      stage=Some("business-activation"),
+    )
+  }
   selection
 }
 

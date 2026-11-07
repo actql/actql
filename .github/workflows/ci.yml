@@ -132,6 +132,18 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
+      - name: Check all workflows with pinned actionlint
+        run: |
+          set -euo pipefail
+          tool="$RUNNER_TEMP/actionlint-1.7.12"
+          mkdir "$tool"
+          curl --fail --location --silent --show-error --retry 3 --connect-timeout 20 --max-time 60 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            --output "$tool/original.tar.gz"
+          printf '%s  %s\n' 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 "$tool/original.tar.gz" | sha256sum --check --strict
+          tar -xzf "$tool/original.tar.gz" -C "$tool" actionlint
+          # Keep this fixed workflow checker independent of optional unpinned external tools.
+          "$tool/actionlint" -oneline -shellcheck= -pyflakes=
       - name: Reject inconsistent operation support and acceptance evidence before fan-out
         run: node --test scripts/pure-operation-inventory.test.mjs
       - name: Check Native diagnostic counter assignments before fan-out
@@ -186,8 +198,16 @@ jobs:
           cache: npm
       - run: npm ci
         if: ${{ startsWith(needs.select-targets.outputs.profile, 'draft') }}
+      - name: Test source-only Client wire contracts
+        if: ${{ needs.select-targets.outputs.profile == 'full' }}
+        run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- packages/client-wire/cancel-identity.test.mjs packages/client-wire/submission-check-semantics.test.mjs
+      - name: Test source-only INFER evaluation contracts
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- examples/infer-evaluation/evaluate.test.mjs examples/infer-evaluation/compare-source-instructions.test.mjs
       - name: Type-check public SDK and Client wire declarations
         run: npm run check:client-types
+      - name: Test original Source current control ownership
+        run: node --test scripts/source-read-current-control.test.mjs
       - name: Test read-only worktree inventory fixtures
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/worktree-inventory.test.mjs
@@ -202,7 +222,7 @@ jobs:
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/test-native-core.test.mjs scripts/native-query-coverage.test.mjs scripts/native-resident-phase-watchdog.test.mjs scripts/native-resident-function-diagnostic.test.mjs
+        run: node --test scripts/test-native-core.test.mjs scripts/native-query-coverage.test.mjs scripts/native-resident-phase-watchdog.test.mjs scripts/native-resident-function-diagnostic.test.mjs scripts/observation-ack-loss-proxy.test.mjs
       - name: Test preflight admission and latest-revision guard
         run: node --test scripts/ci-preflight.test.mjs
       - name: Test focused owning-family selection and zero-test guards
@@ -244,9 +264,9 @@ jobs:
       - name: Test dependency isolation scratch ownership
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/dependency-isolation-scratch.test.mjs
-      # Full Client distribution owns this exact test in the same Linux/Node environment.
-      - name: Test owned scratch when Client distribution is not selected
-        if: ${{ needs.select-targets.outputs.profile != 'full' && !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+      # Source-only process/filesystem checks need no Client package or runtime.
+      - name: Test owned scratch without Client runtime preparation
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/owned-scratch.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
@@ -287,11 +307,17 @@ jobs:
   core:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    name: core (${{ matrix.target }})
+    name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}/2', matrix.partition) || '' }})
     strategy:
       fail-fast: false
       matrix:
         target: ${{ fromJSON(needs.select-targets.outputs.targets) }}
+        partition: [1, 2]
+        exclude:
+          - target: js
+            partition: 2
+          - target: wasm
+            partition: 2
     # Physical Native fixtures use the existing Darwin arm64 profile.
     runs-on: ${{ matrix.target == 'native' && 'macos-15' || 'ubuntu-24.04' }}
     # Native keeps its full 60-minute child after the separate cold checkpoint
@@ -309,6 +335,9 @@ jobs:
         run: |
           test "$(uname -s)" = Darwin
           test "$(uname -m)" = arm64
+      - name: Install existing scoped component producer dependencies
+        if: ${{ matrix.target == 'native' }}
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Check common core
         run: moon check --target "${{ matrix.target }}" --deny-warn
       - name: Check independent fixed Run materials identity
@@ -336,6 +365,7 @@ jobs:
               (matrix.target != 'native' && success()) }}
         env:
           ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
+          ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}
         run: |
           if [ "${{ matrix.target }}" = native ]; then
             # Pinned Linux Native debug codegen exceeds the default 8 MiB
@@ -344,12 +374,15 @@ jobs:
               ulimit -S -s 65536
             fi
             # Reopen remains within a run; the full run below starts fresh.
-            node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
+            ACTQL_TEST_NATIVE_CORE_PARTITION= node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
             # Optimize the test IR before emitting the large full-Core C input.
             # Keep every test, strict warnings and the original generated-C
             # backend; production and the focused debug prerequisite are unchanged.
             # Compile two independent C units concurrently, while keeping
             # physical test execution serial under the original fixture roots.
+            # Partition whole ordinary test packages before C generation. Each
+            # runner keeps its own source/toolchain/build and original fixtures;
+            # only partition 1 owns the unchanged HTTP/Source/scoped profiles.
             MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
           else
             moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
@@ -372,7 +405,7 @@ jobs:
         if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: native-compiler-cause-${{ github.run_id }}-${{ github.run_attempt }}
+          name: native-compiler-cause-${{ matrix.partition }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .artifacts/native-compiler-diagnostics/
             _build/native-reader-helper-tests/callbacks-*/callback-*.json
@@ -816,46 +849,109 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-toolchain
+        id: host-toolchain
         with:
           python: 'true'
+      # A failed case does not invalidate these unchanged shared build inputs.
+      - name: Prepare the shared Host runtime
+        id: host-runtime-preparation
+        if: ${{ !cancelled() && steps.host-toolchain.outcome == 'success' }}
+        run: moon build --target js --release src/connectors_builtin_node
       - name: Test bounded retained storage and process lifecycle
-        run: npm run check:retained-boundary
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node --test adapters/local-node/managed-output-custody.test.mjs adapters/host-common/run-publication-preflight-capacity.test.mjs adapters/host-common/publication-global-capacity.test.mjs adapters/store-local/files.test.mjs adapters/store-local/shared-read.test.mjs adapters/store-local/delegated-file.test.mjs adapters/store-local/direct-file.test.mjs adapters/store-local/managed-manifest.test.mjs adapters/store-local/managed-representations.test.mjs adapters/store-local/managed-memory-transfer.test.mjs adapters/store-local/publication-store.test.mjs adapters/store-local/physical-retirement-owner.test.mjs adapters/store-local/publication-commit-owner.test.mjs adapters/store-local/process-service.test.mjs adapters/store-local/process-client.test.mjs adapters/store-local/row-frames.test.mjs adapters/store-local/representations.test.mjs adapters/local-node/retained-input.test.mjs adapters/local-node/retained-output.test.mjs adapters/local-node/carrier-snapshot.test.mjs adapters/local-node/strategy-bundle.test.mjs adapters/host-common/execution-sites.test.mjs adapters/host-common/managed-site-transfer.test.mjs adapters/host-common/managed-failure.test.mjs adapters/host-common/publication-contract-control.fixture.test.mjs adapters/host-node/managed-identity-policy.test.mjs adapters/host-node/process-frames.test.mjs adapters/host-node/process-channel.test.mjs adapters/host-node/host-service.test.mjs adapters/host-node/completion-custody.test.mjs adapters/store-local/publication-capacity.test.mjs adapters/store-local/prepared-custody-queue.test.mjs
+      - name: Test prepared holder cleanup owner
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node scripts/local-checks.mjs test node -- adapters/store-local/prepared-holder-owner.test.mjs
       - name: Test publication object writer cleanup owner
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/store-local/object-writer-owner.test.mjs
       - name: Test retired Result cleanup owner
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/store-local/result-deletion-owner.test.mjs
       - name: Test retired metadata cleanup owner
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/store-local/metadata-deletion-owner.test.mjs
       - name: Test publication commit custody owner
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/store-local/delivery-attempt-index.test.mjs adapters/store-local/delivery-attempt-schema-statements.test.mjs adapters/store-local/semantic-publication-commit.test.mjs adapters/store-local/prepared-custody-atomic-record.test.mjs adapters/store-local/prepared-custody-pending-admission.test.mjs
       - name: Test portable publication control with the durable Store
-        run: npm run check:publication-runtime
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node --test adapters/host-common/publication-contract-control.test.mjs adapters/host-common/durable-result-payload.test.mjs adapters/host-common/publication-yield.test.mjs adapters/host-common/captured-computation-retention.test.mjs adapters/host-common/publication-capacity.test.mjs adapters/host-common/publication-capacity-common.test.mjs adapters/host-common/run-publication-preflight-capacity.test.mjs
+      - name: Test original publication owned extents
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: npm run check:publication-owned-extents
+      - name: Test original publication Host extents
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node scripts/local-checks.mjs test moon -- --target js src/physical_resources/preparation_publication_phase_wbtest.mbt src/client_local_host/preparation_scalar_snapshot_layout_wbtest.mbt src/canonical_value/snapshot_normalization_wbtest.mbt src/client_local_host/publication_capture_constructor_layout_wbtest.mbt src/run_publication_host/client_compiled_run_original_definition_wbtest.mbt src/client_local_host/installed_managed_retirement_wbtest.mbt src/client_local_host/preparation_publication_custody_wbtest.mbt src/client_local_host/preparation_publication_snapshot_wbtest.mbt src/client_local_host/preparation_publication_validation_layout_wbtest.mbt src/client_local_host/preparation_publication_validation_custody_wbtest.mbt src/client_local_host/preparation_publication_start_custody_wbtest.mbt src/execution_relation/managed_output_success_retirement_wbtest.mbt
+      - name: Test original publication Host callers
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node scripts/local-checks.mjs test node -- scripts/scalar-snapshot-projector-layout.test.mjs scripts/capture-projector-layout.test.mjs adapters/host-node/publication-currentness-boundary.test.mjs adapters/host-node/client-publication-preparation-phase.test.mjs
       - name: Test retained experiment fixtures and timing assessment
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test benchmarks/retained-results/*.test.mjs
       - name: Test control-side process admission without DuckDB
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: npm run check:process-capacity
+      - name: Prepare the Remote Site runtime
+        id: remote-site-preparation
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: |
+          moon build --target js --release src/connectors_builtin_node src/connectors/github/host_node src/connectors/notion/host_node src/connectors/slack/host_node src/connectors/calendar/host_node src/connectors/gmail/host_node src/connectors/sheets/host_node src/connectors/hubspot/host_node
+          node scripts/build-runtime-packages.mjs coordinator-core
       - name: Test durable Remote Site dispatch admission
-        run: npm run check:remote-site-runtime && node --test packages/coordinator-core/holder-terminal.test.mjs
+        if: ${{ !cancelled() && steps.remote-site-preparation.outcome == 'success' }}
+        run: node --test packages/coordinator-core/payload.test.mjs packages/coordinator-core/cancellation.test.mjs packages/coordinator-core/bundle-retention.test.mjs adapters/host-common/remote-bundle-control.test.mjs adapters/host-common/remote-coordinator-abi.test.mjs adapters/host-common/remote-credential-control.test.mjs adapters/host-common/remote-dispatch-wire.test.mjs adapters/host-common/remote-transfer-control.test.mjs adapters/host-node/sqlite-coordinator-journal.test.mjs adapters/host-node/remote-site-coordinator.test.mjs adapters/host-node/outbound-site-gateway.test.mjs adapters/site-node/runtime-bundle-operations.test.mjs adapters/site-node/runtime-bundle-store.test.mjs adapters/site-node/sqlite-credential-journal.test.mjs adapters/site-node/sqlite-dispatch-journal.test.mjs adapters/site-node/sqlite-transfer-journal.test.mjs adapters/site-node/sqlite-transfer-store-journal.test.mjs adapters/site-node/sqlite-transaction-custody.test.mjs adapters/site-node/https-credential-resource.test.mjs adapters/site-node/https-credential-response-accounting.test.mjs adapters/connectors/slack/test/remaining-row-requests.test.mjs adapters/connectors/slack/test/slack-source-read.test.mjs adapters/connectors/slack/test/slack-source-reader-join.test.mjs adapters/connectors/slack/test/installed-slack-source.test.mjs adapters/connectors/slack/test/installed-slack-channels.test.mjs adapters/connectors/slack/test/installed-slack-messages.test.mjs adapters/connectors/slack/test/installed-slack-message-parameters.test.mjs adapters/connectors/slack/test/installed-slack-limit-parameters.test.mjs adapters/connectors/notion/test/remaining-row-requests.test.mjs adapters/connectors/notion/test/user-list-read.test.mjs adapters/connectors/notion/test/installed-notion-source.test.mjs adapters/connectors/hubspot/test/hubspot-remaining-row-requests.test.mjs adapters/connectors/hubspot/test/hubspot-account-response-facts.test.mjs adapters/connectors/calendar/test/calendar-list-read.test.mjs adapters/connectors/gmail/test/gmail-label-shared-pages.actual.test.mjs adapters/connectors/calendar/test/calendar-events-pages.test.mjs adapters/connectors/calendar/test/calendar-events-request-pages.test.mjs adapters/connectors/calendar/test/calendar-original-profile.test.mjs adapters/connectors/calendar/test/calendar-free-busy-pages.test.mjs adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs adapters/connectors/sheets/test/sheets-grid-pages.test.mjs adapters/connectors/sheets/test/sheets-grid-pages.actual.test.mjs adapters/connectors/sheets/test/sheets-tabs-pages.test.mjs adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs adapters/connectors/github/test/github-issue-read.test.mjs adapters/connectors/github/test/github-comment-read.test.mjs adapters/connectors/github/test/github-installed-comment-source.test.mjs adapters/connectors/github/test/github-installed-comment-outcome.test.mjs adapters/connectors/github/test/github-comment-marker.test.mjs adapters/site-node/https-direct-transfer.test.mjs adapters/site-node/https-transfer-store.test.mjs adapters/site-node/remote-dispatch-runtime.test.mjs adapters/site-node/remote-standard-direct-execution.test.mjs adapters/site-node/https-agent.test.mjs adapters/site-node/https-agent-authorization.test.mjs adapters/host-node/embedded-source-identity-initialization.test.mjs adapters/host-node/rest-source-initial-material.test.mjs adapters/host-node/installed-source-authorization-cleanup.test.mjs adapters/host-node/installed-whole-source-row-run.test.mjs adapters/host-node/installed-reader-binding-retirement.test.mjs adapters/host-node/installation-metadata-configuration-reader.test.mjs adapters/host-node/installed-source-reader-page-demand.test.mjs adapters/host-node/installed-credential-source-reader-modes.test.mjs adapters/host-node/installed-credential-source-reader.test.mjs adapters/host-node/installed-source-child-use.test.mjs adapters/host-node/installed-source-credential-constructor.test.mjs
+      - name: Test packed Remote coordinator
+        if: ${{ !cancelled() && steps.remote-site-preparation.outcome == 'success' }}
+        run: node scripts/test-packed-coordinator-core.mjs
+      - name: Test original holder terminal facade
+        if: ${{ !cancelled() && steps.remote-site-preparation.outcome == 'success' }}
+        run: node --test packages/coordinator-core/holder-terminal.test.mjs
       - name: Test non-destructive SQLite format inspection
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/host-common/sqlite-format-inspection.test.mjs adapters/host-node/ordinary-host-journal.test.mjs
       - name: Test bounded Journal preparation and execution
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/host-node/client-request-journal-sql-bounds.test.mjs adapters/host-node/client-request-journal-execution-bounds.test.mjs adapters/host-node/client-request-journal-wal-bounds.test.mjs adapters/host-node/client-request-journal-fresh-schema.test.mjs
       - name: Test durable Checkpoint journal and resumed dispatch admission
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: npm run check:checkpoint-runtime
       - name: Test operation authorization and unchanged Run observations
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/local-run-authorization.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/mock-effect-host-original.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/installed-managed-source.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-common/observation.test.mjs adapters/host-node/in-process-result-observation.test.mjs
       - name: Test native retained task file ownership
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: npm run check:native-retained-task-file
       - name: Test portable Remote Transfer owner package
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: npm run check:transfer-core
+      - name: Prepare the Run Host runtime
+        id: run-host-preparation
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node scripts/build-runtime-packages.mjs run-host-core coordinator-core
+      - name: Check Run Host types
+        if: ${{ !cancelled() && steps.run-host-preparation.outcome == 'success' }}
+        run: npm run check:run-host-types
       - name: Test portable Run Host compilation package
-        run: npm run check:run-host-core && node --test adapters/host-node/local-result-authorization.test.mjs
+        if: ${{ !cancelled() && steps.run-host-preparation.outcome == 'success' }}
+        run: node --test packages/run-host-core/index.test.mjs packages/run-host-core/schema-field-order.test.mjs packages/run-host-core/checkpoints.test.mjs adapters/host-common/publication-action.test.mjs adapters/host-common/result-access-clock.test.mjs adapters/host-common/result-delivery.test.mjs packages/run-host-core/effect-checkpoint-retention.test.mjs packages/run-host-core/effect-checkpoint-binding.test.mjs packages/run-host-core/effect-publication.test.mjs packages/run-host-core/effect-publication.runtime.test.mjs packages/run-host-core/review-binding-facts.test.mjs packages/run-host-core/source-preparation.test.mjs
+      - name: Test packed Run Host compilation package
+        if: ${{ !cancelled() && steps.run-host-preparation.outcome == 'success' }}
+        run: node scripts/test-packed-run-host-core.mjs
+      - name: Test original Local result authorization
+        if: ${{ !cancelled() && steps.run-host-preparation.outcome == 'success' }}
+        run: node --test adapters/host-node/local-result-authorization.test.mjs
       - name: Build runtime packages without prebuilt bundles
+        id: cold-runtime-preparation
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node scripts/test-runtime-package-build.mjs
       - name: Test actual bound connector initialization and cleanup
+        if: ${{ !cancelled() && steps.cold-runtime-preparation.outcome == 'success' }}
         # Reuse the ordinary Local build above; external provider I/O is loopback-only.
         run: node --test adapters/host-node/installed-bound-construction.actual.test.mjs adapters/host-node/installed-bound-construction-failures.actual.test.mjs adapters/host-node/installed-source-construction-geometry.test.mjs
       - name: Test Local runtime source and external connector builds
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: npm run check:local-node-source-assets
   # Share only clean-checkout tarballs and their source/digest manifest.
   # Consumers retain fresh installs and private target/native build outputs.
@@ -977,6 +1073,38 @@ jobs:
             ${{ runner.temp }}/main-performance/*/*.stderr
           if-no-files-found: error
           retention-days: 90
+  client-supported-versions:
+    needs: [select-targets, preflight, client-packages]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {profile: sdk, node: '22.0.0'}
+          - {profile: sdk, node: '26.13.0'}
+          - {profile: local, node: '22.16.0'}
+          - {profile: local, node: '26.13.0'}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      # The artifact downloader uses the normal tooling version. Only the fresh
+      # consumer and its npm install run on the selected compatibility version.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.22.0'
+      - name: Download the exact Client package artifact
+        uses: ./.github/actions/download-client-packages
+        with:
+          artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
+          path: ${{ runner.temp }}/actql-client-packages
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Accept the selected supported Node version from normal tarballs
+        run: node scripts/ci-supported-node.mjs '${{ matrix.profile }}' '${{ matrix.node }}' "$RUNNER_TEMP"
   client-distribution:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     needs: [select-targets, preflight, client-packages]
@@ -999,20 +1127,33 @@ jobs:
           path: ${{ runner.temp }}/actql-client-packages
       - name: Install pinned AI SDK provider test dependencies
         run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts
-      - name: Prepare source-backed distribution runtime
+      # Separate existing commands so ci-evidence/ci-timing can measure each
+      # preparation stage. The final default-success step remains the barrier.
+      - name: Build source-backed distribution runtime
+        id: distribution-runtime
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/build-runtime-packages.mjs local-node run-host-core
+      - name: Build source-backed distribution adapters
+        id: distribution-adapters
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/build-local-node-adapters.mjs
+      - name: Check publication wire freshness
+        id: distribution-publication-wire-check
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/generate-client-publication-wire.mjs
+      - name: Check Host wire freshness
         id: distribution-preparation
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: |
-          node scripts/build-runtime-packages.mjs local-node run-host-core
-          node scripts/build-local-node-adapters.mjs
-          node scripts/generate-client-publication-wire.mjs
-          node scripts/generate-client-host-wire.mjs
+        run: node scripts/generate-client-host-wire.mjs
       - name: Test source-backed distribution contracts
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-common/source-response-custody.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs scripts/node-local-compile-cache.test.mjs scripts/node-local-owner-selection.test.mjs scripts/node-initial-control-open-routing.test.mjs adapters/host-node/initial-control-package-custody.test.mjs adapters/host-node/initial-control-image-source.test.mjs adapters/host-node/client-full-join-refusal.test.mjs adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs examples/infer-evaluation/evaluate.test.mjs examples/infer-evaluation/compare-source-instructions.test.mjs examples/infer-evaluation/capture-sink.test.mjs scripts/typed-json-literal-preparation.test.mjs scripts/typed-json-literal-public.test.mjs scripts/owned-scratch.test.mjs scripts/packed-client-packages.test.mjs scripts/packed-graph-host-dependencies.test.mjs scripts/packed-package-boundaries.test.mjs scripts/graph-composition-fixture.test.mjs scripts/packed-salesforce-model-materials.test.mjs scripts/dbt-compat-judge.test.mjs scripts/sga-surface-checker.test.mjs scripts/infer-owner-checker.test.mjs scripts/graph-surface-checker.test.mjs scripts/graph-public-host.test.mjs scripts/generate-client-publication-wire.test.mjs scripts/generate-client-host-wire.test.mjs packages/client-wire/index.test.mjs packages/client-wire/submission-check-semantics.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs packages/client-wire/cancel-identity.test.mjs packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs packages/sdk/read-progress.test.mjs packages/sdk/host-port.test.mjs packages/sdk/result-description.test.mjs packages/sdk/http-redirect.test.mjs packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs adapters/host-node/client-effect-checkpoints.test.mjs adapters/host-node/client-effect-query-time.test.mjs adapters/host-node/installed-effect-site.test.mjs adapters/host-node/installed-effect-plan-current.test.mjs adapters/host-node/installed-effect-plan-consumer.test.mjs adapters/host-node/installed-effect-plan.test.mjs adapters/host-node/installed-row-effect-create-occurrence.test.mjs adapters/host-node/installed-row-write.test.mjs adapters/host-node/installed-effect-model-plan-consumer.test.mjs adapters/host-node/ordinary-node-resource-runtime.test.mjs adapters/connectors/notion/test/source-configuration-reader.test.mjs adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-thread-standard-reader.test.mjs adapters/connectors/gmail/test/gmail-thread-sequence.test.mjs adapters/host-node/installed-update-targets.test.mjs adapters/host-node/recovered-command-content.test.mjs adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs adapters/connectors/local/host/local-file-store-driver.test.mjs adapters/connectors/local/host/local-file-store-authorization.test.mjs adapters/connectors/local/host/local-file-store-authorization-physical.test.mjs adapters/host-node/requested-effect-checkpoints.test.mjs adapters/connectors/local/host/local-file-store-target.test.mjs adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/acquired-effect-installed-capacity.test.mjs adapters/host-node/acquired-effect-source-binding.test.mjs adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/acquired-chain-capacity.test.mjs adapters/host-node/duckdb-import-boundary.test.mjs adapters/host-node/embedded-installation.test.mjs adapters/host-node/installed-infer.test.mjs adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs adapters/host-common/result-access-snapshot.test.mjs adapters/host-common/result-description.test.mjs adapters/host-node/client-check.test.mjs adapters/host-node/client-publication-limit-projection.test.mjs adapters/local-node/managed-failure-public.test.mjs adapters/host-node/client-result-alias-routing.test.mjs adapters/host-node/client-result-publication-envelope.test.mjs adapters/host-node/source-selector-check.test.mjs adapters/host-node/client-http.test.mjs adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-join-profile.test.mjs adapters/host-node/client-sql-array-struct.test.mjs adapters/host-node/client-values-fragment-capacity.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-attempt-public.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-cancellation-attempt-installed.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs adapters/host-node/installed-host-cleanup.test.mjs adapters/host-node/installed-effect-profile-cleanup.test.mjs adapters/host-node/installed-duckdb-source-owner.test.mjs adapters/host-node/client-request-journal.test.mjs adapters/host-node/ordinary-source-binding.test.mjs adapters/host-node/installed-row-source-binding-originals.test.mjs adapters/host-node/ordinary-project-source-managed.test.mjs adapters/connectors/local/host/installed-project-files-managed.test.mjs adapters/host-node/client-mock-source-occurrences.test.mjs adapters/host-node/embedded-values-cleanup.test.mjs adapters/local-node/managed-output-custody.test.mjs adapters/host-node/client-request-lookup.test.mjs adapters/host-node/client-run-attach.test.mjs adapters/host-node/client-run-state-fallback.test.mjs adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs adapters/host-node/public-store-source-preparation.test.mjs adapters/host-node/local-values-plan.test.mjs adapters/host-node/local-values-plan-policy.test.mjs packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs packages/sdk/response-capture.test.mjs adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs packages/sdk/submission-attempt.test.mjs scripts/connector-authoring.cli.test.mjs adapters/host-node/rest-source-metadata.test.mjs scripts/fixtures/external-rest/preparation.test.mjs scripts/fixtures/external-rest/marker-publication.test.mjs
+        run: node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs scripts/node-local-compile-cache.test.mjs scripts/node-local-owner-selection.test.mjs scripts/node-initial-control-open-routing.test.mjs adapters/host-node/initial-control-package-custody.test.mjs adapters/host-node/initial-control-image-source.test.mjs adapters/host-node/client-full-join-refusal.test.mjs adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs examples/infer-evaluation/capture-sink.test.mjs scripts/typed-json-literal-preparation.test.mjs scripts/typed-json-literal-public.test.mjs scripts/packed-client-packages.test.mjs scripts/packed-graph-host-dependencies.test.mjs scripts/packed-package-boundaries.test.mjs scripts/graph-composition-fixture.test.mjs scripts/packed-salesforce-model-materials.test.mjs scripts/dbt-compat-judge.test.mjs scripts/sga-surface-checker.test.mjs scripts/infer-owner-checker.test.mjs scripts/graph-surface-checker.test.mjs scripts/graph-public-host.test.mjs scripts/generate-client-publication-wire.test.mjs scripts/generate-client-host-wire.test.mjs packages/client-wire/index.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs packages/sdk/read-progress.test.mjs packages/sdk/host-port.test.mjs packages/sdk/result-description.test.mjs packages/sdk/http-redirect.test.mjs packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs adapters/host-node/client-effect-checkpoints.test.mjs adapters/host-node/client-effect-query-time.test.mjs adapters/host-node/installed-effect-site.test.mjs adapters/host-node/installed-effect-plan-current.test.mjs adapters/host-node/installed-effect-plan-consumer.test.mjs adapters/host-node/installed-effect-plan.test.mjs adapters/host-node/installed-row-effect-create-occurrence.test.mjs adapters/host-node/installed-row-write.test.mjs adapters/host-node/installed-effect-model-plan-consumer.test.mjs adapters/host-node/ordinary-node-resource-runtime.test.mjs adapters/connectors/notion/test/source-configuration-reader.test.mjs adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-thread-standard-reader.test.mjs adapters/connectors/gmail/test/gmail-thread-sequence.test.mjs adapters/host-node/installed-update-targets.test.mjs adapters/host-node/recovered-command-content.test.mjs adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs adapters/connectors/local/host/local-file-store-driver.test.mjs adapters/connectors/local/host/local-file-store-authorization.test.mjs adapters/connectors/local/host/local-file-store-authorization-physical.test.mjs adapters/host-node/requested-effect-checkpoints.test.mjs adapters/connectors/local/host/local-file-store-target.test.mjs adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/acquired-effect-installed-capacity.test.mjs adapters/host-node/acquired-effect-source-binding.test.mjs adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/acquired-chain-capacity.test.mjs adapters/host-node/duckdb-import-boundary.test.mjs adapters/host-node/embedded-installation.test.mjs adapters/host-node/installed-infer.test.mjs adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs adapters/host-common/result-access-snapshot.test.mjs adapters/host-common/result-description.test.mjs adapters/host-node/client-check.test.mjs adapters/host-node/client-publication-limit-projection.test.mjs adapters/local-node/managed-failure-public.test.mjs adapters/host-node/client-result-alias-routing.test.mjs adapters/host-node/client-result-publication-envelope.test.mjs adapters/host-node/source-selector-check.test.mjs adapters/host-node/client-http.test.mjs adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-join-profile.test.mjs adapters/host-node/client-sql-array-struct.test.mjs adapters/host-node/client-values-fragment-capacity.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-attempt-public.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-cancellation-attempt-installed.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs adapters/host-node/installed-host-cleanup.test.mjs adapters/host-node/installed-effect-profile-cleanup.test.mjs adapters/host-node/installed-duckdb-source-owner.test.mjs adapters/host-node/client-request-journal.test.mjs adapters/host-node/ordinary-source-binding.test.mjs adapters/host-node/installed-row-source-binding-originals.test.mjs adapters/host-node/ordinary-project-source-managed.test.mjs adapters/connectors/local/host/installed-project-files-managed.test.mjs adapters/host-node/client-mock-source-occurrences.test.mjs adapters/host-node/embedded-values-cleanup.test.mjs adapters/local-node/managed-output-custody.test.mjs adapters/host-node/client-request-lookup.test.mjs adapters/host-node/client-run-attach.test.mjs adapters/host-node/client-run-state-fallback.test.mjs adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs adapters/host-node/public-store-source-preparation.test.mjs adapters/host-node/local-values-plan.test.mjs adapters/host-node/local-values-plan-policy.test.mjs packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs packages/sdk/response-capture.test.mjs adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs packages/sdk/submission-attempt.test.mjs scripts/connector-authoring.cli.test.mjs adapters/host-node/rest-source-metadata.test.mjs scripts/fixtures/external-rest/preparation.test.mjs scripts/fixtures/external-rest/marker-publication.test.mjs
   client-distribution-callers:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     needs: [select-targets, preflight, client-packages]
@@ -1035,15 +1176,28 @@ jobs:
           path: ${{ runner.temp }}/actql-client-packages
       - name: Install pinned AI SDK provider test dependencies
         run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts
-      - name: Prepare source-backed distribution runtime
+      # Separate existing commands so ci-evidence/ci-timing can measure each
+      # preparation stage. The final default-success step remains the barrier.
+      - name: Build source-backed distribution runtime
+        id: distribution-runtime
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/build-runtime-packages.mjs local-node run-host-core
+      - name: Build source-backed distribution adapters
+        id: distribution-adapters
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/build-local-node-adapters.mjs
+      - name: Check publication wire freshness
+        id: distribution-publication-wire-check
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/generate-client-publication-wire.mjs
+      - name: Check Host wire freshness
         id: distribution-preparation
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: |
-          node scripts/build-runtime-packages.mjs local-node run-host-core
-          node scripts/build-local-node-adapters.mjs
-          node scripts/generate-client-publication-wire.mjs
-          node scripts/generate-client-host-wire.mjs
+        run: node scripts/generate-client-host-wire.mjs
       - name: Test distribution caller client-null-context.test.mjs
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
@@ -1246,15 +1400,28 @@ jobs:
           path: ${{ runner.temp }}/actql-client-packages
       - name: Install pinned AI SDK provider test dependencies
         run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts
-      - name: Prepare source-backed distribution runtime
+      # Separate existing commands so ci-evidence/ci-timing can measure each
+      # preparation stage. The final default-success step remains the barrier.
+      - name: Build source-backed distribution runtime
+        id: distribution-runtime
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/build-runtime-packages.mjs local-node run-host-core
+      - name: Build source-backed distribution adapters
+        id: distribution-adapters
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/build-local-node-adapters.mjs
+      - name: Check publication wire freshness
+        id: distribution-publication-wire-check
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/generate-client-publication-wire.mjs
+      - name: Check Host wire freshness
         id: distribution-preparation
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: |
-          node scripts/build-runtime-packages.mjs local-node run-host-core
-          node scripts/build-local-node-adapters.mjs
-          node scripts/generate-client-publication-wire.mjs
-          node scripts/generate-client-host-wire.mjs
+        run: node scripts/generate-client-host-wire.mjs
       - name: Test check read row mutations
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
@@ -1428,6 +1595,26 @@ jobs:
         with:
           directory: ${{ steps.packed-result-description.outputs.evidence-directory }}
           name: packed-result-description-${{ github.sha }}
+  # Source composition gets the same full budget as the other packed consumers.
+  # The preceding installed-query workloads must not consume its execution time.
+  client-packed-composition:
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    needs: [select-targets, preflight, client-packages]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - name: Download the exact Client package artifact
+        id: client-inputs
+        uses: ./.github/actions/download-client-packages
+        with:
+          artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
+          path: ${{ runner.temp }}/actql-client-packages
       - name: Test packed Source JOIN INFER Effect approval and process recovery
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         # One installation of this job's exact tarballs covers ordinary Source
@@ -1468,8 +1655,8 @@ jobs:
   # or unexpectedly skipped producers/consumers. No acceptance runs here.
   client:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
-      !(needs.client-packages.result == 'skipped' && needs.client-distribution.result == 'skipped' && needs.client-distribution-callers.result == 'skipped' && needs.client-distribution-mutations.result == 'skipped' && needs.client-distribution-packed.result == 'skipped' && needs.client-distribution-native.result == 'skipped' && needs.client-packed.result == 'skipped' && needs.client-salesforce.result == 'skipped') }}
-    needs: [client-packages, client-distribution, client-distribution-callers, client-distribution-mutations, client-distribution-packed, client-distribution-native, client-packed, client-salesforce]
+      !(needs.client-packages.result == 'skipped' && needs.client-supported-versions.result == 'skipped' && needs.client-distribution.result == 'skipped' && needs.client-distribution-callers.result == 'skipped' && needs.client-distribution-mutations.result == 'skipped' && needs.client-distribution-packed.result == 'skipped' && needs.client-distribution-native.result == 'skipped' && needs.client-packed.result == 'skipped' && needs.client-packed-composition.result == 'skipped' && needs.client-salesforce.result == 'skipped') }}
+    needs: [client-packages, client-supported-versions, client-distribution, client-distribution-callers, client-distribution-mutations, client-distribution-packed, client-distribution-native, client-packed, client-packed-composition, client-salesforce]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -1480,7 +1667,7 @@ jobs:
           node -e '
             const results = JSON.parse(process.env.RESULTS);
             let failed = false;
-            for (const job of ["client-packages", "client-distribution", "client-distribution-callers", "client-distribution-mutations", "client-distribution-packed", "client-distribution-native", "client-packed", "client-salesforce"]) {
+            for (const job of ["client-packages", "client-supported-versions", "client-distribution", "client-distribution-callers", "client-distribution-mutations", "client-distribution-packed", "client-distribution-native", "client-packed", "client-packed-composition", "client-salesforce"]) {
               const result = results[job]?.result;
               const ok = result === "success";
               console.log(`${ok ? "ok  " : "FAIL"} ${job}: ${result}`);
@@ -1618,6 +1805,12 @@ jobs:
       - name: Test original Read slab activation custody on selected Linux x64
         timeout-minutes: 3
         run: python3 -B scripts/test_native_read_activation.py
+      - name: Test original prepared constructor cohorts on selected Linux x64
+        timeout-minutes: 3
+        run: python3 -B scripts/test_native_prepared_controls.py
+      - name: Test original working carrier custody on selected Linux x64
+        timeout-minutes: 3
+        run: python3 -B scripts/test_native_working_origin.py
       - name: Retain Linux x64 process-provider original controls
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -1626,6 +1819,8 @@ jobs:
           path: |
             _build/linux-x64-owned-process/
             _build/native-read-activation/
+            _build/native-prepared-controls/
+            _build/native-working-origin/
           if-no-files-found: warn
           retention-days: 14
       - name: Test original Native bootstrap inventory FFI and domain lifetime
@@ -1705,6 +1900,40 @@ jobs:
         run: |
           ulimit -S -s 65536
           node scripts/test-native-resident-site.mjs --effect-computation-only
+      - name: Retain original Native Effect failure observer summary
+        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-effect-original-linux-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-tests/native-effect/*/resident-consumer-summary.json
+          if-no-files-found: warn
+          retention-days: 14
+      # Retain the original failure-only evidence before the longer independent Native groups.
+      - name: Install debugger only for failed Linux Effect consumer diagnosis
+        id: failure-debugger
+        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        continue-on-error: true
+        timeout-minutes: 5
+        # The required Crypto step already refreshed these package indexes.
+        # Debugger availability must not block the original Native tests.
+        run: sudo apt-get install --yes --no-install-recommends gdb
+      - name: Diagnose only failed Linux Effect consumer functions
+        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        continue-on-error: true
+        timeout-minutes: 6
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-effect-function-state
+        run: |
+          ulimit -S -s 65536
+          node scripts/diagnose-native-resident-functions.mjs --output "${{ runner.temp }}/native-effect-functions/sanitized.json"
+      - name: Retain only sanitized Linux Effect function availability
+        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-effect-functions-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-effect-functions/sanitized.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Test Native Resident Site
         id: native-runtime-test
         if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
@@ -1745,16 +1974,17 @@ jobs:
         run: |
           ulimit -S -s 65536
           node scripts/test-native-resident-site.mjs --cancel-only
-      - name: Install debugger only for failed Linux Effect consumer diagnosis
-        id: failure-debugger
-        if: ${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}
+      # A failed Effect was already sampled before Site; otherwise preserve the original Site trigger.
+      - name: Install debugger only for failed Linux Effect consumer diagnosis (Site fallback)
+        id: site-failure-debugger
+        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
         continue-on-error: true
         timeout-minutes: 5
         # The required Crypto step already refreshed these package indexes.
         # Debugger availability must not block the original Native tests.
         run: sudo apt-get install --yes --no-install-recommends gdb
-      - name: Diagnose only failed Linux Effect consumer functions
-        if: ${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}
+      - name: Diagnose only failed Linux Effect consumer functions (Site fallback)
+        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
         continue-on-error: true
         timeout-minutes: 6
         env:
@@ -1762,8 +1992,8 @@ jobs:
         run: |
           ulimit -S -s 65536
           node scripts/diagnose-native-resident-functions.mjs --output "${{ runner.temp }}/native-effect-functions/sanitized.json"
-      - name: Retain only sanitized Linux Effect function availability
-        if: ${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}
+      - name: Retain only sanitized Linux Effect function availability (Site fallback)
+        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-effect-functions-${{ github.run_id }}-${{ github.run_attempt }}
@@ -1808,8 +2038,11 @@ jobs:
           name: packed-resident-redelivery-${{ github.sha }}
       - name: Verify registered Native retained product path
         if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        # Keep every module checked by release-artifacts.mjs, without building unrelated entries.
         run: |
-          moon build --target js --release
+          moon build --target js --release src/benchmark_obligations src/connectors/duckdb/host_node \
+            src/connectors_builtin_node src/physical_strategy_example src/physical_task_manifest_example \
+            src/process_host_bridge src/retained_host_bridge
           moon build src/cmd/native_retained_case_probe --target native --release
           node benchmarks/retained-results/native-case-probe.mjs native-acquisition-full-validation-low-selectivity/narrow/100
           node benchmarks/retained-results/native-case-probe.mjs fixed-join-count-shrinking-intermediate/narrow/1000
@@ -2026,6 +2259,14 @@ jobs:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-effect
         run: |
           node scripts/test-native-resident-site.mjs --effect-computation-only
+      - name: Retain original Native Effect failure observer summary
+        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-effect-original-macos-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-tests/native-effect/*/resident-consumer-summary.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Test Native Resident Site
         id: native-runtime-test
         if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
@@ -2079,7 +2320,26 @@ jobs:
           test "$(uname -m)" = arm64
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Build normal wheels and accept fresh installed Python consumers
+        id: python-normal-cohort
         run: python3 -B scripts/ci-python-wheels.py --destination "$RUNNER_TEMP/python-wheel-acceptance"
+      - name: Select the minimum supported Python version
+        id: python-minimum
+        if: ${{ !cancelled() && steps.python-normal-cohort.outcome == 'success' }}
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.11.0'
+      - name: Accept the minimum Python version from the same normal wheels
+        if: ${{ !cancelled() && steps.python-normal-cohort.outcome == 'success' && steps.python-minimum.outcome == 'success' }}
+        run: python3 -B scripts/ci-supported-python.py --cohort "$RUNNER_TEMP/python-wheel-acceptance/cohort" --destination "$RUNNER_TEMP/python-minimum-acceptance" --version '3.11.0'
+      - name: Select the latest supported Python version
+        id: python-latest
+        if: ${{ !cancelled() && steps.python-normal-cohort.outcome == 'success' }}
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.15.2'
+      - name: Accept the latest Python version from the same normal wheels
+        if: ${{ !cancelled() && steps.python-normal-cohort.outcome == 'success' && steps.python-latest.outcome == 'success' }}
+        run: python3 -B scripts/ci-supported-python.py --cohort "$RUNNER_TEMP/python-wheel-acceptance/cohort" --destination "$RUNNER_TEMP/python-latest-acceptance" --version '3.15.2'
       - name: Preserve wheel acceptance and step timing diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

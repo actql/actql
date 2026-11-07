@@ -310,3 +310,42 @@ Workspace evidence is under
 plans, dependency/object/executable digests, complete outputs and release checks.
 Native strict/stock13 and source-mutation7 are separate checks. Engine, worker,
 installed wheel and public Python E2E remain **0**, with normal profile `None`.
+
+### Same-original growth receipt reconciliation
+
+A pending domain-growth receipt can prevent the enclosing parent from allocating
+cleanup controls while old child aliases still prevent whole-domain close.
+`actql_native_owned_reconcile_domain_growth` is an allocation-free physical
+recovery cut for this cycle. It requires the exact original domain/view/serial,
+no entered owned scope, and no active child owned scope. It does not enter or
+switch TLS, read child payload, acquire new backing, or authorize a constructor.
+
+The original receipt and both capacity locks determine the outcome. An attached
+receipt must match the actual child segment, complete byte geometry and retained
+parent mapping. The state enum alone is insufficient: a partial response can
+already contain an attached segment. Such a receipt is acknowledged without
+reacquiring or detaching it. A proven unattached receipt retires only its own
+view, loan and allocation in that order. A failed stage keeps the same receipt
+and parent fence for retry. Older receipts and inactive child aliases remain
+untouched. Closing originals permit identity-preserving recovery, never new
+admission.
+
+The exact current serial exposes distinct terminal outcomes: no acquisition,
+attachment committed, or child allocation retired with root mapping retained.
+The last outcome releases no root mapping bytes. A repeated observation of that
+same serial is idempotent; a new quote consumes the next serial and invalidates
+older observations. Ordinary cancellation cannot erase partial custody, and a
+contradictory geometry acknowledgment remains pending for original cleanup.
+
+This C recovery mechanism supplies neither a Common working-capacity binding nor
+a Native constructor certificate. Entry/result/error controls, later cleanup
+cohorts and every payload allocation still need their own prior admission on
+the same original Resource owner. Primary Native extent bounds remain immutable.
+
+Scoped managed allocation first checks its original page hint. On a miss it
+continues after that page and wraps once through every other original page
+before acquiring storage. A retained cohort therefore does not restart a full
+slab-prefix scan at each page boundary. This changes only search order: original
+process/context/extent/free-block checks, constructor debits, physical capacity
+and cleanup remain unchanged. Wrapping can still select an earlier coalesced
+free block; a failed hint never grants bytes or suppresses the full fallback.

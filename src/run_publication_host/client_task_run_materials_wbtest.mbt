@@ -31,6 +31,11 @@ test "task materials retain their actual prepared input and reject a copied owne
     "sha256:" + "b".repeat(64),
     "2099-01-01T00:00:00.000Z",
   ).unwrap()
+  assert_eq(client_compiled_run_has_infers(compiled), false)
+  assert_eq(
+    client_compiled_run_has_infers(compiled),
+    !client_compiled_run_infers(compiled).is_empty(),
+  )
   let definition = issue_client_compiled_run_definition(
     compiled, "retained-scope", "retained-run", "2026-11-01T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
   ).unwrap()

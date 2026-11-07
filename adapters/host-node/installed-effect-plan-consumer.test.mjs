@@ -19,6 +19,64 @@ import {retainUpdateTargetSelection, originalUpdateTargetSelectionsCid, updateTa
 const ok = value => ({$tag: 1, _0: value});
 const checked = result => {if (result.$tag !== 1) throw result._0; return result._0;};
 
+test('two whole Effect inputs retain distinct source slots on the same checked Compute task', () => {
+  const prepared = {}, request = {}, plan = {}, run = {};
+  const routes = [{}, {}], declarations = [{}, {}], providers = [{}, {}], acquisitions = [{}, {}], policies = [{}, {}];
+  const calls = [];
+  const adapters = [0, 1].map(index => Object.freeze({realizationKey: 'row-source-acquired',
+    admitsSource: ref => ref === `whole-${index}`,
+    prepare() {assert.fail('inert selection must not start a read');},
+    open() {assert.fail('inert selection must not start a read');},
+    managedEffectPlanSelection() {return Object.freeze({declaration: declarations[index], provider: providers[index], inputLimits: policies[index],
+      transferBytes: 11n, executionBytes: 13n});}}));
+  const moon = {
+    clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramEffectDirectSourceCoordinates: actual => {assert.strictEqual(actual, prepared);
+      return ok([[0, 0, 0, 0], [0, 1, 1, 0]]);},
+    clientProgramSelectInstalledEffectSourceInput(actual, identity, stage, input) {
+      assert.strictEqual(actual, prepared); assert.strictEqual(identity, request); assert.equal(stage, 0);
+      calls.push(input); return ok(routes[input]);},
+    clientProgramSelectedSourceInputKind: () => 'whole-input',
+    clientProgramSelectedSourceInputRef: route => `whole-${routes.indexOf(route)}`,
+    clientProgramInstalledEffectManagedOperationPlan(actual, owner, identity) {
+      assert.strictEqual(actual, run); assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);return ok(plan);},
+    clientProgramInstalledEffectManagedPlanWholeSource(actual, index) {
+      assert.strictEqual(actual, plan);return ok({_0: routes[index], _1: acquisitions[index], _2: providers[index]});},
+    clientProgramWholeSourceFacts: acquisition => [`whole-${acquisitions.indexOf(acquisition)}`],
+    clientProgramInstalledEffectRowSourceInputPrepare(declaration, provider, policy) {
+      const index = declarations.indexOf(declaration);assert(index >= 0);
+      assert.strictEqual(provider, providers[index]);assert.strictEqual(policy, policies[index]);
+      return ok({declaration, provider, policy});
+    },
+    clientProgramEffectPrepareLocalQueryRequirement() {assert.fail('a whole input cannot become a Query');},
+    clientProgramInstalledEffectManagedPlanSource() {assert.fail('a whole input has no Query requirement');},
+  };
+  const options = {moon, preparedEffect: prepared, requestIdentity: request, sourceProfile: {sources: adapters}};
+  const inputs = selectAcquiredEffectPlanInputs(options);
+  assert.deepEqual(inputs.inputs, declarations.map((declaration, index) => ({declaration, provider: providers[index], policy: policies[index]})));
+  const sources = selectAcquiredEffectSources({...options, managedPlan: plan, managedRun: run});
+  assert.deepEqual(calls, [0, 1, 0, 1]);
+  assert.deepEqual(sources.map(value => value.occurrence), [{stage: 0, input: 0, task: 0},
+    {stage: 0, input: 1, task: 1, computeTask: 0}]);
+  assert.deepEqual(sources.map(value => value.sourceKind), ['whole-input', 'whole-input']);
+  assert.strictEqual(sources[0].adapter, adapters[0]); assert.strictEqual(sources[1].adapter, adapters[1]);
+});
+
+test('Effect source coordinates refuse missing, foreign, duplicate and malformed originals before adapter selection', () => {
+  const prepared = {}, request = {}, original = new Error('Original coordinate refusal');
+  for (const get of [undefined, () => ok([[0, 0, 0, 0], [0, 1, 0, 0]]),
+    () => ok([[0, 0, 0, 0], [0, 0, 1, 0]]), () => ok([[0, 0, 0, 0], [0, -1, 1, 0]])]) {
+    const moon = {clientProgramEffectAcquisitionCount: () => 2,
+      clientProgramEffectDirectSourceCoordinates: get,
+      clientProgramSelectInstalledEffectSourceInput() {assert.fail('invalid coordinates cannot select an adapter');}};
+    assert.throws(() => selectAcquiredEffectSources({moon, preparedEffect: prepared, requestIdentity: request}),
+      /(?:InstalledEffectSourceCoordinatesUnavailable|InvalidInstalledEffectSourceCoordinates)/);
+  }
+  assert.throws(() => selectAcquiredEffectSources({preparedEffect: prepared, requestIdentity: request, moon: {
+    clientProgramEffectAcquisitionCount: () => 1, clientProgramEffectDirectSourceCoordinates: () => ({$tag: 0, _0: original}),
+  }}), error => error.code === 'MoonBitHostFailure' && error.cause === original);
+});
+
 test('Effect Plan source inputs follow original checked occurrence order without a second Query preparation', () => {
   const prepared = {}, request = {}, selections = [{}, {}], declarations = [{}, {}], providers = [{}, {}];
   const calls = [];
@@ -29,6 +87,7 @@ test('Effect Plan source inputs follow original checked occurrence order without
         transferBytes: BigInt(20 + index), executionBytes: BigInt(10 + index)});
     }}));
   const moon = {clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
     clientProgramSelectInstalledEffectSourceInput(p, identity, stage, input) {
       assert.strictEqual(this, moon); assert.strictEqual(p, prepared); assert.strictEqual(identity, request);
       assert.equal(input, 0); calls.push(`select-${stage}`); return ok(selections[stage]);
@@ -50,6 +109,7 @@ test('Effect preadmission selects the checked Source without preparing its Query
   };
   let selections = 0;
   const moon = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0]]}),
     clientProgramSelectInstalledEffectSourceInput(p, identity, stage, input) {
       same([p, identity, stage, input], [prepared, request, 0, 0]); selections++; return ok(original);
     }, clientProgramSelectedSourceInputKind: value => {assert.strictEqual(value, original); return 'query';},
@@ -68,6 +128,7 @@ test('Effect managed native and row Sources borrow the same current Plan in eith
     const sources = keys.map((realizationKey, index) => ({realizationKey,
       admitsSource: ref => ref === requirements[index].ref, prepare() {}, open() {}}));
     const moon = {clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
       clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
         assert.strictEqual(p, prepared); assert.strictEqual(r, request); assert.equal(input, 0);
         calls.push(`request-${task}`); return ok(task);
@@ -100,6 +161,7 @@ test('Effect managed native selection preserves original current and foreign ref
   const adapter = {realizationKey: 'duckdb-acquired', admitsSource: ref => ref === 'source', prepare() {}, open() {}};
   let current = plan, requirement = {ref: 'source'}, nativeCalls = 0, refuseNative = false;
   const moon = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0]]}),
     clientProgramSelectInstalledEffectSourceInput: () => ok({}),
     clientProgramSelectedSourceInputKind: () => 'query', clientProgramSelectedSourceInputRef: () => 'source',
     clientProgramQueryRequirementSourceRef: value => value.ref,
@@ -138,6 +200,7 @@ test('Effect native Source inputs retain complete physical bounds and each origi
   }));
   const moon = {
     clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
     clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
       assert.strictEqual(p, prepared); assert.strictEqual(r, request); assert.equal(input, 0);
       calls.push(`select-${task}`); return ok(task);
@@ -185,6 +248,7 @@ test('retained mixed Effect Sources select original Requests without a Row-only 
     assert.strictEqual(actual, prepared); return parent;
   });
   const moon = {clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
     clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
       assert.strictEqual(this, moon); assert.strictEqual(p, prepared); assert.strictEqual(r, request);
       assert.equal(input, 0); calls.push(`select-${task}`); return ok(selections[task]);
@@ -212,6 +276,7 @@ test('Effect native Source selection refuses foreign or incomplete originals wit
   let original = Object.freeze({nativeSource: native, transferBytes: 31n, executionBytes: 71n}), constructs = 0;
   const source = {admitsSource: ref => ref === 'source:native', managedEffectPlanSelection: () => original};
   const moon = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0]]}),
     clientProgramSelectInstalledEffectSourceInput: () => ok({}), clientProgramSelectedSourceInputKind: () => 'query',
     clientProgramSelectedSourceInputRef: () => 'source:native',
     clientProgramInstalledEffectDuckDBSourceInputPrepare() {constructs++; throw refusal;},
@@ -342,6 +407,7 @@ test('Source selection and preparation borrow the same retained Effect plan and 
     assert.strictEqual(original, prepared); return parent;
   });
   const moon = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0]]}),
     clientProgramInstalledEffectManagedPlanSource(original, slot) {
       assert.strictEqual(original, plan); assert.equal(slot, 0); calls.push('plan-source');
       return ok({_0: {}, _1: requirement, _2: {}, _3: {}});
@@ -378,7 +444,8 @@ test('source-free Effect open consumes its original planned parent without old H
 test('an unadmitted acquired Effect refuses before Source selection, preparation or physical read', async () => {
   let custody, selected = 0;
   await assert.rejects(openAcquiredEffectComputation({
-    moon: {clientProgramEffectAcquisitionCount: () => 1, clientProgramEffectSerializationOccurrences: () => []},
+    moon: {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0]]}), clientProgramEffectSerializationOccurrences: () => []},
     acquired: {prepared: {}}, sourceProfile: {admitsSource() {selected++;}, prepare() {selected++;}, open() {selected++;}},
     retainComputationOwner(value) {custody = value;},
   }), /InstalledEffectPlanUnavailable/);

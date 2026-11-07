@@ -1,11 +1,11 @@
 ///|
-// Allocate only after bounded checked preparation, before the first durable
-// Submission or Run action. The declared Host maximum is not initialized
+// Acquire the existing conservative installed facility BEFORE semantic
+// preparation, and before the first durable Submission or Run action. The declared Host maximum is not initialized
 // execution capacity. Every partial acquisition remains on this same carrier.
-fn LocalCommandPreparationOriginal::prepare_business_capacity(
+fn LocalCommandPreparationOriginal::prepare_business_request_capacity(
   self : LocalCommandPreparationOriginal,
   capture : @local_host.NativeLocalJournalCapture,
-  requirements : @local_values.ClientLocalRequirements,
+  input : LocalCommandBusinessInput,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.host is Some(host) &&
     self.journal is Some(journal) &&
@@ -24,35 +24,38 @@ fn LocalCommandPreparationOriginal::prepare_business_capacity(
     return Err(CommandUnavailable)
   }
   let maximum = business.profile.limits
-  let supported = requirements.maximum_limits()
-  if supported.planning_work > maximum.planning_work ||
-    supported.attempts > maximum.attempts ||
-    supported.holdings > maximum.holdings ||
-    supported.transfer_bytes > maximum.transfer_bytes ||
-    supported.retained_bytes > maximum.retained_bytes ||
-    supported.execution_bytes > maximum.execution_bytes {
-    return Err(CommandUnavailable)
-  }
-  let selected = local_command_selected_business_limits(
-    maximum,
-    requirements.simultaneous_limits(),
-  )
+  // This is the pre-existing installer ceiling, not inferred Program demand.
+  // The SAME Request reservation grows within it before each constructor.
+  let selected = maximum
+  business.request_input = Some(input)
   if selected.retained_bytes > 9223372036854775807L - selected.execution_bytes {
     return Err(CommandUnavailable)
   }
-  let payload = selected.retained_bytes + selected.execution_bytes
-  guard local_command_domain_bytes(payload) is Some(bytes) &&
+  // The existing shared Owner quotes its complete fixed Request entrance.
+  // The already selected Native control block covers first Reader/callback
+  // bookkeeping; it is a physical prefix, not another logical reservation.
+  guard @local_values.client_request_preparation_control_capacity(
+      @local_values.client_local_resource_policy(),
+    )
+    is Some((control_retained, control_execution)) &&
+    native_storage_sum([control_retained, control_execution]) is Ok(control) &&
+    native_storage_sum([
+      self.profile.read_budget.bootstrap_retained,
+      self.profile.read_budget.bootstrap_execution,
+    ])
+    is Ok(prefix) &&
+    prefix >= control &&
+    prefix > 0L &&
+    prefix <= business.profile.payload_facility_bytes &&
+    local_command_domain_bytes(prefix) is Some(bytes) &&
     bytes <= business.profile.domain_bytes else {
     return Err(CommandUnavailable)
   }
-  // Retain the exact selection before any physical attempt; a failed attempt
-  // cannot choose a different capacity or obtain another provisioning credit.
-  business.selected_profile = Some({
-    kind: SourceFreeCompute,
-    domain_bytes: bytes,
-    payload_facility_bytes: payload,
-    limits: selected,
-  })
+  // Preserve the same immutable MAX selection. Record actual initial backing
+  // separately BEFORE any physical attempt; partial failure retains both.
+  business.selected_profile = Some(business.profile)
+  business.initial_window_bytes = Some(prefix)
+  business.initial_domain_bytes = Some(bytes)
   native_timing_amount(53, maximum.retained_bytes)
   native_timing_amount(54, maximum.execution_bytes)
   native_timing_amount(55, selected.retained_bytes)
@@ -92,8 +95,12 @@ fn LocalCommandPreparationOriginal::prepare_business_capacity(
   let prepared = match (acquired, returned) {
     (Ok(_), Ok(_)) =>
       try {
-        command_preparation_value(self.prepare_business_execution(host))
-        command_preparation_value(self.prepare_business_operation())
+        command_preparation_value(self.prepare_business_execution(host, input))
+        // The fixed static caller has no Store/Run operation child. Its SAME
+        // Request reservation funds parsing, checking and metadata only.
+        if input.operation != "check" {
+          command_preparation_value(self.prepare_business_operation())
+        }
         Ok(())
       } catch {
         LocalCommandPreparationStop(issue) => Err(issue)

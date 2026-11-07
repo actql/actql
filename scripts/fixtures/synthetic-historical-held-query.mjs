@@ -260,7 +260,15 @@ export async function writeSyntheticHistoricalHeldQuery({directory, document,
   // returned acceptance result; the original binding is independently hashed.
   environmentBody.host_policy_profile.capacity = {max_graph_construction_edges: 1000,
     max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
-    ...environmentBody.host_policy_profile.capacity};
+    ...environmentBody.host_policy_profile.capacity,
+    // The ordinary Local Source/Model Host selects these same installed
+    // windows. Explicit policies and independently published Effects retain
+    // their original declaration instead of borrowing the Local defaults.
+    ...(effectEnvironmentWire === undefined && hostCapacityPolicy === undefined ? {
+      max_relation_output_rows: 536870912 / 256,
+      max_artifact_rows: 536870912 / 256,
+      max_file_listing_items: 536870912 / 256,
+      max_model_request_bytes_per_item: 65536} : {})};
   if (hostCapacityPolicy !== undefined) {
     assert.deepEqual(environmentBody.host_policy_profile.capacity, effectiveHostCapacityPolicy,
       'The authored historical scope uses the SAME explicit installed Host policy');

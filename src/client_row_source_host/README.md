@@ -220,3 +220,14 @@ page handling remain with the existing REST page callback and shared Reader.
 `typed_json_page_wbtest.mbt` separately covers typed row admission, exact Signed64
 Strings, NULL/Unicode, schema/bound/cancellation refusal and foreign namespace
 refusal. These components do not establish ordinary installed Source acceptance.
+
+### Captured Query Compute binding
+
+`check_row_capture_compute_binding` observes task zero of the same single-capture
+DAG. The original RowRun must still own its live holding on that DAG's Ledger,
+with no pending cleanup or transferred custody. Source verifier callbacks run
+before the final custody check, so synchronous close cannot leave a valid
+binding. This allocation-free observer grants no Source/Account permission,
+capacity or retirement acknowledgement. The standalone prefix census remains
+unchanged. The consuming [ordinary task adapter](../client_local_host/captured-tasks-interface.md)
+closes dependent Compute before its caller retires the Source.

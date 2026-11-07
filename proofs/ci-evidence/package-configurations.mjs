@@ -79,13 +79,14 @@ const foreignLibraryConfigurations = Object.freeze({
 // Current updates: docs/reviews/2026-11-02-session-current-input-review.md and
 // docs/reviews/2026-11-03-session-current-input-successor-review.md and
 // docs/reviews/2026-11-04-session-current-recovery-configuration-review.md and
-// docs/reviews/2026-11-06-session-source-test-target-review.md.
+// docs/reviews/2026-11-06-session-source-test-target-review.md and
+// docs/reviews/2026-11-07-session-local-host-successor-review.md.
 // Constants below are reviewed bytes, never hashes computed from current files.
 // A per-entry revision records only that exact reviewed input; the default
 // revision still applies to every unchanged entry.
 export const currentConfigurationReviewRevision = '38e95bfac2907700456de6c53ed0cad3620bb72d';
 export const currentPackageConfigurations = Object.freeze({
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '8596c0cb5e158a33b98214e9d09a6185dbce3925b3d947def6036ec75bb7dfda', rule: 'literal-target-selectors-with-bound-source-membership', revision: '65dd1da4c260610e9a88e430665fdc8f6106bc94'}),
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '73b0cddc426eb97a56302dc76c8e9438fb113508302532dd29e34157c8186969', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'ff880c0fee559efd6d6f2d4fe86a6c229ad86979'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: '707ebd62113403d8c1a08c3db9ea28d5e899c3c80d6ac7dc5cfadd545045ac38', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/physical_resources/moon.pkg': Object.freeze({digest: '508d45513dd76478ece212cd3e9a2da45aa93f2e100d99c44076a31afa46be23', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'bf198225499436c26be2f7d763582b0efaeeae2b'}),

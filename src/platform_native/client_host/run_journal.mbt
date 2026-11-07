@@ -609,8 +609,14 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
           JournalCommit,
           reads,
         ) {
-        Ok(_) => Ok(value)
+        Ok(_) => {
+          // Existing opt-in diagnostic counters: 4/5 commit success/failure,
+          // 6/7 rollback success/failure. None supplies a durable ACK.
+          native_timing_count(4)
+          Ok(value)
+        }
         Err(_) => {
+          native_timing_count(5)
           self.invalidate_operation_record()
           self.fenced = true
           fence_client_journal_transactions(self.database, reads)
@@ -627,8 +633,12 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
           JournalRollback,
           reads,
         ) {
-        Ok(_) => Err(issue)
+        Ok(_) => {
+          native_timing_count(6)
+          Err(issue)
+        }
         Err(_) => {
+          native_timing_count(7)
           self.fenced = true
           fence_client_journal_transactions(self.database, reads)
           Err(TransactionUnknown)

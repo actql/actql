@@ -88,7 +88,7 @@ test('outer diagnostic suppresses private original output and preserves its nonz
   const summary = functionDiagnosticSummary(result, {consumerExecutorEntered: true,
     sampleRequested: true, functions: ['actual_function', 'private object(value)', '/private/source'],
     conditions: ['permission-denied', 'private-error'], argv: 'private-arguments', values: 'private-values'});
-  assert.deepEqual(summary, {version: 1, diagnosticOnly: true, caseExit: 17, caseSignal: null,
+  assert.deepEqual(summary, {version: 1, diagnosticOnly: true, sampleTarget: 'unrecorded', caseExit: 17, caseSignal: null,
     timedOut: false, consumerExecutorEntered: true, sampleRequested: true,
     functions: ['actual_function'], conditions: ['permission-denied']});
   assert.equal(JSON.stringify(summary).includes('private-'), false);
@@ -106,6 +106,8 @@ def interrupted(sig,frame):
                            'disableRandomizationOff':'set disable-randomization off' in args,
                            'returnChildResult':'--return-child-result' in args,
                            'followExecSame':'set follow-exec-mode same' in args,
+                           'followHolder':'set follow-fork-mode child' in args,
+                           'detachOriginalControl':'set detach-on-fork on' in args,
                            'environment':payload['environment']}))
  print('#0 0x1234 in busy_function (private="value") at /private/source:19',flush=True)
  print('private body and arguments',flush=True)
@@ -128,9 +130,11 @@ while True:time.sleep(.02)
   assert.equal(spy.disableRandomizationOff, true);
   assert.equal(spy.returnChildResult, true);
   assert.equal(spy.followExecSame, true);
+  assert.equal(spy.followHolder, true, 'sample the original holder rather than its polling parent');
+  assert.equal(spy.detachOriginalControl, true, 'the original control must continue without debugger scheduling');
   assert.deepEqual(spy.environment, {PATH: join(f.directory, 'bin'), LANG: 'C'});
   const report = JSON.parse(await readFile(f.report, 'utf8'));
-  assert.deepEqual(report, {consumerExecutorEntered: true, sampleRequested: true,
+  assert.deepEqual(report, {sampleTarget: 'holder-descendant', consumerExecutorEntered: true, sampleRequested: true,
     functions: ['busy_function'], conditions: []});
   assert.equal(JSON.stringify(report).includes('private'), false);
   assert.equal((await stat(f.report)).mode & 0o777, 0o600);
@@ -181,7 +185,7 @@ process.stderr.write('native-stderr-only\\n');process.exitCode=19;});
   assert.equal(result.stdout.includes('private debugger'), false);
   assert.equal(result.stderr.includes('private debugger'), false);
   const report = JSON.parse(await readFile(f.report, 'utf8'));
-  assert.deepEqual(report, {consumerExecutorEntered: false, sampleRequested: false,
+  assert.deepEqual(report, {sampleTarget: 'holder-descendant', consumerExecutorEntered: false, sampleRequested: false,
     functions: [], conditions: ['stage-not-observed']});
 });
 
@@ -195,7 +199,7 @@ sys.exit(7)
   assert.equal(result.stdout, '');
   assert.equal(result.stderr, '');
   assert.deepEqual(JSON.parse(await readFile(f.report, 'utf8')), {
-    consumerExecutorEntered: false, sampleRequested: false, functions: [],
+    sampleTarget: 'holder-descendant', consumerExecutorEntered: false, sampleRequested: false, functions: [],
     conditions: ['permission-denied', 'stage-not-observed', 'trace-unavailable']});
 });
 
@@ -245,6 +249,7 @@ while True:time.sleep(.02)
   assert.equal(summary.timedOut, true);
   assert.equal(summary.caseExit, null, 'killed case has no invented exit receipt');
   assert.equal(summary.consumerExecutorEntered, true);
+  assert.equal(summary.sampleTarget, 'holder-descendant');
   assert.equal(summary.sampleRequested, true);
   assert.deepEqual(summary.functions, ['busy_then_hangs']);
   const wire = await readFile(output, 'utf8');
@@ -260,8 +265,28 @@ test('missing debugger reports availability without a target attempt or fallback
   assert.equal(result.stdout, '');
   assert.equal(result.stderr, '');
   assert.deepEqual(JSON.parse(await readFile(f.report, 'utf8')), {
-    consumerExecutorEntered: false, sampleRequested: false, functions: [],
+    sampleTarget: 'holder-descendant', consumerExecutorEntered: false, sampleRequested: false, functions: [],
     conditions: ['debugger-unavailable', 'stage-not-observed']});
+});
+
+test('Original Native Effect summaries are retained before diagnostic and independent groups', () => {
+  const jobs = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs;
+  for (const [name, platform] of [['native', 'linux'], ['native-macos', 'macos']]) {
+    const steps = jobs[name].steps;
+    const effect = steps.findIndex(step => step.id === 'native-effect');
+    const artifact = steps[effect + 1];
+    assert.equal(artifact.name, 'Retain original Native Effect failure observer summary');
+    assert.equal(artifact.if, "${{ !cancelled() && steps.native-effect.outcome == 'failure' }}");
+    assert.equal(artifact.with.path,
+      '${{ runner.temp }}/native-tests/native-effect/*/resident-consumer-summary.json');
+    assert.equal(artifact.with.name,
+      `native-effect-original-${platform}-` + '${{ github.run_id }}-${{ github.run_attempt }}');
+    assert.equal(artifact.with['if-no-files-found'], 'warn');
+    assert.equal(artifact.with['retention-days'], 14);
+    assert.equal(steps[effect]['continue-on-error'], undefined);
+    assert(effect + 1 < steps.findIndex(step => step.id === 'native-runtime-test'));
+    assert(!/lines\.json|sqlite|stderr|\.log/u.test(artifact.with.path));
+  }
 });
 
 test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized JSON', () => {
@@ -274,7 +299,7 @@ test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized 
   assert(dependencies.run.includes('sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv'));
   assert(!/\bgdb\b/u.test(dependencies.run));
   const diagnostic = jobs.native.steps.find(step => step.name === 'Diagnose only failed Linux Effect consumer functions');
-  assert.equal(diagnostic.if, "${{ !cancelled() && (steps.native-effect.outcome == 'failure' || steps.native-runtime-test.outcome == 'failure') }}");
+  assert.equal(diagnostic.if, "${{ !cancelled() && steps.native-effect.outcome == 'failure' }}");
   assert.equal(diagnostic['continue-on-error'], true);
   assert.equal(diagnostic['timeout-minutes'], 6);
   const debuggerSetup = jobs.native.steps.find(step => step.id === 'failure-debugger');
@@ -285,6 +310,7 @@ test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized 
   assert(diagnostic.run.includes('ulimit -S -s 65536'));
   const helper = readFileSync(new URL('./diagnose-native-resident-functions.mjs', import.meta.url), 'utf8');
   assert(helper.includes('timeoutSeconds: 295, graceSeconds: 5'));
+  assert(helper.includes("fileURLToPath(sourceUrl), '--effect-computation-only'"));
   const artifact = jobs.native.steps.find(step => step.name === 'Retain only sanitized Linux Effect function availability');
   assert.equal(artifact.if, diagnostic.if);
   assert.equal(artifact.with.path, '${{ runner.temp }}/native-effect-functions/sanitized.json');
@@ -295,4 +321,52 @@ test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized 
     'import ast,sys;ast.parse(open(sys.argv[1]).read())', wrapper]).status, 0);
   assert.equal(spawnSync(python, ['-c', 'import ast,sys;ast.parse(open(sys.argv[1]).read())',
     fileURLToPath(new URL('./fixtures/native-resident-function-bootstrap.py', import.meta.url))]).status, 0);
+});
+
+test('Native CI observes an early Effect failure once and preserves Site-only fallback', () => {
+  const steps = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs.native.steps;
+  const effect = steps.findIndex(step => step.id === 'native-effect');
+  const site = steps.findIndex(step => step.id === 'native-runtime-test');
+  const setup = steps.findIndex(step => step.id === 'failure-debugger');
+  assert.equal(setup, effect + 2, 'retain the original summary before the fresh probe and long Site group');
+  const early = steps.slice(setup, setup + 3);
+  assert.equal(steps.indexOf(early[2]) + 1, site);
+  const fallbackStart = steps.findIndex(step => step.id === 'site-failure-debugger');
+  assert(fallbackStart > steps.findIndex(step => step.id === 'native-cancel'));
+  const fallback = steps.slice(fallbackStart, fallbackStart + 3);
+  assert(fallback.every(step => step.name.endsWith(' (Site fallback)')));
+  const body = ({name, id, if: condition, ...value}) => value;
+  for (let index = 0; index < early.length; index++) {
+    assert.deepEqual(body(early[index]), body(fallback[index]),
+      'same fixed probe, bounds, scratch, sanitized path and immutable artifact name');
+    assert.equal(early[index].if, early[0].if);
+    assert.equal(fallback[index].if, fallback[0].if);
+  }
+  const evaluate = (condition, effect, site, cancelled) => {
+    const expression = condition.slice(3, -2).trim()
+      .replaceAll('steps.native-effect.outcome', 'effect')
+      .replaceAll('steps.native-runtime-test.outcome', 'site')
+      .replaceAll('cancelled()', 'cancelled');
+    return new Function('effect', 'site', 'cancelled', 'return (' + expression + ');')(
+      effect, site, cancelled);
+  };
+  for (const effect of ['success', 'failure', 'skipped', 'cancelled', '']) {
+    for (const site of ['success', 'failure', 'skipped', 'cancelled', '']) {
+      for (const cancelled of [false, true]) {
+        const count = Number(evaluate(early[0].if, effect, site, cancelled)) +
+          Number(evaluate(fallback[0].if, effect, site, cancelled));
+        assert.equal(count, Number(!cancelled && (effect === 'failure' || site === 'failure')),
+          JSON.stringify({effect, site, cancelled}));
+      }
+    }
+  }
+  for (const id of ['native-effect', 'native-runtime-test', 'native-source',
+    'native-observation', 'native-release', 'native-cancel', 'packed-materials']) {
+    const step = steps.find(step => step.id === id);
+    assert(step, id);
+    assert.equal(step.if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
+    assert.equal(step['continue-on-error'], undefined);
+  }
+  const ids = steps.filter(step => step.id).map(step => step.id);
+  assert.equal(new Set(ids).size, ids.length);
 });

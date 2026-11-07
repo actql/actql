@@ -36,23 +36,32 @@
 // These are fixed quote constructors, NOT represented name/Program storage.
 // The new four optional phase fields and their same-live tags/quote tuple add
 //8H12R11W to the original driver below. No old quote slack is spent.
+// Observed Source shape plus canonical scratch/output and checked Text joins
+// add8H4R20W, conservatively co-counting their descriptor/return alternatives.
 let program_json_quote_controls : @execution.PreparationRepresentationUnits = {
   let work = @resources.preparation_phase_work_construction_inventory()
   let container = @syntax.program_container_quote_control_extent()
   // Keep the unchanged Source/index/driver roles and use each original
   // receipt/container owner for its quote-construction DATA exactly once.
   {
-    record_headers: 154L +
+    record_headers: 8L +
+    154L +
     356L +
     container.record_headers -
     12L +
     work.record_headers,
-    reference_slots: 37L +
+    reference_slots: 4L +
+    37L +
     92L +
     container.reference_slots -
     16L +
     work.reference_slots,
-    scalar_words: 335L + 758L + container.scalar_words - 18L + work.scalar_words,
+    scalar_words: 20L +
+    335L +
+    758L +
+    container.scalar_words -
+    18L +
+    work.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -132,7 +141,6 @@ fn program_json_source_index_quote(
 ) -> (Int64, Int64)? {
   // Zero is a valid refusal path. A one-slot constructor envelope covers its
   // original failure controls without changing any original parser limit.
-  let bytes = Int::max(1, geometry.input_bytes)
   let nodes = Int::max(
     1,
     Int::min(geometry.node_upper, limits.source.max_nodes),
@@ -141,7 +149,7 @@ fn program_json_source_index_quote(
     1,
     Int::min(geometry.depth_upper, limits.source.max_depth),
   )
-  guard @source.json_source_grammar_construction_extent(bytes, nodes, depth)
+  guard @source.json_source_geometry_construction_extent(geometry, nodes, depth)
     is Some(source) &&
     @decode.admission_construction_inventory(
       nodes,

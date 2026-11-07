@@ -45,7 +45,9 @@ function fixture() {
     treeAt: revision => tree(revision === base ? files : state.source),
     resolveBaseline: async request => {
       assert.equal(request.testedSha, current);
-      assert(request.requiredJobs.includes('check') && request.requiredJobs.includes('core (native)'));
+      assert(request.requiredJobs.includes('check'));
+      for (const name of ['core (native 1/2)', 'core (native 2/2)'])
+        assert(request.requiredJobs.includes(name));
       return state.checkpoint;
     },
     request: async path => {

@@ -84,7 +84,10 @@ fn graph_keyed_model_plan_input(
   consumer : Int,
   model_step : Int,
 ) -> LocalInputSlot? {
-  if graph.captured_prefix != 2 ||
+  if (
+      graph.captured_prefix != 2 &&
+      !(graph.captured_prefix == 0 && !graph.supplied_slots.is_empty())
+    ) ||
     model_step < 0 ||
     consumer < graph.captured_prefix ||
     consumer >= graph.owners.length() ||
@@ -175,14 +178,24 @@ fn graph_keyed_model_plan_input(
   // This is the existing single-keyed producer/factory's construction scope.
   // More requests need their own original producer connection, never a count
   // inferred from aliases, sample rows or a caller-authored URI.
-  guard deferred is Some(slot) &&
-    ordered_data_inputs_complete(
-      graph.input_counts,
-      graph.data,
-      supplied_slots=graph.supplied_slots,
-      deferred_slot=deferred,
-      captured_prefix=graph.captured_prefix,
-    ) else {
+  guard deferred is Some(slot) else { return None }
+  let existing = graph.supplied_slots.filter(actual => {
+    actual.consumer == slot.consumer && actual.input == slot.input
+  })
+  if existing.length() > 1 ||
+    existing.any(actual => {
+      actual.source_input != slot.source_input ||
+      actual.operation_input != slot.operation_input
+    }) {
+    return None
+  }
+  guard ordered_data_inputs_complete(
+    graph.input_counts,
+    graph.data,
+    supplied_slots=graph.supplied_slots,
+    deferred_slot=if existing.is_empty() { deferred } else { None },
+    captured_prefix=graph.captured_prefix,
+  ) else {
     return None
   }
   Some(slot)
@@ -215,6 +228,14 @@ pub fn graph_with_completed_keyed_model_input(
     ) &&
     @execution.supplied_relation_read_available(read) else {
     return None
+  }
+  if graph.supplied_slots.any(actual => {
+      actual.consumer == slot.consumer &&
+      actual.input == slot.input &&
+      actual.source_input == slot.source_input &&
+      actual.operation_input == slot.operation_input
+    }) {
+    return Some(graph)
   }
   let supplied_slots = graph.supplied_slots.copy()
   supplied_slots.push(slot)

@@ -31,6 +31,8 @@ pub fn prepare_source_free_local_requirements(
 ///|
 /// Retain the exact single captured-Source Compute tail. The Source acquisition
 /// and its physical backing remain borrowed from their existing Owner.
+/// The simultaneous quote includes only this Compute suffix; it must be
+/// composed with the Source owner's actual live footprint before admission.
 pub fn prepare_captured_local_requirements(
   prepared : @publication_host.PreparedClientProgram,
   installed_contracts : ClientInstalledSequenceContracts,
@@ -116,7 +118,7 @@ fn prepare_local_requirements(
     capacity_plan=Some(capacity_plan),
     retained_inputs=Some(inputs),
     max_rows=@publication_host.prepared_client_values_max_rows(prepared),
-    include_simultaneous=first == 0,
+    include_simultaneous=true,
     simultaneous_graph=Some(graph),
   ).map(capacity => {
     prepared,

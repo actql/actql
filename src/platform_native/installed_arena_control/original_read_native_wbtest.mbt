@@ -27,6 +27,8 @@ fn original_read_unacquired_carrier(
     claim: None,
     pair: None,
     consumer: None,
+    funded_retained_bytes: 0L,
+    funded_execution_bytes: 0L,
     physical_retired: Ref(false),
     owns_read: false,
     child_started: false,

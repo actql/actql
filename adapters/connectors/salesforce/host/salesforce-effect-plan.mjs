@@ -3,7 +3,8 @@
 // The original Site still owns grants, currentness, physical children and ACK.
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {captureInstalledEffectPlanRecipe} from '../../../host-node/installed-effect-plan.mjs';
+import {captureInstalledEffectPlanRecipe, effectRecoveryPreviewBounds} from '../../../host-node/installed-effect-plan.mjs';
+import {sourceJsonWireGeometry} from '../../../host-node/installed-source-construction-geometry.mjs';
 import {localOutputLimits} from '../../../host-node/local-values-plan.mjs';
 import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger-implementation-bounds.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialDefaultRequestBytes,
@@ -30,6 +31,7 @@ function originalMethod(receiver, name) {
 export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon}) {
   const profileFor = originalMethod(salesforceMoon, 'salesforceEffectConstructionProfile');
   const captureFor = originalMethod(salesforceMoon, 'salesforceEffectInputCaptureConstructionProfile');
+  const recoveryFor = originalMethod(salesforceMoon, 'salesforceEffectRecoveryInputConstructionProfile');
   const targetFor = originalMethod(salesforceMoon, 'salesforceEffectTargetInputConstructionProfile');
   const controlBoundFor = originalMethod(moon, 'clientProgramInstalledEffectControlWireBound');
   const metadataFor = originalMethod(salesforceMoon, 'salesforceEffectMetadataInputConstructionProfile');
@@ -134,7 +136,7 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
         return checked(extentFor(salesforceTargetReadOperation,selected[6],
           BigInt(httpsCredentialDefaultRequestBytes)+httpsCredentialResponseWindowBytes(targetArguments[0]),true));
       };
-      const inputExtent = (previewWire, recovery) => {
+      const inputExtent = (previewWire, recovery, memberIndex, metadata) => {
         if (typeof previewWire !== 'string' || !Array.isArray(recovery)) fail();
         const previewBytes = Buffer.byteLength(previewWire);
         let bytes = previewBytes;
@@ -145,7 +147,36 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
         // Same authenticated Store input bound. This quantities only a native
         // constructor; the original decoder still validates every old limit.
         if (!integer(bytes) || bytes > localOutputLimits.maxWireBytes) fail();
-        const selected = quantities(initialProfile, captureFor(profile, ...captureArguments, bytes), controlEntryBytes, previewBytes);
+        const originalPreviewBounds = effectRecoveryPreviewBounds(previewBytes, limits.preview);
+        const entry = Number.isSafeInteger(memberIndex)
+          ? recovery.find(value => value.memberIndex === memberIndex) : undefined;
+        const staged = entry?.kind === 'salesforce-named-catalog' &&
+          typeof entry.wire === 'string';
+        let capture;
+        if (staged && metadata === undefined) {
+          // This actual immutable wire bounds the outer/nested JSON forests.
+          // It funds binary/Source preflight before the original body is read.
+          const nodes = sourceJsonWireGeometry(entry.wire).nodes;
+          if (nodes > 2_147_483_647n) fail();
+          capture = recoveryFor(profile, ...originalPreviewBounds,
+            ...captureArguments.slice(3), bytes, Number(nodes), new Uint8Array(0));
+        } else if (staged && metadata?.bodies?.length === 1 &&
+            metadata.bodies[0] instanceof Uint8Array &&
+            metadata.evidence?.names?.length === 1 &&
+            metadata.evidence.maxObservationBytes === catalogLimits.maxObservationBytes &&
+            ['maxBytes', 'maxNodes', 'maxDepth', 'maxFields', 'maxNameUnits']
+              .every(key => metadata.evidence.describeLimits?.[key] === describe[key])) {
+          const nodes = sourceJsonWireGeometry(entry.wire).nodes;
+          if (nodes > 2_147_483_647n) fail();
+          capture = recoveryFor(profile, ...originalPreviewBounds,
+            ...captureArguments.slice(3), bytes, Number(nodes), metadata.bodies[0]);
+        } else {
+          // Whole Catalog, foreign/changed limits and unavailable/wider named
+          // inputs retain the complete original constructor and refusal path.
+          capture = captureFor(profile, ...originalPreviewBounds,
+            ...captureArguments.slice(3), bytes);
+        }
+        const selected = quantities(initialProfile, capture, controlEntryBytes, previewBytes);
         return checked(captureExtentFor(operation, selected.slice(0, 6),
           limits.preview.maxWireBytes, limits.preview.maxNodes, limits.preview.maxDepth));
       };

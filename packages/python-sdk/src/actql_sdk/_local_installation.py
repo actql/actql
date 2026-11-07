@@ -361,6 +361,35 @@ class OriginalLocalInstallation:
                 index += 1
             root._observe_originals(tuple(readers))
 
+    def _require_current_host_files(self, source: LocalHostFiles,
+                                    source_values: tuple[_HostFile, ...],
+                                    state: LocalHostFiles,
+                                    state_values: tuple[_HostFile, ...]) -> None:
+        """Observe this closed installed pair, never cache physical evidence.
+
+        Only these exact assembly-owned pins share the installation walk. No
+        arbitrary observer runs in this group, and every original raw reader,
+        pin FD/name, root and Store generation is still checked on every call.
+        The original individual callback path remains separate.
+        """
+        if (type(self) is not OriginalLocalInstallation or self._original is not self
+                or self._closing or type(source) is not LocalHostFiles
+                or type(state) is not LocalHostFiles or len(self._pins) != 2
+                or self._pins[0] is not source or self._pins[1] is not state
+                or source._installation is not self or state._installation is not self
+                or source._root is not self._source or state._root is not self._state
+                or source._store is not self._store or state._store is not self._store
+                or source._observe_roots is not None or state._observe_roots is not None):
+            raise ValueError('Foreign or retired original Local installation file group')
+        with source._lock, state._lock:
+            source._require_original_members(source_values)
+            source._require_current_lifetime()
+            state._require_original_members(state_values)
+            state._require_current_lifetime()
+            self._observe_roots()
+            source._observe_current_files()
+            state._observe_current_files()
+
     def _writer(self, root: LocalFileRoot, name: str, length: int) -> _PayloadFile:
         try:
             value = root.create_writer(name, length)
@@ -406,7 +435,7 @@ class OriginalLocalInstallation:
 
     def _pin(self, root: LocalFileRoot, store: LocalByteStore, count: int) -> LocalHostFiles:
         value = LocalHostFiles(root, store, max_files=count, max_bytes=count * 65536,
-                              observe_roots=self._observe_roots)
+                              _installation=self)
         self._pins.append(value)
         return value
 
@@ -464,3 +493,12 @@ class OriginalLocalInstallation:
                     return False
                 self._workspaces.remove(workspace)
             return True
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(OriginalLocalInstallation, (
+        '_observe_roots', '_require_current_host_files',
+    )),
+)

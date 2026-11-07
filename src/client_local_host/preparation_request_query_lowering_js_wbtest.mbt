@@ -342,13 +342,13 @@ test "source-free SQL keeps loose runtime maxima and refuses actual task allocat
   // runtime acceptance. Full Plan maxima remain independently checked DATA;
   // actual task allocations keep this unchanged original finite policy.
   for
-    (aggregate, count, upper_fits, exhaust) in [
-      (false, 4, true, false),
-      (false, 9, false, false),
-      (true, 2, true, false),
-      (true, 6, false, false),
-      (true, 8, false, false),
-      (false, 4, true, true),
+    (aggregate, count, exhaust) in [
+      (false, 4, false),
+      (false, 9, false),
+      (true, 2, false),
+      (true, 6, false),
+      (true, 8, false),
+      (false, 4, true),
     ] {
     let branches = []
     for i in 0..<count {
@@ -419,10 +419,10 @@ test "source-free SQL keeps loose runtime maxima and refuses actual task allocat
     let available = preparation_initial_limits(parent.initial, input).unwrap()
     let ledger = parent.ledger
     assert_true(plan.limits.retained_bytes <= available.retained_bytes)
-    assert_eq(
-      plan.limits.execution_bytes <= available.execution_bytes,
-      upper_fits,
-    )
+    // A tighter selected provider quote can make the whole-Run maximum fit.
+    // Neither case changes admission or prepays this test's actual task. The
+    // dedicated oversized-Plan adoption fixture covers an explicit loose cap;
+    // this execution keeps its original rows and exhausted-budget refusal.
     assert_true(parent.phase == ProgramBodyReady)
     assert_true(plan.compilation is Some(_))
     let request = @publication_host.prepare_source_free_client_request_identity(

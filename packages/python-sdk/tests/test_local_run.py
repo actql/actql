@@ -98,6 +98,8 @@ class RunCustodyTests(unittest.TestCase):
             if name.startswith(('reserve', 'install')):
                 sequence[0] += 1
                 return sequence[0]
+            if family == 'program' and name == 'prepared_outcome':
+                return 1  # Independent declared successful-preparation outcome.
             return 0
 
         core._call = call

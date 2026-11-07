@@ -477,6 +477,96 @@ test "planned Effect Compute executes retained sequence on the original managed 
 }
 
 ///|
+test "captured JOIN row ceiling does not prepay future operation controls on the same finite parent" {
+  let per_row = @execution.execution_capacity(67108864L, 67112960L).unwrap()
+  let plan = effect_operation_source_plan_fixture(
+    additional_source=true,
+    controls_per_row=Some(per_row),
+  )
+  assert_eq(plan.rows, 10)
+  assert_eq(plan.held_children, 11)
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  // Preserve the ordinary 512 MiB policy and existing ten-byte input carrier.
+  // The checked JOIN ceiling is not ten already resident control payloads.
+  quote[4] = 536870902L
+  quote[5] = 536870902L
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan, quote,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial,
+    input,
+    capacity,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  |> ignore
+  assert_true(plan.closed_rows is None)
+  let control = owner.effect_operation_controls.unwrap()
+  let token = control.reservation
+  assert_true(
+    @resources.ledger_usage(ledger).reserved_retention_bytes < 67108864L,
+  )
+  let preparation = owner.preparation.unwrap()
+  let admission = match preparation {
+    PlannedEffectManaged(admission, original) => {
+      assert_true(physical_equal(original, plan))
+      admission
+    }
+    _ => fail("fixture must retain original Effect preparation")
+  }
+  // Explicit inventory port for this Resource component only. The ordinary
+  // caller must supply the existing original captured-input/Preview witness.
+  retain_installed_effect_control_row_inventory(
+    owner,
+    preparation,
+    admission,
+    plan,
+    ledger,
+    control,
+    2,
+    () => {
+      check_installed_effect_operation_original(
+        owner,
+        ledger,
+        preparation,
+        Some(control),
+      )
+    },
+  ).unwrap()
+  assert_true(physical_equal(control.reservation, token))
+  assert_eq(control.captured_rows, Some(2))
+  assert_true(
+    @resources.ledger_usage(ledger).reserved_retention_bytes >= 134217728L,
+  )
+  assert_eq(@resources.ledger_limits(ledger).retained_bytes, 536870912L)
+  assert_eq(@resources.ledger_limits(ledger).execution_bytes, 536870912L)
+  assert_eq(plan.rows, 10)
+  assert_true(
+    retain_installed_effect_control_row_inventory(
+      owner,
+      preparation,
+      admission,
+      plan,
+      ledger,
+      control,
+      11,
+      () => Ok(()),
+    )
+    is Err(InsufficientCapacity),
+  )
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
 test "unknown Effect capture grows its same control from completed original rows before child construction" {
   unknown_effect_capture_controls(effect_operation_source_plan_fixture())
 }

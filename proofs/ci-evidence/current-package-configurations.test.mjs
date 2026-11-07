@@ -126,11 +126,61 @@ test('current Source JSON review binds only its checked normalization count depe
   }
 });
 
-test('current Local Host review binds the original carrier, Source builder and Model completion imports with existing JS selectors', () => {
+test('current Local Host successor binds only its capacity import and two JS callback selectors', () => {
   const path = 'src/client_local_host/moon.pkg';
-  const entry = currentPackageConfigurations[path];
-  assert.equal(entry.revision, '65dd1da4c260610e9a88e430665fdc8f6106bc94');
-  assert.equal(entry.digest, '8596c0cb5e158a33b98214e9d09a6185dbce3925b3d947def6036ec75bb7dfda');
+  const revision = 'ff880c0fee559efd6d6f2d4fe86a6c229ad86979';
+  const digest = '73b0cddc426eb97a56302dc76c8e9438fb113508302532dd29e34157c8186969';
+  const rule = 'literal-target-selectors-with-bound-source-membership';
+  assert.deepEqual(currentPackageConfigurations[path], {revision, digest, rule});
+  execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
+  const reviewed = gitTree(root, revision), body = reviewed.read(path).toString();
+  const previous = gitTree(root, '65dd1da4c260610e9a88e430665fdc8f6106bc94').read(path).toString();
+  assert.equal(hash(body), digest);
+  assert.equal(hash(previous), '8596c0cb5e158a33b98214e9d09a6185dbce3925b3d947def6036ec75bb7dfda');
+  const dependency = '  "actql/actql/capacity_policy" @capacity,\n';
+  const selectors = ['preparation_request_native_document_js_wbtest.mbt',
+    'preparation_request_native_intake_js_wbtest.mbt'].map(name => `    "${name}": [ "js" ],\n`);
+  let reconstructed = body;
+  for (const addition of [dependency, ...selectors]) {
+    assert.equal(body.split(addition).length, 2);
+    reconstructed = reconstructed.replace(addition, '');
+  }
+  assert.equal(reconstructed, previous, 'all other imports, targets and options retain their original bytes');
+  assert.deepEqual(packageImports(body).imports,
+    [...packageImports(previous).imports, 'actql/actql/capacity_policy'].sort());
+  assert.equal(currentTree.read(path).toString(), body);
+  assert.equal(hash(currentTree.read('toolchain.json')), toolchainDigest);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, digest))?.revision, revision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(previous))), null);
+  const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  const members = [...currentTree.entries.keys()].filter(member => member.startsWith('src/capacity_policy/') &&
+    !member.slice('src/capacity_policy/'.length).includes('/')).sort();
+  assert(members.includes('src/capacity_policy/moon.pkg'));
+  assert.deepEqual(selected.directories.find(entry => entry.path === 'src/capacity_policy/*')?.members, members);
+  for (const member of [...members, ...selectors.map(selector =>
+    'src/client_local_host/' + JSON.parse(selector.trim().split(':')[0]))]) {
+    assert(selected.paths.includes(member), member);
+    assert.equal(currentTree.entries.get(member)?.kind, 'blob');
+    assert.equal(currentTree.entries.get(member)?.mode, '100644');
+  }
+  for (const changed of [previous, body.replace(dependency, ''), body.replace('@capacity,', '@permission,'),
+    ...selectors.map(selector => body.replace(selector, selector.replace('"js"', '"native"'))),
+    body + '\noptions(pre_build: {command: "unreviewed"})\n']) {
+    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+    const altered = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
+    assert(packageSourceInputs({tree: altered, packages: ['src/client_local_host'], target: 'js'})
+      .unresolved.includes('Unreviewed package configuration: ' + path));
+  }
+  for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, digest), ...delta}), null);
+});
+
+test('historical Local Host review preserves the original carrier, Source builder and Model completion preimages', () => {
+  const path = 'src/client_local_host/moon.pkg';
+  const entry = {revision: '65dd1da4c260610e9a88e430665fdc8f6106bc94',
+    digest: '8596c0cb5e158a33b98214e9d09a6185dbce3925b3d947def6036ec75bb7dfda',
+    rule: 'literal-target-selectors-with-bound-source-membership'};
   const selectedTree = gitTree(root, entry.revision);
   const currentBody = selectedTree.read(path).toString();
   assert.equal(hash(currentBody), entry.digest);
@@ -144,8 +194,8 @@ test('current Local Host review binds the original carrier, Source builder and M
   assert.equal(currentBody.replace(modelDependency, ''), body);
   assert.equal(packageImports(currentBody).unknown, 'Unreviewed package configuration',
     'existing literal selectors still require the exact finite configuration review');
-  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(currentBody)))?.revision,
-    entry.revision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(currentBody))), null,
+    'the historical preimage cannot qualify the current successor');
   assert.deepEqual(packageImports(currentBody).imports,
     [...packageImports(body).imports, 'actql/actql/model_execution'].sort());
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(body))), null,
@@ -187,7 +237,6 @@ test('current Local Host review binds the original carrier, Source builder and M
   assert.equal(entry.rule, 'literal-target-selectors-with-bound-source-membership');
   assert(packageImports(body).imports.includes('actql/actql/relation_typing'));
   assert(body.includes('"installed_kintone_whole_source_js_wbtest.mbt": [ "js" ],'));
-  assert.equal(currentTree.read(path).toString(), currentBody);
   const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
   assert.deepEqual(selected.unresolved, []);
   assert(selected.paths.includes('src/relation_typing/moon.pkg'));

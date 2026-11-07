@@ -1,0 +1,13 @@
+// Setup DATA for the selected Native relation diagnostic, never an executor.
+supported_targets = "js"
+
+import {
+  "actql/actql/sha256" @sha,
+  "actql/actql/client_local_host" @local,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/client_row_source_host" @rows,
+  "actql/actql/canonical_json" @identity,
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "actql/actql/run_publication_host" @host,
+} for "test"

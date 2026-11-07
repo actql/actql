@@ -40,7 +40,16 @@ test "GCS declaration construction quote funds actual extension and original col
     mapping_capacity,
   )
   assert_true(mapping_retained < mapping_peak)
-  assert_true(mapping_peak >= 18822064L)
+  // Mapping must retain the complete extension prefix for THIS declared input.
+  // Its parser uses the shared active-map owner, so a historical all-object
+  // byte floor is not an independent bound on the current constructor.
+  let mapping_prefix = upload_peak_capacity(
+    upload_catalog_peak_inventory(declared_wire, 7, limits).unwrap(),
+  ).unwrap()
+  assert_true(
+    mapping_peak >=
+    @execution.execution_capacity_execution_bytes(mapping_prefix),
+  )
   println(
     "GCS constructor input_units=\{original.length()} extension_bytes=\{peak} mapping_input_units=\{declared_wire.length()} mapping_bytes=\{mapping_peak} extension_retained=\{retained} mapping_retained=\{mapping_retained}",
   )

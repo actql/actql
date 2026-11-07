@@ -22,6 +22,7 @@ import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs
 import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy,
   selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment, localFilesLookupExecutionPolicy, localResourceLookupExecutionPolicy} from './installed-host-policy.mjs';
 import {createHash, createPublicKey, randomBytes, randomUUID} from 'node:crypto';
+import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -6418,12 +6419,7 @@ function localPublicationStoreAuthorityCid(root, principalId) {
 function localPublicationStoreOptions(root, storeAuthorityCid, privateEvidenceKey) {
   return {
     directory: join(root, 'publication'), storeAuthorityCid,
-    capacityBytes: 512 * 1024 * 1024,
-    maxObjectBytes: localOutputLimits.maxWireBytes,
-    // A JSON value node occupies at least one byte in the selected wire.
-    // This is parser support, not an additional memory/resource grant.
-    maxObjects: 10000, maxContractNodes: localOutputLimits.maxWireBytes,
-    maxContractDepth: 64, privateEvidenceKey,
+    ...hostResultStorePolicy, privateEvidenceKey,
   };
 }
 

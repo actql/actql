@@ -121,6 +121,34 @@ class ProductStoreObservationTests(unittest.TestCase):
             self.assertFalse(host._publication_write_attempts)
             self.assertTrue(host.close())
 
+    def test_bounded_observation_quantum_retains_owner_until_core_is_ready(self):
+        with TemporaryDirectory(prefix='actql-store-observation-') as directory:
+            host, core, held, projection, _, _, _, faults, calls = self.host(Path(directory), stored=True)
+            host._prepare_original_store_observation(projection, host._publishers[0])
+            original = host._store_observations[held.publication.ticket]
+            previous = core._call
+            remaining = 513
+            used = 0
+            def advance(family, name, *args):
+                nonlocal remaining, used
+                if (family, name) == ('publication', 'advance_observation'):
+                    self.assertEqual(args, (held.publication.handle, host._configuration.handle, 256))
+                    used = min(remaining, args[-1])
+                    remaining -= used
+                    return 0
+                if (family, name) == ('publication', 'observation_progress'):
+                    return int(remaining == 0) if args[-1] == 0 else used
+                return previous(family, name, *args)
+            core._call = advance
+            for _ in range(2):
+                self.assertIsNone(host._advance_original_store_observation(projection))
+                self.assertIs(host._store_observations[held.publication.ticket], original)
+                self.assertFalse(any(name == 'finish_observation' for _, name, _ in calls))
+            self.assertEqual(host._advance_original_store_observation(projection), 'adopt_committed_index')
+            self.assertEqual(remaining, 0)
+            self.assertIs(host._store_observations[held.publication.ticket], original)
+            self.assertTrue(host.close())
+
     def test_observation_borrow_cleanup_failure_keeps_original_transfers_reader_and_capacity(self):
         with TemporaryDirectory(prefix='actql-store-observation-') as directory:
             host, core, held, projection, _, _, _, faults, _ = self.host(Path(directory), stored=True)

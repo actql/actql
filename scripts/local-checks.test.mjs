@@ -68,6 +68,34 @@ function coreBudget(fixture, value) {
 
 const nativeMatrixBudget = "${{ matrix.target == 'native' && 75 || 30 }}";
 
+test('local Core adapter runs complete unpartitioned coverage for the hosted Native partition expression', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  workflow.jobs.core.steps = [{name: 'original full selection',
+    env: {TARGET: '${{ matrix.target }}', ACTQL_TEST_NATIVE_CORE_PARTITION:
+      "${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}"},
+    run: 'printf "%s:%s\\n" "$TARGET" "$ACTQL_TEST_NATIVE_CORE_PARTITION" >> calls'}];
+  writeFileSync(path, JSON.stringify(workflow));
+  for (const target of ['native', 'js', 'wasm']) {
+    const result = f.run(['run', 'core', '--target', target, '--allow-heavy']);
+    assert.equal(result.status, 0, result.stderr);
+  }
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'native:\njs:\nwasm:\n');
+});
+
+test('local Core adapter refuses a literal half or unfamiliar partition instead of narrowing coverage', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  for (const value of ['1/2', '2/2', '${{ matrix.partition }}/2']) {
+    workflow.jobs.core.steps = [{name: 'must not run half',
+      env: {ACTQL_TEST_NATIVE_CORE_PARTITION: value}, run: 'printf bad >> calls'}];
+    writeFileSync(path, JSON.stringify(workflow));
+    const result = f.run(['run', 'core', '--target', 'native', '--allow-heavy']);
+    assert.equal(result.status, 2); assert.match(result.stderr, /complete coverage/u);
+    assert.equal(existsSync(join(f.root, 'calls')), false);
+  }
+});
+
 test('Core job matrix budgets preserve Native and portable workflow rows', t => {
   const f = fixture(t);
   coreBudget(f, nativeMatrixBudget);

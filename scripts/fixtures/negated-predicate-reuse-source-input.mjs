@@ -73,6 +73,8 @@ export const negatedPredicateReuseSuccesses = [
   success('parameter-source', parameterGroup, [{value: false, n: 4}, {value: true, n: 1}],
     {parameterDeclarations: declaration, parameters: {p: null}}),
 ];
+// DISTINCT cannot recover an unselected input expression. These violate the
+// selected-expression scope, rather than selecting an unimplemented ORDER path.
 export const negatedPredicateReuseRefusals = [
   ['amount IS NOT NULL', 'amount IS NULL'],
   ['(amount > 1) IS NOT TRUE', 'NOT ((amount > 1) IS FALSE)'],
@@ -82,7 +84,7 @@ export const negatedPredicateReuseRefusals = [
   ['amount IS NOT NULL', 'NOT (id IS NULL)'],
   ['amount IS NOT NULL', 'NOT (NOT (amount IS NULL))'],
 ].map(([selected, ordered], index) => ({name: 'negated-predicate-reuse-unproven-' + index,
-  format: 'sql', text: distinct(selected, ordered), expectedCode: 'ClientProgramImplementationLimit'}));
+  format: 'sql', text: distinct(selected, ordered), expectedCode: 'ClientProgramInvalidInput'}));
 negatedPredicateReuseRefusals.push({name: 'negated-predicate-reuse-boolean-input-required',
   format: 'sql', text: distinct('amount IS NOT TRUE', 'NOT (records.amount IS TRUE)'),
   expectedCode: 'ClientProgramInvalidInput'});

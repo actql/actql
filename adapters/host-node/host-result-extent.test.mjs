@@ -21,7 +21,9 @@ test('Result publication accepts original extents beyond collection support with
   const service=recipe.declareHostResultServiceRecipe(control,journal,{},{});
   assert.equal(service.result.maxCollectedRows,10000);
   assert.equal(Object.hasOwn(service.result,'maxRows'),false);
-  assert.equal(service.store.maxObjectBytes,10000000);
+  assert.equal(service.store.maxObjectBytes,service.store.capacityBytes);
+  assert.equal(service.store.capacityBytes,536870912);
+  assert.equal(service.store.maxContractNodes,service.store.maxObjectBytes);
   assert.equal(service.numericalBackingClaim,false);
 });
 

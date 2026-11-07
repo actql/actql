@@ -107,18 +107,107 @@ pub fn compile_captured_query_json(
   declaration_json : String,
   fields_json : String,
   program_id : String,
+  environment_json : String,
+  environment_cid : String,
 ) -> String {
-  compile_query_json_checked(
-    text,
-    relation,
-    input_name,
-    declaration_json,
-    fields_json,
-    program_id,
-    false,
-    Some("capture"),
-  ) catch {
+  try {
+    let catalog = captured_source_catalog(environment_json, environment_cid)
+    compile_query_json_checked(
+      text,
+      relation,
+      input_name,
+      declaration_json,
+      fields_json,
+      program_id,
+      false,
+      Some("capture"),
+      source_catalog=Some(catalog),
+    )
+  } catch {
     _ => ""
+  }
+}
+
+///|
+// Admit the caller's real fixture publication through the same existing Catalog
+// constructors as the Source compiler. No Carrier or Source view is invented.
+fn captured_source_catalog(
+  wire : String,
+  expected : String,
+) -> @environment.SourceRequestContracts raise QueryBridgeRejected {
+  let selected = limits()
+  let source = selected.source.source
+  let tree = selected.source.tree
+  let caps : @environment.Limits = {
+    max_bytes: source.max_input_bytes,
+    max_nodes: tree.max_nodes,
+    max_depth: tree.max_depth,
+    max_members: tree.max_nodes,
+  }
+  guard @environment.read(@utf8.encode(wire), expected, caps) is Ok(raw) else {
+    raise QueryBridgeRejected
+  }
+  guard @environment.check_contract_registry(raw, caps) is Ok(registry) else {
+    raise QueryBridgeRejected
+  }
+  guard @environment.check_catalog_contents(registry, caps) is Ok(contents) else {
+    raise QueryBridgeRejected
+  }
+  guard @environment.check_catalog_references(contents, {
+      max_work: source.max_input_bytes,
+      max_references: tree.max_nodes,
+    })
+    is Ok(refs) else {
+    raise QueryBridgeRejected
+  }
+  guard @environment.check_source_data_policies(refs, {
+      max_work: source.max_input_bytes,
+      max_policies: tree.max_nodes,
+    })
+    is Ok(policies) else {
+    raise QueryBridgeRejected
+  }
+  guard @environment.check_protocol_value_contracts(policies, {
+      max_envelopes: tree.max_nodes,
+      contracts: {
+        max_nodes: tree.max_nodes,
+        max_depth: tree.max_depth,
+        max_text_bytes: tree.max_total_string_bytes,
+      },
+    })
+    is Ok(values) else {
+    raise QueryBridgeRejected
+  }
+  guard @environment.check_source_view_shapes(values, {
+      max_work: source.max_input_bytes,
+      max_views: tree.max_nodes,
+    })
+    is Ok(shapes) else {
+    raise QueryBridgeRejected
+  }
+  guard @environment.check_source_read_modes(shapes, source.max_input_bytes)
+    is Ok(modes) else {
+    raise QueryBridgeRejected
+  }
+  guard @environment.check_carrier_schemas(modes, {
+      max_work: source.max_input_bytes,
+      max_schemas: tree.max_nodes,
+      bodies: {
+        max_bytes: source.max_input_bytes,
+        max_nodes: tree.max_nodes,
+        max_depth: tree.max_depth,
+      },
+    })
+    is Ok(carriers) else {
+    raise QueryBridgeRejected
+  }
+  match
+    @environment.check_source_request_contracts(carriers, {
+      max_work: source.max_input_bytes,
+      max_roles: tree.max_nodes,
+    }) {
+    Ok(catalog) => catalog
+    Err(_) => raise QueryBridgeRejected
   }
 }
 
@@ -132,6 +221,7 @@ fn compile_query_json_checked(
   program_id : String,
   generated_values : Bool,
   captured_stage : String?,
+  source_catalog? : @environment.SourceRequestContracts? = None,
 ) -> String raise {
   let parsed = match @syntax.parse_query(text, syntax_limits()) {
     Ok(query) => query
@@ -173,7 +263,7 @@ fn compile_query_json_checked(
     captured_stage,
     parameter_declarations: None,
     input_schemas: [],
-    source_catalog: None,
+    source_catalog,
     model_tasks: None,
     calendar_profile: None,
     inputs: [

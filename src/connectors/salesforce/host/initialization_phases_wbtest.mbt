@@ -47,8 +47,10 @@ test "Salesforce phased recovery keeps full failed peak and only closed metadata
   assert_true(
     @execution.execution_capacity_retained_bytes(declaration) < declared,
   )
-  // Frozen435d working peaks, independently adjusted for the decoder's
-  // active-ancestor Map lifetime. Old28020 potential object owners become
+  // Frozen435d working peaks, independently adjusted for BOTH the Source
+  // parser and indexed decoder's distinct active-ancestor Map owners. Their
+  // inventories are conservatively co-counted by this existing constructor.
+  // Old28020 potential object owners in each become
   // at most32 live object frames. Each retired KeyAdmission/Map owner is
   //8H19R21W (entries/growth remain charged):448 bytes at the common tariff.
   let retired_map_owners = 28020L - 32L
@@ -56,7 +58,7 @@ test "Salesforce phased recovery keeps full failed peak and only closed metadata
     8L * (19L * retired_map_owners) +
     8L * (21L * retired_map_owners)
   assert_eq(retired_map_bytes, 12538624L)
-  assert_eq(peak, 212287177L - retired_map_bytes)
+  assert_eq(peak, 212287177L - 2L * retired_map_bytes)
   // Declaration skips Describe parsing but still decodes StaticDeclaration
   // JSON:16 envelope nodes +32 for one resource +20 per71 fields. Its
   //1468 possible object owners become64 active frames; all entries stay.
@@ -65,7 +67,7 @@ test "Salesforce phased recovery keeps full failed peak and only closed metadata
     8L * (19L * export_map_owners) +
     8L * (21L * export_map_owners)
   assert_eq(export_map_bytes, 628992L)
-  assert_eq(declared, 38337530L - export_map_bytes)
+  assert_eq(declared, 38337530L - 2L * export_map_bytes)
   println(
     "SF phased peak=\{peak} retained=\{retained} declaration=\{declared} prefix=\{prefix}",
   )
@@ -90,14 +92,14 @@ test "Salesforce phased recovery keeps full failed peak and only closed metadata
   // Whole uses the Describe-derived1000-field bound, so its export parse
   // has16+32+20*1000=20048 nodes at depth64. The two original decoder
   // Map-owner reductions now let this conservative whole quote fit512MiB;
-  // its old excess is no longer a required refusal. Phase/current/failed-child
+  // their old excess is no longer a required refusal. Phase/current/failed-child
   // duties remain unchanged, and this logical quote proves no physical ACK.
   let whole_export_owners = 16L + 32L + 20L * 1000L - 64L
   let whole_export_delta = (16L * 8L + 8L * 19L + 8L * 21L) *
     whole_export_owners
   assert_true(prefix / 2L + whole_bytes <= 536870912L)
   assert_true(
-    prefix / 2L + whole_bytes + retired_map_bytes + whole_export_delta >
+    prefix / 2L + whole_bytes + 2L * (retired_map_bytes + whole_export_delta) >
     536870912L,
   )
 }

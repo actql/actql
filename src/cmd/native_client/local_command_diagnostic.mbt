@@ -127,6 +127,17 @@ fn[T] local_stop_submitted_preparation(
     Declarations(_) => ParameterDeclarations
     Preparation(original) => local_native_preparation_diagnostic_kind(original)
     ReadOnlyEffect => ReadOnlyEffect
+    Request(CheckOutcome(outcome)) =>
+      match outcome {
+        @checked.Rejected(diagnostic) => local_check_diagnostic_kind(diagnostic)
+        @checked.NeedsInputs(requests) =>
+          local_check_diagnostic_kind(
+            @checked.input_requests_diagnostic(requests),
+          )
+        @checked.Checked(_) => PreparationFailed
+      }
+    Request(_) | RequestPreparation(_) => PreparationFailed
+    RequestBranchUnavailable => UnsupportedPreparation
   }
   // The existing caller propagates this rejection; it never retries another
   // checker. Preserve its old private carrier and cleanup routing unchanged.

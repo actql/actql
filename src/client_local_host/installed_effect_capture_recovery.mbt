@@ -15,6 +15,9 @@ struct ClientInstalledEffectCaptureRecovery {
   mut fixed : @resources.CapacityReservation?
   mut material : @resources.CapacityReservation?
   mut material_bytes : Int?
+  mut material_nodes : Int?
+  mut material_wire : String?
+  mut material_ready : Bool
   mut transitioning : Bool
   mut closing : Bool
 }
@@ -69,6 +72,9 @@ pub fn prepare_installed_effect_capture_recovery(
     fixed: Some(fixed),
     material: None,
     material_bytes: None,
+    material_nodes: None,
+    material_wire: None,
+    material_ready: false,
     transitioning: false,
     closing: false,
   })
@@ -114,6 +120,7 @@ pub fn reserve_installed_effect_capture_recovery(
           owner.max_wire_bytes,
           owner.max_nodes,
           owner.max_depth,
+          nodes=Some(0),
         )
         is Some(required) &&
         request_effect_capture_recovery_capacity(
@@ -146,6 +153,66 @@ pub fn reserve_installed_effect_capture_recovery(
 }
 
 ///|
+/// Observe only allocation geometry of the SAME authenticated plaintext before
+/// native JSON.parse or typed reconstruction. This is not JSON admission: all
+/// original validators still consume the complete wire. Include punctuation
+/// and escapes INSIDE strings to cover the embedded contract trees as well.
+fn effect_capture_wire_nodes(wire : String) -> Int? {
+  let mut nodes = 1L
+  for index = 0; index < wire.length(); index = index + 1 {
+    let code = wire[index].to_int()
+    nodes += if code == 123 || code == 91 || code == 92 {
+      2L
+    } else if code == 58 || code == 44 {
+      1L
+    } else {
+      0L
+    }
+    if nodes > 2147483647L {
+      return None
+    }
+  }
+  Some(nodes.to_int())
+}
+
+///|
+/// Grow the original read reservation after AEAD and BEFORE constructing any
+/// decoded tree. Bytes fund buffers/text; actual wire punctuation bounds nodes.
+/// No cached authorization, replacement Ledger or caller-supplied count exists.
+pub fn reserve_installed_effect_capture_decoded(
+  owner : ClientInstalledEffectCaptureRecovery,
+  wire : String,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  if owner.transitioning || owner.closing || owner.fixed is None {
+    return Err(Retired)
+  }
+  guard owner.material_bytes is Some(bytes) &&
+    wire.length() <= bytes &&
+    effect_capture_wire_nodes(wire) is Some(nodes) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.material_wire is Some(original) && original != wire {
+    return Err(ForeignOriginal)
+  }
+  owner.material_nodes = Some(nodes)
+  owner.material_wire = Some(wire)
+  owner.material_ready = false
+  owner.transitioning = true
+  preparation_module_call(
+    () => {
+      match resize_installed_effect_capture_recovery_material(owner, false) {
+        Err(issue) => Err(issue)
+        Ok(_) => {
+          owner.material_ready = true
+          Ok(())
+        }
+      }
+    },
+    () => owner.transitioning = false,
+  )
+}
+
+///|
 /// The trusted Store consumer has returned after its original FD close and
 /// transient plaintext/cursor aliases and full parsed container were cut.
 /// Keep every returned typed/schema/wire output on this SAME token.
@@ -154,6 +221,9 @@ pub fn complete_installed_effect_capture_recovery(
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   if owner.transitioning || owner.closing || owner.fixed is None {
     return Err(Retired)
+  }
+  if owner.material is Some(_) && !owner.material_ready {
+    return Err(ForeignOriginal)
   }
   owner.transitioning = true
   preparation_module_call(
@@ -189,6 +259,7 @@ fn resize_installed_effect_capture_recovery_material(
   guard owner.material is Some(material) && owner.material_bytes is Some(bytes) else {
     return check_installed_effect_managed_run(parent, prepared, request)
   }
+  let nodes = owner.material_nodes.unwrap_or(0)
   let original : () -> Result[Unit, ClientInstalledManagedRunIssue] = () => {
     guard !owner.closing &&
       owner.transitioning &&
@@ -206,7 +277,8 @@ fn resize_installed_effect_capture_recovery_material(
       physical_equal(f, fixed) &&
       owner.material is Some(m) &&
       physical_equal(m, material) &&
-      owner.material_bytes == Some(bytes) else {
+      owner.material_bytes == Some(bytes) &&
+      owner.material_nodes.unwrap_or(0) == nodes else {
       return Err(Retired)
     }
     check_installed_managed_run_original(parent, ledger, preparation).map(_ => {
@@ -222,6 +294,7 @@ fn resize_installed_effect_capture_recovery_material(
       owner.max_wire_bytes,
       owner.max_nodes,
       owner.max_depth,
+      nodes=Some(nodes),
     )
     is Some(required) &&
     request_effect_capture_recovery_capacity(
@@ -242,11 +315,16 @@ fn resize_installed_effect_capture_recovery_material(
     // The full parsed capture container no longer exists after the trusted
     // Store return. That return also cuts the envelope/ciphertext/plaintext
     // buffers and completed schema-writer bytes; failures never enter here.
-    // Preserve the other two tree inventories, all three decoded String
+    // Preserve the two returned tree inventories, all three decoded String
     // bounds (including the retained record wire), and schema/member owners.
     // No returned original borrows those four binary constructor buffers.
     guard @execution.execution_capacity_inventory_bytes([
-        { unit: ValueNodeSlots, count: bytes.to_int64(), copies: 1, },
+        {
+          unit: ValueNodeSlots,
+          count: Int64::max(bytes.to_int64(), nodes.to_int64() * 3L) -
+          nodes.to_int64() * 2L,
+          copies: 1,
+        },
         { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 4, },
       ])
       is Some(completed_material) else {
@@ -288,6 +366,9 @@ pub fn retire_installed_effect_capture_recovery(
   owner.prepared = None
   owner.request = None
   owner.definition = None
+  owner.material_wire = None
+  owner.material_nodes = None
+  owner.material_ready = false
   owner.transitioning = true
   preparation_module_call(
     () => {

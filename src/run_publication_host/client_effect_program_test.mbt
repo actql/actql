@@ -112,6 +112,88 @@ fn client_effect_fixture() -> (
 }
 
 ///|
+test "private intermediate Effect input retains its exact task without a public export" {
+  let (source, environment, limits) = client_effect_fixture()
+  let document = source
+    .replace(
+      old="\"as\":\"selected\"}]",
+      new="\"as\":\"selected\"},{\"derive\":{\"extra\":{\"literal\":1}},\"as\":\"effect_input\"},{\"select\":[\"value\"],\"as\":\"public_rows\"}]",
+    )
+    .replace(
+      old="\"out\":{\"from\":\"selected\",\"fields\":[\"value\"]}",
+      new="\"out\":{\"from\":\"public_rows\",\"fields\":[\"value\"]},\"private\":{\"from\":\"effect_input\",\"fields\":[\"value\",\"extra\"]}",
+    )
+    .replace(
+      old="\"from\":{\"result\":\"out\"}",
+      new="\"from\":{\"result\":\"private\"}",
+    )
+  // The original Values completion and both exact row completions are three
+  // tasks; retaining the private port must not bypass the selected task budget.
+  assert_true(
+    prepare_client_effect_computation(
+      document,
+      @syntax.Json,
+      environment,
+      None,
+      [],
+      limits,
+    )
+    is Err(Graph(@strategy.GraphIssue::TaskLimit)),
+  )
+  let limits = { ..limits, program: { ..limits.program, max_tasks: 3, }, }
+  let outcome = prepare_client_effect_computation(
+    document,
+    @syntax.Json,
+    environment,
+    None,
+    [],
+    limits,
+  )
+  let prepared = match outcome {
+    Ok(value) => value
+    Err(Graph(@strategy.GraphIssue::UnsupportedEffectSource(index))) =>
+      fail(
+        "private Effect graph: UnsupportedEffectSource(" +
+        index.to_string() +
+        ")",
+      )
+    Err(Graph(@strategy.GraphIssue::ForeignEffectSource(index))) =>
+      fail(
+        "private Effect graph: ForeignEffectSource(" + index.to_string() + ")",
+      )
+    Err(Graph(@strategy.GraphIssue::ForeignPort(stage, input))) =>
+      fail(
+        "private Effect graph: ForeignPort(" +
+        stage.to_string() +
+        "," +
+        input.to_string() +
+        ")",
+      )
+    Err(Graph(@strategy.GraphIssue::WorkLimit)) =>
+      fail("private Effect graph: WorkLimit")
+    Err(Graph(@strategy.GraphIssue::TaskLimit)) =>
+      fail("private Effect graph: TaskLimit")
+    Err(Graph(_)) => fail("private Effect graph: another original Graph issue")
+    Err(_) => fail("private Effect preparation failed before Graph")
+  }
+  let effects = prepared_client_effect_computation_graph(prepared)
+  let graph = @strategy.checked_effect_computation_graph(effects)
+  assert_eq(@strategy.graph_result_count(graph), 1)
+  assert_eq(@strategy.graph_result_name(graph, 0), Some("published"))
+  let input = @strategy.checked_effect_source_at(effects, 0).unwrap()
+  assert_eq(@strategy.checked_effect_source_stage(input), 0)
+  let task = @strategy.checked_effect_source_task(input)
+  assert_eq(@strategy.graph_task_target(graph, task), Some(@pipeline.Step(1)))
+  assert_eq(
+    @strategy.graph_stage_target_task(graph, 0, @pipeline.Step(1)),
+    Some(task),
+  )
+  let output = @strategy.graph_result_task(graph, 0).unwrap()
+  assert_eq(@strategy.graph_task_target(graph, output), Some(@pipeline.Step(2)))
+  assert_true(task != output)
+}
+
+///|
 test "original submitted read-only restriction rejects the same complete Effect preparation" {
   let (document, environment, limits) = client_effect_fixture()
   let read = prepare_client_submitted_intent(

@@ -16,7 +16,7 @@ pub fn accept_managed_query_page(ManagedQuery, String, Bytes) -> Result[@catalog
 
 pub fn cancel_managed_query(ManagedQuery) -> Bool
 
-pub fn effect_capture_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, @source_value.ParseLimits, @catalog.ListLimits, @catalog.DescribeLimits, Int, Int, Int, Int, Int, Int, Int, Int, recovery_input_bytes? : Int) -> Array[@execution_relation.ExecutionCapacity]?
+pub fn effect_capture_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, @source_value.ParseLimits, @catalog.ListLimits, @catalog.DescribeLimits, Int, Int, Int, Int, Int, Int, Int, Int, recovery_input_bytes? : Int, recovery_source_nodes? : Int?, recovery_preflight? : Bool, named_source_geometry? : @source_value.JsonSourceGeometry?) -> Array[@execution_relation.ExecutionCapacity]?
 
 pub fn effect_construction_profile(@catalog.WriteBodyLimits, @catalog.WriteRequestLimits, @catalog.TargetObservationLimits, @catalog.WriteCollectionResponseLimits, @catalog.DescribeLimits, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
 

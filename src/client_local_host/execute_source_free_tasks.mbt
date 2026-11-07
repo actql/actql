@@ -46,6 +46,83 @@ pub fn execute_source_free_local_tasks_guarded(
   require_current : () -> Bool,
   require_live? : (() -> Bool)? = None,
 ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
+  execute_local_tasks_guarded(
+    setup,
+    finalization_quantum,
+    max_finalization_rounds,
+    require_current,
+    require_live~,
+    first=0,
+  )
+}
+
+///|
+/// Continue the single original Row capture through its checked Common tail.
+/// The original Host must already have authorized physical work. This entry
+/// neither admits a Run nor claims a Source task or supplies authorization.
+/// Source custody stays with the caller and must outlive every Compute borrow.
+/// The outer Host must reserve the explicit control quote before this call and
+/// retain it until all returned execution or failure cleanup has completed.
+pub fn execute_captured_local_tasks_guarded(
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  capture : @row_source_host.RowSourceCapture,
+  requirements : ClientLocalRequirements,
+  finalization_quantum : Int,
+  max_finalization_rounds : Int,
+  require_current : () -> Bool,
+  require_live? : (() -> Bool)? = None,
+) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  // The original outer Host reserves captured_local_tasks_control_capacity
+  // before entering here. These wrappers retain borrowed originals only.
+  let guarded_current = () => {
+    require_current() &&
+    captured_local_tasks_current(run, capture, requirements)
+  }
+  let guarded_live = match require_live {
+    None => None
+    Some(check) =>
+      Some(() => {
+        check() && captured_local_tasks_current(run, capture, requirements)
+      })
+  }
+  execute_local_tasks_guarded(
+    setup,
+    finalization_quantum,
+    max_finalization_rounds,
+    guarded_current,
+    require_live=guarded_live,
+    first=1,
+  )
+}
+
+///|
+// Recheck original custody after callbacks. Equal preparations, copied source
+// wrappers and captures on another Ledger cannot stand in for these originals.
+fn captured_local_tasks_current(
+  run : @strategy.CapturedDAG,
+  capture : @row_source_host.RowSourceCapture,
+  requirements : ClientLocalRequirements,
+) -> Bool {
+  requirements.capacity_plan.graph_offset == 1 &&
+  physical_equal(
+    @publication_host.prepared_client_graph(requirements.prepared),
+    @strategy.captured_dag_graph(run),
+  ) &&
+  @row_source_host.check_row_capture_compute_binding(capture, run, 0)
+}
+
+///|
+fn execute_local_tasks_guarded(
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  finalization_quantum : Int,
+  max_finalization_rounds : Int,
+  require_current : () -> Bool,
+  require_live~ : (() -> Bool)?,
+  first~ : Int,
+) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   if finalization_quantum <= 0 || max_finalization_rounds <= 0 {
     return Err(failed_local_values_execution(InvalidLimits))
   }
@@ -56,7 +133,7 @@ pub fn execute_source_free_local_tasks_guarded(
   let count = @strategy.graph_task_count(graph)
   // Do not size the retained task table from an unsupported graph. Stopping
   // this original run is still its caller-owned cleanup, not another attempt.
-  if count < 1 {
+  if count <= first {
     let cleanup = () => close_local_values_tasks(run, [])
     return Err({ issue: UnsupportedGraph, cleanup, cleaned: cleanup(), })
   }
@@ -64,8 +141,9 @@ pub fn execute_source_free_local_tasks_guarded(
   let available = Ref(true)
   let current = () => available.val && require_current()
   // Legacy callers retain their original callback at each poll. A trusted
-  // caller may separate cheap original-lifetime polling from authorization;
-  // the latter still runs at dispatch and callback-return boundaries below.
+  // caller may separate cheap original-lifetime polling from its currentness
+  // guard, which still runs at dispatch and callback-return boundaries below.
+  // Neither callback establishes Account authorization in this adapter.
   let live = () => {
     if !available.val {
       return false
@@ -88,10 +166,10 @@ pub fn execute_source_free_local_tasks_guarded(
   if require_live is Some(poll) && !poll() {
     return reject(Fenced)
   }
-  if @strategy.graph_captured_prefix(graph) != 0 ||
-    !@strategy.graph_source_free_inputs_complete(graph) ||
+  if @strategy.graph_captured_prefix(graph) != first ||
+    (first == 0 && !@strategy.graph_source_free_inputs_complete(graph)) ||
     @strategy.graph_program_has_effects(graph) ||
-    @strategy.next_captured_task(run) != Some(0) {
+    @strategy.next_captured_task(run) != Some(first) {
     return reject(UnsupportedGraph)
   }
   guard @builtin.configured_local_module(
@@ -100,12 +178,26 @@ pub fn execute_source_free_local_tasks_guarded(
     is Some(installed) else {
     return reject(MissingLocalModule)
   }
-  for _ in 0..<count {
+  for _ in first..<count {
     if !current() {
       return reject(Fenced)
     }
+    // The single-capture factory retains adaptive proposals, not a selected
+    // strategy. Let the existing Host select/refresh them on this same Run.
+    if first == 1 {
+      match
+        @host_driver.refresh_compute_host(
+          @builtin.configured_host_runtime(setup),
+        ) {
+        Ok(_) => ()
+        Err(issue) => return reject(Estimate(issue))
+      }
+      if !current() {
+        return reject(Fenced)
+      }
+    }
     guard @strategy.next_captured_task(run) is Some(index) &&
-      index >= 0 &&
+      index >= first &&
       index < count &&
       tasks[index] is None &&
       @strategy.graph_task_owner(graph, index) is Some(_) else {
@@ -117,15 +209,19 @@ pub fn execute_source_free_local_tasks_guarded(
       return reject(UnsupportedGraph)
     }
     let producers = @strategy.captured_next_managed_producers(run)
-    let inputs : Array[@execution.ManagedCompletedOutput[Int]] = []
+    let inputs : Array[@local_driver.LocalManagedAvailableOutput[Int]] = []
     for producer in producers {
-      guard producer >= 0 &&
+      if first == 1 && producer == 0 {
+        inputs.push(@local_driver.local_managed_captured_relation_input())
+        continue
+      }
+      guard producer >= first &&
         producer < count &&
         tasks[producer] is Some(task) &&
         task.completed is Some(output) else {
         return reject(MissingOutput)
       }
-      inputs.push(output)
+      inputs.push(@local_driver.local_managed_relation_output(output))
     }
     let obligations = match
       @strategy.captured_next_managed_obligations(
@@ -138,7 +234,7 @@ pub fn execute_source_free_local_tasks_guarded(
       Err(_) => return reject(Driver(Configuration(InvalidLimits)))
     }
     let prepared = match
-      @local_driver.prepare_local_managed_dispatch(
+      @local_driver.prepare_local_managed_dispatch_with_outputs(
         installed, inputs, obligations, 0L,
       ) {
       Ok(Some(value)) => value

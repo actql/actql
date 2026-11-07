@@ -111,7 +111,7 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
     salesforceMoon.salesforceSingleWriteRequestCid(request,
       site.instanceOrigin, limits.maxIdentityBytes));
 
-  const recoverRequests = ({durable, recorded, previewWire, body, memberIndexes}) => {
+  const recoverRequests = ({durable, recorded, previewWire, body, memberIndexes, reserveRecoveryInput}) => {
     const rebuilt = recoverCapturedSalesforceSingleRequests({
       moon: salesforceMoon, recovered: durable, recorded, previewWire,
       runIdentityCid: body.run_identity_cid,
@@ -119,7 +119,7 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
       previewLimits: limits.preview, bodyLimits: limits.body,
       requestLimits: limits.request, maxMembers: limits.maxMembers,
       maxRows: limits.maxRows, maxRetainedBytes: limits.maxRetainedBytes,
-      memberIndexes});
+      memberIndexes, reserveRecoveryInput});
     return {requests: rebuilt.requests,
       currents: rebuilt.catalogs.map(observation => Object.freeze({observation}))};
   };

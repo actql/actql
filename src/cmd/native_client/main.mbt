@@ -2061,6 +2061,10 @@ fn execute_and_write_native_reply(
       stop("LocalCommandReplyUnavailable")
     }
     pending_reply.val = Some(command_control_copy_text(value))
+    // The real command-control copy now owns reporting. Cut the original
+    // Read/Request payload alias before its physical child cleanup, keeping
+    // the original cleanup/primary records and independently backed copy.
+    original.reply_outcome = None
     return
   }
   let reply = if matches.subcommand is Some(("read", _)) {

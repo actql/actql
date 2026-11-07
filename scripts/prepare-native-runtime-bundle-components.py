@@ -6,13 +6,11 @@ original provider ports. It never loads components or acquires runtime capacity.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import importlib.util
 import json
 from pathlib import Path
 import subprocess
 import time
-import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,6 +24,7 @@ def load(name: str, filename: str):
 
 SQLITE = load('bundle_original_sqlite', 'produce-python-sqlite-component.py')
 CRYPTO = load('bundle_original_crypto', 'produce-native-crypto-component.py')
+INPUTS = load('bundle_original_inputs', 'prepare-native-resident-http-component.py')
 
 
 def prepare(source: str, target: str, clang: Path, sdk: Path | None,
@@ -48,12 +47,8 @@ def prepare(source: str, target: str, clang: Path, sdk: Path | None,
     expected = recipe['upstream']
     # Read exactly the pinned member container; never extract names from it.
     # Its existing stage verifies the complete archive and both source members.
-    with urllib.request.urlopen(expected['url'], timeout=min(seconds, 60)) as response:
-        raw = response.read(expected['bytes'] + 1)
-    if len(raw) != expected['bytes'] or hashlib.sha256(raw).hexdigest() != expected['sha256']:
-        raise ValueError('Pinned original SQLite archive mismatch')
-    with archive.open('xb') as stream:
-        stream.write(raw)
+    INPUTS.acquire(expected['url'], {key: expected[key] for key in ('bytes', 'sha256')},
+                   archive, None, max(1, int(deadline - time.monotonic())))
     remaining = max(1, int(deadline - time.monotonic()))
     sqlite = (SQLITE.build_process_import(source, archive, clang, sdk,
         destination / 'sqlite', remaining) if target == 'darwin-arm64' else

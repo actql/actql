@@ -23,6 +23,101 @@ static observation and unmeasured quantities remain explicit. This metadata
 does not assert unrecorded runtime engine choices, measurements or execution
 history, and the human renderer distinguishes it from a new static EXPLAIN.
 
+## Same Request Effect preparation lifetime
+
+The Native submitted-Request entrance retains the checker's original Pure or
+Effect preparation and its corresponding typed constructor borrow. Common
+finishes compilation and continues the same capacity once; Native does not
+check, compile or continue it again to project that result. Effect first-sequence
+preparation uses that same retained Request while the original Journal Read is
+suspended. A Pure operation is activated only for the actual Pure requirements.
+This handoff is preparation, not approval, Account authority or a durable Effect
+Run supplier; unsupported execution remains unavailable.
+
+The fixed Request's existing 4KiB internal control group covers the Native
+completed-body carrier (one header, original-borrow reference and variant word)
+after its resize has returned. Variable Program, compiler and provider bodies
+remain separately reserved on the same parent before construction.
+
+Cleanup returns the original constructor borrow before retiring its capacity.
+Live borrowers or a failed logical settlement keep that exact capacity and
+original prepared Effect. After successful logical retirement, the Request
+severs the Effect's cached normalization/material backedges and drops completed
+continuation/quote aliases before the physical Read waits for its last alias.
+The normalization cache is not a physical owner; severing it cannot free an
+escaped original, acknowledge cleanup or authorize reissuance. Physical-only
+retry retains the same initial owner and never settles the transferred Unit
+capacity again. Unknown stop outcomes stay Unknown; only actual Native Read,
+domain and arena retirement supplies their respective acknowledgements.
+
+## Native Project Mock declaration intake
+
+The Native Project reader selects the same original configuration/profile and
+reads its explicit connectors, Model registry, Catalog and answer declarations
+through the existing bounded UTF-8 Reader. The Source data locator is retained
+without opening its payload; the same Request's admitted Source must read it
+under its own checked payload bounds and current custody. The declaration
+Reader's 64 KiB limit is not a Source payload or Run limit. Task paths are relative to
+the original registry file; Catalog, data and answer paths are relative to the
+Project. Common admits the original connection/Catalog/registry documents and
+public Task contracts. A Task's registered name and original provider selection
+must correspond to that same registry and declaration. Equal separately decoded
+registries cannot replace those originals. Missing or physically unclosed
+files retain their original Reader failure; no empty-document fallback exists.
+
+Successful intake remains in the existing command's Project record. The
+profile's nominal cycle retires on both refusal and ordinary command exit,
+before the enclosing Read can acknowledge cleanup. Partial intake retires that
+profile while preserving any original Reader failure. This is declaration DATA,
+not Source installation, a Model provider, Account permission, Reviewer or a
+Run grant. Declaration intake does not select Native execution availability.
+Only the actual same-Request Source/Model/Effect assembly, installed Host and
+approval supplier can admit execution. Intake cannot select the packaged
+source-free Host as a substitute.
+
+
+The same command retains its Project before constructing Mock Model originals.
+Each original answer, normalization and installation is retained before the
+next fallible constructor. Construction invokes no Model callback or clock.
+Its first failure remains sticky, so the caller cannot reinstall or silently
+replace an incomplete original. Retirement visits those same installations
+before answer/profile originals. An installation with live users keeps its
+same entry and retirement position pending; it does not acknowledge the
+command's physical Read. Only the existing Read/domain/arena owners report
+physical closure after all command-held aliases retire.
+
+Fresh check/business callers extend the exact selected installation Environment
+with those same normalized Task originals through the common Task projector.
+The ordinary Native Environment admission still checks the complete result;
+no Host-side Task or contract table is reconstructed. One command retains the
+original base and projected Environment once. Configuration-file currentness
+continues to compare its original captured bytes, while the Request/check
+reference consumes the projected semantic identity. Saved routes do not rebuild
+current Project Tasks or replace a retained Run's Environment.
+
+The same Project retains its Catalog's Source declarations before Model
+construction. The Native adapter translates only public document fields into
+the existing Relation restore input; Common remains the schema, acquisition,
+correlation and contract owner. Private restore-field spellings cannot be
+injected through public view fields, and unfamiliar fields are not dropped.
+Original connection/Catalog correspondence and partial declaration prefixes
+stay on the same command holder. These are initial declaration contracts;
+File physical capability facts, published query aliases, Source/Content
+capture and Effect installation still require their real same-Request owners.
+No Source payload is read by this metadata construction.
+
+Source Environment assembly retains the exact base and the complete generated
+Catalog, contract, view and evidence members. It sorts their canonical member
+identities and coalesces only byte-identical bodies; the ordinary Common
+admission retains conflicting-selector refusal. Task projection consumes that
+same Source Environment. A publication retains its exact final Environment,
+restored view handles and requests once, and the original Request caller uses
+that prepared publication rather than reconstructing an empty namespace.
+These contracts and aliases remain trusted declaration DATA. Metadata alone
+never grants alias disclosure, acquisition, Model execution or Effect authority;
+the normal installation still requires its original current/account/service
+connections before opening those operations.
+
 ## Ordinary literal query caller
 
 Trusted public `sql` and literal `aql` select the ordinary Local Host when no

@@ -292,4 +292,142 @@ class OwnedTlsReceipt(unittest.TestCase):
                     P.prepare('a'*40,'linux-x64',None,None,None,None,None,None,None,30,tls_jobs=jobs)
 
 
+class BoundedPinnedDownloads(unittest.TestCase):
+    """Transport-only fixtures; no network, compiler or component execution."""
+
+    @staticmethod
+    def response(raw=b'pinned', *, url='https://source.invalid/original'):
+        import io
+        value=io.BytesIO(raw)
+        value.geturl=lambda:url
+        return value
+
+    @staticmethod
+    def expected(raw=b'pinned'):
+        return {'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
+
+    def test_dns_failure_retries_same_pinned_original(self):
+        import socket
+        error=urllib.error.URLError(socket.gaierror(8,'fixture DNS failure'))
+        now=[0.0]; sleeps=[]
+        def sleep(seconds):sleeps.append(seconds);now[0]+=seconds
+        with tempfile.TemporaryDirectory() as raw:
+            destination=Path(raw)/'original'
+            with patch.object(P.urllib.request,'urlopen',side_effect=[error,self.response()]) as opened, \
+                    patch.object(P.time,'monotonic',side_effect=lambda:now[0]),patch.object(P.time,'sleep',side_effect=sleep):
+                self.assertEqual(P.acquire('https://source.invalid/original',self.expected(),destination,None,30),destination)
+            self.assertEqual(destination.read_bytes(),b'pinned')
+            self.assertEqual([call.args[0].full_url for call in opened.call_args_list],
+                             ['https://source.invalid/original']*2)
+            self.assertEqual([call.kwargs['timeout'] for call in opened.call_args_list],[30,28])
+            self.assertEqual(sleeps,[2])
+
+    def test_transient_http_and_interrupted_read_restart_same_bounded_get(self):
+        error=urllib.error.HTTPError('https://source.invalid/original',503,'unavailable',{},None)
+        interrupted=self.response();interrupted.read=unittest.mock.Mock(side_effect=TimeoutError('fixture interrupted body'))
+        with tempfile.TemporaryDirectory() as raw:
+            destination=Path(raw)/'original'
+            with patch.object(P.urllib.request,'urlopen',side_effect=[error,interrupted,self.response()]) as opened, \
+                    patch.object(P.time,'monotonic',return_value=0),patch.object(P.time,'sleep') as sleep, \
+                    patch.object(error,'close',wraps=error.close) as close:
+                P.acquire('https://source.invalid/original',self.expected(),destination,None,120)
+                close.assert_called_once()
+            self.assertEqual(destination.read_bytes(),b'pinned')
+            self.assertEqual([call.args[0].full_url for call in opened.call_args_list],['https://source.invalid/original']*3)
+            self.assertEqual([call.kwargs['timeout'] for call in opened.call_args_list],[60]*3)
+            self.assertEqual(sleep.call_args_list,[unittest.mock.call(2),unittest.mock.call(4)])
+            self.assertTrue(interrupted.closed)
+
+    def test_repeated_network_failure_returns_last_original_after_three_attempts(self):
+        import socket
+        errors=[urllib.error.URLError(socket.gaierror(8,'fixture DNS failure')) for _ in range(3)]
+        with tempfile.TemporaryDirectory() as raw:
+            destination=Path(raw)/'original'
+            with patch.object(P.urllib.request,'urlopen',side_effect=errors) as opened, \
+                    patch.object(P.time,'monotonic',return_value=0),patch.object(P.time,'sleep') as sleep:
+                with self.assertRaises(urllib.error.URLError) as observed:
+                    P.acquire('https://source.invalid/original',self.expected(),destination,None,30)
+            self.assertIs(observed.exception,errors[-1])
+            self.assertEqual(opened.call_count,3)
+            self.assertEqual(sleep.call_args_list,[unittest.mock.call(2),unittest.mock.call(4)])
+            self.assertFalse(destination.exists())
+
+    def test_expired_original_budget_does_not_retry_or_sleep(self):
+        import socket
+        error=urllib.error.URLError(socket.gaierror(8,'fixture DNS failure'));now=[0]
+        def fail(*args,**kwargs):now[0]=30;raise error
+        with tempfile.TemporaryDirectory() as raw:
+            destination=Path(raw)/'original'
+            with patch.object(P.urllib.request,'urlopen',side_effect=fail) as opened, \
+                    patch.object(P.time,'monotonic',side_effect=lambda:now[0]),patch.object(P.time,'sleep') as sleep:
+                with self.assertRaises(urllib.error.URLError) as observed:
+                    P.acquire('https://source.invalid/original',self.expected(),destination,None,30)
+            self.assertIs(observed.exception,error);self.assertEqual(opened.call_count,1)
+            sleep.assert_not_called();self.assertFalse(destination.exists())
+
+    def test_retry_scheduling_delay_preserves_original_failure(self):
+        import socket
+        error=urllib.error.URLError(socket.gaierror(8,'fixture DNS failure'));now=[0]
+        def delayed_sleep(seconds):now[0]=30
+        with tempfile.TemporaryDirectory() as raw:
+            destination=Path(raw)/'original'
+            with patch.object(P.urllib.request,'urlopen',side_effect=error) as opened, \
+                    patch.object(P.time,'monotonic',side_effect=lambda:now[0]),patch.object(P.time,'sleep',side_effect=delayed_sleep):
+                with self.assertRaises(urllib.error.URLError) as observed:
+                    P.acquire('https://source.invalid/original',self.expected(),destination,None,30)
+            self.assertIs(observed.exception,error);self.assertEqual(opened.call_count,1)
+            self.assertFalse(destination.exists())
+
+    def test_permanent_or_unverified_inputs_never_retry_or_publish(self):
+        import ssl
+        failures=[urllib.error.HTTPError('https://source.invalid/original',404,'missing',{},None),
+                  urllib.error.URLError(ssl.SSLCertVerificationError('fixture untrusted certificate'))]
+        for error in failures:
+            with self.subTest(error=type(error).__name__),tempfile.TemporaryDirectory() as raw:
+                destination=Path(raw)/'original'
+                with patch.object(P.urllib.request,'urlopen',side_effect=error) as opened,patch.object(P.time,'sleep') as sleep:
+                    with self.assertRaises(type(error)) as observed:
+                        P.acquire('https://source.invalid/original',self.expected(),destination,None,30)
+                self.assertIs(observed.exception,error);self.assertEqual(opened.call_count,1)
+                sleep.assert_not_called();self.assertFalse(destination.exists())
+        for response in [self.response(b'other!'),self.response(b'too long'),self.response(url='http://source.invalid/original')]:
+            with self.subTest(response=response),tempfile.TemporaryDirectory() as raw:
+                destination=Path(raw)/'original'
+                with patch.object(P.urllib.request,'urlopen',return_value=response) as opened,patch.object(P.time,'sleep') as sleep:
+                    with self.assertRaises(ValueError):
+                        P.acquire('https://source.invalid/original',self.expected(),destination,None,30)
+                self.assertEqual(opened.call_count,1);sleep.assert_not_called();self.assertFalse(destination.exists())
+
+    def test_bundle_sqlite_uses_verified_acquisition_before_original_compiler(self):
+        import socket
+        # Execute the original preparation body with explicit compiler ports;
+        # importing the real producer would also require the Python SDK stack.
+        import ast
+        import types
+        source=P.ROOT/'scripts/prepare-native-runtime-bundle-components.py'
+        body=next(node for node in ast.parse(source.read_text()).body
+                  if isinstance(node,ast.FunctionDef) and node.name=='prepare')
+        selected=types.SimpleNamespace(SOURCE=None,build_process_import=None)
+        fields={'ROOT':P.ROOT,'Path':Path,'subprocess':subprocess,'time':P.time,
+                'json':json,'hashlib':hashlib,'urllib':P.urllib,'SQLITE':selected,'INPUTS':P}
+        exec(compile(ast.Module(body=[body],type_ignores=[]),str(source),'exec'),fields)
+        bundle=types.SimpleNamespace(**fields)
+        class CompilerReached(Exception):pass
+        error=urllib.error.URLError(socket.gaierror(8,'fixture DNS failure'))
+        with tempfile.TemporaryDirectory() as raw:
+            root=Path(raw);recipe=root/'source.json'
+            recipe.write_text(json.dumps({'upstream':{'url':'https://source.invalid/original',**self.expected()}}))
+            destination=root/'components'
+            with patch.object(bundle.SQLITE,'SOURCE',root), \
+                    patch.object(bundle.subprocess,'check_output',side_effect=['a'*40,'']), \
+                    patch.object(P.urllib.request,'urlopen',side_effect=[error,self.response()]) as opened, \
+                    patch.object(P.time,'sleep'),patch.object(P.time,'monotonic',return_value=0), \
+                    patch.object(bundle.SQLITE,'build_process_import',side_effect=CompilerReached) as compiler:
+                with self.assertRaises(CompilerReached):
+                    bundle.prepare('a'*40,'darwin-arm64',root/'clang',root/'sdk',None,destination,30)
+            archive=destination/'sqlite-original.zip'
+            self.assertEqual(archive.read_bytes(),b'pinned');self.assertEqual(opened.call_count,2)
+            compiler.assert_called_once_with('a'*40,archive,root/'clang',root/'sdk',destination/'sqlite',30)
+
+
 if __name__=='__main__':unittest.main()

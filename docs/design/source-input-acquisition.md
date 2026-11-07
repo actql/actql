@@ -81,9 +81,28 @@ The original Source/Compute Plan retains a complete-input variant. Its checked
 physical graph view supplies the exact input to the original root computation;
 the authored root remains pending and executes its actual Select, Sort and
 other supported operations. Program, Parameters, task coordinates, Result ports
-and downstream wiring remain original. The initial supported view is one direct
-Source input; native file listings require their different Resource, native
-inventory and retained-material recipe and are refused by this JSON lane.
+and downstream wiring remain original. Whole-input native file listings require their different Resource custody and
+retained-material recipe. Complete-input file listings retain their original `FileListProfile` and
+resolve the same Catalog/Host item ceiling. They use the existing RowRun
+listing protocol, Resource issuer, paths/glob selection, duplicate metadata
+comparison and terminal completeness check; no Query requirement is fabricated.
+An empty continuation page is not completion, and missing requested paths or
+conflicting metadata cannot publish a partial capture.
+
+Listing metadata includes excluded identities until terminal completeness.
+Its original typed admission supplies node/text usage once; the complete-input
+retention bounds cover that metadata as well as the selected input. A duplicate
+row's temporary usage retires only after comparison, while the original row
+stays charged. Physical transfer bytes remain distinct from translated metadata.
+
+Initial listing funding covers controls and the actual bound selector. Actual
+pages grow the same RowRun reservation before decoding/tree/metadata allocation,
+using the original Source preflight geometry and its same parser, transferred
+once. The parser stays on the original read across fallible current/resource
+checks so cancellation can retire it. Future listing/retention/page ceilings do
+not become initial listing demand. Resource refusal keeps original cleanup
+responsibility; no grant, Source success or physical stop follows from a quote.
+The separate Query-shaped listing/report path keeps its existing recipe.
 
 The Plan composes the original input, provider, Compute imports, output and
 simultaneous failed-child bounds through existing capacity functions and units.
@@ -154,6 +173,17 @@ before issuance and again before retaining the completed invocation. The existin
 one-shot invocation slot remains consumed on semantic failure. Complete original
 Source evidence and logical input values must fit the caller's encoding bounds;
 equal wire representations cannot replace their native capture correspondence.
+
+The keyed Model prefix borrows a closed input original from that live capture
+or the existing restored Source owner. Restored inputs retain their actual
+receiving reservation and holding; they do not acquire a replacement RowRun.
+Source slots remain distinct from Compute task indexes, so two complete inputs
+may feed the same authored JOIN task. The shared prefix and Model admission
+check each original acquisition, Source identity and parent Ledger, while the
+existing Source owner retains cleanup. Dependent Models preserve this same
+Source provenance through saved call-scope restoration. Query requirements
+keep their separate nominal variant; mixed Query and complete-input Plan
+binding remains unsupported.
 
 The original Task compiler represents external inputs even for a single task.
 Its Result port follows the same closed acquisition selection: Query publishes

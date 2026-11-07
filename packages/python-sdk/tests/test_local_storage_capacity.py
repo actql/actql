@@ -98,7 +98,7 @@ print('original reservation retained')
         connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-python-capacity-') as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=LostCommit)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostCommit}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     store._connection.lose = True
                     with self.assertRaises(OSError):
@@ -120,7 +120,7 @@ print('original reservation retained')
         connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-python-capacity-') as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=RefuseRelease)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': RefuseRelease}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     store.reserve_capacity('publication', 'original', 8, 1, 64, 4)
                     store._connection.refuse = True
@@ -161,7 +161,7 @@ print('original reservation retained')
         connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-python-capacity-') as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=RefuseCommitRollback)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': RefuseCommitRollback}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     store._connection.refuse = True
                     with self.assertRaises(OSError):

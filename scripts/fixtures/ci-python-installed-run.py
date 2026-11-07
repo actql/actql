@@ -1,8 +1,10 @@
 """Observe suppressed failure locations without changing installed consumer behavior.
 
 Only CI copies this wrapper outside the repository. It never prints exception
-messages, locals, reference values, source lines, or full paths. Public Unknown
-semantics and the original exception are retained; no operation is repeated.
+messages, locals, reference values, source lines, or full paths. The known Core
+buffer seal failure may report its original signed ABI status, without decoding
+it into a business outcome. Public Unknown semantics and the original exception
+are retained; no operation is repeated.
 """
 from __future__ import annotations
 
@@ -32,8 +34,20 @@ def report_contexts(failure: BaseException, stream) -> None:
         frames = [{'file': Path(frame.f_code.co_filename).name[:MAX_LABEL], 'line': line,
                    'function': frame.f_code.co_name[:MAX_LABEL]}
                   for frame, line in deque(traceback.walk_tb(current.__traceback__), maxlen=MAX_FRAMES)]
-        wire = json.dumps({'stage': 'installed-consumer-failure-location',
-                           'exception_type': type(current).__name__[:MAX_LABEL], 'frames': frames}) + '\n'
+        record = {'stage': 'installed-consumer-failure-location',
+                  'exception_type': type(current).__name__[:MAX_LABEL], 'frames': frames}
+        fields = vars(current)
+        # The current failure is hidden behind retained cleanup carriers. Read
+        # only the known SDK exception's own plain status; never stringify its
+        # message, an arbitrary operation, or a foreign diagnostic object.
+        if (type(current).__module__ == 'actql_sdk._local_core'
+                and type(current).__name__ == 'LocalCoreError'
+                and type(fields.get('operation')) is str
+                and fields.get('operation') == 'seal'
+                and type(fields.get('code')) is int
+                and -(1 << 31) <= fields['code'] < (1 << 31)):
+            record['core_buffer_seal_code'] = fields['code']
+        wire = json.dumps(record) + '\n'
         emitted += len(wire.encode('utf-8'))
         if emitted > MAX_OUTPUT_BYTES:
             break
@@ -42,7 +56,7 @@ def report_contexts(failure: BaseException, stream) -> None:
         # Local submission preserves its original failure as a retained
         # exception attribute before raising outside the except block. Read
         # only that known exception carrier, never arbitrary diagnostic values.
-        retained = vars(current).get('original_error')
+        retained = fields.get('original_error')
         for linked in (current.__context__, current.__cause__, retained):
             if isinstance(linked, BaseException):
                 pending.append(linked)

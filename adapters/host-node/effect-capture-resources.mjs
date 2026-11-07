@@ -106,6 +106,16 @@ function recoveryView(state) {
     return flight;
   };
   view = Object.freeze({reserve,
+    reserveDecoded(wire) {
+      if (typeof wire !== 'string' || !state.busy || state.closing || state.closed || state.preparing) {
+        fail('EffectCaptureResourceUnavailable');
+      }
+      if (!state.live) return;
+      state.preparing = true;
+      try {checked(state.context.runtime.clientProgramReserveInstalledEffectCaptureDecoded(state.value, wire));}
+      catch (cause) {captureFailure(state, cause); throw cause;}
+      finally {state.preparing = false;}
+    },
     retainCleanup(operation) {
       if (state.closed || state.resultCleanup !== undefined || typeof operation !== 'function') {
         fail('EffectCaptureResourceUnavailable');
@@ -164,6 +174,7 @@ export function prepareEffectCaptureResources({moon, control, request, runDefini
       state.complete = Object.getOwnPropertyDescriptor(moon,
         'clientProgramCompleteInstalledEffectCaptureRecovery')?.value;
       if (typeof moon.clientProgramPrepareInstalledEffectCaptureRecovery !== 'function' ||
+          typeof moon.clientProgramReserveInstalledEffectCaptureDecoded !== 'function' ||
           typeof state.complete !== 'function') {
         fail('EffectCaptureResourceUnavailable');
       }

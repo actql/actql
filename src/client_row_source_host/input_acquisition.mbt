@@ -1,6 +1,7 @@
 ///|
-/// Bounds of the complete Source input, independent of a Query Select result.
-/// The installed parent must fund these original bounds before construction.
+/// Semantic bounds of the complete Source input, independent of Query Select.
+/// The original parent funds actual construction before each phase; permitting
+/// a larger future input does not preallocate that maximum.
 pub(all) struct RowInputLimits {
   max_rows : Int
   page : RowPageLimits
@@ -22,6 +23,8 @@ priv struct RowInputPreparation {
   limits : RowInputLimits
   facts : @planning.QuerySourceEvidenceFacts
   members : @environment.ConnectorSourceEvidenceMembers
+  file_listing : @environment.FileListProfile?
+  listing_rows : RowListingRows?
 }
 
 ///|
@@ -70,6 +73,7 @@ pub fn prepare_row_input_acquisition(
   contracts : @execution.RegisteredRelationContracts,
   declaration : RowDeclaration,
   limits : RowInputLimits,
+  listing_policy? : @capacity.Policy? = None,
 ) -> Result[RowInputAcquisition, RowHostIssue] {
   if limits.max_rows < 0 ||
     limits.page.max_bytes <= 0 ||
@@ -80,10 +84,6 @@ pub fn prepare_row_input_acquisition(
     limits.retention.max_text_bytes < 0 ||
     limits.retention.max_depth < 0 ||
     limits.retention.max_work < 0 ||
-    limits.retention.max_nodes > 100000 ||
-    limits.retention.max_text_bytes > 500000 ||
-    limits.retention.max_depth > 100 ||
-    limits.retention.max_work > 20000000 ||
     limits.wire.max_columns < 0 ||
     limits.wire.max_order_work < 0 ||
     limits.wire.max_bytes < 0 ||
@@ -108,13 +108,26 @@ pub fn prepare_row_input_acquisition(
     declared.resource != view.resource {
     return Err(Source(ForeignSource))
   }
-  // Native listings have different retained inventories and Resource custody.
-  // They must select their complete recipe, never this ordinary JSON lane.
-  if @environment.source_request_file_listing(
-      @sourcequery.selected_contract(source),
-    )
-    is Some(_) {
-    return Err(Source(ListingProtocol))
+  let file_listing = @environment.source_request_file_listing(
+    @sourcequery.selected_contract(source),
+  )
+  let listing_rows = match file_listing {
+    None => None
+    Some(profile) => {
+      // The same checked Source subject selects the original Catalog/Host
+      // ceiling. max_rows is a capture bound, never a Host listing grant.
+      let resolved = match
+        @environment.resolve_file_listing_rows(
+          profile,
+          listing_policy,
+          facts.source_ref,
+        ) {
+        Ok(value) => value
+        Err(_) =>
+          return Err(Source(ListingLimitUnresolved("max_listing_items")))
+      }
+      Some(ResolvedListingRows(resolved))
+    }
   }
   let owner = @lower.sequence_owner(sequence)
   guard @sourcequery.source_acquisition_input(original)
@@ -159,6 +172,8 @@ pub fn prepare_row_input_acquisition(
     limits,
     facts,
     members,
+    file_listing,
+    listing_rows,
   }
   guard @connector.prepare_capability_registry(
       [
@@ -200,6 +215,11 @@ pub fn row_input_acquisition_columns(
   value : RowInputAcquisition,
 ) -> Array[String] {
   value.preparation.columns.copy()
+}
+
+///|
+pub fn row_input_acquisition_is_listing(value : RowInputAcquisition) -> Bool {
+  value.preparation.file_listing is Some(_)
 }
 
 ///|
@@ -302,6 +322,15 @@ pub fn start_row_input_acquisition(
     physical: None,
     page_charge: None,
     response_borrowed: false,
+    input_progress: Some({
+      nodes: 0L,
+      text: 0L,
+      rows: 0L,
+      tokens: 0L,
+      working_frames: 0,
+      preflight: None,
+      parser: None,
+    }),
     residual: None,
   })
 }
@@ -334,6 +363,30 @@ fn begin_input_row_run(
     page.max_bytes.to_int64() > physical.execution_scratch {
     return Err(Physical(InvalidCharge))
   }
+  let listing = match
+    prepare_row_listing_progress(
+      preparation.file_listing,
+      @sourcequery.source_acquisition_request(preparation.original),
+      page.max_bytes,
+      reference_issuer,
+      preparation.listing_rows,
+      retention=if preparation.file_listing is Some(_) {
+        Some({
+          max_nodes: limits.retention.max_nodes,
+          max_text: limits.retention.max_text_bytes,
+          nodes: 0,
+          text: 0,
+        })
+      } else {
+        None
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      abort_row_attempt(run.attempt)
+      return Err(Source(issue))
+    }
+  }
   match
     new_row_source_read(
       preparation.owner,
@@ -345,7 +398,7 @@ fn begin_input_row_run(
       max_rows,
       limits.retention,
       reference_issuer,
-      None,
+      listing,
       None,
     ) {
     Ok(read) => {
@@ -449,9 +502,7 @@ fn capture_input_row_run(
     }
   }
   if run.physical is Some(physical) {
-    let (original, _) = row_original_input_capacity()
-    let measured = @execution.row_wire_usage(observation.measured).0.to_int64()
-    if measured > 9223372036854775807L - original {
+    guard row_input_capture_retained(run) is Some(retained) else {
       abort_row_run(run)
       return Err(Physical(InvalidLimits))
     }
@@ -459,7 +510,7 @@ fn capture_input_row_run(
       @resources.retain_allocation(
         physical.ledger,
         physical.reservation,
-        original + measured,
+        retained,
       ) {
       Ok(value) => value
       Err(issue) => {
@@ -508,12 +559,12 @@ pub fn check_row_input_compute_binding(
   dag : @strategy.CapturedDAG,
   task : Int,
 ) -> Result[Unit, RowHostIssue] {
-  guard task == 0 &&
+  guard task >= 0 &&
     row_capture_source(capture) is Ok(_) &&
     capture.observation is InputObservation(observation) &&
     capture.run.physical is Some(physical) &&
     physical_equal(physical.ledger, @strategy.captured_dag_ledger(dag)) &&
-    @strategy.source_input_dag_matches_read(dag, observation.read) else {
+    @strategy.source_input_dag_matches_read_at(dag, observation.read, task) else {
     return Err(InvalidState)
   }
   Ok(())
@@ -534,46 +585,24 @@ pub fn check_row_input_capture_run(
 }
 
 ///|
-/// Existing JSON input/capture representation bounds plus this actual
-/// provider recipe. These DATA describe overlap, never a reservation or grant.
+/// Initial original controls/selector and the actual provider recipe only.
+/// Pages and validators grow this same reservation before construction; wire
+/// and retention ceilings are semantic bounds rather than initial demand.
 pub fn row_input_acquisition_capacity(
   value : RowInputAcquisition,
   provider : @execution.ExecutionCapacity?,
 ) -> @execution.ExecutionCapacity? {
-  let (retained, execution) = row_original_input_capacity()
-  guard @execution.execution_capacity_inventory_add(
-      0L,
-      @execution.CanonicalWireBytes,
-      value.preparation.limits.wire.max_bytes.to_int64(),
-      1,
-    )
-    is Some(wire) else {
+  guard row_input_initial_capacity(value.preparation) is Some(initial) else {
     return None
   }
-  if wire > (9223372036854775807L - execution) / 2L {
-    return None
+  let retained = @execution.execution_capacity_retained_bytes(initial)
+  let execution = @execution.execution_capacity_execution_bytes(initial)
+  // The existing provider describes its actual physical-reader construction.
+  // A Host-backed original has no replacement/dummy provider declaration.
+  if provider is None {
+    return @execution.execution_capacity(retained, execution)
   }
-  // Existing input validators retain a data-sized map of key tuples. The
-  // bounded entry region is temporary and belongs to this same Source parent.
-  guard @execution.execution_capacity_inventory_add(
-      0L,
-      @execution.ValueNodeSlots,
-      value.preparation.limits.retention.max_nodes.to_int64(),
-      1,
-    )
-    is Some(key_entries) else {
-    return None
-  }
-  if key_entries > 9223372036854775807L - execution - wire * 2L {
-    return None
-  }
-  match
-    row_provider_capacity_sum(
-      retained + wire,
-      execution + wire * 2L + key_entries,
-      0L,
-      provider,
-    ) {
+  match row_provider_capacity_sum(retained, execution, 0L, provider) {
     Ok((retained, execution)) =>
       @execution.execution_capacity(retained, execution)
     Err(_) => None

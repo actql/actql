@@ -15,6 +15,7 @@ import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {formalCollectorVerdict, pythonRuntimeIdentity, assertPythonCollectorRuntime, pythonInstalledInventory} from './health-monitor-release.mjs';
 import {quickNodeMetrics,execute,distributionMetrics,mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
+import {twoModelDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {createHash} from 'node:crypto';
 import {inventory} from './package-release.mjs';
@@ -1253,4 +1254,170 @@ test('Quick cold Unknown retains failed sample and unobserved first Result witho
   assert.equal(first.samples.length,0);assert.equal(first.status,'incomplete');
   const failed=JSON.parse(await readFile(metric.samples[0].observation));
   assert.equal(failed.cleanup.closed,true);assert.match(failed.failure.message,/Synthetic Unknown/);
+});
+
+
+test('two-Model deal-review fixture preserves keyed Content and consumes the first original review before Effect', () => {
+  const original = projectTemplateFiles('deal-review-mock'), files = twoModelDealReviewFiles();
+  const changed = Object.keys(files).filter(name => files[name] !== original[name]).sort();
+  assert.deepEqual(changed, ['actql.config.json', 'deal-review.program.json', 'mock/deal-review-confirm.v1.answers.yaml',
+    'model-tasks.json', 'model-tasks/deal-review-confirm.v1.yaml']);
+  for (const name of Object.keys(original).filter(name => !changed.includes(name))) {
+    assert.equal(files[name], original[name], name);
+  }
+  assert.equal(files['deal-review.aql'], original['deal-review.aql'], 'Original public text is unchanged');
+  const program = JSON.parse(files['deal-review.program.json']);
+  assert.deepEqual(program.stages.map(stage => stage.id), ['review', 'confirm', 'apply']);
+  assert.equal(program.stages.flatMap(stage => stage.steps).filter(step => step.infer).length, 2);
+  const [first, second, apply] = program.stages;
+  assert.deepEqual(first.inputs, {
+    opportunities: {connector: 'salesforce', resource: 'Opportunity'},
+    files: {connector: 'drive', resource: 'files', request: {paths: null, glob: null}},
+    contents: {connector: 'drive', resource: 'contents'}});
+  assert.deepEqual(first.steps[1].join.on,
+    [{left: 'resource', right: 'resource'}, {left: 'version', right: 'version'}]);
+  assert.deepEqual(second.inputs, {reviewed: {result: {stage: 'review', result: 'rows'}}});
+  assert.deepEqual(apply.inputs, {confirmed: {result: {stage: 'confirm', result: 'rows'}}});
+  for (const stage of [first, second]) {
+    assert.equal(stage.steps.filter(step => step.infer).length, 1);
+    assert.deepEqual(stage.steps.find(step => step.assert_rows).assert_rows, {unique_by: ['id']});
+  }
+  assert.deepEqual(second.steps.find(step => step.infer).infer, {
+    contract: 'model-task:deal-review-confirm.v1', key: 'id', input: {
+      changed: {property: {value: {property: {value: {field: 'review'}, name: 'value'}}, name: 'changed'}},
+      stage: {property: {value: {property: {value: {field: 'review'}, name: 'value'}}, name: 'stage'}},
+      next_step: {property: {value: {property: {value: {field: 'review'}, name: 'value'}}, name: 'next_step'}}}});
+  assert.deepEqual(second.steps.find(step => step.filter).filter, {and: [
+    {eq: [{field: 'outcome'}, {literal: 'ok'}]},
+    {property: {value: {field: 'value'}, name: 'confirmed'}}]});
+  assert.equal(first.effects, undefined); assert.equal(second.effects, undefined);
+  assert.equal(apply.effects.save.update.target, 'connector://salesforce/Opportunity');
+  const publicFields = ['id', 'StageName', 'NextStep', 'review', 'confirmation'];
+  assert.deepEqual(apply.steps, [
+    {derive: {
+      next_stage: {property: {value: {property: {value: {field: 'review'}, name: 'value'}}, name: 'stage'}},
+      next_step: {property: {value: {property: {value: {field: 'review'}, name: 'value'}}, name: 'next_step'}}}},
+    {select: [...publicFields, 'next_stage', 'next_step'], as: 'effect_input'},
+    {select: publicFields, as: 'updates'},
+  ]);
+  assert.deepEqual(apply.results, {
+    rows: {from: 'updates', fields: publicFields},
+    effect_input: {from: 'effect_input', fields: [...publicFields, 'next_stage', 'next_step']},
+  });
+  assert.deepEqual(apply.effects.save.update.from, {result: 'effect_input'});
+  assert.deepEqual(apply.effects.save.update.set, {
+    StageName: {field: 'next_stage'}, NextStep: {field: 'next_step'}});
+  assert.deepEqual(program.results, {updates: {from: {stage: 'apply', result: 'rows'}}});
+  const task = parse(files['model-tasks/deal-review-confirm.v1.yaml']);
+  assert.deepEqual(task.input, {changed: {type: 'boolean', nullable: true},
+    stage: {type: 'string', nullable: true}, next_step: {type: 'string', nullable: true}});
+  assert.deepEqual(task.output, {confirmed: 'boolean', stage: 'string', next_step: 'string'});
+  assert.equal(JSON.parse(files['actql.config.json']).mock.answers['model-task:deal-review-confirm.v1'],
+    './mock/deal-review-confirm.v1.answers.yaml');
+  assert.equal(JSON.parse(files['model-tasks.json']).tasks['model-task:deal-review-confirm.v1'],
+    './model-tasks/deal-review-confirm.v1.yaml');
+  const checks = compileFunction(workflowPrefix + workflowChecks + '\nreturn {checkRows};',
+    ['process', 'assert'])({argv: ['node', 'fixture', 'capture', 'handoff', 'deal-review-mock', 'two-models']}, assert);
+  const rows = [
+    {id: '006Acme', StageName: 'Proposal', NextStep: null,
+      review: {outcome: 'ok', value: {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'}},
+      confirmation: {outcome: 'ok', value: {confirmed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'}}},
+    {id: '006Globex', StageName: 'Negotiation', NextStep: 'Legal review',
+      review: {outcome: 'ok', value: {changed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'}},
+      confirmation: {outcome: 'ok', value: {confirmed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'}}},
+  ];
+  checks.checkRows(rows);
+  for (const confirmation of [undefined, {outcome: 'error', value: null},
+    {outcome: 'ok', value: {confirmed: false, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'}},
+    {outcome: 'ok', value: {confirmed: true, stage: 'foreign', next_step: 'Send revised pricing by Friday'}}]) {
+    const wrong = structuredClone(rows); wrong[0].confirmation = confirmation;
+    assert.throws(() => checks.checkRows(wrong));
+  }
+});
+
+test('two-Model deal-review uses the same existing public workflow and retains its original failed phase', async () => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-two-model-workflow-',
+    label: 'Two-Model authored caller selection only, no Host workflow execution'});
+  const root = join(scratch.path, 'run'), consumer = join(scratch.path, 'consumer');
+  await mkdir(root); await mkdir(join(consumer, 'node_modules'), {recursive: true});
+  const primary = new Error('Original two-Model public workflow not executed');
+  const observations = []; let calls = 0;
+  await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root,
+    repository: new URL('../', import.meta.url).pathname, counts: {coldSamples: 1},
+    template: 'deal-review-mock', variant: 'two-models', onMetric: metric => observations.push(metric),
+    async command(executable, args, options) {
+      calls++; assert.equal(executable, process.execPath);
+      assert.deepEqual(args.slice(1), ['capture', join(options.cwd, 'handoff.json'), 'deal-review-mock', 'two-models']);
+      for (const [name, bytes] of Object.entries(twoModelDealReviewFiles())) {
+        assert.equal(await readFile(join(options.cwd, name), 'utf8'), bytes);
+      }
+      assert.equal(await readFile(args[0], 'utf8'), workflowSource);
+      throw primary;
+    }}), error => error === primary);
+  assert.equal(calls, 1);
+  assert.equal(observations.length, 1);
+  assert.equal(observations[0].samples[0].completed, false);
+  assert.deepEqual(observations[0].samples[0].phases, []);
+  assert.equal((await readdir(join(root, 'mock-project-0'))).includes('node_modules'), false);
+  scratch.passed();
+});
+
+test('two-Model deal-review submits one unchanged structured Program through the existing public caller', async () => {
+  const selected = twoModelDealReviewFiles()['deal-review.program.json'];
+  const start = workflowSource.indexOf("    const source = await step('read original README program'");
+  const end = workflowSource.indexOf("    const state = await step('wait for original Checkpoint'", start);
+  assert.ok(start >= 0 && end > start);
+  const steps = [], original = Object.freeze({fixture: 'one-original-submission'});
+  let reads = 0, submissions = 0;
+  const execution = await compileFunction(workflowPrefix +
+    'return (async () => {' + workflowSource.slice(start, end) + 'return execution;})();',
+    ['process', 'assert', 'step', 'readFile', 'client'])(
+    {argv: ['node', 'fixture', 'capture', 'handoff', 'deal-review-mock', 'two-models']}, assert,
+    async (name, operation) => {steps.push(name); return operation();},
+    async (path, encoding) => {reads++; assert.equal(path, 'deal-review.program.json');
+      assert.equal(encoding, 'utf8'); return selected;},
+    {async startSource(document, options) {submissions++; assert.equal(document, selected);
+      assert.deepEqual(options, {format: 'json', stopBefore: 'commit'}); return original;}});
+  assert.equal(execution, original); assert.equal(reads, 1); assert.equal(submissions, 1);
+  assert.deepEqual(steps, ['read original README program', 'README startSource']);
+});
+
+
+test('public Mock refusal diagnostics read only the same original SDK observation and omit private data', () => {
+  const node = workflowSyntax.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'submissionCheckDiagnostic');
+  assert.ok(node, 'Original submission observation diagnostic must be connected');
+  const original = new Error('Original refusal'); let calls = 0;
+  let observation = {outcome: 'completed', report: {verdict: 'invalid',
+    reasons: [{code: 'query_syntax_invalid', facts: {secret: 'private-payload'},
+      location: {kind: 'structured', document_id: 'program', revision: 'private-revision',
+        pointer: '/stages/2/effects/save/update/set/StageName'}}],
+    requirements: [{code: 'source_required', location: {kind: 'text', document_id: 'source',
+      revision: 'private-revision', start_byte: 3, end_byte: 9}}],
+    coverage: {limits: [], unresolved: []}, context_ref: 'private-context',
+    inputs: [{text: 'private-input'}]}};
+  const project = compileFunction(workflowSource.slice(node.start, node.end) +
+    '\nreturn submissionCheckDiagnostic;', ['getSubmissionCheckObservation'])(error => {
+      assert.strictEqual(error, original); calls++; return observation;
+    });
+  assert.deepEqual(project(original), {available: true, outcome: 'completed', verdict: 'invalid', reasons: [
+    {code: 'query_syntax_invalid', location: {kind: 'structured', document: 'program',
+      pointer: '/stages/2/effects/save/update/set/StageName'}},
+    {code: 'source_required', location: {kind: 'text', document: 'source', start_byte: 3, end_byte: 9}},
+  ], truncated: false});
+  assert.equal(calls, 1);
+  observation = undefined;
+  assert.deepEqual(project(original), {available: false}); assert.equal(calls, 2);
+  observation = {outcome: 'completed', report: {verdict: 'invalid',
+    reasons: Array.from({length: 40}, () => ({code: 'implementation_limit',
+      facts: {payload: 'private-payload'}, location: {kind: 'structured', document_id: 'secret-id',
+        pointer: '/literal/private payload'}})), requirements: [], coverage: {limits: [], unresolved: []}}};
+  const bounded = project(original);
+  assert.equal(bounded.reasons.length, 32); assert.equal(bounded.truncated, true);
+  assert(!JSON.stringify(bounded).includes('private')); assert(!JSON.stringify(bounded).includes('secret-id'));
+  const refused = compileFunction(workflowSource.slice(node.start, node.end) +
+    '\nreturn submissionCheckDiagnostic;', ['getSubmissionCheckObservation'])(() => {throw original;});
+  assert.deepEqual(refused(original), {available: false});
+  assert.match(workflowSource, /submissionCheckDiagnostic\(cause\)/u);
+  assert.match(workflowSource, /if \(failed\) throw primary;/u);
 });

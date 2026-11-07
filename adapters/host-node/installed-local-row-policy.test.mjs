@@ -9,6 +9,7 @@ test('Local defaults select actual row and Model request windows; generic saved 
  const value=JSON.parse(wire),{evidence_bundle_cid:cid,...body}=value;
  assert.equal(value.host_policy_profile.capacity.max_relation_output_rows,2097152);
  assert.equal(value.host_policy_profile.capacity.max_artifact_rows,2097152);
+ assert.equal(value.host_policy_profile.capacity.max_file_listing_items,2097152);
  assert.equal(value.host_policy_profile.capacity.max_model_request_bytes_per_item,65536);
  assert.equal(old.host_policy_profile.capacity.max_model_request_bytes_per_item,1000);
  assert.equal(value.host_policy_profile.capacity.max_effect_items,old.host_policy_profile.capacity.max_effect_items);
@@ -21,6 +22,11 @@ test('explicit lower policy remains lower; higher explicit policy cannot exceed 
  const value=JSON.parse(selectInstalledLocalMaterializationEnvironment(moon,baseWire,selected));
  assert.equal(value.host_policy_profile.capacity.max_model_request_bytes_per_item,1000);
  assert.equal(value.host_policy_profile.capacity.max_relation_output_rows,10);assert.equal(value.host_policy_profile.capacity.max_artifact_rows,20);
+ assert.equal(Object.hasOwn(value.host_policy_profile.capacity,'max_file_listing_items'),false);
+ const listing={...selected,max_file_listing_items:5};
+ assert.equal(JSON.parse(selectInstalledLocalMaterializationEnvironment(moon,baseWire,listing)).host_policy_profile.capacity.max_file_listing_items,5);
+ listing.max_file_listing_items=3000000;
+ assert.equal(JSON.parse(selectInstalledLocalMaterializationEnvironment(moon,baseWire,listing)).host_policy_profile.capacity.max_file_listing_items,2097152);
  selected.max_relation_output_rows=3000000;
  assert.equal(JSON.parse(selectInstalledLocalMaterializationEnvironment(moon,baseWire,selected)).host_policy_profile.capacity.max_relation_output_rows,2097152);
 });

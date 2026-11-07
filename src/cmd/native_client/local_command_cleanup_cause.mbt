@@ -18,6 +18,22 @@ fn command_preparation_cleanup_cause(
         NativeStorageSqliteDomainMissing => "NativeStorageSqliteDomainMissing"
       }
     CommandUnavailable => "CommandUnavailable"
+    CommandRequestPreparation(cause) =>
+      match cause {
+        ForeignOriginal => "ForeignOriginal"
+        WrongPhase => "WrongPhase"
+        Policy => "Policy"
+        Initial(_) => "Initial"
+        Capacity(_) => "Capacity"
+        ProgramJson(_) => "ProgramJson"
+        ProgramCheck(_) => "ProgramCheck"
+        Parameters(_) => "Parameters"
+        Intent(_) => "Intent"
+        SourceInput(_) => "SourceInput"
+        Work(_) => "Work"
+        ParameterDeclarations(_) => "ParameterDeclarations"
+        ParameterSource(_) => "ParameterSource"
+      }
     CommandHost(cause) =>
       match cause {
         Unavailable => "Unavailable"
@@ -44,6 +60,7 @@ fn command_preparation_cleanup_cause(
       match cause {
         Domain(_) => "Domain"
         Child(_) => "Child"
+        Initialization(_) => "Initialization"
       }
     CommandStoreOperation(cause) =>
       match cause {
@@ -253,6 +270,40 @@ fn command_preparation_cleanup_cause(
         AdoptionJournal(_) => "AdoptionJournal"
       }
     CommandApplication(_) => "CommandApplication"
+    CommandProjectMock(cause) =>
+      match cause {
+        ForeignOriginal => "ProjectMockForeignOriginal"
+        AlreadyPreparing => "ProjectMockAlreadyPreparing"
+        Environment => "ProjectMockEnvironment"
+        Publication(issue) =>
+          match issue {
+            Limit => "ProjectMockPublicationLimit"
+            Alias(_) => "ProjectMockPublicationAlias"
+            _ => "ProjectMockPublication"
+          }
+        Source(issue) =>
+          match issue {
+            InvalidSpecification => "ProjectMockSourceInvalidSpecification"
+            InvalidContracts => "ProjectMockSourceInvalidContracts"
+            Declaration(OutputLimit) => "ProjectMockSourceDeclarationLimit"
+            _ => "ProjectMockSourceDeclaration"
+          }
+        Task(original) =>
+          match original.kind {
+            InvalidLimits => "ProjectMockTaskInvalidLimits"
+            BodyLimit | TaskLimit | WorkLimit => "ProjectMockTaskLimit"
+            _ => "ProjectMockTaskInvalid"
+          }
+        Answers(original) => local_project_mock_answer_cleanup_cause(original)
+        Installation(original) =>
+          match original {
+            ForeignOriginal => "ProjectMockInstallationForeignOriginal"
+            Retired => "ProjectMockInstallationRetired"
+            Busy => "ProjectMockInstallationBusy"
+            MissingAnswer => "ProjectMockInstallationMissingAnswer"
+            Answers(cause) => local_project_mock_answer_cleanup_cause(cause)
+          }
+      }
     CommandFilesystem(cause) =>
       match cause {
         InvalidLimit => "InvalidLimit"
@@ -261,6 +312,7 @@ fn command_preparation_cleanup_cause(
         Filesystem(_) => "Filesystem"
         Cleanup(_, _) => "Cleanup"
         InvalidUtf8 => "InvalidUtf8"
+        PreparationUnavailable => "PreparationUnavailable"
       }
     CommandFilesystemCleanup(cause) =>
       match cause {
@@ -282,5 +334,22 @@ fn command_preparation_cleanup_cause(
         Seal(_) => "Seal"
         Cleanup(_) => "Cleanup"
       }
+  }
+}
+
+///|
+// Closed original Model issue labels only, not Task/document strings or
+// execution/refusal classification. The retained issue remains authoritative.
+fn local_project_mock_answer_cleanup_cause(
+  issue : @model.ModelMockAnswerIssue,
+) -> String {
+  match issue {
+    InvalidLimits => "ProjectMockAnswerInvalidLimits"
+    BodyLimit | WorkLimit | EntryLimit => "ProjectMockAnswerLimit"
+    InvalidBody => "ProjectMockAnswerInvalidBody"
+    TaskIdentity => "ProjectMockAnswerTaskIdentity"
+    OutputValue => "ProjectMockAnswerOutputValue"
+    ForeignOriginal => "ProjectMockAnswerForeignOriginal"
+    Retired => "ProjectMockAnswerRetired"
   }
 }

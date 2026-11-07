@@ -267,8 +267,22 @@ function checkpointActor(name) {
   assert.ok(write, 'Select the actual installed Host actor');
   const template = write.expression.argument.arguments[1];
   assert.equal(template.type, 'TemplateLiteral');
-  assert.equal(template.expressions.length, 0);
-  return template.quasis[0].value.cooked;
+  if (template.expressions.length === 0) return template.quasis[0].value.cooked;
+  assert.equal(name, 'remote-host.mjs');
+  assert.equal(template.expressions.length, 1);
+  const expression = template.expressions[0];
+  assert.equal(expression.type, 'CallExpression');
+  assert.equal(expression.optional, false);
+  assert.equal(expression.callee.type, 'MemberExpression');
+  assert.equal(expression.callee.computed, false);
+  assert.equal(expression.callee.object.name, 'JSON');
+  assert.equal(expression.callee.property.name, 'stringify');
+  assert.equal(expression.arguments.length, 1);
+  assert.equal(expression.arguments[0].type, 'Identifier');
+  assert.equal(expression.arguments[0].name, 'hostCapacityPolicy');
+  const policy = JSON.parse(readFileSync(new URL('../../spec/local-check-environment.json',
+    import.meta.url), 'utf8')).host_policy_profile.capacity;
+  return template.quasis[0].value.cooked + JSON.stringify(policy) + template.quasis[1].value.cooked;
 }
 
 test('packed Checkpoint fixture separates owner observation from business authorization', async () => {

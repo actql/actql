@@ -1,0 +1,23 @@
+supported_targets = "native"
+
+// The empty internal driver also links the selected scoped runtime. Keep its
+// original provider dependency, as in the existing physical Work test package.
+import {
+  "actql/actql/platform_native/host_bootstrap" @bootstrap,
+}
+
+import {
+  "actql/actql/platform_native/client_host" @native,
+  "actql/actql/platform_native/installed_arena_control" @arena,
+  "actql/actql/client_local_host" @local,
+  "actql/actql/run_publication_host" @host,
+  "actql/actql/program_check" @checked,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/client_source_publication" @source_publication,
+  "moonbitlang/core/debug",
+} for "test"
+
+options(
+  link: { "native": { "cc": "./scripts/native-sqlite-link-driver.sh" } },
+)

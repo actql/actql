@@ -2365,7 +2365,10 @@
             "tuplePair/tuplePair",
             "usageKeys/usageKeys",
             "usageKeys/usageKeys/usageKeys",
-            "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor"
+            "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#2",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#3",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#4"
           ],
           "exports": [
             "contentCaptureControl",
@@ -3220,7 +3223,13 @@
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#2",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#3",
             "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#4",
-            "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput"
+            "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#10",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#5",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#6",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#7",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#8",
+            "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#9"
           ],
           "exports": [],
           "attributes": {
@@ -8662,6 +8671,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#10",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#2",
           "parameters": [
             "value"
@@ -8677,6 +8693,41 @@
         },
         {
           "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#7",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#8",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitComposedInferSources/init:admitComposedInferSources/init:admitComposedInferSources#9",
           "parameters": [
             "value"
           ],
@@ -12663,6 +12714,27 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
           "parameters": [
             "compiled",
@@ -15095,7 +15167,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6f465b192e79ce83f63fcb9df0cd8114e6bf2df8b71ae8d0b2214a76a66e42ef"
+      "sha256": "edb9198d33a377555b52e923b6f2ad31b16af1d3da7279a7d1a62d1584d6a564"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -17983,7 +18055,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "015cd46939e272c7a370bab3cbc13a9f61ac84c9c88cdcc4ab9c2dd13311e019",
+      "sha256": "10d2869a27c45df0d58951dcfd3dfb3679b68bf6445beb48e65d64a5bb5f1570",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -18028,14 +18100,6 @@
             "originalPreparation"
           ],
           "async": true
-        },
-        {
-          "name": "runInstalledComposedInfers/calls/calls",
-          "parameters": [
-            "sum",
-            "child"
-          ],
-          "async": false
         },
         {
           "name": "runInstalledComposedInfers/candidates/candidates",
@@ -18227,13 +18291,6 @@
           "async": false
         },
         {
-          "name": "runInstalledComposedInfers/runInstalledComposedInfers#13",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#2",
           "parameters": [
             "record"
@@ -18327,7 +18384,6 @@
         {
           "operations": [
             "runInstalledComposedInfers",
-            "runInstalledComposedInfers/calls/calls",
             "runInstalledComposedInfers/candidates/candidates",
             "runInstalledComposedInfers/children/children",
             "runInstalledComposedInfers/cleanup",
@@ -18349,7 +18405,6 @@
             "runInstalledComposedInfers/runInstalledComposedInfers#10",
             "runInstalledComposedInfers/runInstalledComposedInfers#11",
             "runInstalledComposedInfers/runInstalledComposedInfers#12",
-            "runInstalledComposedInfers/runInstalledComposedInfers#13",
             "runInstalledComposedInfers/runInstalledComposedInfers#2",
             "runInstalledComposedInfers/runInstalledComposedInfers#3",
             "runInstalledComposedInfers/runInstalledComposedInfers#4",
@@ -18450,7 +18505,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "import {setImmediate as yieldEventLoop} from 'node:timers/promises';"
+                "anchor": "if (originalPreparation === undefined || issuance === undefined || !issuanceComplete) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -18871,7 +18926,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "} else if (issuance === undefined || !issuanceComplete) {"
+                "anchor": "if (originalPreparation === undefined || issuance === undefined || !issuanceComplete) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -19111,7 +19166,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "import {setImmediate as yieldEventLoop} from 'node:timers/promises';"
+                "anchor": "if (originalPreparation === undefined || issuance === undefined || !issuanceComplete) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -19188,15 +19243,14 @@
         "./infer-capture-custody.mjs",
         "./infer-evaluation-evidence.mjs",
         "./infer-operation.mjs",
-        "./local-values-plan.mjs",
-        "node:timers/promises"
+        "./local-values-plan.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "2d410747d952ea65002ea33ca83975e8459c7215ca5dbc85470b5343965e8bc0",
+      "sha256": "65d9022cbf04d7104f667b92dad41cb34a917636c786a8d2f002d33fdc25d950",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -32590,7 +32644,7 @@
     },
     {
       "module": "src/client_local_host/captured_ledger.mbt",
-      "sha256": "5188053ebf48a204b563882b1e9535eead84b9d4d3163fd65c1606a7b2d04c30",
+      "sha256": "65c4eb94227ac47f8898b2ac343d01b932a5b853e88982a1d3d09de860c95dd8",
       "exports": [],
       "operations": [
         {
@@ -32644,6 +32698,10 @@
         {
           "name": "installed_row_capture_capacity",
           "declaration": "installed_row_capture_capacity ( selected : @ row_source_host . RowAcquisition , ) - > ClientInstalledCaptureCapacity ?"
+        },
+        {
+          "name": "installed_source_compute_count",
+          "declaration": "installed_source_compute_count ( compute : Int , sources : Int ) - > Int ?"
         },
         {
           "name": "multi_captured_capacity_limits_owned",
@@ -32766,7 +32824,8 @@
             "prepare_single_captured_local_installed_ledger",
             "single_captured_capacity_limits",
             "single_captured_compute_limits",
-            "single_captured_local_ledger_limits"
+            "single_captured_local_ledger_limits",
+            "installed_source_compute_count"
           ],
           "exports": [],
           "attributes": {
@@ -32786,6 +32845,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Captured suffix capacity"
               }
             ],
             "ownership": [
@@ -32816,6 +32879,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Captured suffix capacity"
               }
             ],
             "extension": [
@@ -32836,6 +32903,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "src/client_local_host/captured_requirements_capacity_wbtest.mbt",
+                "anchor": "test \"captured simultaneous quote selects original step occurrences after the Source offset\""
               }
             ]
           }
@@ -33907,7 +33978,7 @@
     },
     {
       "module": "src/client_local_host/installed_compute_preparation.mbt",
-      "sha256": "d37fa5012497eb6e4b28f29f8ea365137211acf32a060ff401febf0e8e92d1e3",
+      "sha256": "5c384bfd127de6684ff16e443c56d1607ed2a0a3fc568012b6eaaa4911bfb846",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Compute preparation and original capacity Plan; no new runtime or Resource owner",
@@ -34884,7 +34955,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "d29ad016b228016f22a78736ac55851b651ef0fa487b900a713487615dd30df4",
+      "sha256": "d8934e8a96c7da4386bf023c2155160a19745bca20682f99eeb4d40308c7ccaa",
       "exports": [],
       "operations": [
         {
@@ -36332,7 +36403,7 @@
         },
         {
           "name": "open_installed_managed_source_free_host",
-          "declaration": "open_installed_managed_source_free_host ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output : Bool , provider_factory ? : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ]"
+          "declaration": "open_installed_managed_source_free_host ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output : Bool , backing ? : @ resources . Ledger ?"
         },
         {
           "name": "open_installed_managed_source_free_host_original",
@@ -36379,7 +36450,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "bc6ee72e92e010f066171f442bd3140f62654aa22ea4587f27ea6f27bf9a80d0"
+      "sha256": "627f265ad9dd5b394b6018402b2484620c04a310e670366f54732bd98d8589d0"
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
@@ -37893,7 +37964,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "024675bbf64577c9b66944d00c05fbf88650c293ace18afd05476415d1fb8bd7",
+      "sha256": "c4f37af9a15aab839994a3f1d3131e4f32ce1e0d126f38f7e8722dedf94a994b",
       "exports": [],
       "operations": [
         {
@@ -37915,6 +37986,14 @@
         {
           "name": "installed_managed_whole_source_ledger",
           "declaration": "installed_managed_whole_source_ledger ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : ClientInstalledWholeSourceCapacity , transfer : Int64 , scratch : Int64 , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_row_input_policy",
+          "declaration": "installed_row_input_policy ( max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > @ row_source_host . RowInputLimits"
+        },
+        {
+          "name": "installed_source_listing_policy",
+          "declaration": "installed_source_listing_policy ( graph : @ strategy . CheckedDAG , ) - > @ capacity . Policy"
         },
         {
           "name": "installed_whole_source_acquisition",
@@ -37981,7 +38060,9 @@
             "prepare_installed_whole_source_capacity",
             "select_installed_effect_source_input",
             "select_installed_source_input_graph",
-            "start_installed_whole_source_read_rows"
+            "start_installed_whole_source_read_rows",
+            "installed_row_input_policy",
+            "installed_source_listing_policy"
           ],
           "exports": [],
           "attributes": {
@@ -39595,7 +39676,7 @@
     },
     {
       "module": "src/client_local_host/preparation_compilation_parse_layout.mbt",
-      "sha256": "ea3468569db4fad90abba01baa915841f31f483b5758a33c9975275844117b34",
+      "sha256": "bef81e12c12d393cfbcf4e7f3f879236ab4b6ae80d52d11671a946593be7d6ec",
       "exports": [],
       "operations": [],
       "responsibilityFacet": "primary",
@@ -39613,36 +39694,60 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -39655,12 +39760,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -39954,7 +40067,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_artifact_layout.mbt",
-      "sha256": "5dfac82f7c86fda8394d7c8fd3a49e67b779b0b96f8b7ee75bbde69a3e5c15d5",
+      "sha256": "74e3336974244b2b695188003a36058ab3e1e646ae025e082ab5ff7aa98a2280",
       "exports": [],
       "operations": [
         {
@@ -39963,7 +40076,11 @@
         },
         {
           "name": "program_artifact_parse_layout",
-          "declaration": "program_artifact_parse_layout ( geometry : ( Int , Int , Int ) , ) - > CompilationParseLayout ?"
+          "declaration": "program_artifact_parse_layout ( geometry : ( Int , Int , Int ) , structure ? : @ encode . EncodingConstructionGeometry ?"
+        },
+        {
+          "name": "program_artifact_scratch_without_output",
+          "declaration": "program_artifact_scratch_without_output ( parse : CompilationParseLayout , ) - > @ execution . PreparationRepresentationUnits ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -39974,7 +40091,8 @@
           "operations": [
             "<module>",
             "program_artifact_construction_extents",
-            "program_artifact_parse_layout"
+            "program_artifact_parse_layout",
+            "program_artifact_scratch_without_output"
           ],
           "exports": [],
           "attributes": {
@@ -39982,12 +40100,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
@@ -39998,6 +40124,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"generic Request module retains its funded compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
@@ -40008,6 +40138,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"generic Request module retains its funded compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
@@ -40018,6 +40152,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact current reentry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
@@ -40028,6 +40166,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -40048,12 +40190,20 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"artifact reservation derives from original constructor bodies"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -40583,7 +40733,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_json_source_layout.mbt",
-      "sha256": "73b4998b5fe4021dce98271475f858b45dba7e6a8cf40c0dc85b0092996327b6",
+      "sha256": "0e607bae4e641c4cabd22fd58ca0d13075f6f9ed4e766ce560752fda98532e83",
       "exports": [],
       "operations": [
         {
@@ -40680,6 +40830,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source document Request continuation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_document_js_wbtest.mbt",
+                "anchor": "test \"actual default JSON numeric 100000"
               }
             ]
           }
@@ -41695,7 +41849,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "e39d0711d0d953bf5fefbab70e747b54724aee4a4c289bb75a65a16d9219a7e9",
+      "sha256": "082d37fd9201c9b7623cae01f7de2e0998454765482f5cc04c6b8bf9f8888617",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -43355,7 +43509,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_native_query.mbt",
-      "sha256": "aba2f833e1055df4bf32858f191e71b009510468d65ea09c60f5cca0a02770cc",
+      "sha256": "bf6579e9b59b0525a4b0e8ea1903ab5b82ebd57c488aae013aff613fe0e7a51e",
       "exports": [],
       "operations": [
         {
@@ -43660,7 +43814,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6fd58768a99356a6ca1864909597e94421c5b9caae302e6442227e6dbe7ed75a",
+      "sha256": "7138d63c98eb7dd2176f65b5ab05b07d0032177d22e269451434007cb396c515",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -43894,6 +44048,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "## Same Request Effect preparation lifetime"
               }
             ],
             "extension": [
@@ -43938,6 +44096,10 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"Request keeps live continuation"
               }
             ]
           }
@@ -44625,7 +44787,8 @@
             "[I]continue_request_program_preparation",
             "[I]prepare_request_program_module_body",
             "[I]request_program_plan_quote",
-            "[I]reserve_request_program_plan"
+            "[I]reserve_request_program_plan",
+            "[I]request_program_compilation_limits"
           ],
           "exports": [],
           "attributes": {
@@ -44641,6 +44804,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked compiler configuration at the installed module boundary"
               }
             ],
             "inputsOutputs": [
@@ -44655,6 +44822,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked compiler configuration at the installed module boundary"
               }
             ],
             "identity": [
@@ -44669,6 +44840,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked compiler configuration at the installed module boundary"
               }
             ],
             "ownership": [
@@ -44771,6 +44946,10 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request module codec retains the selected checked profile without another current observation\""
               }
             ]
           }
@@ -45393,7 +45572,7 @@
           }
         }
       ],
-      "sha256": "7f4ec5821a48c745744a85a29f0c213c14ae3f0843f015c8b2d38820da619e24",
+      "sha256": "c4d20d00f573acbcbd99931da04c5fb99ba4ad2684358d6dc0bda77a784afe87",
       "exports": [],
       "operations": [
         {
@@ -45447,6 +45626,10 @@
         {
           "name": "[I]prepare_request_program_module_body_owned",
           "declaration": "[ I ] prepare_request_program_module_body_owned ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+        },
+        {
+          "name": "[I]request_program_compilation_limits",
+          "declaration": "[ I ] request_program_compilation_limits ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientPureCompilationLimits , ClientRequestProgramPlanIssue , ]"
         },
         {
           "name": "[I]request_program_plan_quote",
@@ -45969,7 +46152,7 @@
     {
       "module": "src/client_local_host/preparation_request_terminal.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d3cd709bafec8b072a30be2a79615a27eabf96bec266409fab8b724086053393",
+      "sha256": "386eb38931dd2e55482cc1f4d8a6c327717dbe7165a206ecef5763b8f7182c2a",
       "role": "common-semantics",
       "owner": "Existing Request checking compiler and preparation capacity owners",
       "exports": [],
@@ -46107,6 +46290,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Before returning the selected compiler kind"
               }
             ],
             "extension": [
@@ -46139,6 +46326,10 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source terminal refuses resolved nested ARRAY"
               }
             ]
           }
@@ -47889,7 +48080,7 @@
     },
     {
       "module": "src/client_row_source_host/host.mbt",
-      "sha256": "bbdb8c60f8d037338b98157464cf2b2d4e2535ae474b55a1b896c93ae0a74736",
+      "sha256": "2b86e1ce1aedbd319da2ba8731fc2927d98e97312d9067cb5f5364c4bfdb5f47",
       "exports": [],
       "operations": [
         {
@@ -48178,6 +48369,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_row_source_host/file_listing.mbt",
+                "anchor": "fn clear_row_listing_tokens("
               }
             ],
             "cancellation": [
@@ -48198,6 +48393,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_row_source_host/input_listing_capacity.mbt",
+                "anchor": "fn grow_row_input_listing_phase("
               }
             ],
             "extension": [
@@ -48222,6 +48421,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "same Request acquired Model prefix"
+              },
+              {
+                "path": "src/run_publication_host/client_whole_listing_wbtest.mbt",
+                "anchor": "test \"whole listing grows only actual page demand"
+              },
+              {
+                "path": "src/client_local_host/installed_whole_listing_parent_js_wbtest.mbt",
+                "anchor": "test \"Effect preparation parent grows its original listing RowRun"
               }
             ]
           }
@@ -48340,7 +48547,7 @@
     },
     {
       "module": "src/client_row_source_host/input_acquisition.mbt",
-      "sha256": "ff59cc95bb096204e1b57a94000ba018d945f7a7f9bd74a4717c3e9ed03b718d",
+      "sha256": "35f6accc0cf5ef288f2e6690c89e47626d050bbce08ce6200baab43b2a7d6c4f",
       "exports": [],
       "operations": [
         {
@@ -48373,7 +48580,7 @@
         },
         {
           "name": "prepare_row_input_acquisition",
-          "declaration": "prepare_row_input_acquisition ( original : @ sourcequery . SourceAcquisition , program : @ context . ProgramSourceIdentity , sequence : @ lower . PreparedSequence , contracts : @ execution . RegisteredRelationContracts , declaration : RowDeclaration , limits : RowInputLimits , ) - > Result [ RowInputAcquisition , RowHostIssue ]"
+          "declaration": "prepare_row_input_acquisition ( original : @ sourcequery . SourceAcquisition , program : @ context . ProgramSourceIdentity , sequence : @ lower . PreparedSequence , contracts : @ execution . RegisteredRelationContracts , declaration : RowDeclaration , limits : RowInputLimits , listing_policy ? : @ capacity . Policy ?"
         },
         {
           "name": "row_input_acquisition_capacity",
@@ -48386,6 +48593,10 @@
         {
           "name": "row_input_acquisition_facts",
           "declaration": "row_input_acquisition_facts ( value : RowInputAcquisition , ) - > @ planning . QuerySourceEvidenceFacts"
+        },
+        {
+          "name": "row_input_acquisition_is_listing",
+          "declaration": "row_input_acquisition_is_listing ( value : RowInputAcquisition ) - > Bool"
         },
         {
           "name": "row_input_acquisition_matches_source",
@@ -48429,6 +48640,7 @@
             "row_input_acquisition_capacity",
             "row_input_acquisition_columns",
             "row_input_acquisition_facts",
+            "row_input_acquisition_is_listing",
             "row_input_acquisition_matches_source",
             "row_input_acquisition_max_rows",
             "row_input_acquisition_request_wire",
@@ -48496,6 +48708,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_row_source_host/file_listing.mbt",
+                "anchor": "fn clear_row_listing_tokens("
               }
             ],
             "cancellation": [
@@ -48516,6 +48732,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_row_source_host/input_listing_capacity.mbt",
+                "anchor": "fn grow_row_input_listing_phase("
               }
             ],
             "extension": [
@@ -48540,6 +48760,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "same Request acquired Model prefix"
+              },
+              {
+                "path": "src/run_publication_host/client_whole_listing_wbtest.mbt",
+                "anchor": "test \"whole listing grows only actual page demand"
+              },
+              {
+                "path": "src/client_local_host/installed_whole_listing_parent_js_wbtest.mbt",
+                "anchor": "test \"Effect preparation parent grows its original listing RowRun"
               }
             ]
           }
@@ -53442,7 +53670,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "133a04736af0d3a7bf43f1a3abf46143bb9e7494f2377c226f4c99a8dcd316bd",
+      "sha256": "de6eb9be779d8d2cb3f758353537c664226a0327a4a7f9ef97741156000435d8",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -53571,7 +53799,7 @@
         },
         {
           "name": "client_program_installed_effect_row_source_input_prepare",
-          "declaration": "client_program_installed_effect_row_source_input_prepare ( declaration : @ client_row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , ) - > Result [ @ client_local_host . ClientInstalledEffectSourceInput , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_program_installed_effect_row_source_input_prepare ( declaration : @ client_row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , input_limits : @ client_row_source_host . RowInputLimits ? , ) - > Result [ @ client_local_host . ClientInstalledEffectSourceInput , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_file_effect_construction_capacity",
@@ -55829,7 +56057,8 @@
             "client_program_retire_installed_effect_capture_recovery",
             "strategy_begin_original_effect_free_captured_run",
             "strategy_captured_run_preparation_limits",
-            "client_program_complete_installed_effect_capture_recovery"
+            "client_program_complete_installed_effect_capture_recovery",
+            "client_program_reserve_installed_effect_capture_decoded"
           ],
           "exports": [],
           "attributes": {
@@ -55895,6 +56124,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge completes this original Effect Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_effect_capture_recovery_js_wbtest.mbt",
+                "anchor": "capture geometry distinguishes long String bytes"
               }
             ]
           }
@@ -56833,6 +57066,10 @@
           "declaration": "client_program_request_submitted_intent_original ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > @ publication_host . ClientSubmittedIntent ?"
         },
         {
+          "name": "client_program_reserve_installed_effect_capture_decoded",
+          "declaration": "client_program_reserve_installed_effect_capture_decoded ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , wire : String , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_reserve_installed_effect_capture_recovery",
           "declaration": "client_program_reserve_installed_effect_capture_recovery ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , encrypted_bytes : Int , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
@@ -56877,11 +57114,11 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "45e148a55e256eeab5eca581133d9efc4be90165055a0cd4352ae01ca249ccdd"
+      "sha256": "b7c92459c1d9bbf8bc700a3ae98e2d862d1858230df06a1e402fe406736184c5"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "3c6046ed62fbd7486ece4d4d528e54d5723574daefc391dd77806b47700a7704",
+      "sha256": "f43ce4f02bcf23a0cffce85945545ffa96f24a1a31cd04186e12841012072281",
       "exports": [],
       "operations": [
         {
@@ -59618,6 +59855,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"Request checked Source ARRAY refusal reaches existing public rejection without recheck\""
               }
             ]
           }
@@ -60670,9 +60911,45 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "ca3078d97fd8cd1000e16a816cc923adfa451c58cc8338628e64d55ab26eac3f",
+      "sha256": "9d2db9f85221d80a652b75856ecc93b3f0cb879e687d0f69621749272f644913",
       "exports": [],
       "operations": [
+        {
+          "name": "check_client_infer_original_evidence",
+          "declaration": "check_client_infer_original_evidence ( name : String , evidence : @ publication . RunEvidenceValue , ) - > Result [ Unit , @ publication_host . ClientInferCallScopeIssue ]"
+        },
+        {
+          "name": "client_program_admit_composed_infer_whole_sources",
+          "declaration": "client_program_admit_composed_infer_whole_sources ( occurrence : @ publication_host . ClientInferOccurrence , captures : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , capacities : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , logicals : Array [ @ publication . RunEvidenceValue ] , evidence : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , started_at : String , completed_at : String , keyed : @ publication_host . ClientKeyedLookupObservation ? , ) - > Result [ @ publication_host . ClientInferComposedSources , @ publication_host . ClientInferCallScopeIssue , ]"
+        },
+        {
+          "name": "client_program_effect_direct_source_coordinates",
+          "declaration": "client_program_effect_direct_source_coordinates ( prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ Array [ Array [ Int ] ] , @ publication_host . ClientDirectAcquisitionOccurrenceIssue , ]"
+        },
+        {
+          "name": "client_program_effect_whole_source_input_identity",
+          "declaration": "client_program_effect_whole_source_input_identity ( prepared : @ publication_host . PreparedClientEffectComputation , original : @ acquisition . SourceAcquisition , ) - > Array [ String ] ?"
+        },
+        {
+          "name": "client_program_export_whole_source_capture",
+          "declaration": "client_program_export_whole_source_capture ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , binding : String , ) - > Result [ ( Array [ String ] , String , String , Array [ String ] ) , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_plan_whole_source",
+          "declaration": "client_program_installed_effect_managed_plan_whole_source ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ ( @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_source_input_kind",
+          "declaration": "client_program_installed_effect_managed_source_input_kind ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , occurrence : Int , ) - > Result [ String , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_sources_ledger",
+          "declaration": "client_program_installed_effect_managed_sources_ledger ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_whole_source_read",
+          "declaration": "client_program_installed_effect_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
         {
           "name": "client_program_installed_managed_publication_source_kind",
           "declaration": "client_program_installed_managed_publication_source_kind ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ String , @ client_local_host . ClientInstalledManagedRunIssue ]"
@@ -60694,8 +60971,16 @@
           "declaration": "client_program_installed_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_row_input_policy",
+          "declaration": "client_program_installed_row_input_policy ( max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > @ client_row_source_host . RowInputLimits"
+        },
+        {
           "name": "client_program_installed_whole_source_read_start_rows",
           "declaration": "client_program_installed_whole_source_read_start_rows ( read : @ client_local_host . ClientInstalledSourceRead , acquisition : @ client_row_source_host . RowInputAcquisition , nonce : String , stop : ( @ client_row_source_host . RowAttempt ) - > Bool , transfer : Int64 , scratch : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        },
+        {
+          "name": "client_program_issue_effect_whole_source_input_logical",
+          "declaration": "client_program_issue_effect_whole_source_input_logical ( prepared : @ publication_host . PreparedClientEffectComputation , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ publication . RunEvidenceValue , @ publication_host . ClientCapturedSourceLogicalIssue , ]"
         },
         {
           "name": "client_program_issue_whole_source_input_logical",
@@ -60730,6 +61015,14 @@
           "declaration": "client_program_prepared_installed_whole_source_requirements ( plan : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Array [ Int64 ]"
         },
         {
+          "name": "client_program_restore_whole_source_capture",
+          "declaration": "client_program_restore_whole_source_capture ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , expected_binding : String , saved_binding : String , saved_identity : Array [ String ] , schema_cid : String , rows_cid : String , rows : Array [ String ] , ledger : @ resources . Ledger , custody_available : ( ) - > Bool , reference_issuer : @ admitted . ReferenceIssuer ? , ) - > Result [ @ client_local_host . ClientAccountedSourceCapture , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
+          "name": "client_program_restored_whole_source_capture_input",
+          "declaration": "client_program_restored_whole_source_capture_input ( owner : @ client_local_host . ClientAccountedSourceCapture , ) - > Result [ @ client_row_source_host . RowCapturedInput , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
           "name": "client_program_select_installed_effect_source_input",
           "declaration": "client_program_select_installed_effect_source_input ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , stage : Int , source_index : Int , ) - > Result [ @ acquisition . SourceAcquisitionRoute , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -60746,6 +61039,14 @@
           "declaration": "client_program_selected_source_input_ref ( selection : @ acquisition . SourceAcquisitionRoute , ) - > String ?"
         },
         {
+          "name": "client_program_source_capture_retain_input",
+          "declaration": "client_program_source_capture_retain_input ( value : @ client_local_host . ClientAccountedSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Result [ Unit , @ client_local_host . ClientSourceCaptureIssue ]"
+        },
+        {
+          "name": "client_program_start_installed_original_composed_keyed_input_prefix",
+          "declaration": "client_program_start_installed_original_composed_keyed_input_prefix ( owner : @ client_local_host . ClientInstalledManagedRun , scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , inputs : Array [ @ client_row_source_host . RowCapturedInput ] , ) - > Result [ @ client_local_host . ClientOriginalComposedKeyedPrefix , @ client_local_host . ClientSerializationPrefixIssue , ]"
+        },
+        {
           "name": "client_program_whole_source_borrow_responses",
           "declaration": "client_program_whole_source_borrow_responses ( run : @ client_row_source_host . RowRun , acquisition : @ client_row_source_host . RowInputAcquisition , ) - > Result [ @ client_row_source_host . RowRunResponseBorrow , @ client_row_source_host . RowHostIssue , ]"
         },
@@ -60758,6 +61059,10 @@
           "declaration": "client_program_whole_source_capacity_matches ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , acquisition : @ client_row_source_host . RowInputAcquisition , provider : @ execution . ExecutionCapacity , ) - > Bool"
         },
         {
+          "name": "client_program_whole_source_capture_input",
+          "declaration": "client_program_whole_source_capture_input ( capture : @ client_row_source_host . RowSourceCapture , ) - > Result [ @ client_row_source_host . RowCapturedInput , @ client_row_source_host . RowHostIssue , ]"
+        },
+        {
           "name": "client_program_whole_source_check_compute_binding",
           "declaration": "client_program_whole_source_check_compute_binding ( capture : @ client_row_source_host . RowSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
         },
@@ -60768,6 +61073,10 @@
         {
           "name": "client_program_whole_source_input_identity",
           "declaration": "client_program_whole_source_input_identity ( prepared : @ publication_host . PreparedClientProgram , original : @ acquisition . SourceAcquisition , ) - > Array [ String ] ?"
+        },
+        {
+          "name": "client_program_whole_source_is_listing",
+          "declaration": "client_program_whole_source_is_listing ( acquisition : @ client_row_source_host . RowInputAcquisition , ) - > Bool"
         },
         {
           "name": "client_program_whole_source_issue_source_evidence",
@@ -60813,7 +61122,23 @@
             "client_program_whole_source_issue_source_evidence",
             "client_program_whole_source_issue_source_evidence_wire",
             "client_program_whole_source_request_wire",
-            "client_program_whole_source_target"
+            "client_program_whole_source_target",
+            "client_program_effect_whole_source_input_identity",
+            "client_program_installed_effect_managed_plan_whole_source",
+            "client_program_installed_effect_managed_source_input_kind",
+            "client_program_installed_effect_managed_sources_ledger",
+            "client_program_installed_effect_managed_whole_source_read",
+            "client_program_installed_row_input_policy",
+            "client_program_issue_effect_whole_source_input_logical",
+            "client_program_export_whole_source_capture",
+            "client_program_restore_whole_source_capture",
+            "client_program_source_capture_retain_input",
+            "client_program_whole_source_is_listing",
+            "check_client_infer_original_evidence",
+            "client_program_admit_composed_infer_whole_sources",
+            "client_program_restored_whole_source_capture_input",
+            "client_program_start_installed_original_composed_keyed_input_prefix",
+            "client_program_whole_source_capture_input"
           ],
           "exports": [],
           "attributes": {
@@ -60883,7 +61208,8 @@
           "operations": [
             "client_program_select_installed_source_input",
             "client_program_selected_source_input_kind",
-            "client_program_selected_source_input_ref"
+            "client_program_selected_source_input_ref",
+            "client_program_effect_direct_source_coordinates"
           ],
           "exports": [],
           "attributes": {
@@ -61613,9 +61939,45 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "210f285c099ed3fd61371e20abbb77a7f44a3a214d710d4652f74660de857e12",
+      "sha256": "ae9e2aac04519fa1cd1ea60ceacd767d57212254d3e0a862219032f7c6b36914",
       "exports": [],
       "operations": [
+        {
+          "name": "check_client_infer_original_evidence",
+          "declaration": "check_client_infer_original_evidence ( name : String , evidence : @ publication . RunEvidenceValue , ) - > Result [ Unit , @ publication_host . ClientInferCallScopeIssue ]"
+        },
+        {
+          "name": "client_program_admit_composed_infer_whole_sources",
+          "declaration": "client_program_admit_composed_infer_whole_sources ( occurrence : @ publication_host . ClientInferOccurrence , captures : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , capacities : Array [ @ client_local_host . ClientInstalledWholeSourceCapacity ] , logicals : Array [ @ publication . RunEvidenceValue ] , evidence : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , started_at : String , completed_at : String , keyed : @ publication_host . ClientKeyedLookupObservation ? , ) - > Result [ @ publication_host . ClientInferComposedSources , @ publication_host . ClientInferCallScopeIssue , ]"
+        },
+        {
+          "name": "client_program_effect_direct_source_coordinates",
+          "declaration": "client_program_effect_direct_source_coordinates ( prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ Array [ Array [ Int ] ] , @ publication_host . ClientDirectAcquisitionOccurrenceIssue , ]"
+        },
+        {
+          "name": "client_program_effect_whole_source_input_identity",
+          "declaration": "client_program_effect_whole_source_input_identity ( prepared : @ publication_host . PreparedClientEffectComputation , original : @ acquisition . SourceAcquisition , ) - > Array [ String ] ?"
+        },
+        {
+          "name": "client_program_export_whole_source_capture",
+          "declaration": "client_program_export_whole_source_capture ( source : @ query . CapturedInputSource , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , binding : String , ) - > Result [ ( Array [ String ] , String , String , Array [ String ] ) , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_plan_whole_source",
+          "declaration": "client_program_installed_effect_managed_plan_whole_source ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ ( @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_source_input_kind",
+          "declaration": "client_program_installed_effect_managed_source_input_kind ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , occurrence : Int , ) - > Result [ String , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_sources_ledger",
+          "declaration": "client_program_installed_effect_managed_sources_ledger ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_whole_source_read",
+          "declaration": "client_program_installed_effect_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
         {
           "name": "client_program_installed_managed_publication_source_kind",
           "declaration": "client_program_installed_managed_publication_source_kind ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ String , @ client_local_host . ClientInstalledManagedRunIssue ]"
@@ -61637,8 +61999,16 @@
           "declaration": "client_program_installed_managed_whole_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ acquisition . SourceAcquisition , @ client_row_source_host . RowInputAcquisition , @ client_local_host . ClientInstalledWholeSourceCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_row_input_policy",
+          "declaration": "client_program_installed_row_input_policy ( max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > @ client_row_source_host . RowInputLimits"
+        },
+        {
           "name": "client_program_installed_whole_source_read_start_rows",
           "declaration": "client_program_installed_whole_source_read_start_rows ( read : @ client_local_host . ClientInstalledSourceRead , acquisition : @ client_row_source_host . RowInputAcquisition , nonce : String , stop : ( @ client_row_source_host . RowAttempt ) - > Bool , transfer : Int64 , scratch : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        },
+        {
+          "name": "client_program_issue_effect_whole_source_input_logical",
+          "declaration": "client_program_issue_effect_whole_source_input_logical ( prepared : @ publication_host . PreparedClientEffectComputation , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ publication . RunEvidenceValue , @ publication_host . ClientCapturedSourceLogicalIssue , ]"
         },
         {
           "name": "client_program_issue_whole_source_input_logical",
@@ -61673,6 +62043,14 @@
           "declaration": "client_program_prepared_installed_whole_source_requirements ( plan : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Array [ Int64 ]"
         },
         {
+          "name": "client_program_restore_whole_source_capture",
+          "declaration": "client_program_restore_whole_source_capture ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , expected_binding : String , saved_binding : String , saved_identity : Array [ String ] , schema_cid : String , rows_cid : String , rows : Array [ String ] , ledger : @ resources . Ledger , custody_available : ( ) - > Bool , reference_issuer : @ admitted . ReferenceIssuer ? , ) - > Result [ @ client_local_host . ClientAccountedSourceCapture , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
+          "name": "client_program_restored_whole_source_capture_input",
+          "declaration": "client_program_restored_whole_source_capture_input ( owner : @ client_local_host . ClientAccountedSourceCapture , ) - > Result [ @ client_row_source_host . RowCapturedInput , @ client_local_host . ClientSourceCaptureIssue , ]"
+        },
+        {
           "name": "client_program_select_installed_effect_source_input",
           "declaration": "client_program_select_installed_effect_source_input ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , stage : Int , source_index : Int , ) - > Result [ @ acquisition . SourceAcquisitionRoute , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -61689,6 +62067,14 @@
           "declaration": "client_program_selected_source_input_ref ( selection : @ acquisition . SourceAcquisitionRoute , ) - > String ?"
         },
         {
+          "name": "client_program_source_capture_retain_input",
+          "declaration": "client_program_source_capture_retain_input ( value : @ client_local_host . ClientAccountedSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Result [ Unit , @ client_local_host . ClientSourceCaptureIssue ]"
+        },
+        {
+          "name": "client_program_start_installed_original_composed_keyed_input_prefix",
+          "declaration": "client_program_start_installed_original_composed_keyed_input_prefix ( owner : @ client_local_host . ClientInstalledManagedRun , scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , inputs : Array [ @ client_row_source_host . RowCapturedInput ] , ) - > Result [ @ client_local_host . ClientOriginalComposedKeyedPrefix , @ client_local_host . ClientSerializationPrefixIssue , ]"
+        },
+        {
           "name": "client_program_whole_source_borrow_responses",
           "declaration": "client_program_whole_source_borrow_responses ( run : @ client_row_source_host . RowRun , acquisition : @ client_row_source_host . RowInputAcquisition , ) - > Result [ @ client_row_source_host . RowRunResponseBorrow , @ client_row_source_host . RowHostIssue , ]"
         },
@@ -61701,6 +62087,10 @@
           "declaration": "client_program_whole_source_capacity_matches ( capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , acquisition : @ client_row_source_host . RowInputAcquisition , provider : @ execution . ExecutionCapacity , ) - > Bool"
         },
         {
+          "name": "client_program_whole_source_capture_input",
+          "declaration": "client_program_whole_source_capture_input ( capture : @ client_row_source_host . RowSourceCapture , ) - > Result [ @ client_row_source_host . RowCapturedInput , @ client_row_source_host . RowHostIssue , ]"
+        },
+        {
           "name": "client_program_whole_source_check_compute_binding",
           "declaration": "client_program_whole_source_check_compute_binding ( capture : @ client_row_source_host . RowSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Result [ Unit , @ client_row_source_host . RowHostIssue ]"
         },
@@ -61711,6 +62101,10 @@
         {
           "name": "client_program_whole_source_input_identity",
           "declaration": "client_program_whole_source_input_identity ( prepared : @ publication_host . PreparedClientProgram , original : @ acquisition . SourceAcquisition , ) - > Array [ String ] ?"
+        },
+        {
+          "name": "client_program_whole_source_is_listing",
+          "declaration": "client_program_whole_source_is_listing ( acquisition : @ client_row_source_host . RowInputAcquisition , ) - > Bool"
         },
         {
           "name": "client_program_whole_source_issue_source_evidence",
@@ -61756,7 +62150,23 @@
             "client_program_whole_source_issue_source_evidence",
             "client_program_whole_source_issue_source_evidence_wire",
             "client_program_whole_source_request_wire",
-            "client_program_whole_source_target"
+            "client_program_whole_source_target",
+            "client_program_effect_whole_source_input_identity",
+            "client_program_installed_effect_managed_plan_whole_source",
+            "client_program_installed_effect_managed_source_input_kind",
+            "client_program_installed_effect_managed_sources_ledger",
+            "client_program_installed_effect_managed_whole_source_read",
+            "client_program_installed_row_input_policy",
+            "client_program_issue_effect_whole_source_input_logical",
+            "client_program_export_whole_source_capture",
+            "client_program_restore_whole_source_capture",
+            "client_program_source_capture_retain_input",
+            "client_program_whole_source_is_listing",
+            "check_client_infer_original_evidence",
+            "client_program_admit_composed_infer_whole_sources",
+            "client_program_restored_whole_source_capture_input",
+            "client_program_start_installed_original_composed_keyed_input_prefix",
+            "client_program_whole_source_capture_input"
           ],
           "exports": [],
           "attributes": {
@@ -61826,7 +62236,8 @@
           "operations": [
             "client_program_select_installed_source_input",
             "client_program_selected_source_input_kind",
-            "client_program_selected_source_input_ref"
+            "client_program_selected_source_input_ref",
+            "client_program_effect_direct_source_coordinates"
           ],
           "exports": [],
           "attributes": {
@@ -62598,7 +63009,7 @@
     },
     {
       "module": "src/execution_relation/source_input_capture.mbt",
-      "sha256": "69fede90bddc0c34295b5985f8bec13f46d87119784ef9ca04de7b9f56c45a0b",
+      "sha256": "625573d646be07dc4a0e0a27ac8cb1ce94603ded287acbb212686e9cd316da34",
       "exports": [],
       "operations": [
         {
@@ -63406,7 +63817,7 @@
     },
     {
       "module": "src/physical_resources/backed_initialization_admission.mbt",
-      "sha256": "3833406856aa8b8607adc24d7a91b1993d90a311aba088b7ced95a33e9e5c355",
+      "sha256": "9658cc33de738fb6fdd68f6968f0e9a105c64c89f894e7136b4738821de64e8e",
       "exports": [],
       "operations": [
         {
@@ -63438,8 +63849,12 @@
           "declaration": "[ I ] take_backed_initialization_admission ( owner : BackedInitializationAdmission [ I ] , input : I , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
         },
         {
+          "name": "[I]take_backed_initialization_for_host",
+          "declaration": "[ I ] take_backed_initialization_for_host ( owner : BackedInitializationAdmission [ I ] , input : I , request : Bool , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
+        },
+        {
           "name": "[P,C,I]prepare_backed_initialization_admission",
-          "declaration": "[ P , C , I ] prepare_backed_initialization_admission ( projection : BackedExecutionLiveProjection [ P , C , I ] , input : I , ) - > Result [ BackedInitializationAdmission [ I ] , ImportedChildLedgerIssue ]"
+          "declaration": "[ P , C , I ] prepare_backed_initialization_admission ( projection : BackedExecutionLiveProjection [ P , C , I ] , input : I , acquire_window ? : ( ( Int64 , Int64 ) - > Result [ Unit , LedgerIssue ] ) ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -63456,7 +63871,8 @@
             "[I]cleanup_backed_initialization_admission",
             "[I]start_backed_initialization_admission",
             "[I]take_backed_initialization_admission",
-            "[P,C,I]prepare_backed_initialization_admission"
+            "[P,C,I]prepare_backed_initialization_admission",
+            "[I]take_backed_initialization_for_host"
           ],
           "exports": [],
           "attributes": {
@@ -63506,6 +63922,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -63518,6 +63938,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
@@ -63527,7 +63951,7 @@
     },
     {
       "module": "src/physical_resources/backed_live_child.mbt",
-      "sha256": "f9d38436283e3ed133c92d217b207a66d0f765ab47988c997235a25d36d696c8",
+      "sha256": "2fc42f7ffa8fab69b47da666a58ed2da781294ce1ead76e1c4978769be992ea9",
       "exports": [],
       "operations": [
         {
@@ -63632,6 +64056,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -63644,6 +64072,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
@@ -63863,7 +64295,8 @@
             "stop_imported_child_ledger",
             "take_imported_child_ledger",
             "take_imported_original_child_ledger",
-            "check_imported_child_admission_current"
+            "check_imported_child_admission_current",
+            "refresh_imported_child_current"
           ],
           "exports": [],
           "attributes": {
@@ -63933,6 +64366,10 @@
               {
                 "path": "src/physical_resources/imported_child_ledger.mbt",
                 "anchor": "pub fn check_imported_original_child_ledger("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -63953,6 +64390,10 @@
               {
                 "path": "src/physical_resources/node_preparation_cleanup_wbtest.mbt",
                 "anchor": "test \"unavailable original preparation remains retained and cannot authorize cleanup cut\""
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
@@ -64167,7 +64608,7 @@
           }
         }
       ],
-      "sha256": "2e63a22d903767ba92d6e2f4c3f024f4ce7d8083c64647590a46219ca5a58ad8",
+      "sha256": "41ce70e467312babca3c97e3242d4c6e5e60975eb8c5d034216afe480610ad21",
       "exports": [],
       "operations": [
         {
@@ -64189,6 +64630,14 @@
         {
           "name": "check_imported_original_child_ledger_current",
           "declaration": "check_imported_original_child_ledger_current ( value : ImportedChildLedger , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "check_imported_original_child_ledger_retained",
+          "declaration": "check_imported_original_child_ledger_retained ( value : ImportedChildLedger , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "cleanup_ledger_usage_copy",
+          "declaration": "cleanup_ledger_usage_copy ( usage : LedgerUsage ) - > LedgerUsage"
         },
         {
           "name": "cleanup_quantity_copy",
@@ -64217,6 +64666,10 @@
         {
           "name": "prepare_imported_child_port",
           "declaration": "prepare_imported_child_port ( nonce : Int64 , admit : ( Int64 ) - > Int , current : ( Int64 ) - > Int , limit : ( Int64 , Int ) - > Int64 , capacity : ( Int64 , Int ) - > Int64 , report : ( Int64 , LedgerUsage ) - > Int , stop : ( Int64 ) - > Int , fixed_capacities ? : Bool"
+        },
+        {
+          "name": "refresh_imported_child_current",
+          "declaration": "refresh_imported_child_current ( origin : ImportedChildLedgerOrigin , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
           "name": "relocate_imported_child_cleanup_usage",
@@ -65578,12 +66031,20 @@
     },
     {
       "module": "src/physical_strategy/source_input_graph.mbt",
-      "sha256": "02f30811d1dbcc53f37d6634e26491aeb997b3c72660859bd3558460219e60f6",
+      "sha256": "fa44e431776ee52d14c763d31d5e4ddda6097d2f079c56c8c06e744a51164d6d",
       "exports": [],
       "operations": [
         {
           "name": "prepare_source_input_dag",
           "declaration": "prepare_source_input_dag ( original : CheckedDAG , acquisition : @ acquisition . SourceAcquisition , ) - > Result [ CheckedDAG , GraphIssue ]"
+        },
+        {
+          "name": "prepare_source_inputs_dag",
+          "declaration": "prepare_source_inputs_dag ( original : CheckedDAG , acquisitions : Array [ @ acquisition . SourceAcquisition ] , ) - > Result [ CheckedDAG , GraphIssue ]"
+        },
+        {
+          "name": "source_inputs_dag_matches_original",
+          "declaration": "source_inputs_dag_matches_original ( graph : CheckedDAG , original : CheckedDAG , ) - > Bool"
         }
       ],
       "responsibilityFacet": "primary",
@@ -65593,7 +66054,9 @@
         {
           "operations": [
             "<module>",
-            "prepare_source_input_dag"
+            "prepare_source_input_dag",
+            "prepare_source_inputs_dag",
+            "source_inputs_dag_matches_original"
           ],
           "exports": [],
           "attributes": {
@@ -65663,7 +66126,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "1b292c18634af284f271d5dfdba6e181bec865dfdeb80caa7cdd1a4e1a90f158",
+      "sha256": "4d441d952b39eab0c06754326ac632e635ab6317698a1b5c160bf779510992c5",
       "exports": [],
       "operations": [
         {
@@ -65939,12 +66402,20 @@
           "declaration": "open_source_input_dag ( graph : CheckedDAG , source : @ query . CapturedInputSource , ledger : @ resources . Ledger , ) - > Result [ CapturedDAG , RunIssue ]"
         },
         {
+          "name": "open_source_inputs_effect_run_dag",
+          "declaration": "open_source_inputs_effect_run_dag ( checked : CheckedEffectRunDAG , graph : CheckedDAG , sources : Array [ @ query . CapturedInputSource ] , ledger : @ resources . Ledger , keyed ? : ( Int , Int , @ execution . SuppliedRelationRead ) ?"
+        },
+        {
           "name": "select_captured_managed_registration",
           "declaration": "select_captured_managed_registration ( run : CapturedDAG , task : Int , registration : @ connector . CapabilityRegistration , ) - > Result [ Unit , RunIssue ]"
         },
         {
           "name": "source_input_dag_matches_read",
           "declaration": "source_input_dag_matches_read ( run : CapturedDAG , read : @ execution . SuppliedRelationRead , ) - > Bool"
+        },
+        {
+          "name": "source_input_dag_matches_read_at",
+          "declaration": "source_input_dag_matches_read_at ( run : CapturedDAG , read : @ execution . SuppliedRelationRead , task : Int , ) - > Bool"
         },
         {
           "name": "stop_captured_dag",
@@ -66038,7 +66509,9 @@
             "source_input_dag_matches_read",
             "stop_captured_dag",
             "task_done",
-            "valid_source_free_root"
+            "valid_source_free_root",
+            "open_source_inputs_effect_run_dag",
+            "source_input_dag_matches_read_at"
           ],
           "exports": [],
           "attributes": {
@@ -66090,6 +66563,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Verifier reentry and Source port lifetime"
               }
             ],
             "failure": [
@@ -66140,6 +66617,10 @@
               {
                 "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
                 "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
+              },
+              {
+                "path": "src/client_local_host/captured_source_reentry_wbtest.mbt",
+                "anchor": "test \"captured binding rechecks DAG Source port after original verifier callback\""
               }
             ]
           }
@@ -66148,7 +66629,7 @@
     },
     {
       "module": "src/physical_strategy_host/checked_graph.mbt",
-      "sha256": "6dc11c2bd2061b7fbcba1a3f50b9cd164ead6d9bb9ce068c776184c965dd3461",
+      "sha256": "ec52921fcfc2c9d071b3c5211355d4b95acbc21e480f9665544f425ec1f2daa1",
       "exports": [],
       "operations": [
         {
@@ -67908,7 +68389,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_compilation.mbt",
-      "sha256": "d5700647dfd0525388f224b16d6e70377cc703cbd6955529e29aac61b74f8a4f",
+      "sha256": "4892bdb85dcd5904c8f46626c5a98ee310f59343486b477edb0de1689068f2c1",
       "operations": [
         {
           "name": "admit_client_effect_allowed_run",
@@ -68127,7 +68608,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_program.mbt",
-      "sha256": "8c7bb804b90c25ca47bdfe7e241adb14144cfa181c09e48cbe5226fc5ca24c83",
+      "sha256": "43adaa963e126fbaf3a7e2cc38c198ff0c00da6ca5b0c211b8e45253c2d01c8e",
       "exports": [],
       "operations": [
         {
@@ -68137,6 +68618,10 @@
         {
           "name": "bind_prepared_client_effect_run",
           "declaration": "bind_prepared_client_effect_run ( computation : PreparedClientEffectComputation , admission : @ publication . RunPublicationAdmission , run_definition : @ publication . PublicationContract , ) - > Result [ PreparedClientEffectRun , ClientEffectRunIssue ]"
+        },
+        {
+          "name": "clear_prepared_client_effect_custody_after_cleanup",
+          "declaration": "clear_prepared_client_effect_custody_after_cleanup ( owner : PreparedClientEffectComputation , ) - > Unit"
         },
         {
           "name": "client_effect_program_view",
@@ -68277,7 +68762,8 @@
             "prepared_client_effect_result_count",
             "prepared_client_effect_result_name",
             "prepared_client_effect_run_computation",
-            "prepared_client_effect_run_graph"
+            "prepared_client_effect_run_graph",
+            "clear_prepared_client_effect_custody_after_cleanup"
           ],
           "exports": [],
           "attributes": {
@@ -68391,6 +68877,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retaining Source originals after Request compilation"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "## Same Request Effect preparation lifetime"
               }
             ],
             "extension": [
@@ -68435,6 +68925,10 @@
               {
                 "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
                 "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_normalization_wbtest.mbt",
+                "anchor": "test \"retired Effect custody severs cached backedges"
               }
             ]
           }
@@ -69003,7 +69497,8 @@
             "prepared_client_values_max_rows",
             "prepared_client_values_sequence_limits",
             "retain_client_task_pipeline_input",
-            "with_prepared_client_values_row_limit"
+            "with_prepared_client_values_row_limit",
+            "measure_prepared_client_values_pipeline_construction"
           ],
           "exports": [],
           "attributes": {
@@ -69011,6 +69506,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
@@ -69021,6 +69520,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
@@ -69031,6 +69534,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
@@ -69041,6 +69548,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
@@ -69051,6 +69562,10 @@
               {
                 "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
                 "anchor": "test \"original Effect compilation retains Content and Model"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
@@ -69061,6 +69576,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -69081,12 +69600,20 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -69395,7 +69922,7 @@
           }
         }
       ],
-      "sha256": "a05b24076212ed97007f84d1c17ff67418e92860673ba5c192cf3869673feb1d",
+      "sha256": "592f970540c2cab3ac34ba747a2520a3e8d933d1dad8e89a9d1952ecde36f8b6",
       "exports": [],
       "operations": [
         {
@@ -69579,6 +70106,10 @@
           "declaration": "measure_prepared_client_values_pipeline ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Int , Int , Int ) , ClientValuesPipelineIssue ]"
         },
         {
+          "name": "measure_prepared_client_values_pipeline_construction",
+          "declaration": "measure_prepared_client_values_pipeline_construction ( value : PreparedClientProgram , task : Int , limits : @ lower . SequenceLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ encode . EncodingConstructionGeometry , ClientValuesPipelineIssue ]"
+        },
+        {
           "name": "observe_prepare_checked_effect_free_client_program",
           "declaration": "observe_prepare_checked_effect_free_client_program ( checked : @ checked . CheckedProgram , lowering : @ lower . Limits , max_parameters ~ : Int , max_parameter_name_bytes ~ : Int , max_tasks ~ : Int , max_graph_work ~ : Int , values_max_rows ? : Int ?"
         },
@@ -69686,7 +70217,7 @@
     },
     {
       "module": "src/run_publication_host/client_pure_compilation_construction.mbt",
-      "sha256": "47afd86e20b91053826fc94296827f40b7c05c224a79de2f819739a8f04d2092",
+      "sha256": "cffc845e397b05572b1160bf477d663011c90581e37519b2c8e5945b9da55d24",
       "exports": [],
       "operations": [
         {
@@ -69698,12 +70229,20 @@
           "declaration": "client_standard_pure_compilation_limits ( ) - > ClientPureCompilationLimits"
         },
         {
+          "name": "emit_client_compilation_measurement",
+          "declaration": "emit_client_compilation_measurement ( writer : @ encode . Writer , value : ClientMeasuredCompilationGeometry , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "finish_client_compilation_measurement",
+          "declaration": "finish_client_compilation_measurement ( writer : @ encode . Writer , ) - > ClientMeasuredCompilationGeometry raise @ encode . EncodeFailure"
+        },
+        {
           "name": "measure_client_compilation_array",
-          "declaration": "measure_client_compilation_array ( values : Array [ ( Int , Int , Int ) ] , ) - > ( Int , Int , Int ) raise @ encode . EncodeFailure"
+          "declaration": "measure_client_compilation_array ( values : Array [ ClientMeasuredCompilationGeometry ] , ) - > ClientMeasuredCompilationGeometry raise @ encode . EncodeFailure"
         },
         {
           "name": "measure_client_compilation_final_construction",
-          "declaration": "measure_client_compilation_final_construction ( value : PreparedClientProgram , manifests : ClientCompilationManifests , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , tasks : Bool , fragments : Array [ ClientTaskFragmentConstruction ] , borrowed_inputs : Array [ ( Int , Int , Int ) ] , results : Array [ ( Int , Int , Int ) ] , projections : Array [ ClientResultGraphConstruction ] , names : Array [ String ] , result_cids : Array [ Unit ] , graph_nodes : Array [ ( Int , Int , Int ) ] , graph_edges : Array [ ( Int , Int , Int ) ] , graph_roots : Array [ ( Int , Int , Int ) ] , required_profiles : Array [ ( String , Unit ) ] , ) - > Result [ ClientPureCompilationConstruction , ClientValuesExecutablePlanIssue ]"
+          "declaration": "measure_client_compilation_final_construction ( value : PreparedClientProgram , manifests : ClientCompilationManifests , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , tasks : Bool , fragments : Array [ ClientTaskFragmentConstruction ] , borrowed_inputs : Array [ ( Int , Int , Int ) ] , results : Array [ ( Int , Int , Int ) ] , projections : Array [ ClientResultGraphConstruction ] , names : Array [ String ] , result_cids : Array [ Unit ] , graph_nodes : Array [ ClientMeasuredCompilationGeometry ] , graph_edges : Array [ ClientMeasuredCompilationGeometry ] , graph_roots : Array [ ClientMeasuredCompilationGeometry ] , required_profiles : Array [ ( String , Unit ) ] , borrowed_input_geometry ? : Array [ @ encode . EncodingConstructionGeometry ? ]"
         },
         {
           "name": "measure_client_values_fragment_construction",
@@ -69720,6 +70259,14 @@
         {
           "name": "measure_prepared_client_pure_compilation_construction",
           "declaration": "measure_prepared_client_pure_compilation_construction ( value : PreparedClientProgram , manifests : ClientCompilationManifests , sequence_limits : @ lower . SequenceLimits , max_facts : Int , max_witnesses : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientPureCompilationConstruction , ClientValuesExecutablePlanIssue ]"
+        },
+        {
+          "name": "measured_client_compilation_geometry",
+          "declaration": "measured_client_compilation_geometry ( shape : @ encode . EncodingConstructionGeometry , ) - > ClientMeasuredCompilationGeometry"
+        },
+        {
+          "name": "unknown_client_compilation_geometry",
+          "declaration": "unknown_client_compilation_geometry ( usage : ( Int , Int , Int ) , ) - > ClientMeasuredCompilationGeometry"
         }
       ],
       "responsibilityFacet": "primary",
@@ -69736,7 +70283,11 @@
             "measure_client_values_fragment_construction",
             "measure_prepared_client_compilation_construction_owned",
             "measure_prepared_client_model_compilation_construction",
-            "measure_prepared_client_pure_compilation_construction"
+            "measure_prepared_client_pure_compilation_construction",
+            "emit_client_compilation_measurement",
+            "finish_client_compilation_measurement",
+            "measured_client_compilation_geometry",
+            "unknown_client_compilation_geometry"
           ],
           "exports": [],
           "attributes": {
@@ -69744,12 +70295,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
@@ -69760,6 +70319,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"generic Request module retains its funded compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
@@ -69770,6 +70333,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"generic Request module retains its funded compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
@@ -69780,6 +70347,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact current reentry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
@@ -69790,6 +70361,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -69810,12 +70385,20 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"artifact reservation derives from original constructor bodies"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original pure artifacts on the Request Plan"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -69865,6 +70448,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
@@ -69875,6 +70462,10 @@
               {
                 "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
                 "anchor": "test \"measurement collections come from original inventory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
@@ -69885,6 +70476,10 @@
               {
                 "path": "src/run_publication_host/client_pure_measurement_storage_wbtest.mbt",
                 "anchor": "test \"compiler measurement label lengths use the original decimal"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
@@ -69895,6 +70490,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"actual Request refuses one-short measurement storage"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
@@ -69905,6 +70504,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact current reentry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
@@ -69919,6 +70522,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"measurement storage preserves each original invalid compiler"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -69939,12 +70546,20 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"funded artifact grow retains original module"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Compiler measurement collection backing"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -70137,7 +70752,7 @@
           }
         }
       ],
-      "sha256": "2b7ce988b5a73db51673c7f258593f857006e57504ae48f1eb4a8c19bae8354f",
+      "sha256": "21d8329d49b160815079b7e9651e75000ecc66c09876d2164ca23c4e18efb4ac",
       "exports": [],
       "operations": [
         {
@@ -71619,6 +72234,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "inputsOutputs": [
@@ -71629,6 +72248,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "identity": [
@@ -71639,6 +72262,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"Task Fragment consumes its original canonical pipeline"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "ownership": [
@@ -71649,6 +72276,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "synchronization": [
@@ -71659,6 +72290,10 @@
               {
                 "path": "src/run_publication_host/client_effect_serialized_infer_wbtest.mbt",
                 "anchor": "test \"original Effect compilation retains Content and Model"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "failure": [
@@ -71669,6 +72304,10 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "cancellation": [
@@ -71689,12 +72328,20 @@
               {
                 "path": "src/run_publication_host/client_task_pipeline_original_body_wbtest.mbt",
                 "anchor": "test \"original Task pipeline keeps its exact canonical codec"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original canonical Task pipeline construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
               }
             ],
             "verification": [
@@ -71978,7 +72625,7 @@
           }
         }
       ],
-      "sha256": "87ce78647a25dd84173c9933bff5aea03497ebd1d35b83ca380b4129e9eec982",
+      "sha256": "6d77437cb6038fc2f9cbf7c41f5dbfd72ba45bcc15657499abd1e4187d0336f8",
       "exports": [],
       "operations": [
         {
@@ -72947,7 +73594,7 @@
     },
     {
       "module": "src/sourceview_resolution/source_acquisition_route.mbt",
-      "sha256": "1750e27c40f5466af14f42ee64ae3a4814fdff39874ae679cbeb2e50ab13b5c8",
+      "sha256": "5ac4c4e8330059b2d7a86590a84fac0b460e53bd57e9e83ad022de08cd91b585",
       "exports": [],
       "operations": [
         {
@@ -75660,7 +76307,8 @@
             "[I]request_source_input_construction_bytes",
             "[I]request_source_input_original",
             "[I]request_source_input_parts",
-            "to_repr"
+            "to_repr",
+            "[I,P]reserve_request_query_profile_scratch"
           ],
           "exports": [],
           "attributes": {
@@ -75710,6 +76358,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Before returning the selected compiler kind"
               }
             ],
             "extension": [
@@ -75726,16 +76378,24 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source terminal refuses resolved nested ARRAY"
               }
             ]
           }
         }
       ],
-      "sha256": "a8eb0f957746aa638d31f8db015c2fe02ad730826f0e2416a70bd7ad8f8fbd66",
+      "sha256": "50f301851918cadd47ddf8d4c31a15e1250c1f2cf64ca7fabb64890abf40bd5e",
       "operations": [
         {
           "name": "[I,P,D]borrow_request_source_preparation_owned",
           "declaration": "[ I , P , D ] borrow_request_source_preparation_owned ( owner : ClientRequestPreparation [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , P ] , source : @ publication_host . ClientSourceInput , prepared : D , retain_original : ( @ publication_host . ClientSourceInput , D ) - > Result [ @ publication_host . ClientSourcePreparation , @ publication_host . ClientSourcePreparationIssue , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . ClientSourcePreparation ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I,P]reserve_request_query_profile_scratch",
+          "declaration": "[ I , P ] reserve_request_query_profile_scratch ( owner : ClientRequestPreparation [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , P ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]borrow_request_source_preparation",
@@ -75790,7 +76450,8 @@
             "client_source_computation_request",
             "client_source_computation_source",
             "prepare_client_source_computation",
-            "source_prepared_publication_issue"
+            "source_prepared_publication_issue",
+            "check_client_source_array_profile"
           ],
           "exports": [],
           "attributes": {
@@ -75840,6 +76501,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retaining Source originals after Request compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Before returning the selected compiler kind"
               }
             ],
             "extension": [
@@ -75860,16 +76525,24 @@
               {
                 "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
                 "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source terminal refuses resolved nested ARRAY"
               }
             ]
           }
         }
       ],
-      "sha256": "51004e94d1c36468124775776fb1d2c1e6bd4e5de7c2787543e1c207deced9a3",
+      "sha256": "aa4928a5be7bacc447f0d24c5ceef41fb1cee9d2781f9502d3f6dfe2db08befc",
       "operations": [
         {
           "name": "[T]source_result",
           "declaration": "[ T ] source_result ( value : Result [ T , ClientSourcePreparationIssue ] , ) - > T raise ClientSourcePreparationStop"
+        },
+        {
+          "name": "check_client_source_array_profile",
+          "declaration": "check_client_source_array_profile ( checked : @ checked . CheckedProgram , ) - > Result [ Unit , ClientSourcePreparationIssue ]"
         },
         {
           "name": "client_source_computation_matches",
@@ -75975,6 +76648,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retaining Source originals after Request compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Before returning the selected compiler kind"
               }
             ],
             "extension": [
@@ -75995,6 +76672,10 @@
               {
                 "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
                 "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source terminal refuses resolved nested ARRAY"
               }
             ]
           }
@@ -76074,7 +76755,7 @@
           }
         }
       ],
-      "sha256": "105e2c1eb0671dc5a88d5993fb3fbdf2e18b320526de63a4e8dbb11e573689a8",
+      "sha256": "f565dd82085fd1292d570a6eb51a8497dd5f2c2c18cef13a65c2413bdee04393",
       "operations": [
         {
           "name": "[T]same_client_source_optional",
@@ -77343,7 +78024,7 @@
           }
         }
       ],
-      "sha256": "762a71aab3757aa4597bb54f7e78601a8a696d09fcc4ef9e1d6a4a2804b77f46",
+      "sha256": "7930ca829968215e95585916e212c7a6d361d9dc139ab0df2797e71def53d7c2",
       "operations": [
         {
           "name": "[P,C]backed_child_current",
@@ -77387,7 +78068,7 @@
         },
         {
           "name": "[P,C]reserve_backed_execution_delegation",
-          "declaration": "[ P , C ] reserve_backed_execution_delegation ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , extent : BackedExecutionExtent , access : BackedExecutionAccess , limits : LedgerLimits , overhead_retained : Int64 , overhead_execution : Int64 , ) - > Result [ BackedExecutionDelegation [ P , C ] , BackedExecutionIssue ]"
+          "declaration": "[ P , C ] reserve_backed_execution_delegation ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , extent : BackedExecutionExtent , access : BackedExecutionAccess , limits : LedgerLimits , overhead_retained : Int64 , overhead_execution : Int64 , initial_window ? : Int64 ?"
         },
         {
           "name": "[P,C]settle_backed_execution_after_owner_ack",
@@ -77505,6 +78186,10 @@
               {
                 "path": "src/physical_resources/backed_original_child_ledger.mbt",
                 "anchor": "fn[P, C, R] backed_original_child_ready("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -77525,12 +78210,16 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
         }
       ],
-      "sha256": "0172a38127ea71df30f780352759405b380d13da85dfe4c23b761f5708dab703",
+      "sha256": "d9b602e83a17fd330ae3190099496e5849f0118a5b3539f2f44c28bef2bccbd4",
       "operations": [
         {
           "name": "[P,C,R]backed_original_child_ready",
@@ -77538,7 +78227,7 @@
         },
         {
           "name": "[P,C,R]prepare_backed_original_child_ledger",
-          "declaration": "[ P , C , R ] prepare_backed_original_child_ledger ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ ImportedChildLedger , ImportedChildLedgerIssue ]"
+          "declaration": "[ P , C , R ] prepare_backed_original_child_ledger ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , acquire_window ? : ( ( Int64 , Int64 ) - > Result [ Unit , LedgerIssue ] ) ?"
         },
         {
           "name": "retire_backed_original_child_origin",
@@ -77978,7 +78667,8 @@
             "<module>",
             "[P,C]issue_platform_vm_preparation_region",
             "[P,C]platform_vm_backed_usage_fits",
-            "grow_imported_platform_working_current"
+            "grow_imported_platform_working_current",
+            "acquire_imported_child_window_current"
           ],
           "exports": [],
           "attributes": {
@@ -78060,6 +78750,10 @@
               {
                 "path": "src/physical_resources/platform_vm_preparation_region.mbt",
                 "anchor": "pub fn[P, C] issue_platform_vm_preparation_region("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -78080,12 +78774,16 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
         }
       ],
-      "sha256": "4d727be59557777931e39444ba33108866b159913199ddf42dd2c769e7e6d81f",
+      "sha256": "88643fadb611e042d270484fd7cff2e9801ae957debadd032d0fcd654d4b374f",
       "operations": [
         {
           "name": "[P,C]issue_platform_vm_preparation_region",
@@ -78094,6 +78792,10 @@
         {
           "name": "[P,C]platform_vm_backed_usage_fits",
           "declaration": "[ P , C ] platform_vm_backed_usage_fits ( region : BackedExecutionRegion [ P , C ] , usage : LedgerUsage , ) - > Bool"
+        },
+        {
+          "name": "acquire_imported_child_window_current",
+          "declaration": "acquire_imported_child_window_current ( ledger : Ledger , origin : ImportedChildLedgerOrigin , window : Ref [ Int64 ] , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
           "name": "grow_imported_platform_working_current",
@@ -81788,7 +82490,7 @@
     },
     {
       "module": "src/client_local_host/original_composed_keyed_prefix.mbt",
-      "sha256": "089ab0cf4424b190e4225bfafc9bc0a8c5d7066597f04adcfcb801e7d1a712a8",
+      "sha256": "b7d0645c82d9f5ff204b3bb902ceceaef92af80e03334a7f0f5aa1ba55f067b8",
       "exports": [],
       "operations": [
         {
@@ -81809,7 +82511,11 @@
         },
         {
           "name": "start_client_original_composed_keyed_prefix_owned",
-          "declaration": "start_client_original_composed_keyed_prefix_owned ( scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowSourceCapture ] , input_prefix : @ execution . GeneratedSequence , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , installed : ClientInstalledManagedRun ? , ) - > Result [ ClientOriginalComposedKeyedPrefix , ClientSerializationPrefixIssue ]"
+          "declaration": "start_client_original_composed_keyed_prefix_owned ( scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowCapturedInput ] , input_prefix : @ execution . GeneratedSequence , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , installed : ClientInstalledManagedRun ? , borrowed_inputs ? : Bool"
+        },
+        {
+          "name": "start_installed_original_composed_keyed_input_prefix",
+          "declaration": "start_installed_original_composed_keyed_input_prefix ( owner : ClientInstalledManagedRun , scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowCapturedInput ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , ) - > Result [ ClientOriginalComposedKeyedPrefix , ClientSerializationPrefixIssue ]"
         },
         {
           "name": "start_installed_original_composed_keyed_prefix",
@@ -81829,7 +82535,8 @@
             "complete_client_original_composed_keyed_prefix",
             "start_client_original_composed_keyed_prefix",
             "start_client_original_composed_keyed_prefix_owned",
-            "start_installed_original_composed_keyed_prefix"
+            "start_installed_original_composed_keyed_prefix",
+            "start_installed_original_composed_keyed_input_prefix"
           ],
           "exports": [],
           "attributes": {
@@ -82034,6 +82741,545 @@
         }
       ],
       "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
+    },
+    {
+      "module": "src/source_value/json_construction_extent.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "4272ac222041579c34f4c7ef02348b8bbe8a2870dc52df716c350b4432d291bd",
+      "role": "common-semantics",
+      "owner": "Existing Source Parser and logical constructor inventory",
+      "exports": [],
+      "operations": [
+        {
+          "name": "json_construction_extent",
+          "declaration": "json_construction_extent ( max_input_bytes : Int , max_nodes : Int , max_depth : Int , normalize_keys ~ : Bool , ) - > JsonConstructionExtent ?"
+        },
+        {
+          "name": "json_construction_extent_owned",
+          "declaration": "json_construction_extent_owned ( max_input_bytes : Int , max_nodes : Int , max_depth : Int , fields : Int , containers : Int , objects : Int , largest_object : Int , strings : Int , normalize_keys ~ : Bool , ) - > JsonConstructionExtent ?"
+        },
+        {
+          "name": "json_shaped_construction_extent",
+          "declaration": "json_shaped_construction_extent ( max_input_bytes : Int , max_nodes : Int , max_depth : Int , fields : Int , containers : Int , objects : Int , largest_object : Int , strings : Int , normalize_keys ~ : Bool , ) - > JsonConstructionExtent ?"
+        },
+        {
+          "name": "json_source_geometry_construction_extent",
+          "declaration": "json_source_geometry_construction_extent ( geometry : JsonSourceGeometry , max_nodes : Int , max_depth : Int , ) - > JsonConstructionExtent ?"
+        },
+        {
+          "name": "json_source_grammar_construction_extent",
+          "declaration": "json_source_grammar_construction_extent ( max_input_bytes : Int , max_nodes : Int , max_depth : Int , ) - > JsonConstructionExtent ?"
+        },
+        {
+          "name": "json_source_grammar_controls",
+          "declaration": "json_source_grammar_controls ( grammar : JsonConstructionExtent , ) - > JsonConstructionExtent"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "json_construction_extent",
+            "json_construction_extent_owned",
+            "json_shaped_construction_extent",
+            "json_source_geometry_construction_extent",
+            "json_source_grammar_construction_extent",
+            "json_source_grammar_controls"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source parser and emitted Plan scratch lifetimes"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/source_value/json_literal_construction_controls_wbtest.mbt",
+                "anchor": "test \"literal parser retires sibling key owners while retaining all original fields\""
+              },
+              {
+                "path": "src/source_value/json_literal_construction_extent_test.mbt",
+                "anchor": "test \"literal construction bound is pre-read DATA and preserves original parser refusals\""
+              },
+              {
+                "path": "src/source_value/json_observed_construction_wbtest.mbt",
+                "anchor": "test \"observed Source quote keeps canonical Unicode"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original parser/component/source-only. No native allocator, ordinary Host, capacity grant or physical cleanup evidence."
+    },
+    {
+      "module": "src/encode_core/construction_geometry.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "9e9953fb72293066286ccb8f38eb5a4adae2b062e8908e115a9f0361e0d70d6d",
+      "role": "common-semantics",
+      "owner": "Existing bounded JSON writer and compiler construction owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "construction_geometry_usage",
+          "declaration": "construction_geometry_usage ( value : EncodingConstructionGeometry , ) - > ( Int , Int , Int )"
+        },
+        {
+          "name": "construction_measuring_writer",
+          "declaration": "construction_measuring_writer ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Writer raise EncodeFailure"
+        },
+        {
+          "name": "emit_construction_measurement",
+          "declaration": "emit_construction_measurement ( writer : Writer , value : EncodingConstructionGeometry , ) - > Unit raise EncodeFailure"
+        },
+        {
+          "name": "finish_construction_measurement",
+          "declaration": "finish_construction_measurement ( writer : Writer , ) - > EncodingConstructionGeometry raise EncodeFailure"
+        },
+        {
+          "name": "observe_construction_container",
+          "declaration": "observe_construction_container ( writer : Writer , object ~ : Bool ) - > Unit"
+        },
+        {
+          "name": "observe_construction_field",
+          "declaration": "observe_construction_field ( writer : Writer ) - > Unit"
+        },
+        {
+          "name": "observe_construction_object_end",
+          "declaration": "observe_construction_object_end ( writer : Writer , fields : Int ) - > Unit"
+        },
+        {
+          "name": "observe_construction_text",
+          "declaration": "observe_construction_text ( writer : Writer , units : Int , value ~ : Bool , ) - > Unit"
+        },
+        {
+          "name": "observe_embedded_construction",
+          "declaration": "observe_embedded_construction ( writer : Writer , nodes : Int , bytes : Int , shape : EncodingConstructionGeometry ? , ) - > Unit"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "construction_geometry_usage",
+            "construction_measuring_writer",
+            "emit_construction_measurement",
+            "finish_construction_measurement",
+            "observe_construction_container",
+            "observe_construction_field",
+            "observe_construction_object_end",
+            "observe_construction_text",
+            "observe_embedded_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Codec geometry stays with its original construction role"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/encode_core/construction_geometry_wbtest.mbt",
+                "anchor": "test \"same bounded emission retains structural geometry without text or another visit\""
+              },
+              {
+                "path": "src/run_publication_host/client_pure_compilation_construction_wbtest.mbt",
+                "anchor": "test \"unobserved codec role cannot borrow another same-sized subtree shape\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Same-emitter construction DATA only; not text, admitted tree, semantic identity, Resource permission or backend physical supply."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_default_document.mbt",
+      "sha256": "1dd03dd1bea5c8885b73489901192f84e6c6488e10af260c14efce3b8bd6b462",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,T]prepare_request_default_source_computation_check",
+          "declaration": "[ I , T ] prepare_request_default_source_computation_check ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , evidence : Array [ @ context . StageCapacityInput ] , values_max_rows : Int ? , effect_limits : @ publication_host . ClientEffectComputationLimits , supplied ? : T ?"
+        },
+        {
+          "name": "[I]prepare_request_default_json_computation_input",
+          "declaration": "[ I ] prepare_request_default_json_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request, Program JSON preflight and Resource preparation owners",
+      "referenceQualification": "Same Request/default JSON source, selected component and canonical API only; matching normal packages and complete public execution remain separate",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,T]prepare_request_default_source_computation_check",
+            "[I]prepare_request_default_json_computation_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_document_js_wbtest.mbt",
+                "anchor": "test \"default Source JSON observes actual nodes"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_document_js_wbtest.mbt",
+                "anchor": "test \"default Source JSON refuses current loss"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_document_js_wbtest.mbt",
+                "anchor": "test \"default Source JSON carries the original input selection"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source document Request continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/backed_child_window.mbt",
+      "sha256": "0b31224a261a271c8d69760c3083851b38d1947ae9ad34b33b5edbcf8c7b97cd",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing backed execution child and SharedCapacityGrowth Resource owner; no physical receipt issuer or new Ledger",
+      "referenceQualification": "Portable nominal Resource components and declared-policy/acquired-window correspondence only; no Native receipt, ordinary backing or physical cleanup acceptance.",
+      "operations": [
+        {
+          "name": "[P,C,R]backed_original_child_window_current",
+          "declaration": "[ P , C , R ] backed_original_child_window_current ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ BackedExecutionDelegation [ P , C ] , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]check_backed_original_child_window_demand",
+          "declaration": "[ P , C , R ] check_backed_original_child_window_demand ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , retained : Int64 , execution : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]complete_backed_original_child_window_after_acquisition",
+          "declaration": "[ P , C , R ] complete_backed_original_child_window_after_acquisition ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , growth : SharedCapacityGrowth , acquired_payload_bytes : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]read_backed_original_child_window_bytes",
+          "declaration": "[ P , C , R ] read_backed_original_child_window_bytes ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ Int64 , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]complete_backed_execution_window_after_acquisition",
+          "declaration": "[ P , C ] complete_backed_execution_window_after_acquisition ( region : BackedExecutionRegion [ P , C ] , provider : P , child : C , ticket : BackedExecutionDelegation [ P , C ] , growth : SharedCapacityGrowth , acquired_payload_bytes : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C]complete_backed_execution_window_current",
+          "declaration": "[ P , C ] complete_backed_execution_window_current ( region : BackedExecutionRegion [ P , C ] , ticket : BackedExecutionDelegation [ P , C ] , growth : SharedCapacityGrowth , acquired_payload_bytes : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        }
+      ],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P,C,R]backed_original_child_window_current",
+            "[P,C,R]check_backed_original_child_window_demand",
+            "[P,C,R]complete_backed_original_child_window_after_acquisition",
+            "[P,C,R]read_backed_original_child_window_bytes",
+            "[P,C]complete_backed_execution_window_after_acquisition",
+            "[P,C]complete_backed_execution_window_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original child policy and acquired byte window"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window.mbt",
+                "anchor": "pub fn[P, C, R] complete_backed_original_child_window_after_acquisition("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed child policy cannot grant bytes before same-parent acquired window publication\""
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"closing original child retains pending acquired growth without publishing another window\""
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"acquired child window observation preserves usage and rejects foreign closing and retired originals\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

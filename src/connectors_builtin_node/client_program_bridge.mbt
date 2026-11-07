@@ -367,6 +367,8 @@ pub fn client_program_request_preparation_issue_code(
       return Some(client_source_preparation_issue_code(Frontend(issue)))
     Err(Publication(Publication(Declarations))) =>
       return Some(client_source_preparation_issue_code(Declarations))
+    Err(Preparation(SourceInput(Source(@publication_host.ArrayProfile(issue))))) =>
+      return Some(client_source_preparation_issue_code(ArrayProfile(issue)))
     Err(CheckOutcome(Rejected(diagnostic))) => Preparation(Check(diagnostic))
     Err(CheckOutcome(NeedsInputs(_))) => return Some("needs_inputs")
     Err(Preparation(ProgramCheck(Compilation(Syntax(issue)))))
@@ -8660,11 +8662,13 @@ pub fn client_program_effect_publication_data_policy_cid(
 pub fn client_program_effect_acquisition_count(
   value : @publication_host.PreparedClientEffectComputation,
 ) -> Int {
-  @strategy.graph_captured_prefix(
-    @strategy.checked_effect_computation_graph(
-      @publication_host.prepared_client_effect_computation_graph(value),
-    ),
+  @publication_host.select_client_effect_direct_acquisition_occurrences(
+    value, 1000000,
   )
+  .map(value => {
+    @publication_host.client_direct_acquisition_occurrence_count(value)
+  })
+  .unwrap_or(-1)
 }
 
 ///|

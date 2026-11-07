@@ -24,7 +24,7 @@ assert(prepareDeclaration && describePreparedSourceDeclaration &&
 
 test('whole input consumes the same Run/reader/evidence originals without Query or output transfer', async () => {
   const acquisition = {}, originalRead = {}, ledger = {}, provider = {}, capacity = {};
-  const run = {}, attempt = {}, borrow = {}, capture = {}, source = {}, identity = {}, logical = {}, evidence = {};
+  const run = {}, attempt = {}, borrow = {}, capture = {}, source = {}, identity = {}, logical = {}, evidence = {}, originalInput = {};
   const checkedOwner = {}, dag = {}, calls = [];
   let settled, observeStop, stopped = false, retired = false;
   const moon = {
@@ -48,6 +48,9 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
     clientProgramRowSourceCaptureAdvance: () => ok({_0: true, _1: 1n}),
     clientProgramRowSourceCapture: () => ok(capture),
     clientProgramRowSourceCaptureSource(actual) {assert.equal(actual, capture); return ok(source);},
+    clientProgramWholeSourceCaptureInput(actual) {
+      assert.equal(actual, capture); return ok(originalInput);
+    },
     clientProgramCapturedTaskSourceMatches(prepared, actual, task) {
       assert.equal(prepared, checkedOwner); assert.equal(actual, source); assert.equal(task, 0); return true;
     },
@@ -88,10 +91,14 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
     providerCaptureCapacity: capacity, occurrence: {stage: 0, input: 0, task: 0}},
   prepared: {checkedSource: {}}, currentRead});
   assert.equal(result.logicalInput, logical);
+  assert.equal(result.inputKind, 'whole-input');
+  assert.strictEqual(result.wholeCapacity, capacity);
   assert.equal(Object.hasOwn(result, 'requirement'), false);
   assert.equal(result.capture.originalWholeInput(), capture);
+  assert.strictEqual(result.capture.originalCapturedInput(), originalInput);
   const copied = {...result.capture};
   assert.throws(() => copied.originalWholeInput(), {code: 'ForeignInstalledSourceCapture'});
+  assert.throws(() => copied.originalCapturedInput(), {code: 'ForeignInstalledSourceCapture'});
   result.capture.retainTask(dag, 0);
   await result.prepareSourceEvidenceOriginal({authorityScopeCid: 'scope', effectiveDataPolicyCid: 'policy'});
   assert.equal(result.capture.takeSourceEvidenceOriginal(), evidence);
@@ -101,10 +108,43 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
   assert.equal(await session.cleanup(), true);
   assert.equal(retired, true);
   assert.throws(() => result.capture.originalWholeInput(), {code: 'ForeignInstalledSourceCapture'});
+  assert.throws(() => result.capture.originalCapturedInput(), {code: 'ForeignInstalledSourceCapture'});
   assert.equal(calls.filter(value => value === 'start').length, 1);
   assert.equal(calls.filter(value => value === 'read').length, 1);
   assert.equal(calls.filter(value => value === 'logical').length, 1);
   assert.equal(calls.filter(value => value === 'evidence').length, 1);
+});
+
+test('whole Host-backed read starts on its checked original without a managed provider reader', () => {
+  const originalRead = {}, acquisition = {}, ledger = {}, run = {};
+  let checkedLedger = false, starts = 0, retirements = 0, stopped = false;
+  const moon = {
+    clientProgramInstalledSourceReadCheckLedger(read, selectedLedger) {
+      assert.strictEqual(read, originalRead); assert.strictEqual(selectedLedger, ledger);
+      checkedLedger = true; return ok();
+    },
+    clientProgramInstalledWholeSourceReadStartRows(read, selected, nonce, verify, transfer, scratch) {
+      assert.equal(checkedLedger, true); assert.strictEqual(read, originalRead);
+      assert.strictEqual(selected, acquisition); assert.equal(nonce, 'host-backed');
+      assert.equal(verify({}), false); assert.equal(transfer, 1024n); assert.equal(scratch, 512n);
+      starts++; return ok(run);
+    },
+    clientProgramRowSourceCloseAccounted(selected) {
+      assert.strictEqual(selected, run);
+      return stopped ? ok() : {$tag: 0, _0: 'physical-stop-pending'};
+    },
+    clientProgramRowSourceCaptureCleanup: () => ok(true),
+    clientProgramInstalledSourceReadRetire(read) {
+      assert.strictEqual(read, originalRead); retirements++; return ok();
+    },
+  };
+  const session = startInstalledRowRun({moon, acquisition, originalRead, ledger, wholeInput: true,
+    nonce: 'host-backed', capacity: {transferBytes: 1024n, executionBytes: 512n}});
+  assert.strictEqual(session.run, run); assert.equal(starts, 1);
+  assert.throws(() => session.close(), error => error.cause === 'physical-stop-pending');
+  assert.equal(retirements, 0);
+  stopped = true; session.close();
+  assert.equal(retirements, 1); assert.equal(starts, 1);
 });
 
 test('whole input cannot select a bare, keyed or listing RowRun', () => {
@@ -116,7 +156,7 @@ test('whole input cannot select a bare, keyed or listing RowRun', () => {
   }
 });
 
-async function failedPreparationFixture({pendingRetirement = false, validFacts = false, identity, authorization} = {}) {
+async function failedPreparationFixture({pendingRetirement = false, validFacts = false, identity, authorization, effectful = false} = {}) {
   const {types} = await import('node:util');
   const {runtimeField, runtimeIsOk, runtimeIsBoxedSome} = await import('../host-common/compiler-binding.generated.mjs');
   const {checked} = await import('../host-common/runtime-result.mjs');
@@ -128,6 +168,20 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
   const read = {}, managedRun = {}, preparedProgram = {}, declaration = {};
   let retireCalls = 0, siteCloses = 0;
   const moon = {
+    clientProgramEffectDirectSourceCoordinates(actual) {
+      assert.equal(actual, preparedProgram);return ok([[0, 0, 0, 0], [0, 1, 1, 0]]);
+    },
+    clientProgramInstalledEffectManagedRunCheck(actual, owner) {
+      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);return ok();
+    },
+    clientProgramInstalledEffectManagedSourceInputKind(actual, owner, request, slot) {
+      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);assert.equal(slot, 1);return ok('whole-input');
+    },
+    clientProgramInstalledEffectManagedSourceRead() {assert.fail('whole Effect input cannot borrow a Query acquisition');},
+    clientProgramInstalledEffectManagedWholeSourceRead(actual, owner, request, declared, slot) {
+      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);assert.equal(declared, declaration);assert.equal(slot, 1);
+      return ok({_0: read, _1: {}, _2: {}, _3: {}});
+    },
     clientProgramInstalledManagedSourceInputKind(actual, owner) {
       assert.equal(actual, managedRun); assert.equal(owner, preparedProgram); return ok('whole-input');
     },
@@ -141,6 +195,7 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
     clientProgramWholeSourceFacts: () => validFacts ? ['source', 'contract', 'carrier', 'policy', 'class', 'view'] : [],
     clientProgramWholeSourceTarget: () => ['resource', 'field'],
     clientProgramWholeSourceInputIdentity: () => identity,
+    clientProgramEffectWholeSourceInputIdentity: () => identity,
     clientProgramInstalledSourceReadBindProgram(actual, owner) {
       assert.equal(actual, read); assert.equal(owner, preparedProgram); return ok();
     },
@@ -164,10 +219,31 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
     source.slice(describePreparedSourceDeclaration.start, describePreparedSourceDeclaration.end) + '\n' +
     source.slice(start, end) +
     '\nreturn {prepare,' + source.slice(closeStart, closeEnd) + '};')(...Object.values(bindings));
-  return {fixture, originalRead: read, pendingReads: bindings.preparingSourceReads, input: {preparedProgram, managedRun},
+  return {fixture, originalRead: read, pendingReads: bindings.preparingSourceReads, input: effectful
+    ? {preparedEffect: preparedProgram, managedRun, occurrence: {stage: 0, input: 1, task: 1, computeTask: 0}}
+    : {preparedProgram, managedRun},
     retireCalls: () => retireCalls, siteCloses: () => siteCloses,
     allowRetirement() {pendingRetirement = false;}, retireOriginal() {checked(moon.clientProgramInstalledSourceReadRetire(read));}};
 }
+
+test('whole Effect preparation retains its second Source read on the first Compute task before a fallible observation', async () => {
+  const f = await failedPreparationFixture({effectful: true, pendingRetirement: true});
+  await assert.rejects(f.fixture.prepare(f.input), {code: 'InstalledSourceEvidenceFactsUnavailable'});
+  assert.equal(f.retireCalls(), 1);
+  assert(f.pendingReads.has(f.originalRead));
+  assert.throws(() => f.fixture.close(), error => error.cause === 'original-read-still-pending');
+  f.allowRetirement();
+  f.fixture.close();
+  assert(!f.pendingReads.has(f.originalRead));
+});
+
+test('whole Effect preparation refuses a substituted Compute task before retaining a read', async () => {
+  const f = await failedPreparationFixture({effectful: true});
+  await assert.rejects(f.fixture.prepare({...f.input, occurrence: {...f.input.occurrence, computeTask: 1}}),
+    {code: 'InstalledSourcePreparationMismatch'});
+  assert.equal(f.retireCalls(), 0);
+  assert.equal(f.pendingReads.size, 0);
+});
 
 test('whole Source failed preparation retires the same unopened read before parent cleanup', async () => {
   const f = await failedPreparationFixture();

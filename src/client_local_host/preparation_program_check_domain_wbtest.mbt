@@ -36,7 +36,24 @@ fn catalog_domain_fixture() -> (
 
 ///|
 test "later Catalog domain preserves Source-only packet and funds every original reader on the same parent" {
-  assert_eq(program_json_initial_control_bytes, 21216L)
+  // Source quote540H155R1153W, driver23H31R39W, stage5H7R4W,
+  // preflight17H35R58W, then observed geometry/canonical scratch and return
+  // controls8H4R20W. Catalog remains a separate later packet below.
+  let source_initial = program_json_preparation_initial_inventory()
+  assert_eq(
+    (
+      source_initial.record_headers,
+      source_initial.reference_slots,
+      source_initial.scalar_words,
+    ),
+    (
+      540L + 23L + 5L + 17L + 8L,
+      155L + 31L + 7L + 35L + 4L,
+      1153L + 39L + 4L + 58L + 20L,
+    ),
+  )
+  assert_eq(16L * 8L + 8L * 4L + 8L * 20L, 320L)
+  assert_eq(program_json_initial_control_bytes, 21216L + 320L)
   let initial = program_check_preparation_initial_inventory()
   assert_eq(
     (initial.record_headers, initial.reference_slots, initial.scalar_words),

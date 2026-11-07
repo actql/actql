@@ -9,6 +9,7 @@ struct BackedInitializationAdmission[I] {
   owner_retired : () -> Bool
   mut transitioning : Bool
   mut host_taken : Bool
+  mut preparation_selected : Bool
   mut cleaned : Bool
 }
 
@@ -16,15 +17,19 @@ struct BackedInitializationAdmission[I] {
 /// Select initialization before any child frame/start/take. The runtime is
 /// this SAME original input; equal DATA, a started Read frame, callbacks and
 /// numerical limits cannot supply the association or another allowance.
+/// Optional acquisition belongs only to this nominal growable child's physical
+/// issuer. It survives the initialized Request continuation on the same frame.
 pub fn[P, C, I] prepare_backed_initialization_admission(
   projection : BackedExecutionLiveProjection[P, C, I],
   input : I,
+  acquire_window? : ((Int64, Int64) -> Result[Unit, LedgerIssue])? = None,
 ) -> Result[BackedInitializationAdmission[I], ImportedChildLedgerIssue] {
   match backed_live_projection_original(projection, input) {
     Err(_) => return Err(ForeignOriginal)
     Ok(_) => ()
   }
-  let frame = match prepare_backed_original_child_ledger(projection, input) {
+  let frame = match
+    prepare_backed_original_child_ledger(projection, input, acquire_window~) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
@@ -37,6 +42,7 @@ pub fn[P, C, I] prepare_backed_initialization_admission(
     owner_retired: () => projection.retired_after_owner_ack,
     transitioning: false,
     host_taken: false,
+    preparation_selected: false,
     cleaned: false,
   }
   owner.original = Some(owner)
@@ -107,16 +113,44 @@ pub fn[I] take_backed_initialization_admission(
   owner : BackedInitializationAdmission[I],
   input : I,
 ) -> Result[Ledger, ImportedChildLedgerIssue] {
+  take_backed_initialization_for_host(owner, input, false)
+}
+
+///|
+fn[I] take_backed_initialization_for_host(
+  owner : BackedInitializationAdmission[I],
+  input : I,
+  request : Bool,
+) -> Result[Ledger, ImportedChildLedgerIssue] {
   match check_backed_initialization_input(owner, input) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if owner.host_taken {
+  if owner.host_taken || owner.preparation_selected != request {
     return Err(AlreadyConsumed)
   }
   let frame = owner.frame
   guard frame.taken && frame.ledger is Some(ledger) else {
     return Err(Unavailable)
+  }
+  if request {
+    // The Request itself owns the FIRST working reservation/census. An
+    // initialized Source bootstrap cannot become this pristine continuation.
+    if !backed_request_ledger_pristine(ledger) {
+      return Err(Unavailable)
+    }
+    owner.host_taken = true
+    owner.transitioning = true
+    let current = check_imported_child_admission(ledger)
+    owner.transitioning = false
+    match current {
+      Err(issue) => return Err(Resource(issue))
+      Ok(_) => ()
+    }
+    if !backed_request_ledger_pristine(ledger) {
+      return Err(Unavailable)
+    }
+    return Ok(ledger)
   }
   guard ledger.original_inventory is Some(inventory) &&
     physical_equal(inventory.bootstrap.reservation.owner, ledger) &&

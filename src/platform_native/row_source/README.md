@@ -42,6 +42,23 @@ facts, including observation and acquisition objects. It is a logical accounting
 recipe, not a measured heap bound or a new funding/profile issuer. The original
 Native domain independently enforces physical allocation.
 
+## Caller preparation inventory
+
+`native_relation_file_caller_preparation_inventory` describes the allocations
+before Source's metadata token exists: one original mapping construction, its
+quote evaluators, bounded Contract walks, validation and refusal carriers. It
+uses the exact selection and page limits. It excludes the later Source-owned
+mapping, transport and retained payload, and excludes the caller's arena borrow
+and Resource reservation constructors. Those have separate owners.
+
+The companion evaluation inventory describes the query's own construction,
+which must be funded before evaluating that query. Neither function issues
+capacity, authorization or an installation original. For the accepted minimum,
+the diagnostic page (8192 bytes, 512 nodes, depth 8, two rows, one path item),
+and the maximum accepted page/path shape, the independently authored full
+caller totals are 222451, 23075950 and 296410702 logical bytes. The larger bound
+does not imply that any installed envelope can admit it.
+
 ## Explicit scoped diagnostic
 
 `capture_physical_scoped_wbtest.mbt` requires a selected scoped Native runtime and
