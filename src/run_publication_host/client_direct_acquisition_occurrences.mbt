@@ -269,3 +269,17 @@ pub fn client_effect_direct_acquisition_count(
   }
   Ok(direct)
 }
+
+///|
+/// Borrow the actual filtered CarrierResponse/Direct original from this
+/// inventory. Other requirements for the same Source are not acquisition
+/// occurrences. No second census, Source constructor or read is performed.
+pub fn client_direct_acquisition_occurrence_subject(
+  value : ClientDirectAcquisitionOccurrences,
+  index : Int,
+) -> @checked.SourceExecutionSubject? {
+  if index < 0 || index >= value.checks.length() {
+    return None
+  }
+  Some(@checked.source_execution_subject(value.checks[index]))
+}

@@ -33,6 +33,7 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/physical_cost" @cost,
   "actql/actql/source_frontend" @frontend,
+  "actql/actql/sourceview_resolution" @sourceviews,
   "actql/actql/program_check" @checked,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/check_environment" @compiler_environment,
