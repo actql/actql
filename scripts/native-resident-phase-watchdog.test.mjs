@@ -45,6 +45,72 @@ test('Resident consumer diagnostics preserve the original refusal under relay no
   assert.deepEqual(summarize([]),[]);
 });
 
+test('First original Native allocation failure retains exact closed scalars without private stderr', () => {
+  const declaration = syntax.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'residentAllocationFailureSummary');
+  assert(declaration);
+  const summarize = Function(`return (${source.slice(declaration.start, declaration.end)});`)();
+  const line = 'actql-scoped-allocation-failed requested=24 known=1 depth=1 active=1 current=1' +
+    ' occupied=4096 peak=4096 control=2 pages=8192 page_bytes=4096 status=-1' +
+    ' extent_domain=0 managed_prepared=1 managed_preparing=0 managed_remaining=0 managed_maximum=8192';
+  const result = summarize('private-path/private-token\n' + line + '\nprivate-body\n' +
+    line.replace('requested=24', 'requested=99') + '\n');
+  assert.equal(result.requested, '24'); assert.equal(result.status, '-1');
+  assert.equal(result.extent_domain, '0'); assert.equal(result.managed_prepared, '1');
+  assert.equal(result.managed_preparing, '0'); assert.equal(result.managed_remaining, '0');
+  assert.equal(result.managed_maximum, '8192'); assert.equal(Object.keys(result).length, 16);
+  assert(!JSON.stringify(result).includes('private-'));
+  assert.equal(summarize(line.replace('requested=24', 'requested=18446744073709551615')).requested,
+    '18446744073709551615');
+  for (const changed of [line + ' body=private-body', 'private-prefix ' + line,
+    line.replace(' depth=1', ''), line.replace('requested=24', 'requested=18446744073709551616'),
+    line.replace('status=-1', 'status=-2147483649'), line.replace('known=1', 'known=NaN')]) {
+    assert.equal(summarize(changed), null);
+  }
+  assert.equal(summarize('private-error'), null);
+});
+
+test('Original Resident failure artifact retains only closed observations and never overwrites evidence', async t => {
+  const summary = syntax.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'residentConsumerFailureSummary');
+  const writer = syntax.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'retainResidentConsumerFailureSummary');
+  assert(summary); assert(writer);
+  const reports = [];
+  const allocation = syntax.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'residentAllocationFailureSummary');
+  assert(allocation);
+  const retain = Function('writeFile', 'join', 'residentConsumerFailureSummary', 'residentAllocationFailureSummary', 'console',
+    `return (${source.slice(writer.start, writer.end)});`)(writeFile, join,
+    Function(`return (${source.slice(summary.start, summary.end)});`)(),
+    Function(`return (${source.slice(allocation.start, allocation.end)});`)(),
+    {error: value => reports.push(value)});
+  const directory = await mkdtemp(join(tmpdir(), 'actql-resident-original-summary-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const lines = [{kind: 'consumer-refused', reason: 'retained-input', boundary: 'producer-route',
+    body: 'private-body', request_cid: 'private-request', message: 'private-error'}];
+  await retain(directory, lines, 'private-path\nactql-scoped-allocation-failed requested=24' +
+    ' known=1 depth=1 active=1 current=1 occupied=4096 peak=4096 control=2 pages=8192' +
+    ' page_bytes=4096 status=-1 extent_domain=0 managed_prepared=1 managed_preparing=0' +
+    ' managed_remaining=0 managed_maximum=8192\nprivate-error\n');
+  const path = join(directory, 'resident-consumer-summary.json');
+  const original = await readFile(path, 'utf8');
+  assert.deepEqual(JSON.parse(original), {version: 1, diagnosticOnly: true, observations: [
+    {kind: 'consumer-refused', reason: 'retained-input', boundary: 'producer-route', count: 1},
+  ], allocationFailure: {requested: '24', known: '1', depth: '1', active: '1', current: '1',
+    occupied: '4096', peak: '4096', control: '2', pages: '8192', page_bytes: '4096', status: '-1',
+    extent_domain: '0', managed_prepared: '1', managed_preparing: '0', managed_remaining: '0',
+    managed_maximum: '8192'}});
+  assert(!original.includes('private-'));
+  assert(!reports.join('\n').includes('private-'));
+  await retain(directory, [{kind: 'consumer-failed', reason: 'protocol'}]);
+  assert.equal(await readFile(path, 'utf8'), original);
+  assert.equal(reports.at(-1), 'NativeResidentFailureSummaryUnavailable');
+  // A missing destination also cannot replace the original failed test/cleanup.
+  await assert.doesNotReject(retain(join(directory, 'absent'), lines));
+  assert.equal(reports.at(-1), 'NativeResidentFailureSummaryUnavailable');
+});
+
 async function childFixture(t, body) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-resident-watchdog-'));
   const script = join(directory, 'child.mjs');

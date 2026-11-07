@@ -269,6 +269,26 @@ test('missing debugger reports availability without a target attempt or fallback
     conditions: ['debugger-unavailable', 'stage-not-observed']});
 });
 
+test('Original Native Effect summaries are retained before diagnostic and independent groups', () => {
+  const jobs = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs;
+  for (const [name, platform] of [['native', 'linux'], ['native-macos', 'macos']]) {
+    const steps = jobs[name].steps;
+    const effect = steps.findIndex(step => step.id === 'native-effect');
+    const artifact = steps[effect + 1];
+    assert.equal(artifact.name, 'Retain original Native Effect failure observer summary');
+    assert.equal(artifact.if, "${{ !cancelled() && steps.native-effect.outcome == 'failure' }}");
+    assert.equal(artifact.with.path,
+      '${{ runner.temp }}/native-tests/native-effect/*/resident-consumer-summary.json');
+    assert.equal(artifact.with.name,
+      `native-effect-original-${platform}-` + '${{ github.run_id }}-${{ github.run_attempt }}');
+    assert.equal(artifact.with['if-no-files-found'], 'warn');
+    assert.equal(artifact.with['retention-days'], 14);
+    assert.equal(steps[effect]['continue-on-error'], undefined);
+    assert(effect + 1 < steps.findIndex(step => step.id === 'native-runtime-test'));
+    assert(!/lines\.json|sqlite|stderr|\.log/u.test(artifact.with.path));
+  }
+});
+
 test('Native CI diagnostic is failure-only, bounded, and uploads only sanitized JSON', () => {
   const jobs = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs;
   const original = jobs.native.steps.find(step => step.id === 'native-runtime-test');
@@ -308,7 +328,7 @@ test('Native CI observes an early Effect failure once and preserves Site-only fa
   const effect = steps.findIndex(step => step.id === 'native-effect');
   const site = steps.findIndex(step => step.id === 'native-runtime-test');
   const setup = steps.findIndex(step => step.id === 'failure-debugger');
-  assert.equal(setup, effect + 1, 'capture the failed Effect before starting the long Site group');
+  assert.equal(setup, effect + 2, 'retain the original summary before the fresh probe and long Site group');
   const early = steps.slice(setup, setup + 3);
   assert.equal(steps.indexOf(early[2]) + 1, site);
   const fallbackStart = steps.findIndex(step => step.id === 'site-failure-debugger');

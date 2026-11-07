@@ -110,6 +110,40 @@ function residentConsumerFailureSummary(lines) {
   return [...selected.values()];
 }
 
+// First exact scalar line from the existing scoped Read failure emitter only.
+// Decimal strings preserve uint64 values; this is no allocation or cleanup ACK.
+function residentAllocationFailureSummary(stderr) {
+  const names = ['requested', 'known', 'depth', 'active', 'current', 'occupied',
+    'peak', 'control', 'pages', 'page_bytes', 'status', 'extent_domain',
+    'managed_prepared', 'managed_preparing', 'managed_remaining', 'managed_maximum'];
+  const pattern = new RegExp('^actql-scoped-allocation-failed' + names.map(name =>
+    ' ' + name + '=' + (name === 'status' ? '(-?(?:0|[1-9][0-9]{0,9}))'
+      : '((?:0|[1-9][0-9]{0,19}))')).join('') + '\\r?$', 'gm');
+  for (const match of stderr.matchAll(pattern)) {
+    const values = match.slice(1);
+    if (values.some((value, index) => index === 10
+      ? BigInt(value) < -2147483648n || BigInt(value) > 2147483647n
+      : BigInt(value) > 18446744073709551615n)) continue;
+    return Object.fromEntries(names.map((name, index) => [name, values[index]]));
+  }
+  return null;
+}
+
+// Publish only the same closed observer DATA already printed by this original
+// failure. Raw scratch and errors remain private; publication cannot replace it.
+async function retainResidentConsumerFailureSummary(directory, lines, stderr = '') {
+  const observations = residentConsumerFailureSummary(lines);
+  console.error('ACTQL_NATIVE_RESIDENT_CONSUMER_FAILURE ' + JSON.stringify(observations));
+  try {
+    await writeFile(join(directory, 'resident-consumer-summary.json'),
+      JSON.stringify({version: 1, diagnosticOnly: true, observations,
+        allocationFailure: residentAllocationFailureSummary(stderr)}) + '\n',
+      {flag: 'wx', mode: 0o600});
+  } catch {
+    console.error('NativeResidentFailureSummaryUnavailable');
+  }
+}
+
 async function runResidentPhaseWatchdog(script, {
   forkChild = fork, phaseTimeoutMilliseconds = 120000, killGraceMilliseconds = 5000,
   report = value => console.error('ACTQL_NATIVE_RESIDENT_WATCHDOG ' + JSON.stringify(value)),
@@ -3677,16 +3711,16 @@ try {
     console.error('Coordinator observation failures:', observationFailures);
   }
   if (currentSite !== undefined) {
+    const stderr = currentSite.stderr();
     if (retainedConsumerMode) {
       await writeFile(join(root, 'resident-failure-lines.json'), JSON.stringify(currentSite.lines),
         {mode: 0o600});
-      console.error('ACTQL_NATIVE_RESIDENT_CONSUMER_FAILURE ' +
-        JSON.stringify(residentConsumerFailureSummary(currentSite.lines)));
+      await retainResidentConsumerFailureSummary(root, currentSite.lines, stderr);
     }
     console.error('resident Site output:', JSON.stringify(retainedConsumerMode
       ? currentSite.lines.filter(line => line.kind !== 'accepted').slice(-30)
       : currentSite.lines));
-    console.error('resident Site stderr:', currentSite.stderr());
+    console.error('resident Site stderr:', stderr);
   }
   throw error;
 } finally {
