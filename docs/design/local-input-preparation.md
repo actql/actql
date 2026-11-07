@@ -3079,7 +3079,7 @@ carry declarations in their original Program; an external declaration override
 remains invalid there. Native supplied values are admitted first under their
 existing limits and normalization rules, before parsing the document.
 
-The fixed caller folds the original document's UTF16 length and bounded node
+The explicit-limits document caller folds the original document's UTF16 length and bounded node
 upper extent through the existing common value-node/text allowances for the
 simultaneous parser output and new index. Its fixed controls use the existing
 Program Host baseline. These are logical allowances, not measured memory,
@@ -3087,6 +3087,19 @@ physical supply or a new parser/Resource policy. The exact selected original
 parser then constructs the index once, preserving Program key rules, Unicode,
 spans, typed first refusal and the same immutable input limits. No format
 fallback, serialization or alternate interpretation is inserted.
+
+The default Node JSON Source caller instead continues the existing single
+Source preflight on the same Request. That original Unicode traversal supplies
+actual node, field, container, depth and text geometry; outer snapshot nodes or
+document length do not stand in for Program nodes. The existing Resource owner
+reserves the parser/index construction overlap from this geometry before the
+same cursor transfers into parsing. Format/index integer ceilings are not a
+resource grant. Selected depth/stage constraints, checked arithmetic and the
+original finite Request budget remain authoritative. Both Pure and Effect
+reuse validation and compilation retain that same child's input selection,
+without resetting an independent standard document cap. Explicit-limit APIs,
+YAML document parsing and Native callers retain their original separate input
+selection; this connection does not establish ordinary acceptance for them.
 
 After the parser returns, actual immutable index geometry feeds the existing
 Source/index dependency recipe. The same Program phase is retained before its
