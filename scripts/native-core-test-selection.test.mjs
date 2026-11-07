@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {basename, dirname, join, resolve} from 'node:path';
 import test from 'node:test';
 import {nativeCoreTestSelection, nativeCoreHttpArguments, nativeCoreHttpTestFiles,
-  nativeCoreOrdinaryPartitions, nativeCorePartitionProfiles} from './native-core-test-selection.mjs';
+  nativeCoreOrdinaryPartitions, nativeCorePartitionProfiles, nativeScopedTestFiles, nativeCoreScopedAllocationProfile} from './native-core-test-selection.mjs';
 import {assertTestExecution} from './test-execution.mjs';
 
 function fixture(t) {
@@ -490,4 +490,11 @@ test('Source wrapper Native cases retain scoped file/index identities and exclud
   });
   assert.equal(selected.profiles.physicalCases, 2);
   assert.equal(selected.profiles.uniqueCases, 3);
+});
+
+test('Native Project Mock real Read keeps its selected provider out of ordinary command tests', () => {
+  const physical = 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
+  assert.equal(nativeScopedTestFiles.filter(source => source === physical).length, 1);
+  assert.equal(nativeCoreScopedAllocationProfile(physical), 'runtime-values');
+  assert.equal(nativeScopedTestFiles.includes('src/cmd/native_client/local_project_configuration_wbtest.mbt'), false);
 });

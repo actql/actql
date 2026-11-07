@@ -1405,14 +1405,7 @@ fn LocalCommandPreparationOriginal::prepare_adopted_journal(
 fn LocalCommandPreparationOriginal::initial_read_budget(
   self : LocalCommandPreparationOriginal,
 ) -> @initial_arena.InstalledArenaOriginalReadBudget {
-  let budget = self.profile.read_budget
-  {
-    ..budget,
-    read_execution: Int64::min(
-      budget.read_execution,
-      Int64::max(budget.bootstrap_execution, budget.workspace_execution),
-    ),
-  }
+  local_command_initial_read_budget(self.profile)
 }
 
 ///|
@@ -1422,5 +1415,21 @@ fn[T] command_preparation_option(
   match value {
     Some(value) => value
     None => raise LocalCommandPreparationStop(CommandInvalidProfile)
+  }
+}
+
+///|
+// The same selected initial Read basis is reused by its original command and
+// Native component consumers. This projection issues no platform original.
+fn local_command_initial_read_budget(
+  profile : LocalCommandPreparationProfile,
+) -> @initial_arena.InstalledArenaOriginalReadBudget {
+  let budget = profile.read_budget
+  {
+    ..budget,
+    read_execution: Int64::min(
+      budget.read_execution,
+      Int64::max(budget.bootstrap_execution, budget.workspace_execution),
+    ),
   }
 }
