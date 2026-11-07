@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {exercisePublicQueryInput} from './fixtures/public-query-input.mjs';
 
-async function exerciseRefusal(code, {expectedCode, admit = false} = {}) {
+async function exerciseRefusal(code, {expectedCode, admit = false,
+  submissionCode = 'SubmissionNotAccepted', requestPrefix = 'refusal-control'} = {}) {
   let acceptedRuns = 0, closed = false, outcome;
   const connect = async () => ({
     newSubmission: ({nonce}) => ({nonce}),
@@ -10,7 +11,7 @@ async function exerciseRefusal(code, {expectedCode, admit = false} = {}) {
       assert.equal(text, 'SELECT UNKNOWN_FUNCTION(1) AS value');
       if (admit) acceptedRuns++;
       outcome = {kind: 'not_accepted', submissionRef, problem: {code}};
-      throw Object.assign(new Error(code), {code: 'SubmissionNotAccepted', outcome});
+      throw Object.assign(new Error(code), {code: submissionCode, outcome});
     },
     async lookupSubmission(ref) {
       assert.deepEqual(ref, outcome.submissionRef);
@@ -20,7 +21,7 @@ async function exerciseRefusal(code, {expectedCode, admit = false} = {}) {
   });
   try {
     await exercisePublicQueryInput(connect, {}, {
-      requestPrefix: 'refusal-control',
+      requestPrefix,
       observe: () => ({acceptedRuns, sourceIo: 0}),
       successes: [],
       refusals: [{name: 'unsupported', format: 'sql',
@@ -57,4 +58,32 @@ test('an exact expected code cannot conceal Run admission', async () => {
   await assert.rejects(exerciseRefusal('ClientProgramImplementationLimit', {
     expectedCode: 'ClientProgramImplementationLimit', admit: true,
   }), {code: 'ERR_ASSERTION'});
+});
+
+
+test('outer refusal mismatch identifies the authored occurrence and backend', async () => {
+  await assert.rejects(exerciseRefusal('ClientProgramInvalidInput', {
+    submissionCode: 'SubmissionUnknown', requestPrefix: 'packed-local',
+    expectedCode: 'ClientProgramInvalidInput',
+  }), error => {
+    assert.equal(error.code, 'ERR_ASSERTION');
+    assert.equal(error.actual, 'SubmissionUnknown');
+    assert.equal(error.expected, 'SubmissionNotAccepted');
+    assert.match(error.message, /packed-local\/unsupported/u);
+    assert.ok(!error.message.includes('SELECT UNKNOWN_FUNCTION'));
+    return true;
+  });
+});
+
+test('typed refusal mismatch identifies the authored occurrence and backend', async () => {
+  await assert.rejects(exerciseRefusal('ClientProgramInvalidInput', {
+    requestPrefix: 'packed-http', expectedCode: 'ClientProgramImplementationLimit',
+  }), error => {
+    assert.equal(error.code, 'ERR_ASSERTION');
+    assert.equal(error.actual, 'ClientProgramInvalidInput');
+    assert.equal(error.expected, 'ClientProgramImplementationLimit');
+    assert.match(error.message, /packed-http\/unsupported/u);
+    assert.ok(!error.message.includes('SELECT UNKNOWN_FUNCTION'));
+    return true;
+  });
 });
