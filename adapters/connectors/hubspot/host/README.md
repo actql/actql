@@ -113,3 +113,11 @@ Target rows keep their existing same-row authorization lookup. A copied grant
 scope/body cannot establish issuer purpose, and no new grant or permission is
 inferred from equal fields. This two-field metadata view replaces the former
 three-field copied envelope and needs no additional constructor representation.
+
+Each physical Effect occurrence stages its own Account, property or target
+constructor at both the initial and maximum extents. Received-input growth uses
+that same constructor, operation and transfer inventory. The shared capture may
+keep a combined metadata bound, but that bound cannot replace an Account-only
+operation's initial retained material. Core still requires the live physical
+backing to fit the received-input extent and its original maximum; response
+projection completion and actual child retirement keep their existing duties.

@@ -272,4 +272,29 @@ export function registerHubSpotMappingParentTests(common, native, baseEnvironmen
     assert.equal(recipe.credentialOperations.length, 19);
   });
 
+  test('HubSpot actual Common response extents grow each original physical envelope within its declared maximum', () => {
+    const {options} = hubSpotEffectPlanFixture(), stages = new Map();
+    const moon = {...common, clientProgramInstalledEffectOperationStagedExtentPrepare(initial, maximum) {
+      const result = common.clientProgramInstalledEffectOperationStagedExtentPrepare(initial, maximum);
+      stages.set(checked(result), {initial, maximum});
+      return result;
+    }};
+    const recipe = captureHubSpotEffectPlanRecipeBuilder({moon})(options);
+    for (const operation of recipe.credentialOperations) {
+      if (operation.responseExtent === undefined) continue;
+      const entries = operation.perRow === false ? recipe.memberOperations : recipe.rowOperations;
+      const original = stages.get(entries[operation.operationIndex].extent);
+      assert(original, 'The exact physical occurrence retains its original staged envelope');
+      for (const bytes of [0, 16, 128, operation.maxResponseBytes]) {
+        const input = operation.responseExtent(bytes, new Uint8Array(bytes));
+        // The same Core predicate used by InputBegin requires initial <= input
+        // <= maximum. These real immutable constructors perform no Host I/O.
+        assert.doesNotThrow(() => checked(common.clientProgramInstalledEffectOperationStagedExtentPrepare(
+          original.initial, input)), `${operation.phase}/${operation.slot}: initial <= ${bytes}-byte input`);
+        assert.doesNotThrow(() => checked(common.clientProgramInstalledEffectOperationStagedExtentPrepare(
+          input, original.maximum)), `${operation.phase}/${operation.slot}: input <= maximum`);
+      }
+    }
+  });
+
 }

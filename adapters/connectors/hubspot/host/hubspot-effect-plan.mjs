@@ -161,12 +161,18 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
       const selected = perRow ? rowOperations : memberOperations, operationIndex = selected.length;
       const transfer = BigInt(requestBytes) + httpsCredentialResponseWindowBytes(responseBytes);
       const extentOf = values => operationExtent(operation, values[position], transfer, true);
+      // The original physical backing and its received-input growth must use
+      // the SAME constructor. A generic Account/schema maximum is appropriate
+      // for the shared capture, but its retained schema output cannot become
+      // an Account operation's initial backing and then shrink at InputBegin.
+      const physicalProfile = bytes => kind === 1 ? profile(bytes, 0) : profile(0, bytes, kind);
       const responseExtent = (bytes, body) => {
         if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > responseBytes ||
             !(body instanceof Uint8Array) || body.byteLength !== bytes) fail();
-        return extentOf(quantities(kind === 1 ? profile(bytes, 0) : profile(0, bytes, kind)));
+        return extentOf(quantities(physicalProfile(bytes)));
       };
-      selected.push({operation, extent: checked(stage(extentOf(initial), extentOf(maximum)))});
+      selected.push({operation, extent: checked(stage(extentOf(quantities(physicalProfile(0))),
+        extentOf(quantities(physicalProfile(responseBytes)))))});
       credentialOperations.push(Object.freeze({phase, slot, ...(resource === undefined ? {} : {resource}), perRow,
         operationIndex, maxRequestBytes: requestBytes, maxResponseBytes: responseBytes, responseExtent}));
     };

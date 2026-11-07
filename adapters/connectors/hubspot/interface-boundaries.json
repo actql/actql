@@ -2835,7 +2835,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-effect-plan.mjs",
-      "sha256": "c7c24a2ed6cb3b094d091311639f1ba7ec01f7e5aa7dc70a2a2ef6001637f73c",
+      "sha256": "08079fc42c51d1453a17e6a4194ac9058753d8f100f4fc9c98ea6f742173a5b2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common managed Effect Plan and same-issuer HubSpot constructor quantities",
@@ -2909,6 +2909,13 @@
           "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/extentOf/extentOf",
           "parameters": [
             "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/physicalProfile/physicalProfile",
+          "parameters": [
+            "bytes"
           ],
           "async": false
         },
@@ -3067,7 +3074,8 @@
             "method/method",
             "method/method/method",
             "numbers/numbers",
-            "positive/positive"
+            "positive/positive",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/physicalProfile/physicalProfile"
           ],
           "exports": [
             "captureHubSpotEffectPlanRecipeBuilder"
