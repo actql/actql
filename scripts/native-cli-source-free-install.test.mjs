@@ -132,7 +132,7 @@ test('missing observations and passing-receipt write failures are not success', 
 import {mkdtemp, readFile, readdir, rm} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 import {runCleanupConditionedConsumer} from './test-native-cli-source-free-install.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 
@@ -451,7 +451,7 @@ test('Native numeric operator retains low defaults and authors an explicit finit
   assert.equal(configuration.native.local.sqlite_library, inputs.libraries.sqlite);
   assert.equal(configuration.native.local.signature_library, inputs.libraries.crypto);
   assert.deepEqual(configuration.native.local.installation_files,
-    ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json', 'profile.json']);
+    ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json', 'profile.json', 'file-read.json']);
   assert.equal(configuration.native.local.run_policy_profile_file, 'profile.json');
   assert.equal(await readFile(join(project, 'runtime.json'), 'utf8'), inputs.runtimeWire);
   const run = JSON.parse(await readFile(join(project, 'run.json'), 'utf8')).native.run;
@@ -474,6 +474,8 @@ test('Native numeric operator retains low defaults and authors an explicit finit
   assert.equal(Object.hasOwn(read, 'expires_at'), false);
   assert.deepEqual([read.run_file, read.retention_file, read.store_file],
     ['run.json', 'retention.json', 'store.json']);
+  const fileRead = JSON.parse(await readFile(join(project, 'file-read.json'), 'utf8')).native.result_read;
+  assert.deepEqual(fileRead, {...read, sink: 'file', purpose: 'cli-file'});
   assert.equal(run.source_free.registry, inputs.assets.registry);
   assert.equal(run.source_free.values, inputs.assets.values);
   assert.equal(run.result_payload_bytes, 16777216);
@@ -505,6 +507,8 @@ test('Native numeric operator harness uses one selected install and preserves di
       }
       if (args[0] === 'result') {
         assert.equal(args[1], original.run_id);
+        assert.equal(dirname(args.at(-1)), project + '-output');
+        assert.equal(cwd, project, 'Output placement cannot change the selected Host');
         await writeFile(args.at(-1), Array.from({length: 100000}, (_, v0) => JSON.stringify({v0})).join('\n') + '\n');
       } else if (args[0] === 'status') {
         assert.equal(args[1], original.run_id);
