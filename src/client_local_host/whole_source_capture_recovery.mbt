@@ -167,6 +167,7 @@ pub fn restore_accounted_client_whole_source_capture(
     original: Some(original),
     dag: None,
     input_dag: None,
+    input_custody: Some((capacity.acquisition, reservation)),
   })
 }
 
@@ -190,4 +191,24 @@ pub fn retain_accounted_client_source_capture_input(
   }
   value.input_dag = Some(dag)
   Ok(())
+}
+
+///|
+pub fn accounted_client_source_capture_input(
+  value : ClientAccountedSourceCapture,
+) -> @row_source_host.RowCapturedInput? {
+  guard accounted_client_source_capture_source(value) is Some(source) &&
+    value.original is Some(original) &&
+    value.input_custody is Some((acquisition, reservation)) else {
+    return None
+  }
+  @row_source_host.restored_row_capture_input(
+    acquisition,
+    original,
+    source,
+    value.ledger,
+    reservation,
+    value.holding,
+    value.capture.live,
+  )
 }

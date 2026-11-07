@@ -20,6 +20,7 @@ import {
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
+  "moonbitlang/core/ref",
 }
 
 // Values
@@ -84,6 +85,8 @@ pub fn begin_row_run_response_attempt(RowRunResponseBorrow) -> Result[Unit, RowH
 pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]
 
 pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]
+
+pub fn borrow_row_captured_input_originals(Array[RowCapturedInput], @physical_resources.Ledger, Int) -> RowCapturedInputs?
 
 pub fn borrow_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?
 
@@ -269,11 +272,15 @@ pub fn restore_row_input_original_read(RowInputAcquisition, String, String, Arra
 
 pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]
 
+pub fn restored_row_capture_input(RowInputAcquisition, RowRestoredOriginalInput, @execution_query.CapturedInputSource, @physical_resources.Ledger, @physical_resources.Reservation, @physical_resources.Holding, @ref.Ref[Bool]) -> RowCapturedInput?
+
 pub fn restored_row_original_read(RowRestoredOriginalInput) -> @execution_relation.SuppliedRelationRead?
 
 pub fn retain_keyed_row_run(RowRun) -> Result[RowKeyedSourceCapture, RowHostIssue]
 
 pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]
+
+pub fn retain_row_captured_input_originals(Array[RowCapturedInput], @physical_resources.Ledger, Int) -> RowCapturedInputs?
 
 pub fn retain_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?
 
@@ -299,6 +306,8 @@ pub fn row_acquisition_requirement(RowAcquisition) -> @query_planning.QueryRequi
 
 pub fn row_acquisition_retained_capacity(RowAcquisition) -> Int64
 
+pub fn row_capture_input(RowSourceCapture) -> RowCapturedInput?
+
 pub fn row_capture_original_prefix_requirement(RowSourceCapture, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> @query_planning.QueryRequirement?
 
 pub fn row_capture_original_read(RowSourceCapture) -> @execution_relation.SuppliedRelationRead?
@@ -309,6 +318,10 @@ pub fn row_captured_input_at(RowCapturedInputs, Int) -> RowSourceCapture?
 
 pub fn row_captured_input_requirement_at(RowCapturedInputs, Int) -> @query_planning.QueryRequirement?
 
+pub fn row_captured_input_source(RowCapturedInput) -> @execution_query.CapturedInputSource?
+
+pub fn row_captured_input_source_original(RowCapturedInput) -> @sourceview_resolution.SourceAcquisition?
+
 pub fn row_captured_inputs_borrowed_available(RowCapturedInputs, @physical_resources.Ledger) -> Bool
 
 pub fn row_captured_inputs_construction_inventory(Int) -> @execution_relation.PreparationRepresentationUnits?
@@ -316,6 +329,10 @@ pub fn row_captured_inputs_construction_inventory(Int) -> @execution_relation.Pr
 pub fn row_captured_inputs_count(RowCapturedInputs) -> Int
 
 pub fn row_captured_inputs_live(RowCapturedInputs, @physical_resources.Ledger) -> Bool
+
+pub fn row_captured_inputs_source_at(RowCapturedInputs, Int) -> @execution_query.CapturedInputSource?
+
+pub fn row_captured_inputs_source_original_at(RowCapturedInputs, Int) -> @sourceview_resolution.SourceAcquisition?
 
 pub fn row_captures_original_keyed_child_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, prefix? : @physical_resources.Reservation?) -> Bool
 
@@ -470,6 +487,8 @@ pub(all) enum RowAttemptIssue {
   MissingOutput
   Retention(@query_planning.QueryRetentionIssue)
 }
+
+type RowCapturedInput
 
 type RowCapturedInputs
 

@@ -115,6 +115,18 @@ pub fn borrow_client_original_composed_keyed_ledger(
   prefix? : @resources.Reservation? = None,
 ) -> Result[@resources.Ledger, ClientModelReadPreparationIssue] {
   let owner = plan.owner
+  let originals = []
+  for slot in 0..<@row_host.row_captured_inputs_count(captures) {
+    if @row_host.row_captured_inputs_source_original_at(captures, slot)
+      is Some(original) {
+      originals.push(original)
+    }
+  }
+  let graph = if originals.is_empty() {
+    Some(owner.graph)
+  } else {
+    @strategy.prepare_source_inputs_dag(owner.graph, originals).to_option()
+  }
   guard client_model_origin_matches(scope.origin, compiled, definition, plan) &&
     client_compiled_run_matches(compiled, owner) &&
     check_client_compiled_run_definition(compiled, definition) is Ok(_) &&
@@ -126,23 +138,40 @@ pub fn borrow_client_original_composed_keyed_ledger(
     stage == plan.stage &&
     task == plan.task &&
     join < plan.source_ordinal &&
+    graph is Some(graph) &&
     @strategy.graph_keyed_model_plan_inputs_complete(
-      owner.graph,
+      graph,
       task,
       plan.source_ordinal,
     ) &&
-    sources.length() == @strategy.graph_captured_prefix(owner.graph) &&
+    select_client_direct_acquisition_occurrences(owner, 1000000) is Ok(direct) &&
+    sources.length() == client_direct_acquisition_occurrence_count(direct) &&
     sources.length() == 2 else {
     return Err(ForeignRun)
   }
   let identity = @checked.source_identity(@strategy.graph_program(owner.graph))
-  for task, source in sources {
-    guard @strategy.graph_task_owner(owner.graph, task) is Some(preparation) &&
+  for slot, source in sources {
+    guard client_direct_acquisition_occurrence_at(direct, slot)
+      is Some((stage, input, task)) &&
+      @strategy.graph_task_owner(owner.graph, task) is Some(preparation) &&
       @query.captured_source_matches(source, identity, preparation) &&
-      @row_host.row_captured_input_at(captures, task) is Some(row) &&
-      @row_host.row_capture_source(row) is Ok(actual) &&
+      @row_host.row_captured_inputs_source_at(captures, slot) is Some(actual) &&
       physical_equal(source, actual) else {
       return Err(ForeignRun)
+    }
+    match @row_host.row_captured_inputs_source_original_at(captures, slot) {
+      Some(original) =>
+        if !client_source_acquisition_matches_program(
+            owner, stage, input, original,
+          ) ||
+          !@query.captured_source_matches_input_acquisition(source, original) {
+          return Err(ForeignRun)
+        }
+      None =>
+        if task != slot ||
+          @row_host.row_captured_input_requirement_at(captures, slot) is None {
+          return Err(ForeignRun)
+        }
     }
   }
   // Liveness can reenter. The actual census after those callbacks owns the
@@ -227,6 +256,45 @@ pub fn borrow_client_original_composed_keyed_captures(
       Ok(source) => sources.push(source)
       Err(_) => return Err(ForeignRun)
     }
+  }
+  borrow_client_original_composed_keyed_ledger(
+    scope, compiled, definition, plan, keyed, sources, captures,
+  ).map(ledger => (ledger, captures, sources))
+}
+
+///|
+pub fn borrow_client_original_composed_keyed_input_captures(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  keyed : ClientKeyedAcquisition,
+  rows : Array[@row_host.RowCapturedInput],
+  installed? : Bool = true,
+) -> Result[
+  (
+    @resources.Ledger,
+    @row_host.RowCapturedInputs,
+    Array[@query.CapturedInputSource],
+  ),
+  ClientModelReadPreparationIssue,
+] {
+  guard client_model_origin_matches(scope.origin, compiled, definition, plan) &&
+    rows.length() == 2 else {
+    return Err(ForeignRun)
+  }
+  let captures = if installed {
+    @row_host.borrow_row_captured_input_originals(rows, scope.ledger, 100000)
+  } else {
+    @row_host.retain_row_captured_input_originals(rows, scope.ledger, 100000)
+  }
+  guard captures is Some(captures) else { return Err(ForeignRun) }
+  let sources = []
+  for row in rows {
+    guard @row_host.row_captured_input_source(row) is Some(source) else {
+      return Err(ForeignRun)
+    }
+    sources.push(source)
   }
   borrow_client_original_composed_keyed_ledger(
     scope, compiled, definition, plan, keyed, sources, captures,
@@ -480,6 +548,7 @@ pub fn prepare_client_original_composed_keyed_inputs(
   }
   let graph = plan.owner.graph
   let inputs : Array[(Int, Int, @execution.ProducerRead)] = []
+  let used : Array[Int] = []
   for position in 0..<@execution.generated_sequence_step_count(sequence) {
     let step = @execution.generated_sequence_step_index_at(sequence, position).unwrap()
     let node = @lower.node_at(@lower.bound_preparation(keyed.owner), step).unwrap()
@@ -502,22 +571,55 @@ pub fn prepare_client_original_composed_keyed_inputs(
           selected = Some(@strategy.data_edge_producer(edge))
         }
       }
+      if target is @pipeline.Input(index) {
+        for slot in 0..<sources.length() {
+          if @row_host.row_captured_inputs_source_original_at(captures, slot)
+            is Some(original) &&
+            @acquisition.source_acquisition_input(original) ==
+            @pipeline.Input(index) &&
+            physical_equal(
+              @acquisition.source_acquisition_pipeline(original),
+              @lower.pipeline(@lower.bound_preparation(keyed.owner)),
+            ) {
+            if selected is Some(_) {
+              return Err(ForeignLeft)
+            }
+            selected = Some(slot)
+          }
+        }
+      }
       guard selected is Some(task) &&
-        task == inputs.length() &&
+        !used.contains(task) &&
         task < sources.length() else {
         return Err(ForeignLeft)
       }
+      let whole = @row_host.row_captured_inputs_source_original_at(
+          captures, task,
+        )
+        is Some(_)
+      if !whole && task != inputs.length() {
+        return Err(ForeignLeft)
+      }
       let bound = match
-        (match target {
-          @pipeline.Input(index) =>
-            @query.bind_captured_source(sources[task], keyed.owner, index)
-          _ =>
-            @query.bind_captured_source_operation(
-              sources[task],
-              keyed.owner,
-              step,
-              port,
-            )
+        (if whole {
+          @query.bind_captured_source_operation(
+            sources[task],
+            keyed.owner,
+            step,
+            port,
+          )
+        } else {
+          match target {
+            @pipeline.Input(index) =>
+              @query.bind_captured_source(sources[task], keyed.owner, index)
+            _ =>
+              @query.bind_captured_source_operation(
+                sources[task],
+                keyed.owner,
+                step,
+                port,
+              )
+          }
         }) {
         Ok(value) => value
         Err(issue) => return Err(Capture(issue))
@@ -533,6 +635,7 @@ pub fn prepare_client_original_composed_keyed_inputs(
         Err(issue) => return Err(Read(issue))
       }
       inputs.push((step, port, read))
+      used.push(task)
     }
   }
   guard inputs.length() == sources.length() &&
@@ -588,8 +691,13 @@ pub fn prepare_client_original_composed_keyed_left(
     is Some(completed) else {
     return Err(ForeignLeft)
   }
-  for index, (_, _, read) in inputs {
-    if !@query.captured_source_matches_segment_input(sources[index], read) {
+  for (_, _, read) in inputs {
+    if sources
+      .filter(source => {
+        @query.captured_source_matches_segment_input(source, read)
+      })
+      .length() !=
+      1 {
       return Err(ForeignLeft)
     }
   }

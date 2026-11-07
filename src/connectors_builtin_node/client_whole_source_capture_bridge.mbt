@@ -682,3 +682,127 @@ pub fn client_program_source_capture_retain_input(
     value, dag, task,
   )
 }
+
+///|
+#export_name("clientProgramWholeSourceCaptureInput")
+pub fn client_program_whole_source_capture_input(
+  capture : @client_row_source_host.RowSourceCapture,
+) -> Result[
+  @client_row_source_host.RowCapturedInput,
+  @client_row_source_host.RowHostIssue,
+] {
+  guard @client_row_source_host.row_capture_input(capture) is Some(input) &&
+    @client_row_source_host.row_captured_input_source_original(input) is Some(_) else {
+    return Err(@client_row_source_host.InvalidState)
+  }
+  Ok(input)
+}
+
+///|
+#export_name("clientProgramRestoredWholeSourceCaptureInput")
+pub fn client_program_restored_whole_source_capture_input(
+  owner : @client_local_host.ClientAccountedSourceCapture,
+) -> Result[
+  @client_row_source_host.RowCapturedInput,
+  @client_local_host.ClientSourceCaptureIssue,
+] {
+  match @client_local_host.accounted_client_source_capture_input(owner) {
+    Some(value) => Ok(value)
+    None => Err(@client_local_host.BindingMismatch)
+  }
+}
+
+///|
+#export_name("clientProgramAdmitComposedInferWholeSources")
+pub fn client_program_admit_composed_infer_whole_sources(
+  occurrence : @publication_host.ClientInferOccurrence,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  capacities : Array[@client_local_host.ClientInstalledWholeSourceCapacity],
+  logicals : Array[@publication.RunEvidenceValue],
+  evidence : Array[@publication.RunEvidenceValue],
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+  keyed : @publication_host.ClientKeyedLookupObservation?,
+) -> Result[
+  @publication_host.ClientInferComposedSources,
+  @publication_host.ClientInferCallScopeIssue,
+] {
+  let count = logicals.length()
+  if count < 1 ||
+    count > 2 ||
+    evidence.length() != count ||
+    capacities.length() != count {
+    return Err(@publication_host.ForeignInput)
+  }
+  for index in 0..<count {
+    match
+      check_client_infer_original_evidence(
+        "source_input_logical",
+        logicals[index],
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    match
+      check_client_infer_original_evidence("source_evidence", evidence[index]) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  @publication_host.admit_client_infer_composed_whole_sources(
+    occurrence,
+    captures,
+    identities,
+    capacities.map(@client_local_host.installed_whole_source_original),
+    logicals,
+    evidence,
+    authority_scope_cid,
+    started_at,
+    completed_at,
+    keyed~,
+  )
+}
+
+///|
+#export_name("clientProgramStartInstalledOriginalComposedKeyedInputPrefix")
+pub fn client_program_start_installed_original_composed_keyed_input_prefix(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  inputs : Array[@client_row_source_host.RowCapturedInput],
+) -> Result[
+  @client_local_host.ClientOriginalComposedKeyedPrefix,
+  @client_local_host.ClientSerializationPrefixIssue,
+] {
+  let limits = @infer_host.standard_limits()
+  @client_local_host.start_installed_original_composed_keyed_input_prefix(
+    owner,
+    scope,
+    compiled,
+    definition,
+    plan,
+    keyed,
+    inputs,
+    limits.input,
+    limits.measurement,
+  )
+}
+
+///|
+// Retained canonical usage enforces the existing wire admission envelope.
+// This DATA check neither re-admits JSON nor grants Source/Model authority.
+fn check_client_infer_original_evidence(
+  name : String,
+  evidence : @publication.RunEvidenceValue,
+) -> Result[Unit, @publication_host.ClientInferCallScopeIssue] {
+  if @publication.run_evidence_value_name(evidence) != name ||
+    !@publication.run_evidence_value_fits(evidence, 100000, 10000, 100) {
+    return Err(@publication_host.Evidence(@publication.RunEvidenceInvalidWire))
+  }
+  Ok(())
+}

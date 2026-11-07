@@ -483,6 +483,7 @@ struct ClientAccountedSourceCapture {
   mut original : @row_source_host.RowRestoredOriginalInput?
   mut dag : (@strategy.CapturedDAG, Int)?
   mut input_dag : @strategy.CapturedDAG?
+  input_custody : (@row_source_host.RowInputAcquisition, @resources.Reservation)?
 }
 
 ///|
@@ -613,6 +614,7 @@ pub fn restore_accounted_client_source_capture(
     original,
     dag: None,
     input_dag: None,
+    input_custody: None,
   })
 }
 
