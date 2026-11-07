@@ -458,9 +458,9 @@ pub fn preparation_phase_work_continuation64_construction_inventory() -> Prepara
 
 pub fn preparation_phase_work_continuation64_retained_inventory() -> PreparationWorkConstructionInventory
 
-pub fn[P, C, I] prepare_backed_initialization_admission(BackedExecutionLiveProjection[P, C, I], I) -> Result[BackedInitializationAdmission[I], ImportedChildLedgerIssue]
+pub fn[P, C, I] prepare_backed_initialization_admission(BackedExecutionLiveProjection[P, C, I], I, acquire_window? : ((Int64, Int64) -> Result[Unit, LedgerIssue])?) -> Result[BackedInitializationAdmission[I], ImportedChildLedgerIssue]
 
-pub fn[P, C, R] prepare_backed_original_child_ledger(BackedExecutionLiveProjection[P, C, R], R) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
+pub fn[P, C, R] prepare_backed_original_child_ledger(BackedExecutionLiveProjection[P, C, R], R, acquire_window? : ((Int64, Int64) -> Result[Unit, LedgerIssue])?) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
 
 pub fn[P, C, I] prepare_backed_preparation_admission(BackedExecutionLiveProjection[P, C, I], I) -> Result[BackedPreparationAdmission[I], ImportedChildLedgerIssue]
 

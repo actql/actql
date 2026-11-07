@@ -258,8 +258,10 @@ pub fn[P, C, R] stop_backed_execution_live_child(
   // imported post-current fence must not wait for another external callback.
   if access.child_origin is Some(origin) {
     origin.stopping = true
+    origin.acquire_window = None
   }
-  if access.ticket is Some(ticket) && ticket.current_window is Some(_) &&
+  if access.ticket is Some(ticket) &&
+    ticket.current_window is Some(_) &&
     access.read_use is Some(read_use) {
     read_use.closing = true
   }

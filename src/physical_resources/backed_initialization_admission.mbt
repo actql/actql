@@ -17,15 +17,19 @@ struct BackedInitializationAdmission[I] {
 /// Select initialization before any child frame/start/take. The runtime is
 /// this SAME original input; equal DATA, a started Read frame, callbacks and
 /// numerical limits cannot supply the association or another allowance.
+/// Optional acquisition belongs only to this nominal growable child's physical
+/// issuer. It survives the initialized Request continuation on the same frame.
 pub fn[P, C, I] prepare_backed_initialization_admission(
   projection : BackedExecutionLiveProjection[P, C, I],
   input : I,
+  acquire_window? : ((Int64, Int64) -> Result[Unit, LedgerIssue])? = None,
 ) -> Result[BackedInitializationAdmission[I], ImportedChildLedgerIssue] {
   match backed_live_projection_original(projection, input) {
     Err(_) => return Err(ForeignOriginal)
     Ok(_) => ()
   }
-  let frame = match prepare_backed_original_child_ledger(projection, input) {
+  let frame = match
+    prepare_backed_original_child_ledger(projection, input, acquire_window~) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }

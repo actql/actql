@@ -256,6 +256,8 @@ test "ledger continuation checks imported currentness before final snapshot and 
     fixed_capacities: false,
     working: None,
     current_window: None,
+    acquire_window: None,
+    acquiring_window: false,
     ledger: Some(ledger),
     stopping: false,
     unavailable: false,
