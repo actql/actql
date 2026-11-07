@@ -3,6 +3,7 @@ priv enum NativeBackedLiveChildPurpose {
   Worker
   Read
   Initialization
+  Request
 } derive(Eq)
 
 ///|
@@ -29,6 +30,9 @@ struct NativeBackedLiveChild[T, C, R] {
   mut retired : Bool
   // Private initialization controls belong to this same physical owner.
   mut initialization : NativeBackedInitialization[T, C, R]?
+  // A Request retains its original frame before Common starts it. This is
+  // cleanup DATA on this same physical issuer, not another resource owner.
+  mut request_preparation : NativeBackedRequestPreparation[T, C, R]?
 }
 
 ///|
@@ -150,6 +154,7 @@ fn[T, C, R] NativeHostBootstrap::issue_backed_live_child_from_read(
     projection: None,
     retired: false,
     initialization: None,
+    request_preparation: None,
   }
   record.original = Some(record)
   let loan = domain.view.loan
@@ -447,6 +452,9 @@ pub fn[T, C, R] NativeHostBootstrap::retire_backed_live_child_after_owner_ack(
       !initialization.inventory_finished ||
       (initialization.started && !initialization.reported)
     ) {
+    return Err(Bootstrap(ReadersPending))
+  }
+  if record.request_preparation is Some(request) && !request.ready_for_owner_ack {
     return Err(Bootstrap(ReadersPending))
   }
   if record.access is Some(access) {

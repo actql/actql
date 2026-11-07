@@ -606,3 +606,21 @@ fn cleanup_quantity_copy(value : QuantityAmounts) -> QuantityAmounts {
     duration_ms: value.duration_ms,
   }
 }
+
+///|
+/// Callback-free retention fence for an already taken original frame/Ledger.
+/// This observes only local ownership, stop and park state. It performs no
+/// external current observation and grants no read, allocation or physical
+/// authority. The enclosing operation must observe its actual supplier first.
+pub fn check_imported_original_child_ledger_retained(
+  value : ImportedChildLedger,
+  ledger : Ledger,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match check_imported_original_child_ledger_current(value, ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  check_original_resources_mutable_current(ledger).map_err(issue => {
+    Resource(issue)
+  })
+}

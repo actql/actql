@@ -887,6 +887,7 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
     'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
     'npm run check:metadata', 'moon fmt --check', 'git diff --exit-code', 'node scripts/ci-preflight.mjs']);
   assert.deepEqual(commands('lint'), ['npm ci', 'npm run check:client-types',
+    'node --test scripts/source-read-current-control.test.mjs',
     'node --test scripts/ci-preflight.test.mjs', 'node --test scripts/ci-focused-tests.test.mjs',
     'node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs']);
   assert.deepEqual(commands('spec'), ['npm ci', 'npm run check:links',

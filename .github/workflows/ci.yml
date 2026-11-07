@@ -188,6 +188,8 @@ jobs:
         if: ${{ startsWith(needs.select-targets.outputs.profile, 'draft') }}
       - name: Type-check public SDK and Client wire declarations
         run: npm run check:client-types
+      - name: Test original Source current control ownership
+        run: node --test scripts/source-read-current-control.test.mjs
       - name: Test read-only worktree inventory fixtures
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/worktree-inventory.test.mjs
