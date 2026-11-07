@@ -31,6 +31,13 @@ pub fn open_store_with_custody(@sqlite.Library, String, String, Int64, Int64, In
 // Errors
 
 // Types and methods
+type CapturedContentCustody
+pub fn CapturedContentCustody::confirm(Self, Int) -> Result[Unit, NativePublicationStoreIssue]
+pub fn CapturedContentCustody::matches_confirmed(Self, @run_publication.CapturedContentReference) -> Bool
+pub fn CapturedContentCustody::persist(Self, Bytes) -> Result[Unit, NativePublicationStoreIssue]
+pub fn CapturedContentCustody::restore(Self) -> Result[Unit, NativePublicationStoreIssue]
+pub fn CapturedContentCustody::retry_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
+
 type ConfirmedPayloadDelivery
 pub fn ConfirmedPayloadDelivery::close(Self) -> Result[Unit, NativePublicationStoreIssue]
 pub fn ConfirmedPayloadDelivery::confirm_chunk(Self) -> Result[Int64, NativePublicationStoreIssue]
@@ -261,6 +268,7 @@ pub fn Store::observe_trusted_clock(Self, String, String) -> Result[String, Nati
 pub fn Store::open_confirmed_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[PayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_reader(Self, String) -> Result[PayloadReader, NativePublicationStoreIssue]
+pub fn Store::prepare_captured_content_custody(Self, @run_publication.CapturedContentReference, String) -> Result[CapturedContentCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_capture_custody(Self, @run_publication.EffectCaptureHoldingBinding, @signature.Library, Bytes) -> Result[EffectCaptureCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_catalog_custody(Self, @catalog.CatalogObservation, @catalog.CatalogObservationBinding, String, String, Int, Bytes, @catalog.DescribeLimits, @signature.Library, Bytes) -> Result[EffectCatalogCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_checkpoint_custody(Self, @checkpoint_runtime.SealedCheckpoint, String, String, @signature.Library, Bytes) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue]

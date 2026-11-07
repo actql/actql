@@ -365,6 +365,8 @@ pub fn client_cancellation_identity_relation(ClientCancellationIdentity, ClientC
 
 pub fn client_cancellation_intent_cid(ClientCancellationIdentity) -> String
 
+pub fn client_captured_content_candidate(ClientCapturedContent) -> @run_publication.CapturedContentReference
+
 pub fn client_captured_content_holding_cid(ClientCapturedContent) -> String?
 
 pub fn client_captured_content_identity(ClientCapturedContent) -> String
