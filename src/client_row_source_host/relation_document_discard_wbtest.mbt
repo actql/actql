@@ -23,6 +23,27 @@ fn relation_discard_fixture() -> (
 }
 
 ///|
+test "row observation discard severs its own mark after parent invalidation" {
+  let (declaration, raw, target) = relation_discard_fixture()
+  let row = observe_relation_target(target, declaration, "first").unwrap()
+  let copied = { ..row, }
+  let before = relation_target_before(row).unwrap()
+  let version = relation_target_version(row).unwrap()
+  assert_false(discard_relation_target_row_original(copied))
+  assert_eq(relation_target_version(row), Some(version))
+  assert_true(discard_relation_document_original(raw))
+  assert_true(relation_target_version(row) is None)
+  assert_true(row.original is Some(_))
+  assert_true(discard_relation_target_row_original(row))
+  assert_true(row.original is None)
+  assert_false(discard_relation_target_row_original(row))
+  assert_false(discard_relation_target_row_original(copied))
+  assert_false(before.is_empty())
+  assert_true(version.has_prefix("sha256:"))
+  assert_true(discard_relation_target_document_original(target))
+}
+
+///|
 test "relation original discard severs only self marks and preserves retained immutable DATA" {
   let (declaration, raw, target) = relation_discard_fixture()
   let bytes = raw.bytes

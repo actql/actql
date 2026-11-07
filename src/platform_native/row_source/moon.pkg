@@ -10,20 +10,22 @@ import {
   "actql/actql/execution_relation" @execution,
   "actql/actql/physical_resources" @resources,
   "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @admitted,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/canonical_json" @identity,
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {
   "moonbitlang/core/env",
   "moonbitlang/core/debug",
-  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
-  "actql/actql/canonical_json" @identity,
   "actql/actql/run_publication_host" @publication_host,
   "actql/actql/execution_query" @query,
-  "actql/actql/value_admission" @admitted,
   "actql/actql/sourceview_resolution" @sourceviews,
   "actql/actql/source_value" @source,
   "actql/actql/program_check" @checked,
   "actql/actql/check_environment" @environment,
   "actql/actql/physical_strategy_host" @strategy,
+  "actql/actql/decode_core" @decode,
 } for "wbtest"

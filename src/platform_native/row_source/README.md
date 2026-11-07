@@ -154,3 +154,30 @@ file owner checks the observed generation against the selected ceiling and
 allocates the receive backing for that generation's actual size. It charges
 only actual chunks once and checks the exact generation/extent through EOF.
 No support maximum is itself an observed file size or physical-release ACK.
+
+## Declared file listing projection
+
+`project_native_relation_file_listing_page` converts one original admitted
+physical document using the same prepared provider's schema and field roles.
+It asks the original Source to issue each observed identity's ResourceRef;
+neither physical rows nor this converter supply reference authority. It requires
+live nominal file references and fences document/row liveness after issuance.
+The bounded writer emits only the public listing fields and terminal page
+tokens. It never exposes inline physical content as a synthetic ContentRef.
+Versions bind the declared label to the original complete typed row digest,
+using the same canonical two-field preimage as the declared Node file supplier.
+The fixed 113-byte preimage expansion is distinct from the raw-body limit.
+
+The caller composes `native_relation_file_listing_construction_inventory` with
+its same-parent original document/provider and Source-issuer inventory BEFORE
+construction. The additional quote covers typed projection, co-held page and
+row writers, row/version hashes, closed reference emission, one live row and
+returned UTF8 bytes. It is quantity DATA, not a reservation or a physical bound.
+Every temporary row mark and projection mark is cut on success or refusal;
+the caller's raw document, response ticket, references and physical children
+retain their original duties. A converter result is not a completed listing.
+
+This is a Host assembly component. The managed file-capture entrance still
+rejects listing acquisitions until its original listing/charge/issuer protocol
+is connected. It does not enable the CLI mock profile, grant an Account, capture
+Content, run a Model, approve an Effect or qualify Saved/physical cleanup.
