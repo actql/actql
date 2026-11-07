@@ -49,9 +49,9 @@ export class KintoneUpdateObservationFailure extends Error {
 
 export function kintoneUpdateDriver({moon, site, authorization, connection, origin, appId, connectorId,
   resource, formResource, fields, mapping, declaration, siteBindingCid, generationCid, guestSpaceId,
-  limits, maxRows, maxMembers, maxRecoveryBytes}) {
+  limits, maxMembers, maxRecoveryBytes}) {
   if (typeof connection !== 'string' || !connection || typeof formResource !== 'string' || !formResource ||
-      formResource === resource || !positive(maxRows) || maxRows > 100 || !positive(maxMembers) ||
+      formResource === resource || !positive(maxMembers) ||
       !positive(maxRecoveryBytes) || !Array.isArray(fields) || nodeTypes.isProxy(fields) || fields.length < 1 ||
       fields.some((name, index) => typeof name !== 'string' || !name || name === '$id' || name === '$revision' ||
         index > 0 && name <= fields[index - 1])) fail('InvalidKintoneUpdateDriver');
@@ -109,7 +109,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         authorization = await targetAuthorization(rowIndex); useId = authorization?.useId;
       } else {
         const facts = {operation, decision: await decision(slot), resource: formResource,
-          runInvocationCid, dispatchRequestCid, maxUses: 3 * (2 * maxRows + 1)};
+          runInvocationCid, dispatchRequestCid, maxUses: 1};
         authorization = controlConstruction === undefined ? issueReadGrant(facts)
           : controlConstruction(undefined, issueReadGrant, [facts]);
         if (occurrence >= Number.MAX_SAFE_INTEGER) fail('KintoneReadOccurrenceLimit');
@@ -137,8 +137,9 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       return value;
     };
   };
-  const restore = ({durable, recorded, members, memberIndexes, body, requestTags}) => {
-    if (!Array.isArray(members) || members.length < 1 || members.length > maxMembers ||
+  const restore = ({durable, recorded, members, memberIndexes, body, requestTags, maxRows}) => {
+    if (!Number.isSafeInteger(maxRows) || maxRows < 0 || maxRows > 2147483647 ||
+        !Array.isArray(members) || members.length < 1 || members.length > maxMembers ||
         !Array.isArray(durable?.connectorRecovery) || durable.connectorRecovery.length > members.length ||
         !Array.isArray(recorded?.members) || recorded.members.length !== members.length) fail('InvalidKintoneUpdateRecovery');
     const indexes = memberIndexes ?? members.map((_, index) => index);
@@ -184,17 +185,20 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
     async describe(options) {
       const observations = [];
       try {
+        if (!Number.isSafeInteger(options.maxRows) || options.maxRows < 0 || options.maxRows > 2147483647) {
+          fail('InvalidKintoneUpdateRequests');
+        }
         await readScope(options, observations)('schema', requests.formBody, 0, requests.recheckForm);
         const current = Object.freeze({});
         currentFrames.set(current, {member: options.member, runInvocationCid: options.runInvocationCid,
-          dispatchRequestCid: options.dispatchRequestCid, controlConstruction: options.controlConstruction});
+          dispatchRequestCid: options.dispatchRequestCid, controlConstruction: options.controlConstruction, maxRows: options.maxRows});
         return current;
       } catch (cause) {throw new KintoneUpdateObservationFailure(cause, observations);}
     },
     prepareRequest(options) {frame(options.member, options.current); return requests.prepare(options);},
     recheckRequests({member, entries, current}) {
-      frame(member, current);
-      if (!Array.isArray(entries) || entries.length > maxRows) fail('InvalidKintoneUpdateRequests');
+      const original = frame(member, current);
+      if (!Array.isArray(entries) || entries.length > original.maxRows) fail('InvalidKintoneUpdateRequests');
       for (const entry of entries) {
         if (entry.requestCid !== requests.requestCid(entry.request)) fail('ForeignKintoneUpdateRequest');
         requests.nativeRequest(entry.request);
@@ -202,7 +206,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
     },
     async observeTargets(options) {
       const original = frame(options.member, options.current), observations = [];
-      if (!Array.isArray(options.entries) || options.entries.length > maxRows) fail('InvalidKintoneUpdateRequests');
+      if (!Array.isArray(options.entries) || options.entries.length > original.maxRows) fail('InvalidKintoneUpdateRequests');
       try {
         const read = readScope({...original, readChild: options.readChild, signal: options.signal,
           targetAuthorization: options.authorizationForRow}, observations), rows = [];
@@ -236,9 +240,9 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       return Object.freeze({providerNamespace: 'kintone', resourceKind: 'app-record',
         boundaryCid: cid({origin, appId, guestSpaceId: guestSpaceId ?? null})});
     },
-    recoveryEntry({member, entries}) {
-      selected(member);
-      if (!Array.isArray(entries) || entries.length > maxRows) fail('InvalidKintoneUpdateRecovery');
+    recoveryEntry({member, current, entries}) {
+      const original = frame(member, current);
+      if (!Array.isArray(entries) || entries.length > original.maxRows) fail('InvalidKintoneUpdateRecovery');
       const wires = entries.map(entry => {
         if (entry.requestCid !== requests.requestCid(entry.request)) fail('ForeignKintoneUpdateRequest');
         return requests.savedWire(entry.request);

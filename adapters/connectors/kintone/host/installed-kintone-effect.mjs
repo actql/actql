@@ -33,7 +33,7 @@ const method = (receiver, name) => {
       nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) fail('KintoneEffectConstructionUnavailable');
   return (...args) => Reflect.apply(field.value, receiver, args);
 };
-const maxMembers = 16, maxRows = 100, maxRecoveryBytes = 1000000;
+const maxMembers = 16, maxRecoveryBytes = 1000000;
 const previewLimits = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000, maxDepth: 64});
 
 export function checkInstalledKintoneEffectProfile(profile) {
@@ -134,7 +134,7 @@ export async function loadInstalledKintoneEffect(profile, {moon, construction, l
     maxCells: source.limits.maxCells, maxTableRows: source.limits.maxTableRows, maxValueNodes: source.limits.maxValueNodes,
     maxValueDepth: source.limits.maxValueDepth, maxValueTextBytes: source.limits.maxValueTextBytes,
     maxIdentityBytes: source.limits.maxResponseBytes, maxComparisonWork: 20000, maxRecoveryBytes});
-  const ownerLimits = Object.freeze({maxMembers, maxRows, maxFields: source.limits.maxFields, preview: previewLimits,
+  const ownerLimits = Object.freeze({maxMembers, maxFields: source.limits.maxFields, preview: previewLimits,
     body: Object.freeze({maxBytes: policy.maxInputBytes, maxNodes: policy.maxValueNodes, maxDepth: policy.maxValueDepth})});
   let siteBindingCid, generationCid;
   const admitsApprovalTarget = (binding, resource) => resource === source.resource && Array.isArray(binding?.fields) &&
@@ -175,7 +175,7 @@ export async function loadInstalledKintoneEffect(profile, {moon, construction, l
       const driver = kintoneUpdateDriver({moon, site, authorization, connection, origin: siteProfile.apiOrigin,
         appId: source.appId, connectorId: source.connectorId, resource: source.resource, formResource: source.formResource,
         fields: beforeFields, mapping: mapped.mapping, declaration: original, siteBindingCid, generationCid,
-        guestSpaceId: siteProfile.guestSpaceId, limits: policy, maxRows, maxMembers, maxRecoveryBytes});
+        guestSpaceId: siteProfile.guestSpaceId, limits: policy, maxMembers, maxRecoveryBytes});
       const recipe = captureKintoneEffectPlanRecipeBuilder({moon})({mapping: mapped.mapping, fields: beforeFields, formResource: source.formResource,
         bindingUnits: textUnits, credentialSite: installedRowCredentialOperationSite(site.credential), limits: policy,
         inputLimits: ownerLimits, maxRecoveryBytes});

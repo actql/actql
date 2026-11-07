@@ -34,7 +34,7 @@ function fixture(changes = {}) {
   const driver = kintoneUpdateDriver(config), member = Object.freeze({kind: 'update', resource: 'inquiries',
     memberIndex: 0, effectId: 'update-inquiry', mapping: Object.freeze({mappingRef: native.adapter.mappingRef,
       mappingCid: native.adapter.mappingCid})});
-  const describeOptions = {member, runInvocationCid: cid('d'), dispatchRequestCid: cid('e'),
+  const describeOptions = {member, maxRows: config.maxRows, runInvocationCid: cid('d'), dispatchRequestCid: cid('e'),
     controlConstruction(receiver, method, args) {return Reflect.apply(method, receiver, args);},
     async readChild(authorization, input, row, slot, project) {
       assert.strictEqual(input.grant, authorization.grant);
@@ -61,7 +61,7 @@ function fixture(changes = {}) {
       scope: {resourceOrigin: config.origin, connectorRegistration: 'kintone', operation: 'kintone:records:update'}},
     async callResource(input) {state.writes.push(input); if (state.writeError) throw state.writeError; return state.response;},
     ...changes});
-  const recover = (entry, requestCid) => ({durable: {connectorRecovery: [{memberIndex: 0, ...entry}]},
+  const recover = (entry, requestCid) => ({maxRows: config.maxRows, durable: {connectorRecovery: [{memberIndex: 0, ...entry}]},
     recorded: {members: [{claims: [{canonicalRequestCid: requestCid}]}]}, members: [member],
     body: {effects: [{changes: [{after: {value: structuredClone(value)}, target_row_identity: identity}]}]}, requestTags: [[cid('c')]]});
   return {native, state, config, driver, member, target, describeOptions, describe, prepare, observe, finalize, send, recover};
@@ -80,7 +80,7 @@ test('kintone driver preserves same-issued metadata and distinct serial original
     'schema-before', 'target', 'schema-after', 'schema-before', 'target', 'schema-after']);
   assert.deepEqual(f.state.reads.filter(read => read.slot === 'target').map(read => read.authorization), grants);
   assert(f.state.grants.every(grant => grant.resource === 'inquiries-form' &&
-    grant.operation === 'kintone:form:read' && grant.maxUses === 15));
+    grant.operation === 'kintone:form:read' && grant.maxUses === 1));
   for (const prepared of logical) {
     const final = f.finalize(prepared); f.driver.assertRequestFinalized(final.request, cid('c'));
     assert.equal(f.driver.capabilityRequestCid(final.request), prepared.requestCid);
@@ -160,7 +160,7 @@ test('kintone driver does not discard an observed write on late abort or retry a
 test('kintone driver cold restoration binds original claims, values, member indexes and complete request without I/O', async () => {
   const warm = fixture(), current = await warm.describe(), logical = warm.prepare(current);
   await warm.observe(current, [logical]); const final = warm.finalize(logical);
-  const entry = warm.driver.recoveryEntry({member: warm.member, entries: [final]});
+  const entry = warm.driver.recoveryEntry({member: warm.member, current, entries: [final]});
   const cold = fixture(), input = cold.recover(entry, final.requestCid), restored = cold.driver.recoverRequests(input);
   const request = restored.requests[0][0];
   assert.equal(cold.driver.requestCid(request), final.requestCid);
@@ -198,7 +198,7 @@ test('kintone driver delegates only the actual matching original Checkpoint phys
 test('kintone cold member refuses nested foreign binding before canonical recursion or I/O', async () => {
   const warm = fixture(), current = await warm.describe(), logical = warm.prepare(current);
   await warm.observe(current, [logical]); const final = warm.finalize(logical);
-  const entry = warm.driver.recoveryEntry({member: warm.member, entries: [final]});
+  const entry = warm.driver.recoveryEntry({member: warm.member, current, entries: [final]});
   const changed = JSON.parse(entry.wire); let nested = 'foreign';
   for (let index = 0; index < 200; index++) nested = {nested};
   changed.binding.appId = nested;
@@ -206,4 +206,45 @@ test('kintone cold member refuses nested foreign binding before canonical recurs
     observationCid: 'sha256:' + createHash('sha256').update(wire).digest('hex')}, final.requestCid);
   assert.throws(() => cold.driver.recoverRequests(input), {code: 'InvalidKintoneUpdateRecovery'});
   assert.equal(cold.state.decisions.length, 0); assert.equal(cold.state.reads.length, 0); assert.equal(cold.state.writes.length, 0);
+});
+
+
+test('kintone total targets follow the admitted caller bound while each native PUT remains one record', async () => {
+  // Explicit per-call row DATA below is not itself admission or authority.
+  // The shared owner test separately observes the same adopted Plan bound.
+  const f = fixture({maxRows: 101, maxRecoveryBytes: 1000000}), current = await f.describe();
+  const ids = Array.from({length: 101}, (_, index) => String(BigInt(identity) + BigInt(index)));
+  const logical = ids.map(id => f.prepare(current, id));
+  const rows = await f.observe(current, logical);
+  assert.deepEqual(rows.map(row => row.identity), ids);
+  const finals = logical.map(entry => f.finalize(entry));
+  f.driver.recheckRequests({member: f.member, entries: finals, current});
+  for (const [index, entry] of finals.entries()) {
+    f.state.response = {useCid: cid('1'), statusCode: 200, body: bytes({records: [{id: ids[index], revision: '9007199254740995'}]})};
+    const sent = await f.send(current, entry.request);
+    const result = f.driver.project({request: entry.request, observation: sent.observation});
+    assert.deepEqual(result.outcome, {state: 'applied', result: {record_id: ids[index], revision: '9007199254740995'}});
+    const request = f.state.writes[index].operations.get('kintone:records:update');
+    const body = JSON.parse(request.body);
+    assert.equal(body.records.length, 1);
+    assert.equal(body.records[0].id, ids[index]);
+    assert.equal(body.records[0].revision, revision);
+    assert.equal(body.upsert, false);
+  }
+  assert.equal(f.state.writes.length, 101);
+  const saved = f.driver.recoveryEntry({member: f.member, current, entries: finals});
+  const cold = fixture({maxRows: 101, maxRecoveryBytes: 1000000});
+  const input = {maxRows: 101, durable: {connectorRecovery: [{memberIndex: 0, ...saved}]},
+    members: [cold.member], requestTags: [finals.map(() => cid('c'))],
+    recorded: {members: [{claims: finals.map(entry => ({canonicalRequestCid: entry.requestCid}))}]},
+    body: {effects: [{changes: ids.map(id => ({after: {value}, target_row_identity: id}))}]}};
+  const recovered = cold.driver.recoverRequests(input);
+  assert.deepEqual(recovered.requests[0].map(request => cold.driver.requestFacts(request).target), ids);
+  assert.equal(cold.state.reads.length + cold.state.writes.length, 0);
+  assert.throws(() => cold.driver.recoverRequests({...input, maxRows: 100}), {code: 'InvalidKintoneUpdateRecovery'});
+  assert.throws(() => f.driver.recheckRequests({member: f.member, entries: [...logical, logical[0]], current}),
+    {code: 'InvalidKintoneUpdateRequests'});
+  const missing = fixture(); delete missing.describeOptions.maxRows;
+  await assert.rejects(missing.describe(), {code: 'InvalidKintoneUpdateRequests'});
+  assert.equal(missing.state.reads.length, 0);
 });

@@ -111,8 +111,8 @@ test('actual capture failure input callback retires only its pins after the shar
   let releaseInputs, finishCapture, observations = 0;
   const moon = {clientProgramPinEffectSources: () => ({ok: input}),
     clientProgramReleaseEffectInputs(original) {assert.strictEqual(original, input); events.push('pins');}};
-  const actual = Function('moon', 'checked', 'limits', 'fail', 'releaseInstalledRowCapture',
-    `return (${source.slice(capture.start, capture.end)});`)(moon, checked, {maxPinnedResults: 1}, fail,
+  const actual = Function('moon', 'checked', 'runLimits', 'fail', 'releaseInstalledRowCapture',
+    `return (${source.slice(capture.start, capture.end)});`)(moon, checked, () => ({maxPinnedResults: 1}), fail,
     releaseInstalledRowCapture);
   await assert.rejects(actual({members:[],ownChildren(original) {
     original.push({prepared: {status() {observations++; return {pending: false};},
@@ -194,7 +194,7 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt,
   const managedEffect={controlConstruction:(receiver,method,args)=>Reflect.apply(method,receiver,args),runtime:moon,value:parent,prepared,request:identity,operationPlan:nativePlan,
     readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan};
   const ownerOf=value=>{assert.strictEqual(value,member);return {owned,managedPlanRecipe:managedRecipe};};
-  const limits={preview:{maxWireBytes:10000,maxNodes:100,maxDepth:10},maxRows:3};
+  const limits={preview:{maxWireBytes:10000,maxNodes:100,maxDepth:10},maxRows:3,maxRowsPerMember:3};
   const createRows=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='prepareInstalledCreateRows').node;
   const prepareInstalledCreateRows=Function('checked','runtimeField','fail','parseExactJson',
     `return (${source.slice(createRows.start,createRows.end)});`)(checked,runtimeField,fail,
@@ -591,7 +591,8 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
       return index>=count?'finished':!checked?'inspect':pending&&available&&!attempted?'retry':'advance';
     }};
   const ports={...readPorts(()=>owned),moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,
-    limits:{maxPinnedResults:2,maxRows:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
+    runLimits:()=>ports.limits,
+    limits:{maxPinnedResults:2,maxRows:2,maxRowsPerMember:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
     ownerOf:()=>owned,assertCurrent(){},own(){},ownChildren(value){assert.equal(children.length,0);children.push(value);},
     ownInputs(release,complete){releaseInputs=release;finish=complete;},control,
     prepareInstalledRowCaptureChild,retainInstalledRowCaptureChild,prepareInstalledEffectRequestChild,releaseInstalledRowCapture,

@@ -339,6 +339,24 @@ real initial-parent reservation and physical cleanup, normal package consumers,
 loopback TLS and live-provider acceptance have distinct scopes. Success at one
 boundary is not acceptance of the others.
 
+## Installed UPDATE target bounds
+
+The managed Plan supplies the existing per-member row ceiling. The shared row
+Effect keeps that ceiling for each member and derives a finite stage counter
+ceiling from the same Plan's member count. An explicitly supplied tighter row
+limit still applies. The counter does not fund rows: the same adopted Run must
+retain the actual captured or recovered inventory before any row-dependent
+constructor, and its work, retention, transfer and recovery limits still apply.
+Legacy non-managed callers keep their existing installation limits.
+
+The provider's maximum of 100 records per Update Records request is separate
+from the total targets in an Effect. This installed UPDATE sends one observed,
+revision-bound record in each PUT. Describe and restoration receive the shared
+owner's row bound; the driver imposes no second whole-Effect batch quota. Each
+fresh Form read grant admits only its own single physical read. Neither a row
+count nor a request quota substitutes for current Account/Checkpoint decisions,
+original target checks, durable claims or pending/Unknown cleanup duties.
+
 ## Provider references
 
 - [Get Form Fields](https://kintone.dev/en/docs/kintone/rest-api/apps/form/get-form-fields/)

@@ -9045,7 +9045,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "4e3d715c1b24b37902567f5c56e6b3e6e44097527654b49c33b371c4e5804a92",
+      "sha256": "f07ad3a0112181e86d41f89e8197e1e66ae8375e248469be6df7842ba0cfc38a",
       "exports": [
         "KINTONE_UPDATE_TARGET_VERSION",
         "KintoneUpdateObservationFailure",
@@ -9115,7 +9115,6 @@
             "generationCid",
             "guestSpaceId",
             "limits",
-            "maxRows",
             "maxMembers",
             "maxRecoveryBytes"
           ],
@@ -9208,6 +9207,7 @@
           "name": "kintoneUpdateDriver/init:recoveryEntry/init:recoveryEntry",
           "parameters": [
             "member",
+            "current",
             "entries"
           ],
           "async": false
@@ -9297,7 +9297,8 @@
             "members",
             "memberIndexes",
             "body",
-            "requestTags"
+            "requestTags",
+            "maxRows"
           ],
           "async": false
         },
@@ -9745,7 +9746,7 @@
       "role": "physical-io",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "6e94cf7bf04efd05ac50e6f4e128114909518cc71ac304a32e92ded782446bf5",
+      "sha256": "1c41c2eb9dcb21a1f9150b2115710015c18e6f36ea8c26695991d1513f9bc14d",
       "exports": [
         "INSTALLED_KINTONE_EFFECT_VERSION",
         "checkInstalledKintoneEffectProfile",
