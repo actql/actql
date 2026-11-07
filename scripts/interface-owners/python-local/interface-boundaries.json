@@ -29,7 +29,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
-      "sha256": "67265d7a7753d83c36c6b138aeea0dfe0fc0c39091e5550322295a133ea33dfc",
+      "sha256": "098834863e82e271c57cd621db32a3d5af8c7822d24d42dad796c9d57645b938",
       "generator": {
         "path": "scripts/generate-local-native-memory-binding.py",
         "anchor": "def outputs("
@@ -39138,7 +39138,7 @@
           ]
         }
       ],
-      "sha256": "67265d7a7753d83c36c6b138aeea0dfe0fc0c39091e5550322295a133ea33dfc",
+      "sha256": "098834863e82e271c57cd621db32a3d5af8c7822d24d42dad796c9d57645b938",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
