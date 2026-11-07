@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {dirname, join, relative} from 'node:path';
+import {basename, dirname, join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {validateResourceAccounting} from './validate-local-resource-accounting.mjs';
 import {deepFreeze, loadResourceAccountingSources} from './local-resource-accounting-sources.mjs';
@@ -255,6 +255,68 @@ test('resource validation refuses a detached captured Graph fixture registry', (
   for (const operation of ['node_rows', 'edge_rows']) {
     assert.ok(errors.some(error => error.startsWith(`Bridge ${operation}: missing environment fixture`)));
   }
+});
+
+// Count actual lexer entries in the unchanged source guard, not elapsed-time thresholds.
+// The injected observation has no production API and does not cache validation results.
+function observedResourceLexer() {
+  const source = readFileSync(join(root, 'scripts/local-resource-api-guard.mjs'), 'utf8');
+  const declaration = 'function tokens(source) {';
+  assert.equal(source.split(declaration).length, 2);
+  const body = source.replace("import path from 'node:path';", '')
+    .replace(/^export /gmu, '')
+    .replace(declaration, declaration + '\nlexicalCalls++;');
+  return new Function('path', 'let lexicalCalls = 0;\n' + body +
+    '\nreturn {boundedSorterAliases, localResourceApiIssues, calls: () => lexicalCalls};')(
+    {basename, dirname, relative, resolve});
+}
+
+test('resource lexer reuses identical frozen source bytes without sharing alias results', () => {
+  const api = observedResourceLexer();
+  const text = 'import { "actql/actql/bounded_tuple_sort" @sort }';
+  const snapshot = Object.freeze({exists: true, text});
+  for (let index = 0; index < 8; index++) {
+    const aliases = api.boundedSorterAliases(text, snapshot);
+    assert.deepEqual([...aliases], ['sort']);
+    aliases.clear();
+  }
+  assert.equal(api.calls(), 1, 'the same immutable source needs one lexical scan');
+  assert.deepEqual([...api.boundedSorterAliases('import {}', snapshot)], []);
+  assert.equal(api.calls(), 2, 'different bytes never borrow the captured tokens');
+  const mutable = {text};
+  api.boundedSorterAliases(text, mutable);
+  api.boundedSorterAliases(text, mutable);
+  assert.equal(api.calls(), 4, 'mutable source is scanned on every invocation');
+  const getter = Object.freeze({get text() { throw new Error('SnapshotGetterMustNotRun'); }});
+  api.boundedSorterAliases(text, getter);
+  api.boundedSorterAliases(text, getter);
+  assert.equal(api.calls(), 6, 'a frozen accessor is not an immutable captured text value');
+});
+
+test('resource lexer reuse keeps eager-reference checks and errors fresh for every snapshot', () => {
+  const api = observedResourceLexer(), directory = '/source-only-resource-lexer';
+  const file = resolve(directory, 'src/consumer/main.mbt');
+  const sources = Object.freeze({
+    [resolve(directory, 'src/managed_record_storage/append_steps.mbt')]: Object.freeze({exists: true,
+      text: 'pub fn start_append(external_workspace_slots~ : Int) -> Unit {}'}),
+    [resolve(directory, 'src/managed_record_runtime/output.mbt')]: Object.freeze({exists: true,
+      text: 'pub fn start_record_append(external_workspace_slots~ : Int) -> Unit {}'}),
+    [resolve(directory, 'src/consumer/moon.pkg')]: Object.freeze({exists: true,
+      text: 'import { "actql/actql/bounded_tuple_sort" @sort }'}),
+    [file]: Object.freeze({exists: true, text: 'fn f() { @sort.prepare(keys, slots) }'}),
+  });
+  const first = api.localResourceApiIssues({root: directory, sources});
+  assert.equal(first.length, 1); assert.match(first[0], /eager bounded_tuple_sort\.prepare reference/u);
+  const scanned = api.calls();
+  first.push('caller-owned change');
+  const second = api.localResourceApiIssues({root: directory, sources});
+  assert.equal(second.length, 1); assert.notEqual(first, second);
+  assert.equal(api.calls(), scanned, 'validation reruns while immutable lexical work is reused');
+  const changed = Object.freeze({...sources,
+    [file]: Object.freeze({exists: true, text: 'fn f() { @sort.prepare_deferred(keys, slots) }'})});
+  assert.deepEqual(api.localResourceApiIssues({root: directory, sources: changed}), []);
+  assert.equal(api.calls(), scanned + 1, 'changed frozen bytes receive a fresh scan');
+  assert.equal(api.localResourceApiIssues({root: directory, sources}).length, 1);
 });
 
 test('bounded resource API guard accepts current source and rejects eager consumers', () => {
