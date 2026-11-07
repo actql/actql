@@ -40,6 +40,20 @@ struct PreparedClientEffectComputation {
 }
 
 ///|
+/// The fixed preparation Owner calls this only after its original borrowers
+/// and logical capacity have retired. These cached originals point back to
+/// this preparation; sever them before the physical Read waits for aliases.
+/// Escaped originals still retain their own data. This neither frees those
+/// aliases nor acknowledges physical cleanup, grants execution or reissues
+/// normalization/material custody.
+pub fn clear_prepared_client_effect_custody_after_cleanup(
+  owner : PreparedClientEffectComputation,
+) -> Unit {
+  owner.normalization_custody = None
+  owner.normalization = None
+}
+
+///|
 /// Private checked graph view for existing query acquisition and Local task
 /// preparation. It never escapes as an Effect-free public preparation or
 /// rechecks the Program under another owner.

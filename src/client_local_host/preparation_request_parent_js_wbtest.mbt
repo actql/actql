@@ -288,3 +288,62 @@ test "Node Request keeps its original full sealed envelope requirement" {
   assert_true(begin_request_preparation(initial, input, policy) is Err(Policy))
   @resources.cleanup_node_preparation_admission(initial).unwrap()
 }
+
+///|
+// The original physical owner may still be pending after the continued
+// reservation has retired. Its payload-Read control record cannot survive in
+// this outer Request while that same Read waits for its last strong alias.
+test "Request drops retired continuation aliases before original physical cleanup ACK" {
+  let input = [71]
+  let pending = Ref(true)
+  let owner = begin_request_preparation(
+    request_parent_fixture(input, pending=() => pending.val),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
+  let continued : @resources.PreparationCapacity[Array[Int], ClientInstalledEffectManagedPlan] =
+    @resources.continue_preparation_capacity(owner.capacity, input).unwrap()
+  owner.effect_capacity = Some(continued)
+  owner.phase = EffectCompiled
+  assert_true(abort_request_preparation_after_cleanup(owner) is Err(Initial(_)))
+  assert_true(owner.effect_capacity is None)
+  assert_true(owner.program_capacity is None && owner.snapshot_base is None)
+  assert_true(owner.phase == Retiring && owner.input is None)
+  let retired = @resources.ledger_usage(owner.ledger)
+  assert_eq(retired.reserved_retention_bytes, 0L)
+  assert_eq(retired.reserved_execution_bytes, 0L)
+  // Only the SAME physical owner's initial cleanup is retried. The consumed
+  // Unit capacity cannot be retired again or interpreted as another body.
+  assert_true(abort_request_preparation_after_cleanup(owner) is Err(Initial(_)))
+  assert_eq(@resources.ledger_usage(owner.ledger), retired)
+  pending.val = false
+  // A changed callback is not the original physical ACK. Node's uncertain
+  // stop stays pending; the actual Native component supplies its own close.
+  assert_true(abort_request_preparation_after_cleanup(owner) is Err(Initial(_)))
+  assert_true(owner.phase == Retiring && owner.input is None)
+}
+
+///|
+test "Request keeps live continuation until original constructor borrower returns" {
+  let input = [72]
+  let owner = begin_request_preparation(
+    request_parent_fixture(input), input, client_local_resource_policy(),
+  ).unwrap()
+  let continued : @resources.PreparationCapacity[Array[Int], ClientInstalledEffectManagedPlan] =
+    @resources.continue_preparation_capacity(owner.capacity, input).unwrap()
+  owner.effect_capacity = Some(continued)
+  owner.phase = EffectCompiled
+  let usage = @resources.ledger_usage(owner.ledger)
+  let holder = @resources.reserve_preparation_construction_input(
+    continued, input, 42,
+    usage.reserved_retention_bytes, usage.reserved_execution_bytes,
+  ).unwrap()
+  assert_true(abort_request_preparation_after_cleanup(owner) is Err(WrongPhase))
+  assert_true(owner.input is Some(original) && physical_equal(original, input))
+  assert_true(owner.effect_capacity is Some(original) && physical_equal(original, continued))
+  assert_eq(@resources.preparation_body_borrow_value(holder), Some(42))
+  assert_true(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(owner).unwrap()
+  assert_true(owner.phase == Closed && owner.effect_capacity is None)
+}

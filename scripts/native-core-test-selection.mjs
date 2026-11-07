@@ -14,6 +14,9 @@ export const nativeRelationWorkTestFile =
 export const nativeNonModelEntryTestFile =
   'src/platform_native/installed_arena_control/nonmodel_entry_original_physical_scoped_wbtest.mbt';
 
+const nativeRequestEffectHandoffTestFile =
+  'src/platform_native/client_host/native_test/request_effect_test.mbt';
+
 // These two independent fixtures use the same existing 8192-page backing.
 // All other selected Arena cases retain their original 256-page declarations.
 export function nativeCoreScopedBackingPages(source) {
@@ -25,7 +28,7 @@ export function nativeCoreScopedBackingPages(source) {
 // Keep the established profile prefixes. Only this one new public-API case
 // joins them; its package siblings and client_host retain their prior profile.
 export function nativeCoreScopedAllocationProfile(source) {
-  return source === nativeRelationWorkTestFile ||
+  return source === nativeRequestEffectHandoffTestFile || source === nativeRelationWorkTestFile ||
     source === 'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt' ||
     source === 'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt' ||
     source === 'src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt' ||
@@ -38,6 +41,7 @@ export function nativeCoreScopedAllocationProfile(source) {
 // Core deliberately also tests the absence of that provider, so its allocator
 // must not be replaced globally. Both profiles remain required.
 export const nativeScopedTestFiles = Object.freeze([
+  nativeRequestEffectHandoffTestFile,
   'src/cmd/native_client/local_command_business_cleanup_wbtest.mbt',
   'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt',
   'src/platform_native/client_host/submitted_request_preparation_native_wbtest.mbt',

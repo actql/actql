@@ -74,6 +74,26 @@ let submitted_request_source_reader : @source.JsonDataReader[@source.Node?] = {
 }
 
 ///|
+/// Original body borrow selected by the SAME Request checker/compiler. Neither
+/// variant creates another preparation, body, permission or cleanup Owner.
+pub enum NativeClientSubmittedRequestBody {
+  Program(@resources.PreparationBodyBorrow[@host.PreparedClientProgram])
+  Effect(@resources.PreparationBodyBorrow[@host.PreparedClientEffectComputation])
+}
+
+///|
+/// Return the original typed borrow, preserving the Resource result. This is
+/// neither physical retirement nor permission to abort a live child.
+pub fn return_native_client_submitted_request_body(
+  body : NativeClientSubmittedRequestBody,
+) -> Result[Bool, @resources.PreparationCapacityIssue] {
+  match body {
+    Program(original) => @resources.return_preparation_body_borrow(original)
+    Effect(original) => @resources.return_preparation_body_borrow(original)
+  }
+}
+
+///|
 /// The ordinary Native command's SAME intent and retained Request. The shared
 /// source preflight funds original native decoding before this caller enters
 /// it; the shared checker/compiler then consumes that original input once.
@@ -86,7 +106,7 @@ pub fn prepare_native_client_submitted_request(
 ) -> Result[
   (
     NativeClientSubmittedPreparation,
-    @resources.PreparationBodyBorrow[@host.PreparedClientProgram],
+    NativeClientSubmittedRequestBody,
   ),
   NativeClientSubmittedPreparationIssue,
 ] {
@@ -108,7 +128,7 @@ pub fn[I] prepare_native_client_submitted_request_input(
 ) -> Result[
   (
     NativeClientSubmittedPreparation,
-    @resources.PreparationBodyBorrow[@host.PreparedClientProgram],
+    NativeClientSubmittedRequestBody,
   ),
   NativeClientSubmittedPreparationIssue,
 ] {
@@ -119,28 +139,39 @@ pub fn[I] prepare_native_client_submitted_request_input(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match
+  let kind = match
     @local.finish_request_checked_computation(
       owner, input, environment, publication,
     ) {
     Err(issue) => return Err(Request(issue))
-    Ok(@local.Effect) => return Err(RequestBranchUnavailable)
-    Ok(@local.Pure) => ()
-  }
-  let borrow = match @local.borrow_request_program_plan_input(owner, input) {
-    Err(issue) => return Err(RequestPreparation(issue))
     Ok(value) => value
   }
-  let original = @resources.preparation_body_borrow_value(borrow).unwrap()
-  Ok(
-    (
-      {
+  // Common already compiled and continued to the selected body capacity.
+  // Do not check, compile or continue it a second time at this Native handoff.
+  match kind {
+    @local.Pure => {
+      let borrow = match @local.borrow_request_program_plan_input(owner, input) {
+        Err(issue) => return Err(RequestPreparation(issue))
+        Ok(value) => value
+      }
+      let original = @resources.preparation_body_borrow_value(borrow).unwrap()
+      Ok(({
         intent_cid: @host.client_submitted_intent_cid(intent),
         preparation: Computation(original),
-      },
-      borrow,
-    ),
-  )
+      }, Program(borrow)))
+    }
+    @local.Effect => {
+      let borrow = match @local.borrow_request_effect_plan_input(owner, input) {
+        Err(issue) => return Err(RequestPreparation(issue))
+        Ok(value) => value
+      }
+      let original = @resources.preparation_body_borrow_value(borrow).unwrap()
+      Ok(({
+        intent_cid: @host.client_submitted_intent_cid(intent),
+        preparation: EffectComputation(original),
+      }, Effect(borrow)))
+    }
+  }
 }
 
 ///|

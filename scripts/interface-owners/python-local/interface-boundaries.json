@@ -76222,7 +76222,7 @@
     },
     {
       "module": "src/cmd/native_client/local_start.mbt",
-      "sha256": "c5578fedf6b5986481b4f7f59329269bc358ebe83244f4c209f93ec1d80cc494",
+      "sha256": "8fc763edebb8d6b6f7fbd72fb13aa0f11d002f2ff8b81c5bfe8cafc351a8f8bf",
       "exports": [],
       "operations": [
         {
@@ -76369,6 +76369,10 @@
               {
                 "path": "src/client_host_wasm/submission.mbt",
                 "anchor": "@buffers.reserve_output_buffer("
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "## Same Request Effect preparation lifetime"
               }
             ],
             "extension": [

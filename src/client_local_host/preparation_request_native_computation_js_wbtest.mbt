@@ -813,3 +813,86 @@ test "native policy boundary compiles selected evidence with the original public
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "native Query terminal enforces same checked ARRAY profile without a submitted Source envelope" {
+  let (environment, publication) = request_query_publication_fixture()
+  for format in ["sql", "aql-text"] {
+    let document = "SELECT [[1,2]] AS value"
+    let (parent, input) = native_driver_parent(document)
+    prepare_request_native_source_computation_check(
+      parent,
+      input,
+      request_document_test_source(document, format),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+    ).unwrap()
+    let original = parent.held_program.unwrap()
+    assert_true(parent.source_input is None && parent.query_syntax is Some(_))
+    assert_true(
+      finish_request_checked_computation(
+        parent, input, environment, publication,
+      )
+      is Err(
+        Preparation(SourceInput(Source(@publication_host.ArrayProfile(_))))
+      ),
+    )
+    assert_true(
+      parent.compiled_program is Some(prepared) &&
+      physical_equal(
+        @checked.checked_source_program(
+          @strategy.graph_program(
+            @publication_host.prepared_client_graph(prepared),
+          ),
+        ),
+        original,
+      ),
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "native machine Program keeps recursive ARRAY through same Request terminal" {
+  // Independently authored complete recursive type, not Source lowering output.
+  let document =
+    #|{"version":"actql/0.1","id":"recursive-array-control","stages":[{"id":"main","inputs":{},"steps":[{"as":"seed","values":{"schema":{"items":{"type":"array","nullable":false,"items":{"type":"array","nullable":false,"items":{"type":"number","nullable":false},"max_items":2},"max_items":1}},"rows":[{"items":[[1,2]]}]}},{"as":"selected","select":["items"]}],"results":{"rows":{"from":"selected","fields":["items"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(document)
+  prepare_request_native_computation_check(
+    parent,
+    input,
+    request_native_test_value(document),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    @publication_host.client_standard_program_preparation_limits(),
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  let original = parent.held_program.unwrap()
+  assert_true(parent.source_input is None && parent.query_syntax is None)
+  assert_eq(
+    finish_request_checked_computation(parent, input, environment, publication).unwrap(),
+    Pure,
+  )
+  assert_true(
+    physical_equal(
+      @checked.checked_source_program(
+        @strategy.graph_program(
+          @publication_host.prepared_client_graph(
+            parent.compiled_program.unwrap(),
+          ),
+        ),
+      ),
+      original,
+    ),
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
