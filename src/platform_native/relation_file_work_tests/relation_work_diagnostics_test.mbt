@@ -121,10 +121,24 @@ fn relation_work_source_issue(
       "Filesystem: " + relation_initial_open_filesystem_issue(reason)
     Execution(Domain(reason)) => "Execution.Domain: " + @debug.to_string(reason)
     Execution(Child(reason)) => "Execution.Child: " + @debug.to_string(reason)
+    Execution(Initialization(reason)) =>
+      "Execution.Initialization." + relation_initialization_issue(reason)
     Resource(reason) => "Resource: " + @debug.to_string(reason)
     Row(reason) => "Row: " + relation_work_row_issue(reason)
     Document(reason) => "Document: " + @debug.to_string(reason)
     Mapping(reason) => "Mapping: " + @debug.to_string(reason)
+  }
+}
+
+///|
+fn relation_initialization_issue(
+  issue : @bootstrap.NativeBackedInitializationIssue,
+) -> String {
+  match issue {
+    Domain(reason) => "Domain: " + @debug.to_string(reason)
+    Child(reason) => "Child: " + @debug.to_string(reason)
+    Inventory(reason) => "Inventory: " + @debug.to_string(reason)
+    Quiescence(reason) => "Quiescence: " + @debug.to_string(reason)
   }
 }
 
@@ -156,6 +170,9 @@ fn relation_work_values_issue(
           "StoreOperationExecution.Domain: " + @debug.to_string(value)
         StoreOperationExecution(Child(value)) =>
           "StoreOperationExecution.Child: " + @debug.to_string(value)
+        StoreOperationExecution(Initialization(value)) =>
+          "StoreOperationExecution.Initialization." +
+          relation_initialization_issue(value)
         StoreOperationSqlite(value) =>
           "StoreOperationSqlite: " + relation_original_sqlite_issue(value)
       }
