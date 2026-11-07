@@ -42,6 +42,12 @@ No metadata read or equal JSON replaces a Checkpoint decision/current proof.
 Registration and source/component tests are separate from matching normal
 software, TLS approval/update, Saved recovery and physical cleanup acceptance.
 
+When a driver finalizes marked requests, the shared Row constructor requires a
+distinct finalization operation in every selected kind's recipe. This is the
+same requirement as the legacy single-recipe path; a missing per-kind recipe
+does not become a missing legacy Plan. Neither path can reuse its request
+construction slot or proceed to opening the Ledger with incomplete backing.
+
 Host-owned `queryAliases` in the referenced Source profile are checked and
 separated by the existing `splitSourceAliasProfile` owner before the connector's
 closed provider-profile validator runs. Their exact immutable DATA remains in

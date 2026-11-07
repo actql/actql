@@ -4841,7 +4841,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "ab8ccde03641b8bc52369426f7529eabdad684268ab3286e557f9ea3daad2497",
+      "sha256": "d49a7c47c24faccdb4f5d7003827dbb9ff9fa18bfe432aa4827904ea378f4ff1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -8394,6 +8394,10 @@
               {
                 "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
                 "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-mapping-parent.fixture.mjs",
+                "anchor": "test('HubSpot Row constructor retains complete per-kind"
               }
             ]
           }

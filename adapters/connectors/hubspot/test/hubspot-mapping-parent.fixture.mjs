@@ -3,6 +3,9 @@
 // provider I/O, physical acknowledgement or complete installation is claimed.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {mkdtemp, rm, access} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import test from 'node:test';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {openHostInitializationPreparation, closeHostInitializationPreparation}
@@ -15,6 +18,7 @@ import {prepareInstalledHubSpotUpdateMappings} from '../host/hubspot-effect-mapp
 import {captureHubSpotEffectPlanRecipeBuilder} from '../host/hubspot-effect-plan.mjs';
 import {hubSpotEffectPlanFixture} from './hubspot-effect-plan.fixture.mjs';
 import {loadInstalledHubSpotEffect} from '../host/installed-hubspot-effect.mjs';
+import {createInstalledRowEffect} from '../../../host-node/installed-row-effect.mjs';
 
 const mappingLimits = Object.freeze({maxProperties: 10, maxFields: 4, maxNameBytes: 100,
   maxBytes: 4096, maxNodes: 1000, maxDepth: 20});
@@ -68,6 +72,28 @@ function prepare(f, common, native) {
   return prepareInstalledHubSpotUpdateMappings({construction: f.context, moon: common, providerMoon: native,
     connectorId: 'hubspot', declared: f.prepared.declared, catalogFor: () => f.catalog,
     writes, limits: mappingLimits});
+}
+
+async function rowConstructorFixture(common, t) {
+  const {options} = hubSpotEffectPlanFixture();
+  const recipe = captureHubSpotEffectPlanRecipeBuilder({moon: common})(options);
+  const root = await mkdtemp(join(tmpdir(), 'actql-hubspot-kind-finalization-'));
+  t.after(() => rm(root, {recursive: true}));
+  let closed = 0;
+  const unused = () => assert.fail('No request, provider, grant or authority in constructor-only component');
+  const driver = Object.freeze({kinds: Object.freeze(['update']), targetRead: Object.freeze({operation: 'hubspot:read'}),
+    prepareRequest: unused, requestFacts: unused, writeOperation: unused, send: unused, project: unused,
+    footprint: unused, observeTargets: unused, recoverRequests: unused, recoveryEntry: unused, requestCid: unused,
+    finalizeRequest: unused, capabilityRequestCid: unused, assertRequestFinalized: unused});
+  const input = {moon: {strategyRemoteManagedOutputEvidenceKind: () => 'unused-kind'}, driver,
+    mappings: [{resource: 'companies', mappingRef: 'mapping:component/update.v1', mappingCid: runtimeCid,
+      body: JSON.stringify({mapping_contract_cid: runtimeCid, target_ref: 'connector://hubspot/companies',
+        primary_identity: ['id'], minimum_approval: 'required',
+        permission_rules: [{effect_kind: 'update', permissions: ['write']}]})}],
+    environmentWire: '{}', connectorId: 'hubspot', connectorRegistration: 'hubspot', connectorRevision: 'hubspot/0.1',
+    connection: 'hubspot:hubspot', site: {issueEffectGrant: unused, issueReadGrant: unused, close() {closed++;}},
+    authorization: {authorize: unused}, runtimeBundleCid: runtimeCid, bindingCid: runtimeCid, ledgerRoot: root};
+  return {input, recipe, closed: () => closed};
 }
 
 export function registerHubSpotMappingParentTests(common, native, baseEnvironmentWire) {
@@ -207,6 +233,37 @@ export function registerHubSpotMappingParentTests(common, native, baseEnvironmen
       pending = false; closeHostInitializationPreparation(state); retired = true;
     }
   });
+  test('HubSpot Row constructor retains complete per-kind and legacy finalization refusals before ledger opening', async t => {
+    const {input, recipe, closed} = await rowConstructorFixture(common, t);
+    const ledgerRoot = join(input.ledgerRoot, 'must-not-open');
+    const {requestFinalization, ...rest} = recipe;
+    const incomplete = Object.freeze(rest);
+    const byKind = recipes => Object.freeze(recipes);
+    for (const selected of [
+      {managedPlanRecipes: byKind({update: incomplete})},
+      {driver: Object.freeze({...input.driver, kinds: Object.freeze(['create', 'update'])}),
+        managedPlanRecipes: byKind({create: recipe, update: incomplete})},
+      {managedPlanRecipe: incomplete},
+    ]) {
+      await assert.rejects(createInstalledRowEffect({...input, ledgerRoot, ...selected}),
+        {code: 'InstalledEffectRequestFinalizationPlanUnavailable'});
+      await assert.rejects(access(ledgerRoot), {code: 'ENOENT'});
+      assert.equal(closed(), 0, 'A refused constructor does not fabricate Site close');
+    }
+    const aliased = Object.freeze({...recipe, requestFinalization: recipe.requestConstruction});
+    await assert.rejects(createInstalledRowEffect({...input, ledgerRoot,
+      managedPlanRecipes: byKind({update: aliased})}), {code: 'InvalidInstalledEffectPlanRecipe'});
+    await assert.rejects(access(ledgerRoot), {code: 'ENOENT'});
+    const legacy = await createInstalledRowEffect({...input, managedPlanRecipe: recipe});
+    await legacy.close(); assert.equal(closed(), 1);
+  });
+
+  test('HubSpot actual Row constructor accepts distinct finalization in each selected kind recipe', async t => {
+    const {input, recipe, closed} = await rowConstructorFixture(common, t);
+    const effect = await createInstalledRowEffect({...input, managedPlanRecipes: Object.freeze({update: recipe})});
+    assert(Object.isFrozen(effect)); await effect.close(); assert.equal(closed(), 1);
+  });
+
   test('HubSpot actual Common builds the complete staged recipe through the JavaScript caller', () => {
     const {options} = hubSpotEffectPlanFixture();
     const recipe = captureHubSpotEffectPlanRecipeBuilder({moon: common})(options);

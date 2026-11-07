@@ -1167,10 +1167,14 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
     limits: limits.preview, resourceTextUnits,
     requestInput:Object.freeze({maxWireBytes:limits.body.maxBytes,
       maxNodes:limits.body.maxNodes,maxDepth:limits.body.maxDepth})}) : suppliedRecipe;
-  if (owned.finalizeRequest !== undefined &&
-      (planRecipe?.requestFinalization === undefined ||
-        planRecipe.requestFinalization.operationIndex === planRecipe.requestConstruction?.operationIndex)) {
-    fail('InstalledEffectRequestFinalizationPlanUnavailable');
+  // The driver hook applies to each checked kind. A kind-specific recipe is
+  // not the absent legacy recipe: require its own distinct finalization slot.
+  for (const recipe of suppliedRecipes === undefined ? [planRecipe] : Object.values(suppliedRecipes)) {
+    if (owned.finalizeRequest !== undefined &&
+        (recipe?.requestFinalization === undefined ||
+          recipe.requestFinalization.operationIndex === recipe.requestConstruction?.operationIndex)) {
+      fail('InstalledEffectRequestFinalizationPlanUnavailable');
+    }
   }
   const beforeSendCheck = automatic ? captureBeforeSendCheck(owned, planRecipe) : suppliedBeforeSendCheck;
   const responseConfirmation = captureResponseConfirmation(owned, planRecipe);
