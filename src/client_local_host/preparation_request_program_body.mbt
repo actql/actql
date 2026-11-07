@@ -1020,7 +1020,10 @@ fn[I] prepare_request_compilation_owned(
         Err(issue) => return Err(Preparation(Capacity(issue)))
         Ok(value) => value
       }
-      guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+      // Only the returned artifact escapes this constructor. Nonescaping
+      // parser/writer scratch is simultaneous execution, not retained output.
+      guard @execution.checked_preparation_add_product(r, retained, 1L)
+        is Some(r) &&
         @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
         return Err(Preparation(Policy))
       }
@@ -1152,14 +1155,14 @@ fn[I] prepare_request_compilation_owned(
       Err(issue) => return Err(Preparation(Capacity(issue)))
       Ok(value) => value
     }
-    if artifact_scratch >= r || artifact_scratch > e {
+    if artifact_scratch > e {
       return Err(Preparation(Policy))
     }
     match
       @resources.reconcile_working_preparation_phase(
         capacity,
         input,
-        r - artifact_scratch,
+        r,
         e - artifact_scratch,
       ) {
       Err(issue) => return Err(Preparation(Capacity(issue)))
