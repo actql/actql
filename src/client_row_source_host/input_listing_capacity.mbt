@@ -1,20 +1,17 @@
 ///|
 // Initial controls and the ACTUAL original selector only. Future Catalog/
 // retention/page ceilings are not initial demand or a grant to read.
-fn row_input_listing_capacity(
+fn row_input_initial_capacity(
   preparation : RowInputPreparation,
 ) -> @execution.ExecutionCapacity? {
-  guard preparation.file_listing is Some(_) else {
-    return @execution.execution_capacity(0L, 0L)
-  }
-  row_input_listing_phase_capacity(preparation, 0L, 0L, 0L, 0L, 0, None)
+  row_input_phase_capacity(preparation, 0L, 0L, 0L, 0L, 0, None)
 }
 
 ///|
 // Existing constructor inventories, priced by their shared owners. Counts
 // describe the same retained metadata plus ONE actually received page. The
 // next page grows the same RowRun reservation before new construction.
-fn row_input_listing_phase_capacity(
+fn row_input_phase_capacity(
   preparation : RowInputPreparation,
   nodes : Int64,
   text : Int64,
@@ -51,9 +48,9 @@ fn row_input_listing_phase_capacity(
       record_references: 56L + pattern,
       record_words: 58L + pattern,
       reference_arrays: observations + 3L,
-      reference_items: slots,
+      reference_items: slots + width * 4L,
       scalar_arrays: 4L,
-      scalar_items: paths + 3L * (pattern + 1L),
+      scalar_items: paths + 3L * (pattern + 1L) + width * 3L,
       maps: 1L,
       map_entries: observations,
     })
@@ -124,20 +121,48 @@ fn row_input_listing_phase_capacity(
     is Some(execution) else {
     return None
   }
+  guard @decode.admission_construction_inventory(
+      nodes,
+      Int::min(actual.fields, nodes),
+      Int::min(actual.objects, nodes),
+      Int::min(actual.arrays, nodes),
+      depth,
+    )
+    is Some(index) &&
+    @execution.preparation_representation_cost({
+      record_headers: index.indexed.record_headers +
+      index.keys.record_headers +
+      index.ancestry.record_headers +
+      index.controls.record_headers,
+      reference_slots: index.indexed.reference_slots +
+      index.keys.reference_slots +
+      index.ancestry.reference_slots +
+      index.controls.reference_slots,
+      scalar_words: index.indexed.scalar_words +
+      index.keys.scalar_words +
+      index.ancestry.scalar_words +
+      index.controls.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(index_bytes) &&
+    @execution.checked_preparation_add_product(execution, index_bytes, 1L)
+    is Some(execution) else {
+    return None
+  }
   @execution.execution_capacity(retained, execution)
 }
 
 ///|
-fn grow_row_input_listing_phase(
+fn grow_row_input_capacity(
   run : RowRun,
-  read : RowSourceRead,
   acquisition : RowInputAcquisition,
   capacity : @execution.ExecutionCapacity,
 ) -> Result[Unit, RowHostIssue] {
   guard run.physical is Some(physical) &&
     row_input_acquisition_capacity(acquisition, physical.provider_capacity)
     is Some(base) &&
-    row_input_listing_capacity(acquisition.preparation) is Some(initial) else {
+    row_input_initial_capacity(acquisition.preparation) is Some(initial) else {
     return Err(Physical(InvalidLimits))
   }
   let retained = @execution.execution_capacity_retained_bytes(base)
@@ -176,11 +201,23 @@ fn grow_row_input_listing_phase(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  // A current check may reenter cleanup. No cached current proof escapes.
-  guard !run.closed &&
-    read.open &&
-    run.attempt.state is Reading(original) &&
-    physical_equal(original, read) else {
+  Ok(())
+}
+
+///|
+fn grow_row_input_listing_phase(
+  run : RowRun,
+  read : RowSourceRead,
+  acquisition : RowInputAcquisition,
+  capacity : @execution.ExecutionCapacity,
+) -> Result[Unit, RowHostIssue] {
+  match grow_row_input_capacity(run, acquisition, capacity) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  // Resource current checks may reenter cancellation. Retain neither a cached
+  // proof nor permission to parse after the original read has been revoked.
+  if !row_input_read_current(run, read) {
     return Err(InvalidState)
   }
   Ok(())
@@ -207,7 +244,7 @@ fn prepare_row_input_listing_page(
     tokens += token.length().to_int64()
   }
   let capacity = match
-    row_input_listing_phase_capacity(
+    row_input_phase_capacity(
       acquisition.preparation,
       budget.nodes.to_int64(),
       budget.text.to_int64(),
@@ -259,7 +296,7 @@ fn prepare_row_input_listing_page(
   let observations = progress.observations.length().to_int64() +
     actual.objects.to_int64()
   let capacity = match
-    row_input_listing_phase_capacity(
+    row_input_phase_capacity(
       acquisition.preparation,
       nodes,
       text_bytes,
@@ -274,6 +311,15 @@ fn prepare_row_input_listing_page(
   match grow_row_input_listing_phase(run, read, acquisition, capacity) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
+  }
+  if run.input_progress is Some(retained) {
+    retained.nodes = Int64::max(retained.nodes, nodes)
+    retained.text = Int64::max(retained.text, text_bytes)
+    retained.rows = Int64::max(retained.rows, observations)
+    retained.tokens = Int64::max(
+      retained.tokens,
+      tokens + actual.quoted_raw_utf16_units.to_int64(),
+    )
   }
   let parser = match @source.take_json_source_parser(source) {
     Ok(value) => value

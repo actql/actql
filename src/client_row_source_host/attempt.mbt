@@ -288,6 +288,7 @@ fn[T] fail_read(
 fn accept_row_source_page(
   read : RowSourceRead,
   bytes : Bytes,
+  parsed? : @source.Node? = None,
 ) -> Result[Int, RowSourceIssue] {
   if !read.open {
     return Err(Closed)
@@ -305,13 +306,20 @@ fn accept_row_source_page(
   // A physical page carries external DATA, not authored identifiers. Keep
   // JSON payload keys exact before their checked Value contract is known.
   // The existing row/typed-object readers still enforce the declared fields.
-  guard @source.parse_json_bytes_preserving(bytes, {
-      max_input_bytes: limits.max_bytes,
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-    })
-    is Ok(node) &&
-    @decode.admit(node, {
+  let node = match parsed {
+    Some(value) => value
+    None =>
+      match
+        @source.parse_json_bytes_preserving(bytes, {
+          max_input_bytes: limits.max_bytes,
+          max_nodes: limits.max_nodes,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(value) => value
+        Err(_) => return fail_read(read, InvalidPage)
+      }
+  }
+  guard @decode.admit(node, {
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
       max_string_bytes: limits.max_bytes,

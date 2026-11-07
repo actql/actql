@@ -1,6 +1,7 @@
 ///|
-/// Bounds of the complete Source input, independent of a Query Select result.
-/// The installed parent must fund these original bounds before construction.
+/// Semantic bounds of the complete Source input, independent of Query Select.
+/// The original parent funds actual construction before each phase; permitting
+/// a larger future input does not preallocate that maximum.
 pub(all) struct RowInputLimits {
   max_rows : Int
   page : RowPageLimits
@@ -83,10 +84,6 @@ pub fn prepare_row_input_acquisition(
     limits.retention.max_text_bytes < 0 ||
     limits.retention.max_depth < 0 ||
     limits.retention.max_work < 0 ||
-    limits.retention.max_nodes > 100000 ||
-    limits.retention.max_text_bytes > 500000 ||
-    limits.retention.max_depth > 100 ||
-    limits.retention.max_work > 20000000 ||
     limits.wire.max_columns < 0 ||
     limits.wire.max_order_work < 0 ||
     limits.wire.max_bytes < 0 ||
@@ -325,6 +322,14 @@ pub fn start_row_input_acquisition(
     physical: None,
     page_charge: None,
     response_borrowed: false,
+    input_progress: Some({
+      nodes: 0L,
+      text: 0L,
+      rows: 0L,
+      tokens: 0L,
+      preflight: None,
+      parser: None,
+    }),
     residual: None,
   })
 }
@@ -496,9 +501,7 @@ fn capture_input_row_run(
     }
   }
   if run.physical is Some(physical) {
-    let (original, _) = row_original_input_capacity()
-    let measured = @execution.row_wire_usage(observation.measured).0.to_int64()
-    if measured > 9223372036854775807L - original {
+    guard row_input_capture_retained(run) is Some(retained) else {
       abort_row_run(run)
       return Err(Physical(InvalidLimits))
     }
@@ -506,7 +509,7 @@ fn capture_input_row_run(
       @resources.retain_allocation(
         physical.ledger,
         physical.reservation,
-        original + measured,
+        retained,
       ) {
       Ok(value) => value
       Err(issue) => {
@@ -581,68 +584,24 @@ pub fn check_row_input_capture_run(
 }
 
 ///|
-/// Existing JSON input/capture representation bounds plus this actual
-/// provider recipe. These DATA describe overlap, never a reservation or grant.
+/// Initial original controls/selector and the actual provider recipe only.
+/// Pages and validators grow this same reservation before construction; wire
+/// and retention ceilings are semantic bounds rather than initial demand.
 pub fn row_input_acquisition_capacity(
   value : RowInputAcquisition,
   provider : @execution.ExecutionCapacity?,
 ) -> @execution.ExecutionCapacity? {
-  let (base_retained, base_execution) = row_original_input_capacity()
-  let (retained, execution) = match
-    row_input_listing_capacity(value.preparation) {
-    Some(extra) => {
-      let r = @execution.execution_capacity_retained_bytes(extra)
-      let e = @execution.execution_capacity_execution_bytes(extra)
-      if r > 9223372036854775807L - base_retained ||
-        e > 9223372036854775807L - base_execution {
-        return None
-      }
-      (base_retained + r, base_execution + e)
-    }
-    None => return None
-  }
-  guard @execution.execution_capacity_inventory_add(
-      0L,
-      @execution.CanonicalWireBytes,
-      value.preparation.limits.wire.max_bytes.to_int64(),
-      1,
-    )
-    is Some(wire) else {
+  guard row_input_initial_capacity(value.preparation) is Some(initial) else {
     return None
   }
-  if wire > (9223372036854775807L - execution) / 2L {
-    return None
-  }
-  // Existing input validators retain a data-sized map of key tuples. The
-  // bounded entry region is temporary and belongs to this same Source parent.
-  guard @execution.execution_capacity_inventory_add(
-      0L,
-      @execution.ValueNodeSlots,
-      value.preparation.limits.retention.max_nodes.to_int64(),
-      1,
-    )
-    is Some(key_entries) else {
-    return None
-  }
-  if key_entries > 9223372036854775807L - execution - wire * 2L {
-    return None
-  }
-  // The Host-backed read entrance accounts its physical reader separately on
-  // this same parent. None selects only the actual RowRun input inventory;
-  // it does not construct a provider declaration from zero byte scalars.
+  let retained = @execution.execution_capacity_retained_bytes(initial)
+  let execution = @execution.execution_capacity_execution_bytes(initial)
+  // The existing provider describes its actual physical-reader construction.
+  // A Host-backed original has no replacement/dummy provider declaration.
   if provider is None {
-    return @execution.execution_capacity(
-      retained + wire,
-      execution + wire * 2L + key_entries,
-    )
+    return @execution.execution_capacity(retained, execution)
   }
-  match
-    row_provider_capacity_sum(
-      retained + wire,
-      execution + wire * 2L + key_entries,
-      0L,
-      provider,
-    ) {
+  match row_provider_capacity_sum(retained, execution, 0L, provider) {
     Ok((retained, execution)) =>
       @execution.execution_capacity(retained, execution)
     Err(_) => None
