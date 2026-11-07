@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {checkInstalledHubSpotEffectProfile, installedHubSpotEffectIdentityParts,
-  installedHubSpotTargetReadInventory} from '../host/installed-hubspot-effect.mjs';
+  installedHubSpotTargetReadInventory, loadInstalledHubSpotEffect} from '../host/installed-hubspot-effect.mjs';
 import {runtimeTupleFromFields} from '../../../host-common/compiler-binding.generated.mjs';
 import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
 const ok = value => ({$tag: 1, _0: value});
@@ -80,4 +80,64 @@ test('HubSpot Effect identity reobserves the full declared Source through existi
       readText() {assert.fail('no text read');}}}),
   {code: 'InvalidInstalledHubSpotSourceProfile'});
   assert.deepEqual(calls, ['/source.json']);
+});
+
+function aliasedSourceFixture() {
+  const source = {version: 'actql-installed-hubspot-source/0.1', connectorId: 'fixture', portalId: '7',
+    resources: [{resource: 'companies', objectType: 'companies'}], metadataPath: '/metadata.json',
+    siteProfilePath: '/site.json', metadataResources: {account: 'account', properties: 'properties'},
+    accountConfigurationWire: '{}', limits: {maxResponseBytes: 4096, maxNodes: 1000, maxDepth: 20,
+      maxProperties: 10, maxNameUnits: 100, maxPages: 2, maxRows: 2, maxRequests: 5, perPage: 1,
+      maxColumns: 3, maxCursorUnits: 64, maxValueNodes: 100, maxValueTextBytes: 4096,
+      maxRowsWireBytes: 4096, maxRowsWireNodes: 100, maxRowsWireDepth: 10,
+      maxObjects: 2, maxDeclarationBytes: 4096, maxDeclarationNodes: 1000, maxSecretBytes: 128},
+    queryAliases: [{name: 'hubspot.companies', sourceRef: 'connector://fixture/companies',
+      sourceViewContractCid: cid, schemaContractCid: cid}]};
+  const site = {version: 'actql-installed-hubspot-site/0.1', apiOrigin: 'https://api.hubapi.com',
+    credentialAuthorityId: 'fixture', credentialKeyId: 'key', credentialPrivateKeyPath: '/unused/key',
+    environment: 'fixture', journalRoot: '/unused/journal', namespaceId: 'fixture',
+    siteGeneration: 1, siteKey: 'fixture', tokenEnvironment: 'ACTQL_HUBSPOT_FIXTURE'};
+  const metadata = {version: 'actql-hubspot-read-metadata/0.1', connectorId: 'fixture', portalId: '7',
+    apiOrigin: site.apiOrigin, accountBody: Buffer.from('{"portalId":7}').toString('base64'),
+    objects: [{resource: 'companies', objectType: 'companies', propertiesBody: Buffer.from('{"results":[]}').toString('base64')}]};
+  const reads = [], reader = {async readJson(path) {
+    reads.push(path);
+    if (path === '/source.json') return source;
+    if (path === '/site.json') return site;
+    assert.equal(path, '/metadata.json'); return metadata;
+  }, readText() {assert.fail('no replacement text read');}};
+  return {source, reader, reads};
+}
+
+test('HubSpot Effect identity accepts existing Host aliases while preserving their exact immutable identity DATA', async () => {
+  const f = aliasedSourceFixture();
+  const original = await installedHubSpotEffectIdentityParts(profile(), undefined, undefined, {configurationReader: f.reader});
+  assert.deepEqual(f.reads, ['/source.json', '/site.json', '/metadata.json']);
+  assert.deepEqual(original[1].queryAliases, f.source.queryAliases);
+  const aliases = original[1].queryAliases;
+  assert(Object.isFrozen(aliases)); assert(Object.isFrozen(aliases[0]));
+  f.source.queryAliases[0].name = 'changed';
+  assert.equal(aliases[0].name, 'hubspot.companies');
+  const changed = await installedHubSpotEffectIdentityParts(profile(), undefined, undefined, {configurationReader: f.reader});
+  assert.notDeepEqual(changed, original);
+  f.source.queryAliases[0].schemaContractCid = 'foreign';
+  await assert.rejects(installedHubSpotEffectIdentityParts(profile(), undefined, undefined, {configurationReader: f.reader}),
+    {message: 'InvalidPublicSourcePublication'});
+});
+
+test('HubSpot Effect load separates Host aliases before the same original provider constructor boundary', async () => {
+  const f = aliasedSourceFixture(), marker = new Error('original Account constructor boundary');
+  let constructors = 0;
+  const construction = {configurationReader: f.reader,
+    prepareEffectDriverConstruction() {assert.fail('no driver yet');},
+    prepareDeclaration() {assert.fail('no declaration yet');},
+    prepareNativeInput() {constructors++; throw marker;}};
+  const moon = {clientProgramHubSpotEffectConstructorCapacity() {assert.fail('no driver quote yet');},
+    clientProgramInstalledSourceReaderPolicy: () => [128, 4, 1],
+    clientProgramHubSpotAccountConstructionCapacity() {assert.fail('no substituted constructor owner');},
+    clientProgramHubSpotObjectConstructionCapacity() {assert.fail('no Catalog yet');}};
+  await assert.rejects(loadInstalledHubSpotEffect(profile(), {moon, providerMoon: {}, construction,
+    ledgerRoot: '/unused/ledger', runtimeBundleCid: cid}), error => error === marker);
+  assert.equal(constructors, 1);
+  assert.deepEqual(f.reads, ['/source.json', '/site.json', '/metadata.json']);
 });

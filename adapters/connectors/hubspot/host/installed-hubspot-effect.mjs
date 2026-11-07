@@ -9,6 +9,7 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeField, runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
 import {refusedEffectPreparation} from '../../../host-common/effect-preparation-result.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
+import {splitSourceAliasProfile} from '../../../host-node/source-alias-publication.mjs';
 import {installedRowCredentialOperationSite} from '../../../host-node/installed-row-source.mjs';
 import {installedRowEffectUnit, retainInstalledRowEffectAdapter, validateInstalledUpdateOwnerSelections}
   from '../../../host-node/installed-row-effect.mjs';
@@ -84,7 +85,13 @@ export async function installedHubSpotEffectIdentityParts(profile, read, entry, 
   const readers = captureConfigurationReaders(configurationReader, read, () => fail('HubSpotEffectConstructionUnavailable'));
   const source = await readers.readJson(original.sourceProfilePath);
   if (source?.connectorId !== original.connectorId) fail('HubSpotEffectSourceIdentityMismatch');
-  const parts = await installedHubSpotSourceIdentityParts(source, source, read, entry, {configurationReader});
+  // The existing JSON reader reserves the complete checked-profile/split and
+  // identity envelope. Reuse the Host's bounded alias splitter; aliases remain
+  // identity DATA and never enter the connector's closed provider profile.
+  const {providerProfile, queryAliases} = splitSourceAliasProfile(source);
+  const identityProfile = Object.freeze({...providerProfile,
+    ...(queryAliases.length === 0 ? {} : {queryAliases})});
+  const parts = await installedHubSpotSourceIdentityParts(identityProfile, providerProfile, read, entry, {configurationReader});
   return [original, ...parts];
 }
 
@@ -174,7 +181,8 @@ export async function loadInstalledHubSpotEffect(profile, {moon, providerMoon, c
   }
   const sourceProfile = await construction.configurationReader.readJson(selected.sourceProfilePath);
   if (sourceProfile?.connectorId !== selected.connectorId) fail('HubSpotEffectSourceIdentityMismatch');
-  const material = await prepareInstalledHubSpotMaterials(sourceProfile, {moon, providerMoon, construction});
+  const {providerProfile} = splitSourceAliasProfile(sourceProfile);
+  const material = await prepareInstalledHubSpotMaterials(providerProfile, {moon, providerMoon, construction});
   const {installed: source, siteProfile, metadata, objects, catalogs, declared} = material;
   if (selected.writes.some(write => !catalogs.has(write.resource))) fail('HubSpotEffectResourceNotInstalled');
   const {originals, prepared} = prepareInstalledHubSpotUpdateMappings({construction, moon, providerMoon,

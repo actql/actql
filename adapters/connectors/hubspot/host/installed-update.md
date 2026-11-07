@@ -40,3 +40,11 @@ owner and binds every original member independently to its physical read tuple.
 No metadata read or equal JSON replaces a Checkpoint decision/current proof.
 Registration and source/component tests are separate from matching normal
 software, TLS approval/update, Saved recovery and physical cleanup acceptance.
+
+Host-owned `queryAliases` in the referenced Source profile are checked and
+separated by the existing `splitSourceAliasProfile` owner before the connector's
+closed provider-profile validator runs. Their exact immutable DATA remains in
+the Effect identity; empty alias metadata has the same omission semantics as
+the standard Source. The existing JSON configuration reader's complete
+checked-profile/split/identity envelope funds this path. No alias is a current
+namespace proof or a permission, and the full provider validation still runs.

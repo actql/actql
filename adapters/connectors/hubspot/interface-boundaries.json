@@ -3061,7 +3061,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs",
-      "sha256": "abcbb3745af3118d921561ddb431ec65261fa26dfa9e9a742fa7250f1fd17871",
+      "sha256": "92bc32a951aee561489e0342de93f3502bf4ce6b7f3c6cdc16b079f8e9f36c67",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Effect, Common initialization/Mapping/Checkpoint/current/dispatch and original Row Site owners",
@@ -3569,6 +3569,7 @@
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-row-effect.mjs",
         "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/source-alias-publication.mjs",
         "../../../host-node/source-profile-json.mjs",
         "../../../host-node/update-target-original-shape.mjs",
         "../site/hubspot-target-read.mjs",
