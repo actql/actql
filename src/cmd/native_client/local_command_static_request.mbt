@@ -64,13 +64,9 @@ fn LocalCheckContext::project_request(
   if !self.current() {
     stop("LocalCheckContextUnavailable")
   }
-  let publication_wire = "{\"environmentCid\":\"" +
-    @checked.checking_environment_cid(self.environment) +
-    "\",\"aliases\":[]}"
-  let publication = @source_publication.prepare_published_query_environment(
+  let (publication, publication_wire) = local_command_project_publication(
     self.environment,
-    publication_wire,
-  ).unwrap_or_else(() => stop("InvalidLocalQueryContext"))
+  )
   let correlation = "corr:" +
     local_check_hex(
       self.crypto

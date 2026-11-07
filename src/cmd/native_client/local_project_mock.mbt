@@ -9,6 +9,15 @@ priv struct LocalProjectMockDeclarations {
   models : Array[LocalProjectMockModelOriginal]
   sources : Array[LocalProjectMockSourceDeclaration]
   mut sources_started : Bool
+  mut source_environment : (
+    @checked.CheckEnvironment,
+    @checked.CheckEnvironment,
+  )?
+  mut publication : (
+    @checked.CheckEnvironment,
+    String,
+    @source_publication.PreparedPublishedQueryEnvironment,
+  )?
   mut model_started : Bool
   mut model_environment : (@checked.CheckEnvironment, @checked.CheckEnvironment)?
   mut model_failure : LocalProjectMockModelIssue?
@@ -211,6 +220,8 @@ fn local_project_read_mock_declarations(
     models: [],
     sources: [],
     sources_started: false,
+    source_environment: None,
+    publication: None,
     model_started: false,
     model_environment: None,
     model_failure: None,
@@ -260,6 +271,7 @@ priv enum LocalProjectMockModelIssue {
   ForeignOriginal
   AlreadyPreparing
   Environment
+  Publication(@source_publication.PublicationIssue)
   Source(@row_host.RowHostIssue)
   Task(@compiler_environment.ModelTaskIssue)
   Answers(@model.ModelMockAnswerIssue)
@@ -364,7 +376,9 @@ fn LocalProjectMockDeclarations::retire_originals(
     return Ok(true)
   }
   self.closing = true
+  self.publication = None
   self.model_environment = None
+  self.source_environment = None
   while self.model_retire_index < self.models.length() {
     let entry = self.models[self.model_retire_index]
     if entry.installation is Some(original) {
@@ -479,7 +493,14 @@ fn local_command_project_environment(
     project.mock_declarations is Some(mock) else {
     return base
   }
-  match mock.prepare_model_environment(base) {
+  let source = match mock.prepare_source_environment(base) {
+    Ok(value) => value
+    Err(issue) => {
+      original.retain_primary(CommandProjectMock(issue))
+      stop("InvalidProjectBindings")
+    }
+  }
+  match mock.prepare_model_environment(source) {
     Ok(value) => value
     Err(issue) => {
       original.retain_primary(CommandProjectMock(issue))

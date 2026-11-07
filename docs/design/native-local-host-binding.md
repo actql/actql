@@ -106,6 +106,18 @@ File physical capability facts, published query aliases, Source/Content
 capture and Effect installation still require their real same-Request owners.
 No Source payload is read by this metadata construction.
 
+Source Environment assembly retains the exact base and the complete generated
+Catalog, contract, view and evidence members. It sorts their canonical member
+identities and coalesces only byte-identical bodies; the ordinary Common
+admission retains conflicting-selector refusal. Task projection consumes that
+same Source Environment. A publication retains its exact final Environment,
+restored view handles and requests once, and the original Request caller uses
+that prepared publication rather than reconstructing an empty namespace.
+These contracts and aliases remain trusted declaration DATA. Metadata alone
+never grants alias disclosure, acquisition, Model execution or Effect authority;
+the normal installation still requires its original current/account/service
+connections before opening those operations.
+
 ## Ordinary literal query caller
 
 Trusted public `sql` and literal `aql` select the ordinary Local Host when no

@@ -140,12 +140,7 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
   }
   business.request_intent = Some(intent)
   self.with_business_request(capture, () => {
-    let publication = @source_publication.prepare_published_query_environment(
-      environment,
-      "{\"environmentCid\":\"" +
-      @checked.checking_environment_cid(environment) +
-      "\",\"aliases\":[]}",
-    ).unwrap_or_else(() => stop("InvalidLocalQueryContext"))
+    let (publication, _) = local_command_project_publication(environment)
     match
       @local_host.prepare_native_client_submitted_request_input(
         parent, input, intent, environment, publication,
