@@ -690,7 +690,7 @@ test('each Client group retains its acceptance commands exactly once', () => {
     .scripts['check:distribution-client'].split(' && ');
   assert.equal(original.length, 53, 'the existing full local gate remains unchanged');
   const prepared = ['npm ci --prefix packages/provider-ai-sdk --ignore-scripts',
-    original.slice(0, 4).join('\n')];
+    ...original.slice(0, 4)];
   const partitions = {
     'client-distribution': [4],
     'client-distribution-callers': Array.from({length: 36}, (_, index) => index + 17),
