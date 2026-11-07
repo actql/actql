@@ -5,6 +5,8 @@ import {closeSync, fstatSync, mkdirSync, mkdtempSync, openSync, readSync,
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
+import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreOrdinaryProcessFixture, nativeCoreScopedFixture, nativeRelationFileCaptureFixture, nativeCoreModelFrameFixture} from './native-core-scoped-fixture.mjs';
 import {nativeRelationCaptureTestFiles, nativeScopedTestFiles, nativeCoreScopedAllocationProfile} from './native-core-test-selection.mjs';
 
@@ -170,4 +172,17 @@ test('ordinary installed process inputs retain exact authored backings without s
   assert.throws(()=>nativeCoreOrdinaryProcessFixture(root),{code:'EEXIST'});
   assert.equal(statSync(file).ino,before.ino);
   assert.equal(statSync(file).size,before.size);
+});
+
+
+test('canonical Project fixture supplies the original File-facts consumer oracle without payload data', t => {
+  const root = fixture(t), environment = nativeProjectConfigurationFixture(root);
+  const project = join(environment.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT, 'deal-review-missing');
+  assert.throws(() => statSync(join(project, 'mock/data.json')), {code: 'ENOENT'});
+  const catalog = readFileSync(join(project, 'mock/catalog.json'), 'utf8');
+  // Explicit ASCII-key canonical preimage, independent of the Native product.
+  const preimage = '{"catalog":' + JSON.stringify(catalog) + ',"connection":"drive","connector":"drive","dataPath":' +
+    JSON.stringify(join(project, 'mock/data.json')) + '}';
+  assert.equal(environment.ACTQL_TEST_NATIVE_MOCK_DRIVE_SCOPE_CID,
+    'sha256:' + createHash('sha256').update(preimage).digest('hex'));
 });
