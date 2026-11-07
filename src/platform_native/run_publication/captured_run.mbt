@@ -56,6 +56,7 @@ struct NativePreparedCapturedRunPublication {
   intent : NativeRunPublicationIntent
   occurrence : NativeRunPublicationOccurrence
   preparation : NativeRunPublicationPreparation
+  capture : @local.ClientProgramCapture?
   material_generation_cids : Array[String]
   reclaimed : Array[Bool]
   mut committed : NativeRunPublicationResult?
@@ -253,8 +254,8 @@ pub fn prepare_exported_effect_free_run_publication_native(
       }
     }
   }
-  let evidence = match
-    assemble_native_effect_free_publication(
+  let (evidence, capture) = match
+    assemble_native_effect_free_publication_owned(
       context,
       published,
       service.max_wire_bytes,
@@ -279,6 +280,7 @@ pub fn prepare_exported_effect_free_run_publication_native(
     intent,
     occurrence,
     preparation,
+    capture,
     material_generation_cids: results.map(result => {
       result.material_generation_cid
     }),
@@ -307,6 +309,7 @@ pub fn NativePreparedCapturedRunPublication::commit(
           self.intent,
           self.occurrence,
           self.preparation,
+          capture=self.capture,
         ) {
         Ok(value) => {
           self.committed = Some(value)

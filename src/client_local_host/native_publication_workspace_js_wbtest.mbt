@@ -79,6 +79,7 @@ fn native_publication_workspace_component(
   rows : Int,
   check_legacy : Bool,
   snapshot? : Bool = false,
+  chain? : Bool = false,
 ) -> Unit raise {
   let (parent, _input, prepared) = native_publication_workspace_fixture(rows)
   let assets = @publication_host.client_local_product_assets()
@@ -110,6 +111,8 @@ fn native_publication_workspace_component(
     "publication-workspace-component",
   ).unwrap()
   let run = begin_request_program_managed_run(parent, request).unwrap()
+  let mut original_compilation : @publication_host.ClientCompiledRun? = None
+  let mut original_observation : @publication.RunEvidenceValue? = None
   if snapshot {
     let plan = run.source_free_preparation.unwrap()
     let compiled = match plan.compilation.unwrap() {
@@ -131,15 +134,16 @@ fn native_publication_workspace_component(
         ).unwrap()
       _ => fail("pure original compilation required")
     }
+    original_compilation = Some(compiled)
     let definition = @publication_host.issue_client_compiled_run_definition(
       compiled, "snapshot-component", "publication-workspace-component", "2026-10-30T00:00:00.000Z",
       "2099-01-01T00:00:00.000Z",
     ).unwrap()
-    issue_program_publication_invocation(
+    let (observation, _) = issue_program_publication_invocation(
       run, prepared, compiled, definition, "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
       65536, 8192, 64,
     ).unwrap()
-    |> ignore
+    original_observation = Some(observation)
   }
   let setup = open_installed_managed_source_free_host(
       run,
@@ -268,13 +272,29 @@ fn native_publication_workspace_component(
     let publication = reserve_program_publication(run, prepared).unwrap()
     stream
     .issue_result_evidence(
-      "sha256:" + "1".repeat(64),
+      if chain {
+        @publication.publication_contract_identity(
+          @publication_host.client_compiled_run_plan(
+            original_compilation.unwrap(),
+          ),
+        )
+      } else {
+        "sha256:" + "1".repeat(64)
+      },
       [],
       @publication.publication_contract_identity(
         run.publication_definition.unwrap(),
       ),
-      "sha256:" + "4".repeat(64),
-      "sha256:" + "5".repeat(64),
+      if chain {
+        "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563"
+      } else {
+        "sha256:" + "4".repeat(64)
+      },
+      if chain {
+        "sha256:" + "a".repeat(64)
+      } else {
+        "sha256:" + "5".repeat(64)
+      },
       65536,
       8192,
       64,
@@ -286,7 +306,11 @@ fn native_publication_workspace_component(
       "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"sha256:" +
       "8".repeat(64) +
       "\",\"effective_data_policy_cid\":\"sha256:" +
-      "4".repeat(64) +
+      (if chain {
+        "470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563"
+      } else {
+        "4".repeat(64)
+      }) +
       "\",\"available_until\":\"2099-01-01T00:00:00.000Z\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"extension_ceiling_at\":\"2099-01-03T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"sha256:" +
       "9".repeat(64) +
       "\",\"metadata_delete_by\":\"2099-01-04T00:00:00.000Z\",\"clock_contract_cid\":\"sha256:" +
@@ -296,16 +320,15 @@ fn native_publication_workspace_component(
       8192,
       64,
     ).unwrap()
-    stream
-    .issue_artifact(
-      run.publication_invocation.unwrap(),
-      retention,
-      65536,
-      8192,
-      64,
-    )
-    .unwrap()
-    |> ignore
+    let artifact = stream
+      .issue_artifact(
+        run.publication_invocation.unwrap(),
+        retention,
+        65536,
+        8192,
+        64,
+      )
+      .unwrap()
     // Metadata bounds are not a full-row snapshot allowance. Refusal leaves
     // the same identified original available to its funded continuation.
     assert_true(stream.admit_captured_snapshot(65536, 8192, 64) is Err(_))
@@ -333,6 +356,243 @@ fn native_publication_workspace_component(
     let captured = finish_program_snapshot(cursor).unwrap()
     assert_true(physical_equal(publication.completed_snapshots[0], captured))
     assert_true(begin_program_snapshot(publication, stream) is Err(WrongPhase))
+    if chain {
+      let compiled = original_compilation.unwrap()
+      let definition = run.publication_definition.unwrap()
+      let invocation = run.publication_invocation.unwrap()
+      let observation = original_observation.unwrap()
+      let result_definition = stream.definition().unwrap()
+      let manifest = @publication.issue_result_manifest(
+        definition,
+        invocation,
+        [result_definition],
+        [artifact],
+        65536,
+        8192,
+        64,
+      ).unwrap()
+      let normalization = @publication_host.issue_prepared_client_local_normalization(
+        prepared,
+      ).unwrap()
+      let journal = @publication_host.prepared_client_local_normalization_evidence(
+        prepared, normalization,
+      ).unwrap()
+      let receipt = @publication.issue_effect_free_run_receipt(
+        @publication_host.client_compiled_run_admission(compiled),
+        definition,
+        invocation,
+        observation,
+        [result_definition],
+        [artifact],
+        manifest,
+        journal,
+        [],
+        [],
+        [],
+        [],
+        [],
+        65536,
+        8192,
+        64,
+      ).unwrap()
+      let authoring = @publication.seal_run_evidence_value(
+        "authoring_context",
+        "{\"version\":\"actql-authoring-context/0.1\",\"program_definition_cid\":\"" +
+        @publication_host.client_request_program_cid(request) +
+        "\",\"annotations\":[]}",
+        65536,
+        8192,
+        64,
+      ).unwrap()
+      let capture = prepare_program_capture(
+        publication,
+        definition,
+        invocation,
+        [result_definition],
+        [artifact],
+        manifest,
+        receipt,
+        [captured],
+        authoring,
+        [],
+      ).unwrap()
+      start_program_capture(capture).unwrap() |> ignore
+      while !advance_program_capture(capture, 256).unwrap().0 {
+        ()
+      }
+      let recorded = finish_program_capture(capture).unwrap()
+      let check = @publication.start_effect_free_run_evidence_check(
+        definition,
+        invocation,
+        [result_definition],
+        [artifact],
+        manifest,
+        receipt,
+        recorded,
+        65536,
+        8192,
+        64,
+        @publication.publication_evidence_workspace(8192),
+      )
+      let mut refused = false
+      while !refused {
+        match check.advance(256) {
+          Ok((true, _)) =>
+            fail("Metadata bounds unexpectedly covered full Effect context")
+          Ok((false, _)) => ()
+          Err(EvidenceEmbeddedIdentity("effect_context_cid")) => refused = true
+          Err(_) => fail("Unrelated legacy full-context refusal")
+        }
+      }
+      check.cancel()
+      // Independently recheck the actual complete contract through the existing
+      // measured Core plan, without reusing the capture issuer's completed fact.
+      // This component control supplies no physical Host/Store grant.
+      let independent = @publication.prepare_original_effect_free_chain_validation(
+        definition,
+        invocation,
+        [result_definition],
+        [artifact],
+        manifest,
+        receipt,
+        recorded,
+      ).unwrap()
+      assert_eq(
+        @publication.publication_validation_plan_reuses_capture(independent),
+        Some(false),
+      )
+      let independent_check = @publication.start_planned_chain_validation(
+        independent,
+      ).unwrap()
+      while !independent_check.advance(256).unwrap().0 {
+        ()
+      }
+      independent_check.finish().unwrap()
+      let validation = prepare_program_chain_validation(
+        capture,
+        definition,
+        invocation,
+        [result_definition],
+        [artifact],
+        manifest,
+        receipt,
+        recorded,
+      ).unwrap()
+      start_program_validation(validation).unwrap() |> ignore
+      while !advance_program_validation(validation, 256).unwrap().0 {
+        ()
+      }
+      finish_program_validation(validation).unwrap()
+      // Durable-location facts below are synthetic component DATA, not a
+      // physical payload/COMMIT/cleanup acknowledgement or a publication grant.
+      let ordering = stream.ordering().unwrap()
+      let derivation = stream.derivation().unwrap()
+      let binding = @publication.issue_durable_result_binding(
+        definition,
+        result_definition,
+        invocation,
+        artifact,
+        ordering,
+        retention,
+        stream.codec_contract_cid().unwrap(),
+        stream.result_fields().unwrap(),
+        stream.result_schema_wire().unwrap(),
+        "sha256:" + "6".repeat(64),
+        "sha256:" + "7".repeat(64),
+        rows,
+        stream.content_bytes().unwrap(),
+        "0".repeat(64),
+        65536,
+        8192,
+        64,
+      ).unwrap()
+      let request_contract = @publication.issue_publication_request(
+        definition,
+        [result_definition],
+        "snapshot-component",
+        "sha256:" + "a".repeat(64),
+        "sha256:" + "8".repeat(64),
+        "sha256:" + "7".repeat(64),
+        "2026-10-30T00:00:00.000Z",
+        65536,
+        8192,
+        64,
+      ).unwrap()
+      let attempt = @publication.issue_publication_attempt(
+        request_contract,
+        definition,
+        "original-attempt",
+        "sha256:" + "9".repeat(64),
+        None,
+        "2026-10-30T00:00:00.000Z",
+        65536,
+        8192,
+        64,
+      ).unwrap()
+      let index = @publication.issue_public_index_entry(
+        definition,
+        invocation,
+        manifest,
+        receipt,
+        recorded,
+        [binding],
+        request_contract,
+        attempt,
+        "2026-10-30T00:00:00.000Z",
+        65536,
+        8192,
+        64,
+      ).unwrap()
+      check_program_commit_validation(
+        capture,
+        definition,
+        invocation,
+        [result_definition],
+        [artifact],
+        [derivation],
+        [ordering],
+        [retention],
+        [binding],
+        manifest,
+        receipt,
+        recorded,
+        request_contract,
+        attempt,
+        index,
+      ).unwrap()
+      let foreign_attempt = @publication.issue_publication_attempt(
+        request_contract,
+        definition,
+        "foreign-attempt",
+        "sha256:" + "9".repeat(64),
+        None,
+        "2026-10-30T00:00:00.000Z",
+        65536,
+        8192,
+        64,
+      ).unwrap()
+      assert_true(
+        check_program_commit_validation(
+          capture,
+          definition,
+          invocation,
+          [result_definition],
+          [artifact],
+          [derivation],
+          [ordering],
+          [retention],
+          [binding],
+          manifest,
+          receipt,
+          recorded,
+          request_contract,
+          foreign_attempt,
+          index,
+        )
+        is Err(Commit(_)),
+      )
+      assert_true(capture.validation is None)
+    }
   }
   output.close()
   assert_true(execution.close())
@@ -382,4 +642,14 @@ test "Native publication phase entry bounds refuse foreign preparation without c
 ///|
 test "same original 100000 Result snapshot uses its funded continuation instead of metadata limits" {
   native_publication_workspace_component(100000, false, snapshot=true)
+}
+
+///|
+test "original numeric publication snapshot capture and chain validation share exact compiled evidence" {
+  native_publication_workspace_component(
+    100000,
+    false,
+    snapshot=true,
+    chain=true,
+  )
 }

@@ -13,7 +13,7 @@ import {
 // Values
 pub fn assemble_native_effect_free_publication(NativeEffectFreeRunContext, Array[NativePublishedOutput], Int, Int, Int, publication? : @client_local_host.ClientProgramPublication?) -> Result[NativeEffectFreePublicationEvidence, NativeRunPublicationAssemblyIssue]
 
-pub fn commit_prepared_effect_free_run_publication_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, NativeRunPublicationPreparation) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
+pub fn commit_prepared_effect_free_run_publication_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, NativeRunPublicationPreparation, capture? : @client_local_host.ClientProgramCapture?) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 
 pub fn install_native_run_publication_authority((NativeRunPublicationAuthorization) -> Bool) -> NativeRunPublicationAuthority
 
@@ -176,6 +176,7 @@ pub(all) enum NativeRunPublicationIssue {
   CommitFenceUnavailable
   Store(@publication_store.NativePublicationStoreIssue)
   Issuance(@actql/actql/run_publication.PublicationCommitIssuanceIssue)
+  Preparation(@client_local_host.ClientProgramValidationIssue)
   Commit(@actql/actql/run_publication.PublicationCommitIssue)
   Projection(@actql/actql/run_publication.DeliveryIssuanceIssue)
 }

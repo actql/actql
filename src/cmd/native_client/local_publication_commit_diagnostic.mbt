@@ -78,6 +78,7 @@ fn local_publication_commit_failure_tags(
       (6L, local_publication_commit_issuance_cause(original))
     Commit(original) => (7L, local_publication_commit_cause(original))
     Projection(_) => (8L, 0L)
+    Preparation(_) => (9L, 0L)
   }
   emit(10, 11L)
   emit(11, 9000L + family)

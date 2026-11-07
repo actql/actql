@@ -218,6 +218,8 @@ pub fn check_installed_source_read_ledger(ClientInstalledSourceRead, @physical_r
 
 pub fn check_installed_whole_source_capacity(ClientInstalledWholeSourceCapacity, @client_row_source_host.RowInputAcquisition, @execution_relation.ExecutionCapacity) -> Bool
 
+pub fn check_program_commit_validation(ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[Unit, ClientProgramValidationIssue]
+
 pub fn cleanup_client_broad_residual(ClientBroadResidual) -> Result[Bool, @connector_sdk.FixedComputeIssue]
 
 pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, ClientInferInputIssue]
