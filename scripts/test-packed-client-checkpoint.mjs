@@ -127,6 +127,12 @@ await writeFile(join(root, 'values.json'), document);
 const expected = JSON.parse(document).stages[0].steps[0].values.rows;
 await writeFile(join(root, 'expected.json'), JSON.stringify(expected));
 
+// Retain one explicit policy from this exact installed package for both the
+// published Source environment and every restarted Host installation.
+const sourceBaseEnvironment = JSON.parse(await readFile(join(root, 'node_modules',
+  '@actql', 'local-node', 'spec', 'local-check-environment.json'), 'utf8'));
+const hostCapacityPolicy = sourceBaseEnvironment.host_policy_profile.capacity;
+
 // The installed DuckDB source for Programs with real input: a real table,
 // its checked Catalog view and the source's own read account (delegate).
 await writeFile(join(root, 'source-program.json'), await readFile(join(
@@ -134,9 +140,7 @@ await writeFile(join(root, 'source-program.json'), await readFile(join(
 {
   const environment = JSON.parse(await readFile(join(repository,
     'adapters/host-node/fixtures/query-amount-environment.json'), 'utf8'));
-  const base = JSON.parse(await readFile(join(root, 'node_modules', '@actql',
-    'local-node', 'spec', 'local-check-environment.json'), 'utf8'));
-  environment.host_policy_profile = base.host_policy_profile;
+  environment.host_policy_profile = sourceBaseEnvironment.host_policy_profile;
   delete environment.evidence_bundle_cid;
   environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
     .update(canonicalText(environment)).digest('hex');
@@ -239,6 +243,7 @@ const decide = process.env.DECIDE === 'none' ? undefined : view => {
 };
 const installation = {
   directory: process.env.STATE,
+  hostCapacityPolicy: ${JSON.stringify(hostCapacityPolicy)},
   ...(process.env.ACQUIRED === '1' ?
     {sourceProfilePath: new URL('source-profile.json',
       'file://' + process.cwd() + '/').pathname} : {}),
