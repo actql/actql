@@ -4,55 +4,37 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
 import {verifyLocalSourceRuntime, assertSourceRuntimeReceiptCurrent} from '../../scripts/verify-local-source-runtime.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-let open, coherence;
+let coherence;
 before(async () => {
   coherence = await verifyLocalSourceRuntime(root);
-  ({open} = await import('../../packages/node/index.mjs'));
 });
 
-async function assertAllRows(current, count) {
-  let read = 0, sum = 0n, squares = 0n;
-  for await (const row of current.result('answer0').rows()) {
-    assert.deepEqual(Object.keys(row), ['v0']);
-    assert.equal(row.v0, read);
-    const value = BigInt(row.v0);
-    read++; sum += value; squares += value * value;
-  }
-  const n = BigInt(count);
-  assert.equal(read, count);
-  assert.equal(sum, n * (n - 1n) / 2n);
-  assert.equal(squares, n * (n - 1n) * (2n * n - 1n) / 6n);
+function runPhase(phase, directory, referencePath, count) {
+  const actor = fileURLToPath(new URL('./fixtures/numeric-scale-public-process.mjs', import.meta.url));
+  const child = spawnSync(process.execPath, [actor, phase, directory, referencePath, String(count)],
+    {cwd: root, env: process.env, encoding: 'utf8', timeout: 360000, maxBuffer: 8 * 1024 * 1024});
+  assert.ifError(child.error);
+  assert.equal(child.signal, null, child.stderr);
+  assert.equal(child.status, 0, child.stderr);
+  const lines = child.stdout.trim().split('\n');
+  const report = JSON.parse(lines.at(-1));
+  assert.deepEqual(report, {phase, rowsVerified: count, closeReturned: true, pid: child.pid});
 }
 
 for (const count of [1000, 10000, 10001, 100000]) {
-  test(`ordinary numeric ${count} rows streams exact values before and after reopen with confirmed stop`, async () => {
-    const program = {
-      version: 'actql/0.1', id: 'numeric-scale',
-      stages: [{id: 'main', inputs: {}, steps: [{as: 'v', values: {
-        schema: {v0: {type: 'number', nullable: false}},
-        rows: Array.from({length: count}, (_, v0) => ({v0})),
-      }}], results: {rows: {from: 'v', fields: ['v0']}}}],
-      results: {answer0: {from: {stage: 'main', result: 'rows'}}},
-    };
+  test(`ordinary numeric ${count} rows streams exact values across separate-process Saved with confirmed stop`, async () => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-numeric-scale-test-'));
-    let db = await open({stateDir: directory}), completed = false;
+    let completed = false;
     try {
-      const run = await db.start(program);
-      const outcome = await run.wait({signal: AbortSignal.timeout(300000)});
-      assert.equal(outcome.status, 'succeeded', JSON.stringify(outcome));
-      await assertAllRows(run, count);
-      const ref = run.ref;
-      await db.close(); db = undefined;
-      db = await open({stateDir: directory});
-      const restored = await db.attach(ref);
-      assert.equal((await restored.status()).control.physical_stop, 'confirmed');
-      await assertAllRows(restored, count);
+      const referencePath = join(directory, 'original-run-reference.json');
+      runPhase('produce', directory, referencePath, count);
+      runPhase('restore', directory, referencePath, count);
       completed = true;
     } finally {
-      if (db) await db.close();
       assertSourceRuntimeReceiptCurrent(coherence);
       if (completed) await rm(directory, {recursive: true, force: true});
     }
