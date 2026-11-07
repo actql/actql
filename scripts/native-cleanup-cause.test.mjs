@@ -33,6 +33,29 @@ test('cleanup category never serializes payloads and keeps public error code', {
             Alias(_) => "ProjectMockPublicationAlias"
             _ => "ProjectMockPublication"
           }
+        Mapping(cause) =>
+          match cause {
+            OutputLimit => "ProjectMockWriteMappingLimit"
+            _ => "ProjectMockWriteMapping"
+          }
+        Runtime(cause) =>
+          match cause {
+            CleanupPending => "ProjectMockWriteRuntimeCleanupPending"
+            Changed => "ProjectMockWriteRuntimeChanged"
+            _ => "ProjectMockWriteRuntime"
+          }
+        WriteHost(cause) =>
+          match cause {
+            CustodyLost => "ProjectMockWriteHostCustodyLost"
+            TransactionUnknown => "ProjectMockWriteHostTransactionUnknown"
+            _ => "ProjectMockWriteHost"
+          }
+        WriteInstallation(cause) =>
+          match cause {
+            Limit => "ProjectMockWriteInstallationLimit"
+            InvalidMaterials => "ProjectMockWriteInstallationMaterials"
+            _ => "ProjectMockWriteInstallation"
+          }
         Source(issue) =>
           match issue {
             InvalidSpecification => "ProjectMockSourceInvalidSpecification"
@@ -88,12 +111,20 @@ test('cleanup category never serializes payloads and keeps public error code', {
     const text = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
     const start = text.indexOf('enum ' + name + ' {');
     assert(start >= 0, name);
-    const body = text.slice(start).split('\n}')[0].split('\n').slice(1);
-    return body.map(line => {
-      const match = /^  ([A-Z]\w*)(?:\(([^()]*)\))?$/u.exec(line);
-      assert(match, 'Unsupported issue declaration: ' + name + ': ' + line);
-      return {name: match[1], arity: match[2] === undefined ? 0 : match[2].split(',').length};
+    const body = text.slice(start).split('\n}')[0].split('\n').slice(1).join('\n');
+    // Enum payloads may wrap onto multiple lines, but remain closed type lists.
+    // Reject every unmatched token; this is not a fallback Source parser.
+    const rows = [...body.matchAll(/(?:^|\n)  ([A-Z]\w*)(?:\(([^()]*)\))?(?=\n|$)/gu)];
+    let residual = body;
+    const cases = rows.map(([row, variant, payload]) => {
+      residual = residual.replace(row, '');
+      const fields = payload === undefined ? [] : payload.split(',').map(value => value.trim());
+      assert(fields.every(value => /^(?:@\w+\.)?[A-Z]\w*\??$/u.test(value)), name);
+      return {name: variant, arity: fields.length};
     });
+    assert.equal(residual.trim(), '', 'Unsupported issue declaration: ' + name);
+    assert(cases.length > 0, name);
+    return cases;
   }
   function declare(type, cases, typed = {}) {
     declarations.push(`pub(all) enum ${type} {\n` + cases.map(({name, arity}) => {
@@ -112,6 +143,14 @@ test('cleanup category never serializes payloads and keeps public error code', {
   const answers = enumCases('src/model_execution/mock_answer_originals.mbt', 'ModelMockAnswerIssue');
   const installations = enumCases('src/model_execution/mock_installation.mbt', 'ModelMockInstallationIssue');
   const projects = enumCases('src/cmd/native_client/local_project_mock.mbt', 'LocalProjectMockModelIssue');
+  const mappings = enumCases('src/client_row_source_host/mapping.mbt', 'RowMappingIssue');
+  const runtimes = enumCases('src/platform_native/client_host/local_packaged_runtime.mbt', 'NativeLocalPackagedRuntimeIssue');
+  const writeHosts = enumCases('src/platform_native/client_host/local_adoption.mbt', 'NativeLocalAdoptionIssue');
+  const writeInstallations = enumCases('src/run_publication_host/client_effect_target_selections.mbt', 'ClientEffectUpdateTargetIssue');
+  declare('ProbeMockMapping', mappings);
+  declare('ProbeMockRuntime', runtimes);
+  declare('ProbeMockWriteHost', writeHosts);
+  declare('ProbeMockWriteInstallation', writeInstallations);
   declare('ProbeMockPublication', publications);
   declare('ProbeMockRowDeclaration', rowDeclarations);
   declare('ProbeMockRowSource', rowSources, {Declaration: ['ProbeMockRowDeclaration']});
@@ -122,6 +161,8 @@ test('cleanup category never serializes payloads and keeps public error code', {
   declare('ProbeMockInstallation', installations, {Answers: ['@model.ModelMockAnswerIssue']});
   declare('ProbeCommandProjectMock', projects, {
     Publication: ['ProbeMockPublication'], Source: ['ProbeMockRowSource'], Task: ['ProbeMockTask'],
+    Mapping: ['ProbeMockMapping'], Runtime: ['ProbeMockRuntime'], WriteHost: ['ProbeMockWriteHost'],
+    WriteInstallation: ['ProbeMockWriteInstallation'],
     Answers: ['@model.ModelMockAnswerIssue'], Installation: ['ProbeMockInstallation'],
   });
   outer.push('  CommandProjectMock(ProbeCommandProjectMock)');
@@ -138,6 +179,17 @@ test('cleanup category never serializes payloads and keeps public error code', {
     } else project('Source(' + value(item) + ')', item.name === 'InvalidSpecification'
       ? 'ProjectMockSourceInvalidSpecification' : item.name === 'InvalidContracts' ? 'ProjectMockSourceInvalidContracts' : 'ProjectMockSourceDeclaration');
   }
+  for (const item of mappings) project('Mapping(' + value(item) + ')',
+    item.name === 'OutputLimit' ? 'ProjectMockWriteMappingLimit' : 'ProjectMockWriteMapping');
+  for (const item of runtimes) project('Runtime(' + value(item) + ')',
+    {CleanupPending: 'ProjectMockWriteRuntimeCleanupPending', Changed: 'ProjectMockWriteRuntimeChanged'}[item.name]
+      ?? 'ProjectMockWriteRuntime');
+  for (const item of writeHosts) project('WriteHost(' + value(item) + ')',
+    {CustodyLost: 'ProjectMockWriteHostCustodyLost', TransactionUnknown: 'ProjectMockWriteHostTransactionUnknown'}[item.name]
+      ?? 'ProjectMockWriteHost');
+  for (const item of writeInstallations) project('WriteInstallation(' + value(item) + ')',
+    {Limit: 'ProjectMockWriteInstallationLimit', InvalidMaterials: 'ProjectMockWriteInstallationMaterials'}[item.name]
+      ?? 'ProjectMockWriteInstallation');
   for (const item of tasks) project('Task({kind: ' + value(item) + ', source: Some(' + privateValue + ')})',
     item.name === 'InvalidLimits' ? 'ProjectMockTaskInvalidLimits'
       : ['BodyLimit', 'TaskLimit', 'WorkLimit'].includes(item.name) ? 'ProjectMockTaskLimit' : 'ProjectMockTaskInvalid');
