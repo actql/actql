@@ -4,7 +4,7 @@ The shared workflow uses the public Client API for one record UPDATE. A case
 supplies its own Program, parameters, expected rows and Review fields. It does
 not implement a connector, permission decision, Effect claim or retry policy.
 
-`salesforce-approval` and `hubspot-approval` each contain an authored update and
+`salesforce-approval`, `hubspot-approval` and `kintone-approval` each contain an authored update and
 read Program, a case adapter, a declared-data mock project and a public consumer
 entry. Use the same Program files for mock and installed-provider verification;
 do not rewrite a Program to hide an unsupported provider operation.
@@ -61,5 +61,6 @@ The pure workflow contract tests are included by the existing `client-ci.test.mj
 suite. They check consumer sequencing and failure preservation with an explicit
 fake Client; they do not establish provider authentication, physical writes or
 ordinary installed support. A declared mock UPDATE likewise does not establish
-that a connector's standard installed Effect factory is connected. In particular,
-the HubSpot fixture does not supply that missing installation entry.
+that a connector's standard installed Effect factory is connected. The kintone
+fixture retains string `$id` values without numeric conversion; its normal
+installed Effect connection is a separate requirement from mock acceptance.
