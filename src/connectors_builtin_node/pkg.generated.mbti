@@ -2480,6 +2480,8 @@ pub fn client_program_kintone_restore_update_execution(@actql/actql/connectors/k
 
 pub fn client_program_kintone_retire_read(@actql/actql/connectors/kintone/host.RecordRead) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_update_add_construction_capacity(@execution_relation.ExecutionCapacity, @execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_kintone_update_app_id(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> String
 
 pub fn client_program_kintone_update_body(@actql/actql/connectors/kintone/catalog.RecordUpdateRequest) -> String
@@ -2500,9 +2502,13 @@ pub fn client_program_kintone_update_finalization_construction_capacity(@actql/a
 
 pub fn client_program_kintone_update_form_construction_capacity(@actql/actql/connectors/kintone/host.RecordUpdateMapping, Int, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_kintone_update_installation_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_kintone_update_mapping_body(@actql/actql/connectors/kintone/host.RecordUpdateMapping) -> Result[String, @client_row_source_host.RowMappingIssue]
 
 pub fn client_program_kintone_update_mapping_cid(@actql/actql/connectors/kintone/host.RecordUpdateMapping) -> Result[String, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_kintone_update_mapping_construction_capacity(@actql/actql/connectors/kintone/host.RecordDeclaration, Int, Int64, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_kintone_update_mapping_matches_declaration(@actql/actql/connectors/kintone/host.RecordUpdateMapping, @actql/actql/connectors/kintone/host.RecordDeclaration) -> Bool
 
@@ -2529,6 +2535,8 @@ pub fn client_program_kintone_update_proposal_construction_capacity(@actql/actql
 pub fn client_program_kintone_update_proposal_identity(@actql/actql/connectors/kintone/host.RecordUpdateProposal) -> String
 
 pub fn client_program_kintone_update_proposal_value_wire(@actql/actql/connectors/kintone/host.RecordUpdateProposal) -> String
+
+pub fn client_program_kintone_update_recipe_capacities(Array[@execution_relation.ExecutionCapacity], Array[Int], @execution_relation.ExecutionCapacity?, Array[Int], Int64, Int, Int, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_kintone_update_request(Array[(@actql/actql/connectors/kintone/catalog.OriginalRecordTarget, @actql/actql/connectors/kintone/catalog.RecordWriteValues)], @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 

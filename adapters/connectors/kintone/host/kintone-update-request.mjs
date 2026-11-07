@@ -197,13 +197,15 @@ export function createKintoneUpdateRequestAdapter({moon, mapping, declaration, o
       if (typeof wire !== 'string' || wire.length > policy.maxRecoveryBytes ||
           Buffer.byteLength(wire) > policy.maxRecoveryBytes) fail('KintoneUpdateRecoveryLimit');
       const saved = own(JSON.parse(wire), recoveryKeys);
-      if (encode(saved) !== wire || saved.version !== recoveryVersion || encode(saved.binding) !== encode(binding) ||
+      const savedBinding = own(saved.binding, Object.keys(binding));
+      if (saved.version !== recoveryVersion || Object.keys(binding).some(name => savedBinding[name] !== binding[name]) ||
           saved.requestTag !== requestTag || !isCid(requestTag) || typeof saved.identity !== 'string' ||
           !isCid(saved.logicalCid) || !isCid(saved.requestCid) || !isCid(saved.targetBodyCid) || typeof saved.body !== 'string' ||
           Buffer.byteLength(saved.body) > policy.maxRequestBytes) fail('ForeignKintoneUpdateRecovery');
       const inputBytes = valueBytes(saved.valueWire), observedBytes = targetBytes(saved.targetBodyBase64);
-      const value = JSON.parse(saved.valueWire);
-      if (encode(value) !== saved.valueWire || logicalIdentity(saved.identity, saved.valueWire) !== saved.logicalCid ||
+      // Check the closed primitive envelope before canonical recursion. Full
+      // native value/target admission precedes Host's decoded value projection.
+      if (encode(saved) !== wire || logicalIdentity(saved.identity, saved.valueWire) !== saved.logicalCid ||
           physicalIdentity(saved) !== saved.requestCid || wireCid(observedBytes) !== saved.targetBodyCid) fail('ForeignKintoneUpdateRecovery');
       const result = checked(native.RestoreUpdateExecution(mapping, saved.identity, inputBytes,
         observedBytes, saved.body, policy.maxInputBytes, pageLimits, valueLimits,
@@ -211,6 +213,8 @@ export function createKintoneUpdateRequestAdapter({moon, mapping, declaration, o
       const proposal = runtimeField(result, 0), preview = runtimeField(result, 1), rebuilt = runtimeField(result, 2);
       if (native.UpdateProposalApp(proposal) !== appId || native.UpdateProposalValueWire(proposal) !== saved.valueWire ||
           !native.UpdateExecutionMatches(proposal, preview, rebuilt)) fail('ForeignKintoneUpdateRecovery');
+      const value = JSON.parse(saved.valueWire);
+      if (encode(value) !== saved.valueWire) fail('ForeignKintoneUpdateRecovery');
       const original = {...saved, value, proposal, preview, native: rebuilt,
         beforeWire: native.UpdatePreviewBeforeWire(preview), versionCid: native.UpdatePreviewVersionCid(preview),
         readBody: checked(native.UpdateTargetReadBody(proposal, policy.maxFields,

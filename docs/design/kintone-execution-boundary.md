@@ -283,6 +283,60 @@ GC/RSS reclamation or retirement of all escaped metadata/frames; the caller's
 original holding responsibility persists to its actual alias/frame boundary.
 No normal numerical profile follows from this typed handoff.
 
+## Standard installed UPDATE assembly
+
+Installation responsibility: the connector-owned Effect profile selects one
+original installed Source App/resource and an explicit writable-field subset.
+The standard generated installation table selects the loader; no provider-name
+branch, second initialization Ledger or additional authority owner is needed.
+
+Installation inputs and outputs: the Source and Effect loaders share the same
+bounded original Form/declaration preparation. The Effect adds a Native UPDATE
+Mapping and the existing row Effect driver/recipe. The complete declared schema,
+including read-only fields, remains the target's original before inventory.
+
+Installation identity: Site context, original metadata, runtime bundle,
+Environment and Mapping identities bind each generation and physical target
+selection. Exact API `$id` and the observed revision remain Strings. Recovery
+validates the complete saved native value, target bytes, request body and CIDs;
+restoration itself never sends or creates a new request.
+
+Installation ownership: the existing Host initialization owner reserves each
+Native/Host constructor before projection. Borrowed immutable Form, declaration,
+Site and field Strings are references, not additional payload copies. Mapping
+and driver success replace their own construction quote with its retained-only
+projection; failed construction retains its complete original responsibility.
+
+Installation synchronization: capture, apply and resume each retain a separate
+Form describe slot and schema-before/target/schema-after slots. The target uses
+its original Checkpoint grant; Form reads keep their distinct Account decisions.
+Request construction and finalization use separate existing operation positions.
+
+Installation failure: malformed, noncanonical, copied or changed saved material
+keeps the full Native refusal path. Fixed primitive bindings are checked before
+recursive Host canonicalization. Native value admission precedes Host value
+parse. An unclassified or lost write response never becomes permission to resend.
+
+Installation cancellation: each existing current/cancellation callback and
+physical credential use remains with its original owner. An abort after physical
+send cannot discard the observed result or establish known nonacceptance.
+
+Installation resources: two real checked Mapping reads are distinct from schema
+parse and identity/output writers; writers do not each imply another complete
+metadata admission. Phase recipes price retained original values and ended
+workspace separately. Actual byte observations select staged response demand;
+logical quantity inspection grants no capacity, permission or completion.
+
+Installation extension: another writable field or App must use the original
+Catalog eligibility and full Mapping constructor. A future operation retains its
+own protocol/revision semantics and existing row Effect ownership; it cannot
+borrow UPDATE approval, permission or an opaque value from another runtime.
+
+Installation verification: pure quantities, exact wire/current/refusal cases,
+real initial-parent reservation and physical cleanup, normal package consumers,
+loopback TLS and live-provider acceptance have distinct scopes. Success at one
+boundary is not acceptance of the others.
+
 ## Provider references
 
 - [Get Form Fields](https://kintone.dev/en/docs/kintone/rest-api/apps/form/get-form-fields/)

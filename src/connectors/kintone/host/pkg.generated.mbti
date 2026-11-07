@@ -188,7 +188,11 @@ pub fn record_update_form_construction_capacity(RecordUpdateMapping, Int, @catal
 
 pub fn record_update_form_construction_inventory(RecordUpdateMapping, Int, @catalog.FormFieldLimits) -> RecordUpdateConstructionInventory?
 
+pub fn record_update_installation_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn record_update_mapping(RecordUpdateMapping) -> @client_row_source_host.RowMapping
+
+pub fn record_update_mapping_construction_capacity(RecordDeclaration, Int, Int64, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn record_update_mapping_is_original(RecordUpdateMapping) -> Bool
 

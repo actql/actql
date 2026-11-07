@@ -194,3 +194,16 @@ test('kintone driver delegates only the actual matching original Checkpoint phys
     {code: 'KintoneTargetReadApprovalNotAdmitted'});
   assert.equal(f.state.admitted.length, 1); assert.equal(f.state.grants.length, 0);
 });
+
+test('kintone cold member refuses nested foreign binding before canonical recursion or I/O', async () => {
+  const warm = fixture(), current = await warm.describe(), logical = warm.prepare(current);
+  await warm.observe(current, [logical]); const final = warm.finalize(logical);
+  const entry = warm.driver.recoveryEntry({member: warm.member, entries: [final]});
+  const changed = JSON.parse(entry.wire); let nested = 'foreign';
+  for (let index = 0; index < 200; index++) nested = {nested};
+  changed.binding.appId = nested;
+  const wire = JSON.stringify(changed), cold = fixture(), input = cold.recover({...entry, wire,
+    observationCid: 'sha256:' + createHash('sha256').update(wire).digest('hex')}, final.requestCid);
+  assert.throws(() => cold.driver.recoverRequests(input), {code: 'InvalidKintoneUpdateRecovery'});
+  assert.equal(cold.state.decisions.length, 0); assert.equal(cold.state.reads.length, 0); assert.equal(cold.state.writes.length, 0);
+});

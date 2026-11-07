@@ -82,3 +82,14 @@ test('UPDATE adapter rejects changed saved request fields and preserves captured
   const restored = cold.restore({wire, requestTag: cid('c')});
   assert.equal(restored.requestCid, final.requestCid); cold.assertFinalized(restored.request, cid('c'));
 });
+
+test('UPDATE saved binding refuses nested foreign material before canonical recursion or native restoration', () => {
+  const f = fixture(), final = finalized(f), original = JSON.parse(f.adapter.savedWire(final.request));
+  let nested = 'foreign';
+  for (let index = 0; index < 200; index++) nested = {nested};
+  const bad = {...original, binding: {...original.binding, appId: nested}};
+  const cold = createKintoneUpdateRequestAdapter(f.options), before = f.calls.clientProgramKintoneRestoreUpdateExecution ?? 0;
+  assert.throws(() => cold.restore({wire: JSON.stringify(bad), requestTag: cid('c')}),
+    {code: 'ForeignKintoneUpdateRecovery'});
+  assert.equal(f.calls.clientProgramKintoneRestoreUpdateExecution ?? 0, before);
+});

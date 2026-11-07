@@ -83620,9 +83620,80 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_kintone_update_add_construction_capacity",
+            "client_program_kintone_update_installation_construction_capacity",
+            "client_program_kintone_update_mapping_construction_capacity",
+            "client_program_kintone_update_recipe_capacities"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation verification:"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "297ec24fe5cd6f512a04627c4fe772336c79c9a4eeeeb10799a4eeae4504f55f",
+      "sha256": "312216e5d7fd9a73d0de9e8275fee0b8d40e887cf5cb1a4914ef06f28636e0df",
       "operations": [
         {
           "name": "client_kintone_original_update_mapping",
@@ -83647,6 +83718,10 @@
         {
           "name": "client_program_kintone_restore_update_execution",
           "declaration": "client_program_kintone_restore_update_execution ( mapping : @ kintone_host . RecordUpdateMapping , identity : String , value_bytes : Bytes , target_bytes : Bytes , original_body : String , max_input_bytes : Int , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , before_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ ( @ kintone_host . RecordUpdateProposal , @ kintone_host . RecordUpdatePreview , @ kintone_catalog . RecordUpdateRequest , ) , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_add_construction_capacity",
+          "declaration": "client_program_kintone_update_add_construction_capacity ( native : @ execution . ExecutionCapacity , host : @ execution . ExecutionCapacity , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_update_effect_outcome",
@@ -83677,12 +83752,20 @@
           "declaration": "client_program_kintone_update_form_construction_capacity ( mapping : @ kintone_host . RecordUpdateMapping , body_bytes : Int , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "client_program_kintone_update_installation_construction_capacity",
+          "declaration": "client_program_kintone_update_installation_construction_capacity ( fields : Int , text_units : Int , retained_text_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_kintone_update_mapping_body",
           "declaration": "client_program_kintone_update_mapping_body ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
         },
         {
           "name": "client_program_kintone_update_mapping_cid",
           "declaration": "client_program_kintone_update_mapping_cid ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_construction_capacity",
+          "declaration": "client_program_kintone_update_mapping_construction_capacity ( original : @ kintone_host . RecordDeclaration , source_count : Int , input_units : Int64 , limits : @ client_row_source_host . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_update_mapping_matches_declaration",
@@ -83731,6 +83814,10 @@
         {
           "name": "client_program_kintone_update_proposal_value_wire",
           "declaration": "client_program_kintone_update_proposal_value_wire ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_recipe_capacities",
+          "declaration": "client_program_kintone_update_recipe_capacities ( original : Array [ @ execution . ExecutionCapacity ] , output_limits : Array [ Int ] , cold_original : @ execution . ExecutionCapacity ? , limits : Array [ Int ] , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_kintone_update_response_construction_capacity",
@@ -83986,9 +84073,80 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_kintone_update_add_construction_capacity",
+            "client_program_kintone_update_installation_construction_capacity",
+            "client_program_kintone_update_mapping_construction_capacity",
+            "client_program_kintone_update_recipe_capacities"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Installation verification:"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "1f63559c9fddaeade44e0665743a7d041963c726bc707c47e40d06429ead2a75",
+      "sha256": "53eb1b356816ab129e776b82da8cfce6a416b7596a1d2c9a2e365ddce74d6d83",
       "operations": [
         {
           "name": "client_kintone_original_update_mapping",
@@ -84013,6 +84171,10 @@
         {
           "name": "client_program_kintone_restore_update_execution",
           "declaration": "client_program_kintone_restore_update_execution ( mapping : @ kintone_host . RecordUpdateMapping , identity : String , value_bytes : Bytes , target_bytes : Bytes , original_body : String , max_input_bytes : Int , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , write_limits : @ kintone_catalog . RecordWriteLimits , limits : @ kintone_catalog . RecordMutationLimits , before_limits : @ kintone_catalog . RecordMutationLimits , ) - > Result [ ( @ kintone_host . RecordUpdateProposal , @ kintone_host . RecordUpdatePreview , @ kintone_catalog . RecordUpdateRequest , ) , @ kintone_host . RecordUpdateExecutionIssue , ]"
+        },
+        {
+          "name": "client_program_kintone_update_add_construction_capacity",
+          "declaration": "client_program_kintone_update_add_construction_capacity ( native : @ execution . ExecutionCapacity , host : @ execution . ExecutionCapacity , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_update_effect_outcome",
@@ -84043,12 +84205,20 @@
           "declaration": "client_program_kintone_update_form_construction_capacity ( mapping : @ kintone_host . RecordUpdateMapping , body_bytes : Int , limits : @ kintone_catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
+          "name": "client_program_kintone_update_installation_construction_capacity",
+          "declaration": "client_program_kintone_update_installation_construction_capacity ( fields : Int , text_units : Int , retained_text_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "client_program_kintone_update_mapping_body",
           "declaration": "client_program_kintone_update_mapping_body ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
         },
         {
           "name": "client_program_kintone_update_mapping_cid",
           "declaration": "client_program_kintone_update_mapping_cid ( mapping : @ kintone_host . RecordUpdateMapping , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
+        },
+        {
+          "name": "client_program_kintone_update_mapping_construction_capacity",
+          "declaration": "client_program_kintone_update_mapping_construction_capacity ( original : @ kintone_host . RecordDeclaration , source_count : Int , input_units : Int64 , limits : @ client_row_source_host . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_kintone_update_mapping_matches_declaration",
@@ -84097,6 +84267,10 @@
         {
           "name": "client_program_kintone_update_proposal_value_wire",
           "declaration": "client_program_kintone_update_proposal_value_wire ( proposal : @ kintone_host . RecordUpdateProposal , ) - > String"
+        },
+        {
+          "name": "client_program_kintone_update_recipe_capacities",
+          "declaration": "client_program_kintone_update_recipe_capacities ( original : Array [ @ execution . ExecutionCapacity ] , output_limits : Array [ Int ] , cold_original : @ execution . ExecutionCapacity ? , limits : Array [ Int ] , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_kintone_update_response_construction_capacity",

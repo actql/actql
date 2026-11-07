@@ -3,16 +3,13 @@ import * as common from '../../../../_build/js/debug/build/connectors_builtin_no
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {createKintoneUpdateRequestAdapter} from '../host/kintone-update-request.mjs';
+import {form} from './kintone-update-form.fixture.mjs';
+export {form} from './kintone-update-form.fixture.mjs';
 
 export const cid = mark => 'sha256:' + mark.repeat(64);
 export const encode = value => canonicalJson(value, {dataKeys: true});
 export const bytes = value => Buffer.from(JSON.stringify(value));
 export const identity = '9007199254740993', revision = '9007199254740994';
-export const form = {revision: '7', properties: {
-  Subject: {code: 'Subject', type: 'SINGLE_LINE_TEXT', expression: ''},
-  Tags: {code: 'Tags', type: 'MULTI_SELECT', options: {red: {label: 'red', index: '0'}}},
-  Computed: {code: 'Computed', type: 'SINGLE_LINE_TEXT', expression: 'server'},
-}};
 export const value = {Subject: 'next 東京', Tags: ['red', 'red']};
 export const policy = {maxInputBytes: 2048, maxRequestBytes: 2048, maxResponseBytes: 16384,
   maxNodes: 8000, maxDepth: 32, maxFields: 16, maxNameUnits: 512, maxColumns: 8,

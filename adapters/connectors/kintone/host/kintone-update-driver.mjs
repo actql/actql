@@ -20,6 +20,14 @@ const wireCid = wire => 'sha256:' + createHash('sha256').update(wire).digest('he
 const cid = value => wireCid(encode(value));
 const isCid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
+// Match only this fixed original DATA envelope. Do not recursively serialize
+// an unvalidated saved object merely to compare it with the bound original.
+const sameRecord = (value, expected) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
+  Object.keys(value).length === Object.keys(expected).length && Object.keys(expected).every(name =>
+    Object.hasOwn(value, name) && (Array.isArray(expected[name])
+      ? Array.isArray(value[name]) && value[name].length === expected[name].length &&
+        expected[name].every((item, index) => value[name][index] === item)
+      : value[name] === expected[name]));
 const memberFacts = member => Object.freeze({effectId: member.effectId, memberIndex: member.memberIndex,
   kind: member.kind, resource: member.resource, mappingRef: member.mapping?.mappingRef,
   mappingCid: member.mapping?.mappingCid});
@@ -152,10 +160,12 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
           !Array.isArray(changes) || changes.length > maxRows || !Array.isArray(claims) ||
           claims.length !== changes.length) fail('InvalidKintoneUpdateRecovery');
       const value = JSON.parse(saved.wire);
-      if (encode(value) !== saved.wire || value.version !== recoveryVersion ||
+      if (value === null || typeof value !== 'object' || Array.isArray(value) || value.version !== recoveryVersion ||
           Object.keys(value).sort().join(',') !== 'binding,member,requests,version' ||
-          encode(value.binding) !== encode(binding) || encode(value.member) !== encode(memberFacts(member)) ||
-          !Array.isArray(value.requests) || value.requests.length !== changes.length) fail('InvalidKintoneUpdateRecovery');
+          !sameRecord(value.binding, binding) || !sameRecord(value.member, memberFacts(member)) ||
+          !Array.isArray(value.requests) || value.requests.length !== changes.length ||
+          value.requests.some(wire => typeof wire !== 'string' || Buffer.byteLength(wire) > maxRecoveryBytes) ||
+          encode(value) !== saved.wire) fail('InvalidKintoneUpdateRecovery');
       return Object.freeze(value.requests.map((wire, row) => {
         const rebuilt = requests.restore({wire, requestTag: requestTags?.[index]?.[row]});
         const facts = requests.requestFacts(rebuilt.request);

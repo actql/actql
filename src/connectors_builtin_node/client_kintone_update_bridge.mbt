@@ -361,3 +361,150 @@ pub fn client_program_kintone_update_response_construction_capacity(
     mapping, body_bytes, limits,
   )
 }
+
+///|
+#export_name("clientProgramKintoneUpdateAddConstructionCapacity")
+pub fn client_program_kintone_update_add_construction_capacity(
+  native : @execution.ExecutionCapacity,
+  host : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity? {
+  @execution.add_execution_capacity(native, host)
+}
+
+///|
+#export_name("clientProgramKintoneUpdateRecipeCapacities")
+pub fn client_program_kintone_update_recipe_capacities(
+  original : Array[@execution.ExecutionCapacity],
+  output_limits : Array[Int],
+  cold_original : @execution.ExecutionCapacity?,
+  limits : Array[Int],
+  metadata_units : Int64,
+  response_read_quantum : Int,
+  control_wire_bytes : Int,
+  host_input_bytes : Int,
+) -> Result[
+  Array[@execution.ExecutionCapacity],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  guard original.length() == 4 &&
+    output_limits.length() == 9 &&
+    limits.length() == 18 &&
+    cold_original is Some(finalization) else {
+    return Err(Unsupported)
+  }
+  // Cold kintone restoration really re-admits its saved original target and
+  // rebuilds the final native request. Core separately includes the original
+  // proposal constructor. Keep extra returned material per row and only the
+  // sequential constructor workspace on the SAME member capture.
+  let zero = @execution.execution_capacity(0L, 0L).unwrap()
+  let retained = if host_input_bytes == 0 {
+    0L
+  } else {
+    @execution.execution_capacity_retained_bytes(finalization)
+  }
+  let workspace = if host_input_bytes == 0 {
+    0L
+  } else {
+    @execution.execution_capacity_execution_bytes(finalization) - retained
+  }
+  let cold_row = @execution.execution_capacity(retained, retained).unwrap()
+  let cold_work = @execution.execution_capacity(0L, workspace).unwrap()
+  @client_local_host.installed_described_effect_recipe_capacities(
+    // JavaScript supplies the complete vector. Keep its generic Option
+    // representation inside this typed bridge, just like capture_original.
+    Some([
+      (
+        original[0],
+        None,
+        Some({
+          max_input_bytes: output_limits[0],
+          max_nodes: output_limits[1],
+          max_depth: output_limits[2],
+        }),
+      ),
+      (
+        original[1],
+        None,
+        Some({
+          max_input_bytes: output_limits[3],
+          max_nodes: output_limits[4],
+          max_depth: output_limits[5],
+        }),
+      ),
+      (
+        original[2],
+        None,
+        Some({
+          max_input_bytes: output_limits[6],
+          max_nodes: output_limits[7],
+          max_depth: output_limits[8],
+        }),
+      ),
+      (original[3], None, None),
+    ]),
+    Some([cold_work, cold_row, zero]),
+    limits[0],
+    limits[1],
+    limits[2],
+    limits[3],
+    limits[4],
+    limits[5],
+    limits[6],
+    limits[7],
+    true,
+    limits[8],
+    limits[9],
+    limits[10],
+    limits[11],
+    limits[12],
+    limits[13],
+    limits[14],
+    limits[15],
+    limits[16],
+    limits[17],
+    metadata_units,
+    response_read_quantum~,
+    metadata_on_child=true,
+    target_on_child=true,
+    // Three phases, each with one describe Form plus before/target/after.
+    // The Plan keeps all thirteen distinct original physical slots.
+    metadata_occurrences=3,
+    target_occurrences=9,
+    defer_ledger_codec=control_wire_bytes > 0,
+    control_wire_bytes=if control_wire_bytes == 0 {
+      None
+    } else {
+      Some(control_wire_bytes)
+    },
+    host_input_bytes=if host_input_bytes < 0 {
+      None
+    } else {
+      Some(host_input_bytes)
+    },
+  )
+}
+
+///|
+#export_name("clientProgramKintoneUpdateMappingConstructionCapacity")
+pub fn client_program_kintone_update_mapping_construction_capacity(
+  original : @kintone_host.RecordDeclaration,
+  source_count : Int,
+  input_units : Int64,
+  limits : @client_row_source_host.RowDeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_update_mapping_construction_capacity(
+    original, source_count, input_units, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneUpdateInstallationConstructionCapacity")
+pub fn client_program_kintone_update_installation_construction_capacity(
+  fields : Int,
+  text_units : Int,
+  retained_text_units : Int,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_update_installation_construction_capacity(
+    fields, text_units, retained_text_units,
+  )
+}
