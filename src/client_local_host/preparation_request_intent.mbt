@@ -421,10 +421,18 @@ pub fn[I] retain_request_submitted_intent(
   guard owner.phase == Open &&
     !owner.intent_attempted &&
     owner.snapshot_base is None &&
-    owner.submitted_intent is None else {
+    owner.native_intake_base is None &&
+    owner.native_intake_wire_bytes == 0 else {
     return Err(WrongPhase)
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  // A completed Native producer may already retain this exact output while
+  // its transient construction debit was reconciled. A different value cannot
+  // replace it, and a pending producer must finish or keep its cleanup duty.
+  if owner.submitted_intent is Some(original) &&
+    !physical_equal(original, intent) {
     return Err(ForeignOriginal)
   }
   // Even this first extent read enters the original current callback. Fence
@@ -794,6 +802,18 @@ pub fn[I] reserve_request_native_intake_wire(
     is Some(bytes) else {
     return Err(Policy)
   }
+  guard @execution.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 16L,
+      scalar_words: 16L,
+      // The returned intent or static text fields, not raw Reader/parser/
+      // canonical/writer alternatives that exist only during construction.
+      owned_utf16_units: wire_bytes.to_int64() + 71L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) else {
+    return Err(Policy)
+  }
   let base = match owner.native_intake_base {
     Some(value) => value
     None => {
@@ -806,7 +826,8 @@ pub fn[I] reserve_request_native_intake_wire(
       value
     }
   }
-  guard @execution.checked_preparation_add_product(base.0, bytes, 1L) is Some(r) &&
+  guard @execution.checked_preparation_add_product(base.0, retained, 1L)
+    is Some(r) &&
     @execution.checked_preparation_add_product(base.1, bytes, 1L) is Some(e) else {
     return Err(Policy)
   }
@@ -820,4 +841,79 @@ pub fn[I] reserve_request_native_intake_wire(
     },
     () => owner.phase = Open,
   ).map(_ => owner.native_intake_wire_bytes = wire_bytes)
+}
+
+///|
+/// The actual Native producer has returned this SAME admitted output; its
+/// Reader/parser/canonical/writer temporaries no longer escape. Reconcile only
+/// that construction on the existing Request reservation. No physical close,
+/// Run admission, permission or refundable work allowance is issued here.
+pub fn[I] finish_request_native_intake_wire(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  intent : @publication_host.ClientSubmittedIntent,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard owner.phase == Open &&
+    !owner.intent_attempted &&
+    owner.snapshot_base is None &&
+    owner.program_json is None &&
+    !owner.native_parameters_ready &&
+    owner.native_intake_wire_bytes > 0 &&
+    owner.native_intake_base is Some(base) else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.submitted_intent is Some(original) &&
+    !physical_equal(original, intent) {
+    return Err(ForeignOriginal)
+  }
+  let units = @publication_host.client_submitted_intent_wire(intent).length()
+  if units > owner.native_intake_wire_bytes {
+    return Err(Policy)
+  }
+  guard @execution.preparation_representation_cost({
+      record_headers: 3L,
+      reference_slots: 2L,
+      scalar_words: 3L,
+      owned_utf16_units: units.to_int64() + 71L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(base.0, retained, 1L) is Some(r) &&
+    @execution.checked_preparation_add_product(base.1, retained, 1L) is Some(e) else {
+    return Err(Policy)
+  }
+  // Retain the original before a fallible resize/current boundary. An error
+  // keeps its old reservation/base and this exact output for retry or cleanup;
+  // it cannot admit a different output or reopen the producer.
+  owner.submitted_intent = Some(intent)
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      match
+        @resources.reconcile_working_preparation_phase(
+          owner.capacity,
+          input,
+          r,
+          e,
+        ) {
+        Err(issue) => return Err(Capacity(issue))
+        Ok(_) => ()
+      }
+      guard owner.phase == Selecting &&
+        owner.input is Some(original) &&
+        physical_equal(original, input) &&
+        owner.native_intake_base == Some(base) &&
+        owner.submitted_intent is Some(original_intent) &&
+        physical_equal(original_intent, intent) else {
+        return Err(ForeignOriginal)
+      }
+      owner.native_intake_base = None
+      owner.native_intake_wire_bytes = 0
+      Ok(())
+    },
+    () => owner.phase = Open,
+  )
 }

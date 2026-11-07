@@ -71,6 +71,7 @@ options(
   targets: {
     "preparation_request_native_document_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_intake_js_wbtest.mbt": [ "js" ],
+    "preparation_request_native_intake_retirement_js_wbtest.mbt": [ "js" ],
     "preparation_request_acquired_graph_js_wbtest.mbt": [ "js" ],
     "preparation_request_model_graph_js_wbtest.mbt": [ "js" ],
     "preparation_request_model_materials_js_wbtest.mbt": [ "js" ],
