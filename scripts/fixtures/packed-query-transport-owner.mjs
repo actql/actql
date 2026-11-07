@@ -148,8 +148,10 @@ const safeCodes=[
 'InstalledSourceInitializationNotSynchronous','InstalledSourcePreparationCleanupPending','InstalledSourcePreparationMismatch',
 'InstalledSourceReaderCleanupUnavailable','InstalledSourceRunCleanupPending','NodeLocalPreparationCleanupPending',
 'NodeManagedRunAdmissionUnavailable','NodeManagedRunCompilationUnavailable','NodeManagedRunPlanUnavailable',
-'NodeManagedRunRuntimeUnavailable','InvalidOriginalCheckObservation'];
-const row={edge,type},code=Object.getOwnPropertyDescriptor(value,'code');if(code){if('value'in code&&safeCodes.includes(code.value))row.code=code.value;else row.codeOmitted=true;}
+'NodeManagedRunRuntimeUnavailable','InvalidOriginalCheckObservation',
+'RunHostCompilationRejected','RunHostTaskCompilationRejected','RunHostAdmissionRejected',
+'RunHostStaticPlanRejected','RunHostOriginalPlanRejected'];
+const row={edge,type},code=Object.getOwnPropertyDescriptor(value,'code');if(code){if('value'in code&&safeCodes.includes(code.value))row.code=code.value;else{row.codeOmitted=true;row.codeType=!('value'in code)?'Accessor':code.value===undefined?'Undefined':typeof code.value==='string'?'String':typeof code.value==='number'?'Number':'Other';}}
 out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=Object.getOwnPropertyDescriptor(value,key);if(d)queue.push([key,'value'in d?d.value:undefined,depth+1,!('value'in d)]);}}return out;})()`;
   session.on('Debugger.scriptParsed', async ({params}) => {
     if (params.url !== workerData.url) return;
