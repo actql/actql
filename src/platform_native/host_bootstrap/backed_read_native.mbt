@@ -413,6 +413,14 @@ pub fn[T, C] NativeHostBootstrap::close_backed_read_context(
     Err(issue) => return Err(Bootstrap(issue))
     Ok(_) => ()
   }
+  // A stopped caller is outside every child scope. Reconcile its exact
+  // pending physical serial before Read retirement can close that frame.
+  if domain.working_growth_serial is Some(_) {
+    match self.reconcile_backed_domain_working(original, domain, child) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
   match
     self.with_backed_read_bookkeeping(
       original,

@@ -552,6 +552,7 @@ typedef struct {
     bool read_attempted;
     bool read_user;
     bool read_prepare_scope;
+    bool read_parent_suspended; /* exact completed leave, not a stop ACK */
 #endif
 } actql_bootstrap_domain;
 
@@ -569,6 +570,7 @@ MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire_domain(actql_bootstrap_view *vi
     record->read_attempted = false;
     record->read_user = false;
     record->read_prepare_scope = false;
+    record->read_parent_suspended = false;
 #endif
     record->status = view->status == ACTQL_OWNED_OK
         ? actql_native_owned_acquire_extent_domain(&view->view, &record->lease)
@@ -830,7 +832,7 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_enter_read_context(
     actql_bootstrap_domain *record) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
     if (record->read_context == NULL || record->read_prepare_scope ||
-        record->read_active == SIZE_MAX) return ACTQL_OWNED_INVALID;
+        record->read_parent_suspended || record->read_active == SIZE_MAX) return ACTQL_OWNED_INVALID;
     int status = actql_native_owned_enter(record->lease);
     if (status != ACTQL_OWNED_OK) return status;
     /* Normal Common entry already requires read_user/current. Once that
@@ -854,6 +856,14 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_enter_read_context(
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_leave_read_context(
     actql_bootstrap_domain *record) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record->read_parent_suspended) {
+        /* Consume this SAME previously acknowledged physical leave once.
+         * The logical consumer cannot resume payload through this receipt. */
+        if (record->read_active != 0 || actql_read_context_current() != NULL ||
+            actql_native_owned_current() != NULL) return ACTQL_OWNED_BUSY;
+        record->read_parent_suspended = false;
+        return ACTQL_OWNED_OK;
+    }
     if (record->read_active == 0) return ACTQL_OWNED_INVALID;
     int status = actql_read_context_leave(record->read_context);
     if (status != ACTQL_OWNED_OK) return status;
@@ -918,7 +928,9 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_close_read_context(
         if (status != ACTQL_OWNED_OK) return status;
         record->read_user = false;
     }
-    return actql_read_context_try_close(&record->read_context);
+    int status = actql_read_context_try_close(&record->read_context);
+    if (status == ACTQL_OWNED_OK) record->read_parent_suspended = false;
+    return status;
 #else
     (void)record;
     return ACTQL_OWNED_INVALID;

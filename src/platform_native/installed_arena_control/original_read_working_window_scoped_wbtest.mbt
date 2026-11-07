@@ -19,8 +19,12 @@ test "same original Native Read acquires its window before resize and constructo
     mib,
   ).unwrap_or_else(() => abort("Native Read stage: prepare-host"))
   host.acquire().unwrap_or_else(() => abort("Native Read stage: acquire-host"))
-  let scope = host.borrow_backing().unwrap_or_else(() => abort("Native Read stage: borrow-root"))
-  host.enter_backing_borrow_scope(scope).unwrap_or_else(() => abort("Native Read stage: enter-root"))
+  let scope = host
+    .borrow_backing()
+    .unwrap_or_else(() => abort("Native Read stage: borrow-root"))
+  host
+  .enter_backing_borrow_scope(scope)
+  .unwrap_or_else(() => abort("Native Read stage: enter-root"))
   let domain = match
     host
     .prepare_domain_in_process(
@@ -40,10 +44,18 @@ test "same original Native Read acquires its window before resize and constructo
     PreparedDomain(value) => value
     PendingDomain(_, _) => fail("original domain pending")
   }
-  host.transfer_domain(domain).unwrap_or_else(() => abort("Native Read stage: transfer-domain"))
-  host.leave_backing_borrow_scope(scope).unwrap_or_else(() => abort("Native Read stage: leave-root"))
-  host.return_backing_borrow(scope).unwrap_or_else(() => abort("Native Read stage: return-root"))
-  host.prepare_domain_read(domain, execution_ceiling=32L * mib).unwrap_or_else(() => abort("Native Read stage: prepare-read-context"))
+  host
+  .transfer_domain(domain)
+  .unwrap_or_else(() => abort("Native Read stage: transfer-domain"))
+  host
+  .leave_backing_borrow_scope(scope)
+  .unwrap_or_else(() => abort("Native Read stage: leave-root"))
+  host
+  .return_backing_borrow(scope)
+  .unwrap_or_else(() => abort("Native Read stage: return-root"))
+  host
+  .prepare_domain_read(domain, execution_ceiling=32L * mib)
+  .unwrap_or_else(() => abort("Native Read stage: prepare-read-context"))
   let read = match
     host
     .prepare_domain_original_read(domain, {
@@ -63,8 +75,12 @@ test "same original Native Read acquires its window before resize and constructo
   // The minimum consuming quote is not the actual original funded amount.
   assert_eq(consumer.retained_bytes, 131072L)
   assert_eq(consumer.execution_bytes, mib)
-  host.enter_domain_original_read_consumer(consumer).unwrap_or_else(() => abort("Native Read stage: enter-consumer"))
-  let before = host.observe_domain_inventory(domain).unwrap_or_else(() => abort("Native Read stage: observe-before"))
+  host
+  .enter_domain_original_read_consumer(consumer)
+  .unwrap_or_else(() => abort("Native Read stage: enter-consumer"))
+  let before = host
+    .observe_domain_inventory(domain)
+    .unwrap_or_else(() => abort("Native Read stage: observe-before"))
   let (header, _, _, _, _) = @bootstrap.native_managed_value_layout()
   host
   .prepare_domain_original_read_construction(
@@ -74,7 +90,9 @@ test "same original Native Read acquires its window before resize and constructo
     header + 6L * mib + 1L,
   )
   .unwrap_or_else(() => abort("Native Read stage: acquire-resize-original"))
-  let after = host.observe_domain_inventory(domain).unwrap_or_else(() => abort("Native Read stage: observe-after"))
+  let after = host
+    .observe_domain_inventory(domain)
+    .unwrap_or_else(() => abort("Native Read stage: observe-after"))
   assert_true(after.capacity_bytes > before.capacity_bytes)
   assert_true(physical_equal(consumer.read, read))
   assert_true(
@@ -83,13 +101,17 @@ test "same original Native Read acquires its window before resize and constructo
   let body = Bytes::make(6 * 1048576, 71)
   assert_eq(body.length(), 6 * 1048576)
   assert_eq(body[body.length() - 1], 71)
-  host.leave_domain_original_read_consumer(consumer).unwrap_or_else(() => abort("Native Read stage: leave-consumer"))
+  host
+  .leave_domain_original_read_consumer(consumer)
+  .unwrap_or_else(() => abort("Native Read stage: leave-consumer"))
   match host.close_domain_original_read(read) {
     Ok(_) => ()
     Err(issue) => {
       let family = match issue {
-        Domain(@bootstrap.Bootstrap(@bootstrap.Physical(code))) => "physical=" + code.to_string()
-        Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)) => "ReadersPending"
+        Domain(@bootstrap.Bootstrap(@bootstrap.Physical(code))) =>
+          "physical=" + code.to_string()
+        Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)) =>
+          "ReadersPending"
         Domain(@bootstrap.Bootstrap(_)) => "bootstrap"
         Domain(@bootstrap.Accounting(_)) => "domain-accounting"
         Child(_) => "child"
@@ -102,20 +124,29 @@ test "same original Native Read acquires its window before resize and constructo
       println("Native Read close family: " + family)
       match host.observe_domain_original_read_cleanup(read) {
         Err(_) => println("Native Read cleanup observation unavailable")
-        Ok(observed) => println(
-          "Native Read cleanup blocks=" + observed.managed_live_blocks.to_string() +
-          " bytes=" + observed.managed_requested_bytes.to_string() +
-          " min=" + observed.minimum_managed_request.to_string() +
-          " max=" + observed.maximum_managed_request.to_string() +
-          " active=" + observed.active.to_string() +
-          " users=" + observed.users.to_string(),
-        )
+        Ok(observed) =>
+          println(
+            "Native Read cleanup blocks=" +
+            observed.managed_live_blocks.to_string() +
+            " bytes=" +
+            observed.managed_requested_bytes.to_string() +
+            " min=" +
+            observed.minimum_managed_request.to_string() +
+            " max=" +
+            observed.maximum_managed_request.to_string() +
+            " active=" +
+            observed.active.to_string() +
+            " users=" +
+            observed.users.to_string(),
+          )
       }
       abort("Native Read stage: close-read")
     }
   }
   assert_true(read.closed && read.consumer is None && read.physical_retired.val)
-  host.close_domain_after_owner_ack(domain).unwrap_or_else(() => abort("Native Read stage: close-domain"))
+  host
+  .close_domain_after_owner_ack(domain)
+  .unwrap_or_else(() => abort("Native Read stage: close-domain"))
   host.try_close().unwrap_or_else(() => abort("Native Read stage: close-host"))
   assert_true(host.closed && domain.closed)
 }

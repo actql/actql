@@ -17,6 +17,20 @@ extern "C" fn quote_checked_read_growth_covering_ffi(
 
 ///|
 #borrow(backing, domain)
+extern "C" fn suspend_read_for_parent_accounting_ffi(
+  backing : Backing,
+  domain : PhysicalExtentDomain,
+) -> Int = "actql_bootstrap_suspend_read_for_parent_accounting"
+
+///|
+#borrow(backing, domain)
+extern "C" fn resume_read_after_parent_accounting_ffi(
+  backing : Backing,
+  domain : PhysicalExtentDomain,
+) -> Int = "actql_bootstrap_resume_read_after_parent_accounting"
+
+///|
+#borrow(backing, domain)
 extern "C" fn domain_growth_eligible_ffi(
   backing : Backing,
   domain : PhysicalExtentDomain,
@@ -168,22 +182,61 @@ fn[T, C] NativeHostBootstrap::grow_backed_domain_working(
   // Charge the ENTIRE actual addition on the original parent before mmap.
   // The child receives no new logical permission. Receipt/control/payload and
   // even an unattached partial mapping stay in this claim until root cleanup.
-  let growth = match
-    @resources.begin_shared_capacity_growth(
-      self.capacity,
-      control,
-      before + addition,
-      addition,
-    ) {
-    Err(issue) => {
+  // Root LedgerUsage and the nominal growth carrier must live in the
+  // existing parent control, never in the child frame they will outlive.
+  let staged : Ref[@resources.SharedCapacityGrowth?] = Ref(None)
+  if checked_read {
+    let suspended = suspend_read_for_parent_accounting_ffi(
+      self.backing,
+      domain.physical,
+    )
+    if suspended != 0 {
       cancel_domain_growth_quote_ffi(self.backing, domain.physical, serial)
       |> ignore
-      return Err(Bootstrap(Resource(issue)))
+      return Err(Bootstrap(Physical(suspended)))
     }
-    Ok(value) => value
   }
-  self.growth = Some(growth)
-  domain.working_growth_serial = Some(serial)
+  let reserve = () => {
+    match
+      @resources.begin_shared_capacity_growth(
+        self.capacity,
+        control,
+        before + addition,
+        addition,
+      ) {
+      Err(issue) => Err(Bootstrap(Resource(issue)))
+      Ok(value) => {
+        staged.val = Some(value)
+        Ok(())
+      }
+    }
+  }
+  let reserved = if checked_read {
+    self.with_backed_read_bookkeeping(original, reserve)
+  } else {
+    reserve()
+  }
+  // Retain a real original even if leaving its parent bookkeeping failed.
+  if staged.val is Some(growth) {
+    self.growth = Some(growth)
+    domain.working_growth_serial = Some(serial)
+  }
+  let resumed = if checked_read {
+    resume_read_after_parent_accounting_ffi(self.backing, domain.physical)
+  } else {
+    0
+  }
+  if reserved is Err(issue) {
+    cancel_domain_growth_quote_ffi(self.backing, domain.physical, serial)
+    |> ignore
+    return Err(issue)
+  }
+  if resumed != 0 {
+    cancel_domain_growth_quote_ffi(self.backing, domain.physical, serial)
+    |> ignore
+    return Err(Bootstrap(Physical(resumed)))
+  }
+  guard staged.val is Some(growth) else { return Err(Bootstrap(Unavailable)) }
   // The parent's one current callback may have stopped this original child.
   // Recheck only retained child/current facts after it, with no new callback
   // or allocation between the final fence and the physical acquisition.
@@ -213,16 +266,10 @@ fn[T, C] NativeHostBootstrap::grow_backed_domain_working(
     }
   }
   if current is Err(issue) {
-    if cancel_domain_growth_quote_ffi(self.backing, domain.physical, serial) ==
-      0 {
-      match @resources.abort_shared_capacity_growth_after_cleanup(growth) {
-        Err(_) => () // Keep the exact logical pending original for cleanup.
-        Ok(_) => {
-          self.growth = None
-          domain.working_growth_serial = None
-        }
-      }
-    }
+    // Keep the original charge until cleanup observes this same no-acquire
+    // receipt outside the child; do not allocate Root rollback DATA in Read.
+    cancel_domain_growth_quote_ffi(self.backing, domain.physical, serial)
+    |> ignore
     return Err(issue)
   }
   let status = acquire_domain_growth_ffi(self.backing, domain.physical, serial)
@@ -235,15 +282,9 @@ fn[T, C] NativeHostBootstrap::grow_backed_domain_working(
     )
     // Only the original supplier's atomic no-acquisition outcome can return
     // this suffix. Partial/unknown results retain the SAME pending originals.
-    if outcome == 1L &&
-      cancel_domain_growth_quote_ffi(self.backing, domain.physical, serial) == 0 {
-      match @resources.abort_shared_capacity_growth_after_cleanup(growth) {
-        Err(issue) => return Err(Bootstrap(Resource(issue)))
-        Ok(_) => {
-          self.growth = None
-          domain.working_growth_serial = None
-        }
-      }
+    if outcome == 1L {
+      cancel_domain_growth_quote_ffi(self.backing, domain.physical, serial)
+      |> ignore
     }
     return Err(Bootstrap(Physical(status)))
   }
