@@ -30,6 +30,12 @@ test('historical typed-value binding independently matches the same Local materi
   const baseWire = readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8');
   const {evidence_bundle_cid: ignored, ...raw} = JSON.parse(baseWire); void ignored;
   const fixtureBody = compileFunction(capacity + '; return environmentBody;', ['environmentBody'])(structuredClone(raw));
+  const salesforceFixture = readFileSync(new URL('./fixtures/synthetic-historical-held-salesforce.mjs', import.meta.url), 'utf8');
+  const salesforceCapacity = select(salesforceFixture, node => node.type === 'AssignmentExpression' &&
+    node.left.property?.name === 'capacity' && node.left.object.property?.name === 'host_policy_profile' &&
+    node.left.object.object?.name === 'environmentBody');
+  const salesforceBody = compileFunction(salesforceCapacity + '; return environmentBody;',
+    ['environmentBody'])(structuredClone(raw));
   // Authored current-policy preimage, independent of the selected function's
   // output. Optional file listing uses the SAME 512MiB/256 nominal row ceiling.
   const expectedCapacity = {max_graph_construction_edges: 1000,
@@ -40,6 +46,8 @@ test('historical typed-value binding independently matches the same Local materi
     max_file_listing_items: 536870912 / 256,
     max_model_request_bytes_per_item: 65536};
   assert.deepEqual(fixtureBody.host_policy_profile.capacity, expectedCapacity);
+  assert.deepEqual(salesforceBody.host_policy_profile.capacity, expectedCapacity,
+    'the independent Salesforce historical fixture binds the same selected Local policy');
   // Explicit component ports for the SAME fixed Local policy, not funding or
   // an executed CheckEnvironment/Core claim. These are the existing service windows.
   const original = Object.freeze({});
