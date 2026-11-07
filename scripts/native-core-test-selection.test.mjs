@@ -61,6 +61,16 @@ test('Native ordinary partitions refuse duplicate missing foreign and empty orig
   assert.throws(() => nativeCoreOrdinaryPartitions([], paths, records.map(r => ({...r, benchmark: true}))), /nonempty/u);
 });
 
+test('Native ordinary nested package inputs retain their exact owner instead of their parent directory', () => {
+  const paths = ['src/parent', 'src/parent/child', 'src/other'];
+  const records = paths.map(directory => ({directory, source: directory + '/original_test.mbt',
+    benchmark: false, entry: [directory, 'original_test.mbt', {index: 0}]}));
+  const parts = nativeCoreOrdinaryPartitions(['--release'], paths, records);
+  assert.deepEqual(parts.flatMap(part => part.args.slice(1)).sort(), [...paths].sort());
+  assert.equal(parts.reduce((sum, part) => sum + part.cases, 0), 3);
+  for (const part of parts) assert.equal(part.args.length - 1, part.cases);
+});
+
 test('Native partition ownership runs HTTP Source scoped and repeated geometry exactly once', () => {
   const parts = [{args: ['--release', 'src/a'], cases: 4}, {args: ['--release', 'src/b'], cases: 7}];
   const profiles = {ordinary: {args: ['--release', 'src/a', 'src/b'], cases: 11, partitions: parts},
@@ -90,7 +100,10 @@ test('Native compiler discovery connects both partitions to unchanged original d
     '--pkg-name', 'fixture/'+name, '--driver-kind', 'blackbox'].join(' ');
   let generated = 0;
   const execute = (_tool, values) => {
-    if (values[0] === 'test') return [command('active'), command('empty')].join('\n');
+    if (values[0] === 'test') {
+      const paths = ['active', 'empty'].filter(name => values.includes(name));
+      return (paths.length ? paths : ['active', 'empty']).map(command).join('\n');
+    }
     assert.equal(values[0], 'generate-test-driver'); generated++;
     const path = values[values.indexOf('--output-metadata') + 1];
     writeFileSync(path, JSON.stringify({tests: {'main.mbt': [
@@ -104,6 +117,31 @@ test('Native compiler discovery connects both partitions to unchanged original d
   assert.equal(selected.profiles.ordinary.cases, 2);
   assert.deepEqual(selected.profiles.ordinary.partitions.map(p => p.cases), [1, 1]);
   assert.deepEqual(selected.profiles.ordinary.partitions.flatMap(p => p.args.slice(1)).sort(), ['active', 'empty']);
+  assert(selected.profiles.ordinary.partitions.every(p => p.drivers.length === 1));
+});
+
+test('Native compiler partition rejects foreign overlapping omitted and changed actual driver selections', t => {
+  const root = fixture(t);
+  const command = name => ['moon', 'generate-test-driver', '--output-driver', '_build/'+name+'/driver.mbt',
+    '--output-metadata', '_build/'+name+'/info.json', name+'/main.mbt', '--target', 'native',
+    '--pkg-name', 'fixture/'+name, '--driver-kind', 'blackbox'].join(' ');
+  for (const mode of ['foreign', 'omitted', 'changed']) {
+    const execute = (_tool, values) => {
+      if (values[0] === 'test') {
+        const paths = ['active', 'empty'].filter(name => values.includes(name));
+        if (paths.length === 1) return mode === 'foreign' ? [command('active'), command('empty')].join('\n')
+          : mode === 'omitted' ? '' : command(paths[0]).replace('/main.mbt', '/changed.mbt');
+        return [command('active'), command('empty')].join('\n');
+      }
+      writeFileSync(values[values.indexOf('--output-metadata') + 1], JSON.stringify({tests: {
+        'main.mbt': [{index: 0, name: 'original', attrs: [], line_number: 1}],
+      }}));
+      return '';
+    };
+    assert.throws(() => nativeCoreTestSelection(root, ['--release'], {execute,
+      partitionProfiles: true, ordinaryPartitions: true}),
+    /foreign or nested|overlapping|No compiler-owned|changed original compiler/u, mode);
+  }
 });
 
 test('Native metadata selection retains opaque doc/skip identities and refuses a changed selected inventory', t => {

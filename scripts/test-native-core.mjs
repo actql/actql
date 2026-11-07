@@ -49,7 +49,7 @@ if (partition && !full) throw new Error('Native Core partitions require the comp
 const testCompiler = full && args.lastIndexOf('--release') >
     Math.max(args.lastIndexOf('--debug'), args.lastIndexOf('-g'))
   ? nativeCoreCCompiler(root, namespace) : {};
-const compilerEnvironment = {...process.env, ...testCompiler};
+const compilerEnvironment = {...process.env, ACTQL_TEST_NATIVE_CORE_PARTITION: undefined, ...testCompiler};
 // Keep the original full classification and fixture/budget decisions. These
 // compiler-selected directories omit only packages with no Native test cases.
 const selection = full ? nativeCoreTestSelection(root, args,
@@ -108,6 +108,7 @@ const httpLifetime = full || args.some(arg => arg.includes('cmd/native_remote_re
   ? nativeHttpLifetimeFixture(namespace) : {};
 const fixtureEnvironment = {
   ...process.env,
+  ACTQL_TEST_NATIVE_CORE_PARTITION: undefined,
   // A full selection provisions this one physical case itself. Ambient roots
   // must not activate a different case or reuse an initialized relation Store.
   ...(full ? Object.fromEntries(['ORIGINAL_ROOT', 'RUNTIME_ROOT', 'RUNTIME_SOURCE',
@@ -180,7 +181,8 @@ if (full) {
       '--core-test-json', JSON.stringify(profile.args), '--core-test-count', String(profile.cases)],
     {cwd: root, stdio: 'inherit', env: environment}));
   };
-  runProfile(selection.profiles.ordinary, {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler});
+  runProfile(selection.profiles.ordinary, {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler,
+    ACTQL_TEST_NATIVE_CORE_PARTITION: partition});
   // The Source package uses the existing complete Source/HTTP fixture owner.
   // Its peer environment must never activate other ordinary Core packages.
   if (selection.profiles.source.args !== null) {

@@ -87,7 +87,7 @@ const selectedGeometryFiles = new Set([
 export function nativeCoreOrdinaryPartitions(args, paths, records) {
   assert(Array.isArray(args) && args.every(value => typeof value === 'string'));
   assert(Array.isArray(paths) && new Set(paths).size === paths.length);
-  const groups = new Map(), identities = new Set();
+  const groups = new Map(), identities = new Set(), owners = new Map();
   for (const record of records) {
     const identity = JSON.stringify(record.entry);
     assert(!identities.has(identity), 'Duplicate original Native partition case');
@@ -95,6 +95,9 @@ export function nativeCoreOrdinaryPartitions(args, paths, records) {
     assert(typeof record.directory === 'string' && typeof record.source === 'string');
     assert(paths.includes(record.directory) || paths.includes(record.source),
       'Native partition case has no original selected input');
+    const path = paths.includes(record.directory) ? record.directory : record.source;
+    assert(!owners.has(path) || owners.get(path) === record.directory, 'Ambiguous Native input owner');
+    owners.set(path, record.directory);
     if (!groups.has(record.directory)) groups.set(record.directory,
       {directory: record.directory, drivers: new Set(), cases: 0, records: []});
     const group = groups.get(record.directory);
@@ -116,8 +119,8 @@ export function nativeCoreOrdinaryPartitions(args, paths, records) {
     selected.directories.add(group.directory);
   }
   const result = partitions.map(partition => ({
-    args: [...args, ...paths.filter(path => partition.directories.has(path) ||
-      partition.directories.has(dirname(path)))], cases: partition.cases,
+    args: [...args, ...paths.filter(path => partition.directories.has(owners.get(path)))],
+    cases: partition.cases,
   }));
   const selectedPaths = result.flatMap(partition => partition.args.slice(args.length));
   assert.equal(selectedPaths.length, paths.length, 'Native partition omitted an original input');
@@ -289,6 +292,31 @@ export function nativeCoreTestSelection(repository, args, {
     const benchmarks = records.filter(record => record.benchmark).length;
     if (benchmarks) result.benchmarkDeclarations = benchmarks;
     if (splitProfiles) result.profiles = partitionProfiles(args, records, ordinaryPartitions);
+    if (ordinaryPartitions) {
+      const ownedDrivers = new Set();
+      for (const partition of result.profiles.ordinary.partitions) {
+        const paths = partition.args.slice(args.length);
+        const assigned = records.filter(record => paths.includes(record.directory) || paths.includes(record.source));
+        const directories = new Set(assigned.map(record => record.directory));
+        const drivers = discover(paths);
+        assert(drivers.size > 0, 'Empty compiler-owned Native partition');
+        for (const [key, driver] of drivers) {
+          const original = full.get(key);
+          assert(original, 'Foreign compiler-owned Native partition driver');
+          assert(!ownedDrivers.has(key), 'Native partition compiles an overlapping original driver');
+          ownedDrivers.add(key);
+          assert.deepEqual(driver.command, original.command,
+            'Native partition changed original compiler driver inputs');
+          const sources = original.command.slice(2).filter(arg => arg.endsWith('.mbt') && arg !== original.output);
+          assert(sources.length > 0 && sources.every(source => directories.has(
+            relative(repository, dirname(realpathSync(resolve(repository, source)))).split(sep).join('/') || '.')),
+          'Native partition selected a foreign or nested package driver');
+        }
+        assert(assigned.every(record => drivers.has(record.entry[0])),
+          'Native partition omitted an original compiler case driver');
+        partition.drivers = [...drivers.keys()];
+      }
+    }
     complete = true;
     return result;
   } finally {

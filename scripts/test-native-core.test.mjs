@@ -432,6 +432,81 @@ test('Native partition caller passes the complete compiler inventory before sele
   }
 });
 
+test('Native partition target oracle keeps original mandatory requests once and refuses every sibling request', () => {
+  const source = readFileSync(new URL('test-native-salesforce-effect-preview.mjs', import.meta.url), 'utf8');
+  const begin = source.indexOf('const corePartition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;');
+  const end = source.indexOf('// The complete file has', begin);
+  const startOracle = source.indexOf('  assert.equal(code, 0, `Native target observation failed:');
+  const endOracle = source.indexOf('  console.log(`Native Salesforce target observation receipt:', startOracle);
+  assert(begin >= 0 && end > begin && startOracle >= 0 && endOracle > startOracle);
+  const expected = '/services/data/v66.0/sobjects/ActQL_Test_Record__c/';
+  const originalPaths = [
+    ...['001', '001', '002'].map(id => ({method: 'GET', path: expected + '001000000000' + id})),
+    ...['001', '002', '003'].map(id => ({method: 'PATCH', path: expected + '001000000000' + id})),
+  ];
+  const check = (partition, selected, changes = {}) => {
+    const context = {assert, process: {env: {ACTQL_TEST_NATIVE_CORE_PARTITION: partition}},
+      coreArgs: selected ? ['src/platform_native/salesforce_effect_preview/native_test'] : ['src/other'],
+      residentProposals: false, originalLocalReview: false, directLocalClaimCustody: false,
+      residentMappedCreate: false, residentOriginalHolder: false,
+      code: 0, signal: null, expected, paths: selected ? originalPaths : [],
+      writes: selected ? 2 : 0, rejectedWrites: selected ? 1 : 0,
+      writeBodies: Array(selected ? 2 : 0).fill('{"Optional_Value__c":"new"}'),
+      resolutionRequests: 0, reviewUploads: 0, checkpointReportRequests: 0, ...changes};
+    // Values inside the actual assertion body belong to its VM realm.
+    const body = 'const paths=JSON.parse(pathsWire), writeBodies=JSON.parse(bodiesWire);\n' +
+      source.slice(begin, end) + source.slice(startOracle, endOracle);
+    const pathsWire = JSON.stringify(context.paths), bodiesWire = JSON.stringify(context.writeBodies);
+    delete context.paths; delete context.writeBodies;
+    return runInNewContext(body, {...context, pathsWire, bodiesWire});
+  };
+  for (const partition of ['1/2', '2/2']) {
+    assert.doesNotThrow(() => check(partition, true));
+    assert.doesNotThrow(() => check(partition, false));
+    assert.throws(() => check(partition, true, {writes: 0, rejectedWrites: 0, writeBodies: [], paths: []}));
+    assert.throws(() => check(partition, false, {writes: 1}));
+    assert.throws(() => check(partition, false, {paths: [originalPaths[0]]}));
+    assert.throws(() => check(partition, false, {code: 7}));
+  }
+  assert.throws(() => check('3/3', false), /original selected case inventory/u);
+});
+
+test('Native partition marker reaches only its ordinary oracle and never other fixture or compiler children', () => {
+  const source = readFileSync(new URL('test-native-core.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('  const runProfile = (profile, environment) => {');
+  const end = source.indexOf('  // The Source package', start);
+  assert(start >= 0 && end > start);
+  for (const partition of ['1/2', '2/2']) {
+    const process = {env: {ACTQL_TEST_NATIVE_CORE_PARTITION: partition, original: 'preserved'}, execPath: '/node'};
+    const compilerLine = source.match(/^const compilerEnvironment = .+;$/mu)?.[0];
+    assert(compilerLine);
+    const compiler = runInNewContext(compilerLine + '\ncompilerEnvironment;', {process, testCompiler: {PATH: '/original-compiler'}});
+    assert.equal(compiler.ACTQL_TEST_NATIVE_CORE_PARTITION, undefined);
+    const beforeFixture = source.indexOf('const fixtureEnvironment = {');
+    const afterFixture = source.indexOf('  // A full selection', beforeFixture);
+    assert(beforeFixture >= 0 && afterFixture > beforeFixture);
+    const fixtureEnvironment = runInNewContext(source.slice(beforeFixture, afterFixture) + '\n};\nfixtureEnvironment;', {process});
+    assert.equal(fixtureEnvironment.ACTQL_TEST_NATIVE_CORE_PARTITION, undefined);
+    assert.equal(fixtureEnvironment.original, 'preserved');
+    const original = {args: ['--release', 'src/selected'], cases: 3};
+    let calls = 0;
+    runInNewContext(source.slice(start, end), {
+      process, root: '/original', fixtureEnvironment, ordinaryProcess: {physical: 'original'},
+      testCompiler: {PATH: '/original-compiler'}, partition,
+      selection: {profiles: {ordinary: original}}, console: {log() {}}, checkChild() {},
+      spawnSync(command, args, options) {
+        calls++;
+        assert.equal(command, '/node'); assert.equal(args[0], 'scripts/test-native-salesforce-effect-preview.mjs');
+        assert.deepEqual(JSON.parse(args[2]), original.args); assert.equal(args[4], '3');
+        assert.equal(options.env.ACTQL_TEST_NATIVE_CORE_PARTITION, partition);
+        assert.equal(options.env.physical, 'original'); assert.equal(options.env.PATH, '/original-compiler');
+        return {status: 0};
+      },
+    });
+    assert.equal(calls, 1);
+  }
+});
+
 test('Compiler stop diagnostic requires the actual failed blackbox input', () => {
   const driver = failedCoreDriver('/checkout', '/pinned');
   const line = 'failed: /pinned/bin/moon generate-test-driver --output-driver ' +
