@@ -320,10 +320,22 @@ pub fn admit_client_effect_run_materials(
     body.normalization_wire {
     None => (None, None, None)
     Some(wire) => {
-      let inventory = match
-        checked_client_effect_normalization_inventory(prepared) {
-        Ok(value) => value
-        Err(issue) => return Err(Normalization(issue))
+      let retained_inventory = match original_compilation {
+        Some(original) => original.normalization_profile
+        None => None
+      }
+      let inventory = match retained_inventory {
+        Some(original) => {
+          if !client_effect_normalization_inventory_matches(original, prepared) {
+            return Err(Normalization(ForeignPreparation))
+          }
+          original
+        }
+        None =>
+          match checked_client_effect_normalization_inventory(prepared) {
+            Ok(value) => value
+            Err(issue) => return Err(Normalization(issue))
+          }
       }
       if original_materials is Some(issued) {
         match issued.normalization_profile {

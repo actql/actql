@@ -78,13 +78,26 @@ pub fn local_program_common_normalization_inventory(
   owner : CheckedProgram,
   max_work : Int,
 ) -> Result[LocalCommonNormalizationInventory, LocalCommonNormalizationIssue] {
+  if owner.has_effects {
+    return Err(UnsupportedRequirement)
+  }
+  audit_local_common_normalization_inventory(owner, max_work)
+}
+
+///|
+// The Effect entry is called only after its original static Mapping closure.
+// Share the same occurrence walk; do not duplicate an operation tag table.
+fn audit_local_common_normalization_inventory(
+  owner : CheckedProgram,
+  max_work : Int,
+) -> Result[LocalCommonNormalizationInventory, LocalCommonNormalizationIssue] {
   if max_work < 0 {
     return Err(InvalidLimits)
   }
   let budget = { remaining: max_work, }
   try {
     local_common_charge(budget, 1)
-    if owner.has_effects || owner.units.is_empty() {
+    if owner.units.is_empty() {
       return Err(UnsupportedRequirement)
     }
     // Host Invocation Bindings are a distinct completion domain. Until their

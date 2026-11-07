@@ -17,6 +17,7 @@ pub(all) enum ClientEffectNormalizationIssue {
 enum ClientEffectNormalizationInventory {
   MappedCreate(@checked.CompletionFreeInventory)
   LocalUpdate(@checked.LocalUpdateCompletionFreeInventory)
+  CommonUpdate(@checked.LocalCommonUpdateCompletionFreeInventory)
 }
 
 ///|
@@ -34,6 +35,11 @@ pub fn client_effect_completion_free_catalog_cid() -> String {
 ///|
 pub fn client_effect_local_update_completion_free_catalog_cid() -> String {
   "sha256:9ba6d5dff43cd54b0d61d6923fd4cb3143e1a5e238bad20b297133393d783468"
+}
+
+///|
+fn client_effect_common_update_completion_free_catalog_cid() -> String {
+  "sha256:1263116a02d125a0c66f2445a175075d4ec333e56f3d003d35e9d51065fecf8f"
 }
 
 ///|
@@ -60,6 +66,11 @@ fn client_effect_normalization_inventory_profile(
         "actql-local-update-completion-free/0.1",
         client_effect_local_update_completion_free_catalog_cid(),
       )
+    CommonUpdate(_) =>
+      (
+        "actql-local-common-update-completion-free/0.1",
+        client_effect_common_update_completion_free_catalog_cid(),
+      )
   }
 }
 
@@ -72,6 +83,8 @@ fn client_effect_normalization_inventory_journal_cid(
       "sha256:849788c9eede8ad674223eb06775c2dba2cf0ed1d02ceb0a5de6ccfeec2cb087"
     LocalUpdate(_) =>
       "sha256:e9f69915b6368e0c8e1669b010e57e65f633bd5a8d589d3b3575c2b043f4b44d"
+    CommonUpdate(_) =>
+      "sha256:8b5172ca35db5cd4f35b8e6bbde52243d92b9e9027c2fc4568b8d66a5334ffb1"
   }
 }
 
@@ -85,7 +98,8 @@ fn same_client_effect_normalization_profile(
   match (left, right) {
     (None, None)
     | (Some(MappedCreate(_)), Some(MappedCreate(_)))
-    | (Some(LocalUpdate(_)), Some(LocalUpdate(_))) => true
+    | (Some(LocalUpdate(_)), Some(LocalUpdate(_)))
+    | (Some(CommonUpdate(_)), Some(CommonUpdate(_))) => true
     _ => false
   }
 }
@@ -94,6 +108,11 @@ fn same_client_effect_normalization_profile(
 fn checked_client_effect_normalization_inventory(
   owner : PreparedClientEffectComputation,
 ) -> Result[ClientEffectNormalizationInventory, ClientEffectNormalizationIssue] {
+  if owner.normalization is Some(original) &&
+    physical_equal(original.owner, owner) &&
+    client_effect_normalization_inventory_matches(original.inventory, owner) {
+    return Ok(original.inventory)
+  }
   let headers = @checked.effect_program_static_headers(owner.candidate)
   guard @syntax.effect_header_count(headers) == 1 else {
     return Err(Inventory(ProfileNotInstalled))
@@ -105,11 +124,19 @@ fn checked_client_effect_normalization_inventory(
       .map(fn(value) { MappedCreate(value) })
       .map_err(fn(issue) { Inventory(issue) })
     "update" =>
-      @checked.effect_program_local_update_completion_free_inventory(
-        owner.candidate,
-      )
-      .map(fn(value) { LocalUpdate(value) })
-      .map_err(fn(issue) { Inventory(issue) })
+      match
+        @checked.effect_program_local_update_completion_free_inventory(
+          owner.candidate,
+        ) {
+        Ok(value) => Ok(LocalUpdate(value))
+        Err(ProfileNotInstalled) =>
+          @checked.effect_program_common_update_completion_free_inventory(
+            owner.candidate,
+          )
+          .map(value => CommonUpdate(value))
+          .map_err(issue => Inventory(issue))
+        Err(issue) => Err(Inventory(issue))
+      }
     _ => Err(Inventory(ProfileNotInstalled))
   }
 }
@@ -127,6 +154,11 @@ fn client_effect_normalization_inventory_matches(
         inventory,
         owner.candidate,
       )
+    CommonUpdate(inventory) =>
+      @checked.local_common_update_completion_free_inventory_matches(
+        inventory,
+        owner.candidate,
+      )
   }
 }
 
@@ -139,7 +171,7 @@ pub fn issue_prepared_client_effect_normalization(
   if owner.normalization is Some(original) {
     return match original.inventory {
       MappedCreate(_) => Ok(original)
-      LocalUpdate(_) => Err(Inventory(ProfileNotInstalled))
+      LocalUpdate(_) | CommonUpdate(_) => Err(Inventory(ProfileNotInstalled))
     }
   }
   let inventory = match
@@ -172,7 +204,7 @@ pub fn issue_prepared_client_effect_local_update_normalization(
   if owner.normalization is Some(original) {
     return match original.inventory {
       LocalUpdate(_) => Ok(original)
-      MappedCreate(_) => Err(Inventory(ProfileNotInstalled))
+      MappedCreate(_) | CommonUpdate(_) => Err(Inventory(ProfileNotInstalled))
     }
   }
   let inventory = match
@@ -212,6 +244,7 @@ pub fn issue_prepared_client_effect_selected_normalization(
     MappedCreate(_) => issue_prepared_client_effect_normalization(owner)
     LocalUpdate(_) =>
       issue_prepared_client_effect_local_update_normalization(owner)
+    CommonUpdate(_) => issue_common_update_normalization(owner, selected)
   }
   match original {
     Err(issue) => Err(issue)
@@ -270,4 +303,34 @@ pub fn restore_prepared_client_effect_normalization(
     Ok(value) => Ok(value)
     Err(issue) => Err(Evidence(issue))
   }
+}
+
+///|
+fn issue_common_update_normalization(
+  owner : PreparedClientEffectComputation,
+  inventory : ClientEffectNormalizationInventory,
+) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue] {
+  guard inventory is CommonUpdate(_) &&
+    client_effect_normalization_inventory_matches(inventory, owner) else {
+    return Err(ForeignPreparation)
+  }
+  if owner.normalization is Some(original) {
+    guard original.inventory is CommonUpdate(_) else {
+      return Err(Inventory(ProfileNotInstalled))
+    }
+    return Ok(original)
+  }
+  let wire = "{\"entries\":[],\"rule_catalog_cid\":\"" +
+    client_effect_common_update_completion_free_catalog_cid() +
+    "\",\"version\":\"actql-normalization-journal/0.1\"}"
+  let journal = match
+    @publication.seal_run_evidence_value(
+      "normalization_journal", wire, 1024, 32, 8,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  let original = { owner, inventory, journal, }
+  owner.normalization = Some(original)
+  Ok(original)
 }
