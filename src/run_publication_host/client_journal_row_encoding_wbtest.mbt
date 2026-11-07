@@ -137,17 +137,38 @@ test "observed submitted row requests original constructor backing before encodi
   assert_eq((calls[0].1, calls[0].2), (16, 2))
   // Explicit constructor port only; this fixture does not establish Native
   // Read backing, its physical allocator, COMMIT or normal acceptance.
-  let body = client_submitted_intent_journal_row_body(
+  // One emission requests each finite next batch from actual writer progress.
+  // Keep the original first debit, rather than requiring every later debit to
+  // repeat that first tuple after the writer has already emitted bytes.
+  let observed : Array[(Int, Int, Int)] = []
+  let mut maximum = 0
+  let body_result = client_submitted_intent_journal_row_body(
     "original-reference",
     intent,
     before_construction=Some((bytes, nodes, depth) => {
-      if (bytes, nodes, depth) == calls[0] {
+      let valid = bytes >= maximum &&
+        nodes == 16 &&
+        depth == 2 &&
+        (observed.length() > 0 || (bytes, nodes, depth) == calls[0])
+      observed.push((bytes, nodes, depth))
+      maximum = bytes
+      if valid {
         Ok(())
       } else {
         Err(Encoding)
       }
     }),
-  ).unwrap()
+  )
+  let body = match body_result {
+    Ok(value) => value
+    Err(Encoding) => fail("ObservedSubmittedRowEncoding")
+    Err(CapacityExceeded) => fail("ObservedSubmittedRowCapacityExceeded")
+  }
+  assert_true(observed.length() > 1)
+  assert_eq(observed[0], calls[0])
+  assert_true(maximum >= body.length())
+  // At most the original finite next batch remains beyond the emitted row.
+  assert_true(maximum < body.length() + calls[0].0)
   let expected = "{\"intent\":\"{\\\"input\\\":{\\\"text\\\":\\\"" +
     "x".repeat(70000) +
     "\\\"},\\\"kind\\\":\\\"aql\\\",\\\"parameters\\\":null}\",\"phase\":\"preparing\",\"reference\":\"original-reference\",\"version\":\"actql-native-client-submitted-intent-row/0.1\"}"
