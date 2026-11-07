@@ -5,6 +5,7 @@ priv struct LocalProjectMockSourceDeclaration {
   _retained_connection : String
   _retained_entry : Json
   _retained_declaration : @row_host.RowDeclaration
+  _retained_files : Array[LocalProjectMockFileBinding]
 }
 
 ///|
@@ -141,12 +142,26 @@ fn LocalProjectMockDeclarations::prepare_source_declarations(
         return Err(Source(issue))
       }
     }
+    let files = match
+      local_project_mock_file_bindings(
+        connection,
+        entry,
+        declaration,
+        self._retained_data_file,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        self.model_failure = Some(Source(issue))
+        return Err(Source(issue))
+      }
+    }
     // Keep the same declaration before constructing the next sibling. These
     // are contracts, not installation members, physical Sources or read grants.
     self.sources.push({
       _retained_connection: connection,
       _retained_entry: entry,
       _retained_declaration: declaration,
+      _retained_files: files,
     })
   }
   Ok(())

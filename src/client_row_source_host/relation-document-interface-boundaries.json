@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_document_target.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "f8796991426ef98dd47c2291ec7957cfbac2bf09ac1f0848483d27381283da6d",
+      "sha256": "57bfc1e0dca953ec20f0887ddc46045817f0676069903dfdd33b83030a5198d1",
       "role": "common-semantics",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -55,7 +55,7 @@
         },
         {
           "name": "project_relation_target_document",
-          "declaration": "project_relation_target_document ( backing : RelationDocument , declaration : RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] ? , primary_identity : String , writable_fields : Array [ String ] , ) - > Result [ RelationTargetDocument , RowSourceIssue ]"
+          "declaration": "project_relation_target_document ( backing : RelationDocument , declaration : RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] ? , primary_identity : String , writable_fields : Array [ String ] , prepared_contract ? : RelationDocumentPreparedContract ?"
         },
         {
           "name": "relation_document_field",

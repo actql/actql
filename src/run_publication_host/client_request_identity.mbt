@@ -284,8 +284,16 @@ fn derive_client_request_identity(
     caller_request_id,
     scope,
     intent_fingerprint_cid: "sha256:" + @sha.hex(@utf8.encode(intent)),
-    program_definition_cid: checked.program_definition_cid,
-    parameter_values_cid: checked.parameter_values_cid,
+    // This logical identity survives retirement of its checked payload.
+    // Own only these two already validated, fixed-length CID strings in the
+    // constructor's lifetime; never retain that payload's native allocation.
+    // This copies DATA, not a preparation, Request, issuer or permission.
+    program_definition_cid: String::from_array(
+      checked.program_definition_cid.to_array(),
+    ),
+    parameter_values_cid: String::from_array(
+      checked.parameter_values_cid.to_array(),
+    ),
     caller_input_intent_cid,
   })
 }

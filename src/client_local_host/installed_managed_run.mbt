@@ -1632,6 +1632,9 @@ pub fn retire_installed_managed_run(
   // The original cleanup proved every borrower stopped. Retained Run handles
   // keep identity and terminal state, not the heavy immutable preparation.
   value.preparation = None
+  for index in 0..<value.reads.length() {
+    value.reads[index] = None
+  }
   value.reads.clear()
   value.keyed_reads.clear()
   value.content = NoContent

@@ -77,6 +77,7 @@ fn native_project_mock_model_backed_read(
   sources? : Bool = false,
   private_source_field? : Bool = false,
   source_environment? : Bool = false,
+  file_bindings? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -131,7 +132,9 @@ fn native_project_mock_model_backed_read(
       fail("actual metadata Read pending")
   }
   host.enter_domain_original_read(read).unwrap()
-  if source_environment {
+  if file_bindings {
+    native_project_mock_file_bindings_in_original_read()
+  } else if source_environment {
     native_project_mock_source_environment_in_original_read()
   } else if private_source_field {
     native_project_mock_source_private_field_in_original_read()
@@ -195,6 +198,31 @@ fn native_project_mock_source_in_original_read() -> Unit raise {
       wire.contains("\"cardinality\":\"one\"")
     }),
   )
+  assert_eq(salesforce._retained_files.length(), 0)
+  assert_eq(drive._retained_files.length(), 1)
+  let file = drive._retained_files[0]
+  assert_eq(file.listing.resource, "files")
+  assert_eq(file.content.resource, "contents")
+  assert_eq(file._retained_selection.resource, "files")
+  assert_eq(file._retained_selection.items_path, ["drive", "files", "rows"])
+  assert_eq(file._retained_selection.key_path, Some(["drive", "files", "key"]))
+  assert_eq(file._retained_selection.primary_identity, "id")
+  assert_eq(file._retained_identity, "id")
+  assert_eq(file._retained_name, "name")
+  assert_eq(file._retained_version, "version")
+  assert_eq(file._retained_media_type, "media_type")
+  assert_eq(file._retained_content_utf8, "content_utf8")
+  assert_eq(file._retained_path, None)
+  assert_eq(file._retained_limits.page.max_bytes, 1048576)
+  assert_true(file._retained_selection.directory.has_suffix("/mock"))
+  assert_eq(file._retained_selection.name, "data.json")
+  assert_true(
+    @execution.execution_capacity_retained_bytes(
+      file._retained_provider.capacity(),
+    ) >
+    0L,
+  )
+  assert_eq(file._retained_physical.views[0].resource, "files")
   assert_true(original.prepare_source_declarations() is Err(AlreadyPreparing))
   assert_eq(original.sources.length(), 2)
   assert_true(original.model_profile is None)
@@ -394,4 +422,69 @@ test "Native Project input keeps the original consuming Read current" {
   host.close_domain_after_owner_ack(sqlite_domain).unwrap()
   host.try_close().unwrap()
   assert_true(current is Ok(_))
+}
+
+///|
+fn native_project_mock_file_bindings_in_original_read() -> Unit raise {
+  let original = native_project_mock_model_fixture("deal-review-missing")
+  defer original.retire()
+  original.prepare_source_declarations().unwrap()
+  let source = original.sources[1]
+  // Only authored declaration copies change in these distinct input cases.
+  // The actual Source payload is absent, and no replacement original is issued.
+  let wire = original._retained_catalog.at(1).unwrap().1
+  for variant in 0..<3 {
+    let entry = @json.parse(wire)
+    guard entry is Object(root) &&
+      root.get("file_bindings") is Some(Array(bindings)) &&
+      bindings[0] is Object(binding) &&
+      root.get("data") is Some(Array(data)) &&
+      data[0] is Object(physical) &&
+      physical.get("schema") is Some(Object(schema)) else {
+      fail("authored file binding")
+    }
+    if variant == 0 {
+      binding["unexpected_field"] = Json::string("never-a-role")
+    } else if variant == 1 {
+      schema["version"] = ({ "type": "number", "nullable": false } : Json)
+    } else {
+      data.push(data[0])
+    }
+    assert_true(
+      local_project_mock_file_bindings(
+        source._retained_connection,
+        entry,
+        source._retained_declaration,
+        original._retained_data_file,
+      )
+      is Err(@row_host.InvalidSpecification),
+    )
+  }
+  // The existing optional path role permits nullable String. Do not turn the
+  // required identity/version/Text rules into a new path nullability law.
+  let entry = @json.parse(wire)
+  guard entry is Object(root) &&
+    root.get("file_bindings") is Some(Array(bindings)) &&
+    bindings[0] is Object(binding) &&
+    root.get("data") is Some(Array(data)) &&
+    data[0] is Object(physical) &&
+    physical.get("schema") is Some(Object(schema)) else {
+    fail("authored file binding")
+  }
+  binding["path_field"] = Json::string("optional_path")
+  schema["optional_path"] = ({ "type": "string", "nullable": true } : Json)
+  let selected = local_project_mock_file_bindings(
+    source._retained_connection,
+    entry,
+    source._retained_declaration,
+    original._retained_data_file,
+  ).unwrap()
+  assert_eq(selected.length(), 1)
+  assert_eq(selected[0]._retained_path, Some("optional_path"))
+  assert_eq(source._retained_files[0]._retained_path, None)
+}
+
+///|
+test "Native Project Mock actual backed Read checks original physical file roles before payload" {
+  native_project_mock_model_backed_read(false, file_bindings=true)
 }

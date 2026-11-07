@@ -4,11 +4,15 @@
     {
       "module": "src/client_row_source_host/relation_document_construction.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "543c284dc3b936597d94571fa9952d71feecee43e367f7577922ea4c331feb01",
+      "sha256": "2fd5d93604682b6d2ac4f2649bc39ad7163fa0c56494550427a5911927abf01b",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
       "operations": [
+        {
+          "name": "prepare_relation_document_contract",
+          "declaration": "prepare_relation_document_contract ( declaration : RowDeclaration , resource : String , primary_identity : String , limits : RowPageLimits , ) - > Result [ RelationDocumentPreparedContract , RowMappingIssue ]"
+        },
         {
           "name": "relation_document_construction_inventory",
           "declaration": "relation_document_construction_inventory ( limits : RowPageLimits , projections : Array [ RelationDocumentProjectionConstruction ] , ) - > @ execution . PreparationRepresentationUnits ?"
@@ -28,6 +32,10 @@
         {
           "name": "relation_document_nested_construction",
           "declaration": "relation_document_nested_construction ( fields : @ contract . Fields , ) - > ( Int , Bool , Bool , Bool )"
+        },
+        {
+          "name": "relation_document_prepared_contract",
+          "declaration": "relation_document_prepared_contract ( original : RelationDocumentPreparedContract , ) - > @ contract . Contract"
         },
         {
           "name": "relation_document_projection_construction_inventory",
@@ -58,7 +66,9 @@
             "relation_document_projection_construction_inventory",
             "relation_document_projection_contract",
             "relation_document_raw_construction_inventory",
-            "relation_document_typed_construction"
+            "relation_document_typed_construction",
+            "prepare_relation_document_contract",
+            "relation_document_prepared_contract"
           ],
           "exports": [],
           "attributes": {

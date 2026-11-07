@@ -62,7 +62,7 @@ which must be funded before evaluating that query. Neither function issues
 capacity, authorization or an installation original. For the accepted minimum,
 the diagnostic page (8192 bytes, 512 nodes, depth 8, two rows, one path item),
 and the maximum accepted page/path shape, the independently authored full
-caller totals are 222451, 23075950 and 296410702 logical bytes. The larger bound
+caller totals are 222539, 23076038 and 296410790 logical bytes. The larger bound
 does not imply that any installed envelope can admit it.
 
 ## Explicit scoped diagnostic
@@ -110,3 +110,47 @@ document admission. The fixture also
 checks original identity rejection, unavailable scope, an oversized file, and
 capture invalidation. Changed-generation races and injected uncertain OS close
 outcomes are not covered by this component fixture.
+
+## Same Request managed input
+
+`prepare_native_managed_relation_file_input_capture` consumes the original
+`ClientInstalledSourceRead`, whole-input capacity and provider retained by the
+same checked Request Plan. It starts that read's existing RowRun once, requiring
+the exact physical Ledger before consuming the start slot. Provider amounts or
+equal declaration bytes do not substitute for these originals. The separate
+`native_relation_file_provider_capacity` query supplies immutable geometry
+before Plan construction; it grants neither backing nor permission.
+
+The managed fixture prepares immutable installation contracts outside the
+payload, checks and compiles the Program once on its real backed Request, and
+constructs logical Request identity and long-lived Run controls in the outer
+caller lifetime. Actual Source file access and child cleanup occur only in the
+same entered Native payload. Final parent accounting and physical retirement
+remain distinct. This fixture does not supply normal Host first-entry backing,
+Account/Journal permission, installed Source/Content/Model/Effect configuration,
+approval, Result publication or Saved acceptance.
+
+Stopping the existing Compute DAG drops only its cached supplied Read gates.
+Those gates close over the DAG and otherwise root a reciprocal allocation after
+stop. Active implementations retain their own admitted inputs and cleanup duties.
+After actual read cleanup the managed Run drops its cached read slots, rather
+than merely clearing array length. A completed Resource retirement drops its
+now-unneeded capacity callback only after the original retirement returns true;
+pending/failure and physical ACK remain with their original owners.
+
+A normal declared-file caller can prepare `NativeRelationFilePreparedProvider`
+once under its original metadata scope. Its opaque Common prepared contract,
+selection snapshot and exact immutable capacity accompany the same managed
+Plan. At read time, `prepared_provider` checks those original correspondences
+and reuses the checked contract and quote. It does not create a Ledger or an
+Account/read grant. Mutable input path arrays cannot replace the retained
+snapshot. Public limit records are immutable DATA compared by quantity, while
+the managed Plan still requires the same capacity original.
+
+The independent component entrance retains its original 64 KiB envelope. A
+managed caller supplies and funds its selected implementation profile instead;
+that component envelope is not another normal Source acceptance policy. The
+file owner checks the observed generation against the selected ceiling and
+allocates the receive backing for that generation's actual size. It charges
+only actual chunks once and checks the exact generation/extent through EOF.
+No support maximum is itself an observed file size or physical-release ACK.
