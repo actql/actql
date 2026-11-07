@@ -398,14 +398,20 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
           stop("LocalConfigurationChanged")
         }
         let body = if operation == "check" {
-          local_check_for_host(
+          let context = local_check_context(
             host,
             crypto,
             name,
-            input_root,
-            child,
             capture=Some(capture),
             configuration=Some(configuration),
+          )
+          let input = self.prepare_static_request(capture, input_root, child)
+          let wire = context.project_request(self, capture, input, false)
+          command_check_invalid_exit.val = local_check_invalid_exit(wire)
+          local_check_reply(
+            wire,
+            child.flags.get("json").unwrap_or(false),
+            input.document,
           )
         } else if operation == "new-submission" {
           local_new_submission_reference(settings, capture, child)
@@ -466,13 +472,15 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
               capture=Some(capture),
             )
           } else {
-            local_check_context(
+            let context = local_check_context(
               host,
               crypto,
               name,
               capture=Some(capture),
               configuration=Some(configuration),
-            ).explain(input_root, child)
+            )
+            let input = self.prepare_static_request(capture, input_root, child)
+            context.project_request(self, capture, input, true)
           }
         } else if operation == "approve" || operation == "reject" {
           local_checkpoint_answer_by_id(

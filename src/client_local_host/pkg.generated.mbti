@@ -833,6 +833,8 @@ pub fn[I, T] prepare_request_native_computation(ClientRequestPreparation[I], I, 
 
 pub fn[I, T] prepare_request_native_computation_check(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, supplied? : T?) -> Result[Unit, ClientRequestTerminalIssue]
 
+pub fn[I] prepare_request_native_document_check(ClientRequestPreparation[I], I, String, @source_frontend.Format, String?, String?, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, static_check? : Bool) -> Result[Unit, ClientRequestTerminalIssue]
+
 pub fn[I, T] prepare_request_native_program_input(ClientRequestPreparation[I], I, T, @source_value.JsonDataReader[T], @stage_syntax.Limits, supplied? : T?) -> Result[ClientProgramJsonPreparation[I, Unit], ClientRequestPreparationIssue]
 
 pub fn[I, T] prepare_request_native_query_computation(ClientRequestPreparation[I], I, String, @source_frontend.Format, @source_value.JsonDataReader[T], @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits, supplied? : T?, declarations? : T?, public_primary? : Bool) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue]
@@ -909,9 +911,9 @@ pub fn program_check_preparation_initial_inventory() -> @execution_relation.Prep
 
 pub fn program_json_preparation_initial_inventory() -> @execution_relation.PreparationRepresentationUnits
 
-pub fn[I] project_request_check_outcome(ClientRequestPreparation[I], I, ClientRequestTerminalIssue, String, String, String, String, Int, String?, Int, String?, Int, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?, source_namespace? : @client_local_preparation.ClientCheckSourceNamespace?, original_parameters? : String?) -> Result[String?, ClientRequestPreparationIssue]
+pub fn[I] project_request_check_outcome(ClientRequestPreparation[I], I, ClientRequestTerminalIssue, String, String, String, String, Int, String?, Int, String?, Int, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?, source_namespace? : @client_local_preparation.ClientCheckSourceNamespace?, original_parameters? : String?, original_document? : String?, document_format? : @stage_syntax.Format) -> Result[String?, ClientRequestPreparationIssue]
 
-pub fn[I] project_request_completed_check_outcome(ClientRequestPreparation[I], I, String, String, String, String, Int, String?, Int, String?, Int, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?, original_parameters? : String?) -> Result[String?, ClientRequestPreparationIssue]
+pub fn[I] project_request_completed_check_outcome(ClientRequestPreparation[I], I, String, String, String, String, Int, String?, Int, String?, Int, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?, original_parameters? : String?, original_document? : String?, document_format? : @stage_syntax.Format) -> Result[String?, ClientRequestPreparationIssue]
 
 pub fn quiesce_installed_managed_run(ClientInstalledManagedRun) -> Result[Unit, ClientInstalledManagedRunIssue]
 
@@ -985,6 +987,8 @@ pub fn[I] request_model_recovery_ledger(ClientRequestPreparation[I], I, @run_pub
 
 pub fn[I] request_model_recovery_usage_isolated(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG) -> Bool
 
+pub fn[I] request_native_static_plan_view(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, @run_publication_host.ClientCompilationManifests) -> Result[String, ClientRequestTerminalIssue]
+
 pub fn[I] request_preparation_accounting(ClientRequestPreparation[I]) -> (Int64, Int64, Int64, Int64, Int64, Int64)
 
 pub fn[I] request_preparation_parameters_original(ClientRequestPreparation[I], I) -> Result[@decode_core.Cursor?, ClientRequestPreparationIssue]
@@ -1014,6 +1018,8 @@ pub fn[I] reserve_request_model_recovery_materials(ClientRequestPreparation[I], 
 pub fn[I] reserve_request_models_plan_projection(ClientRequestPreparation[I], I, Int) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn[I] reserve_request_native_intake_wire(ClientRequestPreparation[I], I, Int) -> Result[Unit, ClientRequestPreparationIssue]
+
+pub fn[I] reserve_request_native_static_observation(ClientRequestPreparation[I], I, String, Int64) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_program_plan(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 

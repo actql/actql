@@ -11,6 +11,7 @@ fn[I] request_check_observation_bytes(
   publication : String,
   input_label_bytes : Int64,
   original_parameters : String?,
+  original_document? : String? = None,
 ) -> Int64? {
   let requests = match outcome {
     @checked.NeedsInputs(value) => @checked.input_request_count(value)
@@ -21,23 +22,41 @@ fn[I] request_check_observation_bytes(
     4L
   // The same retained semantic envelope remains live through the report. Its
   // existing quote is not refunded or reused as this additional output budget.
-  guard child.check_data is Some(_) else { return None }
+  guard child.check_data is Some(_) ||
+    (child.phase == PreparationRejected && outcome is @checked.Rejected(_)) else {
+    return None
+  }
   guard request_check_observation_inventory_bytes(
       publication, findings, input_label_bytes,
     )
     is Some(total) else {
     return None
   }
-  if original_parameters is None {
-    return Some(total)
+  let mut bytes = total
+  if original_parameters is Some(body) {
+    guard child.arguments is Some(arguments) &&
+      arguments.supplied is Some(supplied) &&
+      request_check_original_pointer_bytes(body, supplied) is Some(pointer) &&
+      @execution.checked_preparation_add_product(bytes, pointer, 1L)
+      is Some(next) else {
+      return None
+    }
+    bytes = next
   }
-  guard child.arguments is Some(arguments) &&
-    arguments.supplied is Some(supplied) &&
-    request_check_original_pointer_bytes(original_parameters.unwrap(), supplied)
-    is Some(pointer) else {
-    return None
+  if original_document is Some(body) {
+    guard child.arguments is Some(arguments) &&
+      request_check_original_pointer_bytes(
+        body,
+        @syntax.program_body(arguments.program),
+      )
+      is Some(pointer) &&
+      @execution.checked_preparation_add_product(bytes, pointer, 1L)
+      is Some(next) else {
+      return None
+    }
+    bytes = next
   }
-  @execution.checked_preparation_add_product(total, pointer, 1L)
+  Some(bytes)
 }
 
 ///|
@@ -51,11 +70,15 @@ fn request_check_original_pointer_bytes(
 ) -> Int64? {
   let (limits, _) = @local_preparation.local_parameter_input_limits()
   let units = body.length()
-  guard units > 0 && units <= limits.max_input_bytes else { return None }
+  // This is a workspace quote for an ALREADY admitted original cursor, not
+  // input admission. Leading whitespace in the retained wire does not enlarge
+  // the existing 65536-byte scalar-key reader policy below. Charge its actual
+  // UTF8 wire separately; do not replace that policy with a larger constant.
+  guard units > 0 else { return None }
   // Report byte labels are DATA, never construction measurements. Derive the
   // UTF8 upper bound from this actual retained String without another scan.
   let wire_bytes = 4L * units.to_int64()
-  let scalar_bytes = Int::min(4 * units, limits.max_input_bytes)
+  let scalar_bytes = Int64::min(wire_bytes, limits.max_input_bytes.to_int64()).to_int()
   guard @source.json_construction_extent(
       scalar_bytes,
       1,
@@ -149,6 +172,8 @@ pub fn[I] project_request_check_outcome(
   selector_namespace : @local_preparation.ClientCheckSourceSelectorNamespace?,
   source_namespace? : @local_preparation.ClientCheckSourceNamespace? = None,
   original_parameters? : String? = None,
+  original_document? : String? = None,
+  document_format? : @syntax.Format = Json,
 ) -> Result[String?, ClientRequestPreparationIssue] {
   if terminal is QuerySyntax(_) || terminal is QueryLowering(_) {
     return project_request_query_check_outcome(
@@ -177,6 +202,8 @@ pub fn[I] project_request_check_outcome(
     correlation_ref,
     selector_namespace,
     original_parameters~,
+    original_document~,
+    document_format~,
   )
 }
 
@@ -198,6 +225,8 @@ pub fn[I] project_request_completed_check_outcome(
   correlation_ref : String,
   selector_namespace : @local_preparation.ClientCheckSourceSelectorNamespace?,
   original_parameters? : String? = None,
+  original_document? : String? = None,
+  document_format? : @syntax.Format = Json,
 ) -> Result[String?, ClientRequestPreparationIssue] {
   guard owner.program_check is Some(child) &&
     child.check_outcome is Some(original) else {
@@ -222,6 +251,8 @@ pub fn[I] project_request_completed_check_outcome(
     correlation_ref,
     selector_namespace,
     original_parameters~,
+    original_document~,
+    document_format~,
   )
 }
 
@@ -242,6 +273,8 @@ fn[I] project_request_semantic_check_observation(
   correlation_ref : String,
   selector_namespace : @local_preparation.ClientCheckSourceSelectorNamespace?,
   original_parameters? : String? = None,
+  original_document? : String? = None,
+  document_format? : @syntax.Format = Json,
 ) -> Result[String?, ClientRequestPreparationIssue] {
   if owner.phase != ProgramCheck {
     return if owner.phase == Selecting { Err(WrongPhase) } else { Ok(None) }
@@ -262,6 +295,10 @@ fn[I] project_request_semantic_check_observation(
   let original_phase = child.phase
   guard (
       original_phase == SemanticCheckRejected ||
+      (
+        original_phase == PreparationRejected &&
+        original is @checked.Rejected(_)
+      ) ||
       (
         original_phase == SemanticCheckComplete &&
         original is @checked.Checked(_)
@@ -290,12 +327,26 @@ fn[I] project_request_semantic_check_observation(
     .unwrap_or(false) {
     return Err(Policy)
   }
+  let declarations_match = if input_kind == "program" {
+    // Structured declarations belong to the SAME original Program revision;
+    // they are not an independently supplied textual Query override. SDK
+    // callers may omit this optional report label as before.
+    owner.native_query_declarations is None &&
+    declarations_bytes == 0 &&
+    declarations_revision.map(value => value == input_revision).unwrap_or(true)
+  } else {
+    (owner.native_query_declarations is Some(_)) ==
+    (declarations_revision is Some(_))
+  }
   if (owner.query_syntax is Some(_) && input_kind != "text") ||
-    (owner.native_query_declarations is Some(_)) !=
-    (declarations_revision is Some(_)) ||
+    !declarations_match ||
     (declarations_revision is None && declarations_bytes != 0) ||
     (arguments.supplied is Some(_)) != (parameters_revision is Some(_)) ||
     (parameters_revision is None && parameters_bytes != 0) ||
+    (
+      original_document is Some(body) &&
+      (input_kind != "program" || body.length() > input_bytes)
+    ) ||
     (
       original_parameters is Some(body) &&
       (arguments.supplied is None || body.length() > parameters_bytes)
@@ -325,7 +376,13 @@ fn[I] project_request_semantic_check_observation(
     None => 0L
   }
   guard request_check_observation_bytes(
-      child, source, outcome, visible_publication, input_label_bytes, original_parameters,
+      child,
+      source,
+      outcome,
+      visible_publication,
+      input_label_bytes,
+      original_parameters,
+      original_document~,
     )
     is Some(bytes) else {
     return Err(Policy)
@@ -422,6 +479,8 @@ fn[I] project_request_semantic_check_observation(
             correlation_ref,
             selector_namespace,
             original_parameters~,
+            original_document~,
+            document_format~,
           ),
         ),
       )

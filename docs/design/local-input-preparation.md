@@ -6051,3 +6051,32 @@ either entry. This is compiler configuration, not Result permission. The actual
 compiled inventory reaches the Result reader unchanged, and the adopted Account
 continues to decide access to that exact name. A migration must not compensate
 for a changed implicit name by broadening the Account or rewriting saved Results.
+
+
+### Ordinary Native static commands
+
+The installed `check` and unsaved `explain` commands retain their immutable
+argument/file producer before the ordinary observed reader opens any payload.
+They initialize the existing Request facility once. Raw Parameters are admitted
+first, then the original JSON/YAML Program or SQL/Pipe Query is parsed and
+checked through that same Request. Raw file storage follows the observed input;
+node/depth and Parameter/declaration scalar policies remain their original
+contracts. No submitted intent, module, provider, Engine or Run is created.
+
+`check` stops at the original static semantic outcome. Its existing report
+constructor consumes that exact outcome, original Program cursor/spans,
+Parameters and current publication. An early typed checker-construction refusal
+is retained as a negative observation, never promoted to semantic completion.
+Diagnostic location does not require another Program parse. Raw input failures
+use their original typed failures instead of invoking the checker again.
+`explain` continues the same checked computation through its existing static
+compiler and Plan view, preserving the configured primary and existing output
+limits. Report and Plan writers have separate actual construction inventories;
+normal semantic reporting does not first reserve a second report writer.
+
+The command copies its reply into the original command-control domain and cuts
+the Request-owned reply alias before physical child retirement. The existing
+abort/current/partial-cleanup duties remain attached to the same Request. A
+logical retirement attempt cannot acknowledge an outstanding Native frame.
+Explicit-configuration library entry points remain separate compatibility
+routes; they are not selected as a fallback by these ordinary installed commands.

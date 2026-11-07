@@ -28,6 +28,8 @@ pub fn client_program_project_original_check_outcome(
   correlation_ref : String,
   selector_namespace : ClientCheckSourceSelectorNamespace?,
   original_parameters? : String? = None,
+  original_document? : String? = None,
+  document_format? : @syntax.Format = Json,
 ) -> String {
   if !["program", "text"].contains(input_kind) {
     return check_failed_json("check_request_invalid", correlation_ref)
@@ -57,6 +59,16 @@ pub fn client_program_project_original_check_outcome(
     return check_failed_json("check_context_invalid", correlation_ref)
   }
   let findings : Array[CheckFinding] = []
+  let mut original_pointer = None
+  // An authored raw document uses the SAME retained Program cursor/spans.
+  // Captured native values without text keep their existing no-location view.
+  let diagnostic_document = original_document.unwrap_or("")
+  let diagnostic_body = original_document.map(_ => @syntax.program_body(program))
+  let diagnostic_program = if original_document is Some(_) {
+    None
+  } else {
+    Some(program)
+  }
   check_missing_value_findings(
     findings,
     @stage_parameters.declarations(source),
@@ -152,11 +164,13 @@ pub fn client_program_project_original_check_outcome(
       let _ = check_program_diagnostic(
         findings,
         diagnostic,
-        "",
+        diagnostic_document,
         supplied,
-        None,
-        _ => (),
-        retained_program=Some(program),
+        original_parameters,
+        value => original_pointer = value,
+        format=document_format,
+        original_body=diagnostic_body,
+        retained_program=diagnostic_program,
       )
     }
     findings.push(Unresolved("source_resolution"))
@@ -192,18 +206,20 @@ pub fn client_program_project_original_check_outcome(
         check_program_diagnostic(
           findings,
           diagnostic,
-          "",
+          diagnostic_document,
           supplied,
-          None,
-          _ => (),
-          retained_program=Some(program),
+          original_parameters,
+          value => original_pointer = value,
+          format=document_format,
+          original_body=diagnostic_body,
+          retained_program=diagnostic_program,
         )
     }
   }
   check_outcome_json(findings, stop, context_ref, correlation_ref, {
     scope: BoundInput,
     structured_program: input_kind == "program",
-    program_pointer: None,
+    program_pointer: original_pointer,
     source_revision: input_revision,
     source_bytes: input_bytes,
     declarations_revision: if input_kind == "program" {

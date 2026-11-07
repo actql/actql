@@ -587,14 +587,16 @@ fn check_program_document_cursor(
   format : @syntax.Format,
   original_body : @decode.Cursor?,
 ) -> @decode.Cursor? {
+  // This is the original parser's retained cursor, including its same raw
+  // document spans. Do not admit/normalize/check the document a second time.
+  if original_body is Some(_) {
+    return original_body
+  }
   if format == Json {
     return match admit_local_program_input("json", Some(document)) {
       Ok((_, body)) => body
       Err(_) => None
     }
-  }
-  if original_body is Some(_) {
-    return original_body
   }
   guard @source.parse_yaml_bytes(@utf8.encode(document), {
       max_input_bytes: 65536,

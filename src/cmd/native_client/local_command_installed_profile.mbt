@@ -161,6 +161,11 @@ fn local_command_profile_selection(
   matches : @argparse.Matches,
 ) -> (LocalCommandPreparationProfile, LocalCommandBusinessProfile?) raise ClientStop {
   if matches.subcommand is Some(("run", _)) ||
+    matches.subcommand is Some(("check", _)) ||
+    (
+      matches.subcommand is Some(("explain", child)) &&
+      optional(child, "run") is None
+    ) ||
     (
       matches.subcommand is Some((operation, child)) &&
       local_quick_query_requested(operation, child)
