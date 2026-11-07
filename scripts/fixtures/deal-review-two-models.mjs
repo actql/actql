@@ -91,11 +91,17 @@ export function twoModelDealReviewProgram(files) {
       {select: [...fields, 'confirmation'], as: 'confirmed'},
     ], results: {rows: {from: 'confirmed', fields: [...fields, 'confirmation']}}},
     {id: 'apply', inputs: {confirmed: {result: {stage: 'confirm', result: 'rows'}}},
-      steps: [{select: [...fields, 'confirmation'], as: 'updates'}],
-      results: {rows: {from: 'updates', fields: [...fields, 'confirmation']}},
-      effects: {save: {update: {target: 'connector://salesforce/Opportunity', mapping,
-        from: {result: 'rows'}, id: 'id', set: {
-          StageName: {property: {value: property('review', 'value'), name: 'stage'}},
-          NextStep: {property: {value: property('review', 'value'), name: 'next_step'}}}}}}},
+      steps: [
+        {derive: {
+          next_stage: {property: {value: property('review', 'value'), name: 'stage'}},
+          next_step: {property: {value: property('review', 'value'), name: 'next_step'}}}},
+        {select: [...fields, 'confirmation', 'next_stage', 'next_step'], as: 'effect_input'},
+        {select: [...fields, 'confirmation'], as: 'updates'},
+      ], results: {
+        rows: {from: 'updates', fields: [...fields, 'confirmation']},
+        effect_input: {from: 'effect_input', fields: [...fields, 'confirmation', 'next_stage', 'next_step']},
+      }, effects: {save: {update: {target: 'connector://salesforce/Opportunity', mapping,
+        from: {result: 'effect_input'}, id: 'id', set: {
+          StageName: field('next_stage'), NextStep: field('next_step')}}}}},
   ], results: {updates: {from: {stage: 'apply', result: 'rows'}}}};
 }

@@ -1292,7 +1292,21 @@ test('two-Model deal-review fixture preserves keyed Content and consumes the fir
     {property: {value: {field: 'value'}, name: 'confirmed'}}]});
   assert.equal(first.effects, undefined); assert.equal(second.effects, undefined);
   assert.equal(apply.effects.save.update.target, 'connector://salesforce/Opportunity');
-  assert.deepEqual(apply.effects.save.update.from, {result: 'rows'});
+  const publicFields = ['id', 'StageName', 'NextStep', 'review', 'confirmation'];
+  assert.deepEqual(apply.steps, [
+    {derive: {
+      next_stage: {property: {value: {property: {value: {field: 'review'}, name: 'value'}}, name: 'stage'}},
+      next_step: {property: {value: {property: {value: {field: 'review'}, name: 'value'}}, name: 'next_step'}}}},
+    {select: [...publicFields, 'next_stage', 'next_step'], as: 'effect_input'},
+    {select: publicFields, as: 'updates'},
+  ]);
+  assert.deepEqual(apply.results, {
+    rows: {from: 'updates', fields: publicFields},
+    effect_input: {from: 'effect_input', fields: [...publicFields, 'next_stage', 'next_step']},
+  });
+  assert.deepEqual(apply.effects.save.update.from, {result: 'effect_input'});
+  assert.deepEqual(apply.effects.save.update.set, {
+    StageName: {field: 'next_stage'}, NextStep: {field: 'next_step'}});
   assert.deepEqual(program.results, {updates: {from: {stage: 'apply', result: 'rows'}}});
   const task = parse(files['model-tasks/deal-review-confirm.v1.yaml']);
   assert.deepEqual(task.input, {changed: {type: 'boolean', nullable: true},
