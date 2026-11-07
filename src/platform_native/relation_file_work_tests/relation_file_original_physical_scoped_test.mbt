@@ -706,12 +706,18 @@ fn relation_original_run(
         "2026-11-06T00:00:00.000Z",
         "2099-01-01T00:00:00.000Z",
       ).relation_original_value("original Run definition")
-      capture
-      .record_submitted_intent_in_original_read(
-        "machine-user", "cli", scope, reference, intent, 1001.0,
-      )
-      .relation_original_value("record original intent")
-      |> ignore
+      match
+        capture.record_submitted_intent_in_original_read(
+          "machine-user", "cli", scope, reference, intent, 1001.0,
+        ) {
+        Ok(_) => ()
+        Err(original) => {
+          relation_original_submission_failure_tags(
+            original, relation_original_submission_amount,
+          )
+          fail("record original intent")
+        }
+      }
       capture
       .accept_submitted_run_in_original_read(
         "machine-user", "cli", scope, reference, preparation, request, compiled,
@@ -1293,15 +1299,16 @@ test "actual original Account Journal StoreOperation captures relation and execu
   physical
   .prepare_domain_read(sqlite_domain)
   .relation_original_value("prepare SQLite context")
+  let read_budget : @arena.InstalledArenaOriginalReadBudget = {
+    bootstrap_retained: mib,
+    bootstrap_execution: mib,
+    workspace_execution: 8L * mib,
+    read_retained: 7L * mib + read_addition,
+    read_execution: 96L * mib + read_addition,
+  }
   let read = match
     physical
-    .prepare_domain_original_read(read_domain, {
-      bootstrap_retained: mib,
-      bootstrap_execution: mib,
-      workspace_execution: 8L * mib,
-      read_retained: 7L * mib + read_addition,
-      read_execution: 96L * mib + read_addition,
-    })
+    .prepare_domain_original_read(read_domain, read_budget)
     .relation_original_value("prepare original Read") {
     @arena.ReadyOriginalRead(value) => value
     @arena.PendingOriginalRead(_, _) => fail("original Read pending")
@@ -1340,11 +1347,19 @@ test "actual original Account Journal StoreOperation captures relation and execu
   let pair = physical
     .bind_local_host_resources(read, sqlite)
     .relation_original_value("same original pair")
+  // The same Read still owns its complete funded envelope above, including
+  // Source preparation. The consumer's fixed entrance is not that entire
+  // future peak: each constructor takes a maximum against the actual funded
+  // reservation. Adding a new phase to the whole peak double-counted it.
+  let consumer_execution = Int64::min(
+    read_budget.read_execution,
+    Int64::max(read_budget.bootstrap_execution, read_budget.workspace_execution),
+  )
   let consumer = physical
     .prepare_local_host_read_consumer(
       pair,
       mib + read_addition,
-      96L * mib + read_addition,
+      consumer_execution,
     )
     .relation_original_value("same original consumer")
   let component = physical
