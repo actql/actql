@@ -60,6 +60,17 @@ function backingFixture(namespace) {
   return {root, backing};
 }
 
+// The Model frame correspondence cases use only the existing real FD-backed
+// Request originals. They do not acquire a Crypto or SQLite component, so do
+// not select an unrelated library merely to populate an unused environment.
+export function nativeCoreModelFrameFixture(namespace) {
+  const {root, backing} = backingFixture(namespace);
+  for (const name of ['source-frame-original', 'source-frame-left', 'source-frame-right']) {
+    backing(name + '.backing', 64);
+  }
+  return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root};
+}
+
 export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary, backingPages}) {
   for (const library of [cryptoLibrary, sqliteLibrary]) {
     assert(typeof library === 'string' && isAbsolute(library) && !library.includes('\0'),

@@ -331,6 +331,10 @@ pub fn check_client_model_original_storage_origin(ClientModelReadScope, ClientCo
 
 pub fn check_client_model_raw_capture_current(ClientModelRawCaptureRegistration) -> Result[Unit, ClientModelRawCaptureIssue]
 
+pub fn check_client_model_read_frame(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.ImportedChildLedger) -> Result[Unit, ClientModelReadFrameIssue]
+
+pub fn check_client_model_read_frame_retained(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.ImportedChildLedger) -> Result[Unit, ClientModelReadFrameIssue]
+
 pub fn check_client_node_model_preparation_layout(ClientNodeModelPreparationLayout?, ClientInferPlanGraph, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelPreparationLayoutIssue]
 
 pub fn check_client_private_continuation_retention(Bytes, String, Int, Int) -> Result[Unit, ClientPrivateContinuationRetentionIssue]
@@ -3566,6 +3570,11 @@ pub struct ClientModelRawCaptureRegistration {
 }
 
 type ClientModelReadConsumer
+
+pub(all) enum ClientModelReadFrameIssue {
+  ForeignRun
+  Frame(@physical_resources.ImportedChildLedgerIssue)
+}
 
 type ClientModelReadOrigin
 
