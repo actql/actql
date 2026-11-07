@@ -1,6 +1,7 @@
 // Only populate the invocation's existing owned namespace. These files are
 // reader test inputs, never installed project configuration or Run authority.
-import {mkdirSync, symlinkSync, writeFileSync} from 'node:fs';
+import {mkdirSync, readFileSync, symlinkSync, writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {dirname, join} from 'node:path';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 
@@ -89,5 +90,11 @@ export function nativeProjectConfigurationFixture(namespace) {
       write(path, relative, body);
     }
   }
-  return {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: root};
+  // Independent oracle for the SAME public File-facts consumer. The missing
+  // payload case still supplies only its original locator/catalogue metadata.
+  const missing = join(root, 'deal-review-missing');
+  const scope = JSON.stringify({catalog: readFileSync(join(missing, 'mock/catalog.json'), 'utf8'),
+    connection: 'drive', connector: 'drive', dataPath: join(missing, 'mock/data.json')});
+  return {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: root,
+    ACTQL_TEST_NATIVE_MOCK_DRIVE_SCOPE_CID: 'sha256:' + createHash('sha256').update(scope).digest('hex')};
 }
