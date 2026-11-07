@@ -22,16 +22,24 @@ function runPhase(phase, directory, referencePath, count) {
   assert.equal(child.status, 0, child.stderr);
   const lines = child.stdout.trim().split('\n');
   const report = JSON.parse(lines.at(-1));
-  assert.deepEqual(report, {phase, rowsVerified: count, closeReturned: true, pid: child.pid});
+  const {inputWireBytes, ...completion} = report;
+  assert.deepEqual(completion, {phase, rowsVerified: count, closeReturned: true, pid: child.pid});
+  if (phase === 'produce-source') {
+    assert(Number.isSafeInteger(inputWireBytes) && inputWireBytes > 1048576);
+    console.log(`Numeric JSON Source input: ${inputWireBytes} UTF8 bytes, ${count} rows`);
+  } else assert.equal(inputWireBytes, undefined);
 }
 
-for (const count of [1000, 10000, 10001, 100000]) {
-  test(`ordinary numeric ${count} rows streams exact values across separate-process Saved with confirmed stop`, async () => {
+for (const {count, source} of [
+  ...[1000, 10000, 10001, 100000].map(count => ({count, source: false})),
+  {count: 100000, source: true},
+]) {
+  test(`ordinary ${source ? 'JSON Source ' : ''}numeric ${count} rows streams exact values across separate-process Saved with confirmed stop`, async () => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-numeric-scale-test-'));
     let completed = false;
     try {
       const referencePath = join(directory, 'original-run-reference.json');
-      runPhase('produce', directory, referencePath, count);
+      runPhase(source ? 'produce-source' : 'produce', directory, referencePath, count);
       runPhase('restore', directory, referencePath, count);
       completed = true;
     } finally {
