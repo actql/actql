@@ -520,6 +520,20 @@ pub fn[T, C, R] NativeHostBootstrap::prepare_backed_original_read_working(
       return Err(Bootstrap(Unavailable))
     }
     minimum_usable_bytes = Int64::max(0L, retained + execution - current)
+  } else {
+    // Legacy fully-backed children keep their original declared-policy refusal
+    // before any physical acquisition, even though they need no window grant.
+    let limits = match
+      @resources.backed_execution_live_limits(projection, runtime) {
+      Err(issue) => return Err(Accounting(issue))
+      Ok(value) => value
+    }
+    if retained < 0L ||
+      execution < 0L ||
+      retained > limits.retained_bytes ||
+      execution > limits.execution_bytes {
+      return Err(Accounting(@resources.Resource(@resources.InvalidLimits)))
+    }
   }
   self.prepare_backed_read_working(
     original,
