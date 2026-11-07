@@ -3,8 +3,9 @@ import {spawn} from 'node:child_process';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {test} from 'node:test';
-import {createTransportOwner, requireCompleteInventory, sourceFixturePaths}
+import {createTransportOwner, requireCompleteInventory, sourceFixturePaths, observePackedSubmissionCause}
   from './fixtures/packed-query-transport-owner.mjs';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import {publicQueryResultOracles} from './fixtures/public-query-input.mjs';
@@ -84,6 +85,130 @@ async function fixture(t) {
   t.after(() => rm(directory, {recursive: true, force: true}));
   return directory;
 }
+
+async function diagnosticTarget(t) {
+  const directory = await fixture(t), path = join(directory, 'original-ingress.mjs');
+  await writeFile(path, `const publicFailure = error => error;
+function unusedResult(original) {
+  try {throw original;}
+  catch (error) {
+    throw publicFailure(error);
+  }
+}
+export function originalIngress(original) {
+  try {throw original;}
+  catch (error) {
+    throw publicFailure(error);
+  }
+}
+`);
+  const sourceURL = pathToFileURL(path);
+  return {path, sourceURL, ...await import(sourceURL.href)};
+}
+
+test('packed cause observer captures bounded original DATA and always resumes the same throw', async t => {
+  const target = await diagnosticTarget(t), reports = [];
+  const original = Object.assign(new TypeError('private-message-never-reported'), {
+    code: 'ClientProgramUnsupported', requestId: 'private-request-never-reported',
+    cause: Object.assign(new Error('private-inner-never-reported'), {code:'ForeignRequestOriginal'}),
+  });
+  let reads = 0, enumerations = 0;
+  Object.defineProperty(original, '_0', {get() {reads++; throw new Error('accessor invoked');}});
+  Object.defineProperty(original, 'unrelatedPrivateField', {get() {reads++; throw new Error('private field read');}});
+  const reflected = [];
+  const primary = new Proxy(original, {
+    ownKeys() {enumerations++; throw new Error('private fields enumerated');},
+    getOwnPropertyDescriptor(target, key) {
+      reflected.push(key);
+      assert.ok(['code','cause','primaryFailure','_0','_1','_2'].includes(key));
+      return Reflect.getOwnPropertyDescriptor(target, key);
+    },
+  });
+  original.cause.primaryFailure = primary;
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report:value=>reports.push(value)});
+  try {
+    assert.throws(() => target.originalIngress(primary), error => error === primary);
+    assert.throws(() => target.originalIngress(primary), error => error === primary);
+  } finally {await observer.close();}
+  await observer.close();
+  assert.equal(reports.length, 1);
+  assert.equal(reports[0].available, true);
+  assert.equal(reports[0].originalCauseTypes.length, 1, 'only the first original boundary is observed');
+  assert.deepEqual(reports[0].originalCauseTypes[0], [
+    {edge:'original',type:'TypeError',code:'ClientProgramUnsupported'},
+    {edge:'cause',type:'Error',code:'ForeignRequestOriginal'},
+  ]);
+  assert.equal(reads, 0);
+  assert.equal(enumerations, 0);
+  assert.ok(reflected.length > 0);
+  assert.ok(!reflected.includes('stack') && !reflected.includes('unrelatedPrivateField'));
+  assert.doesNotMatch(JSON.stringify(reports), /private-|requestId|message|stack/u);
+});
+
+test('packed cause observer report failure cannot replace the original exception or cleanup', async t => {
+  const target = await diagnosticTarget(t);
+  const primary = new RangeError('original'), diagnostic = new Error('report unavailable');
+  let reports = 0, caught;
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report() {reports++;throw diagnostic;}});
+  try {target.originalIngress(primary);}
+  catch (error) {caught=error;}
+  finally {await observer.close();}
+  assert.equal(caught, primary);
+  assert.equal(reports, 1);
+  assert.throws(() => target.originalIngress(primary), error => error === primary);
+});
+
+test('packed cause observer refuses a loaded Source mismatch without changing the original result', async t => {
+  const target = await diagnosticTarget(t), reports = [];
+  await writeFile(target.path, (await readFile(target.path, 'utf8'))+'\n// changed after original import\n');
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report:value=>reports.push(value)});
+  const primary = new Error('unchanged original');
+  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
+  finally {await observer.close();}
+  assert.equal(reports.length, 1);
+  assert.equal(reports[0].available, false);
+});
+
+test('packed cause observer inspection failure resumes and preserves the original exception', async t => {
+  const target = await diagnosticTarget(t), reports = [];
+  const primary = new Proxy(new Error('original'), {
+    getOwnPropertyDescriptor() {throw new Error('descriptor inspection unavailable');},
+  });
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report:value=>reports.push(value)});
+  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
+  finally {await observer.close();}
+  assert.equal(reports.length, 1);
+  assert.equal(reports[0].available, false);
+});
+
+test('packed cause observer retains a closed Node failure code without collecting its message', async t => {
+  const target = await diagnosticTarget(t), reports = [];
+  const primary = Object.assign(new Error('private-SQL-never-reported'), {code:'ERR_SQLITE_ERROR'});
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report:value=>reports.push(value)});
+  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
+  finally {await observer.close();}
+  assert.equal(reports[0].available, true);
+  assert.deepEqual(reports[0].originalCauseTypes, [[{edge:'original',type:'Error',code:'ERR_SQLITE_ERROR'}]]);
+  assert.doesNotMatch(JSON.stringify(reports), /private-SQL/u);
+});
+
+test('packed cause observer omits a plausible private code and forged MoonBit constructor name', async t => {
+  const target = await diagnosticTarget(t), reports = [];
+  class _MPrivateInputSecret extends Error {}
+  const primary = Object.assign(new _MPrivateInputSecret('private-message'), {code:'ClientPrivateInputSecret'});
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report:value=>reports.push(value)});
+  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
+  finally {await observer.close();}
+  assert.equal(reports[0].available, true);
+  assert.deepEqual(reports[0].originalCauseTypes, [[{edge:'original',type:'MoonBit',codeOmitted:true}]]);
+  assert.doesNotMatch(JSON.stringify(reports), /PrivateInputSecret|private-message/u);
+});
 
 test('complete transport inventory rejects missing, duplicate, extra and reordered identities', () => {
   // Independently authored expected identities, not generated from a partition.

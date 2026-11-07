@@ -1,7 +1,11 @@
 // Fixture process ownership only. Product Hosts retain their normal policies.
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {readFile, realpath, stat} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {Worker, isMainThread, parentPort, workerData} from 'node:worker_threads';
 
 export const acceptanceTimeoutMs = 900_000;
 export const acceptanceOutputBytes = 8 * 1024 * 1024;
@@ -23,6 +27,147 @@ export function requireCompleteInventory(expected, completed) {
   assert.equal(new Set(expected).size, expected.length, 'duplicate authored case');
   assert.equal(new Set(completed).size, completed.length, 'duplicate completed case');
   assert.deepEqual(completed, expected, 'missing, extra or reordered case');
+}
+
+// This is a test-only observer of the already installed original ingress. It
+// starts immediately before one named refusal; no runtime bytes are changed.
+// Missing diagnostic evidence never replaces the original acceptance result.
+export async function observePackedSubmissionCause({sourceURL, report = value => {
+  process.stderr.write(`Packed submission original cause: ${JSON.stringify(value)}\n`);
+}}) {
+  const observations = [];
+  let worker, exited, closing, ready, loaded = false, observationFailed = false;
+  const emit = value => {try {report(value);} catch { /* Preserve the original test outcome. */ }};
+  const unavailable = () => Object.freeze({close: async () => {
+    if (!closing) closing = Promise.resolve().then(() => emit({available: false}));
+    await closing;
+  }});
+  try {
+    assert.equal(sourceURL.protocol, 'file:');
+    assert.equal(sourceURL.search + sourceURL.hash, '');
+    const path = await realpath(fileURLToPath(sourceURL)), metadata = await stat(path);
+    assert.ok(metadata.isFile() && metadata.size > 0 && metadata.size <= 128 * 1024);
+    const bytes = await readFile(path), source = bytes.toString('utf8');
+    assert.equal(bytes.length, metadata.size);
+    const catches = source.split('\n').flatMap((line, index) =>
+      line.trim() === 'throw publicFailure(error);' ? [index] : []);
+    assert.equal(catches.length, 2, 'separate Result and generic ingress catches');
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    worker = new Worker(new URL(import.meta.url), {execArgv: [], workerData: {
+      kind: 'packed-submission-cause', url: pathToFileURL(path).href,
+      sha256, lineNumber: catches[1]}});
+    exited = new Promise(resolve => worker.once('exit', resolve));
+    ready = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('DiagnosticStartupUnavailable')), 3000);
+      worker.on('error', error => {observationFailed = true; reject(error);});
+      worker.on('message', value => {
+        if (value.kind === 'loaded') loaded = true;
+        if (value.kind === 'primary') observations.push(value.types);
+        if (value.kind === 'ready') {clearTimeout(timer); resolve();}
+        if (value.kind === 'unavailable') {
+          observationFailed = true; clearTimeout(timer); reject(new Error('DiagnosticUnavailable'));
+        }
+      });
+      exited.then(() => {clearTimeout(timer); reject(new Error('DiagnosticExited'));});
+    });
+    await ready;
+    return Object.freeze({close() {
+      closing ??= (async () => {
+        let stopped = false;
+        try {
+          worker.postMessage({kind: 'close'});
+          await Promise.race([exited, new Promise((_, reject) => {
+            const timer = setTimeout(() => reject(new Error('DiagnosticCleanupUnavailable')), 3000);
+            exited.then(() => clearTimeout(timer));
+          })]);
+          stopped = true;
+        } catch { /* Terminate only this observer, never the original Host. */ }
+        finally {await worker.terminate().catch(() => {});}
+        emit({available: loaded && stopped && !observationFailed, sourceSha256: sha256,
+          zeroBasedLine: catches[1], originalCauseTypes: observations});
+      })();
+      return closing;
+    }});
+  } catch {
+    await worker?.terminate().catch(() => {});
+    return unavailable();
+  }
+}
+
+async function runSubmissionCauseObserver() {
+  const {Session} = await import('node:inspector');
+  const session = new Session();
+  session.connectToMainThread();
+  const post = (method, params = {}) => new Promise((resolve, reject) =>
+    session.post(method, params, (error, value) => error ? reject(error) : resolve(value)));
+  // Inspector callbacks alone do not keep a Worker alive during startup.
+  const alive = setInterval(() => {}, 1000);
+  const originals = new Set();
+  let breakpoint, captured = false;
+  // Emit only fixed categories and explicitly listed codes. Even a plausible
+  // private code prefix or forged compiled constructor name is not evidence.
+  const expression = `(()=>{const out=[],queue=[['original',error,0]],seen=new Set();
+while(queue.length&&out.length<32){const [edge,value,depth]=queue.shift();
+if(value===null||typeof value!=='object'||seen.has(value))continue;seen.add(value);
+const proto=Object.getPrototypeOf(value);
+const ctor=proto&&Object.getOwnPropertyDescriptor(proto,'constructor')?.value;
+const name=typeof ctor==='function'?Object.getOwnPropertyDescriptor(ctor,'name')?.value:'';
+const type=['Object','Array','Error','TypeError','RangeError','SyntaxError','ClientError','DOMException'].includes(name)?name:typeof name==='string'&&/^_M[A-Za-z0-9_]{1,157}$/.test(name)?'MoonBit':'Other';
+const safeCodes=[
+'ENOENT','EACCES','EPERM','EIO','EBUSY','ENOMEM','ENOSPC','EMFILE','EEXIST','ENOTDIR','EISDIR','EBADF',
+'ERR_SQLITE_ERROR','ERR_INVALID_STATE','ERR_BUFFER_TOO_LARGE','ERR_OUT_OF_RANGE','ERR_INVALID_ARG_TYPE',
+'ClientOperationUnavailable','ClientPreparedSubmissionUnavailable','ClientProgramPreparationFailure',
+'ClientProgramRejected','ClientProgramUnsupported','ClientProgramInvalidInput','ClientProgramImplementationLimit',
+'ClientProgramAnalysisLimit','ClientRequestLookupDenied','ClientSubmissionUnresolvable','ClientSubmittedIntentConflict',
+'InvalidClientHostSubmissionLookup','InvalidClientHostSubmissionOutcome','InvalidClientProgramPreparationInstallation',
+'InvalidClientRequest','InvalidClientSubmissionAttempt','InvalidClientSubmissionInstallation','InvalidClientSubmittedIntent',
+'InvalidHostRuntimeResult','InvalidLocalValuesRowLimit','NodeLocalPreparationAdmissionUnavailable',
+'PreparationCapacityExceeded','SourceManagedPreparationUnavailable','StaleClientProgramErrorProjection','SubmissionAttemptRejected',
+'ClientSubmittedIntentCustodyLost','ClientSubmittedIntentCapacity','ClientSubmittedIntentCorrupt',
+'ClientRequestJournalInspectionUnavailable','ClientRequestJournalSqlUnavailable','ClientRequestJournalSqlCleanupPending',
+'SqliteSchemaPreparationUnavailable','UnknownClientRequestJournalFormat','ClientSubmissionEpochExpired',
+'ClientSubmissionEpochNotYetValid','ForeignRequestOriginal'];
+const row={edge,type},code=Object.getOwnPropertyDescriptor(value,'code');if(code){if('value'in code&&safeCodes.includes(code.value))row.code=code.value;else row.codeOmitted=true;}
+out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=Object.getOwnPropertyDescriptor(value,key);if(d&&'value'in d)queue.push([key,d.value,depth+1]);}}return out;})()`;
+  session.on('Debugger.scriptParsed', async ({params}) => {
+    if (params.url !== workerData.url) return;
+    try {
+      const {scriptSource} = await post('Debugger.getScriptSource', {scriptId: params.scriptId});
+      assert.equal(createHash('sha256').update(scriptSource).digest('hex'), workerData.sha256);
+      originals.add(params.scriptId);
+      parentPort.postMessage({kind: 'loaded'});
+    } catch {parentPort.postMessage({kind: 'unavailable'});}
+  });
+  session.on('Debugger.paused', async ({params}) => {
+    try {
+      assert.ok(!captured && originals.has(params.callFrames[0].location.scriptId));
+      captured = true;
+      const {result, exceptionDetails} = await post('Debugger.evaluateOnCallFrame', {
+        callFrameId: params.callFrames[0].callFrameId, expression,
+        returnByValue: true, silent: true});
+      assert.equal(exceptionDetails, undefined);
+      parentPort.postMessage({kind: 'primary', types: result.value});
+    } catch {parentPort.postMessage({kind: 'unavailable'});}
+    finally {
+      await post('Debugger.removeBreakpoint', {breakpointId: breakpoint}).catch(() => {});
+      await post('Debugger.resume').catch(() => session.disconnect());
+    }
+  });
+  parentPort.on('message', async value => {
+    if (value.kind !== 'close') return;
+    try {await post('Debugger.disable');}
+    finally {session.disconnect(); clearInterval(alive); parentPort.close();}
+  });
+  try {
+    await post('Debugger.enable');
+    ({breakpointId: breakpoint} = await post('Debugger.setBreakpointByUrl', {
+      url: workerData.url, lineNumber: workerData.lineNumber, columnNumber: 0}));
+    parentPort.postMessage({kind: 'ready'});
+  } catch {parentPort.postMessage({kind: 'unavailable'});}
+}
+
+if (!isMainThread && workerData?.kind === 'packed-submission-cause') {
+  await runSubmissionCauseObserver();
 }
 
 // Parent death must not leave a live fixture Host behind. Cancellation otherwise
