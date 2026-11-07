@@ -43814,7 +43814,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6fd58768a99356a6ca1864909597e94421c5b9caae302e6442227e6dbe7ed75a",
+      "sha256": "7138d63c98eb7dd2176f65b5ab05b07d0032177d22e269451434007cb396c515",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -44048,6 +44048,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "## Same Request Effect preparation lifetime"
               }
             ],
             "extension": [
@@ -44092,6 +44096,10 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"Request keeps live continuation"
               }
             ]
           }
@@ -46144,7 +46152,7 @@
     {
       "module": "src/client_local_host/preparation_request_terminal.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d3cd709bafec8b072a30be2a79615a27eabf96bec266409fab8b724086053393",
+      "sha256": "386eb38931dd2e55482cc1f4d8a6c327717dbe7165a206ecef5763b8f7182c2a",
       "role": "common-semantics",
       "owner": "Existing Request checking compiler and preparation capacity owners",
       "exports": [],
@@ -46282,6 +46290,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Before returning the selected compiler kind"
               }
             ],
             "extension": [
@@ -46314,6 +46326,10 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source terminal refuses resolved nested ARRAY"
               }
             ]
           }
@@ -57102,7 +57118,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "25cdbf765a2772d60c8151354a55bdf9ce2937ff235cbd9e1350dc87002baac7",
+      "sha256": "f43ce4f02bcf23a0cffce85945545ffa96f24a1a31cd04186e12841012072281",
       "exports": [],
       "operations": [
         {
@@ -59839,6 +59855,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"Request checked Source ARRAY refusal reaches existing public rejection without recheck\""
               }
             ]
           }
@@ -68588,7 +68608,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_program.mbt",
-      "sha256": "8c7bb804b90c25ca47bdfe7e241adb14144cfa181c09e48cbe5226fc5ca24c83",
+      "sha256": "43adaa963e126fbaf3a7e2cc38c198ff0c00da6ca5b0c211b8e45253c2d01c8e",
       "exports": [],
       "operations": [
         {
@@ -68598,6 +68618,10 @@
         {
           "name": "bind_prepared_client_effect_run",
           "declaration": "bind_prepared_client_effect_run ( computation : PreparedClientEffectComputation , admission : @ publication . RunPublicationAdmission , run_definition : @ publication . PublicationContract , ) - > Result [ PreparedClientEffectRun , ClientEffectRunIssue ]"
+        },
+        {
+          "name": "clear_prepared_client_effect_custody_after_cleanup",
+          "declaration": "clear_prepared_client_effect_custody_after_cleanup ( owner : PreparedClientEffectComputation , ) - > Unit"
         },
         {
           "name": "client_effect_program_view",
@@ -68738,7 +68762,8 @@
             "prepared_client_effect_result_count",
             "prepared_client_effect_result_name",
             "prepared_client_effect_run_computation",
-            "prepared_client_effect_run_graph"
+            "prepared_client_effect_run_graph",
+            "clear_prepared_client_effect_custody_after_cleanup"
           ],
           "exports": [],
           "attributes": {
@@ -68852,6 +68877,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retaining Source originals after Request compilation"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "## Same Request Effect preparation lifetime"
               }
             ],
             "extension": [
@@ -68896,6 +68925,10 @@
               {
                 "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
                 "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_normalization_wbtest.mbt",
+                "anchor": "test \"retired Effect custody severs cached backedges"
               }
             ]
           }
@@ -76274,7 +76307,8 @@
             "[I]request_source_input_construction_bytes",
             "[I]request_source_input_original",
             "[I]request_source_input_parts",
-            "to_repr"
+            "to_repr",
+            "[I,P]reserve_request_query_profile_scratch"
           ],
           "exports": [],
           "attributes": {
@@ -76324,6 +76358,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Before returning the selected compiler kind"
               }
             ],
             "extension": [
@@ -76340,16 +76378,24 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source terminal refuses resolved nested ARRAY"
               }
             ]
           }
         }
       ],
-      "sha256": "a8eb0f957746aa638d31f8db015c2fe02ad730826f0e2416a70bd7ad8f8fbd66",
+      "sha256": "50f301851918cadd47ddf8d4c31a15e1250c1f2cf64ca7fabb64890abf40bd5e",
       "operations": [
         {
           "name": "[I,P,D]borrow_request_source_preparation_owned",
           "declaration": "[ I , P , D ] borrow_request_source_preparation_owned ( owner : ClientRequestPreparation [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , P ] , source : @ publication_host . ClientSourceInput , prepared : D , retain_original : ( @ publication_host . ClientSourceInput , D ) - > Result [ @ publication_host . ClientSourcePreparation , @ publication_host . ClientSourcePreparationIssue , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . ClientSourcePreparation ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I,P]reserve_request_query_profile_scratch",
+          "declaration": "[ I , P ] reserve_request_query_profile_scratch ( owner : ClientRequestPreparation [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , P ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]borrow_request_source_preparation",
@@ -76404,7 +76450,8 @@
             "client_source_computation_request",
             "client_source_computation_source",
             "prepare_client_source_computation",
-            "source_prepared_publication_issue"
+            "source_prepared_publication_issue",
+            "check_client_source_array_profile"
           ],
           "exports": [],
           "attributes": {
@@ -76454,6 +76501,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retaining Source originals after Request compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Before returning the selected compiler kind"
               }
             ],
             "extension": [
@@ -76474,16 +76525,24 @@
               {
                 "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
                 "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source terminal refuses resolved nested ARRAY"
               }
             ]
           }
         }
       ],
-      "sha256": "51004e94d1c36468124775776fb1d2c1e6bd4e5de7c2787543e1c207deced9a3",
+      "sha256": "aa4928a5be7bacc447f0d24c5ceef41fb1cee9d2781f9502d3f6dfe2db08befc",
       "operations": [
         {
           "name": "[T]source_result",
           "declaration": "[ T ] source_result ( value : Result [ T , ClientSourcePreparationIssue ] , ) - > T raise ClientSourcePreparationStop"
+        },
+        {
+          "name": "check_client_source_array_profile",
+          "declaration": "check_client_source_array_profile ( checked : @ checked . CheckedProgram , ) - > Result [ Unit , ClientSourcePreparationIssue ]"
         },
         {
           "name": "client_source_computation_matches",
@@ -76589,6 +76648,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Retaining Source originals after Request compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Before returning the selected compiler kind"
               }
             ],
             "extension": [
@@ -76609,6 +76672,10 @@
               {
                 "path": "src/run_publication_host/client_source_preparation_input_wbtest.mbt",
                 "anchor": "test \"Source request original nonnull Parameter cursor reaches SAME Effect compiler and rejects equal foreign cursor\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source terminal refuses resolved nested ARRAY"
               }
             ]
           }
@@ -76688,7 +76755,7 @@
           }
         }
       ],
-      "sha256": "105e2c1eb0671dc5a88d5993fb3fbdf2e18b320526de63a4e8dbb11e573689a8",
+      "sha256": "f565dd82085fd1292d570a6eb51a8497dd5f2c2c18cef13a65c2413bdee04393",
       "operations": [
         {
           "name": "[T]same_client_source_optional",

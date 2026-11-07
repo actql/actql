@@ -335,6 +335,8 @@ pub fn check_client_node_model_preparation_layout(ClientNodeModelPreparationLayo
 
 pub fn check_client_private_continuation_retention(Bytes, String, Int, Int) -> Result[Unit, ClientPrivateContinuationRetentionIssue]
 
+pub fn check_client_source_array_profile(@program_check.CheckedProgram) -> Result[Unit, ClientSourcePreparationIssue]
+
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
 pub fn check_recovered_client_table_schema_wire(RecoveredClientTablePreview, String, Int, Int, Int) -> Result[Unit, ClientTableInputIssue]
@@ -350,6 +352,8 @@ pub fn cleanup_client_keyed_lookup_input(ClientKeyedLookupInput, Int) -> Result[
 pub fn cleanup_client_original_keyed_prefix_lookup(ClientOriginalKeyedPrefixLookup, Int) -> Result[Bool, ClientKeyedRequestIssue]
 
 pub fn clear_client_source_input(ClientSourceInput) -> Unit
+
+pub fn clear_prepared_client_effect_custody_after_cleanup(PreparedClientEffectComputation) -> Unit
 
 pub fn client_acquired_infer_prefix_owner(PreparedClientProgram, Int, Int) -> @lowering_relation.BoundPrepared?
 

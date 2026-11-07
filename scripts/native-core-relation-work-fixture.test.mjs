@@ -36,6 +36,9 @@ test('Native relation Work selects only its exact scoped file without moving Loc
   assert(nativeScopedTestFiles.includes(nativeRelationWorkTestFile));
   assert.equal(nativeScopedTestFiles.filter(file => file === nativeRelationWorkTestFile).length, 1);
   assert.equal(nativeCoreScopedAllocationProfile(nativeRelationWorkTestFile), 'scoped-review-values');
+  const requestEffect = 'src/platform_native/client_host/native_test/request_effect_test.mbt';
+  assert.equal(nativeScopedTestFiles.filter(file => file === requestEffect).length, 1);
+  assert.equal(nativeCoreScopedAllocationProfile(requestEffect), 'scoped-review-values');
   for (const file of ['src/platform_native/relation_file_work_tests/unrelated_test.mbt',
     'src/platform_native/client_host/local_store_execution_wbtest.mbt',
     'src/cmd/native_client/local_command_business_wbtest.mbt'])

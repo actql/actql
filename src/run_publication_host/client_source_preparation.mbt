@@ -6,6 +6,19 @@ pub enum ClientSourceProgramPreparation {
 }
 
 ///|
+/// Apply the existing Source-only type profile to the SAME checked original.
+/// No parse, semantic check, compilation, Run or resource admission occurs.
+pub fn check_client_source_array_profile(
+  checked : @checked.CheckedProgram,
+) -> Result[Unit, ClientSourcePreparationIssue] {
+  @source_frontend.check_array_profile(
+    checked,
+    max_work=1000000,
+    max_slots=100000,
+  ).map_err(issue => ArrayProfile(issue))
+}
+
+///|
 pub struct ClientSourcePreparation {
   intent : ClientSubmittedIntent
   environment : @checked.CheckEnvironment
@@ -156,13 +169,11 @@ pub fn prepare_client_source_computation(
         )
         let prepared = { ..prepared, source_intent: Some(intent), }
         source_result(
-          @source_frontend.check_array_profile(
+          check_client_source_array_profile(
             @checked.effect_program_static_checked_computation(
-              prepared_client_effect_computation_candidate(prepared),
+              prepared.candidate,
             ),
-            max_work=1000000,
-            max_slots=100000,
-          ).map_err(issue => ClientSourcePreparationIssue::ArrayProfile(issue)),
+          ),
         )
         |> ignore
         let (original_program, original_parameters, _) = match
@@ -193,11 +204,9 @@ pub fn prepare_client_source_computation(
       ).map_err(issue => ClientSourcePreparationIssue::Pure(issue)),
     )
     source_result(
-      @source_frontend.check_array_profile(
+      check_client_source_array_profile(
         @strategy.graph_program(prepared_client_graph(prepared)),
-        max_work=1000000,
-        max_slots=100000,
-      ).map_err(issue => ClientSourcePreparationIssue::ArrayProfile(issue)),
+      ),
     )
     |> ignore
     Ok({

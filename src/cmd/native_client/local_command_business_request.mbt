@@ -226,3 +226,41 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
     business.request_intent = None
   })
 }
+
+///|
+// Consume the already checked Effect and its same Request borrow inside the
+// original backed execution. This is the first sequence compiler, never a
+// second input/check compiler or a durable admission/approval/write permit.
+fn LocalCommandBusinessPreparation::compile_effect_first(
+  self : LocalCommandBusinessPreparation,
+  scope : String,
+  configuration_cid : String,
+  namespace_id : String,
+  request_id : String,
+  now : String,
+  until : String,
+) -> LocalEffectFirstCompilation raise ClientStop {
+  guard self.original.business is Some(business) &&
+    business.request_parent is Some(_) &&
+    business.request_input is Some(_) &&
+    business.request_intent is Some(intent) &&
+    physical_equal(intent, self.intent) &&
+    business.request_body is Some(@local_host.Effect(borrow)) &&
+    @local_host.native_client_submitted_preparation(self.preparation)
+    is EffectComputation(prepared) &&
+    @initial_resources.preparation_body_borrow_value(borrow) is Some(original) &&
+    physical_equal(original, prepared) else {
+    stop("LocalBusinessOriginalUnavailable")
+  }
+  self.original.with_business_request(self.capture, () => {
+    local_effect_first_compilation(
+      self.preparation,
+      scope,
+      configuration_cid,
+      namespace_id,
+      request_id,
+      now,
+      until,
+    )
+  })
+}

@@ -23,6 +23,33 @@ static observation and unmeasured quantities remain explicit. This metadata
 does not assert unrecorded runtime engine choices, measurements or execution
 history, and the human renderer distinguishes it from a new static EXPLAIN.
 
+## Same Request Effect preparation lifetime
+
+The Native submitted-Request entrance retains the checker's original Pure or
+Effect preparation and its corresponding typed constructor borrow. Common
+finishes compilation and continues the same capacity once; Native does not
+check, compile or continue it again to project that result. Effect first-sequence
+preparation uses that same retained Request while the original Journal Read is
+suspended. A Pure operation is activated only for the actual Pure requirements.
+This handoff is preparation, not approval, Account authority or a durable Effect
+Run supplier; unsupported execution remains unavailable.
+
+The fixed Request's existing 4KiB internal control group covers the Native
+completed-body carrier (one header, original-borrow reference and variant word)
+after its resize has returned. Variable Program, compiler and provider bodies
+remain separately reserved on the same parent before construction.
+
+Cleanup returns the original constructor borrow before retiring its capacity.
+Live borrowers or a failed logical settlement keep that exact capacity and
+original prepared Effect. After successful logical retirement, the Request
+severs the Effect's cached normalization/material backedges and drops completed
+continuation/quote aliases before the physical Read waits for its last alias.
+The normalization cache is not a physical owner; severing it cannot free an
+escaped original, acknowledge cleanup or authorize reissuance. Physical-only
+retry retains the same initial owner and never settles the transferred Unit
+capacity again. Unknown stop outcomes stay Unknown; only actual Native Read,
+domain and arena retirement supplies their respective acknowledgements.
+
 ## Ordinary literal query caller
 
 Trusted public `sql` and literal `aql` select the ordinary Local Host when no
