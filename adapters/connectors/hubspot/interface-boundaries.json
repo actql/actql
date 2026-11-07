@@ -593,7 +593,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "ede9fe545eaa88495fe910dd57691564ed58b91825686ff15b2274dcc3c0e0f7",
+      "sha256": "6be22cb2d47b9c82bd89e29e34df3231f0ac1714cbd32d18bb1cefac38b6dff9",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -839,6 +839,28 @@
           "async": false
         },
         {
+          "name": "loadInstalledHubSpotSource/targetUnits/targetUnits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/targetUnits/targetUnits/targetUnits",
+          "parameters": [
+            "n",
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledHubSpotSource/targetUnits/targetUnits#2",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
           "name": "metadataBodyBytes",
           "parameters": [
             "encoded",
@@ -950,7 +972,10 @@
             "prepareInstalledHubSpotMaterials/projected/projected",
             "readInputs",
             "readInputs/readInputs",
-            "text/text"
+            "text/text",
+            "loadInstalledHubSpotSource/targetUnits/targetUnits",
+            "loadInstalledHubSpotSource/targetUnits/targetUnits/targetUnits",
+            "loadInstalledHubSpotSource/targetUnits/targetUnits#2"
           ],
           "exports": [
             "INSTALLED_HUBSPOT_SITE_VERSION",

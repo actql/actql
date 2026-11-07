@@ -95,7 +95,10 @@ The generic Reader owns physical response custody, charge-before-decode,
 current/cancellation fences and cleanup-bound RowRun retirement. The private
 Common quantity composes that reader's original inventory with the bounded
 HubSpot sequence. Each charged body adds its actual byte extent before any
-native projection, including complete earlier/failed prefixes. Row output and
+native projection, including complete earlier/failed prefixes. Empty Sets and
+body arrays carry no future row/page/request entries. Their current prefix and
+one predecode page are bounded from received extents and the original per-page
+limit; increasing unused total ceilings adds no initial allocation. Row output and
 writer bounds stay independent; no limit, permission or Ledger is issued by
 these quantities. Duplicate ids/cursors, page/request/row limits and the final
 Catalog recheck remain mandatory before successful completion. Protocol tests

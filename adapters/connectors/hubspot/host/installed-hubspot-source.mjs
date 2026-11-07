@@ -219,7 +219,8 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
   const ca = siteProfile.caPath === undefined ? undefined : await readers.readOriginalBytes(siteProfile.caPath);
   const totalBytes = BigInt(limits.maxRequests) * BigInt(limits.maxResponseBytes);
   const targetUnits = 1024 + 6 * (siteProfile.apiOrigin.length + installed.portalId.length +
-    limits.maxNameUnits + limits.maxCursorUnits);
+    Math.max(...installed.resources.map(value => value.objectType.length)) +
+    Math.max(...declared.views.map(view => view.fields.reduce((n, field) => n + field.length, 0))));
   if (totalBytes > 2147483647n || !positive(targetUnits)) fail('HubSpotManagedAggregateUnavailable');
   const readerLimits = Object.freeze({maxResponseBytes: limits.maxResponseBytes,
     maxTotalResponseBytes: Number(totalBytes), maxNodes: limits.maxNodes, maxDepth: limits.maxDepth,

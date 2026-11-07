@@ -22,20 +22,33 @@ pub fn source_read_construction_capacity(
     limits[8] > limits[6] {
     return None
   }
-  let pages = limits[5].to_int64()
-  let rows = limits[6].to_int64()
+  for bytes in received {
+    if bytes < 0 || bytes > limits[0] {
+      return None
+    }
+  }
+  // No Set entry or future body-array element exists at installation. Before
+  // decoding one charged body, its full extent bounds every possible new id
+  // and cursor; keep every prior/failed prefix until original retirement.
+  let pages = Int64::min(limits[5].to_int64(), received.length().to_int64())
+  let rows = Int64::min(
+    limits[6].to_int64(),
+    received.length().to_int64() * limits[8].to_int64(),
+  )
   let columns = limits[9].to_int64()
   // Original callbacks and receivers, returned request/projection records,
   // bounded input copies and both cross-page duplicate-tracking Sets. Catalog,
   // Site and installed property names are borrowed from the original Source.
   guard @shape.collection_construction_extent({
       records: 96L,
-      record_references: 768L,
-      record_words: 128L,
+      // One parent dependency count and two original-secret references for
+      // the independently authorized metadata Resource bindings.
+      record_references: 768L + 2L,
+      record_words: 128L + 1L,
       reference_arrays: 16L,
-      reference_items: 64L + 4L * columns + limits[7].to_int64(),
+      reference_items: 64L + 4L * columns + received.length().to_int64(),
       scalar_arrays: 4L,
-      scalar_items: 16L + limits[7].to_int64(),
+      scalar_items: 16L + received.length().to_int64(),
       maps: 4L,
       map_entries: rows + pages,
     })

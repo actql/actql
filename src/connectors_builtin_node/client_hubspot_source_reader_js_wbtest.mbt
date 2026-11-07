@@ -76,3 +76,63 @@ test "HubSpot managed reader real Ledger rejects one-short before native respons
     )
   }
 }
+
+///|
+test "HubSpot managed tiny input does not reserve future rows pages or requests" {
+  let protocol = [
+    4096, 1000, 20, 10, 100, 2, 2, 5, 1, 3, 64, 100, 4096, 4096, 100, 10,
+  ]
+  let wider = protocol.copy()
+  wider[5] = 1000000
+  wider[6] = 1000000
+  wider[7] = 1000003
+  let selected = @hubspot_catalog.source_read_construction_capacity(
+    protocol,
+    4096,
+    [],
+  ).unwrap()
+  let initial = @hubspot_catalog.source_read_construction_capacity(
+    wider,
+    4096,
+    [],
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(selected),
+    @execution.execution_capacity_execution_bytes(initial),
+  )
+  let limit = @execution.execution_capacity_execution_bytes(initial)
+  let ledger = hubspot_mapping_initialization_ledger(limit)
+  let input = [1]
+  let owner : @resources.PreparationCapacity[
+    Array[Int],
+    (Array[Int], @source_publication.PreparedPublishedQueryEnvironment),
+  ] = @resources.reserve_preparation_capacity(
+    ledger,
+    input,
+    0L,
+    0L,
+    max_borrowers=2,
+  ).unwrap()
+  let running = client_program_compose_installed_source_construction_capacity(
+    @execution.execution_capacity(0L, 0L).unwrap(),
+    [Some(initial)],
+  ).unwrap()
+  @client_local_host.reserve_installed_source_construction(
+    owner, input, running,
+  ).unwrap()
+  assert_true(
+    @resources.abort_preparation_capacity_after_cleanup(owner, input).unwrap(),
+  )
+  let small = @hubspot_catalog.source_read_construction_capacity(
+    protocol,
+    4096,
+    [32],
+  ).unwrap()
+  let large = @hubspot_catalog.source_read_construction_capacity(wider, 4096, [
+    32,
+  ]).unwrap()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(small),
+    @execution.execution_capacity_execution_bytes(large),
+  )
+}
