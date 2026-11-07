@@ -97,7 +97,9 @@ fn local_project_mock_file_declaration(
             "max_listing_pages": 1,
             "max_request_attempts": 1,
             "max_listing_bytes": Json::number(limits.page.max_bytes.to_double()),
-            "max_listing_duration_ms": 30000,
+            "max_listing_duration_ms": Json::number(
+              local_project_mock_file_duration_ms().to_double(),
+            ),
             "maximum_path_length": 4096,
           },
         }

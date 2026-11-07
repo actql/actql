@@ -81,9 +81,19 @@ fn native_project_mock_model_backed_read(
   file_facts? : Bool = false,
   write_mapping? : Bool = false,
   file_references? : Bool = false,
+  readme_request? : Bool = false,
+  lookup_policy? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
+  // Both physical facilities are created in the outer control lifetime.
+  // Project metadata stays retained while its SAME immutable originals are
+  // borrowed by the separate Request payload, as in the ordinary command.
+  let request_facility = if readme_request {
+    Some(native_mock_readme_request_facility())
+  } else {
+    None
+  }
   let profile = local_command_installed_profile(
     "0000000000000000000000000000000000000001", "0000000000000000000000000000000000000000000000000000000000000001",
   )
@@ -135,7 +145,14 @@ fn native_project_mock_model_backed_read(
       fail("actual metadata Read pending")
   }
   host.enter_domain_original_read(read).unwrap()
-  if file_references {
+  let mut request_issue : String? = None
+  if request_facility is Some(facility) {
+    request_issue = native_mock_readme_request_in_metadata_read(
+      host, read, facility,
+    )
+  } else if lookup_policy {
+    native_mock_lookup_policy_in_original_read()
+  } else if file_references {
     native_project_mock_file_references_in_original_read()
   } else if write_mapping {
     native_project_mock_write_mapping_in_original_read()
@@ -171,6 +188,9 @@ fn native_project_mock_model_backed_read(
   }
   host.close_domain_after_owner_ack(domain).unwrap()
   host.try_close().unwrap()
+  if request_issue is Some(issue) {
+    fail("whole original README Native Request: " + issue)
+  }
 }
 
 ///|

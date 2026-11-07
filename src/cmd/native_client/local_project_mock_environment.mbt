@@ -69,6 +69,17 @@ fn LocalProjectMockDeclarations::prepare_source_environment(
     guard local_project_mock_json(@encode.finish(writer)) is Object(body) else {
       stop("InvalidProjectBindings")
     }
+    if self.file_lookup_policy() is Some(lookup) {
+      guard body.get("host_policy_profile") is Some(Object(policy)) else {
+        stop("InvalidProjectBindings")
+      }
+      // Keep an explicitly selected original Host policy unchanged. The
+      // Native implementation supplies its missing component, never an Allow
+      // or a replacement for the same Request's physical lookup admission.
+      if !policy.contains("lookup_execution") {
+        policy["lookup_execution"] = lookup
+      }
+    }
     let original = Json::object(body)
     let catalogs = local_project_mock_array(original, "connector_catalogs")
     let contracts = local_project_mock_array(original, "contract_registry")

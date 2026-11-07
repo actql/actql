@@ -28,6 +28,7 @@ priv struct LocalProjectMockFileSource {
     LocalProjectMockFileBinding,
     @admitted.ReferenceValue,
   ) -> String?
+  lookup_request_bytes : Int64
   references : LocalProjectMockFileReferences
   _retained_issuer : @admitted.ReferenceIssuer
   _retained_contract : @contract.Contract
@@ -109,6 +110,7 @@ fn local_project_mock_file_source(
   }
   Ok({
     _retained_original: original,
+    lookup_request_bytes: local_project_mock_file_limits().page.max_bytes.to_int64(),
     references,
     _retained_listings: listings,
     _retained_resolve_identity: (binding, value) => {
@@ -211,4 +213,37 @@ fn LocalProjectMockFileReferences::resolve_identity(
     }
   }
   None
+}
+
+///|
+// Select policy only from an actual retained Native file implementation. This
+// is a logical envelope, not backing, spare extent, Account permission or ACK.
+// The existing whole-Source/lookup owners must still admit every live child
+// and enforce the SAME request/response/clock ceilings before access.
+fn LocalProjectMockDeclarations::file_lookup_policy(self : Self) -> Json? {
+  guard !self.closing &&
+    !self.retired &&
+    self.file_sources is Some(sources) &&
+    !sources.is_empty() else {
+    return None
+  }
+  let limits = @local_values.client_local_preparation_initial_limits(
+    @local_values.client_local_resource_policy(),
+  ).unwrap()
+  let total = Int64::min(limits.retained_bytes, limits.execution_bytes)
+  let mut request = 0L
+  for source in sources {
+    request = Int64::max(request, source.lookup_request_bytes)
+  }
+  Some({
+    "version": "actql-lookup-execution-policy/0.1",
+    "max_network_attempts_per_request": 1,
+    "max_request_bytes_per_attempt": Json::number(request.to_double()),
+    "max_total_request_bytes": Json::number(total.to_double()),
+    "max_total_response_bytes": Json::number(total.to_double()),
+    "max_total_decoded_response_bytes": Json::number(total.to_double()),
+    "max_total_duration_ms": Json::number(
+      local_project_mock_file_duration_ms().to_double(),
+    ),
+  })
 }
