@@ -11,10 +11,14 @@ const unavailable = () => {
 };
 const fields = freeze(['directory', 'storeAuthorityCid', 'capacityBytes',
   'maxObjectBytes', 'maxObjects', 'maxContractNodes', 'maxContractDepth']);
-const storeWireBytes = 10000000;
+// One object cannot exceed this selected Store's total durable byte policy.
+// This is support DATA, not an up-front allocation: the existing Store reserves
+// each writer's admitted maximum alongside actual stored and pending debt.
+const storeCapacityBytes = 512 * 1024 * 1024;
+const storeWireBytes = Math.min(storeCapacityBytes, 2147483647);
 // Structure support follows the already selected bounded object wire, rather
 // than an unrelated 10000-node rejection. This recipe issues no memory grant.
-const store = record({capacityBytes: 512 * 1024 * 1024, maxObjectBytes: storeWireBytes,
+const store = record({capacityBytes: storeCapacityBytes, maxObjectBytes: storeWireBytes,
   maxObjects: 10000, maxContractNodes: storeWireBytes, maxContractDepth: 64});
 const result = record({maxResults: 10, maxCollectedRows: 10000, maxRowWireBytes: 1048576,
   maxReadWireBytes: 10 * 1024 * 1024, maxBatchRows: 1000, maxValueNodes: 1000000,
@@ -97,5 +101,6 @@ const facilityFields = record({
   crypto: freeze(['createCipheriv', 'createDecipheriv', 'createHash', 'randomBytes', 'randomUUID']),
   buffer: freeze(['alloc', 'allocUnsafe', 'allocUnsafeSlow', 'byteLength', 'concat', 'from', 'isBuffer']),
 });
-module.exports = {declareHostResultServiceRecipe, facilityFields, validOriginalResultPublicationExtent};
+module.exports = {declareHostResultServiceRecipe, facilityFields, validOriginalResultPublicationExtent,
+  hostResultStorePolicy: store};
 freeze(module.exports);

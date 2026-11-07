@@ -74,8 +74,24 @@ fn client_node_publication_limits_original(
   guard original.publication is Some(publication) else { return None }
   let rows = publication.rows
   let envelope = publication.envelope
+  let exported = original.exports
   let wire_proof = publication.wire_bytes
-  let bytes = Int::min(max_payload_bytes, wire_proof.unwrap_or(10000000))
+  // Consume the SAME admitted export envelope. A second Node recipe must not
+  // impose unrelated value/Text/node maxima on an already quoted Plan. The
+  // caller's separate Store-object policy may still be tighter.
+  let bytes = Int::min(
+    max_payload_bytes,
+    Int::min(
+      exported.wire.max_bytes,
+      wire_proof.unwrap_or(exported.wire.max_bytes),
+    ),
+  )
+  // The Node logical Relation wrapper adds three nodes and two levels; those
+  // representation offsets are not extra row/value or Resource permission.
+  if exported.wire.max_nodes > 2147483644 ||
+    exported.wire.max_depth > 2147483645 {
+    return None
+  }
   let schema_limits : @execution.RelationSchemaIdentityLimits = {
     max_fields: envelope.map(value => value.fields).unwrap_or(100),
     max_bytes: client_node_publication_schema_bytes(),
@@ -93,28 +109,31 @@ fn client_node_publication_limits_original(
     .map(value => value.publication_workspace_entries)
     .unwrap_or(original.metadata.result_workspace_entries),
     max_rows: rows,
+    // The existing Node row codec keeps its independent recursion policy.
+    // A larger checked value envelope does not widen that format boundary.
     values: {
-      max_nodes: 1000000,
-      max_text_bytes: 10000000,
-      max_depth: 64,
-      max_work: 1000000,
+      ..exported.values,
+      max_depth: Int::min(exported.values.max_depth, 64),
     },
     payload_wire: {
+      ..exported.wire,
       max_bytes: bytes,
-      max_nodes: 1000000,
-      max_depth: 64,
-      max_columns: envelope.map(value => value.fields).unwrap_or(100),
-      max_order_work: 1000000,
+      max_depth: Int::min(exported.wire.max_depth, 64),
+      max_columns: envelope
+      .map(value => value.fields)
+      .unwrap_or(exported.wire.max_columns),
     },
     logical_wire: {
+      ..exported.wire,
       max_bytes: bytes,
-      max_nodes: 1000003,
-      max_depth: 66,
-      max_columns: envelope.map(value => value.fields).unwrap_or(100),
-      max_order_work: 1000000,
+      max_nodes: exported.wire.max_nodes + 3,
+      max_depth: Int::min(exported.wire.max_depth, 64) + 2,
+      max_columns: envelope
+      .map(value => value.fields)
+      .unwrap_or(exported.wire.max_columns),
     },
     schema: { ..schema_limits, max_bytes: schema_bytes, },
-    max_batch_bytes: 65536,
+    max_batch_bytes: exported.max_batch_bytes,
   })
 }
 
