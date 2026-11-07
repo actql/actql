@@ -27,8 +27,9 @@ query execution, captured Source and the supplied original relation Read.
 Whole Source input consumes the same response ticket before nominal/schema
 checks and funds its real typed input through the existing RowRun owner. It
 never fabricates a Query requirement, replaces the Native execution Ledger or
-refunds received bytes. Listing/Content and current Account authorization remain
-separate existing obligations; this entry does not supply them.
+refunds received bytes. Listing uses its separate same-Plan entrance below.
+Content and current Account authorization remain separate existing obligations;
+the ordinary row entrance does not supply them.
 
 Call `advance` with a positive quantum while the original execution is entered.
 A completed `capture` borrows the same result, not a detached copy. A construction
@@ -177,7 +178,35 @@ Every temporary row mark and projection mark is cut on success or refusal;
 the caller's raw document, response ticket, references and physical children
 retain their original duties. A converter result is not a completed listing.
 
-This is a Host assembly component. The managed file-capture entrance still
-rejects listing acquisitions until its original listing/charge/issuer protocol
-is connected. It does not enable the CLI mock profile, grant an Account, capture
-Content, run a Model, approve an Effect or qualify Saved/physical cleanup.
+`prepare_native_relation_file_listing_provider` retains the public listing
+declaration, separate physical provider, checked field roles and original
+Source issuer/method. Construction invokes neither issuance nor currentness.
+Its quote composes raw admission, one physical typed projection, listing
+construction and transport. It does not add the ordinary provider quote again
+and double-charge that same projection. The actual installing owner funds this
+record and quote construction before calling it and retains the original issuer
+and known-resource inventory through every later borrower.
+
+`prepare_native_managed_relation_file_listing_capture` requires this SAME
+Plan-held capacity and listing read on the original Native Ledger. It starts
+the original listing request, reads and charges physical chunks once, converts
+the admitted original document and consumes that SAME physical-body ticket
+through the existing resumable Core listing protocol. It never charges the
+derived envelope as another physical response or manufactures a Query/RowRun.
+Issuer refusal retains its original Result; after successful issuance the
+original read/current fence runs before continued work. Existing partial-child,
+sticky-failure and child-first retirement duties stay with the file owner.
+
+The caller drives `advance_listing` with elapsed milliseconds from its original
+Host monotonic clock, whose initial observation precedes preparation. Negative
+elapsed values and use of untimed `advance` refuse rather than silently report
+zero elapsed time. Core owns completion and duration/monotonicity checks; the
+adapter does not issue another clock or permission. Ordinary capture retains
+its original untimed `advance` behavior and still refuses listing acquisitions.
+
+The physical listing fixture exercises the real file, SAME Request/Plan/Ledger,
+original 242-byte ticket, two nominal rows, DAG binding and original Source,
+execution/domain/arena retirement. Its issuer and elapsed values are explicit
+component inputs, not a normal Account or Host-clock qualification. This does
+not enable the CLI mock profile, capture Content, run a Model, approve an Effect
+or qualify Saved. Those existing full-workflow obligations remain open.

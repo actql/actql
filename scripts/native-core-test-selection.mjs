@@ -14,6 +14,12 @@ export const nativeRelationWorkTestFile =
 export const nativeNonModelEntryTestFile =
   'src/platform_native/installed_arena_control/nonmodel_entry_original_physical_scoped_wbtest.mbt';
 
+// Both consume the same original file/Backing namespace constructor.
+export const nativeRelationCaptureTestFiles = Object.freeze([
+  'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt',
+  'src/platform_native/row_source/listing_capture_physical_scoped_wbtest.mbt',
+]);
+
 const nativeRequestEffectHandoffTestFile =
   'src/platform_native/client_host/native_test/request_effect_test.mbt';
 
@@ -62,7 +68,7 @@ export const nativeScopedTestFiles = Object.freeze([
   'src/platform_native/installed_arena_control/store_operation_reentry_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/store_result_return_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/store_wal_original_physical_scoped_wbtest.mbt',
-  'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt',
+  ...nativeRelationCaptureTestFiles,
   nativeRelationWorkTestFile,
   nativeNonModelEntryTestFile,
 ]);
