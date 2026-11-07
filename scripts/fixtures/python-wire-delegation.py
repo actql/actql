@@ -26,4 +26,19 @@ assert not _wire.valid(False, {'type': 'integer'})
 assert not _wire.valid(10 ** 400, {'type': 'integer'})
 assert Client is not None and AsyncClient is not None
 assert not {'wasmtime', 'duckdb', 'actql_local_runtime'} & sys.modules.keys()
+# Same wire envelope boundaries as Node. This establishes shape/Unicode only,
+# not installed preparation capacity, execution or normal package acceptance.
+connection = {'mode': 'remote', 'owner': 'remote', 'consentRefs': [], 'runners': []}
+for units in (65535, 65536, 65537):
+    for text in ('x' * units, '日' * units,
+                 '😀' * (units // 2) + ('x' if units % 2 else ''), '\n' * units):
+        assert _wire.utf16_length(text) == units
+        source = {'text': text, 'format': 'sql'}
+        assert _wire.valid_body('submit', {'connection': connection, 'requestId': 'text-demand',
+            'kind': 'aql', 'input': source, 'parameters': None})
+        assert _wire.valid_body('check', {'connection': connection, 'scope': 'template_only',
+            'kind': 'text', 'input': source})
+for text in ('', 'a\0b', '\ud800'):
+    assert not _wire.valid_body('check', {'connection': connection, 'scope': 'template_only',
+        'kind': 'text', 'input': {'text': text, 'format': 'sql'}})
 print('Python codec delegation and Remote-only import: passed')
