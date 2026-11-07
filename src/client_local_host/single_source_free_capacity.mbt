@@ -170,3 +170,59 @@ pub fn ClientLocalRequirements::matches(
   self.fragment == fragment_body &&
   self.ordered == ordered_body
 }
+
+///|
+// Every nonterminal successful finalization poll must report positive work.
+// The existing driver debits semantic steps from execution.max_work. After its
+// receipt transfers, mandatory scratch retirement is separate: two admitted
+// row/cell arrays, one reference-row/cell array, at most one reference per
+// admitted value node, three column arrays and two closing transitions.
+// This is a finite scheduling bound, never additional fuel, memory or authority.
+fn local_finalization_round_bound(
+  work : Int,
+  rows : Int,
+  fields : Int,
+  nodes : Int,
+) -> Int? {
+  if work < 0 || rows < 0 || fields < 0 || nodes < 0 {
+    return None
+  }
+  // The poll index is Int, but these conservative roles can overestimate a
+  // small actual output. Saturate only this scheduling counter; never reject
+  // an otherwise admissible task or change its separate work/size quotas.
+  guard @execution.checked_preparation_add_product(
+      3L,
+      rows.to_int64(),
+      3L * (fields.to_int64() + 1L),
+    )
+    is Some(bound) &&
+    @execution.checked_preparation_add_product(bound, fields.to_int64(), 3L)
+    is Some(bound) &&
+    @execution.checked_preparation_add_product(bound, nodes.to_int64(), 1L)
+    is Some(bound) &&
+    @execution.checked_preparation_add_product(bound, work.to_int64(), 1L)
+    is Some(bound) else {
+    return Some(2147483647)
+  }
+  Some(Int64::min(bound, 2147483647L).to_int())
+}
+
+///|
+/// Poll the same already-quoted task through finalization and its finite
+/// scratch retirement. This metadata neither supplies its Ledger nor raises
+/// the unchanged execution work or output admission limits.
+pub fn ClientLocalRequirements::finalization_round_limit(
+  self : ClientLocalRequirements,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Int? {
+  if !physical_equal(self.prepared, prepared) {
+    return None
+  }
+  let plan = self.capacity_plan
+  local_finalization_round_bound(
+    plan.execution.max_work,
+    plan.execution.rows.max_rows,
+    plan.imports.wire.max_columns,
+    plan.execution.rows.output_values.max_nodes,
+  )
+}
