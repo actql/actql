@@ -217,6 +217,7 @@ pub fn[T, C, I] NativeHostBootstrap::prepare_backed_original_initialization_admi
   original : T,
   record : NativeBackedLiveChild[T, C, I],
   input : I,
+  acquire_window? : ((Int64, Int64) -> Result[Unit, @resources.LedgerIssue])? = None,
 ) -> Result[
   @resources.BackedInitializationAdmission[I],
   NativeBackedOriginalReadIssue,
@@ -240,10 +241,11 @@ pub fn[T, C, I] NativeHostBootstrap::prepare_backed_original_initialization_admi
   guard record.projection is Some(projection) else {
     return Err(Domain(Bootstrap(Unavailable)))
   }
-  @resources.prepare_backed_initialization_admission(projection, input).map_err(issue => {
-      Child(issue)
-    },
-  )
+  @resources.prepare_backed_initialization_admission(
+    projection,
+    input,
+    acquire_window~,
+  ).map_err(issue => Child(issue))
 }
 
 ///|

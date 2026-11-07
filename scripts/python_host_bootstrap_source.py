@@ -47,6 +47,7 @@ INPUTS = (
     'src/platform_native/host_bootstrap/backing_growth_wbtest.mbt',
     'packages/python-local-runtime/native/pre-root/owned_domain_growth.inc',
     'src/platform_native/host_bootstrap/backed_live_child_native.mbt',
+    'src/platform_native/host_bootstrap/backed_initialization_native.mbt',
     'src/platform_native/host_bootstrap/backed_request_preparation_native.mbt',
     'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt',
     'src/platform_native/host_bootstrap/root_control.inc',

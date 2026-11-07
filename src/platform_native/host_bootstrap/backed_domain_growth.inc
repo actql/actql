@@ -92,8 +92,9 @@ MOONBIT_FFI_EXPORT int64_t actql_bootstrap_quote_checked_read_growth(
 MOONBIT_FFI_EXPORT int64_t actql_bootstrap_quote_checked_read_growth_covering(
     actql_bootstrap_backing *root, actql_bootstrap_domain *domain,
     int64_t contiguous_bytes, int64_t minimum_usable_bytes) {
-    if (!bootstrap_checked_read_current(root, domain) || contiguous_bytes <= 0 ||
-        minimum_usable_bytes < 0 || (uint64_t)contiguous_bytes > PTRDIFF_MAX ||
+    if (!bootstrap_checked_read_current(root, domain) || contiguous_bytes < 0 ||
+        minimum_usable_bytes < 0 || (contiguous_bytes == 0 && minimum_usable_bytes == 0) ||
+        (uint64_t)contiguous_bytes > PTRDIFF_MAX ||
         (uint64_t)minimum_usable_bytes > PTRDIFF_MAX) return -1;
     uint64_t serial = 0;
     int status = actql_native_owned_quote_checked_read_growth_covering(domain->lease,

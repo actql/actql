@@ -11,6 +11,13 @@ extern "C" fn growth_control_bytes_ffi(
 
 ///|
 #borrow(backing)
+extern "C" fn growth_for_payload_bytes_ffi(
+  backing : Backing,
+  payload : Int64,
+) -> Int64 = "actql_bootstrap_growth_for_payload_bytes"
+
+///|
+#borrow(backing)
 extern "C" fn grow_backing_ffi(
   backing : Backing,
   expected : Int64,
@@ -104,4 +111,27 @@ pub fn[T] NativeHostBootstrap::ensure_backing_capacity(
     return Ok(())
   }
   self.grow_backing(original, scope, bytes)
+}
+
+///|
+/// Acquire the actual segment for this selected allocation, not the original
+/// Host's unused maximum. SAME finite reservation/generation and partial owner.
+pub fn[T] NativeHostBootstrap::grow_backing_for_allocation(
+  self : NativeHostBootstrap[T],
+  original : T,
+  scope : NativeBootstrapBorrow[T],
+  payload_bytes : Int64,
+) -> Result[Unit, NativeBootstrapIssue] {
+  match self.require_borrow_current(original, scope) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let before = @resources.shared_capacity_usage(self.capacity).capacity
+  let additional = growth_for_payload_bytes_ffi(self.backing, payload_bytes)
+  if before <= 0L ||
+    additional <= 0L ||
+    additional > 9223372036854775807L - before {
+    return Err(Unavailable)
+  }
+  self.grow_backing(original, scope, before + additional)
 }
