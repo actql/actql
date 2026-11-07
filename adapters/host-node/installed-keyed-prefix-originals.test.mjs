@@ -19,15 +19,22 @@ walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(method);
 
 // Actual thin facade body and explicit private original-map ports. Core's
 // real adopted-parent/sequence/current/one-use consumer is tested separately.
-function fixture(){
+function fixture(whole=false){
   const compiled={kind:'infer'},nativeCompiled={},definition={},nativeDefinition={},run={},scope={},graph={},keyed={},result={};
   const originals=[{},{}];let calls=0,borrows=0;
   const captures=originals.map(original=>{
-    const capture={originalRowCapture(){assert.equal(this,capture);borrows++;return original;}};
-    return {capture};
+    const capture=whole
+      ? {originalCapturedInput(){assert.equal(this,capture);borrows++;return original;}}
+      : {originalRowCapture(){assert.equal(this,capture);borrows++;return original;}};
+    return {...(whole ? {inputKind:'whole-input'} : {}),capture};
   });
   const compiledRunTokens=new WeakMap([[compiled,nativeCompiled]]);
   const moon={clientProgramStartInstalledOriginalComposedKeyedPrefix(...args){
+    assert.equal(whole,false);
+    assert.equal(this,moon);assert.deepEqual(args,[run,scope,nativeCompiled,nativeDefinition,graph,keyed,originals]);
+    calls++;return {$tag:1,_0:result};
+  },clientProgramStartInstalledOriginalComposedKeyedInputPrefix(...args){
+    assert.equal(whole,true);
     assert.equal(this,moon);assert.deepEqual(args,[run,scope,nativeCompiled,nativeDefinition,graph,keyed,originals]);
     calls++;return {$tag:1,_0:result};
   }};
@@ -66,6 +73,35 @@ test('installed keyed prefix facade preserves original undefined capture refusal
   assert.throws(()=>g.start(g.run,g.compiled,g.definition,g.graph,g.scope,g.keyed,g.captures),
     error=>error.code==='MoonBitHostFailure'&&error.cause===primary);
   assert.equal(nativeCalls,1);assert.equal(g.counts().borrows,2);
+});
+
+test('installed Whole keyed prefix borrows its actual live or restored inputs on the same managed original',()=>{
+  const f=fixture(true);
+  assert.equal(f.start(f.run,f.compiled,f.definition,f.graph,f.scope,f.keyed,f.captures),f.result);
+  assert.deepEqual(f.counts(),{calls:1,borrows:2});
+  const g=fixture(true);
+  assert.throws(()=>g.start(g.run,{...g.compiled},g.definition,g.graph,g.scope,g.keyed,g.captures),/Foreign Client compiled/);
+  assert.throws(()=>g.start(g.run,g.compiled,{},g.graph,g.scope,g.keyed,g.captures),/Foreign Definition/);
+  assert.deepEqual(g.counts(),{calls:0,borrows:0});
+});
+
+test('installed Whole keyed prefix preserves borrow and Core refusals without Query fallback or a second start',()=>{
+  const f=fixture(true);
+  f.captures[0].capture.originalCapturedInput=()=>{throw undefined;};
+  let failed=false;
+  try{f.start(f.run,f.compiled,f.definition,f.graph,f.scope,f.keyed,f.captures);}
+  catch(cause){failed=true;assert.equal(cause,undefined);}
+  assert.equal(failed,true);assert.deepEqual(f.counts(),{calls:0,borrows:0});
+  const g=fixture(true),primary={};let nativeCalls=0;
+  g.moon.clientProgramStartInstalledOriginalComposedKeyedInputPrefix=()=>{nativeCalls++;return {$tag:0,_0:primary};};
+  assert.throws(()=>g.start(g.run,g.compiled,g.definition,g.graph,g.scope,g.keyed,g.captures),
+    error=>error.code==='MoonBitHostFailure'&&error.cause===primary);
+  assert.equal(nativeCalls,1);assert.equal(g.counts().borrows,2);
+  const mixed=fixture(true);
+  delete mixed.captures[1].inputKind;
+  assert.throws(()=>mixed.start(mixed.run,mixed.compiled,mixed.definition,mixed.graph,mixed.scope,mixed.keyed,mixed.captures),
+    /Unsupported mixed original keyed Source inputs/);
+  assert.deepEqual(mixed.counts(),{calls:0,borrows:0});
 });
 
 test('acquired Effect keeps its retained Model Definition instead of a separately validated Journal handle',()=>{
