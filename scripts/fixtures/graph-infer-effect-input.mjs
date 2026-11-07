@@ -39,9 +39,9 @@ export const graphDefinitionCid = cid({constructor:definitionConstructor,
 const identity = (definition, key) => ({definition,domain:graphDefinitionCid,
   key:['a',key],key_types:[{kind:'string'},{kind:'number'}]});
 const classified = definition => [
-  {id:1,graph_identity:identity(definition,1),tenant_key:'a',note:7,
+  {id:1,graph_identity:{$json:identity(definition,1)},tenant_key:'a',note:7,
     left_amount:10,right_amount:100,risk:'low'},
-  {id:2,graph_identity:identity(definition,2),tenant_key:'a',note:null,
+  {id:2,graph_identity:{$json:identity(definition,2)},tenant_key:'a',note:null,
     left_amount:20,right_amount:200,risk:'high'},
 ];
 const columns = [
