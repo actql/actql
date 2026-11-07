@@ -194,6 +194,11 @@ class OriginalHostBinding:
         A known-row fence alone cannot certify absence of another member after
         a different transaction. Core retains all original semantic decisions.
         """
+        inventory = reader.check_inventory
+        if inventory is not None:
+            inventory(reader, 'client_local_adoption', (('adoption', self._fences[0].payload),),
+                      self._current_observer)
+            return
         query = reader.query_current
         if query is None:
             raise ValueError('Original Local owned inventory query is unavailable')
@@ -231,6 +236,11 @@ class OriginalHostBinding:
         # Use the literal original logical names, including colons in file keys.
         expected = {'manifest': self._fences[1].payload} | {
             'file:' + value.name: value.body for value in self._selected}
+        inventory = reader.check_inventory
+        if inventory is not None:
+            inventory(reader, 'client_local_settings', tuple(sorted(expected.items())),
+                      self._current_observer)
+            return
         query = reader.query_current
         if query is None:
             raise ValueError('Original Local owned inventory query is unavailable')

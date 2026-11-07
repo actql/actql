@@ -44,6 +44,11 @@ class _NamespaceReader:
     query_current: Callable[['_NamespaceReader', int, str, str,
                              Callable[[], object]], tuple[str, StoredBytes] | None] | None = None
 
+    # Closed bounded membership comparison; no row or caller callback escapes
+    # between the before/after physical-current fences.
+    check_inventory: Callable[['_NamespaceReader', str, tuple[tuple[str, bytes], ...],
+                               Callable[[], object]], None] | None = None
+
     # Actual same-transaction catalog observation, not an indexed-custody proof.
     # Absence keeps existing private suppliers on their full legacy route.
     journal_schema: Callable[['_NamespaceReader', Callable[[], object]], int] | None = None
@@ -1017,7 +1022,8 @@ class LocalByteStore:
                 raise
 
         def observe(namespace: str, after: str, consume: _NamespaceConsumer | None, *,
-                    scan: bool, required_current: Callable[[], object] | None = None
+                    scan: bool, required_current: Callable[[], object] | None = None,
+                    inventory_only: bool = False
                     ) -> tuple[str, StoredBytes] | None:
             nonlocal reading, reads, copied, failure
             entered = False
@@ -1038,7 +1044,10 @@ class LocalByteStore:
                 if reads >= self._max_inspection_queries:
                     raise LocalStorageError('Local inventory inspection capacity exceeded')
                 reading = entered = True
-                fence(required_current, reuse_snapshot=required_current is not None)
+                if inventory_only:
+                    metadata_fence(reuse_snapshot=True)
+                else:
+                    fence(required_current, reuse_snapshot=required_current is not None)
                 # A malformed empty logical key must be observed and refused,
                 # not silently excluded from the original namespace inventory.
                 row = self._physical.scan_range(lower, upper,
@@ -1057,7 +1066,10 @@ class LocalByteStore:
                     self._key(logical)
                     copied += len(payload)
                     observation = (logical, StoredBytes(generation, payload))
-                fence(required_current, reuse_snapshot=required_current is not None)
+                if inventory_only:
+                    metadata_fence(reuse_snapshot=True)
+                else:
+                    fence(required_current, reuse_snapshot=required_current is not None)
                 if consume is None:
                     # No caller callback runs between the SQL read and return.
                     # The returned row is bounded immutable DATA, not current
@@ -1093,6 +1105,67 @@ class LocalByteStore:
             except BaseException as error:
                 failure = error
                 raise
+
+        def check_inventory(view: _NamespaceReader, namespace: str,
+                            expected: tuple[tuple[str, bytes], ...],
+                            required_current: Callable[[], object]) -> None:
+            nonlocal failure, reading
+            def inventory_fence() -> None:
+                nonlocal reading
+                reading = True
+                try:
+                    fence(required_current, reuse_snapshot=True)
+                    if failure is not None:
+                        raise failure
+                finally:
+                    reading = False
+            try:
+                check_frame(view)
+                self._capacity_name(namespace)
+                if (type(expected) is not tuple or len(expected) > 9
+                        or not callable(required_current)):
+                    raise ValueError('Invalid original Local bounded inventory')
+                previous = ''
+                for member in expected:
+                    if (type(member) is not tuple or len(member) != 2
+                            or type(member[0]) is not str or member[0] <= previous
+                            or type(member[1]) is not bytes
+                            or len(member[1]) > self._max_record_bytes):
+                        raise ValueError('Invalid original Local inventory member')
+                    self._key(member[0])
+                    previous = member[0]
+                # Only this closed comparison on the original SQLite adapter
+                # groups physical file observations. Every row still checks the
+                # actual transaction/schema/metadata and the same IO budgets.
+                # Arbitrary physical suppliers retain their per-query fences.
+                grouped = type(database) is _SQLiteByteDatabase and required_current is current
+                inventory_fence()
+                cursor = ''
+                for key, payload in expected:
+                    found = observe(namespace, cursor, None, scan=True,
+                                    required_current=required_current, inventory_only=grouped)
+                    if failure is not None:
+                        raise failure
+                    if (found is None or found[0] != key or found[1].generation != 0
+                            or found[1].payload != payload):
+                        raise LocalStorageError('Original Local inventory membership changed')
+                    cursor = key
+                trailing = observe(namespace, cursor, None, scan=True,
+                                   required_current=required_current, inventory_only=grouped)
+                if failure is not None:
+                    raise failure
+                if trailing is not None:
+                    raise LocalStorageError('Original Local inventory membership is incomplete')
+                # No immutable row leaves this scope and no caller-supplied
+                # consumer runs here. A changed file/schema or swallowed failure
+                # refuses before any subsequent Core decision or callback.
+                check_frame(view)
+                inventory_fence()
+                check_frame(view)
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                raise failure
 
         def journal_schema(view: _NamespaceReader, required_current: Callable[[], object]) -> int:
             nonlocal failure, reading, reads
@@ -1134,7 +1207,7 @@ class LocalByteStore:
                 owner=self, current=current_snapshot, check_fences=check_fences,
                 check_fences_and_current=check_fences_and_current,
                 check_frame=check_frame, query_current=query_current,
-                journal_schema=journal_schema)
+                journal_schema=journal_schema, check_inventory=check_inventory)
             result = inspect(reader)
             if failure is not None:
                 raise failure

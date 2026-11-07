@@ -2845,7 +2845,12 @@ class InstalledLocalHost:
             observation = self._store_observations.get(projection._publication.ticket)
             if observation is None or observation._projection is not projection:
                 raise ValueError('Original Local Store observation is unavailable')
-            progress = observation.advance(16)
+            # This synchronous caller does not yield between advances. Use a
+            # bounded 256-unit quantum instead of reopening the complete current
+            # transaction every 16 units. Core still charges the same original
+            # total work/fuel, and each advance retains its before/after physical
+            # checks, failure state and the original observation owner.
+            progress = observation.advance(256)
             if not progress.ready:
                 return None
             action = observation.finish()
