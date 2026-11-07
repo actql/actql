@@ -39,8 +39,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_domain_growth.inc",
-      "bytes": 8696,
-      "sha256": "f0639d5dcb26f420f54a2ecccfd2d87dbaae282abcaffbf7833ec4e7d06a92d1"
+      "bytes": 8902,
+      "sha256": "973142629b5ada7db0d7e5abb48ddab75b8131fb1a6b16439891937020806996"
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_read_native.mbt",

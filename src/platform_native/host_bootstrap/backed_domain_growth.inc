@@ -54,7 +54,10 @@ static bool bootstrap_checked_read_current(actql_bootstrap_backing *root,
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_suspend_read_for_parent_accounting(
     actql_bootstrap_backing *root, actql_bootstrap_domain *domain) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
-    if (!bootstrap_checked_read_current(root, domain) || domain->read_active != 1 ||
+    /* This leave is only the existing anonymous-growth accounting bridge.
+     * FD placement observation above must not open a new suspend protocol. */
+    if (!bootstrap_growth_original(root, domain) ||
+        !bootstrap_checked_read_current(root, domain) || domain->read_active != 1 ||
         domain->read_parent_suspended) return ACTQL_OWNED_INVALID;
     int status = actql_bootstrap_leave_read_context(domain);
     if (status != ACTQL_OWNED_OK) return status;
