@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, chmodSync, symlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
@@ -605,9 +605,85 @@ test('CI selection follows the owned contract baseline without a legacy exceptio
 });
 
 
+test('reviewed evaluation test modifications retain the existing light gate', () => {
+  const paths = ['examples/infer-evaluation/evaluate.test.mjs',
+    'examples/infer-evaluation/compare-source-instructions.test.mjs'];
+  for (const path of paths) {
+    assert(readFileSync(new URL('../' + path, import.meta.url), 'utf8').includes('test('));
+    const value = validateSelection(maintenanceSelection([path]));
+    assert.equal(value.profile, 'maintenance', path);
+    assert.equal(deepProofRequired(value), false);
+    assert.equal(verifyGate(plan(value), results(value), context).length, gateJobs.length);
+  }
+  assert.equal(maintenanceSelection([...paths, 'docs/development.md']).profile, 'maintenance');
+  for (const input of ['examples/infer-evaluation/evaluate.mjs',
+    'examples/infer-evaluation/compare-source-instructions.mjs',
+    'examples/infer-evaluation/evidence-reference.mjs',
+    'packages/sdk/host-port.mjs', 'src/client_local_host/moon.pkg',
+    'package.json', 'toolchain.json', '.github/workflows/ci.yml',
+    'proofs/relation-pipeline/inventory.mjs', 'examples/infer-evaluation/new.test.mjs']) {
+    const value = maintenanceSelection([paths[0], input]);
+    assert.equal(value.profile, 'full', input);
+    assert.equal(deepProofRequired(value), true, input);
+  }
+});
+
+test('actual evaluation Source Git changes reject additions deletions renames and shared inputs', t => {
+  const checkout = mkdtempSync(join(tmpdir(), 'actql-ci-evaluation-'));
+  t.after(() => rmSync(checkout, {recursive: true, force: true}));
+  const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_')));
+  Object.assign(env, {GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null'});
+  const git = args => {
+    const result = spawnSync('git', args, {cwd: checkout, env, encoding: 'utf8'});
+    assert.equal(result.status, 0, result.stderr); return result.stdout;
+  };
+  const reviewed = ['examples/infer-evaluation/evaluate.test.mjs',
+    'examples/infer-evaluation/compare-source-instructions.test.mjs'];
+  const shared = ['examples/infer-evaluation/evaluate.mjs', 'packages/sdk/host-port.mjs',
+    'src/client_local_host/source_capture.mbt', 'package.json', 'toolchain.json',
+    '.github/workflows/ci.yml', 'proofs/relation-pipeline/inventory.mjs'];
+  for (const file of [...reviewed, ...shared, 'docs/development.md']) {
+    const target = join(checkout, file); mkdirSync(dirname(target), {recursive: true});
+    writeFileSync(target, readFileSync(new URL('../' + file, import.meta.url)));
+  }
+  git(['init', '--quiet']); git(['config', 'user.name', 'Evaluation Source Fixture']);
+  git(['config', 'user.email', 'evaluation@example.invalid']); git(['config', 'commit.gpgsign', 'false']);
+  git(['config', 'core.filemode', 'true']); git(['add', '.']); git(['commit', '--quiet', '-m', 'Actual original Source inputs']);
+  const base = git(['rev-parse', 'HEAD']).trim();
+  const edit = file => writeFileSync(join(checkout, file), readFileSync(join(checkout, file), 'utf8') + '\n');
+  const inspect = (before = base) => {
+    git(['add', '--all']); git(['commit', '--quiet', '-m', 'Independent fixture change']);
+    const read = readChanges({pull_request: {base: {sha: before}}}, git);
+    return validateSelection(selectTargets(read.paths, read));
+  };
+  for (const file of reviewed) {
+    git(['reset', '--hard', base]); edit(file);
+    const value = inspect(); assert.equal(value.profile, 'maintenance', file);
+    const revision = git(['rev-parse', 'HEAD']).trim();
+    const envelope = {sourceRevision: revision, selection: value};
+    assert.equal(verifyGate(envelope, results(value), {event: 'pull_request', sourceRevision: revision}).length, gateJobs.length);
+  }
+  git(['reset', '--hard', base]);
+  for (const file of [...reviewed, 'docs/development.md']) edit(file);
+  assert.equal(inspect().profile, 'maintenance', 'known independent regions keep the same required union');
+  for (const file of shared) {
+    git(['reset', '--hard', base]); edit(reviewed[0]); edit(file);
+    assert.equal(inspect().profile, 'full', file);
+  }
+  git(['reset', '--hard', base]); git(['rm', reviewed[0]]); assert.equal(inspect().profile, 'full');
+  git(['reset', '--hard', base]); git(['rm', reviewed[1]]); git(['mv', reviewed[0], reviewed[1]]);
+  assert.equal(inspect().profile, 'full', 'a rename between two reviewed names still exposes the deletion');
+  git(['reset', '--hard', base]); chmodSync(join(checkout, reviewed[0]), 0o755);
+  assert.equal(inspect().profile, 'full');
+  git(['reset', '--hard', base]); git(['rm', reviewed[0]]); git(['commit', '--quiet', '-m', 'Absent reviewed file']);
+  const absent = git(['rev-parse', 'HEAD']).trim();
+  writeFileSync(join(checkout, reviewed[0]), readFileSync(new URL('../' + reviewed[0], import.meta.url)));
+  assert.equal(inspect(absent).profile, 'full', 'a reviewed pathname is not permission for a new file');
+});
+
 test('maintenance inventory is exact and every existing reviewed modification qualifies', () => {
-  assert.equal(maintenanceFiles.length, 17);
-  assert.equal(new Set(maintenanceFiles).size, 17);
+  assert.equal(maintenanceFiles.length, 19);
+  assert.equal(new Set(maintenanceFiles).size, 19);
   for (const path of maintenanceFiles) {
     const selection = validateSelection(maintenanceSelection([path]));
     assert.equal(selection.profile, 'maintenance', path);
