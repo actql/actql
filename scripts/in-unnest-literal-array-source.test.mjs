@@ -48,8 +48,8 @@ test('literal membership controls distinguish matching, unknown and empty sets',
   assert.equal(source.sourceReadCount, 1);
   assert.equal(source.sourceReadSessionCount, 1);
   const all = [...inUnnestLiteralArraySuccesses, ...inUnnestLiteralArrayRefusals, ...inUnnestLiteralArrayExecutionFailures];
-  assert.equal(inUnnestLiteralArraySuccesses.length, 25);
-  assert.equal(inUnnestLiteralArrayRefusals.length, 13);
+  assert.equal(inUnnestLiteralArraySuccesses.length, 26);
+  assert.equal(inUnnestLiteralArrayRefusals.length, 12);
   assert.equal(inUnnestLiteralArrayExecutionFailures.length, 1);
   assert.equal(new Set(all.map(value => value.name)).size, all.length);
 });
