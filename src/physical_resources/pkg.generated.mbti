@@ -268,6 +268,8 @@ pub fn[T] funded_read_consumer_origin(FundedReadConsumer[T]) -> T?
 
 pub fn[T] funded_read_preparation_available(FundedReadClaim[T], T, Int64, retained_bytes? : Int64) -> Bool
 
+pub fn grow_capacity_reservation(Ledger, CapacityReservation, Int64, Int64) -> Result[Unit, LedgerIssue]
+
 pub fn grow_execution_reservation_capacity(Ledger, Reservation, Int64, Int64) -> Result[Unit, LedgerIssue]
 
 pub fn[T] grow_funded_read_consumer_capacity(FundedReadConsumer[T], T, Int64, Int64) -> Result[Unit, OriginalReadIssue]
@@ -966,7 +968,7 @@ pub struct ModelIoTicket[T] {
   mut active : Bool
 }
 
-type NodeManagedRunAdmission[P]
+type NodeManagedRunAdmission[_]
 
 pub(all) enum NodeManagedRunOperationBacking {
   Construction(CapacityReservation)
@@ -979,7 +981,7 @@ pub(all) enum NodeManagedRunOperationIssue[E] {
   Control(LedgerIssue)
 }
 
-type NodePreparationAdmission[I]
+type NodePreparationAdmission[_]
 
 type OriginalCurrentStateComparison[T]
 

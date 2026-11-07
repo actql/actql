@@ -1267,6 +1267,7 @@ fn managed_capture_fixture_work(
   listing? : NativeRelationFileListingProvider? = None,
   program? : String? = None,
   clock_refusal? : Int = 0,
+  capture_observer? : ((NativeRelationFileCapture) -> Unit)? = None,
   query? : Bool = false,
   aborted_reader_observation? : Ref[Bool]? = None,
 ) -> @local.ClientInstalledManagedRun raise {
@@ -1667,6 +1668,9 @@ fn managed_capture_fixture_work(
         )
     }
     (read, capture, unchanged.transferred_bytes)
+  }
+  if capture_observer is Some(observe) {
+    observe(capture_owner)
   }
   if aborted_reader_observation is Some(_) {
     assert_false(

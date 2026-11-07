@@ -116,6 +116,24 @@ pub fn capacity_reservation_open(reservation : CapacityReservation) -> Bool {
 }
 
 ///|
+/// Grow the SAME byte-only token before its next constructor. Delegate the
+/// original/current, monotonic-byte and imported-owner checks once; never
+/// expose its inner send/quantity reservation or issue another slot/attempt.
+pub fn grow_capacity_reservation(
+  ledger : Ledger,
+  capacity : CapacityReservation,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, LedgerIssue] {
+  grow_execution_reservation_capacity(
+    ledger,
+    capacity.reservation,
+    retained_bytes,
+    execution_bytes,
+  )
+}
+
+///|
 // Check an exact previously admitted byte-only token without exposing its
 // mutable inner reservation or creating transfer/quantity/send authority.
 pub fn capacity_reservation_matches(

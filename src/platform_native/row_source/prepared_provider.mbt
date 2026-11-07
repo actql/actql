@@ -8,6 +8,7 @@ struct NativeRelationFilePreparedProvider {
   limits : NativeRelationFileLimits
   prepared_contract : @rows.RelationDocumentPreparedContract
   capacity : @execution.ExecutionCapacity
+  response_measured : Bool
 }
 
 ///|
@@ -15,6 +16,7 @@ pub fn prepare_native_relation_file_provider(
   declaration : @rows.RowDeclaration,
   selection : NativeRelationFileSelection,
   limits : NativeRelationFileLimits,
+  response_measured? : Bool = false,
 ) -> Result[NativeRelationFilePreparedProvider, NativeRelationFileIssue] {
   if !file_capture_selected_input_valid(selection, limits) {
     return Err(InvalidInput)
@@ -35,6 +37,7 @@ pub fn prepare_native_relation_file_provider(
       limits,
       contract,
       prepared_contract=Some(prepared_contract),
+      response_bytes=if response_measured { Some(1) } else { None },
     )
     is Some(capacity) else {
     return Err(Capacity)
@@ -44,7 +47,14 @@ pub fn prepare_native_relation_file_provider(
     items_path: selection.items_path.copy(),
     key_path: selection.key_path.map(path => path.copy()),
   }
-  Ok({ declaration, selection, limits, prepared_contract, capacity, })
+  Ok({
+    declaration,
+    selection,
+    limits,
+    prepared_contract,
+    capacity,
+    response_measured,
+  })
 }
 
 ///|
@@ -84,8 +94,17 @@ fn file_capture_provider_matches(
 // This borrows the admitted Contract; it does not rebuild or authorize it.
 fn file_provider_projection_inventory(
   provider : NativeRelationFilePreparedProvider,
+  response_bytes? : Int? = None,
 ) -> @execution.PreparationRepresentationUnits? {
   let selection = provider.selection
+  guard file_capture_projection_backing_page(
+      @rows.relation_document_prepared_contract(provider.prepared_contract),
+      provider.limits.page,
+      response_bytes,
+    )
+    is Some(page) else {
+    return None
+  }
   @rows.relation_document_projection_construction_inventory(
     {
       original: @rows.relation_document_prepared_contract(
@@ -95,6 +114,6 @@ fn file_provider_projection_inventory(
       key_path_depth: selection.key_path.map(path => path.length()),
       writable_fields: 0,
     },
-    provider.limits.page,
+    page,
   )
 }

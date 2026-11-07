@@ -5,6 +5,22 @@ extern "C" fn read_layout_field_ffi(field : Int) -> Int64 = "actql_native_filesy
 extern "C" fn write_layout_field_ffi(field : Int) -> Int64 = "actql_native_filesystem_write_layout_field"
 
 ///|
+#borrow(root)
+extern "C" fn root_diagnostic_ceiling_ffi(root : Root) -> Int = "actql_native_filesystem_root_diagnostic_ceiling"
+
+///|
+/// The SAME Root's selected bound, without a read, callback or new authority.
+/// Legacy unbounded Roots cannot supply a finite child-construction inventory.
+pub fn Root::diagnostic_ceiling(self : Self) -> Int? {
+  let limit = root_diagnostic_ceiling_ffi(self)
+  if limit > 0 {
+    Some(limit)
+  } else {
+    None
+  }
+}
+
+///|
 /// Read the existing C Owner's actual fields without opening a Root/Reader,
 /// allocating an external object, performing I/O or adopting a byte profile.
 pub fn native_filesystem_read_layout() -> NativeFilesystemReadLayout? {

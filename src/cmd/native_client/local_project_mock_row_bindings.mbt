@@ -60,7 +60,10 @@ fn local_project_mock_row_bindings(
     let limits = local_project_mock_file_limits()
     let provider = match
       @row_file.prepare_native_relation_file_provider(
-        declaration, selection, limits,
+        declaration,
+        selection,
+        limits,
+        response_measured=true,
       ) {
       Ok(value) => value
       Err(_) => return Err(InvalidSpecification)

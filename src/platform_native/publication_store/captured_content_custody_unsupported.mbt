@@ -2,6 +2,14 @@
 type CapturedContentCustody
 
 ///|
+pub fn Store::captured_content_custody_construction_inventory(
+  _self : Store,
+  _chunk_bytes : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  None
+}
+
+///|
 pub fn Store::prepare_captured_content_custody(
   _self : Store,
   _original : @publication.CapturedContentReference,

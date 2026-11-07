@@ -1,0 +1,650 @@
+///|
+// One joined physical Source component on the actual README Request/Plan.
+// The metadata authority and future UPDATE provider remain explicit ports;
+// neither is an ordinary CLI/Account/Journal/Model-send qualification.
+test "Native original README joins its two physical Sources and original keyed Content Store" {
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
+fn[T, E] Result::native_content_join_stage(
+  self : Result[T, E],
+  label : String,
+) -> T raise {
+  match self {
+    Ok(value) => value
+    Err(_) => fail(label)
+  }
+}
+
+///|
+fn native_mock_readme_content_join(
+  facility : NativeMockReadmeRequestFacility,
+  original : LocalProjectMockDeclarations,
+  prepared : @run_host.PreparedClientEffectComputation,
+  first : LocalEffectFirstCompilation,
+  contracts : @local_values.ClientInstalledSequenceContracts,
+  graph : @run_host.ClientInferPlanGraph,
+) -> Unit raise {
+  let occurrence = graph.occurrence
+  let limits = @infer_test.prepared_composed_bounds(occurrence, graph).native_content_join_stage(
+    "original prepared Model bounds",
+  )
+  let compiled = @run_host.client_effect_allowed_infer_run(first.allowed).unwrap()
+  // Explicit finite component read-window selection, not the ordinary Host's
+  // as-yet-unqualified constructor backing. Its SAME Request must admit the
+  // entire Plan/Scope and the Native capture reserves every actual child.
+  let model = @local_values.prepare_installed_effect_model_demand(
+    prepared,
+    compiled,
+    first.allowed.compilation,
+    first.definition,
+    occurrence,
+    graph,
+    limits.model.ledger,
+    134217728L,
+    134217728L,
+    64,
+    64,
+    0,
+  ).native_content_join_stage("original Model demand")
+  let header = @syntax.effect_header_at(
+    @checked.effect_program_static_headers(
+      @run_host.prepared_client_effect_computation_candidate(prepared),
+    ),
+    0,
+  ).unwrap()
+  // The component never invokes a future operation; this original selected
+  // provider refuses rather than manufacturing permission or a write result.
+  let extent = @local_values.prepare_installed_effect_operation_extent(
+    "unexecuted-native-component-operation",
+    @execution.execution_capacity(3L, 5L).unwrap(),
+    7L,
+    true,
+  ).unwrap()
+  let operation = @local_values.prepare_installed_effect_operation_demand(
+    prepared,
+    @syntax.effect_header_stage(header),
+    @syntax.effect_header_id(header),
+    [extent],
+    [extent],
+  ).native_content_join_stage("original Effect member")
+  let assets = @run_host.client_local_product_assets()
+  let inputs = first._retained_sources
+  assert_eq(inputs.length(), 2)
+  let page = local_project_mock_file_limits().page
+  // Consume each original preselected Query/Whole route. The actual checked
+  // Source chooses it; a caller must not replace it by a whole-input fallback.
+  let query_contract = @env.get_env_var("ACTQL_TEST_NATIVE_QUERY_CONTRACT").unwrap()
+  let evidence_contract = @env.get_env_var(
+    "ACTQL_TEST_NATIVE_EVIDENCE_CONTRACT",
+  ).unwrap()
+  let plan = @local_values.prepare_installed_effect_managed_source_plan(
+    prepared,
+    first.request,
+    inputs.map(value => value._retained_input),
+    query_contract,
+    evidence_contract,
+    [page.max_bytes.to_int64(), page.max_bytes.to_int64()],
+    [page.max_bytes.to_int64(), page.max_bytes.to_int64()],
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    [operation],
+    model=Some(model),
+    // This is the actual preparation-owned Run entrance: runtime children
+    // reserve on its SAME finite Ledger, rather than requiring a legacy
+    // whole-Run maximum quote before those original children exist.
+    runtime_admission=true,
+    provider_factory=capacity => {
+      [
+        @local_compute.managed_provider(_ => true, _ => Some(capacity), (
+          _,
+          _,
+          _,
+          _,
+          _,
+        ) => Err(@fixed_test.ComputeUnsupported)),
+      ]
+    },
+  ).native_content_join_plan()
+  let scope = @local_values.prepare_request_effect_model_read_scope(
+    facility.parent,
+    facility.input,
+    plan,
+  ).native_content_join_stage("same Request Model Scope")
+  @local_values.complete_request_effect_preparation(
+    facility.parent,
+    facility.input,
+    plan,
+  ).native_content_join_stage("same Request Plan completion")
+  // The existing Native caller returned its SAME input body borrow before
+  // this Plan construction; adoption consumes that original parent.
+  native_mock_readme_content_join_adopt(
+    facility, original, prepared, first, graph, compiled, scope, limits,
+  )
+}
+
+///|
+fn native_mock_readme_content_join_adopt(
+  facility : NativeMockReadmeRequestFacility,
+  original : LocalProjectMockDeclarations,
+  prepared : @run_host.PreparedClientEffectComputation,
+  first : LocalEffectFirstCompilation,
+  graph : @run_host.ClientInferPlanGraph,
+  compiled : @run_host.ClientCompiledRun,
+  scope : @run_host.ClientModelReadScope,
+  limits : @infer_test.Limits,
+) -> Unit raise {
+  let owner = @local_values.begin_request_effect_model_managed_run(
+    facility.parent,
+    first.request,
+    scope,
+  ).native_content_join_stage("same Request managed Run")
+  // Retain the actual adopted Run in the existing OUTER Native control before
+  // any fallible child. Its final retirement follows the real frame close.
+  facility.run = Some(owner)
+  let native_children : Array[@row_file.NativeRelationFileCapture] = []
+  let captures : Array[@row_host.RowCapturedInput] = []
+  for index, input in first._retained_sources {
+    let declaration = input._retained_source._retained_declaration
+    let kind = @local_values.installed_effect_managed_source_input_kind(
+      owner,
+      prepared,
+      first.request,
+      index,
+    ).unwrap()
+    let capture = if kind == "whole-input" {
+      let (read, _, _, capacity) = @local_values.begin_installed_effect_managed_whole_source_read(
+        owner,
+        prepared,
+        first.request,
+        declaration,
+        index,
+      ).native_content_join_stage("original whole Source read")
+      match input._retained_reader {
+        Rows(binding) =>
+          @row_file.prepare_native_managed_relation_file_input_capture(
+            facility.arena,
+            facility.physical,
+            declaration,
+            read,
+            capacity,
+            binding.provider.capacity(),
+            "native-readme-records",
+            binding._retained_selection,
+            binding.limits,
+            prepared_provider=Some(binding.provider),
+          )
+        Files(_, listing) =>
+          @row_file.prepare_native_managed_relation_file_listing_capture(
+            facility.arena,
+            facility.physical,
+            read,
+            capacity,
+            listing,
+            "native-readme-files",
+          )
+      }
+    } else {
+      assert_eq(kind, "query")
+      let (read, _, acquisition, _) = @local_values.begin_installed_effect_managed_source_read(
+        owner, declaration, index,
+      ).native_content_join_stage("original Query Source read")
+      match input._retained_reader {
+        Rows(binding) =>
+          @row_file.prepare_native_managed_relation_file_query_capture(
+            facility.arena,
+            facility.physical,
+            declaration,
+            read,
+            acquisition,
+            binding.provider.capacity(),
+            "native-readme-records",
+            binding._retained_selection,
+            binding.limits,
+            prepared_provider=Some(binding.provider),
+          )
+        Files(_, listing) =>
+          @row_file.prepare_native_managed_relation_file_query_listing_capture(
+            facility.arena,
+            facility.physical,
+            read,
+            acquisition,
+            listing,
+            "native-readme-files",
+          )
+      }
+    }
+    let capture = capture.native_content_physical_stage(
+      "original Native Source child " + index.to_string(),
+    )
+    native_children.push(capture)
+    let mut done = false
+    for _ in 0..<100000 {
+      if capture
+        .advance(31)
+        .native_content_physical_stage("original Native Source advance") {
+        done = true
+        break
+      }
+    }
+    assert_true(done)
+    captures.push(
+      @row_host.row_capture_input(capture.capture().unwrap()).unwrap(),
+    )
+  }
+  let keyed = @run_host.select_client_effect_composed_model_keyed_acquisition(
+      prepared, graph,
+    )
+    .unwrap()
+    .unwrap()
+  let prefix = @local_values.start_installed_original_composed_keyed_input_prefix(
+    owner,
+    scope,
+    compiled,
+    first.definition,
+    graph,
+    keyed,
+    captures,
+    limits.input,
+    limits.measurement,
+  ).native_content_join_stage("same two Source prefix")
+  let mut done = false
+  for _ in 0..<100000 {
+    match
+      @local_values.advance_client_original_composed_keyed_prefix(prefix, 31).native_content_join_stage(
+        "same prefix advance",
+      ) {
+      @local_compute.Complete(_, ..) => {
+        done = true
+        break
+      }
+      @local_compute.Continue(..) => ()
+      _ => fail("original prefix did not complete")
+    }
+  }
+  assert_true(done)
+  let left = @local_values.complete_client_original_composed_keyed_prefix(
+    prefix, 10000, 4096,
+  ).native_content_join_stage("original keyed left")
+  let ledger = facility.arena
+    .borrow_domain_retained_execution_ledger(facility.physical)
+    .unwrap()
+  let lookup = @run_host.start_client_keyed_lookup_input(
+    left, ledger, 4096, 10000,
+  ).native_content_join_stage("original keyed lookup")
+  let preparation = @run_host.start_client_keyed_lookup_request(lookup, 0).unwrap()
+  let mut request = None
+  for _ in 0..<100000 {
+    match @run_host.advance_client_keyed_lookup_request(lookup, preparation) {
+      @run_host.ClientKeyedRequestContinue(..) => ()
+      @run_host.ClientKeyedRequestComplete(value, ..) => {
+        request = Some(value)
+        break
+      }
+      _ => fail("original keyed request did not complete")
+    }
+  }
+  let request = request.unwrap()
+  // Select the original assembly's cache slot BEFORE opening a new read.
+  // -1 is this fresh request's real miss; it is not a guessed permission.
+  assert_eq(
+    @run_host.find_client_keyed_lookup_response(lookup, request).unwrap(),
+    -1,
+  )
+  let request_value = @run_host.client_keyed_request_value(request, keyed).unwrap()
+  let file = original.file_sources.unwrap()[0]
+  let binding = file._retained_listings[0].1
+  let physical = binding._retained_provider
+  // The public keyed response's original checked catalogue has its own
+  // admitted per-page ceiling. Raw physical file limits remain unchanged.
+  let keyed_capacity = @sourceviews.keyed_source_capacity(
+    @run_host.client_keyed_acquisition_facts(keyed),
+  )
+  let response_bytes = @compiler_environment.lookup_capacity_response_bytes_per_page(
+    keyed_capacity,
+  )
+  assert_true(response_bytes > 0L && response_bytes <= 2147483647L)
+  let read = @local_values.begin_installed_managed_model_keyed_source_read(
+    owner,
+    keyed,
+    request,
+    original.sources[1]._retained_declaration,
+    {
+      page: {
+        max_bytes: response_bytes.to_int(),
+        max_nodes: 4096,
+        max_depth: 32,
+        max_rows: 1,
+      },
+      retention: {
+        max_nodes: 4096,
+        max_depth: 32,
+        max_text_bytes: 1048576,
+        max_work: 16777216,
+      },
+      request: {
+        max_work: 16777216,
+        max_pairs: 4,
+        values: { max_nodes: 4096, max_depth: 32, max_text_bytes: 1048576, },
+      },
+      wire: {
+        max_bytes: 1048576,
+        max_nodes: 4096,
+        max_depth: 32,
+        max_columns: 3,
+        max_order_work: 16777216,
+      },
+    },
+  ).native_content_read_stage("same Model keyed Read")
+  let acquisition = @local_values.installed_keyed_source_read_acquisition(read).unwrap()
+  let library = @local_sqlite.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+  ).native_content_join_stage("original SQLite component")
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let authority = "sha256:" + "8".repeat(64)
+  let store = @local_store.open_store_with_custody(
+    library,
+    root,
+    authority,
+    1048576L,
+    8L,
+    65536L,
+    diagnostic_ceiling=Some(4096),
+  ).native_content_join_stage("same bounded Content Store")
+  let facts = @run_host.client_keyed_acquisition_source_evidence_facts(keyed).unwrap()
+  let binding_wire = local_project_mock_relation_wire({
+    "content_store_id": "native-readme-component",
+    "content_store_cid": Json::string(authority),
+    "workspace_scope_cid": Json::string("sha256:" + "9".repeat(64)),
+    "storage_scope": "workspace",
+    "retention_class": "component",
+    "expires_at": "2099-01-01T00:00:00.000Z",
+    "availability_evidence_cid": Json::string("sha256:" + "a".repeat(64)),
+    "effective_data_policy_cid": Json::string(facts.source_data_policy_cid),
+    "data_classification": Json::string(facts.data_classification),
+    "issuer_contract_cid": Json::string("sha256:" + "b".repeat(64)),
+    "capture_authority_cid": Json::string("sha256:" + "c".repeat(64)),
+  }).unwrap()
+  let input = @row_file.prepare_native_relation_file_content_input(
+    compiled,
+    first.definition,
+    keyed,
+    request,
+    store,
+    {
+      name: binding._retained_name,
+      version: binding._retained_version,
+      media_type: binding._retained_media_type,
+      path: binding._retained_path,
+    },
+    binding._retained_content_utf8,
+    binding_wire,
+    { max_bytes: 65536, max_nodes: 4096, max_depth: 32, max_text_units: 65536, },
+    1048576,
+    local_status_watch_now_ffi,
+    () => "2026-10-10T00:00:01.000Z",
+    reference => (file._retained_resolve_identity)(binding, reference),
+  ).native_content_join_stage("original keyed Content input")
+  let content = @row_file.prepare_native_managed_relation_file_keyed_capture(
+    facility.arena,
+    facility.physical,
+    original.sources[1]._retained_declaration,
+    binding.content.source_ref,
+    read,
+    acquisition,
+    physical,
+    file._retained_issuer,
+    "native-readme-content",
+    content=Some(input),
+  ).native_content_physical_stage("original keyed Native child")
+  let mut done = false
+  for _ in 0..<100000 {
+    if content
+      .advance(31)
+      .native_content_physical_stage("original keyed Content advance") {
+      done = true
+      break
+    }
+  }
+  assert_true(done)
+  let captured = content
+    .keyed_capture()
+    .native_content_join_stage("original keyed capture")
+  assert_true(
+    @row_host.keyed_row_capture_matches_request(captured, request_value),
+  )
+  // Independent Node SHA-256 of the selected original authored UTF8 field.
+  // The issuer/Store must return a nominal Content value, never a String.
+  let response = @row_host.keyed_row_capture_read(captured).unwrap()
+  assert_eq(@execution.supplied_relation_read_row_count(response), 1)
+  let resource = @sourceviews.keyed_row_request_field(request_value, "resource").unwrap()
+  guard resource.value is @admitted.Reference(resource_reference) else {
+    fail("original ResourceRef required")
+  }
+  let identity = (file._retained_resolve_identity)(binding, resource_reference).unwrap()
+  guard @json.parse(
+      @env.get_env_var("ACTQL_TEST_NATIVE_CONTENT_DIGESTS").unwrap(),
+    )
+    is Object(expected) &&
+    expected.get(identity) is Some(String(digest)) else {
+    fail("independent original content digest required")
+  }
+  let mut content_values = 0
+  for column in 0..<3 {
+    if @execution.supplied_relation_read_cell(response, 0, column)
+      is Some(@admitted.Reference(reference)) &&
+      @admitted.reference_content_metadata(reference) is Some((media, metadata)) {
+      assert_eq(media, "text/plain")
+      guard @canonical.object_field(metadata, "content_cid")
+        is Some(@canonical.String(actual_digest)) else {
+        fail("issued Content metadata digest required")
+      }
+      assert_eq(actual_digest, digest)
+      assert_true(@admitted.reference_available(reference))
+      content_values += 1
+    }
+  }
+  assert_eq(content_values, 1)
+  @local_values.begin_client_original_keyed_lookup_response(
+    keyed, lookup, request, captured,
+  ).native_content_join_stage("original response handoff")
+  assert_true(
+    content.close().native_content_join_stage("Content first physical close"),
+  )
+  assert_true(
+    store.close().native_content_join_stage("Content Store first close"),
+  )
+  assert_true(library.close_checked() is Err(@local_sqlite.Physical(_)))
+  assert_true(
+    @run_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
+  )
+  assert_true(
+    @local_values.cleanup_client_serialization_prefix(
+      @local_values.client_original_composed_keyed_prefix_execution(prefix),
+    ).unwrap(),
+  )
+  for index, child in native_children {
+    let mut closed = false
+    let mut pending = false
+    // Existing Native close is a bounded same-child protocol. A listing may
+    // reclaim one retained report at a time. Pending is NOT physical ACK.
+    for _ in 0..<10000 {
+      match child.close() {
+        Ok(true) => {
+          closed = true
+          break
+        }
+        Ok(false)
+        | Err(
+          @row_file.ManagedRead(
+            @local_values.Acquisition(@row_host.InvalidState)
+          )
+        ) => pending = true
+        Err(_) => fail("original Native Source cleanup failed")
+      }
+    }
+    assert_true(closed)
+    if index == 1 {
+      assert_true(pending)
+    }
+  }
+  @local_values.quiesce_installed_managed_run(owner).native_content_join_stage(
+    "same Run quiesce",
+  )
+  assert_true(
+    @run_host.finish_client_model_read_scope(
+      scope,
+      compiled,
+      first.definition,
+      graph,
+      true,
+    ).native_content_join_stage("original Model Scope finish"),
+  )
+  match @local_values.retire_installed_managed_run(owner) {
+    // The actual Native initializer cannot return its holder while this SAME
+    // frame is still entered. Preserve that observed refusal as NOT an ACK;
+    // the outer caller must close the physical frame and retire this exact Run.
+    Err(@local_values.Resource(@initial_resources.Unavailable)) => ()
+    Err(@local_values.Resource(issue)) =>
+      fail("original Native frame retirement: " + @debug.to_string(issue))
+    Err(_) => fail("unexpected original Run retirement refusal")
+    Ok(_) => fail("Core cannot ACK a still-entered Native frame")
+  }
+}
+
+///|
+fn Result::native_content_join_plan(
+  self : Result[
+    @local_values.ClientInstalledEffectManagedPlan,
+    @local_values.ClientInstalledManagedRunIssue,
+  ],
+) -> @local_values.ClientInstalledEffectManagedPlan raise {
+  match self {
+    Ok(value) => value
+    Err(issue) => {
+      let label = match issue {
+        @local_values.ForeignOriginal => "ForeignOriginal"
+        @local_values.Unsupported => "Unsupported"
+        @local_values.InsufficientCapacity => "InsufficientCapacity"
+        @local_values.SourceAcquisition(_) => "SourceAcquisition"
+        @local_values.SourceRoute(_) => "SourceRoute"
+        @local_values.Sequence(_) => "Sequence"
+        @local_values.Preparation(_) => "Preparation"
+        @local_values.Resource(_) => "Resource"
+        @local_values.Ledger(_) => "Ledger"
+        @local_values.ModelRead(_) => "ModelRead"
+        @local_values.ModelLayout(_) => "ModelLayout"
+        @local_values.SerializationPrefix(_) => "SerializationPrefix"
+        @local_values.MetadataCapacityUnavailable =>
+          "MetadataCapacityUnavailable"
+        @local_values.AlreadyBound => "AlreadyBound"
+        @local_values.Retired => "Retired"
+        @local_values.CleanupPending => "CleanupPending"
+      }
+      fail("same Request whole Source Plan: " + label)
+    }
+  }
+}
+
+///|
+fn[T] Result::native_content_physical_stage(
+  self : Result[T, @row_file.NativeRelationFileFailure],
+  stage : String,
+) -> T raise {
+  match self {
+    Ok(value) => value
+    Err(failure) => {
+      let label = match failure.issue() {
+        @row_file.InvalidInput => "InvalidInput"
+        @row_file.Unavailable => "Unavailable"
+        @row_file.ForeignOriginal => "ForeignOriginal"
+        @row_file.Capacity => "Capacity"
+        @row_file.FileLimit => "FileLimit"
+        @row_file.Filesystem(_) => "Filesystem"
+        @row_file.Execution(_) => "Execution"
+        @row_file.Resource(issue) => "Resource: " + @debug.to_string(issue)
+        @row_file.Row(issue) => "Row: " + native_content_row_issue(issue)
+        @row_file.Document(_) => "Document"
+        @row_file.Mapping(_) => "Mapping"
+        @row_file.ManagedRead(@local_values.Acquisition(issue)) =>
+          "ManagedRead/Acquisition: " + native_content_row_issue(issue)
+        @row_file.ManagedRead(@local_values.ForeignOriginal) =>
+          "ManagedRead/ForeignOriginal"
+        @row_file.ManagedRead(_) => "ManagedRead"
+        @row_file.Content(issue) => "Content: " + @debug.to_string(issue)
+        @row_file.Store(_) => "Store"
+        @row_file.Lookup(_) => "Lookup"
+      }
+      let cleanup = match failure.retry_cleanup() {
+        Ok(true) => "returned"
+        Ok(false) => "pending"
+        Err(_) => "refused"
+      }
+      fail(stage + ": " + label + "; original cleanup=" + cleanup)
+    }
+  }
+}
+
+///|
+fn native_content_row_issue(issue : @row_host.RowHostIssue) -> String {
+  match issue {
+    @row_host.InvalidSpecification => "InvalidSpecification"
+    @row_host.Declaration(_) => "Declaration"
+    @row_host.ForeignDeclaration => "ForeignDeclaration"
+    @row_host.Source(@row_host.KeyedLimit(label)) =>
+      "Source/KeyedLimit: " + label
+    @row_host.Source(@row_host.UndeclaredSource) => "Source/UndeclaredSource"
+    @row_host.Source(@row_host.KeyedOwner(_)) => "Source/KeyedOwner"
+    @row_host.Source(_) => "Source"
+    @row_host.InvalidContracts => "InvalidContracts"
+    @row_host.Registration => "Registration"
+    @row_host.Candidate => "Candidate"
+    @row_host.Selection => "Selection"
+    @row_host.Evidence(_) => "Evidence"
+    @row_host.Attempt(_) => "Attempt"
+    @row_host.Consumer(_) => "Consumer"
+    @row_host.SourceEvidence(_) => "SourceEvidence"
+    @row_host.Physical(original) => "Physical: " + @debug.to_string(original)
+    @row_host.Residual(_) => "Residual"
+    @row_host.ResidualWork(_) => "ResidualWork"
+    @row_host.InputValidationWork(_) => "InputValidationWork"
+    @row_host.InputKeys(_) => "InputKeys"
+    @row_host.InputScores(_) => "InputScores"
+    @row_host.InvalidState => "InvalidState"
+  }
+}
+
+///|
+fn[T] Result::native_content_read_stage(
+  self : Result[T, @local_values.ClientInstalledSourceReadIssue],
+  stage : String,
+) -> T raise {
+  match self {
+    Ok(value) => value
+    Err(issue) => {
+      let label = match issue {
+        @local_values.ForeignOriginal => "ForeignOriginal"
+        @local_values.AlreadyBound => "AlreadyBound"
+        @local_values.AlreadyStarted => "AlreadyStarted"
+        @local_values.Unbound => "Unbound"
+        @local_values.Retired => "Retired"
+        @local_values.CleanupPending => "CleanupPending"
+        @local_values.Import(_) => "Import"
+        @local_values.Resource(value) => "Resource: " + @debug.to_string(value)
+        @local_values.Acquisition(value) =>
+          "Acquisition: " + native_content_row_issue(value)
+        @local_values.ManagedRun(_) => "ManagedRun"
+      }
+      fail(stage + ": " + label)
+    }
+  }
+}

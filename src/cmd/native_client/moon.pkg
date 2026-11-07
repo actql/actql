@@ -55,6 +55,8 @@ import {
 
 import {
   "actql/actql/publication_payload" @test_payload,
+  "actql/actql/client_infer_host" @infer_test,
+  "actql/actql/connector_sdk" @fixed_test,
   "actql/actql/execution_authorization" @authorization,
 } for "wbtest"
 

@@ -743,3 +743,24 @@ pub fn installed_keyed_source_read_acquisition_matches(
   value.acquisition is Some(selected) &&
   physical_equal(selected, acquisition)
 }
+
+///|
+/// Same retained Model Source/Request/Run tuple after the caller's original
+/// current observation. No callback, reconstruction or additional admission.
+pub fn installed_keyed_source_read_request_matches(
+  value : ClientInstalledKeyedSourceRead,
+  acquisition : @row_source_host.RowKeyedAcquisition,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  request : @publication_host.ClientKeyedRequest,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  installed_keyed_source_read_acquisition_matches(value, acquisition) &&
+  value.request is Some(original) &&
+  physical_equal(original, request) &&
+  value.model is Some(model) &&
+  physical_equal(model.keyed, keyed) &&
+  physical_equal(model.request, request) &&
+  physical_equal(model.model.compiled, compiled) &&
+  physical_equal(model.model.definition, definition)
+}

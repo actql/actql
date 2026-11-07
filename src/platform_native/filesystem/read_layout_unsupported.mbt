@@ -8,3 +8,8 @@ pub fn native_filesystem_read_layout() -> NativeFilesystemReadLayout? {
 pub fn native_filesystem_write_layout() -> NativeFilesystemWriteLayout? {
   None
 }
+
+///|
+pub fn Root::diagnostic_ceiling(_self : Self) -> Int? {
+  None
+}

@@ -38,20 +38,15 @@ pub fn prepare_native_relation_file_listing_provider(
     !file_listing_fields_valid(physical, fields) {
     return Err(InvalidInput)
   }
-  let limits = physical.limits
-  guard @rows.relation_document_raw_construction_inventory(limits.page)
-    is Some(raw) &&
-    native_relation_file_listing_construction_inventory(physical)
-    is Some(listing) &&
-    @execution.compose_preparation_representation([raw, listing])
-    is Some(document) &&
-    @execution.preparation_representation_cost(document) is Some(bytes) &&
-    @files.native_filesystem_read_layout() is Some(layout) &&
-    file_capture_transport_capacity(physical.selection, limits, layout)
-    is Some(transport) &&
-    @execution.checked_preparation_add_product(bytes, transport, 1L)
-    is Some(total) &&
-    @execution.execution_capacity(total, total) is Some(capacity) else {
+  guard file_listing_provider_capacity(
+      physical,
+      if physical.response_measured {
+        Some(1)
+      } else {
+        None
+      },
+    )
+    is Some(capacity) else {
     return Err(Capacity)
   }
   // The listing inventory already contains the physical typed projection.
@@ -73,4 +68,31 @@ pub fn NativeRelationFileListingProvider::capacity(
   self : Self,
 ) -> @execution.ExecutionCapacity {
   self.capacity
+}
+
+///|
+fn file_listing_provider_capacity(
+  physical : NativeRelationFilePreparedProvider,
+  response_bytes : Int?,
+) -> @execution.ExecutionCapacity? {
+  let limits = physical.limits
+  guard file_capture_response_backing_page(limits.page, response_bytes)
+    is Some(page) else {
+    return None
+  }
+  guard @rows.relation_document_raw_construction_inventory(page) is Some(raw) &&
+    file_listing_construction_inventory(physical, response_bytes)
+    is Some(listing) &&
+    @execution.compose_preparation_representation([raw, listing])
+    is Some(document) &&
+    @execution.preparation_representation_cost(document) is Some(bytes) &&
+    @files.native_filesystem_read_layout() is Some(layout) &&
+    file_capture_transport_capacity(physical.selection, limits, layout)
+    is Some(transport) &&
+    @execution.checked_preparation_add_product(bytes, transport, 1L)
+    is Some(total) &&
+    @execution.execution_capacity(total, total) is Some(capacity) else {
+    return None
+  }
+  Some(capacity)
 }

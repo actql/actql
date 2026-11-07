@@ -4,6 +4,7 @@ package "actql/actql/platform_native/publication_store"
 import {
   "actql/actql/checkpoint_runtime",
   "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/execution_relation",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/signature",
@@ -254,6 +255,7 @@ pub fn Store::acquire_payload_cleanup(Self, @publication_payload.PublicationPayl
 pub fn Store::begin_payload(Self, @publication_payload.PublicationPayloadRequest) -> Result[PayloadWriter, NativePublicationStoreIssue]
 pub fn Store::begin_result_delivery(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int64) -> Result[ResultDelivery, NativePublicationStoreIssue]
 pub fn Store::capacity_usage(Self) -> Result[@sqlite.NativeCapacityUsage, NativePublicationStoreIssue]
+pub fn Store::captured_content_custody_construction_inventory(Self, Int) -> @execution_relation.PreparationRepresentationUnits?
 pub fn Store::close(Self) -> Result[Bool, NativePublicationStoreIssue]
 pub fn Store::commit_publication(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[String], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[NativePublicationCommit, NativePublicationStoreIssue]
 pub fn Store::custody_location(Self) -> Result[(String, UInt64, UInt64), NativePublicationStoreIssue]

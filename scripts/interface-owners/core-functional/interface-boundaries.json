@@ -36881,7 +36881,7 @@
     {
       "module": "src/client_local_host/installed_source_read.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "09898b7e5515c33b9c07629f52ac0d1419aa859d658c5453198d5f018e514f5d",
+      "sha256": "a520b0ea48be6ad30e15a0556858660a08f0b3410ee69e4f0ea3578860575cec",
       "exports": [],
       "operations": [
         {
@@ -36946,7 +36946,7 @@
         },
         {
           "name": "start_installed_source_read_listing_rows",
-          "declaration": "start_installed_source_read_listing_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+          "declaration": "start_installed_source_read_listing_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , response_capacity ? : Bool"
         },
         {
           "name": "start_installed_source_read_provider_rows",
@@ -49206,7 +49206,7 @@
     },
     {
       "module": "src/client_row_source_host/response_borrow.mbt",
-      "sha256": "2171bf3c1007e0fecb634fefddbdf40fe71c960596bdb89cb8529ce70a522ef2",
+      "sha256": "c8fb31a9618714515c4cf92aac8532fdf1f3b2fb896b7ade59ef92b695d2e63c",
       "exports": [],
       "operations": [
         {
@@ -78844,6 +78844,7 @@
             "capacity_reservation_covers",
             "capacity_reservation_matches",
             "capacity_reservation_open",
+            "grow_capacity_reservation",
             "reservation_capacity_amounts",
             "reserve_capacity",
             "reserve_capacity_current",
@@ -78862,6 +78863,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn reservation_capacity_amounts("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn grow_capacity_reservation("
               }
             ],
             "inputsOutputs": [
@@ -78872,6 +78877,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn reservation_capacity_amounts("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn grow_capacity_reservation("
               }
             ],
             "identity": [
@@ -78882,6 +78891,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn reservation_capacity_amounts("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn grow_capacity_reservation("
               }
             ],
             "ownership": [
@@ -78892,6 +78905,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn reservation_capacity_amounts("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn grow_capacity_reservation("
               }
             ],
             "synchronization": [
@@ -78902,6 +78919,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn reservation_capacity_amounts("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn grow_capacity_reservation("
               }
             ],
             "failure": [
@@ -78912,6 +78933,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn reservation_capacity_amounts("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn grow_capacity_reservation("
               }
             ],
             "cancellation": [
@@ -78922,6 +78947,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn reservation_capacity_amounts("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn grow_capacity_reservation("
               }
             ],
             "resources": [
@@ -78932,6 +78961,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn reservation_capacity_amounts("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn grow_capacity_reservation("
               }
             ],
             "extension": [
@@ -78942,6 +78975,10 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn reservation_capacity_amounts("
+              },
+              {
+                "path": "src/physical_resources/read_capacity.mbt",
+                "anchor": "pub fn grow_capacity_reservation("
               }
             ],
             "verification": [
@@ -78957,7 +78994,7 @@
           }
         }
       ],
-      "sha256": "4bac9f8283060b76b20166d967fbb80cf09a57f5b75cca3a042cb58b326ee6c0",
+      "sha256": "24dda1378f746dafde8a386a3db5bf3334905ed2b90ee312f43035f6412ef012",
       "operations": [
         {
           "name": "capacity_reservation_covers",
@@ -78970,6 +79007,10 @@
         {
           "name": "capacity_reservation_open",
           "declaration": "capacity_reservation_open ( reservation : CapacityReservation ) - > Bool"
+        },
+        {
+          "name": "grow_capacity_reservation",
+          "declaration": "grow_capacity_reservation ( ledger : Ledger , capacity : CapacityReservation , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
           "name": "reservation_capacity_amounts",

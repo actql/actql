@@ -494,6 +494,8 @@ pub fn installed_keyed_source_read_acquisition(ClientInstalledKeyedSourceRead) -
 
 pub fn installed_keyed_source_read_acquisition_matches(ClientInstalledKeyedSourceRead, @client_row_source_host.RowKeyedAcquisition) -> Bool
 
+pub fn installed_keyed_source_read_request_matches(ClientInstalledKeyedSourceRead, @client_row_source_host.RowKeyedAcquisition, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Bool
+
 pub fn installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> ClientInstalledCaptureCapacity?
 
 pub fn installed_local_file_store_control_wire_bound() -> Int
@@ -1178,7 +1180,7 @@ pub fn start_installed_original_composed_keyed_input_prefix(ClientInstalledManag
 
 pub fn start_installed_original_composed_keyed_prefix(ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@client_row_source_host.RowSourceCapture], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue]
 
-pub fn start_installed_source_read_listing_rows(ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
+pub fn start_installed_source_read_listing_rows(ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64, response_capacity? : Bool) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
 
 pub fn start_installed_source_read_provider_rows(ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
 

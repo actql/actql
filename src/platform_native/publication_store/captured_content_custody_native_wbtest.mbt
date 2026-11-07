@@ -14,6 +14,7 @@ fn native_content_store_fixture(
   label : String,
   capacity : Int64,
   library : @sqlite.Library,
+  diagnostic_ceiling? : Int? = None,
 ) -> (Store, String, String) raise {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
     fail("Missing explicit Native Content Store fixture")
@@ -29,10 +30,84 @@ fn native_content_store_fixture(
   |> ignore
   parent.close().captured_content_stage("Content parent Root close")
   let selected = root + "/" + token
-  let store = open_store(library, selected, authority, capacity, 8L, 65536L).captured_content_stage(
-    "Content Store open",
-  )
+  let store = match diagnostic_ceiling {
+    None =>
+      open_store(library, selected, authority, capacity, 8L, 65536L).captured_content_stage(
+        "Content Store open",
+      )
+    Some(limit) =>
+      open_store_with_custody(
+        library,
+        selected,
+        authority,
+        capacity,
+        8L,
+        65536L,
+        diagnostic_ceiling=Some(limit),
+      ).captured_content_stage("Content bounded Store open")
+  }
   (store, authority, selected)
+}
+
+///|
+test "Native bounded Content custody quotes its original constructors before the Store child" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
+  let library = @sqlite.load_library(path).captured_content_stage(
+    "Content original library",
+  )
+  native_content_funded_constructor_case(library)
+  assert_true(library.close_checked() is Err(@sqlite.Physical(_)))
+}
+
+///|
+fn native_content_funded_constructor_case(
+  library : @sqlite.Library,
+) -> Unit raise {
+  let (unbounded, _, _) = native_content_store_fixture(
+    "unbounded-quote", 16L, library,
+  )
+  assert_true(
+    unbounded.captured_content_custody_construction_inventory(2) is None,
+  )
+  assert_true(
+    unbounded.close().captured_content_stage("unbounded Store closed"),
+  )
+  let (store, authority, _) = native_content_store_fixture(
+    "bounded-construction",
+    16L,
+    library,
+    diagnostic_ceiling=Some(128),
+  )
+  assert_eq(store.root.diagnostic_ceiling(), Some(128))
+  assert_true(store.captured_content_custody_construction_inventory(0) is None)
+  assert_true(
+    store.captured_content_custody_construction_inventory(1048577) is None,
+  )
+  let small = store.captured_content_custody_construction_inventory(2).unwrap()
+  let larger = store.captured_content_custody_construction_inventory(3).unwrap()
+  // Exactly the old C and returned chunk storage changes; quoted controls,
+  // records, shared parser/Map inventories and original Root stay identical.
+  assert_eq(larger.record_headers, small.record_headers)
+  assert_eq(larger.reference_slots, small.reference_slots)
+  assert_eq(larger.scalar_words, small.scalar_words)
+  assert_eq(larger.owned_utf16_units, small.owned_utf16_units)
+  assert_eq(larger.owned_wire_bytes - small.owned_wire_bytes, 2L)
+  let bytes = b"e\xcc\x81\r\n\xf0\x9f\x8c\xb1"
+  let original = native_content_candidate(authority, bytes)
+  let child = store
+    .prepare_captured_content_custody(
+      original,
+      native_payload_cid("bounded-construction-holding"),
+    )
+    .captured_content_stage("bounded original custody")
+  child.persist(bytes).captured_content_stage("bounded original persist")
+  child.confirm(2).captured_content_stage("bounded original verify")
+  assert_true(child.matches_confirmed(original))
+  assert_true(
+    child.retry_cleanup().captured_content_stage("bounded original cleanup"),
+  )
+  assert_true(store.close().captured_content_stage("bounded Store close"))
+  assert_true(store.captured_content_custody_construction_inventory(2) is None)
 }
 
 ///|
