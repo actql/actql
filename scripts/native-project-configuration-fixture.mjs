@@ -95,6 +95,13 @@ export function nativeProjectConfigurationFixture(namespace) {
   const missing = join(root, 'deal-review-missing');
   const scope = JSON.stringify({catalog: readFileSync(join(missing, 'mock/catalog.json'), 'utf8'),
     connection: 'drive', connector: 'drive', dataPath: join(missing, 'mock/data.json')});
+  const scopeCid = 'sha256:' + createHash('sha256').update(scope).digest('hex');
+  // The issuer case projects this public document in memory. Keep the missing
+  // payload locator absent, and derive its oracle from the independent ASCII
+  // canonical identity preimage rather than the Native issuer's output.
+  const resource = JSON.stringify({collection: 'files', identity: 'file-acme-notes', scope: scopeCid});
   return {ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT: root,
-    ACTQL_TEST_NATIVE_MOCK_DRIVE_SCOPE_CID: 'sha256:' + createHash('sha256').update(scope).digest('hex')};
+    ACTQL_TEST_NATIVE_MOCK_DRIVE_SCOPE_CID: scopeCid,
+    ACTQL_TEST_NATIVE_MOCK_FILE_DATA: projectTemplateFiles('deal-review-mock')['mock/data.json'],
+    ACTQL_TEST_NATIVE_MOCK_FIRST_RESOURCE_CID: 'sha256:' + createHash('sha256').update(resource).digest('hex')};
 }

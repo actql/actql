@@ -185,4 +185,13 @@ test('canonical Project fixture supplies the original File-facts consumer oracle
     JSON.stringify(join(project, 'mock/data.json')) + '}';
   assert.equal(environment.ACTQL_TEST_NATIVE_MOCK_DRIVE_SCOPE_CID,
     'sha256:' + createHash('sha256').update(preimage).digest('hex'));
+  assert.equal(environment.ACTQL_TEST_NATIVE_MOCK_FILE_DATA,
+    readFileSync(join(environment.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT, 'deal-review/mock/data.json'), 'utf8'));
+  assert.deepEqual(JSON.parse(environment.ACTQL_TEST_NATIVE_MOCK_FILE_DATA).drive.files.rows.map(row => row.id),
+    ['file-acme-notes', 'file-globex-notes']);
+  const identity = '{"collection":"files","identity":"file-acme-notes","scope":' +
+    JSON.stringify(environment.ACTQL_TEST_NATIVE_MOCK_DRIVE_SCOPE_CID) + '}';
+  assert.equal(environment.ACTQL_TEST_NATIVE_MOCK_FIRST_RESOURCE_CID,
+    'sha256:' + createHash('sha256').update(identity).digest('hex'));
+  assert.throws(() => statSync(join(project, 'mock/data.json')), {code: 'ENOENT'});
 });
