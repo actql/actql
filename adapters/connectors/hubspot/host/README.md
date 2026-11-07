@@ -121,3 +121,8 @@ keep a combined metadata bound, but that bound cannot replace an Account-only
 operation's initial retained material. Core still requires the live physical
 backing to fit the received-input extent and its original maximum; response
 projection completion and actual child retirement keep their existing duties.
+
+Cold request reconstruction keeps the original policy wire/text envelope.
+Only its actual owned Preview/recovery byte extent selects the existing Host
+parser staging port. A smaller saved input cannot replace the already retained
+policy ceiling; Core retains the original maximum and checked-row quantities.

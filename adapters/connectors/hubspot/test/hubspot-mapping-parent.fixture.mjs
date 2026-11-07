@@ -297,4 +297,23 @@ export function registerHubSpotMappingParentTests(common, native, baseEnvironmen
     }
   });
 
+  test('HubSpot actual Common cold recovery input stays within its original capture maximum', () => {
+    const {options} = hubSpotEffectPlanFixture(), stages = new Map();
+    const moon = {...common, clientProgramInstalledEffectOperationStagedExtentPrepare(initial, maximum) {
+      const result = common.clientProgramInstalledEffectOperationStagedExtentPrepare(initial, maximum);
+      stages.set(checked(result), {initial, maximum});
+      return result;
+    }};
+    const recipe = captureHubSpotEffectPlanRecipeBuilder({moon})(options);
+    const original = stages.get(recipe.memberOperations[recipe.recoveryConstruction.operationIndex].extent);
+    for (const size of [2, 1024, options.maxRecoveryBytes]) {
+      const wire = size === 2 ? '{}' : JSON.stringify('x'.repeat(size - 2));
+      const input = recipe.recoveryConstruction.inputExtent('{}', [{memberIndex: 0, wire}], 0);
+      assert.doesNotThrow(() => checked(common.clientProgramInstalledEffectOperationStagedExtentPrepare(
+        original.initial, input)), `${size}-byte cold constructor retains the original prepaid wire envelope`);
+      assert.doesNotThrow(() => checked(common.clientProgramInstalledEffectOperationStagedExtentPrepare(
+        input, original.maximum)), `${size}-byte cold constructor must fit the existing maximum`);
+    }
+  });
+
 }

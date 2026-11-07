@@ -2835,7 +2835,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-effect-plan.mjs",
-      "sha256": "08079fc42c51d1453a17e6a4194ac9058753d8f100f4fc9c98ea6f742173a5b2",
+      "sha256": "b67472dea54dc743f31302a7b01c9ebeec79c19d13502d0242d8a95b1e2f2690",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common managed Effect Plan and same-issuer HubSpot constructor quantities",
@@ -2969,8 +2969,7 @@
           "parameters": [
             "original",
             "hostBytes",
-            "control",
-            "actualBytes"
+            "control"
           ],
           "async": false
         },

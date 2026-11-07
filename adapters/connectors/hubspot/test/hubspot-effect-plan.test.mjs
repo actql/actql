@@ -22,7 +22,9 @@ test('HubSpot typed Effect recipe declares all nineteen distinct original physic
   assert.equal(f.quotes.find(q => q.kind === 0).input.length, 23);
   assert(f.compositions.some(call => call.host === -1)); assert(f.compositions.some(call => call.control === 0));
   const extent = recipe.recoveryConstruction.inputExtent('{}', [{memberIndex: 0, wire: '{"requests":[]}'}], 0);
-  assert.equal(extent.capacities[0].call.host, 15); assert.equal(extent.capacities[0].call.limits[0], 15);
+  assert.equal(extent.capacities[0].call.host, 15);
+  assert.equal(extent.capacities[0].call.limits[0], 1000000);
+  assert.equal(extent.capacities[0].call.limits[1], 10000);
   assert.throws(() => recipe.recoveryConstruction.inputExtent('{}', [{memberIndex: 0, wire: 'x'.repeat(65537)}], 0),
     {code: 'HubSpotEffectRecipeUnavailable'});
 });

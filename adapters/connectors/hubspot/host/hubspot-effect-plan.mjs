@@ -122,10 +122,11 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
       Math.max(effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxOutcomeNodes),
       Math.max(effectLedgerImplementationBounds.maxDepth, effectLedgerImplementationBounds.maxOutcomeDepth)]);
     const controlBytes = checked(controlBound(write.maxResponseBytes, effectLedgerImplementationBounds.maxEntryBytes));
-    const quantities = (original, hostBytes = 0, control = controlBytes, actualBytes = maximumWire) => {
-      const selected = [...parameters]; selected[0] = actualBytes;
-      selected[1] = Math.min(parameters[1], actualBytes);
-      return checked(compose(original, finalization, selected, BigInt(bindingUnits),
+    const quantities = (original, hostBytes = 0, control = controlBytes) => {
+      // Policy wire/text storage is already retained on the original child.
+      // Core stages the actual parser forest through hostBytes separately;
+      // replacing its policy ceiling here would shrink that live retention.
+      return checked(compose(original, finalization, parameters, BigInt(bindingUnits),
         httpsCredentialResponseReadQuantum, control, hostBytes));
     };
     const initialProfile = profile(0, 0), maximumProfile = profile(read.maxResponseBytes, read.maxResponseBytes);
@@ -146,7 +147,7 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}) {
         if (!positive(size) || size > maxRecoveryBytes) fail();
         bytes = Math.max(bytes, size);
       }
-      return capturedExtent(quantities(initialProfile, bytes, controlBytes, bytes));
+      return capturedExtent(quantities(initialProfile, bytes, controlBytes));
     };
     const operationExtent = (operation, capacity, transfer = 0n, physical = false) =>
       checked(extent(operation, capacity, transfer, physical));
