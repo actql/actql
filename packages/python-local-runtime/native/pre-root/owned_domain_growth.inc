@@ -51,8 +51,7 @@ static bool domain_growth_identity_locked(actql_owned_capacity *domain) {
 
 static bool domain_growth_original_locked(actql_owned_capacity *domain) {
     return domain_growth_identity_locked(domain) && !domain->growth.parent->closing &&
-        !domain->closing && !domain->domain_borrow_attempted &&
-        !domain->allocation_ceiling_attempted;
+        !domain->closing && !domain->domain_borrow_attempted;
 }
 
 int actql_native_owned_prepare_domain_growth(actql_owned_capacity *domain,
@@ -100,6 +99,13 @@ int actql_native_owned_quote_domain_growth(actql_owned_capacity *domain,
                               &root_bytes, &root_controls) ||
         child_bytes > PTRDIFF_MAX - domain->length || root_bytes > PTRDIFF_MAX - parent->length)
         goto done;
+    if (domain->allocation_ceiling_attempted &&
+        (domain->occupied_pages > domain->allocation_ceiling_pages ||
+         child_controls / domain->page_size >
+             domain->allocation_ceiling_pages - domain->occupied_pages)) {
+        status = ACTQL_OWNED_EXHAUSTED;
+        goto done;
+    }
     growth->expected_parent = parent->length;
     growth->expected_domain = domain->length;
     growth->parent_bytes = root_bytes;
@@ -197,7 +203,7 @@ int actql_native_owned_acquire_domain_growth(actql_owned_capacity *domain,
     if (status != ACTQL_OWNED_OK) goto done;
     controls = 0;
     status = attach_domain_segment_locked(domain, growth->original_view,
-        &receipt->view, growth->expected_domain, &controls);
+        &receipt->view, growth->expected_domain, &controls, true);
     if (status != ACTQL_OWNED_OK) goto done;
     if (controls != growth->domain_controls) { status = ACTQL_OWNED_INVALID; goto done; }
     growth->state = OWNED_GROWTH_ATTACHED;

@@ -134,6 +134,9 @@ int actql_native_owned_attach_in_process_domain_segment(
  * Quote serials only fence the same original operation; they are not handles
  * or funding. The trusted owner must reserve the complete quoted root addition
  * before acquire. Partial/unknown outcome stays charged until actual cleanup.
+ * A previously selected child allocation ceiling stays unchanged, including
+ * added allocator controls. This checked supplier does not reopen the separate
+ * public attach port or increase the child's occupied-page allowance.
  * Scalars: 0 state (idle/quoted/acquiring/attached/refused/partial/closed),
  * 1 expected root bytes, 2 expected child bytes, 3 added root bytes,
  * 4 added root controls, 5 added child bytes, 6 added child controls,

@@ -100,3 +100,18 @@ for (const scoped of [false, true]) test(`same-domain original supplier with sta
   assert.equal(result.native_domain_supplier_cases, scoped ? 77 : 73);
   assert.equal(result.passed, result.native_domain_supplier_cases);
 });
+
+test('checked same-domain growth preserves the original allocation ceiling', () => {
+  const scratch = mkdtempSync(join(realpathSync(tmpdir()), 'actql-bounded-domain-growth-'));
+  const executable = join(scratch, 'bounded-domain-growth');
+  const build = spawnSync(process.env.CC ?? 'cc', ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror', '-pthread',
+    ...(process.platform === 'linux' ? ['-D_GNU_SOURCE', '-DACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN=1'] : []),
+    join(provider, 'fixtures/domain_bounded_growth.c'), '-o', executable],
+  {cwd: root, encoding: 'utf8', timeout: 60_000});
+  assert.equal(build.status, 0, `${build.error ?? ''}\n${build.stderr}`);
+  const run = spawnSync(executable, [], {cwd: root, encoding: 'utf8', timeout: 10_000});
+  assert.equal(run.status, 0, `${run.error ?? ''}\n${run.stdout}\n${run.stderr}`);
+  const result = JSON.parse(run.stdout);
+  assert.equal(result.bounded_domain_growth_cases, 14);
+  assert.equal(result.passed, result.bounded_domain_growth_cases);
+});

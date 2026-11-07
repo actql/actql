@@ -459,7 +459,7 @@ static bool whole_local_domain_view(actql_owned_extent_view *view,
 
 static int attach_domain_segment_locked(actql_owned_capacity *domain,
     actql_owned_extent_view *original_view, actql_owned_extent_view *addition_view,
-    size_t expected_domain_bytes, uint64_t *control_bytes) {
+    size_t expected_domain_bytes, uint64_t *control_bytes, bool preserve_ceiling) {
     actql_owned_capacity *parent = original_view->local_loan->owner;
     int status = ACTQL_OWNED_INVALID;
     if (foreign_domain_process(parent) || foreign_domain_process(domain) ||
@@ -469,7 +469,7 @@ static int attach_domain_segment_locked(actql_owned_capacity *domain,
     }
     if (!parent->transferred || parent->fd_backed || !domain->transferred ||
         domain->fd_backed || !domain->extent_domain || domain->domain_borrow_attempted ||
-        domain->allocation_ceiling_attempted ||
+        (domain->allocation_ceiling_attempted && !preserve_ceiling) ||
         atomic_load_explicit(&domain->domain_borrower_pid, memory_order_acquire) != 0 ||
         actql_native_owned_domain_matches_view(domain, original_view, getpid()) != ACTQL_OWNED_OK ||
         !whole_local_domain_view(original_view, parent) ||
@@ -480,6 +480,14 @@ static int attach_domain_segment_locked(actql_owned_capacity *domain,
         goto done;
     size_t count, controls;
     if (!owned_growth_layout(domain, addition_view->length, &count, &controls)) goto done;
+    // A checked supplier may add backing while keeping the original bound.
+    // The new allocator metadata consumes that SAME bound, never extra credit.
+    if (domain->allocation_ceiling_attempted &&
+        (domain->occupied_pages > domain->allocation_ceiling_pages ||
+         controls > domain->allocation_ceiling_pages - domain->occupied_pages)) {
+        status = ACTQL_OWNED_EXHAUSTED;
+        goto done;
+    }
     struct owned_segment *segment = addition_view->mapping;
     /* The exact private parent allocation already funds the added controls.
      * No fallible operation remains after this clear and atomic publication. */
@@ -493,7 +501,8 @@ static int attach_domain_segment_locked(actql_owned_capacity *domain,
     domain->segments = segment;
     domain->page_count += count;
     domain->length += addition_view->length;
-    domain->allocation_ceiling_pages += count;
+    if (!domain->allocation_ceiling_attempted)
+        domain->allocation_ceiling_pages += count;
     domain->occupied_pages += controls;
     if (domain->occupied_pages > domain->peak_occupied_pages)
         domain->peak_occupied_pages = domain->occupied_pages;
@@ -524,7 +533,7 @@ int actql_native_owned_attach_in_process_domain_segment(
     lock_capacity(domain);
     int status = parent->pending_growth_domain != NULL ? ACTQL_OWNED_BUSY :
         attach_domain_segment_locked(domain, original_view, addition_view,
-                                     expected_domain_bytes, control_bytes);
+                                     expected_domain_bytes, control_bytes, false);
     unlock_capacity(domain);
     unlock_capacity(parent);
     return status;
