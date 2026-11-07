@@ -104,3 +104,12 @@ these quantities. Duplicate ids/cursors, page/request/row limits and the final
 Catalog recheck remain mandatory before successful completion. Protocol tests
 with explicit Reader ports prove provider rules only; actual normal distribution,
 approval, UPDATE, Saved and physical cleanup require their respective consumers.
+
+
+Effect metadata authorizations retain the exact Site-issued original beside
+their physical `useId`. The observation adapter passes that original unchanged
+to the existing managed Credential child; the useId stays in its physical input.
+Target rows keep their existing same-row authorization lookup. A copied grant
+scope/body cannot establish issuer purpose, and no new grant or permission is
+inferred from equal fields. This two-field metadata view replaces the former
+three-field copied envelope and needs no additional constructor representation.

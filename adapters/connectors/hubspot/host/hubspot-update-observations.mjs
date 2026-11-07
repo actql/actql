@@ -74,10 +74,19 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
     const current = async slot => {signal?.throwIfAborted(); await verify(slot); signal?.throwIfAborted();};
     return async (slot, operation, method, path, body, rowIndex, project) => {
       await current(slot);
-      const authorization = await authorizationFor(slot, rowIndex);
+      const selectedAuthorization = await authorizationFor(slot, rowIndex);
       await current(slot);
+      if (!selectedAuthorization || nodeTypes.isProxy(selectedAuthorization)) fail('InvalidHubSpotUpdateAuthorization');
+      const original = Object.getOwnPropertyDescriptor(selectedAuthorization, 'originalAuthorization');
+      // The metadata caller keeps its same Site-issued authorization beside
+      // the physical useId. Target rows retain their existing grant entrance.
+      if (original !== undefined && (!Object.hasOwn(original, 'value') ||
+          !original.value || nodeTypes.isProxy(original.value) || !Object.isFrozen(original.value))) {
+        fail('InvalidHubSpotUpdateAuthorization');
+      }
+      const authorization = original === undefined ? selectedAuthorization : original.value;
       const http = ownHttpRequest({method, path, query: [], headers: [['accept', 'application/json']], body});
-      const input = {grant: authorization.grant, useId: authorization.useId,
+      const input = {grant: authorization.grant, useId: selectedAuthorization.useId,
         operations: new Map([[operation, Object.freeze({method: http.method, path: http.target,
           headers: http.headers, ...(http.body === undefined ? {} : {body: http.body})})]]),
         maxRequestBytes: policy.maxRequestBytes, maxResponseBytes: policy.maxResponseBytes,

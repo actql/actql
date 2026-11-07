@@ -132,7 +132,10 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
         const original = controlConstruction === undefined ? physical.issueReadGrant(facts)
           : controlConstruction(undefined, physical.issueReadGrant, [facts]);
         if (occurrence >= Number.MAX_SAFE_INTEGER) fail('HubSpotReadOccurrenceLimit');
-        return Object.freeze({...original, useId: dispatchRequestCid + '-hubspot-read-' + occurrence++});
+        // Keep the actual issuer original for the shared physical child's
+        // purpose/provenance check. A useId envelope is not that original.
+        return Object.freeze({originalAuthorization: original,
+          useId: dispatchRequestCid + '-hubspot-read-' + occurrence++});
       },
     });
   };

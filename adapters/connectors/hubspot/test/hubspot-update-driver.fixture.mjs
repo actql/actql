@@ -29,13 +29,14 @@ function fixture(moon, {maxRows = 10, responseRows = 10} = {}) {
   const native = hubspotUpdateRequestFixture(moon), selected = Object.freeze({...native.installed,
     fields: Object.freeze(['amount', 'tags'])});
   const member = Object.freeze({...native.member, effectId: 'update-companies', memberIndex: 0});
-  const state = {gateCalls: [], grants: [], physical: [], writes: [], denied: undefined, admit: [], targetUses: [],
+  const state = {gateCalls: [], grants: [], issued: new WeakSet(), physical: [], writes: [], denied: undefined, admit: [], targetUses: [],
     response: response(), writeError: undefined};
   const site = {
     issueReadGrant(facts) {
       assert.strictEqual(this, site); state.grants.push(facts);
-      return Object.freeze({grant: Object.freeze({original: state.grants.length}),
+      const original = Object.freeze({grant: Object.freeze({original: state.grants.length}),
         scope: Object.freeze({operation: facts.operation, resourceOrigin: origin})});
+      state.issued.add(original);return original;
     },
     admitCheckpointEffectTargetRead(decision, binding, operation) {
       assert.strictEqual(this, site); state.admit.push({decision, binding, operation}); return decision;
@@ -91,6 +92,22 @@ function fixture(moon, {maxRows = 10, responseRows = 10} = {}) {
 }
 
 export function registerHubSpotUpdateDriverTests(moon) {
+  test('HubSpot managed metadata preserves the exact Site issuer original before adding useId', async () => {
+    const f = fixture(moon), seen = [];
+    const readChild = async (authorization, input, row, slot, project) => {
+      if (!f.state.issued.has(authorization)) throw Object.assign(new Error('RowSourceAuthorizationPurposeUnavailable'),
+        {code:'RowSourceAuthorizationPurposeUnavailable'});
+      assert.equal(Object.hasOwn(authorization,'useId'),false);
+      assert.equal(typeof input.useId,'string');assert.strictEqual(input.grant,authorization.grant);
+      seen.push({authorization,useId:input.useId,slot});
+      return await f.describeOptions.readChild(authorization,input,row,slot,project);
+    };
+    const current = await f.driver.describe({...f.describeOptions,readChild});
+    assert(current);assert.deepEqual(seen.map(x=>x.slot),['account','schema']);
+    assert.notStrictEqual(seen[0].authorization,seen[1].authorization);
+    assert.notEqual(seen[0].useId,seen[1].useId);assert.equal(f.state.writes.length,0);
+  });
+
   test('HubSpot installed one-response decoder preserves two serial targets under the original member row bound', async () => {
     const decoderBounds = [];
     const counted = {...moon, hubspotProjectRecordRead(...args) {
