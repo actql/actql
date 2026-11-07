@@ -591,6 +591,11 @@ static bool allocation_failure_observation(void) {
     assert(read_allocation_observation.control==lease->control_pages);
     assert(read_allocation_observation.pages==lease->page_count);
     assert(read_allocation_observation.page_bytes==lease->page_size);
+    assert(read_allocation_observation.extent_domain==0);
+    assert(read_allocation_observation.managed_prepared==0);
+    assert(read_allocation_observation.managed_preparing==0);
+    assert(read_allocation_observation.managed_remaining==0);
+    assert(read_allocation_observation.managed_maximum==0);
     report_read_allocation_failure();
     assert(stock_mi_allocations==mi && stock_file_allocations==file);
     void *small=actql_native_file_scoped_allocate(3); assert(small);
@@ -598,6 +603,77 @@ static bool allocation_failure_observation(void) {
     context_leave(lease,context);
     assert(actql_read_context_release_after_owner_ack(context)==0);
     finish(&lease,&context);
+    return true;
+}
+
+/* Same real cohort, distinct refusals before allocator invocation. Observing
+ * either failure must neither consume an oversized request nor refill debt. */
+static bool allocation_prepared_failure_observation(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    assert(actql_native_owned_enter(lease)==0);
+    assert(actql_read_context_prepare_managed(context,64,1)==0);
+    assert(actql_native_owned_leave(lease)==0);
+    context_enter(lease,context);
+    size_t occupied=lease->occupied_pages, stock=stock_mi_allocations;
+    assert(allocate_read_bytes(65,READ_MANAGED)==NULL);
+    assert(read_allocation_observation.status==ACTQL_OWNED_INVALID);
+    assert(read_allocation_observation.extent_domain==0);
+    assert(read_allocation_observation.managed_prepared==1);
+    assert(read_allocation_observation.managed_preparing==0);
+    assert(read_allocation_observation.managed_remaining==1);
+    assert(read_allocation_observation.managed_maximum==64);
+    report_read_allocation_failure();
+    void *original=actql_native_moon_scoped_allocate(64);assert(original);
+    assert(allocate_read_bytes(24,READ_MANAGED)==NULL);
+    assert(read_allocation_observation.status==ACTQL_OWNED_INVALID);
+    assert(read_allocation_observation.managed_prepared==1);
+    assert(read_allocation_observation.managed_preparing==0);
+    assert(read_allocation_observation.managed_remaining==0);
+    assert(read_allocation_observation.managed_maximum==64);
+    report_read_allocation_failure();
+    assert(lease->occupied_pages==occupied && stock_mi_allocations==stock);
+    actql_native_moon_scoped_free(original);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    finish(&lease,&context);
+    return true;
+}
+
+/* Domain/root roles are observed from actual distinct provider originals,
+ * rather than guessed from equal page counts or forged context fields. */
+static bool allocation_domain_failure_observation(void) {
+    actql_owned_capacity *parent=lease_new(), *domain=NULL;
+    size_t bytes=16*(size_t)sysconf(_SC_PAGESIZE);
+    void *storage=NULL;
+    actql_owned_extent_loan loan={0};actql_owned_extent_view view={0};
+    assert(actql_native_owned_enter(parent)==0);
+    assert(actql_native_owned_allocate_in_process_domain(parent,bytes,&storage)==0);
+    assert(actql_native_owned_lend_in_process_domain(parent,storage,bytes,&loan)==0);
+    assert(actql_native_owned_view_in_process_domain(&loan,&view)==0);
+    assert(actql_native_owned_acquire_extent_domain(&view,&domain)==0);
+    assert(actql_native_owned_transfer_original_domain(domain)==0);
+    assert(actql_native_owned_leave(parent)==0);
+    actql_read_context *context=context_new(domain);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(domain,context);
+    assert(actql_native_file_scoped_allocate(domain->length)==NULL);
+    assert(read_allocation_observation.extent_domain==1);
+    assert(read_allocation_observation.managed_prepared==0);
+    assert(read_allocation_observation.managed_preparing==0);
+    assert(read_allocation_observation.managed_remaining==0);
+    assert(read_allocation_observation.managed_maximum==0);
+    assert(read_allocation_observation.status==ACTQL_OWNED_EXHAUSTED);
+    report_read_allocation_failure();
+    context_leave(domain,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    assert(actql_read_context_try_close(&context)==0 && context==NULL);
+    assert(actql_native_owned_close_extent_domain(&view,&domain)==0 && domain==NULL);
+    assert(actql_native_owned_close_extent_view(&view)==0);
+    assert(actql_native_owned_return_extent(&loan)==0);
+    assert(actql_native_owned_retire(parent,storage)==0);
+    assert(actql_native_owned_try_close(&parent)==0 && parent==NULL);
     return true;
 }
 
@@ -1555,6 +1631,13 @@ int main(int argc,char **argv) {
         bool ok=allocation_failure_observation();
         puts("{\"case\":\"same-original-allocation-failure-observation\",\"passed\":1,\"failed\":0}");
         return ok?0:1;
+    }
+    if(argc==2 && strcmp(argv[1],"--allocation-context-diagnostic-only")==0) {
+        assert(allocation_failure_observation());
+        assert(allocation_prepared_failure_observation());
+        assert(allocation_domain_failure_observation());
+        puts("{\"case\":\"allocation-context-failure-observation\",\"passed\":4,\"failed\":0}");
+        return 0;
     }
     if(argc==2 && strcmp(argv[1],"--managed-block-fallback-only")==0) {
         assert(managed_block_fallback());

@@ -1,6 +1,66 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {finishSourceFreeObservations} from './test-native-cli-source-free-install.mjs';
+import {observeFreshSubmissionFailureDiagnostic, preserveOrdinaryFailureWithDiagnostic}
+  from './test-native-cli-source-free-install.mjs';
+
+test('fresh submission diagnostic uses one independent project and restores its environment', async t => {
+  const parent = await mkdtemp(join(tmpdir(), 'actql-submission-diagnostic-test-'));
+  t.after(() => rm(parent, {recursive: true, force: true}));
+  const root = join(parent, 'fresh'), environment = {HOME: 'original-home', TMPDIR: 'original-tmp'};
+  const original = {...environment}, calls = [];
+  const result = await observeFreshSubmissionFailureDiagnostic({root, environment,
+    cli: async (args, cwd) => {
+      calls.push(args);
+      assert.equal(cwd, root); assert.equal(environment.HOME, join(root, 'home'));
+      assert.equal(environment.TMPDIR, join(root, 'tmp'));
+      assert.equal(environment.ACTQL_NATIVE_TIMINGS, '1');
+      return {stdout: args[0] === 'sql' ? '{"id":2}\n' : ''};
+    }});
+  assert.deepEqual(calls, [['init', 'project'], ['sql', 'SELECT 2 AS id', '--format', 'jsonl']]);
+  assert.deepEqual(environment, original);
+  assert.equal(result.newRequests, 1); assert.equal(result.ordinaryAcceptance, false);
+});
+
+test('fresh submission diagnostic failures restore the original environment without retry', async t => {
+  const parent = await mkdtemp(join(tmpdir(), 'actql-submission-diagnostic-fail-'));
+  t.after(() => rm(parent, {recursive: true, force: true}));
+  for (const failingStep of [1, 2]) {
+    const environment = {HOME: 'original', TMPDIR: 'original-tmp', ACTQL_NATIVE_TIMINGS: 'original-flag'};
+    const original = {...environment}, failure = new Error('original diagnostic failure');
+    let calls = 0;
+    await assert.rejects(observeFreshSubmissionFailureDiagnostic({
+      root: join(parent, 'fresh-'+failingStep), environment,
+      cli: async () => {if (++calls === failingStep) throw failure; return {stdout: ''};},
+    }), error => error === failure);
+    assert.equal(calls, failingStep); assert.deepEqual(environment, original);
+  }
+});
+
+test('fresh submission diagnostic refuses an existing directory before any command', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-submission-existing-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const environment = {HOME: 'unchanged'};
+  await assert.rejects(observeFreshSubmissionFailureDiagnostic({root, environment,
+    cli: async () => assert.fail('Existing state cannot become a diagnostic actor'),
+  }), error => error.code === 'EEXIST');
+  assert.deepEqual(environment, {HOME: 'unchanged'}); assert.deepEqual(await readdir(root), []);
+});
+
+test('ordinary failure remains failed after diagnostic success, failure and later cleanup failure', async () => {
+  const primary = new Error('original ordinary Unknown'), diagnostic = new Error('diagnostic failed');
+  const success = await preserveOrdinaryFailureWithDiagnostic(primary, async () => ({ordinaryAcceptance: false}));
+  assert.equal(success.failure, primary); assert.equal(success.diagnostic.status, 'observed');
+  const failed = await preserveOrdinaryFailureWithDiagnostic(primary, async () => {throw diagnostic;});
+  assert.deepEqual(failed.failure.errors, [primary, diagnostic]);
+  assert.equal(failed.diagnostic.status, 'failed');
+  const cleanup = new Error('registry close failed');
+  await assert.rejects(finishSourceFreeObservations(undefined, failed.failure, {
+    close: async () => {throw cleanup;},
+    saveObserved: async () => assert.fail('Diagnostics cannot publish ordinary success'),
+    saveFailed: async error => assert.deepEqual(error.errors, [failed.failure, cleanup]),
+  }), error => error.errors[0] === failed.failure && error.errors[1] === cleanup);
+});
 
 test('source-free provisional observations require successful registry close', async () => {
   const events = [], receipt = {scope: 'synthetic-orchestration-only'};

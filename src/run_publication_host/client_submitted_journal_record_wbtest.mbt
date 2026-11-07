@@ -332,7 +332,7 @@ test "observed submitted row restores large original intent and preserves canoni
       ),
       text.replace(
         old="actql-native-client-submitted-intent-row/0.1",
-        new="actql-native-client-submitted-intent-row/0.2",
+        new="foreign-client-submitted-intent-row/0.1",
       ),
     ] {
     assert_true(

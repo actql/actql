@@ -302,8 +302,10 @@ test "Request drops retired continuation aliases before original physical cleanu
     client_local_resource_policy(),
   ).unwrap()
   reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
-  let continued : @resources.PreparationCapacity[Array[Int], ClientInstalledEffectManagedPlan] =
-    @resources.continue_preparation_capacity(owner.capacity, input).unwrap()
+  let continued : @resources.PreparationCapacity[
+    Array[Int],
+    ClientInstalledEffectManagedPlan,
+  ] = @resources.continue_preparation_capacity(owner.capacity, input).unwrap()
   owner.effect_capacity = Some(continued)
   owner.phase = EffectCompiled
   assert_true(abort_request_preparation_after_cleanup(owner) is Err(Initial(_)))
@@ -328,20 +330,30 @@ test "Request drops retired continuation aliases before original physical cleanu
 test "Request keeps live continuation until original constructor borrower returns" {
   let input = [72]
   let owner = begin_request_preparation(
-    request_parent_fixture(input), input, client_local_resource_policy(),
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
   ).unwrap()
-  let continued : @resources.PreparationCapacity[Array[Int], ClientInstalledEffectManagedPlan] =
-    @resources.continue_preparation_capacity(owner.capacity, input).unwrap()
+  let continued : @resources.PreparationCapacity[
+    Array[Int],
+    ClientInstalledEffectManagedPlan,
+  ] = @resources.continue_preparation_capacity(owner.capacity, input).unwrap()
   owner.effect_capacity = Some(continued)
   owner.phase = EffectCompiled
   let usage = @resources.ledger_usage(owner.ledger)
   let holder = @resources.reserve_preparation_construction_input(
-    continued, input, 42,
-    usage.reserved_retention_bytes, usage.reserved_execution_bytes,
+    continued,
+    input,
+    42,
+    usage.reserved_retention_bytes,
+    usage.reserved_execution_bytes,
   ).unwrap()
   assert_true(abort_request_preparation_after_cleanup(owner) is Err(WrongPhase))
   assert_true(owner.input is Some(original) && physical_equal(original, input))
-  assert_true(owner.effect_capacity is Some(original) && physical_equal(original, continued))
+  assert_true(
+    owner.effect_capacity is Some(original) &&
+    physical_equal(original, continued),
+  )
   assert_eq(@resources.preparation_body_borrow_value(holder), Some(42))
   assert_true(@resources.return_preparation_body_borrow(holder).unwrap())
   abort_request_preparation_after_cleanup(owner).unwrap()

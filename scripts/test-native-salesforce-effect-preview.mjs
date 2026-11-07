@@ -35,6 +35,13 @@ if (coreArgs !== undefined) {
   assert(Array.isArray(coreArgs) && coreArgs.every(arg => typeof arg === 'string') && !residentProposals,
     'Invalid Native core fixture invocation');
 }
+const corePartition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
+assert(!corePartition || coreArgs !== undefined && (corePartition === '1/2' || corePartition === '2/2'),
+  'Native Core partition requires its original selected case inventory');
+// The unchanged write-oracle package belongs to exactly one ordinary
+// partition. Its sibling retains the same peer but must make zero requests.
+const coreTargetOracle = !corePartition ||
+  coreArgs.includes('src/platform_native/salesforce_effect_preview/native_test');
 // The complete file has two authored successful Provider observations: the
 // proposal case and Checkpoint custody. Its revoked-permission case sends none.
 const completeRetainedProposals = residentProposals && !residentPreview && !residentEffectRuntimeCapture;
@@ -384,9 +391,9 @@ try {
       ? 'Actual retained Native consumer -> physical HTTPS target observation -> checked Preview plan -> computation capture and encrypted Store custody; live Ledger retained; no waiting, approval, apply or Cloud'
       : 'Native HTTPS target observation, signed credential admission and exact bounded Provider write transport; no signed Effect approval, Effect Ledger, Source capture, whole Preview or Cloud apply'}, null, 2) + '\n');
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
-  const expectedWrites = residentProposals || originalLocalReview || directLocalClaimCustody ? 0 : 2;
+  const expectedWrites = residentProposals || originalLocalReview || directLocalClaimCustody || !coreTargetOracle ? 0 : 2;
   assert.equal(writes, expectedWrites);
-  assert.equal(rejectedWrites, residentProposals || originalLocalReview || directLocalClaimCustody ? 0 : 1);
+  assert.equal(rejectedWrites, residentProposals || originalLocalReview || directLocalClaimCustody || !coreTargetOracle ? 0 : 1);
   assert.deepEqual(writeBodies, Array(expectedWrites).fill('{"Optional_Value__c":"new"}'));
   assert.equal(resolutionRequests,residentOriginalHolder?1:0);
   assert.equal(reviewUploads,residentOriginalHolder?6:0);
@@ -413,7 +420,7 @@ try {
     assert.equal(bearer.effectTargetValue(), residentApprovedRow && !residentMappedCreate ? 3 : 7);
     if (residentMappedCreate) assert.deepEqual(bearer.effectCreatedValues(),
       [{Id: '001000000000001AAA', Count__c: 3}]);
-  } else {
+  } else if (coreTargetOracle) {
     assert.deepEqual(paths.filter(value => value.method === 'GET'), [
       {method: 'GET', path: expected + '001000000000001'},
       {method: 'GET', path: expected + '001000000000001'},
@@ -424,6 +431,8 @@ try {
       {method: 'PATCH', path: expected + '001000000000002'},
       {method: 'PATCH', path: expected + '001000000000003'},
     ]);
+  } else {
+    assert.deepEqual(paths, []);
   }
   console.log(`Native Salesforce target observation receipt: ${join(root, 'physical-receipt.json')}`);
 } finally {

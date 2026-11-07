@@ -217,7 +217,7 @@
 +#endif
 --- /dev/null
 +++ b/scoped_read.inc
-@@ -0,0 +1,1062 @@
+@@ -0,0 +1,1074 @@
 +/* Derived selected-runtime read allocator, included once by the ORIGINAL
 + * owned_capacity.c. Selection still requires its source-bound recipe and
 + * original physical supplier. This is physical provenance
@@ -485,12 +485,14 @@
 + * No pointer/identity escapes, allocation fallback or cleanup acknowledgement. */
 +static _Thread_local struct {
 +    uint64_t requested, known, depth, active, current, occupied, peak, control, pages, page_bytes;
++    uint64_t extent_domain, managed_prepared, managed_preparing, managed_remaining, managed_maximum;
 +    int status;
 +} read_allocation_observation;
 +
 +static void report_read_allocation_failure(void) {
 +    static const char *names[] = {"requested", "known", "depth", "active", "current",
-+        "occupied", "peak", "control", "pages", "page_bytes", "status"};
++        "occupied", "peak", "control", "pages", "page_bytes", "status",
++        "extent_domain", "managed_prepared", "managed_preparing", "managed_remaining", "managed_maximum"};
 +    uint64_t values[] = {read_allocation_observation.requested,
 +        read_allocation_observation.known, read_allocation_observation.depth,
 +        read_allocation_observation.active, read_allocation_observation.current,
@@ -498,8 +500,11 @@
 +        read_allocation_observation.control, read_allocation_observation.pages,
 +        read_allocation_observation.page_bytes,
 +        (uint64_t)(read_allocation_observation.status < 0 ?
-+            -(int64_t)read_allocation_observation.status : read_allocation_observation.status)};
-+    char text[512]; size_t used = 0;
++            -(int64_t)read_allocation_observation.status : read_allocation_observation.status),
++        read_allocation_observation.extent_domain, read_allocation_observation.managed_prepared,
++        read_allocation_observation.managed_preparing, read_allocation_observation.managed_remaining,
++        read_allocation_observation.managed_maximum};
++    char text[1024]; size_t used = 0;
 +    const char *prefix = "actql-scoped-allocation-failed";
 +    while (*prefix) text[used++] = *prefix++;
 +    for (size_t i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
@@ -912,6 +917,13 @@
 +    }
 +    if (known && output == NULL) {
 +        lock_capacity(context->lease);
++        /* Closed role predicate only, never a lease address. Cohort quantities
++         * are observed AFTER this attempted constructor, with their original units. */
++        read_allocation_observation.extent_domain = context->lease->extent_domain ? 1 : 0;
++        read_allocation_observation.managed_prepared = context->managed_prepared ? 1 : 0;
++        read_allocation_observation.managed_preparing = context->managed_preparing ? 1 : 0;
++        read_allocation_observation.managed_remaining = context->managed_remaining;
++        read_allocation_observation.managed_maximum = context->managed_maximum;
 +        read_allocation_observation.occupied = context->lease->occupied_pages;
 +        read_allocation_observation.peak = context->lease->peak_occupied_pages;
 +        read_allocation_observation.control = owned_control_pages(context->lease);

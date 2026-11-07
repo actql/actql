@@ -746,14 +746,18 @@ pub fn[I] abort_request_preparation_after_cleanup(
           if retiring || owner.program_body_attempted {
             @resources.retire_preparation_capacity(capacity)
           } else {
-            guard owner.input is Some(input) else { return Err(ForeignOriginal) }
+            guard owner.input is Some(input) else {
+              return Err(ForeignOriginal)
+            }
             @resources.abort_preparation_capacity_after_cleanup(capacity, input)
           }
         None =>
           if retiring {
             @resources.retire_preparation_capacity(owner.capacity)
           } else {
-            guard owner.input is Some(input) else { return Err(ForeignOriginal) }
+            guard owner.input is Some(input) else {
+              return Err(ForeignOriginal)
+            }
             @resources.abort_preparation_capacity_after_cleanup(
               owner.capacity,
               input,
@@ -770,7 +774,9 @@ pub fn[I] abort_request_preparation_after_cleanup(
     // a logically closed record until that Read's ACK would pin its own last
     // alias forever. Failed settlement/live borrowers retain the originals.
     if owner.compiled_effect is Some(prepared) {
-      @publication_host.clear_prepared_client_effect_custody_after_cleanup(prepared)
+      @publication_host.clear_prepared_client_effect_custody_after_cleanup(
+        prepared,
+      )
     }
     owner.compiled_effect = None
     owner.program_capacity = None

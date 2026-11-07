@@ -63,7 +63,8 @@ fn LocalCommandBusinessPreparation::open_values_work(
     stop("LocalBusinessOriginalUnavailable")
   }
   guard @local_host.native_client_submitted_preparation(self.preparation)
-    is Computation(prepared) && self.requirements is Some(requirements) else {
+    is Computation(prepared) &&
+    self.requirements is Some(requirements) else {
     stop("LocalValuesExecutionProfileNotSupported")
   }
   let installed = run.source_free.unwrap_or_else(() => {
