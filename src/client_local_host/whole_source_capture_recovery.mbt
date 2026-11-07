@@ -83,35 +83,14 @@ pub fn restore_accounted_client_whole_source_capture(
     @resources.settle_capacity(ledger, quote) |> ignore
     return Err(BindingMismatch)
   }
-  let sized = source_capture_restoration_capacity(
-    "",
-    rows,
-    None,
-    input_policy=limits,
-  )
+  let sized = whole_source_capture_restoration_capacity(capacity, rows)
   match @resources.settle_capacity(ledger, quote) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  guard sized is Some(sized) &&
-    @row_source_host.row_input_acquisition_capacity(capacity.acquisition, None)
-    is Some(input_capacity) else {
-    return Err(Physical(InvalidCharge))
-  }
+  guard sized is Some(sized) else { return Err(Physical(InvalidCharge)) }
   let retained = @execution.execution_capacity_retained_bytes(sized)
   let execution = @execution.execution_capacity_execution_bytes(sized)
-  let input_retained = @execution.execution_capacity_retained_bytes(
-    input_capacity,
-  )
-  let input_execution = @execution.execution_capacity_execution_bytes(
-    input_capacity,
-  )
-  if retained > 9223372036854775807L - input_retained ||
-    execution > 9223372036854775807L - input_execution {
-    return Err(Physical(InvalidCharge))
-  }
-  let retained = retained + input_retained
-  let execution = execution + input_execution
   let reservation = match
     @resources.reserve_attempt(
       ledger,
@@ -144,48 +123,10 @@ pub fn restore_accounted_client_whole_source_capture(
     }
   }
   let capture : ClientSourceCapture = { source, live, }
-  // Match the live RowRun's post-capture ownership: its original input buffer
-  // and observed wire remain; construction/provider scratch has retired.
-  let (original_retained, _) = @row_source_host.row_original_input_capacity()
-  let read = match @query.captured_source_original_input_read(source) {
-    Some(value) => value
-    None => {
-      close_client_source_capture(capture) |> ignore
-      while !@row_source_host.close_restored_row_original_input(original, 64) {
-
-      }
-      @resources.settle_reservation(ledger, reservation) |> ignore
-      return Err(CustodyUnavailable)
-    }
-  }
-  let actual = match
-    @execution.supplied_relation_read_rows_identity(read, limits.wire) {
-    Ok(value) => @execution.row_wire_usage(value).0.to_int64()
-    Err(issue) => {
-      close_client_source_capture(capture) |> ignore
-      while !@row_source_host.close_restored_row_original_input(original, 64) {
-
-      }
-      @resources.settle_reservation(ledger, reservation) |> ignore
-      return Err(Original(Wire(issue)))
-    }
-  }
-  let sized_retained = @execution.execution_capacity_retained_bytes(sized)
-  guard @execution.checked_preparation_add_product(
-      original_retained, actual, 1L,
-    )
-    is Some(owned) &&
-    @execution.checked_preparation_add_product(owned, sized_retained, 1L)
-    is Some(owned) &&
-    owned <= retained else {
-    close_client_source_capture(capture) |> ignore
-    while !@row_source_host.close_restored_row_original_input(original, 64) {
-
-    }
-    @resources.settle_reservation(ledger, reservation) |> ignore
-    return Err(Physical(InvalidCharge))
-  }
-  let holding = match @resources.retain_allocation(ledger, reservation, owned) {
+  // Only this actual receiving representation survives construction. Source
+  // policy ceilings and the retired live acquisition's scratch are not held.
+  let holding = match
+    @resources.retain_allocation(ledger, reservation, retained) {
     Ok(value) => value
     Err(issue) => {
       close_client_source_capture(capture) |> ignore

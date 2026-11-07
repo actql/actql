@@ -73,6 +73,7 @@ fn source_capture_restoration_capacity(
   rows : Array[String],
   original_input : (String, String, Array[String])?,
   input_policy? : @row_source_host.RowInputLimits,
+  input_columns? : Int,
 ) -> @execution.ExecutionCapacity? {
   let max_rows = input_policy.map(value => value.max_rows).unwrap_or(100)
   let wire = input_policy
@@ -163,7 +164,7 @@ fn source_capture_restoration_capacity(
     is Some(array_items) &&
     @execution.checked_preparation_add_product(
       array_items,
-      wire.max_columns.to_int64(),
+      input_columns.unwrap_or(wire.max_columns).to_int64(),
       4L,
     )
     is Some(array_items) &&

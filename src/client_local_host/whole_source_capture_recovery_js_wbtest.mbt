@@ -354,7 +354,9 @@ test "Whole Source snapshots restore exact original Inputs and execute the same 
 
 ///|
 #cfg(target="js")
-fn whole_source_saved_input_fixture() -> (
+fn whole_source_saved_input_fixture(
+  rows_count? : Int = 128,
+) -> (
   ClientInstalledEffectManagedPlan,
   (Array[String], String, String, Array[String]),
 ) raise {
@@ -408,7 +410,7 @@ fn whole_source_saved_input_fixture() -> (
       is Err(Source(InvalidPage)),
     )
     @row_source_host.begin_row_run_with_page_limits(run, policy.page, 128).unwrap()
-    let count = if over_rows { 129 } else { 128 }
+    let count = if over_rows { 129 } else { rows_count }
     let body = @utf8.encode(
       "[" +
       Array::makei(count, index => "{\"id\":" + (index + 1).to_string() + "}").join(
@@ -424,7 +426,7 @@ fn whole_source_saved_input_fixture() -> (
       assert_true(received is Err(_))
       assert_true(@row_source_host.capture_row_run(run) is Err(_))
     } else {
-      assert_eq(received.unwrap(), 128)
+      assert_eq(received.unwrap(), rows_count)
       @row_source_host.finish_row_run(run).unwrap()
       @row_source_host.begin_row_capture(run).unwrap()
       let mut complete = false
@@ -438,7 +440,7 @@ fn whole_source_saved_input_fixture() -> (
       let source = @row_source_host.row_capture_source(
         @row_source_host.capture_row_run(run).unwrap(),
       ).unwrap()
-      assert_eq(@query.captured_source_row_count(source), Some(128))
+      assert_eq(@query.captured_source_row_count(source), Some(rows_count))
       snapshot = Some(
         export_client_whole_source_capture(
           source,
@@ -587,6 +589,105 @@ test "Whole restoration rejects altered rows schema expired policy and retired r
     if variant != 5 {
       retire_installed_managed_run(owner).unwrap()
     }
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  }
+}
+
+///|
+#cfg(target="js")
+test "tiny Whole restore needs only actual demand under large finite policy ceilings" {
+  let (plan, (identity, schema, rows_cid, rows)) = whole_source_saved_input_fixture(
+    rows_count=1,
+  )
+  let original = plan.whole_sources[0].unwrap().1
+  let base = @row_source_host.row_input_acquisition_limits(original.acquisition)
+  let large : @row_source_host.RowInputLimits = {
+    ..base,
+    max_rows: 1000000000,
+    page: {
+      max_rows: 1000000000,
+      max_bytes: 1000000000,
+      max_nodes: 1000000000,
+      max_depth: 1000000000,
+    },
+    wire: {
+      max_columns: 1000000000,
+      max_order_work: 1000000000,
+      max_bytes: 1000000000,
+      max_nodes: 1000000000,
+      max_depth: 1000000000,
+    },
+  }
+  let selected = prepare_installed_effect_whole_source_capacity(
+    plan.prepared,
+    0,
+    0,
+    original.original,
+    plan.whole_sources[0].unwrap().0,
+    plan.installed_contracts,
+    None,
+    large,
+    1000000000L,
+    plan.sequences,
+  ).unwrap()
+  let actual = whole_source_capture_restoration_capacity(selected, rows).unwrap()
+  let before = whole_source_capture_restoration_capacity(original, rows).unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(actual)
+  let execution = @execution.execution_capacity_execution_bytes(actual)
+  assert_eq(retained, @execution.execution_capacity_retained_bytes(before))
+  assert_eq(execution, @execution.execution_capacity_execution_bytes(before))
+  assert_true(retained < 1000000L)
+  assert_true(execution < 1000000L)
+  // The receiving owner uses exactly these actual body/schema resources. One
+  // byte short in either dimension refuses before any capture owner escapes.
+  for shortage in 0..<3 {
+    let ledger = @resources.create_ledger({
+      planning_work: 0,
+      attempts: 1,
+      holdings: 1,
+      transfer_bytes: 0L,
+      retained_bytes: retained - (if shortage == 1 { 1L } else { 0L }),
+      execution_bytes: execution - (if shortage == 2 { 1L } else { 0L }),
+    }).unwrap()
+    let result = restore_accounted_client_whole_source_capture(
+      selected,
+      "same-cold-capture",
+      "same-cold-capture",
+      identity,
+      schema,
+      rows_cid,
+      rows,
+      ledger,
+      () => true,
+    )
+    if shortage == 0 {
+      let restored = result.unwrap()
+      let source = accounted_client_source_capture_source(restored).unwrap()
+      assert_eq(@query.captured_source_row_count(source), Some(1))
+      assert_eq(@resources.ledger_usage(ledger).held_bytes, retained)
+      assert_eq(
+        export_client_whole_source_capture(
+          source, selected, "same-cold-capture",
+        ).unwrap(),
+        (identity, schema, rows_cid, rows),
+      )
+      let mut closed = false
+      for _ in 0..<100 {
+        if close_accounted_client_source_capture(restored, quantum=1) {
+          closed = true
+          break
+        }
+      }
+      assert_true(closed)
+    } else if shortage == 1 {
+      assert_true(result is Err(Physical(RetentionLimit)))
+    } else {
+      assert_true(result is Err(Physical(ExecutionLimit)))
+    }
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).holdings, 0)
     assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
   }
 }

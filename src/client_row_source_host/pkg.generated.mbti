@@ -355,6 +355,8 @@ pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[Strin
 
 pub fn row_input_capture_identity(RowInputAcquisition) -> Array[String]?
 
+pub fn row_input_capture_schema_geometry(RowInputAcquisition) -> (Int, Int, Int, Int)?
+
 pub fn row_mapping_target_fields(RowMapping, RowDeclarationLimits) -> Result[Array[String], RowMappingIssue]
 
 pub fn row_observation_cid(RowObservation) -> String

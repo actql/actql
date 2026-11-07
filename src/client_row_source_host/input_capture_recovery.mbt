@@ -163,3 +163,19 @@ pub fn restore_row_input_capture(
     }
   }
 }
+
+///|
+/// Count the actual checked schema through the existing measuring codec.
+/// Constructor ceilings remain validation policy, never reservation demand.
+pub fn row_input_capture_schema_geometry(
+  value : RowInputAcquisition,
+) -> (Int, Int, Int, Int)? {
+  @execution.measure_relation_schema_identity(
+    value.preparation.schema,
+    row_input_capture_schema_limits(value),
+  )
+  .to_option()
+  .map(measured => {
+    (value.preparation.columns.length(), measured.0, measured.1, measured.2)
+  })
+}
