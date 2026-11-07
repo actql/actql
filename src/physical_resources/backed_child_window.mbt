@@ -8,6 +8,40 @@ pub fn[P, C, R] check_backed_original_child_window_demand(
   retained : Int64,
   execution : Int64,
 ) -> Result[Unit, BackedExecutionIssue] {
+  let ticket = match backed_original_child_window_current(projection, runtime) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if retained < 0L ||
+    execution < 0L ||
+    retained > ticket.limits.retained_bytes ||
+    execution > ticket.limits.execution_bytes {
+    return Err(Resource(InvalidLimits))
+  }
+  Ok(())
+}
+
+///|
+/// Observe the SAME child's acquired usable pool, not its declared limits or
+/// contiguous allocation geometry. No bytes are granted or Read resized; a
+/// later reservation still checks its actual simultaneous demand/currentness.
+pub fn[P, C, R] read_backed_original_child_window_bytes(
+  projection : BackedExecutionLiveProjection[P, C, R],
+  runtime : R,
+) -> Result[Int64, BackedExecutionIssue] {
+  match backed_original_child_window_current(projection, runtime) {
+    Ok(ticket) => Ok(ticket.current_window.unwrap().val)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+// Shared original-current fence for policy and acquired-pool observations.
+// This returns no reusable current proof outside this Resource owner.
+fn[P, C, R] backed_original_child_window_current(
+  projection : BackedExecutionLiveProjection[P, C, R],
+  runtime : R,
+) -> Result[BackedExecutionDelegation[P, C], BackedExecutionIssue] {
   let access = match backed_live_projection_original(projection, runtime) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -27,13 +61,7 @@ pub fn[P, C, R] check_backed_original_child_window_demand(
     (access.child_origin is Some(origin) && origin.stopping) {
     return Err(RegionClosing)
   }
-  if retained < 0L ||
-    execution < 0L ||
-    retained > ticket.limits.retained_bytes ||
-    execution > ticket.limits.execution_bytes {
-    return Err(Resource(InvalidLimits))
-  }
-  Ok(())
+  Ok(ticket)
 }
 
 ///|

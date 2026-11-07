@@ -82997,12 +82997,16 @@
     },
     {
       "module": "src/physical_resources/backed_child_window.mbt",
-      "sha256": "5b3c8146d07f8e927751ba96ee039646f02fdab17b08ab392c53b730bbc8be4f",
+      "sha256": "0b31224a261a271c8d69760c3083851b38d1947ae9ad34b33b5edbcf8c7b97cd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing backed execution child and SharedCapacityGrowth Resource owner; no physical receipt issuer or new Ledger",
       "referenceQualification": "Portable nominal Resource components and declared-policy/acquired-window correspondence only; no Native receipt, ordinary backing or physical cleanup acceptance.",
       "operations": [
+        {
+          "name": "[P,C,R]backed_original_child_window_current",
+          "declaration": "[ P , C , R ] backed_original_child_window_current ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ BackedExecutionDelegation [ P , C ] , BackedExecutionIssue ]"
+        },
         {
           "name": "[P,C,R]check_backed_original_child_window_demand",
           "declaration": "[ P , C , R ] check_backed_original_child_window_demand ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , retained : Int64 , execution : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
@@ -83010,6 +83014,10 @@
         {
           "name": "[P,C,R]complete_backed_original_child_window_after_acquisition",
           "declaration": "[ P , C , R ] complete_backed_original_child_window_after_acquisition ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , growth : SharedCapacityGrowth , acquired_payload_bytes : Int64 , ) - > Result [ Unit , BackedExecutionIssue ]"
+        },
+        {
+          "name": "[P,C,R]read_backed_original_child_window_bytes",
+          "declaration": "[ P , C , R ] read_backed_original_child_window_bytes ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ Int64 , BackedExecutionIssue ]"
         },
         {
           "name": "[P,C]complete_backed_execution_window_after_acquisition",
@@ -83025,8 +83033,10 @@
         {
           "operations": [
             "<module>",
+            "[P,C,R]backed_original_child_window_current",
             "[P,C,R]check_backed_original_child_window_demand",
             "[P,C,R]complete_backed_original_child_window_after_acquisition",
+            "[P,C,R]read_backed_original_child_window_bytes",
             "[P,C]complete_backed_execution_window_after_acquisition",
             "[P,C]complete_backed_execution_window_current"
           ],
@@ -83130,6 +83140,10 @@
               {
                 "path": "src/physical_resources/backed_child_window_wbtest.mbt",
                 "anchor": "test \"closing original child retains pending acquired growth without publishing another window\""
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"acquired child window observation preserves usage and rejects foreign closing and retired originals\""
               }
             ]
           }
