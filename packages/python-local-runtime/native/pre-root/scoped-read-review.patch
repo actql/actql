@@ -217,7 +217,7 @@
 +#endif
 --- /dev/null
 +++ b/scoped_read.inc
-@@ -0,0 +1,1056 @@
+@@ -0,0 +1,1062 @@
 +/* Derived selected-runtime read allocator, included once by the ORIGINAL
 + * owned_capacity.c. Selection still requires its source-bound recipe and
 + * original physical supplier. This is physical provenance
@@ -766,11 +766,17 @@
 +        status = ACTQL_OWNED_OK;
 +        goto done;
 +    }
-+    /* A miss still examines every other original extent before requesting a
-+     * new page. No free space or physical-retirement attempt is skipped. */
-+    for (size_t index = lease->control_pages; index < lease->page_count; index++) {
-+        if (index != hint &&
-+            allocate_read_heap_page_locked(context, index, bytes, rounded, family, output)) {
++    /* Continue after the same hint, wrapping once through every other original
++     * extent before requesting a new page. Restarting at the first slab would
++     * repeatedly traverse an already full live prefix in a retained cohort.
++     * This changes search order only: every candidate keeps its original
++     * process/context/current/free-block checks; no page or credit is skipped. */
++    size_t search_index = hint >= lease->control_pages && hint < lease->page_count
++        ? hint : lease->page_count - 1;
++    for (size_t visited = 0; visited < lease->page_count - lease->control_pages; visited++) {
++        search_index = search_index == lease->page_count - 1 ? lease->control_pages : search_index + 1;
++        if (search_index != hint &&
++            allocate_read_heap_page_locked(context, search_index, bytes, rounded, family, output)) {
 +            status = ACTQL_OWNED_OK;
 +            goto done;
 +        }

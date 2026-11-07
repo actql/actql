@@ -194,8 +194,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/scoped_read.c",
-      "bytes": 78155,
-      "sha256": "098ceda75a6cf766c8892dd3da2ca70a80eff713fa24ae838bb14b9b74dab532"
+      "bytes": 82419,
+      "sha256": "68fdcc1bf290e0c3010c5e9d0c5d862a13b80d1e8788602192a9f74e15f7a179"
     },
     {
       "path": "scripts/test_native_prepared_controls.py",
