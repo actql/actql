@@ -24,6 +24,8 @@ function fixture(moon) {
     requests: f.adapter, limits});
   const value = {amount: '1.0000000000', tags: ['a']};
   const prepared = f.adapter.prepare({member: f.member, value, selector: recordId});
+  f.adapter.prepareTargetRead(prepared.request, Object.freeze({maxColumns: limits.maxColumns,
+    maxRequestBytes: limits.maxRequestBytes, maxRequestNodes: limits.maxRequestNodes, maxRequestDepth: limits.maxRequestDepth}));
   const state = {calls: [], events: [], authorize: [], verifies: [], responseHook: undefined, verifyHook: undefined};
   const options = {member: f.member, entries: [{request: prepared.request}],
     async verify(slot) {state.verifies.push(slot); await state.verifyHook?.(slot);},

@@ -73,6 +73,9 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
   if (!positive(maxProperties)) fail('InvalidHubSpotUpdateDriver');
   const requests = createHubSpotUpdateRequestAdapter({moon, origin, portalId, connectorId, installedFor, limits: requestLimits});
   const observations = createHubSpotUpdateObservationAdapter({moon, portalId, installedFor, requests, limits: readLimits});
+  const targetReadLimits = Object.freeze(Object.fromEntries(
+    ['maxColumns', 'maxRequestBytes', 'maxRequestNodes', 'maxRequestDepth'].map(name =>
+      [name, Object.getOwnPropertyDescriptor(readLimits, name)?.value])));
   const currentFrames = new WeakMap();
   const binding = Object.freeze({connectorId, origin, portalId, siteBindingCid, generationCid});
   let occurrence = 0;
@@ -165,6 +168,7 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
         if (rebuilt.requestCid !== claims[row].canonicalRequestCid ||
             encode(facts.value) !== encode(changes[row].after?.value) ||
             encode(facts.target) !== encode(changes[row].target_row_identity)) fail('ForeignHubSpotUpdateRecovery');
+        requests.prepareTargetRead(rebuilt.request, targetReadLimits);
         return rebuilt.request;
       }));
     }))});
@@ -184,7 +188,12 @@ export function hubspotUpdateDriver({moon, site, authorization, connection, orig
         controlConstruction: options.controlConstruction});
       return current;
     },
-    prepareRequest(options) {frame(options.member, options.current); return requests.prepare(options);},
+    prepareRequest(options) {
+      frame(options.member, options.current);
+      const prepared = requests.prepare(options);
+      requests.prepareTargetRead(prepared.request, targetReadLimits);
+      return prepared;
+    },
     recheckRequests({member, entries, current, controlConstruction}) {
       frame(member, current);
       const check = () => {for (const entry of entries) checked(native.hubspotRecheckRecordBatch(

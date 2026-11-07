@@ -1608,7 +1608,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-request.mjs",
-      "sha256": "ea9e82c940b34119f1fa729fb79ee24be49f1115677e44df219ab3a6962c01d4",
+      "sha256": "4007e1c527b290bce0dd55bbefad9d69406cb51828f7c90dbdeefddc66003bef",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing HubSpot Native request/target decoders and common installed row Effect",
@@ -1679,13 +1679,6 @@
           "async": false
         },
         {
-          "name": "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#6",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
           "name": "createHubSpotUpdateRequestAdapter/finalize/finalize",
           "parameters": [
             "request",
@@ -1697,6 +1690,28 @@
           "name": "createHubSpotUpdateRequestAdapter/get/get",
           "parameters": [
             "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/init:nativeTargetRead/init:nativeTargetRead",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/init:prepareTargetRead/init:prepareTargetRead",
+          "parameters": [
+            "request",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHubSpotUpdateRequestAdapter/init:prepareTargetRead/init:prepareTargetRead/init:prepareTargetRead",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -1833,9 +1848,11 @@
             "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#3",
             "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#4",
             "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#5",
-            "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter#6",
             "createHubSpotUpdateRequestAdapter/finalize/finalize",
             "createHubSpotUpdateRequestAdapter/get/get",
+            "createHubSpotUpdateRequestAdapter/init:nativeTargetRead/init:nativeTargetRead",
+            "createHubSpotUpdateRequestAdapter/init:prepareTargetRead/init:prepareTargetRead",
+            "createHubSpotUpdateRequestAdapter/init:prepareTargetRead/init:prepareTargetRead/init:prepareTargetRead",
             "createHubSpotUpdateRequestAdapter/init:requestFacts/init:requestFacts",
             "createHubSpotUpdateRequestAdapter/init:restore/init:restore",
             "createHubSpotUpdateRequestAdapter/installed/installed",
@@ -1922,7 +1939,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-observations.mjs",
-      "sha256": "b148ac6d0d9a07087c9cd962ef9ef3fa61edd604b854181ae98a9f9db08bf1f2",
+      "sha256": "231806ba8b522b004b91b33285210c24827dc71d740f1ae8612b47e686da4f74",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing HubSpot Native request/target decoders and common installed row Effect",
@@ -2246,7 +2263,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/hubspot-update-driver.mjs",
-      "sha256": "4af88ebe378be1112e5aadf4939914f8188f17ed7b6222819c30cda0f50fd1ab",
+      "sha256": "02cf7c8d9777b9c0c4686af5b2b61a5de2ae906c70f3ce5786dc7a2283f36087",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing common Row Effect and HubSpot Native request/response/target owners",
@@ -2543,6 +2560,13 @@
           "async": false
         },
         {
+          "name": "hubspotUpdateDriver/targetReadLimits/targetReadLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "isCid/isCid",
           "parameters": [
             "value"
@@ -2640,6 +2664,7 @@
             "hubspotUpdateDriver/restore/restore/restore/restore",
             "hubspotUpdateDriver/restore/restore/restore#2",
             "hubspotUpdateDriver/selected/selected",
+            "hubspotUpdateDriver/targetReadLimits/targetReadLimits",
             "isCid/isCid",
             "memberFacts/memberFacts",
             "positive/positive",

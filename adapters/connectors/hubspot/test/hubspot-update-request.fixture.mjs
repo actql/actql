@@ -41,6 +41,49 @@ function fixture(moon, {body = metadata, fields = ['amount', 'tags'], markerProp
 }
 export {fixture as hubspotUpdateRequestFixture};
 
+export function registerHubSpotTargetReadOriginalTests(moon) {
+  const limits = Object.freeze({maxColumns: 4, maxRequestBytes: 4096, maxRequestNodes: 1000, maxRequestDepth: 20});
+  test('HubSpot target-read Native request is constructed once with the original row and survives finalization unchanged', () => {
+    let attempts = 0, completed = 0;
+    const counted = {...moon, hubspotPrepareRecordRead(...args) {
+      attempts++; const result = moon.hubspotPrepareRecordRead(...args); checked(result); completed++; return result;
+    }};
+    const f = fixture(counted), prepared = f.adapter.prepare({member: f.member, value, selector: rowId});
+    assert.throws(() => f.adapter.nativeTargetRead(prepared.request), {code: 'HubSpotUpdateTargetReadUnavailable'});
+    const original = f.adapter.prepareTargetRead(prepared.request, limits);
+    assert.deepEqual(JSON.parse(moon.hubspotRecordReadBody(original)), {
+      inputs: [{id: rowId}], properties: ['amount', 'tags']});
+    const finalized = f.adapter.finalize({request: prepared.request, requestTag: tag});
+    assert.strictEqual(f.adapter.nativeTargetRead(prepared.request), original);
+    assert.strictEqual(f.adapter.nativeTargetRead(finalized.request), original);
+    assert.throws(() => f.adapter.prepareTargetRead(finalized.request, limits), {code: 'HubSpotUpdateTargetReadAlreadyAttempted'});
+    assert.equal(attempts, 1); assert.equal(completed, 1);
+    const saved = f.adapter.savedWire(finalized.request), next = fixture(moon);
+    const restored = next.adapter.restore({member: next.member, wire: saved, requestTag: tag});
+    assert.equal(restored.requestCid, finalized.requestCid); assert.equal(next.adapter.savedWire(restored.request), saved);
+    const cold = next.adapter.prepareTargetRead(restored.request, limits);
+    assert.notStrictEqual(cold, original);
+    assert.equal(moon.hubspotRecordReadBody(cold), moon.hubspotRecordReadBody(original));
+    assert.equal(next.adapter.savedWire(restored.request), saved);
+  });
+
+  test('HubSpot target-read preparation keeps original bounds and refuses foreign carriers without issuing a read', () => {
+    const f = fixture(moon), prepared = f.adapter.prepare({member: f.member, value, selector: rowId});
+    assert.throws(() => f.adapter.prepareTargetRead({...prepared.request}, limits), {code: 'ForeignHubSpotUpdateRequest'});
+    assert.throws(() => f.adapter.prepareTargetRead(prepared.request, {...limits, maxColumns: 0}),
+      {code: 'InvalidHubSpotUpdateTargetReadLimits'});
+    assert.throws(() => f.adapter.prepareTargetRead(prepared.request, {...limits, maxRequestBytes: 1}),
+      {code: 'MoonBitHostFailure'});
+    assert.throws(() => f.adapter.nativeTargetRead(prepared.request), {code: 'HubSpotUpdateTargetReadUnavailable'});
+    assert.throws(() => f.adapter.prepareTargetRead(prepared.request, limits), {code: 'HubSpotUpdateTargetReadAlreadyAttempted'});
+    // Failure has not supplied a reusable prepared request or any authority.
+    const fresh = fixture(moon), other = fresh.adapter.prepare({member: fresh.member, value, selector: rowId});
+    fresh.adapter.prepareTargetRead(other.request, limits);
+    assert.throws(() => fresh.adapter.prepareTargetRead(other.request, {...limits, maxRequestBytes: 8192}),
+      {code: 'HubSpotUpdateTargetReadAlreadyAttempted'});
+  });
+}
+
 export function registerHubSpotUpdateRequestTests(moon) {
   test('HubSpot original update request binds full logical value then actual dispatch marker without rounding', () => {
     const f = fixture(moon), logical = f.adapter.prepare({member: f.member, value, selector: rowId});

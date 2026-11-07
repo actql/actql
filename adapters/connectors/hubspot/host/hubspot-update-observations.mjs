@@ -39,14 +39,14 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
   if (!/^[1-9][0-9]{0,10}$/u.test(portalId ?? '') || typeof installedFor !== 'function' ||
       nodeTypes.isProxy(installedFor) || nodeTypes.isAsyncFunction(installedFor)) fail('InvalidHubSpotUpdateObservation');
   const native = capture(moon, ['hubspotRecheckAccountIdentityJson', 'hubspotProjectProperties',
-    'hubspotRecheckPropertyCatalog', 'hubspotPropertyCatalogObjectType', 'hubspotPrepareRecordRead',
+    'hubspotRecheckPropertyCatalog', 'hubspotPropertyCatalogObjectType',
     'hubspotRecordReadBody', 'hubspotRecheckRecordReadRequest', 'hubspotProjectRecordRead', 'hubspotRecordReadWire']);
   if (Object.values(native).some(method => typeof method !== 'function' || nodeTypes.isProxy(method) ||
       nodeTypes.isAsyncFunction(method))) fail('InvalidHubSpotUpdateObservation');
   const policy = Object.freeze(capture(limits, limitNames));
   if (!Object.values(policy).every(value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647) ||
       policy.maxRows > 100) fail('InvalidHubSpotUpdateObservation');
-  const request = Object.freeze(capture(requests, ['requestFacts', 'nativeTarget', 'objectType']));
+  const request = Object.freeze(capture(requests, ['requestFacts', 'nativeTargetRead', 'objectType']));
   if (Object.values(request).some(method => typeof method !== 'function')) fail('InvalidHubSpotUpdateObservation');
   const currents = new WeakMap();
   const selected = member => {
@@ -121,9 +121,8 @@ export function createHubSpotUpdateObservationAdapter({moon, portalId, installed
           const fresh = await catalog(read, 'schema-before', original, rowIndex);
           const facts = request.requestFacts(entry.request);
           if (request.objectType(entry.request) !== original.objectType) fail('ForeignHubSpotUpdateTarget');
-          const names = Object.keys(facts.value);
-          const target = checked(native.hubspotPrepareRecordRead(fresh, [request.nativeTarget(entry.request)], names,
-            1, policy.maxProperties, policy.maxColumns, policy.maxRequestBytes, policy.maxRequestNodes, policy.maxRequestDepth));
+          const target = request.nativeTargetRead(entry.request);
+          checked(native.hubspotRecheckRecordReadRequest(target, fresh, policy.maxProperties));
           checked(native.hubspotRecheckRecordReadRequest(target, options.current.catalog, policy.maxProperties));
           const body = native.hubspotRecordReadBody(target);
           if (Buffer.byteLength(body) > policy.maxRequestBytes) fail('HubSpotUpdateTargetRequestLimit');

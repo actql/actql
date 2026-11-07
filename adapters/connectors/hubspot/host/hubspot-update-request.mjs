@@ -44,6 +44,7 @@ export function createHubSpotUpdateRequestAdapter({moon, origin, portalId, conne
     'hubspotPrepareRecordBatch', 'hubspotPrepareRecordRequestMarker', 'hubspotPrepareMarkedRecordBatch',
     'hubspotRecordBatchBody', 'hubspotRecordBatchObjectType', 'hubspotRecordBatchCount',
     'hubspotRecordBatchInputValueJson', 'hubspotRecordBatchInputTargetJson', 'hubspotRecordBatchMarkerFields',
+    'hubspotExecutionMappingFields', 'hubspotPrepareRecordRead', 'hubspotRecordReadBody',
   ].map(name => [name, method(moon, name)]));
   const policy = own(limits, ['maxProperties', 'body', 'request', 'maxRecoveryBytes']);
   const body = own(policy.body, ['maxInputBytes', 'maxNodes', 'maxDepth', 'maxFields', 'maxNameBytes',
@@ -125,6 +126,30 @@ export function createHubSpotUpdateRequestAdapter({moon, origin, portalId, conne
     return wire;
   };
   return Object.freeze({prepare, finalize, assertFinalized,
+    prepareTargetRead(request, limits) {
+      const original = get(request);
+      if (original.readAttempted === true) fail('HubSpotUpdateTargetReadAlreadyAttempted');
+      const bounds = own(limits, ['maxColumns', 'maxRequestBytes', 'maxRequestNodes', 'maxRequestDepth']);
+      if (!Object.values(bounds).every(value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647)) {
+        fail('InvalidHubSpotUpdateTargetReadLimits');
+      }
+      // Construct once INSIDE the original warm row or cold recovery child.
+      // This immutable request grants no read; every later use rechecks the
+      // full original Catalog and receives its own physical authorization.
+      original.readAttempted = true;
+      const names = native.hubspotExecutionMappingFields(original.selected.mapping);
+      const read = checked(native.hubspotPrepareRecordRead(original.selected.catalog, [original.target], names,
+        1, policy.maxProperties, bounds.maxColumns, bounds.maxRequestBytes, bounds.maxRequestNodes, bounds.maxRequestDepth));
+      const body = native.hubspotRecordReadBody(read);
+      if (Buffer.byteLength(body) > bounds.maxRequestBytes) fail('HubSpotUpdateTargetReadLimit');
+      original.read = read;
+      return read;
+    },
+    nativeTargetRead(request) {
+      const original = get(request);
+      if (original.read === undefined) fail('HubSpotUpdateTargetReadUnavailable');
+      return original.read;
+    },
     requestCid: request => {const value = get(request); return value.requestCid ?? value.logicalCid;},
     capabilityRequestCid: request => get(request).logicalCid,
     requestFacts(request) {
@@ -134,7 +159,6 @@ export function createHubSpotUpdateRequestAdapter({moon, origin, portalId, conne
         target: exact(runtimeUnboxedReferenceOption(native.hubspotRecordBatchInputTargetJson(original.batch, 0)))});
     },
     nativeRequest: request => get(request).batch,
-    nativeTarget: request => get(request).target,
     objectType: request => native.hubspotRecordBatchObjectType(get(request).batch),
     savedWire,
     restore({member, wire, requestTag}) {
