@@ -189,8 +189,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt",
-      "bytes": 16446,
-      "sha256": "1ed87e0c5a318d704c0bbb17f383d998e0dc32f14687aa0db050467c5fd65411"
+      "bytes": 18368,
+      "sha256": "1baeb88bf4f19beb1ff83a8f7fb27f0b122af54d413327792210b8c1e90a2242"
     },
     {
       "path": "src/platform_native/host_bootstrap/root_control_unavailable_wbtest.mbt",
