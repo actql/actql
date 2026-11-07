@@ -31,19 +31,31 @@ fn LocalCommandPreparationOriginal::prepare_business_request_capacity(
   if selected.retained_bytes > 9223372036854775807L - selected.execution_bytes {
     return Err(CommandUnavailable)
   }
-  let payload = selected.retained_bytes + selected.execution_bytes
-  guard local_command_domain_bytes(payload) is Some(bytes) &&
+  // The existing shared Owner quotes its complete fixed Request entrance.
+  // The already selected Native control block covers first Reader/callback
+  // bookkeeping; it is a physical prefix, not another logical reservation.
+  guard @local_values.client_request_preparation_control_capacity(
+      @local_values.client_local_resource_policy(),
+    )
+    is Some((control_retained, control_execution)) &&
+    native_storage_sum([control_retained, control_execution]) is Ok(control) &&
+    native_storage_sum([
+      self.profile.read_budget.bootstrap_retained,
+      self.profile.read_budget.bootstrap_execution,
+    ])
+    is Ok(prefix) &&
+    prefix >= control &&
+    prefix > 0L &&
+    prefix <= business.profile.payload_facility_bytes &&
+    local_command_domain_bytes(prefix) is Some(bytes) &&
     bytes <= business.profile.domain_bytes else {
     return Err(CommandUnavailable)
   }
-  // Retain the exact selection before any physical attempt; a failed attempt
-  // cannot choose a different capacity or obtain another provisioning credit.
-  business.selected_profile = Some({
-    kind: SourceFreeCompute,
-    domain_bytes: bytes,
-    payload_facility_bytes: payload,
-    limits: selected,
-  })
+  // Preserve the same immutable MAX selection. Record actual initial backing
+  // separately BEFORE any physical attempt; partial failure retains both.
+  business.selected_profile = Some(business.profile)
+  business.initial_window_bytes = Some(prefix)
+  business.initial_domain_bytes = Some(bytes)
   native_timing_amount(53, maximum.retained_bytes)
   native_timing_amount(54, maximum.execution_bytes)
   native_timing_amount(55, selected.retained_bytes)

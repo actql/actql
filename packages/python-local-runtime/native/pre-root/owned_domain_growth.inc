@@ -35,6 +35,26 @@ static bool domain_growth_layout(actql_owned_capacity *lease, size_t payload,
     return *total <= PTRDIFF_MAX;
 }
 
+/* Actual additional Root segment for one known payload allocation. This is
+ * a read-only sizeof/alignment quote, not a reservation or physical receipt. */
+int actql_native_owned_growth_for_payload_bytes(actql_owned_capacity *lease,
+    size_t payload_bytes, uint64_t *out) {
+    if (lease == NULL || out == NULL || *out != 0 || payload_bytes == 0 ||
+        current_capacity != lease || foreign_domain_process(lease)) return ACTQL_OWNED_INVALID;
+    lock_capacity(lease);
+    size_t total = 0, controls = 0;
+    int status = ACTQL_OWNED_INVALID;
+    if (!lease->extent_domain && !lease->fd_backed && lease->transferred &&
+        !lease->closing && lease->pending_growth_domain == NULL &&
+        domain_growth_layout(lease, payload_bytes, 0, &total, &controls) &&
+        total > controls && total - controls >= payload_bytes) {
+        *out = total;
+        status = ACTQL_OWNED_OK;
+    }
+    unlock_capacity(lease);
+    return status;
+}
+
 /* Retirement uses identity without reopening either closing original. */
 static bool domain_growth_identity_locked(actql_owned_capacity *domain) {
     struct owned_domain_growth *growth = &domain->growth;
@@ -165,8 +185,9 @@ static int quote_domain_growth_original(actql_owned_capacity *domain,
         goto done;
     }
     if (expand_bound) {
-        size_t pages;
-        if (!round_pages(contiguous_payload_bytes, domain->page_size, &pages) ||
+        size_t pages = 0;
+        if ((contiguous_payload_bytes != 0 &&
+             !round_pages(contiguous_payload_bytes, domain->page_size, &pages)) ||
             domain->occupied_pages > domain->allocation_maximum_pages ||
             child_controls / domain->page_size > domain->allocation_maximum_pages - domain->occupied_pages ||
             pages > domain->allocation_maximum_pages - domain->occupied_pages - child_controls / domain->page_size) {

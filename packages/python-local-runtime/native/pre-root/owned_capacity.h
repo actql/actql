@@ -33,6 +33,9 @@ int actql_native_owned_grow(actql_owned_capacity *lease, size_t expected_bytes,
  * The output slot must be empty and the original capacity remains unchanged. */
 int actql_native_owned_growth_control_bytes(actql_owned_capacity *lease,
     size_t bytes, uint64_t *out);
+/* Read-only additional segment layout for an actual original allocation. */
+int actql_native_owned_growth_for_payload_bytes(actql_owned_capacity *lease,
+    size_t payload_bytes, uint64_t *out);
 /* One transfer to the original LocalCore; this does not issue a Core grant. */
 int actql_native_owned_transfer(actql_owned_capacity *lease, uint64_t generation,
                          const unsigned char recipe[32]);

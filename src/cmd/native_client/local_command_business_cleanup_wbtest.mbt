@@ -49,6 +49,8 @@ test "Business child cleanup retries the same failed physical entry after origin
   }
   let business : LocalCommandBusinessOriginal = {
     selected_profile: None,
+    initial_window_bytes: None,
+    initial_domain_bytes: None,
     profile: {
       domain_bytes: 8388608L,
       kind: SourceFreeCompute,

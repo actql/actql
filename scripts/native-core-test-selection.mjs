@@ -26,6 +26,7 @@ export function nativeCoreScopedBackingPages(source) {
 // joins them; its package siblings and client_host retain their prior profile.
 export function nativeCoreScopedAllocationProfile(source) {
   return source === nativeRelationWorkTestFile ||
+    source === 'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt' ||
     source === 'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt' ||
     source === 'src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt' ||
     source.startsWith('src/platform_native/installed_arena_control/') ||
@@ -38,6 +39,7 @@ export function nativeCoreScopedAllocationProfile(source) {
 // must not be replaced globally. Both profiles remain required.
 export const nativeScopedTestFiles = Object.freeze([
   'src/cmd/native_client/local_command_business_cleanup_wbtest.mbt',
+  'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt',
   'src/platform_native/client_host/submitted_request_preparation_native_wbtest.mbt',
   'src/platform_native/client_host/submitted_request_source_native_wbtest.mbt',
   'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt',
