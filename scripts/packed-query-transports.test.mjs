@@ -207,7 +207,7 @@ test('packed cause observer omits a plausible private code and forged MoonBit co
   try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
   finally {await observer.close();}
   assert.equal(reports[0].available, true);
-  assert.deepEqual(reports[0].originalCauseTypes, [[{edge:'original',type:'MoonBit',codeOmitted:true}]]);
+  assert.deepEqual(reports[0].originalCauseTypes, [[{edge:'original',type:'MoonBit',codeOmitted:true,codeType:'String'}]]);
   assert.doesNotMatch(JSON.stringify(reports), /PrivateInputSecret|private-message/u);
 });
 
@@ -231,6 +231,53 @@ test('packed cause observer retains exact factory codes and primitive edge types
     {edge:'_1',type:'BigInt'}, {edge:'_2',type:'Symbol'},
   ]]);
   assert.doesNotMatch(JSON.stringify(reports), /9234567|9234568|private-/u);
+});
+
+test('packed cause observer retains reviewed Local preparation factory codes with an undefined cause', async t => {
+  const codes = ['RunHostCompilationRejected', 'RunHostTaskCompilationRejected',
+    'RunHostAdmissionRejected', 'RunHostStaticPlanRejected', 'RunHostOriginalPlanRejected'];
+  const factory = await readFile(new URL('../adapters/host-common/runtime-core.mjs', import.meta.url), 'utf8');
+  assert(factory.includes("new Error(code, {cause: error.cause})"));
+  for (const code of codes) assert(factory.includes(`'${code}'`), code);
+  const target = await diagnosticTarget(t), reports = [];
+  const error = code => Object.assign(new Error('private-factory-message'), {code, cause:undefined});
+  const original = error(codes[0]);
+  original.primaryFailure = error(codes[1]); original._0 = error(codes[2]);
+  original._1 = error(codes[3]); original._2 = error(codes[4]);
+  original._2.cause = error('RunHostPrivateInputSecret');
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report:value=>reports.push(value)});
+  try {assert.throws(() => target.originalIngress(original), value => value === original);}
+  finally {await observer.close();}
+  assert.equal(reports[0].available, true);
+  const rows = reports[0].originalCauseTypes.flat();
+  assert.deepEqual(rows.flatMap(row => row.code === undefined ? [] : [row.code]).sort(), [...codes].sort());
+  assert.equal(rows.filter(row => row.type === 'Undefined').length, 5);
+  assert(rows.some(row => row.type === 'Error' && row.codeOmitted === true));
+  assert.doesNotMatch(JSON.stringify(reports), /PrivateInputSecret|private-factory-message|message|stack/u);
+});
+
+test('packed cause observer classifies omitted code descriptors without getters or values', async t => {
+  const target = await diagnosticTarget(t), reports = [];
+  let reads = 0;
+  const original = Object.assign(new Error('private-code-description'), {
+    code:undefined, _0:{code:'PrivateCodeSecret'}, _1:{code:9234567}, _2:{code:{}},
+    cause:Object.defineProperty({}, 'code', {get() {reads++;throw new Error('private-getter');}}),
+  });
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report:value=>reports.push(value)});
+  try {assert.throws(() => target.originalIngress(original), value => value === original);}
+  finally {await observer.close();}
+  assert.equal(reads, 0);
+  assert.equal(reports[0].available, true);
+  assert.deepEqual(reports[0].originalCauseTypes, [[
+    {edge:'original',type:'Error',codeOmitted:true,codeType:'Undefined'},
+    {edge:'cause',type:'Object',codeOmitted:true,codeType:'Accessor'},
+    {edge:'_0',type:'Object',codeOmitted:true,codeType:'String'},
+    {edge:'_1',type:'Object',codeOmitted:true,codeType:'Number'},
+    {edge:'_2',type:'Object',codeOmitted:true,codeType:'Other'},
+  ]]);
+  assert.doesNotMatch(JSON.stringify(reports), /PrivateCodeSecret|9234567|private-|message|stack/u);
 });
 
 async function statusDiagnosticTarget(t, transport, {foreignCaller = false} = {}) {
