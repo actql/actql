@@ -1,3 +1,4 @@
+import './owner-atomic-publication.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -230,7 +231,7 @@ test('fresh Store coverage uses the same actual prepared owner creation', async 
     {...owner, leaseAnchor: receipt.anchor});
   const adoptedState = await stat(ownerPath);
   assert.equal(adoptedState.dev, ownerState.dev);
-  assert.equal(adoptedState.ino, ownerState.ino, 'lease qualification updates the same prepared owner file');
+  assert.notEqual(adoptedState.ino, ownerState.ino, 'lease qualification atomically replaces only its own prepared owner metadata');
   assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, true);
   await store.close();
   assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, false);

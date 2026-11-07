@@ -132,10 +132,15 @@ for (const family of ['node', 'edge']) {
     assert.deepEqual(expected.classified.map(row => [row.id, row.note, row.risk]),
       [[1, 7, 'low'], [2, null, 'high']]);
     for (const row of expected.classified) {
-      assert.deepEqual(row.graph_identity, {definition: family === 'node' ? 'N' : 'E',
+      assert.deepEqual(row.graph_identity, {$json: {definition: family === 'node' ? 'N' : 'E',
         domain: graphDefinitionCid, key: ['a', row.id],
-        key_types: [{kind: 'string'}, {kind: 'number'}]});
+        key_types: [{kind: 'string'}, {kind: 'number'}]}});
     }
+    assert.deepEqual(expected.updates, [{...expected.classified[1],
+      target_id: 'a00000000000002', next_name: 'review-required'}]);
+    assert.deepEqual(expected.classifiedColumns.find(column => column.name === 'graph_identity'),
+      {name: 'graph_identity', contract: {type: 'json', nullable: false}});
+    assert.deepEqual(expected.writes, [{id: 'a00000000000002', body: {Name: 'review-required'}}]);
     assert.deepEqual(expected.sourceReadSessions, [0, 0, 0, 0]);
     assert.deepEqual(expected.modelInputs, [100, 200]);
     assert.deepEqual(expected.effectWriteCounts, [0, 0, 1, 1]);

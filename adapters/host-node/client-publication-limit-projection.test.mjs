@@ -7,7 +7,7 @@ test('checked publication ABI maps distinct sentinels to independently named fie
   const holder=Object.freeze({});
   const actual=checkedLocalOutputLimits({clientProgramPreparedLocalPublicationLimits(actualHolder,prepared,bytes){
     assert.equal(actualHolder,holder);
-    assert.equal(prepared,original);assert.equal(bytes,10000000);
+    assert.equal(prepared,original);assert.equal(bytes,536870912);
     return Array.from({length:22},(_,i)=>101+i);
   }},original,{kind:'preparation',value:holder});
   assert.deepEqual(actual,{

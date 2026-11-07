@@ -4222,7 +4222,7 @@
           ]
         }
       ],
-      "sha256": "b7e83e8c284258a841b7d331472af86884f82285f406aaf1dd5115c9ba06c50e",
+      "sha256": "a6722a86cba5d3c0437c0a740cb6b79938a08ba9b8354c5bd776fb46aeb0bb2c",
       "role": "public-wire-codec",
       "owner": "E / existing registered Client-Host, protocol and publication wire Owners",
       "contracts": [

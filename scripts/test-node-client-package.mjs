@@ -660,7 +660,7 @@ sourceEnvironment.schema_snapshots = [{...sourceSelector,
   data_classification: 'unknown'}];
 sourceEnvironment.connector_capabilities = [{...sourceSelector,
   capability_contract_cids: [
-    'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a'],
+    'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929'],
 }];
 Object.assign(sourceEnvironment.host_policy_profile.capacity, {
   max_analytic_frame_memberships: 10000,
@@ -1864,7 +1864,10 @@ const cancelledState = await cancelledRun.status();
 assert.equal(cancelledState.status, 'cancelled');
 assert.equal(cancelledState.control.cancellation_requested, true);
 assert.equal(cancelledState.control.physical_stop, 'confirmed');
-assert.equal((await cancelledRun.cancel()).kind, 'already_requested');
+const repeatedCancellation = await cancelledRun.cancel();
+assert.equal(repeatedCancellation.kind, 'already_satisfied');
+assert.equal(repeatedCancellation.cancellation.kind, 'already_requested');
+assert.deepEqual(repeatedCancellation.cancellation.ref, cancelledRun.ref);
 assert.equal((await cancelledRun.wait()).status, 'cancelled');
 const cancelledAcquired = await timingClient.startSource(acquiredDocument,
   {format: 'json', requestId: 'packed-acquired-cancel-before-dispatch',
@@ -1947,6 +1950,9 @@ await checkSegmentedProgram(installedRemote, 'remote');
 await checkSegmentedResults(installedRemote, 'remote');
 const acquiredRemote = await runAcquiredApplication(remoteOptions,
   'packed-acquired-remote');
+writeFileSync('acquired-remote-original.json', JSON.stringify({
+  submissionRef: getSubmissionOutcome(acquiredRemote.execution).submissionRef,
+  ref: acquiredRemote.execution.ref}), {mode: 0o600});
 const capturedQueryRemote = await acquiredRemote.client.startSource(
   capturedQueryDocument,
   {format: 'json', requestId: 'packed-captured-query-remote'});
@@ -2186,10 +2192,29 @@ run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
 const remoteModule = pathToFileURL(join(root, 'node_modules', '@actql',
   'local-node', 'adapters', 'host-node', 'embedded-local.mjs')).href;
 const {openInstalledRemoteHttpHost} = await import(remoteModule);
+const installedControl = await import(pathToFileURL(join(root, 'node_modules', '@actql',
+  'local-node', '_build', 'js', 'release', 'build', 'connectors_builtin_node', 'connectors_builtin_node.js')));
 let releaseDispatch;
 const heldDispatch = new Promise(resolve => { releaseDispatch = resolve; });
 let failNextDispatch = false;
+// The Remote operator explicitly selects request admission and the exact
+// Run/Named Result reads used below; Source reads keep their own Account.
+const remoteAuthorization = {accountConfiguration: JSON.stringify({
+  version: 'actql-execution-account-config/0.1', account_id: 'packed-remote-account',
+  entries: [{entry_id: 'packed-observation', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/answer', 'result/b', 'result/c', 'result/last', 'run']},
+    operation: {any_of: ['read']}, exclusions: []},
+  {entry_id: 'packed-request', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['duckdb-acquired', 'source-free-values']},
+    operation: {any_of: ['write']}, exclusions: []}],
+})};
+await writeFile(join(root, 'remote-authorization.json'), JSON.stringify(remoteAuthorization));
 const remoteHost = await openInstalledRemoteHttpHost({
+  authorization: remoteAuthorization,
   directory: join(root, 'remote-state'),
   sourceProfilePath, hostCapacityPolicy,
   authenticate: header => header === 'Bearer packed-test-token'
@@ -2244,11 +2269,21 @@ if (graphOnly || projectionOnly) {
   scratch.passed();
   process.exit(0);
 }
-const acquiredRecoveryRequest = {requestId: 'packed-acquired-remote',
+const acquiredOriginal = JSON.parse(await readFile(join(root,
+  'acquired-remote-original.json'), 'utf8'));
+const acquiredOriginalEpoch = acquiredOriginal.submissionRef.epoch;
+// Decode the same stored identity with the installed Host's existing Core;
+// this neither renews its epoch nor admits or submits another request.
+const acquiredRecoveryRequest = {requestId: installedControl.clientSubmissionRequestId(
+  installedControl.clientSubmissionEpoch(acquiredOriginalEpoch.authorityScopeCid,
+    acquiredOriginalEpoch.epochNonce, acquiredOriginalEpoch.notBefore, acquiredOriginalEpoch.expiresAt),
+  acquiredOriginal.submissionRef.nonce),
   principalId: userInfo().username,
   connection: {mode: 'remote', owner: 'remote'}};
-assert.equal((await remoteHost.inspectAcquisition(
-  acquiredRecoveryRequest)).state, 'completed_retained');
+assert.equal(typeof acquiredRecoveryRequest.requestId, 'string');
+const acquiredInspection = await remoteHost.inspectAcquisition(acquiredRecoveryRequest);
+assert.equal(acquiredInspection.state, 'completed_retained');
+assert.deepEqual(acquiredInspection.ref, acquiredOriginal.ref);
 assert.equal((await remoteHost.inspectAcquisition({
   ...acquiredRecoveryRequest, requestId: 'never-submitted'})).state,
   'not_started');
@@ -2257,28 +2292,42 @@ await assert.rejects(remoteHost.inspectAcquisition({
 {message: 'AcquisitionInspectionDenied'});
 await remoteHost.close();
 await writeFile(join(root, 'restart-remote-host.mjs'), `
-import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+import {existsSync, readFileSync} from 'node:fs';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
 const hostCapacityPolicy = JSON.parse(JSON.parse(
   readFileSync('source-profile.json', 'utf8')).checkEnvironmentWire).host_policy_profile.capacity;
 const host = await openInstalledRemoteHttpHost({
+  authorization: JSON.parse(readFileSync('remote-authorization.json', 'utf8')),
   directory: join(process.cwd(), 'restart-remote-state'),
-  hostCapacityPolicy,
+  hostCapacityPolicy, sourceProfilePath: join(process.cwd(), 'source-profile.json'),
   authenticate: header => header === 'Bearer packed-test-token'
     ? userInfo().username : undefined,
   beforeDispatch: process.env.ACTQL_HOLD_DISPATCH === '1'
     ? async () => new Promise(() => {}) : undefined,
 });
-const recovery = await host.inspectAcquisition({
-  requestId: 'packed-acquired-restart-before-start',
-  principalId: userInfo().username,
-  connection: {mode: 'remote', owner: 'remote'},
-});
-console.log('RECOVERY:' + recovery.state);
+let recoveryState = 'not_observed';
+if (existsSync('restart-acquired-submission-ref.json')) {
+  const original = JSON.parse(readFileSync('restart-acquired-submission-ref.json', 'utf8'));
+  const originalRef = JSON.parse(readFileSync('restart-acquired-ref.json', 'utf8'));
+  const epoch = original.epoch;
+  const installedControl = await import(pathToFileURL(join(process.cwd(), 'node_modules', '@actql',
+    'local-node', '_build', 'js', 'release', 'build', 'connectors_builtin_node', 'connectors_builtin_node.js')));
+  const requestId = installedControl.clientSubmissionRequestId(
+    installedControl.clientSubmissionEpoch(epoch.authorityScopeCid, epoch.epochNonce, epoch.notBefore, epoch.expiresAt),
+    original.nonce);
+  assert.equal(typeof requestId, 'string');
+  const recovery = await host.inspectAcquisition({requestId,
+    principalId: userInfo().username, connection: {mode: 'remote', owner: 'remote'}});
+  if (recovery.ref !== undefined) assert.deepEqual(recovery.ref, originalRef);
+  recoveryState = recovery.state;
+}
+console.log('RECOVERY:' + recoveryState);
 const server = createServer({key: readFileSync('remote.key'),
   cert: readFileSync('remote.crt')}, host.handler);
 server.listen(0, '127.0.0.1', () => {
@@ -2342,7 +2391,7 @@ assert.equal((await cancelledResend.wait()).status, 'cancelled');
 assert.equal((await cancelledResend.status()).control.physical_stop, 'confirmed');
 await assert.rejects(cancelledResend.result('answer').all());
 const execution = await client.startSource(document, {format: 'json',
-  requestId: 'packed-restart-before-physical-start'});
+  submissionRef});
 assert.deepEqual(execution.ref, ref);
 assert.equal((await execution.wait()).status, 'succeeded');
 assert.deepEqual(await execution.result('answer').all(),
@@ -2361,7 +2410,7 @@ const acquiredSubmissionRef = JSON.parse(readFileSync('restart-acquired-submissi
 const acquiredAttached = await client.attach(acquiredRef);
 assert.equal((await acquiredAttached.status()).status, 'running');
 const acquiredResumed = await client.startSource(acquiredDocument,
-  {format: 'json', requestId: 'packed-acquired-restart-before-start',
+  {format: 'json', submissionRef: acquiredSubmissionRef,
     parameters: {minimum: 1}});
 assert.deepEqual(acquiredResumed.ref, acquiredRef);
 assert.equal((await acquiredResumed.wait()).status, 'succeeded');
@@ -2398,7 +2447,7 @@ async function stopRestartHost(host) {
   await stopped;
 }
 const heldHost = await startRestartHost(true);
-assert.equal(heldHost.recovery, 'not_started');
+assert.equal(heldHost.recovery, 'not_observed', 'No original submission exists at first Host startup');
 try {
   await runAsync(process.execPath, ['reserve-remote.mjs'], root, {
     ACTQL_TEST_REMOTE_ENDPOINT: `https://127.0.0.1:${heldHost.port}/`,
@@ -2463,13 +2512,35 @@ const metadata = JSON.parse(await readFile(browserMetadata, 'utf8'));
 assert.deepEqual(Object.keys(metadata.inputs).sort(), [
   'node_modules/@actql/client-wire/client-host.generated.js',
   'node_modules/@actql/client-wire/index.mjs',
+  'node_modules/@actql/client-wire/interactive-control.generated.js',
   'node_modules/@actql/client-wire/publication.generated.js',
   'node_modules/@actql/sdk/check-presentation.mjs',
+  'node_modules/@actql/sdk/check-reason-catalog.generated.js',
   'node_modules/@actql/sdk/checkpoints.mjs',
+  'node_modules/@actql/sdk/connection-string.mjs',
   'node_modules/@actql/sdk/index.mjs',
+  'node_modules/@actql/sdk/internal/check-observation.mjs',
+  'node_modules/@actql/sdk/internal/checkpoint-answer-contract.generated.mjs',
+  'node_modules/@actql/sdk/internal/checkpoint-operations.mjs',
+  'node_modules/@actql/sdk/internal/client-lifecycle.mjs',
+  'node_modules/@actql/sdk/internal/client.mjs',
+  'node_modules/@actql/sdk/internal/connection-options.mjs',
+  'node_modules/@actql/sdk/internal/data.mjs',
+  'node_modules/@actql/sdk/internal/errors.mjs',
+  'node_modules/@actql/sdk/internal/plan.mjs',
+  'node_modules/@actql/sdk/internal/private-source-preparation.mjs',
+  'node_modules/@actql/sdk/internal/resources.mjs',
+  'node_modules/@actql/sdk/internal/result-read.mjs',
+  'node_modules/@actql/sdk/internal/run-observation.mjs',
+  'node_modules/@actql/sdk/internal/submission-observation.mjs',
+  'node_modules/@actql/sdk/internal/transport-response.mjs',
+  'node_modules/@actql/sdk/internal/transport.mjs',
   'node_modules/@actql/sdk/json-value-wire.generated.mjs',
+  'node_modules/@actql/sdk/loopback-http-unavailable.mjs',
   'node_modules/@actql/sdk/operation-formats.mjs',
   'node_modules/@actql/sdk/operation-presentation.mjs',
+  'node_modules/@actql/sdk/result-schema.mjs',
+  'node_modules/@actql/sdk/source-query.mjs',
 ]);
 assert(Object.values(metadata.outputs).every(output =>
   output.imports.length === 0));

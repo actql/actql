@@ -34,9 +34,9 @@ import {machineCid} from './actql-spec-family.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const normal = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
-const groups = ['client-packages', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce'];
+const groups = ['client-packages', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce'];
 const consumers = ['client-distribution', 'client-distribution-callers',
-  'client-distribution-mutations', 'client-distribution-packed', 'client-packed'];
+  'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition'];
 const runs = name => jobs[name].steps.filter(step => step.run).map(step => step.run.trim());
 const run = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: root, env: {...process.env, ...env}, encoding: 'utf8',
@@ -697,8 +697,8 @@ test('each Client group retains its acceptance commands exactly once', () => {
     'node scripts/test-packed-acquired-infer.mjs',
     'node --test scripts/packed-query-evidence.test.mjs\nnode scripts/test-packed-public-query.mjs',
     'node scripts/test-packed-result-description.mjs',
-    'node scripts/test-packed-salesforce-source.mjs',
   ]);
+  assert.deepEqual(runs('client-packed-composition'), ['node scripts/test-packed-salesforce-source.mjs']);
   assert.deepEqual(runs('client-salesforce'), [
     'node scripts/build-runtime-packages.mjs local-node',
     'npm run check:salesforce-site',
@@ -721,7 +721,7 @@ done`,
     for (const step of jobs[name].steps.filter(step => step.run)) {
       let preparation;
       if (step.name?.startsWith('Test ')) {
-        if (['client-packed', 'client-distribution-packed'].includes(name)) preparation = 'client-inputs';
+        if (['client-packed', 'client-packed-composition', 'client-distribution-packed'].includes(name)) preparation = 'client-inputs';
         else if (name === 'client-distribution-native') preparation = 'native-client-preparation';
         else if (Object.hasOwn(partitions, name)) preparation = 'distribution-preparation';
       }
@@ -1331,6 +1331,12 @@ test('packed Query Source Hosts and reopens retain the published fixture policy'
   const wireNode = profile.properties.find(property => property.key.name === 'checkEnvironmentWire').value;
   const publishedWire = new Function('canonicalText', 'sourceEnvironment',
     'return (' + source.slice(wireNode.start, wireNode.end) + ');')(canonicalText, published);
+  const authorization = nodes(tree, node => node.type === 'VariableDeclarator' &&
+    node.id.name === 'remoteAuthorization');
+  assert.equal(authorization.length, 1);
+  const remoteAuthorization = new Function('userInfo',
+    'return (' + source.slice(authorization[0].init.start, authorization[0].init.end) + ');')(
+    () => ({username: 'fixture-operator'}));
   const originalPolicy = Object.freeze({});
   const moon = {
     clientLocalResourcePolicyOriginal: () => originalPolicy,
@@ -1341,8 +1347,13 @@ test('packed Query Source Hosts and reopens retain the published fixture policy'
   let checked = 0;
   function checkOptions(text, node, policy, embedded) {
     const options = new Function('hostCapacityPolicy', 'root', 'join', 'sourceProfilePath', 'process',
+      'remoteAuthorization', 'readFileSync',
       'return (' + text.slice(node.start, node.end) + ');')(policy, '/app', join, '/app/source-profile.json',
-      {env: {}, cwd: () => '/app'});
+      {env: {}, cwd: () => '/app'}, remoteAuthorization, (path, encoding) => {
+        assert.equal(path, 'remote-authorization.json'); assert.equal(encoding, 'utf8');
+        return JSON.stringify(remoteAuthorization);
+      });
+    if (!embedded) assert.deepEqual(options.authorization, remoteAuthorization);
     const selected = embedded ? options.installation?.hostCapacityPolicy : options.hostCapacityPolicy;
     const effective = selectInstalledLocalMaterializationEnvironment(moon, baseWire.trimEnd(), selected);
     const composed = composeInstalledCheckEnvironment(moon, effective, effective, publishedWire);
@@ -1509,3 +1520,35 @@ test('packed expired recovery supplies its original unresolved lookup before SDK
   assert.equal(calls.filter(value => value === 'submit-named-intent').length, 1,
     'ordinary requestId-only first binding keeps its separate legitimate Host operation');
 });
+
+test('computation cleanup keeps shared reservations and cumulative use', async () => {
+  const source = await readFile(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  const declaration = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'assertCompletedComputationCleanup');
+  assert.ok(declaration);
+  const check = new Function('assert', source.slice(declaration.start, declaration.end) +
+    '; return assertCompletedComputationCleanup;')(assert);
+  const snapshot = (heldBytes, transferredBytes, planningWork) => ({resourceUsage: {
+    reservedExecutionBytes: '100', reservedRetentionBytes: '50', reservedTransferBytes: '10',
+    heldBytes, transferredBytes, planningWork,
+  }});
+  const completed = snapshot('40', '3', '7'), pending = snapshot('20', '4', '8');
+  const released = snapshot('0', '6', '9');
+  check(completed, pending, released);
+  for (const key of ['transferredBytes', 'planningWork']) {
+    const regressedPending = structuredClone(pending);
+    regressedPending.resourceUsage[key] = '0';
+    assert.throws(() => check(completed, regressedPending, released));
+    const regressedRelease = structuredClone(released);
+    regressedRelease.resourceUsage[key] = '0';
+    assert.throws(() => check(completed, pending, regressedRelease));
+  }
+  assert.throws(() => check(completed, pending, snapshot('1', '6', '9')));
+  assert.throws(() => check(completed, pending, undefined));
+});
+import './packed-duckdb-capability-input.test.mjs';
+import './historical-typed-values-binding.test.mjs';
+
+import './packed-remote-observation-policy.test.mjs';
+
+import './packed-browser-source-closure.test.mjs';

@@ -54,16 +54,16 @@
   },
   "provider_inputs": {
     "src/platform_native/host_bootstrap/bootstrap_stub.c": {
-      "bytes": 40439,
-      "sha256": "09c725d17f8622e4169cb4218991654b65d9bce2dd32ea8dd7a30d4ef004cbcd"
+      "bytes": 41041,
+      "sha256": "d721990daea4f12659a094d86f822f308f55f42ebf7d58c239a3c58b6147fa24"
     },
     "packages/python-local-runtime/native/pre-root/scoped-read-review.patch": {
-      "bytes": 53474,
-      "sha256": "ce283b5580768c3ca24fbf993a752db58cbd2f97e0c2a3dbd9122669132c8017"
+      "bytes": 63095,
+      "sha256": "3bca12de99471f79b31380b52c16d212b5a8db50a1acec3eaa4ef9416da313c4"
     },
     "packages/python-local-runtime/native/pre-root/scoped-read-source.json": {
       "bytes": 10831,
-      "sha256": "8f5941b6bf8c91d52e8783acc1127d13bcaa2e260b6c80df78e1e162e544bef8"
+      "sha256": "b32b607ffe859f38525d2673e80b95630e810b5e3ff98b89c8d58ed9c2a7fc96"
     },
     "packages/python-local-runtime/native/pre-root/owned_capacity.h": {
       "bytes": 7243,
@@ -80,6 +80,10 @@
     "src/platform_native/host_bootstrap/component_domain_minimum.h": {
       "bytes": 1048,
       "sha256": "84d1d7520f20ba053ac70b6116af1dee376d123c5505302f6f793c9325a48000"
+    },
+    "src/platform_native/host_bootstrap/working_origin.inc": {
+      "bytes": 8439,
+      "sha256": "31c6a783783bf5652d86dcada06c408f9aefc54c19d7889eaa22a372c2320a1e"
     }
   },
   "memory": {

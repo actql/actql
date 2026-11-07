@@ -140,6 +140,8 @@ pub fn[P] check_backed_prepared_run_admission(BackedPreparedRunAdmission[P], P, 
 
 pub fn check_imported_original_child_ledger(ImportedChildLedger, Ledger) -> Result[Unit, ImportedChildLedgerIssue]
 
+pub fn check_imported_original_child_ledger_retained(ImportedChildLedger, Ledger) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn check_ledger_continuation_current(Ledger, LedgerContinuationState) -> Result[Unit, LedgerContinuationIssue]
 
 pub fn[P] check_node_local_content_run_preparation(NodeManagedRunAdmission[P], P) -> Result[Unit, ImportedChildLedgerIssue]
@@ -272,6 +274,8 @@ pub fn[P, E] grow_prepared_run_operation_capacity(PreparedRunAdmission[P], P, Le
 
 pub fn[I, P] grow_running_preparation_capacity_inventory(PreparationCapacity[I, P], I, P, OriginalLedgerIdentity, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
 
+pub fn grow_unborrowed_shared_allocation(SharedCapacity, SharedAllocation, Int64, Int64) -> Result[Unit, LedgerIssue]
+
 pub fn[T] handoff_funded_read(FundedReadClaim[T], T) -> Result[Ledger, OriginalReadIssue]
 
 pub fn[T] handoff_funded_read_capacity(FundedReadClaim[T], T, Int64, Int64) -> Result[(Ledger, CapacityReservation), OriginalReadIssue]
@@ -283,6 +287,8 @@ pub fn holding_available(Ledger, Holding) -> Bool
 pub fn holding_belongs_to(Ledger, Holding) -> Bool
 
 pub fn holding_serial(Holding) -> Int
+
+pub fn imported_child_retirement_readiness(ImportedChildLedger) -> Result[Bool, ImportedChildLedgerIssue]
 
 pub fn[P, C, R] issue_backed_execution_live_access(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], BackedExecutionReadUse[P, C], R) -> Result[BackedExecutionLiveAccess[P, C, R], BackedExecutionIssue]
 

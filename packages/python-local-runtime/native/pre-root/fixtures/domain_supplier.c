@@ -51,10 +51,14 @@ static int observed_unmap(void *address, size_t length) { unmaps++; return munma
 void moonbit_panic(void) { abort(); }
 #endif
 static actql_owned_capacity *fault_domain;
+static int inject_original_closing;
 /* White-box unexpected cut after actual parent allocation. The production port
  * has no callback here; this only forces its otherwise closed attach-refusal
  * path and proves it keeps real acquired mapping/loan/view custody. */
-static void inject_stale_attach_cut(void) { fault_domain->growth.expected_domain++; }
+static void inject_stale_attach_cut(void) {
+    if (inject_original_closing) fault_domain->closing = true;
+    else fault_domain->growth.expected_domain++;
+}
 static int discovered, passed;
 #define CHECK(name, condition) do { discovered++; if (!(condition)) { \
     fprintf(stderr, "domain supplier failed: %s\n", name); return 1; } passed++; } while (0)

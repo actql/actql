@@ -416,8 +416,30 @@ test('ordinary Read activation regressions run on the selected Native toolchain'
     'Retain Linux x64 process-provider original controls');
   assert.equal(retained.if, 'always()');
   assert.deepEqual(retained.with.path.trim().split('\n'),
-    ['_build/linux-x64-owned-process/', '_build/native-read-activation/']);
+    ['_build/linux-x64-owned-process/', '_build/native-read-activation/',
+      '_build/native-prepared-controls/', '_build/native-working-origin/']);
 });
+
+for (const [name, driver, output] of [
+  ['prepared constructor cohorts', 'test_native_prepared_controls.py', '_build/native-prepared-controls/'],
+  ['working carrier custody', 'test_native_working_origin.py', '_build/native-working-origin/'],
+]) {
+  test(`original ${name} execute on selected Native toolchain and retain failed diagnostics`, () => {
+    const steps = jobs.native.steps;
+    const setup = steps.findIndex(step => step.uses === './.github/actions/setup-toolchain');
+    const read = steps.findIndex(step => step.run === 'python3 -B scripts/test_native_read_activation.py');
+    const index = steps.findIndex(step => step.run === `python3 -B scripts/${driver}`);
+    assert.ok(setup >= 0 && setup < read && read < index);
+    assert.equal(steps[index]['timeout-minutes'], 3);
+    assert.equal(steps[index].if, undefined);
+    assert.equal(steps[index]['continue-on-error'], undefined);
+    assert.equal(steps[index].env, undefined, 'inherit selected compiler and MoonBit');
+    const retained = steps.find(step => step.name ===
+      'Retain Linux x64 process-provider original controls');
+    assert.equal(retained.if, 'always()');
+    assert.ok(retained.with.path.trim().split('\n').includes(output));
+  });
+}
 
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
   assert.equal(jobs['session-evidence']['timeout-minutes'], 60);
@@ -669,7 +691,7 @@ test('pipeline evidence aggregates dependency failures but stops on workflow can
   }
 });
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
-  for (const [name, groups] of [['client', ['client-packages', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce']],
+  for (const [name, groups] of [['client', ['client-packages', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce']],
     ['pipeline-evidence', ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']]]) {
     assert.deepEqual(jobs[name].needs, groups);
     assert.match(jobs[name].if, /always\(\)/u);
@@ -690,7 +712,7 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-distribution-callers',
-    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce',
     'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of heavy) {
@@ -854,7 +876,7 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
 
 test('Unrelated Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-distribution-callers',
-    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-salesforce',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce',
     'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
     'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
     'workers', 'connector-addition', 'duckdb-node'];
@@ -887,6 +909,7 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
     'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
     'npm run check:metadata', 'moon fmt --check', 'git diff --exit-code', 'node scripts/ci-preflight.mjs']);
   assert.deepEqual(commands('lint'), ['npm ci', 'npm run check:client-types',
+    'node --test scripts/source-read-current-control.test.mjs',
     'node --test scripts/ci-preflight.test.mjs', 'node --test scripts/ci-focused-tests.test.mjs',
     'node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs']);
   assert.deepEqual(commands('spec'), ['npm ci', 'npm run check:links',

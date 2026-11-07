@@ -10,16 +10,16 @@
   ],
   "patch": {
     "path": "scoped-read-review.patch",
-    "bytes": 53474,
-    "sha256": "ce283b5580768c3ca24fbf993a752db58cbd2f97e0c2a3dbd9122669132c8017"
+    "bytes": 63095,
+    "sha256": "3bca12de99471f79b31380b52c16d212b5a8db50a1acec3eaa4ef9416da313c4"
   },
   "inputs": [
     {
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 40262,
-      "sha256": "5b721be99bb8902767c4c80605459508045ddf08c4841a73ea4c11bb014bbd1f"
+      "bytes": 40271,
+      "sha256": "cf86b4f8461d69555db9af96b4d2950d155607db66a9cbef46f96797752487a3"
     },
     {
       "root": "provider",
@@ -39,8 +39,8 @@
       "root": "provider",
       "path": "owned_region.h",
       "output": "owned_region.h",
-      "bytes": 10904,
-      "sha256": "2d6cc4cbd7a356d7b864deae2bb10493dc90aec91372197c98a6e6fa7258b294"
+      "bytes": 11516,
+      "sha256": "e4881135e85e3fac07634a1916da40261121f0e59ffc941e4eeff8edc171d97b"
     },
     {
       "root": "provider",
@@ -179,8 +179,8 @@
       "root": "provider",
       "path": "owned_domain_growth.inc",
       "output": "owned_domain_growth.inc",
-      "bytes": 13360,
-      "sha256": "64da9823085f699fd982382749b5b433b514e8829480deee8f277f7af2f08af7"
+      "bytes": 21793,
+      "sha256": "7281cba63a3083e1baeb9b8c7238c111e84f7d0df98cf381ed5b8303fceea620"
     }
   ],
   "outputs": {
@@ -221,8 +221,8 @@
       "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
     },
     "owned_capacity.c": {
-      "bytes": 41863,
-      "sha256": "ac0ba7d89903fcecbaeaa5ee2d87a4d23caf4e9563570c60c97f40316af8b752"
+      "bytes": 41900,
+      "sha256": "8c5e9f016011f85d5183681663523df7fab5ae10f73a910ea631018073c7855f"
     },
     "owned_capacity.h": {
       "bytes": 7243,
@@ -237,8 +237,8 @@
       "sha256": "e3914075758a265d18c3a6b075053d2fe31a3f35ee8cc8aee0548493ab814373"
     },
     "owned_region.h": {
-      "bytes": 10904,
-      "sha256": "2d6cc4cbd7a356d7b864deae2bb10493dc90aec91372197c98a6e6fa7258b294"
+      "bytes": 11516,
+      "sha256": "e4881135e85e3fac07634a1916da40261121f0e59ffc941e4eeff8edc171d97b"
     },
     "owned_region.inc": {
       "bytes": 35076,
@@ -261,12 +261,12 @@
       "sha256": "1f4e1bc297835605be01298370f1bff7d0f8ec2a23c86371bb20db89356e2369"
     },
     "scoped_read.h": {
-      "bytes": 2553,
-      "sha256": "dce7895efa71903d5ee7149b128f3ea29768a468627eff865fc7d66bfcbe5e90"
+      "bytes": 3096,
+      "sha256": "a1a80056815dc7c1e5ee476be46ffa3f0b6e036caae8dbc651341c10fc8291f2"
     },
     "scoped_read.inc": {
-      "bytes": 42663,
-      "sha256": "fb07b9031420717a6b272f82d5f1096f23189cd8b0151164ed00907f1accf581"
+      "bytes": 51533,
+      "sha256": "6afc6b3aceeb1168f16a9d999f19746ccb39619842237552479c6a7ee91eef97"
     },
     "sync_io.c": {
       "bytes": 6246,
@@ -285,8 +285,8 @@
       "sha256": "ca3b1d4c0dad0da85a1b3e1a20956d1ac696f52b0c7565f70547070f7f0d75ba"
     },
     "owned_domain_growth.inc": {
-      "bytes": 13360,
-      "sha256": "64da9823085f699fd982382749b5b433b514e8829480deee8f277f7af2f08af7"
+      "bytes": 21793,
+      "sha256": "7281cba63a3083e1baeb9b8c7238c111e84f7d0df98cf381ed5b8303fceea620"
     }
   },
   "normal_profile": null,

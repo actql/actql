@@ -644,6 +644,7 @@ fn capture_fixture_retirement_issue(
   match issue {
     @arena.Domain(issue) => "Domain(" + @debug.to_string(issue) + ")"
     @arena.Child(issue) => "Child(" + @debug.to_string(issue) + ")"
+    @arena.Initialization(_) => "Initialization"
   }
 }
 

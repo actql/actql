@@ -8830,11 +8830,11 @@
             "resources": [
               {
                 "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
+                "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
+                "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -23014,6 +23014,7 @@
         "./effect-target-read-inventory.mjs",
         "./embedded-local-lifecycle.mjs",
         "./entry.mjs",
+        "./host-result-service-recipe.cjs",
         "./host-root-format.mjs",
         "./http-request-preparation.mjs",
         "./in-process-client.mjs",
@@ -23078,7 +23079,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "2d7b5959815ab92a763458949f1eb4b5241fc893d86f463be892c3439c7529ff"
+      "sha256": "c0a847a253d4d3db8350b8612e4a60a55e323f5c490e68bf97f31329d9915dd9"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -24028,7 +24029,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "e410a4db88c534e862deb28891fa1e01b1dad7a9fee115d4f47113f3bac8064d",
+      "sha256": "5cc5b4ee41d3ec48ab5fadf4597a9c90fa3db55a2b2453804dd9d75b2793f739",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -25911,6 +25912,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/result-output-limits.mjs",
         "../host-common/runtime-result.mjs",
+        "./host-result-service-recipe.cjs",
         "./local-values-capacity.mjs",
         "./query-evaluation-clock.mjs",
         "node:crypto"

@@ -99,6 +99,24 @@ function runChild(script, env, args = [], expectedExit = 0) {
   });
 }
 
+function assertCompletedComputationCleanup(completed, pending, released) {
+  assert.ok(completed && pending && released,
+    'the original completed computation must report pending and then actual release');
+  assert.ok(BigInt(pending.resourceUsage.reservedExecutionBytes) > 0n);
+  assert.equal(released.resourceUsage.heldBytes, '0');
+  // These snapshots cover the shared Request Ledger. Preview and control
+  // reservations can remain after the computation's actual custody retires;
+  // its later Preview read may also charge transfer and work. Neither that
+  // progress nor cleanup may refund cumulative use. The caller separately
+  // verifies original Model/Source call counts and no unapproved Effect send.
+  for (const name of ['transferredBytes', 'planningWork']) {
+    assert.ok(BigInt(pending.resourceUsage[name]) >= BigInt(completed.resourceUsage[name]),
+      name + ' must not be refunded while cleanup is pending');
+    assert.ok(BigInt(released.resourceUsage[name]) >= BigInt(pending.resourceUsage[name]),
+      name + ' must not be refunded by cleanup');
+  }
+}
+
 const server = await (async () => {
   execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
     '-keyout', 'org.key', '-out', 'org.crt', '-days', '1',
@@ -1895,15 +1913,7 @@ try {
       const completed = custody.find(item => item.name === 'effect_computation_completed');
       const pending = custody.find(item => item.name === 'effect_computation_cleanup_pending');
       const released = custody.filter(item => item.name === 'effect_computation_cleanup_completed').at(-1);
-      assert.ok(completed && pending && released,
-        'the original completed computation must report pending and then actual release');
-      assert.ok(BigInt(pending.resourceUsage.reservedExecutionBytes) > 0n);
-      assert.equal(released.resourceUsage.reservedExecutionBytes, '0');
-      assert.equal(released.resourceUsage.reservedTransferBytes, '0');
-      assert.equal(released.resourceUsage.reservedRetentionBytes, '0');
-      assert.equal(released.resourceUsage.heldBytes, '0');
-      assert.equal(released.resourceUsage.transferredBytes, completed.resourceUsage.transferredBytes);
-      assert.equal(released.resourceUsage.planningWork, completed.resourceUsage.planningWork);
+      assertCompletedComputationCleanup(completed, pending, released);
       assert.equal((await runChild('effect-run.mjs', rceEnvironment,
         ['answer'], 77)).trim(), 'approved');
       for (let restart = 0; restart < 2; restart++) {

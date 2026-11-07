@@ -3,6 +3,21 @@
 // Holding a poll reply controls arrival order, not execution authorization.
 import {createServer, request} from 'node:https';
 
+// Cancellation and ordinary progress can have identical status bodies. Arm
+// this test fault only when forwarding the matching Cancel poll reply.
+export function cancellationAckMatches(body, {
+  dispatchRequestCid, executionState, cancelOffers, lostReply,
+}) {
+  const value = JSON.parse(body);
+  return !lostReply && cancelOffers.some(envelope => {
+    const offer = JSON.parse(envelope);
+    return offer.version === 'actql-remote-poll-cancel/0.1' &&
+      offer.dispatch_request_cid === dispatchRequestCid;
+  }) && value.dispatch_request_cid === dispatchRequestCid &&
+    value.version === 'actql-remote-dispatch-status/0.1' &&
+    value.state[0] === executionState;
+}
+
 export async function observationAckLossProxy({origin, key, cert, ca,
   loseAck, allowDispatch, onAckLost, transformReply}) {
   const server = createServer({key, cert, minVersion: 'TLSv1.3'}, async (incoming, outgoing) => {
