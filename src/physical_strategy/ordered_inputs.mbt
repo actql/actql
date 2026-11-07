@@ -84,7 +84,10 @@ fn graph_keyed_model_plan_input(
   consumer : Int,
   model_step : Int,
 ) -> LocalInputSlot? {
-  if graph.captured_prefix != 2 ||
+  if (
+      graph.captured_prefix != 2 &&
+      !(graph.captured_prefix == 0 && !graph.supplied_slots.is_empty())
+    ) ||
     model_step < 0 ||
     consumer < graph.captured_prefix ||
     consumer >= graph.owners.length() ||

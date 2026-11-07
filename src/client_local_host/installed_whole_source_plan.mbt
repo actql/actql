@@ -5,7 +5,7 @@
 struct ClientInstalledWholeSourceCapacity {
   original : @sourceviews.SourceAcquisition
   acquisition : @row_source_host.RowInputAcquisition
-  provider : @execution.ExecutionCapacity
+  provider : @execution.ExecutionCapacity?
   complete : @execution.ExecutionCapacity
 }
 
@@ -90,6 +90,41 @@ fn select_installed_source_input_graph(
 }
 
 ///|
+/// The existing installed Row input profile, shared by Pure and Effect
+/// constructors. Source row/page policy is retained exactly as configured;
+/// this DATA neither admits resources nor grants a physical read.
+pub fn installed_row_input_policy(
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+) -> @row_source_host.RowInputLimits {
+  {
+    max_rows,
+    page: {
+      max_bytes: max_page_bytes,
+      max_nodes: max_page_nodes,
+      max_depth: max_page_depth,
+      max_rows: max_page_rows,
+    },
+    retention: {
+      max_nodes: 100000,
+      max_text_bytes: 500000,
+      max_depth: 100,
+      max_work: 20000000,
+    },
+    wire: {
+      max_columns: 100,
+      max_order_work: 100000,
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+    },
+  }
+}
+
+///|
 /// Derive this actual input inside the Request's already admitted Plan phase.
 /// The same installed contracts and bound sequence are consumed, not emitted
 /// and readmitted. Source declaration lifetime stays with initial material.
@@ -164,7 +199,8 @@ pub fn check_installed_whole_source_capacity(
   provider : @execution.ExecutionCapacity,
 ) -> Bool {
   physical_equal(value.acquisition, acquisition) &&
-  physical_equal(value.provider, provider)
+  value.provider is Some(selected) &&
+  physical_equal(selected, provider)
 }
 
 ///|
@@ -289,9 +325,10 @@ pub fn installed_whole_source_capture_capacity(
   acquisition : @row_source_host.RowInputAcquisition,
   provider : @execution.ExecutionCapacity?,
 ) -> ClientInstalledWholeSourceCapacity? {
-  guard provider is Some(provider) &&
-    @row_source_host.row_input_acquisition_matches_source(acquisition, original) &&
-    @row_source_host.row_input_acquisition_capacity(acquisition, Some(provider))
+  guard @row_source_host.row_input_acquisition_matches_source(
+      acquisition, original,
+    ) &&
+    @row_source_host.row_input_acquisition_capacity(acquisition, provider)
     is Some(complete) else {
     return None
   }
@@ -375,7 +412,7 @@ pub fn start_installed_whole_source_read_rows(
     read,
     @row_source_host.start_accounted_row_input_acquisition(
       acquisition,
-      Some(selected.provider),
+      selected.provider,
       nonce,
       original_stop,
       ledger,

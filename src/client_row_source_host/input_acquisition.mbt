@@ -508,12 +508,12 @@ pub fn check_row_input_compute_binding(
   dag : @strategy.CapturedDAG,
   task : Int,
 ) -> Result[Unit, RowHostIssue] {
-  guard task == 0 &&
+  guard task >= 0 &&
     row_capture_source(capture) is Ok(_) &&
     capture.observation is InputObservation(observation) &&
     capture.run.physical is Some(physical) &&
     physical_equal(physical.ledger, @strategy.captured_dag_ledger(dag)) &&
-    @strategy.source_input_dag_matches_read(dag, observation.read) else {
+    @strategy.source_input_dag_matches_read_at(dag, observation.read, task) else {
     return Err(InvalidState)
   }
   Ok(())
@@ -566,6 +566,15 @@ pub fn row_input_acquisition_capacity(
   }
   if key_entries > 9223372036854775807L - execution - wire * 2L {
     return None
+  }
+  // The Host-backed read entrance accounts its physical reader separately on
+  // this same parent. None selects only the actual RowRun input inventory;
+  // it does not construct a provider declaration from zero byte scalars.
+  if provider is None {
+    return @execution.execution_capacity(
+      retained + wire,
+      execution + wire * 2L + key_entries,
+    )
   }
   match
     row_provider_capacity_sum(

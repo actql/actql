@@ -691,6 +691,15 @@ fn multi_captured_capacity_limits_owned(
 }
 
 ///|
+fn installed_source_compute_count(compute : Int, sources : Int) -> Int? {
+  if compute < 0 || sources < 0 || sources > 2147483647 - compute {
+    None
+  } else {
+    Some(compute + sources)
+  }
+}
+
+///|
 // Immutable selected-input half of the existing calculator. Planned callers
 // already own these generated originals; no second preparation or quote is
 // needed during their managed-parent construction.
@@ -701,14 +710,28 @@ fn multi_captured_capacity_limits_selected(
   transport_execution_bytes : Array[Int64],
   sequences : Array[@execution.GeneratedSequence],
   local_capacity? : ClientLocalSequenceCapacity? = None,
+  source_inputs? : Bool = false,
 ) -> @resources.LedgerLimits? {
   let count = @strategy.graph_task_count(graph)
   let captured = @strategy.graph_captured_prefix(graph)
-  if captured < 1 ||
+  let source_count = if source_inputs { capacities.length() } else { captured }
+  if (captured < 1 && !source_inputs) ||
     captured > count ||
-    capacities.length() != captured ||
-    transport_bytes.length() != captured ||
-    transport_execution_bytes.length() != captured {
+    source_count < 1 ||
+    capacities.length() != source_count ||
+    transport_bytes.length() != source_count ||
+    transport_execution_bytes.length() != source_count {
+    return None
+  }
+  guard installed_source_compute_count(
+      count,
+      if source_inputs {
+        source_count
+      } else {
+        0
+      },
+    )
+    is Some(attempts) else {
     return None
   }
   if sequences.length() != count {
@@ -744,7 +767,7 @@ fn multi_captured_capacity_limits_selected(
   let mut execution_capacity = local_capacity
     .map(value => value.limits.execution_bytes)
     .unwrap_or(client_local_execution_byte_ceiling())
-  for index in 0..<captured {
+  for index in 0..<source_count {
     let (capture_retained, capture_execution) = capacities[index]
     if capture_retained < 0L ||
       capture_execution < 0L ||
@@ -762,7 +785,12 @@ fn multi_captured_capacity_limits_selected(
     }
     transfer += bytes
     let required_execution = scratch + capture_execution
-    if required_execution > execution_capacity {
+    if source_inputs {
+      if required_execution > 9223372036854775807L - execution_capacity {
+        return None
+      }
+      execution_capacity += required_execution
+    } else if required_execution > execution_capacity {
       execution_capacity = required_execution
     }
   }
@@ -796,8 +824,8 @@ fn multi_captured_capacity_limits_selected(
   }
   Some({
     planning_work: 100000,
-    attempts: count,
-    holdings: count,
+    attempts,
+    holdings: attempts,
     transfer_bytes: transfer,
     retained_bytes: native_retained + compute_retained,
     execution_bytes: execution_capacity,

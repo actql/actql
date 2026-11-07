@@ -34,7 +34,12 @@ pub fn select_source_acquisition_route(
     Ok(Some(query)) => Ok(QueryRoute(query))
     Ok(None) =>
       derive_source_acquisition(requests, source_index, remaining.val)
-      .map(value => WholeInputRoute(value))
+      .map(value => {
+        WholeInputRoute({
+          ..value,
+          work: max_work - remaining.val + value.work,
+        })
+      })
       .map_err(issue => SourceInput(issue))
     Err(issue) => Err(QueryShape(issue))
   }
