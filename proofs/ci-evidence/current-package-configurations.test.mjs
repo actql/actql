@@ -66,13 +66,28 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
       }
     }
     if (path === 'src/platform_native/publication_store/moon.pkg') {
-      assert.equal(entry.revision, 'f519f34b2d45d5365c1af3b1d42ad92524514716');
+      assert.equal(entry.revision, 'f7dfa3c3b3e61b71e63986342636039d20eaece2');
+      const precursor = gitTree(root, 'f519f34b2d45d5365c1af3b1d42ad92524514716').read(path).toString();
+      const capacityInputs = ['  "actql/actql/decode_shape" @shape,\n',
+        '  "actql/actql/execution_relation" @execution,\n',
+        '    "captured_content_capacity_native.mbt": [ "native" ],\n'];
+      let beforeCapacity = body;
+      for (const input of capacityInputs) {
+        assert.equal(body.split(input).length, 2);
+        beforeCapacity = beforeCapacity.replace(input, '');
+      }
+      assert.equal(beforeCapacity, precursor,
+        'only two common inventory imports and the Native inventory selector changed');
+      assert.deepEqual(packageImports(body).imports, [...packageImports(precursor).imports,
+        'actql/actql/decode_shape', 'actql/actql/execution_relation'].sort());
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(precursor))), null,
+        'the previous configuration cannot qualify the new custody inventory inputs');
       const introduced = gitTree(root, '5f2e0ecdeeaea9fb011c514806ef4dee80b03dad').read(path).toString();
       const local = '  "actql/actql/client_local_host" @local,\n';
-      assert.equal(body.split(local).length, 2);
-      assert.equal(body.replace(local, ''), introduced,
+      assert.equal(precursor.split(local).length, 2);
+      assert.equal(precursor.replace(local, ''), introduced,
         'the genuine reviewed union adds only the same-parent Local capture-validation dependency');
-      assert.deepEqual(packageImports(body).imports,
+      assert.deepEqual(packageImports(precursor).imports,
         ['actql/actql/client_local_host', ...packageImports(introduced).imports].sort());
       assert.equal(currentPackageConfigurationReviewFor(request(path, hash(introduced))), null,
         'the prior Store configuration cannot qualify the current literal import');
@@ -91,7 +106,8 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
       assert.equal(currentPackageConfigurationReviewFor(request(path, hash(prior))), null);
       const selected = packageSourceInputs({tree: currentTree, packages: ['src/platform_native/publication_store'], target: 'js'});
       for (const member of ['captured_content_custody_native.mbt', 'captured_content_custody_native_wbtest.mbt',
-        'captured_content_custody_unsupported.mbt', 'store_format_stub.c']) {
+        'captured_content_custody_unsupported.mbt', 'captured_content_capacity.mbt',
+        'captured_content_capacity_native.mbt', 'store_format_stub.c']) {
         const source = `src/platform_native/publication_store/${member}`;
         assert(selected.paths.includes(source));
         assert.equal(currentTree.entries.get(source)?.kind, 'blob');
