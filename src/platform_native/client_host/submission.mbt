@@ -595,6 +595,10 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
         })
       },
       CustodyLost,
+      before_decode_construction=submitted_decode_construction(
+        self.database,
+        reads,
+      ),
       before_construction=operations.bind(original => {
         if physical_equal(self.database, original.reads.database) {
           original.before_construction

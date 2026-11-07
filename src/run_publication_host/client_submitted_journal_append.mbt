@@ -114,6 +114,10 @@ pub fn[E] prepare_client_submitted_journal_append(
     E,
   ],
   custody_lost : E,
+  before_decode_construction? : ((ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
   usage? : (() -> Result[ClientJournalPhysicalRow?, E])? = None,
   before_construction? : ((Int, Int, Int) -> Result[
     Unit,
@@ -131,7 +135,13 @@ pub fn[E] prepare_client_submitted_journal_append(
     Err(issue) => return Err(Observation(issue))
   }
   match
-    read_client_saved_submission(reference, read, validate_run, custody_lost) {
+    read_client_saved_submission(
+      reference,
+      read,
+      validate_run,
+      custody_lost,
+      before_construction=before_decode_construction,
+    ) {
     Ok(Some(snapshot)) => {
       if client_submitted_intent_cid(snapshot.record.intent) !=
         client_submitted_intent_cid(intent) {
