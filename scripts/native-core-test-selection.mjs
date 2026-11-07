@@ -14,6 +14,7 @@ import {parseCommands} from './verification-actions.mjs';
 export const nativeScopedTestFiles = Object.freeze([
   'src/cmd/native_client/local_command_business_cleanup_wbtest.mbt',
   'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt',
+  'src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/initial_preparation_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/local_host_crypto_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/original_read_consumer_phases_scoped_wbtest.mbt',
