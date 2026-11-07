@@ -108,13 +108,23 @@ export function originalIngress(original) {
 
 test('packed cause observer captures bounded original DATA and always resumes the same throw', async t => {
   const target = await diagnosticTarget(t), reports = [];
-  const primary = Object.assign(new TypeError('private-message-never-reported'), {
+  const original = Object.assign(new TypeError('private-message-never-reported'), {
     code: 'ClientProgramUnsupported', requestId: 'private-request-never-reported',
     cause: Object.assign(new Error('private-inner-never-reported'), {code:'ForeignRequestOriginal'}),
   });
-  primary.cause.primaryFailure = primary;
-  let reads = 0;
-  Object.defineProperty(primary, '_0', {get() {reads++; throw new Error('accessor invoked');}});
+  let reads = 0, enumerations = 0;
+  Object.defineProperty(original, '_0', {get() {reads++; throw new Error('accessor invoked');}});
+  Object.defineProperty(original, 'unrelatedPrivateField', {get() {reads++; throw new Error('private field read');}});
+  const reflected = [];
+  const primary = new Proxy(original, {
+    ownKeys() {enumerations++; throw new Error('private fields enumerated');},
+    getOwnPropertyDescriptor(target, key) {
+      reflected.push(key);
+      assert.ok(['code','cause','primaryFailure','_0','_1','_2'].includes(key));
+      return Reflect.getOwnPropertyDescriptor(target, key);
+    },
+  });
+  original.cause.primaryFailure = primary;
   const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
     report:value=>reports.push(value)});
   try {
@@ -130,6 +140,9 @@ test('packed cause observer captures bounded original DATA and always resumes th
     {edge:'cause',type:'Error',code:'ForeignRequestOriginal'},
   ]);
   assert.equal(reads, 0);
+  assert.equal(enumerations, 0);
+  assert.ok(reflected.length > 0);
+  assert.ok(!reflected.includes('stack') && !reflected.includes('unrelatedPrivateField'));
   assert.doesNotMatch(JSON.stringify(reports), /private-|requestId|message|stack/u);
 });
 
@@ -162,7 +175,7 @@ test('packed cause observer refuses a loaded Source mismatch without changing th
 test('packed cause observer inspection failure resumes and preserves the original exception', async t => {
   const target = await diagnosticTarget(t), reports = [];
   const primary = new Proxy(new Error('original'), {
-    ownKeys() {throw new Error('descriptor inspection unavailable');},
+    getOwnPropertyDescriptor() {throw new Error('descriptor inspection unavailable');},
   });
   const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
     report:value=>reports.push(value)});

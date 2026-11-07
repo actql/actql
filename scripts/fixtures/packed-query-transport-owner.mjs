@@ -109,7 +109,7 @@ async function runSubmissionCauseObserver() {
   const expression = `(()=>{const out=[],queue=[['original',error,0]],seen=new Set();
 while(queue.length&&out.length<32){const [edge,value,depth]=queue.shift();
 if(value===null||typeof value!=='object'||seen.has(value))continue;seen.add(value);
-const own=Object.getOwnPropertyDescriptors(value),proto=Object.getPrototypeOf(value);
+const proto=Object.getPrototypeOf(value);
 const ctor=proto&&Object.getOwnPropertyDescriptor(proto,'constructor')?.value;
 const name=typeof ctor==='function'?Object.getOwnPropertyDescriptor(ctor,'name')?.value:'';
 const type=['Object','Array','Error','TypeError','RangeError','SyntaxError','ClientError','DOMException'].includes(name)?name:typeof name==='string'&&/^_M[A-Za-z0-9_]{1,157}$/.test(name)?'MoonBit':'Other';
@@ -127,8 +127,8 @@ const safeCodes=[
 'ClientRequestJournalInspectionUnavailable','ClientRequestJournalSqlUnavailable','ClientRequestJournalSqlCleanupPending',
 'SqliteSchemaPreparationUnavailable','UnknownClientRequestJournalFormat','ClientSubmissionEpochExpired',
 'ClientSubmissionEpochNotYetValid','ForeignRequestOriginal'];
-const row={edge,type},code=own.code;if(code){if('value'in code&&safeCodes.includes(code.value))row.code=code.value;else row.codeOmitted=true;}
-out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=own[key];if(d&&'value'in d)queue.push([key,d.value,depth+1]);}}return out;})()`;
+const row={edge,type},code=Object.getOwnPropertyDescriptor(value,'code');if(code){if('value'in code&&safeCodes.includes(code.value))row.code=code.value;else row.codeOmitted=true;}
+out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=Object.getOwnPropertyDescriptor(value,key);if(d&&'value'in d)queue.push([key,d.value,depth+1]);}}return out;})()`;
   session.on('Debugger.scriptParsed', async ({params}) => {
     if (params.url !== workerData.url) return;
     try {
