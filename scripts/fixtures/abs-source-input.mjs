@@ -21,6 +21,9 @@ const acquired = (name, text, expected, extra = {}) => success(name, text, expec
   });
 export const absSuccesses = [
   success('json-control', JSON.stringify(control), [{value: 9}], [column('value')], {format: 'json'}),
+  // A signed SQL expression normalizes zero; canonical JSON and Parameter
+  // negative-zero inputs retain their separate admission refusal.
+  success('authored-negative-zero', 'SELECT ABS(-0.0) AS value', [{value: 0}], [column('value')]),
   success('finite-values',
     'SELECT ABS(0) AS zero, ABS(-0.25) AS fractional, ABS(-2.25) AS exact, ABS(0 * -1) AS negative_zero',
     [{zero: 0, fractional: 0.25, exact: 2.25, negative_zero: 0}],
@@ -48,7 +51,6 @@ export const absSuccesses = [
   success('quoted-spelling', 'SELECT `AbS`(9) AS value', [{value: 9}], [column('value')]),
 ];
 export const absRefusals = [
-  {name: 'authored-negative-zero', text: 'SELECT ABS(-0.0) AS value'},
   {name: 'zero-arguments', text: 'SELECT ABS() AS value'},
   {name: 'two-arguments', text: 'SELECT ABS(1, 2) AS value'},
   {name: 'string-literal', text: "SELECT ABS('secret-value') AS value"},
