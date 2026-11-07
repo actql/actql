@@ -157,7 +157,9 @@ def valid_body(operation, body):
             return type(item) is dict
         if type(item) is not dict or set(item) not in ({'text', 'format'}, {'text', 'format', 'parameterDeclarations'}):
             return False
-        if not valid(item['text'], {'type': 'string', 'minLength': 1, 'maxLength': 65536}) or '\0' in item['text']:
+        # The selected Host owns preparation demand; wire shape has no separate
+        # UTF-16 Program ceiling. Transport ingress policy remains independent.
+        if not valid(item['text'], {'type': 'string', 'minLength': 1}) or '\0' in item['text']:
             return False
         formats = ('aql', 'aql-text', 'sql') if is_check else CONTRACT['source_formats']
         return (item['format'] in formats and ('parameterDeclarations' not in item or
