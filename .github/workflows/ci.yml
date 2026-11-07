@@ -132,6 +132,18 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
+      - name: Check all workflows with pinned actionlint
+        run: |
+          set -euo pipefail
+          tool="$RUNNER_TEMP/actionlint-1.7.12"
+          mkdir "$tool"
+          curl --fail --location --silent --show-error --retry 3 --connect-timeout 20 --max-time 60 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            --output "$tool/original.tar.gz"
+          printf '%s  %s\n' 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 "$tool/original.tar.gz" | sha256sum --check --strict
+          tar -xzf "$tool/original.tar.gz" -C "$tool" actionlint
+          # Keep this fixed workflow checker independent of optional unpinned external tools.
+          "$tool/actionlint" -oneline -shellcheck= -pyflakes=
       - name: Reject inconsistent operation support and acceptance evidence before fan-out
         run: node --test scripts/pure-operation-inventory.test.mjs
       - name: Check Native diagnostic counter assignments before fan-out
