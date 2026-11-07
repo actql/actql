@@ -1,22 +1,40 @@
 import assert from 'node:assert/strict';
-import {before, test} from 'node:test';
+import {after, before, test} from 'node:test';
 import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
+import {prepareNumericScaleConsumer} from '../../scripts/numeric-scale-installed-fixture.mjs';
+import {verifyNodeBenchmarkPackages} from '../../scripts/benchmark-node-operations.mjs';
+import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {verifyLocalSourceRuntime, assertSourceRuntimeReceiptCurrent} from '../../scripts/verify-local-source-runtime.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-let coherence;
+let coherence, prepared, scratch, startedCases = 0, completedCases = 0;
 before(async () => {
   coherence = await verifyLocalSourceRuntime(root);
+  scratch = await createOwnedScratch({parent: join(root, '..', '.codex-scratch'), prefix: 'actql-numeric-consumer-',
+    label: 'Matching normal numeric consumer'});
+  prepared = await prepareNumericScaleConsumer({repository: root, directory: scratch.path,
+    command(command, args, {cwd}) {
+      const env = {...process.env}; delete env.NODE_PATH; delete env.NODE_OPTIONS;
+      const child = spawnSync(command, args, {cwd, env, encoding: 'utf8', timeout: 120000,
+        maxBuffer: 8 * 1024 * 1024});
+      assert.ifError(child.error); assert.equal(child.signal, null, child.stderr);
+      assert.equal(child.status, 0, child.stderr);
+    }});
+});
+after(async () => {
+  if (coherence) assertSourceRuntimeReceiptCurrent(coherence);
+  if (prepared) await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
+  if (startedCases > 0 && completedCases === startedCases) scratch.passed();
 });
 
 function runPhase(phase, directory, referencePath, count) {
-  const actor = fileURLToPath(new URL('./fixtures/numeric-scale-public-process.mjs', import.meta.url));
-  const child = spawnSync(process.execPath, [actor, phase, directory, referencePath, String(count)],
-    {cwd: root, env: process.env, encoding: 'utf8', timeout: 360000, maxBuffer: 8 * 1024 * 1024});
+  const env = {...process.env}; delete env.NODE_PATH; delete env.NODE_OPTIONS;
+  const child = spawnSync(process.execPath, [prepared.actor, phase, directory, referencePath, String(count)],
+    {cwd: prepared.consumer, env, encoding: 'utf8', timeout: 360000, maxBuffer: 8 * 1024 * 1024});
   assert.ifError(child.error);
   assert.equal(child.signal, null, child.stderr);
   assert.equal(child.status, 0, child.stderr);
@@ -35,6 +53,7 @@ for (const {count, source} of [
   {count: 100000, source: true},
 ]) {
   test(`ordinary ${source ? 'JSON Source ' : ''}numeric ${count} rows streams exact values across separate-process Saved with confirmed stop`, async () => {
+    startedCases++;
     const directory = await mkdtemp(join(tmpdir(), 'actql-numeric-scale-test-'));
     let completed = false;
     try {
@@ -42,6 +61,7 @@ for (const {count, source} of [
       runPhase(source ? 'produce-source' : 'produce', directory, referencePath, count);
       runPhase('restore', directory, referencePath, count);
       completed = true;
+      completedCases++;
     } finally {
       assertSourceRuntimeReceiptCurrent(coherence);
       if (completed) await rm(directory, {recursive: true, force: true});
