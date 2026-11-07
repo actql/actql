@@ -99,7 +99,7 @@ test('relation capture has independent exact real-file inputs and never resets a
   const root = join(namespace, 'installed-process');
   assert.deepEqual(env, {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root});
   assert.equal(statSync(root).mode & 0o777, 0o700);
-  const sizes = {'row-source-input':62, 'row-source-malformed':10,
+  const sizes = {'row-source-input':62, 'row-source-large-input':70062, 'row-source-malformed':10,
     'row-source-oversized':8193, 'row-source-backing':384*1024**2};
   assert.deepEqual(readdirSync(root).sort(), Object.keys(sizes).sort());
   for (const [name, size] of Object.entries(sizes)) {
@@ -109,6 +109,11 @@ test('relation capture has independent exact real-file inputs and never resets a
   }
   assert.equal(readFileSync(join(root,'row-source-input'),'utf8'),
     '{"items":[{"id":"first","value":1},{"id":"second","value":2}]}');
+  const large = readFileSync(join(root,'row-source-large-input'));
+  assert.deepEqual(large.subarray(0,62), readFileSync(join(root,'row-source-input')));
+  assert(large.subarray(62).every(byte => byte === 0x20));
+  assert.deepEqual(JSON.parse(large.toString('utf8')),
+    {items:[{id:'first',value:1},{id:'second',value:2}]});
   assert.equal(readFileSync(join(root,'row-source-malformed'),'utf8'), '{"items":[');
   const backing = join(root,'row-source-backing');
   const fd = openSync(backing,2);

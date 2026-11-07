@@ -286,6 +286,26 @@ pub fn[I] check_native_client_submitted_request_input(
       effect_limits,
       supplied~,
     )
+  } else if kind == "aql" &&
+    (reader.kind)((reader.field)(selected, "format")) == 3 &&
+    @frontend.select_format((reader.text)((reader.field)(selected, "format")))
+    is Ok(@frontend.Json) {
+    // This installed Request entry selects the existing default JSON owner,
+    // whose original preflight measures the document before tree acquisition.
+    // The captured Text is not its node inventory. Explicit-limit entries and
+    // the Native textual Query primary convention keep their separate paths.
+    @local.prepare_request_default_source_computation_check(
+      owner,
+      input,
+      selected,
+      reader,
+      environment,
+      publication,
+      [],
+      program_limits.values_max_rows,
+      effect_limits,
+      supplied~,
+    )
   } else if kind == "aql" {
     @local.prepare_request_native_source_computation_check(
       owner,
