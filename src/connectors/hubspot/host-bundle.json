@@ -12,6 +12,15 @@
         "identityParts": "installedHubSpotSourceIdentityParts",
         "load": "loadInstalledHubSpotSource"
       }
+    },
+    "effect": {
+      "profileVersion": "actql-installed-hubspot-effect/0.1",
+      "module": "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs",
+      "exports": {
+        "check": "checkInstalledHubSpotEffectProfile",
+        "identityParts": "installedHubSpotEffectIdentityParts",
+        "load": "loadInstalledHubSpotEffect"
+      }
     }
   }
 }
