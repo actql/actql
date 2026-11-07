@@ -111,11 +111,11 @@ test "relation Work composes the Common captured control exactly once" {
   assert_eq(@execution.execution_capacity_retained_bytes(common), 128L)
   assert_eq(@execution.execution_capacity_execution_bytes(common), 128L)
   assert_eq(
-    @execution.execution_capacity_retained_bytes(combined) - native - 23075950L,
+    @execution.execution_capacity_retained_bytes(combined) - native - 23076014L,
     128L,
   )
   assert_eq(
-    @execution.execution_capacity_execution_bytes(combined) - native - 23075950L,
+    @execution.execution_capacity_execution_bytes(combined) - native - 23076014L,
     128L,
   )
 }
@@ -164,9 +164,9 @@ test "relation entry authored minimum fixture and maximum constructor totals" {
   }
   for
     (selected, bounded, work_bytes, read_bytes) in [
-      (selection, minimum, 270469L, 29346L),
-      (selection, limits, 23123968L, 29346L),
-      (paths, maximal, 296458720L, 32770L),
+      (selection, minimum, 270533L, 29346L),
+      (selection, limits, 23124032L, 29346L),
+      (paths, maximal, 296458784L, 32770L),
     ] {
     let work = native_relation_file_work_control_capacity(selected, bounded).unwrap()
     let read = native_relation_file_entry_read_capacity(selected, bounded).unwrap()

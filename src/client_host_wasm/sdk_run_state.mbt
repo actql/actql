@@ -75,10 +75,17 @@ fn sdk_run_state_snapshot(
     })
   }
   // Keep the same checked preparation, saved initial rows and policy original.
-  match sdk_saved_original_rows(value, run, plan) {
+  // The helper already completed the full original journal audit and current
+  // fences. Consume that exact snapshot immediately, before another callback,
+  // rather than repeating the audit through the same configuration and reader.
+  let (snapshot, _, _) = match sdk_saved_original_snapshot(value, run, plan) {
     Err(code) => return Err(code)
-    Ok(_) => ()
+    Ok(value) => value
   }
+  if record.configuration == current_configuration {
+    return Ok((plan, snapshot))
+  }
+  // A different selected configuration must still perform its own checks.
   match observe_submission_append(value, original, current) {
     Ok(@host.Retained(snapshot)) => Ok((plan, snapshot))
     Ok(@host.Append(_)) => Err(-35)

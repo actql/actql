@@ -9,6 +9,7 @@ import {isAbsolute, join} from 'node:path';
 const namedBackingFiles = Object.freeze([
   'initialization-original.backing', 'initialization-budget-refused.backing',
   'request-original.backing', 'request-run-transfer.backing', 'request-unstarted.backing',
+  'common-request-entrance.backing',
   'source-frame-original.backing', 'source-frame-left.backing', 'source-frame-right.backing',
   'consumer-current.backing', 'consumer-managed-graph.backing',
   'consumer-alias.backing', 'consumer-usage-alias.backing',
@@ -57,6 +58,17 @@ function backingFixture(namespace) {
     } finally { closeSync(fd); }
   };
   return {root, backing};
+}
+
+// The Model frame correspondence cases use only the existing real FD-backed
+// Request originals. They do not acquire a Crypto or SQLite component, so do
+// not select an unrelated library merely to populate an unused environment.
+export function nativeCoreModelFrameFixture(namespace) {
+  const {root, backing} = backingFixture(namespace);
+  for (const name of ['source-frame-original', 'source-frame-left', 'source-frame-right']) {
+    backing(name + '.backing', 64);
+  }
+  return {ACTQL_TEST_INSTALLED_PROCESS_ROOT: root};
 }
 
 export function nativeCoreScopedFixture(namespace, {cryptoLibrary, sqliteLibrary, backingPages}) {

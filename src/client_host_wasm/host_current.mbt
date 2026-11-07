@@ -42,8 +42,12 @@ fn host_current_physical(
 }
 
 ///|
-// A fresh physical current/fence check plus DATA from this entered Host's
-// existing operation. Zero deliberately keeps the complete raw/cleanup path.
+// Original physical observation plus DATA from this entered Host's operation.
+// The standard Python closed invocation observes the full physical graph at
+// entry, return and every effect boundary, with live identity/SQL checks at
+// each import. Other suppliers retain full per-import observation. These are
+// physical checks, never substitutes for the Account decisions below.
+// Zero deliberately keeps the complete raw/cleanup path.
 fn host_current_checked_operation(
   value : Instance,
   record : StoredHostCurrent,

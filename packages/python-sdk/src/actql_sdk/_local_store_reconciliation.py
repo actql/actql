@@ -9,7 +9,7 @@ from ._local_core import LocalResultProgress, _Input, _Output
 from ._local_host_binding import OriginalHostBinding
 from ._local_observation_transfer import OriginalObservationTransfer
 from ._local_reader_facts import OriginalReaderFacts
-from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalByteStore, LocalStorageError, StoredBytes
+from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalByteStore, LocalStorageError, StoredBytes, _NamespaceReader
 
 _T = TypeVar('_T')
 
@@ -36,6 +36,9 @@ class OriginalStoreReconciliation:
     borrows and explicitly cleans physical inputs/outputs after Store cleanup.
     No Source, Compute, Run, write, automatic lookup retry or replay is started.
     """
+
+    # Set only by an attempted exact phase; absence still identifies legacy.
+    _prepare_counts: tuple[int, int, int, int, int]
 
     def __init__(self, projection: OriginalCommitProjection, facts: tuple[OriginalReaderFacts, ...],
                  store: LocalByteStore,
@@ -160,7 +163,12 @@ class OriginalStoreReconciliation:
                key: str, consume: Callable[[StoredBytes | None], object]) -> None:
         try:
             read(key, consume)
-        except sqlite3.Error:
+        except sqlite3.Error as error:
+            # The fixed driver may suspend only its optimization for this named
+            # failure-reporting continuation. It never retries the failed read.
+            phase = getattr(self._projection._core, '_reconciliation_prepare', None)
+            if phase is not None:
+                phase.query_failed(self, error)
             # Run this while the original projection loan is still live. Do not
             # erase the physical failure or let the Store's latched reader pass.
             self._before_lookup()
@@ -189,7 +197,13 @@ class OriginalStoreReconciliation:
             self._entered = self._active = True
             try:
                 with self._serialized_facts():
-                    if binding is None:
+                    # The defining modules already retained their original
+                    # method records. Lazy dispatch avoids a module cycle in
+                    # either import order without capturing current overrides.
+                    from ._local_reconciliation_prepare import _ENTRY_FUNCTIONS
+                    if binding is not None and _ENTRY_FUNCTIONS[0](self, binding):
+                        self._store._inspect_original_reconciliation_prepare(self)
+                    elif binding is None:
                         self._store.inspect_publication_projected_attached(
                             self._inspect, self._originals,
                             current=lambda: self._before_lookup())
@@ -203,6 +217,14 @@ class OriginalStoreReconciliation:
                                 before_lookup=lambda: self._before_lookup())
             finally:
                 self._active = False
+
+    def _prepare_closed(self, reader: _NamespaceReader) -> None:
+        """Only the original Store drives this fixed nonsaved preparation."""
+        binding = self._binding
+        if binding is None:
+            raise ValueError('Original prepare binding is unavailable')
+        from ._local_reconciliation_prepare import _ENTRY_FUNCTIONS
+        _ENTRY_FUNCTIONS[1](self, binding, reader)
 
     def _inspect(self, read: Callable[[str, Callable[[StoredBytes | None], object]], None]) -> None:
         lookup, response = self._lookup, self._response
@@ -429,3 +451,14 @@ class OriginalStoreReconciliation:
         if len(captured) != 1:
             raise RuntimeError('Incomplete original Store current observation')
         return captured[0]
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(OriginalStoreReconciliation, (
+        '_before_lookup', '_inspect', '_nominal',
+        '_prepare_closed', '_query', '_serialized_facts',
+        '_validate_facts', 'prepare',
+    )),
+)

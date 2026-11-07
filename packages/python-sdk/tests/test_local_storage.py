@@ -99,7 +99,7 @@ with LocalByteStore(Path(sys.argv[2]), max_records=4, max_record_bytes=128, max_
         connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-python-local-bytes-') as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=LostCommit)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostCommit}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     store._connection.lose = True
                     with self.assertRaises(OSError):
@@ -120,7 +120,7 @@ with LocalByteStore(Path(sys.argv[2]), max_records=4, max_record_bytes=128, max_
         with TemporaryDirectory(prefix='actql-python-local-bytes-') as directory:
             path = Path(directory) / 'core.sqlite'
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=PendingTransaction)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': PendingTransaction}))):
                 store = self.store(path)
             store._connection.refuse = True
             with self.assertRaises(OSError):
@@ -201,7 +201,7 @@ with LocalByteStore(Path(sys.argv[2]), max_records=4, max_record_bytes=128, max_
         connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-python-local-bytes-') as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=FailingClose)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': FailingClose}))):
                 store = self.store(Path(directory) / 'core.sqlite')
             with self.assertRaises(OSError):
                 store.close()
@@ -229,7 +229,7 @@ with LocalByteStore(Path(sys.argv[2]), max_records=4, max_record_bytes=128, max_
         connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-python-local-bytes-') as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=FailedInitialization)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': FailedInitialization}))):
                 with self.assertRaises(LocalStorageInitializationError) as pending:
                     self.store(Path(directory) / 'core.sqlite')
             store = pending.exception.cleanup_store

@@ -6,10 +6,14 @@ from pathlib import Path
 import sqlite3
 import stat
 from threading import RLock, get_ident
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ._local_store_reconciliation import OriginalStoreReconciliation
 
 from ._local_files import LocalFileRoot, _PayloadFile
 from ._local_storage_physical import (
-    _PhysicalByteDatabase, _SQLiteByteDatabase,
+    _PhysicalByteDatabase, _SQLiteByteDatabase, _TrackedSQLiteConnection,
     _PhysicalCapacityCollision, _PhysicalCapacityExceeded, _RUN_DEFINITION_INDEX,
     _APPLICATION_ID, _SCHEMA, _CAPACITY_SCHEMA, _RUN_DEFINITION_PROBE)
 
@@ -52,6 +56,22 @@ class _NamespaceReader:
     # Actual same-transaction catalog observation, not an indexed-custody proof.
     # Absence keeps existing private suppliers on their full legacy route.
     journal_schema: Callable[['_NamespaceReader', Callable[[], object]], int] | None = None
+
+    # Explicit write-free span check against this reader's original SQLite
+    # snapshot. No physical-current observation or permission is returned.
+    check_unchanged: Callable[['_NamespaceReader'], None] | None = None
+
+    # Store-owned validation for one original closed Wasm invocation. Unlike
+    # public reader access this can run inside the exact current callback.
+    _invocation_check: Callable[['_NamespaceReader', Callable[[], object], object], None] | None = None
+
+    # Only the exact original reconciliation driver receives this private port.
+    # It checks its own fresh reader, never a generic callback's read span.
+    _prepare_check: Callable[['_NamespaceReader', object, bool], None] | None = None
+
+    # Private pre-admission probe. False retains ordinary reader semantics;
+    # it never refreshes the original snapshot or returns a currentness token.
+    _invocation_candidate: Callable[['_NamespaceReader', Callable[[], object], object], bool] | None = None
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -164,11 +184,14 @@ class LocalByteStore:
                 except BaseException as original:
                     raise LocalStorageInitializationError(self) from original
         self._connection = sqlite3.connect(path, isolation_level=None,
-                                           timeout=1.0, check_same_thread=False)
+                                           timeout=1.0, check_same_thread=False,
+                                           factory=_TrackedSQLiteConnection, cached_statements=0)
         try:
             database = _SQLiteByteDatabase(self._connection)
             self._physical = database
             self._observe_generation()
+            if type(self._connection) is _TrackedSQLiteConnection:
+                self._connection._qualify_encoding()
             # Select TEMP storage before the first catalog/snapshot statement.
             # Changing it later discards TEMP while SQLite may retain prepared
             # schema observations from this same connection's constructor.
@@ -518,7 +541,8 @@ class LocalByteStore:
                 if fences and not self._fences_match_locked(fences):
                     raise LocalStorageError('Original Local capacity fences changed')
                 if inspect is not None:
-                    self._inspect_namespace_locked(inspect, fences, current)
+                    # This reader retires before this owner starts its SQL writes.
+                    self._inspect_namespace_locked(inspect, fences, current, _prewrite=True)
                 try:
                     changed = database.reserve_capacity_in_transaction(
                         namespace, key, reserved_bytes, reserved_objects,
@@ -821,7 +845,7 @@ class LocalByteStore:
                 self._fenced_current(current)
                 if not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local namespace fences changed')
-                self._inspect_namespace_locked(inspect, fences, current)
+                self._inspect_namespace_locked(inspect, fences, current, _readonly=True)
                 self._fenced_current(current)
                 if not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local namespace fences changed')
@@ -923,9 +947,10 @@ class LocalByteStore:
         self.inspect_namespaces(fences, inspect=observe, current=current)
 
     def _inspect_namespace_locked(
-            self, inspect: _InventoryInspection, fences: tuple[ByteFence, ...],
+            self, inspect: _InventoryInspection | None, fences: tuple[ByteFence, ...],
             current: Callable[[], object] | None, *,
-            successors: tuple[ByteWrite, ...] = ()) -> None:
+            successors: tuple[ByteWrite, ...] = (), _readonly: bool = False,
+            _prewrite: bool = False, _reconciliation: 'OriginalStoreReconciliation | None' = None) -> None:
         # This callback borrows the enclosing physical transaction. It cannot
         # commit, acknowledge Core adoption, repair metadata or survive cleanup.
         active = True
@@ -933,16 +958,38 @@ class LocalByteStore:
         thread = get_ident()
         reads = copied = 0
         failure: BaseException | None = None
+        observing_current: Callable[[], object] | None = None
+        observing_invocation = False
+        # Only audited owner phases end this reader before any intended write.
+        # BEGIN IMMEDIATE alone is not eligibility: projected readers enclose
+        # multiple writes and deliberately retain the full legacy path.
+        closed_phase = (_readonly is True or _prewrite is True) and not successors
 
         database = self._physical
         original_snapshot = (database._snapshot_identity()
                              if type(database) is _SQLiteByteDatabase else None)
+        original_control_epoch = (original_snapshot[0]._transaction_epoch
+            if original_snapshot is not None
+            and type(original_snapshot[0]) is _TrackedSQLiteConnection else None)
+        original_statement_epoch = (original_snapshot[0]._closed_statement_epoch
+            if original_snapshot is not None
+            and type(original_snapshot[0]) is _TrackedSQLiteConnection else None)
         last_fenced_snapshot: tuple[object, int, int, tuple[int, int]] | None = None
 
         def metadata_fence(*, reuse_snapshot: bool) -> None:
             nonlocal last_fenced_snapshot
             if self._physical is not database:
                 raise LocalStorageError('Original Local physical reader changed')
+            if reuse_snapshot and original_snapshot is not None:
+                connection = original_snapshot[0]
+                span = (connection._closed_invocation
+                        if type(connection) is _TrackedSQLiteConnection else None)
+                if span is not None and span._reuse_sql_snapshot():
+                    invocation_frame(reader, current, span, metadata=True)
+                    check_invocation_snapshot(span, original_snapshot)
+                    if last_fenced_snapshot != original_snapshot:
+                        raise LocalStorageError('Closed Local metadata baseline is unavailable')
+                    return
             # Only the exact stdlib adapter supplies SQLite's own mutation
             # counter. Other existing physical suppliers keep full SQL checks.
             snapshot = (database._snapshot_identity()
@@ -961,16 +1008,178 @@ class LocalByteStore:
 
         def fence(required_current: Callable[[], object] | None = None, *,
                   reuse_snapshot: bool = False) -> None:
+            nonlocal observing_current
             metadata_fence(reuse_snapshot=reuse_snapshot)
-            self._fenced_current(current)
-            if required_current is not None and required_current is not current:
-                self._fenced_current(required_current)
+            try:
+                observing_current = current
+                self._fenced_current(current)
+                if required_current is not None and required_current is not current:
+                    observing_current = required_current
+                    self._fenced_current(required_current)
+            finally:
+                observing_current = None
             metadata_fence(reuse_snapshot=reuse_snapshot)
+
+        def invocation_frame(view: _NamespaceReader, observer: Callable[[], object] | None,
+                             span: object, *, metadata: bool = False) -> None:
+            from ._local_host_binding import _InvocationObservation
+            if (type(span) is not _InvocationObservation or type(view) is not _NamespaceReader
+                    or view is not reader or type(self) is not LocalByteStore
+                    or view.owner is not self or not active or get_ident() != thread
+                    or observing_invocation or not closed_phase or observer is not current
+                    or view.scan_after is not scan_after or view.read is not read
+                    or view.query_current is not query_current or view.journal_schema is not journal_schema
+                    or view.check_frame is not check_frame or view.check_fences is not check_fences
+                    or view.check_fences_and_current is not check_fences_and_current
+                    or view.current is not current_snapshot or view.check_inventory is not check_inventory
+                    or view.check_unchanged is not check_unchanged
+                    or view._invocation_candidate is not invocation_candidate
+                    or view._invocation_check is not invocation_check
+                    or span.reader is not view or span.binding._current_observer is not observer
+                    or span.core._invocation_observation is not span or not span.core._invoking
+                    or reading and observing_current is not observer and not metadata):
+                raise ValueError('Foreign or reentrant closed Local observation')
+
+        def invocation_candidate(view: _NamespaceReader, observer: Callable[[], object], span: object) -> bool:
+            nonlocal failure, observing_invocation
+            entered = False
+            try:
+                if failure is not None:
+                    raise failure
+                invocation_frame(view, observer, span)
+                if (span.admitted or span.connection._closed_invocation is not None
+                        or type(database) is not _SQLiteByteDatabase or original_snapshot is None
+                        or self._physical is not database or self._connection is not original_snapshot[0]
+                        or database._connection is not original_snapshot[0]
+                        or span.connection is not original_snapshot[0]):
+                    raise LocalStorageError('Original closed Local candidate supplier changed')
+                connection = original_snapshot[0]
+                if not connection._closed_eligible():
+                    return False
+                observing_invocation = entered = True
+                snapshot = database._snapshot_identity()
+                if failure is not None:
+                    raise failure
+                if (self._physical is not database or self._connection is not connection
+                        or database._connection is not connection or not connection.in_transaction
+                        or snapshot[0] is not connection or snapshot[1] != original_snapshot[1]
+                        or snapshot[3] != original_snapshot[3]):
+                    raise LocalStorageError('Original closed Local candidate snapshot changed')
+                # A generic inspector may have changed unrelated rows or used
+                # SAVEPOINT before this call. No reduced observation has run:
+                # keep the legacy route, never rebase this reader's baseline.
+                # Recheck callback eligibility after SQL too: customization
+                # during this unadmitted probe must not admit a closed span.
+                return (connection._closed_eligible()
+                        and snapshot[2] == original_snapshot[2]
+                        and connection._transaction_epoch == original_control_epoch
+                        and (span.wasm_export is None or (
+                            type(original_statement_epoch) is int
+                            and 0 <= original_statement_epoch < 2**63
+                            and connection._closed_statement_epoch == original_statement_epoch)))
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                from ._local_host_binding import _InvocationObservation
+                if type(span) is _InvocationObservation and span.reader is reader:
+                    span._fail(failure)
+                raise failure
+            finally:
+                if entered:
+                    observing_invocation = False
+
+        def check_invocation_snapshot(span: object, snapshot: tuple[object, int, int, tuple[int, int]]) -> None:
+            if failure is not None:
+                raise failure
+            if (original_snapshot is None or self._physical is not database
+                    or self._connection is not original_snapshot[0]
+                    or database._connection is not original_snapshot[0]
+                    or snapshot[0] is not original_snapshot[0]
+                    or snapshot[1:] != original_snapshot[1:]
+                    or self._connection.total_changes != original_snapshot[2]
+                    or not self._connection.in_transaction
+                    or self._connection._outer_transaction_epoch != original_snapshot[1]
+                    or self._connection._transaction_epoch != original_control_epoch):
+                raise LocalStorageError('Closed Local observation snapshot changed')
+            span._guard_sql()
+
+        def invocation_check(view: _NamespaceReader, observer: Callable[[], object], span: object) -> None:
+            nonlocal failure, observing_invocation
+            entered = False
+            try:
+                if failure is not None:
+                    raise failure
+                invocation_frame(view, observer, span)
+                observing_invocation = entered = True
+                span._guard_sql()
+                # A closed real Wasm import has no arbitrary Python exits. All
+                # scalar/custom exports retain live schema reads. Exact current
+                # callbacks inside fence already have its before/after checks.
+                snapshot = (original_snapshot if not span.checking_physical and (
+                    observing_current is observer or span._reuse_sql_snapshot())
+                    else database._snapshot_identity())
+                check_invocation_snapshot(span, snapshot)
+                if span.checking_physical and span.wasm_export is not None:
+                    # Force actual metadata at entry/effect/return, even if the
+                    # preceding full check saw identical mutation counters.
+                    metadata_fence(reuse_snapshot=False)
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                raise failure
+            finally:
+                if entered:
+                    observing_invocation = False
+
+        def prepare_check(view: _NamespaceReader, phase: object, physical: bool) -> None:
+            nonlocal failure
+            from ._local_reconciliation_prepare import _PrepareObservation
+            try:
+                if failure is not None:
+                    raise failure
+                if (type(phase) is not _PrepareObservation or _reconciliation is None
+                        or phase.owner is not _reconciliation or phase.reader is not reader
+                        or phase.core._reconciliation_prepare is not phase
+                        or phase.binding._current_observer is not current
+                        or view is not reader or view.owner is not self or not active
+                        or get_ident() != thread or not _readonly or successors
+                        or view._prepare_check is not prepare_check
+                        or view.scan_after is not scan_after or view.read is not read
+                        or view.check_frame is not check_frame or view.check_fences is not check_fences
+                        or view.check_fences_and_current is not check_fences_and_current
+                        or view.current is not current_snapshot or view.check_inventory is not check_inventory
+                        or view.query_current is not query_current or view.journal_schema is not journal_schema
+                        or view.check_unchanged is not check_unchanged
+                        or view._invocation_check is not invocation_check
+                        or view._invocation_candidate is not invocation_candidate
+                        or type(database) is not _SQLiteByteDatabase or original_snapshot is None
+                        or self._physical is not database or database._connection is not self._connection
+                        or self._connection is not original_snapshot[0]
+                        or self._connection._transaction_epoch != original_control_epoch
+                        or self._connection._closed_statement_epoch != original_statement_epoch
+                        or self._connection._outer_transaction_epoch != original_snapshot[1]
+                        or self._connection.total_changes != original_snapshot[2]
+                        or not self._connection.in_transaction):
+                    raise LocalStorageError('Original reconciliation snapshot changed or retired')
+                if physical:
+                    if database._snapshot_identity() != original_snapshot:
+                        raise LocalStorageError('Original reconciliation schema snapshot changed')
+                    metadata_fence(reuse_snapshot=False)
+                    if not self._originals_match_locked(_reconciliation._originals):
+                        raise LocalStorageError('Original reconciliation reservations changed')
+                    if database._snapshot_identity() != original_snapshot:
+                        raise LocalStorageError('Original reconciliation metadata changed during observation')
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                if type(phase) is _PrepareObservation:
+                    phase._fail(failure)
+                raise failure
 
         def check_frame(view: _NamespaceReader) -> None:
             nonlocal failure
             try:
-                if (view is not reader or not active or reading
+                if (view is not reader or not active or reading or observing_invocation
                         or get_ident() != thread or failure is not None):
                     raise ValueError('Local inventory reader is not active')
             except BaseException as error:
@@ -986,6 +1195,40 @@ class LocalByteStore:
                 failure = error
                 raise
 
+        def check_unchanged(view: _NamespaceReader) -> None:
+            nonlocal failure, reading
+            entered = False
+            try:
+                # Preserve the first failure even when a caller swallowed it.
+                if failure is not None:
+                    raise failure
+                check_frame(view)
+                if view.owner is not self:
+                    raise ValueError('Original Local read-only reader owner changed')
+                reading = entered = True
+                if (type(database) is not _SQLiteByteDatabase or original_snapshot is None
+                        or self._physical is not database
+                        or self._connection is not original_snapshot[0]
+                        or original_control_epoch is None
+                        or self._connection._transaction_epoch != original_control_epoch):
+                    raise LocalStorageError('Original Local read-only supplier changed')
+                snapshot = database._snapshot_identity()
+                if failure is not None:
+                    raise failure
+                if (view.owner is not self or self._physical is not database
+                        or self._connection is not original_snapshot[0]
+                        or self._connection._transaction_epoch != original_control_epoch
+                        or snapshot[0] is not original_snapshot[0]
+                        or snapshot[1:] != original_snapshot[1:]):
+                    raise LocalStorageError('Original Local read-only snapshot changed')
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                raise failure
+            finally:
+                if entered:
+                    reading = False
+
         def check_fences(view: _NamespaceReader, required: tuple[ByteFence, ...]) -> None:
             nonlocal failure
             try:
@@ -993,8 +1236,9 @@ class LocalByteStore:
                     raise ValueError('Copied or foreign Local inventory snapshot')
                 current_snapshot()
                 # Only the SAME frozen members, in the SAME admitted order,
-                # reuse their shape/bounds checks. Physical current above is
-                # fresh on every call; copied/subset DATA keeps full admission.
+                # reuse their shape/bounds checks. The original current port
+                # runs on every call (including closed invocation lifetime/SQL
+                # checks); copied/subset DATA keeps full admission.
                 same_originals = len(required) == len(fences) and all(
                     wanted is original for wanted, original in zip(required, fences))
                 if required and not same_originals:
@@ -1202,13 +1446,23 @@ class LocalByteStore:
 
         try:
             fence()
+            closed_reader = (closed_phase and type(self) is LocalByteStore
+                and original_snapshot is not None
+                and type(original_snapshot[0]) is _TrackedSQLiteConnection
+                and original_snapshot[0]._closed_eligible())
             reader = _NamespaceReader(
                 scan_after=scan_after, read=read,
                 owner=self, current=current_snapshot, check_fences=check_fences,
                 check_fences_and_current=check_fences_and_current,
                 check_frame=check_frame, query_current=query_current,
-                journal_schema=journal_schema, check_inventory=check_inventory)
-            result = inspect(reader)
+                journal_schema=journal_schema, check_inventory=check_inventory,
+                check_unchanged=(check_unchanged if original_snapshot is not None
+                    and type(original_snapshot[0]) is _TrackedSQLiteConnection else None),
+                _prepare_check=prepare_check if closed_reader and _reconciliation is not None else None,
+                _invocation_check=invocation_check if closed_reader else None,
+                _invocation_candidate=invocation_candidate if closed_reader else None)
+            result = (_reconciliation._prepare_closed(reader) if _reconciliation is not None
+                      else inspect(reader) if inspect is not None else None)
             if failure is not None:
                 raise failure
             if result is not None or reads == 0:
@@ -1216,6 +1470,32 @@ class LocalByteStore:
             fence()
         finally:
             active = False
+
+    def _inspect_original_reconciliation_prepare(self, owner: 'OriginalStoreReconciliation') -> None:
+        """Drive exactly the original nonsaved prepare, with no supplied callback."""
+        from ._local_store_reconciliation import OriginalStoreReconciliation
+        if (type(owner) is not OriginalStoreReconciliation or owner._store is not self
+                or owner._original is not owner or not owner._entered or not owner._active
+                or owner._projection._saved or owner._binding is None):
+            raise ValueError('Foreign original reconciliation preparation')
+        binding = owner._binding
+        self._validate_originals(owner._originals, set())
+        with binding.fenced() as fences, self._lock:
+            self._validate_metadata_fences(fences, ())
+            self._open()
+            database = self._physical
+            database.begin_read()
+            try:
+                self._inspect_namespace_locked(None, fences, binding._current_observer,
+                                               _readonly=True, _reconciliation=owner)
+                self._fenced_current(binding._current_observer)
+                if not self._fences_match_locked(fences, ()):
+                    raise LocalStorageError('Original reconciliation metadata changed')
+            except BaseException:
+                database.cleanup_read()
+                raise
+            else:
+                database.finish_read()
 
     def inspect_publication_projected_attached(
             self, inspect: Callable[[Callable[[str, Callable[[StoredBytes | None], object]], None]], object],
@@ -1771,7 +2051,8 @@ class LocalByteStore:
                     database.rollback()
                     return None
                 if inspect is not None:
-                    self._inspect_namespace_locked(inspect, fences, current)
+                    # This reader retires before this owner starts its SQL writes.
+                    self._inspect_namespace_locked(inspect, fences, current, _prewrite=True)
                 generations: list[int] = []
                 inserted = replaced = 0
                 for write in writes:
@@ -1840,3 +2121,17 @@ class LocalByteStore:
 
     def __exit__(self, *_: object) -> None:
         self.close()
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(LocalByteStore, (
+        '_capacity_amount', '_capacity_name', '_fenced_current',
+        '_fences_match_locked', '_file_generation', '_inspect_namespace_locked',
+        '_inspect_original_reconciliation_prepare', '_key', '_observe_generation',
+        '_open', '_originals_match_locked', '_read_bytes_locked',
+        '_validate_metadata_fences', '_validate_originals', 'namespaced_key',
+        'observe_generation',
+    )),
+)

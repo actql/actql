@@ -315,3 +315,17 @@ class OriginalObservationTransfer:
                     return False
                 self._workspace = None
             return True
+
+
+# Definition-time provenance for the fixed original reconciliation driver.
+from ._local_prepare_provenance import _capture_prepare_methods
+_PREPARE_METHODS = (
+    _capture_prepare_methods(OriginalObservationTransfer, (
+        '_nominal', '_packet', '_ready',
+        '_reserve_input', '_source', '_transfer',
+        'consume_source', 'pending_input', 'pending_sources',
+        'pending_workspace', 'retain_source', 'transfer_lookup',
+        'transfer_lookup_inputs', 'transfer_not_found', 'transfer_query_failure',
+        'transfer_stored', 'transfer_stored_inputs',
+    )),
+)
