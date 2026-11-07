@@ -2741,6 +2741,310 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/hubspot/host/hubspot-effect-plan.mjs",
+      "sha256": "c7c24a2ed6cb3b094d091311639f1ba7ec01f7e5aa7dc70a2a2ef6001637f73c",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common managed Effect Plan and same-issuer HubSpot constructor quantities",
+      "exports": [
+        "captureHubSpotEffectPlanRecipeBuilder"
+      ],
+      "operations": [
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe",
+          "parameters": [
+            "mappings",
+            "portalId",
+            "objectTypeUnits",
+            "metadataResources",
+            "credentialSite",
+            "limits",
+            "inputLimits",
+            "maxRecoveryBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/capturedExtent/capturedExtent",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/inputExtent/inputExtent",
+          "parameters": [
+            "previewWire",
+            "recovery",
+            "memberIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/operationExtent/operationExtent",
+          "parameters": [
+            "operation",
+            "capacity",
+            "transfer",
+            "physical"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical",
+          "parameters": [
+            "phase",
+            "slot",
+            "resource",
+            "perRow",
+            "operation",
+            "position",
+            "requestBytes",
+            "responseBytes",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/extentOf/extentOf",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/responseExtent/responseExtent",
+          "parameters": [
+            "bytes",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/prepareHubSpotEffectPlanRecipe",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/prepareHubSpotEffectPlanRecipe#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/prepareHubSpotEffectPlanRecipe#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/profile/profile",
+          "parameters": [
+            "targetBytes",
+            "metadataBytes",
+            "metadataKind"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/profile/profile/profile",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/quantities/quantities",
+          "parameters": [
+            "original",
+            "hostBytes",
+            "control",
+            "actualBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/quote/quote",
+          "parameters": [
+            "kind",
+            "input",
+            "output",
+            "sizes"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data",
+          "parameters": [
+            "object",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data/data",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "method/method",
+          "parameters": [
+            "receiver",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "method/method/method",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "numbers/numbers",
+          "parameters": [
+            "object",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/effect-ledger-implementation-bounds.mjs",
+        "../../../host-node/installed-effect-plan.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/hubspot-account-read.mjs",
+        "../site/hubspot-object-read.mjs",
+        "../site/hubspot-target-read.mjs",
+        "./hubspot-update-driver.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureHubSpotEffectPlanRecipeBuilder",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/capturedExtent/capturedExtent",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/inputExtent/inputExtent",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/operationExtent/operationExtent",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/extentOf/extentOf",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/responseExtent/responseExtent",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/prepareHubSpotEffectPlanRecipe",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/prepareHubSpotEffectPlanRecipe#2",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/prepareHubSpotEffectPlanRecipe#3",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/profile/profile",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/profile/profile/profile",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/quantities/quantities",
+            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/quote/quote",
+            "data/data",
+            "data/data/data",
+            "fail/fail",
+            "method/method",
+            "method/method/method",
+            "numbers/numbers",
+            "positive/positive"
+          ],
+          "exports": [
+            "captureHubSpotEffectPlanRecipeBuilder"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

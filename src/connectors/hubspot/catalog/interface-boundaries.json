@@ -195,6 +195,126 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/hubspot/catalog/effect_construction.mbt",
+      "sha256": "25c58b51635660ed547ff86ded3540d3273e5856ed7d9848ddca0afea775294c",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing HubSpot native constructors and shared representation inventory owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "effect_account_construction_capacity",
+          "declaration": "effect_account_construction_capacity ( body_bytes : Int , portal_units : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_finalization_construction_capacity",
+          "declaration": "effect_finalization_construction_capacity ( body : WriteBodyLimits , request : RecordRequestLimits , read : RecordReadLimits , fields : Int , field_units : Int , binding_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_metadata_construction_capacity",
+          "declaration": "effect_metadata_construction_capacity ( body_bytes : Int , object_units : Int , limits : PropertyLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_request_construction_capacity",
+          "declaration": "effect_request_construction_capacity ( body : WriteBodyLimits , request : RecordRequestLimits , read : RecordReadLimits , fields : Int , field_units : Int , binding_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_response_construction_capacity",
+          "declaration": "effect_response_construction_capacity ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_target_construction_capacity",
+          "declaration": "effect_target_construction_capacity ( limits : ObjectPageLimits , output : @ source . ParseLimits , fields : Int , field_units : Int , binding_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "hubspot_effect_body_limits_valid",
+          "declaration": "hubspot_effect_body_limits_valid ( limits : WriteBodyLimits ) - > Bool"
+        },
+        {
+          "name": "hubspot_effect_capacity",
+          "declaration": "hubspot_effect_capacity ( retained : @ execution . PreparationRepresentationUnits , workspace : Array [ @ execution . PreparationRepresentationUnits ] , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "effect_account_construction_capacity",
+            "effect_finalization_construction_capacity",
+            "effect_metadata_construction_capacity",
+            "effect_request_construction_capacity",
+            "effect_response_construction_capacity",
+            "effect_target_construction_capacity",
+            "hubspot_effect_body_limits_valid",
+            "hubspot_effect_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/hubspot/catalog/effect-construction.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

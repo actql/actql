@@ -1322,6 +1322,12 @@ pub fn client_program_grow_captured_content_workspace(@physical_resources.Ledger
 
 pub fn client_program_hubspot_account_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_hubspot_effect_constructor_capacity(Int, Array[Int], Array[Int], Array[Int]) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_hubspot_effect_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, @execution_relation.ExecutionCapacity?, Array[Int], Int64, Int, Int, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_hubspot_mapping_construction_capacity(Int, Int, Int64, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_hubspot_object_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_identify_captured_effect_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]

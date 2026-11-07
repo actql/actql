@@ -12,6 +12,18 @@ import {
 // Values
 pub fn account_initialization_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn effect_account_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn effect_finalization_construction_capacity(WriteBodyLimits, RecordRequestLimits, RecordReadLimits, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn effect_metadata_construction_capacity(Int, Int, PropertyLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn effect_request_construction_capacity(WriteBodyLimits, RecordRequestLimits, RecordReadLimits, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn effect_response_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn effect_target_construction_capacity(ObjectPageLimits, @source_value.ParseLimits, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn encode_object_page_rows(ObjectPage, Int, Int, Int) -> Result[String, ObjectPageIssue]
 
 pub fn execution_mapping_body(ExecutionMapping) -> String
