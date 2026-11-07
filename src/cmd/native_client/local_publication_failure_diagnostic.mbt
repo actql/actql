@@ -90,7 +90,13 @@ fn local_publication_failure_tags(
 ) -> Unit {
   let family = match issue {
     Work(original) => {
-      local_values_failure_tags(original, emit)
+      // The existing C recorder accumulates amounts. Emit the outer family
+      // once; a nested Work must not add its different family into that slot.
+      local_values_failure_tags(original, (tag, value) => {
+        if tag != 10 {
+          emit(tag, value)
+        }
+      })
       1L
     }
     Policy(_) => 2L
@@ -110,5 +116,45 @@ fn local_publication_failure_tags(
   emit(10, 10L)
   if family != 1L {
     emit(11, 8000L + family)
+  }
+}
+
+///|
+fn local_completed_export_issue_tag(
+  issue : @execution.CompletedExportIssue,
+) -> Int64 {
+  match issue {
+    Unavailable => 1L
+    NotCellRepresentation => 2L
+    InvalidTarget => 3L
+    NotFinished => 4L
+    Closed => 5L
+    ForeignMaterial => 6L
+    Admission(_) => 7L
+    Wire(original) =>
+      match original {
+        InvalidLimits => 201L
+        OrderLimit => 202L
+        InvalidLayout => 203L
+        Encoding(_) => 204L
+      }
+    Schema(original) =>
+      match original {
+        InvalidLimits => 301L
+        FieldLimit => 302L
+        Encoding(_) => 303L
+        Closed => 304L
+        NotFinished => 305L
+      }
+    ResultView(original) =>
+      match original {
+        InvalidLimits => 401L
+        Unavailable => 402L
+        ForeignOccurrence => 403L
+        InvalidProjection => 404L
+        Limit => 405L
+        Comparison(_) => 406L
+      }
+    CanonicalRow => 11L
   }
 }
