@@ -387,6 +387,14 @@ fn[P, C] backed_usage_valid(
   usage : LedgerUsage,
 ) -> Bool {
   let limits = ticket.limits
+  // Reject signed reports before subtracting their fields from either bound.
+  // In particular Int64 minimum cannot become a positive remaining window.
+  if usage.held_bytes < 0L ||
+    usage.reserved_retention_bytes < 0L ||
+    usage.reserved_execution_bytes < 0L ||
+    usage.peak_retention_bytes < 0L {
+    return false
+  }
   let window = match ticket.current_window {
     Some(window) => {
       let bytes = window.val
@@ -399,11 +407,8 @@ fn[P, C] backed_usage_valid(
     None => true
   }
   window &&
-  usage.held_bytes >= 0L &&
   usage.held_bytes <= limits.retained_bytes &&
-  usage.reserved_retention_bytes >= 0L &&
   usage.reserved_retention_bytes <= limits.retained_bytes - usage.held_bytes &&
-  usage.reserved_execution_bytes >= 0L &&
   usage.reserved_execution_bytes <= limits.execution_bytes &&
   usage.peak_retention_bytes >=
   usage.held_bytes + usage.reserved_retention_bytes &&

@@ -216,3 +216,47 @@ test "same physical owner publishes usable window before any projection or child
   assert_true(reserve_capacity(ledger, 0L, 1L) is Err(RetentionLimit))
   settle_capacity(ledger, held).unwrap()
 }
+
+///|
+test "negative backed byte reports refuse before window subtraction without state or history mutation" {
+  let (parent, _, _, projection, runtime, _, ledger) = backed_window_fixture()
+  let before_parent = ledger_usage(parent)
+  let before_child = ledger_usage(ledger)
+  let ticket = projection.access.unwrap().ticket.unwrap()
+  for value in [-1L, -9223372036854775808L] {
+    for field in 0..<4 {
+      let usage = {
+        ..before_child,
+        held_bytes: if field == 0 {
+          value
+        } else {
+          0L
+        },
+        reserved_retention_bytes: if field == 1 {
+          value
+        } else {
+          0L
+        },
+        reserved_execution_bytes: if field == 2 {
+          value
+        } else {
+          0L
+        },
+        peak_retention_bytes: if field == 3 {
+          value
+        } else {
+          0L
+        },
+      }
+      assert_eq(
+        report_backed_execution_live_child(projection, runtime, usage),
+        Err(Resource(InvalidCharge)),
+      )
+      assert_eq(ledger_usage(parent), before_parent)
+      assert_eq(ledger_usage(ledger), before_child)
+      assert_eq(ticket.current_window.unwrap().val, 56L)
+      assert_eq(ticket.peak_retention, 0L)
+      assert_false(ticket.live_usage_reported)
+    }
+  }
+}
