@@ -310,7 +310,7 @@ export function nativeCoreTestSelection(repository, args, {
       for (const partition of result.profiles.ordinary.partitions) {
         const paths = partition.args.slice(args.length);
         const assigned = records.filter(record => paths.includes(record.directory) || paths.includes(record.source));
-        const directories = new Set(assigned.map(record => record.directory));
+        const packages = new Set(assigned.map(record => JSON.parse(record.entry[0])[0]));
         const drivers = discover(paths);
         assert(drivers.size > 0, 'Empty compiler-owned Native partition');
         for (const [key, driver] of drivers) {
@@ -320,9 +320,10 @@ export function nativeCoreTestSelection(repository, args, {
           ownedDrivers.add(key);
           assert.deepEqual(driver.command, original.command,
             'Native partition changed original compiler driver inputs');
-          const sources = original.command.slice(2).filter(arg => arg.endsWith('.mbt') && arg !== original.output);
-          assert(sources.length > 0 && sources.every(source => directories.has(
-            relative(repository, dirname(realpathSync(resolve(repository, source)))).split(sep).join('/') || '.')),
+          // A blackbox-only package can also have an empty internal driver.
+          // Its original package identity still belongs to this runner; no
+          // source-directory guess may reject it or admit another package.
+          assert(packages.has(JSON.parse(key)[0]),
           'Native partition selected a foreign or nested package driver: ' + key);
         }
         assert(assigned.every(record => drivers.has(record.entry[0])),

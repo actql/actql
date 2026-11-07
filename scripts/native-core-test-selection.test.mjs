@@ -170,6 +170,30 @@ test('actual Native compiler partition isolates nested package drivers using ori
   assert(parts.every(p => p.cases > 0));
 });
 
+test('Native compiler partition retains empty sibling drivers only for the same assigned original package', t => {
+  const root = fixture(t);
+  const command = (name, kind) => ['moon', 'generate-test-driver', '--output-driver', `_build/${name}/${kind}.mbt`,
+    '--output-metadata', `_build/${name}/${kind}.json`, ...(kind === 'internal' ? [] : [name+'/main.mbt']),
+    '--target', 'native', '--pkg-name', 'fixture/'+name, '--driver-kind', kind].join(' ');
+  const execute = (_tool, values) => {
+    if (values[0] === 'test') {
+      const paths = ['active', 'empty'].filter(name => values.includes(name));
+      return (paths.length ? paths : ['active', 'empty']).flatMap(name =>
+        ['internal', 'blackbox'].map(kind => command(name, kind))).join('\n');
+    }
+    const kind = values[values.indexOf('--driver-kind') + 1];
+    writeFileSync(values[values.indexOf('--output-metadata') + 1], JSON.stringify({tests:
+      kind === 'internal' ? {} : {'main.mbt': [{index: 0, name: 'original', attrs: [], line_number: 1}]}}));
+    return '';
+  };
+  const selection = nativeCoreTestSelection(root, ['--release'], {execute,
+    partitionProfiles: true, ordinaryPartitions: true});
+  assert.equal(selection.profiles.ordinary.cases, 2);
+  assert(selection.profiles.ordinary.partitions.every(p => p.cases === 1 && p.drivers.length === 2));
+  const drivers = selection.profiles.ordinary.partitions.flatMap(p => p.drivers);
+  assert.equal(drivers.length, 4); assert.equal(new Set(drivers).size, 4);
+});
+
 test('Native metadata selection retains opaque doc/skip identities and refuses a changed selected inventory', t => {
   const root = fixture(t), args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'];
   const command = name => ['moon', 'generate-test-driver', '--output-driver', '_build/'+name+'/driver.mbt',
