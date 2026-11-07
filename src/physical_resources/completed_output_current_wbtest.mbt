@@ -42,6 +42,8 @@ fn completed_current_callback(
     fixed_capacities: false,
     working: None,
     current_window: None,
+    acquire_window: None,
+    acquiring_window: false,
     ledger: Some(ledger),
     stopping: false,
     unavailable: false,

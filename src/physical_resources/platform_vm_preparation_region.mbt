@@ -50,7 +50,13 @@ fn grow_imported_platform_working_current(
       return Err(ForeignOwner)
     }
     if retained > backed_bytes || execution > backed_bytes - retained {
-      return Err(RetentionLimit)
+      match
+        acquire_imported_child_window_current(
+          ledger, origin, window, retained, execution,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
     }
   }
   guard ledger.imported_child is Some(origin) &&
@@ -83,6 +89,68 @@ fn grow_imported_platform_working_current(
       _ => ChildFundingUnavailable
     }
   })
+}
+
+///|
+// Only this nominal original's installed physical owner may acquire backing.
+// Its successful callback is not a grant: the same current/window/policy cut
+// must still cover the exact canonical simultaneous demand before mutation.
+fn acquire_imported_child_window_current(
+  ledger : Ledger,
+  origin : ImportedChildLedgerOrigin,
+  window : Ref[Int64],
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  if origin.unavailable || origin.acquiring_window {
+    return Err(ChildFundingUnavailable)
+  }
+  if origin.stopping {
+    return Err(ClosedReservation)
+  }
+  if retained < 0L || execution < 0L {
+    return Err(InvalidCharge)
+  }
+  if retained > ledger.limits.retained_bytes {
+    return Err(RetentionLimit)
+  }
+  if execution > ledger.limits.execution_bytes {
+    return Err(ExecutionLimit)
+  }
+  guard origin.acquire_window is Some(acquire) else {
+    return Err(RetentionLimit)
+  }
+  let before = ledger.usage
+  origin.acquiring_window = true
+  let result = match acquire(retained, execution) {
+    Err(issue) => Err(issue)
+    Ok(_) =>
+      match refresh_imported_child_current(origin) {
+        Err(issue) => Err(issue)
+        Ok(_) =>
+          if origin.stopping {
+            Err(ClosedReservation)
+          } else if !(ledger.imported_child is Some(original_origin) &&
+            physical_equal(original_origin, origin) &&
+            origin.ledger is Some(original_ledger) &&
+            physical_equal(original_ledger, ledger) &&
+            origin.current_window is Some(original_window) &&
+            physical_equal(original_window, window)) ||
+            ledger.usage != before {
+            Err(ForeignOwner)
+          } else if retained > ledger.limits.retained_bytes {
+            Err(RetentionLimit)
+          } else if execution > ledger.limits.execution_bytes {
+            Err(ExecutionLimit)
+          } else if retained > window.val || execution > window.val - retained {
+            Err(RetentionLimit)
+          } else {
+            Ok(())
+          }
+      }
+  }
+  origin.acquiring_window = false
+  result
 }
 
 ///|

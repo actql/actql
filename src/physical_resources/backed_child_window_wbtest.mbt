@@ -1,7 +1,9 @@
 ///|
 // Same Resource originals only. Owner-after-acquisition calls stand in for
 // physical receipts; these cases prove no Native mapping, allocator or ACK.
-fn backed_window_fixture() -> (
+fn backed_window_fixture(
+  acquire_window? : ((Int64, Int64) -> Result[Unit, LedgerIssue])? = None,
+) -> (
   Ledger,
   SharedCapacity,
   SharedAllocation,
@@ -48,11 +50,195 @@ fn backed_window_fixture() -> (
     region, provider, child, ticket, read, runtime,
   ).unwrap()
   let projection = admit_backed_execution_live_child(access, runtime).unwrap()
-  let frame = prepare_backed_original_child_ledger(projection, runtime).unwrap()
+  let frame = match acquire_window {
+    None => prepare_backed_original_child_ledger(projection, runtime).unwrap()
+    Some(_) => {
+      let initialization = prepare_backed_initialization_admission(
+        projection,
+        runtime,
+        acquire_window~,
+      ).unwrap()
+      backed_initialization_original_frame(initialization, runtime).unwrap()
+    }
+  }
   start_imported_child_ledger(frame).unwrap()
   let ledger = take_imported_original_child_ledger(frame).unwrap()
   assert_eq(ledger_limits(ledger), policy)
   (parent, capacity, control, projection, runtime, frame, ledger)
+}
+
+///|
+test "backed acquisition callback covers canonical resize through original initialization" {
+  let callback : Ref[((Int64, Int64) -> Result[Unit, LedgerIssue])?] = Ref(None)
+  let (parent, capacity, control, projection, runtime, _, ledger) = backed_window_fixture(
+    acquire_window=Some((r, e) => callback.val.unwrap()(r, e)),
+  )
+  let calls = Ref(0)
+  let demand = Ref((0L, 0L))
+  callback.val = Some((r, e) => {
+    calls.val += 1
+    demand.val = (r, e)
+    let growth = begin_shared_capacity_growth(capacity, control, 208L, 128L).unwrap()
+    complete_backed_original_child_window_after_acquisition(
+      projection, runtime, growth, 96L,
+    ).map_err(_ => ChildFundingUnavailable)
+  })
+  let read = reserve_capacity(ledger, 20L, 36L).unwrap()
+  assert_eq(calls.val, 0)
+  grow_execution_reservation_capacity(ledger, read.reservation, 40L, 60L).unwrap()
+  assert_eq(calls.val, 1)
+  assert_eq(demand.val, (40L, 60L))
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 40L)
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 60L)
+  assert_eq(
+    read_backed_original_child_window_bytes(projection, runtime),
+    Ok(152L),
+  )
+  let parent_after = ledger_usage(parent)
+  grow_execution_reservation_capacity(ledger, read.reservation, 41L, 60L).unwrap()
+  assert_eq(calls.val, 1)
+  assert_eq(ledger_usage(parent), parent_after)
+  settle_capacity(ledger, read).unwrap()
+}
+
+///|
+test "backed acquisition callback cannot grant bytes by success or erase pending failure" {
+  for fail in [false, true] {
+    let callback : Ref[((Int64, Int64) -> Result[Unit, LedgerIssue])?] = Ref(
+      None,
+    )
+    let (_, capacity, control, projection, runtime, _, ledger) = backed_window_fixture(
+      acquire_window=Some((r, e) => callback.val.unwrap()(r, e)),
+    )
+    let pending : Ref[SharedCapacityGrowth?] = Ref(None)
+    let calls = Ref(0)
+    callback.val = Some((_, _) => {
+      calls.val += 1
+      if fail {
+        pending.val = Some(
+          begin_shared_capacity_growth(capacity, control, 208L, 128L).unwrap(),
+        )
+        Err(ChildFundingUnavailable)
+      } else {
+        Ok(())
+      }
+    })
+    let read = reserve_capacity(ledger, 20L, 36L).unwrap()
+    let before = ledger_usage(ledger)
+    let result = grow_execution_reservation_capacity(
+      ledger,
+      read.reservation,
+      40L,
+      60L,
+    )
+    assert_eq(
+      result,
+      if fail {
+        Err(ChildFundingUnavailable)
+      } else {
+        Err(RetentionLimit)
+      },
+    )
+    assert_eq(calls.val, 1)
+    assert_eq(ledger_usage(ledger), before)
+    assert_eq(
+      reservation_capacity_amounts(ledger, read.reservation),
+      Ok((20L, 36L)),
+    )
+    assert_eq(
+      read_backed_original_child_window_bytes(projection, runtime),
+      Ok(56L),
+    )
+    if pending.val is Some(original) {
+      assert_true(physical_equal(capacity.growth.unwrap(), original))
+    } else {
+      assert_true(capacity.growth is None)
+    }
+    assert_false(ledger.imported_child.unwrap().acquiring_window)
+  }
+}
+
+///|
+test "backed acquisition callback blocks reentrant reservation and report through final current" {
+  let callback : Ref[((Int64, Int64) -> Result[Unit, LedgerIssue])?] = Ref(None)
+  let (_, capacity, control, projection, runtime, frame, ledger) = backed_window_fixture(
+    acquire_window=Some((r, e) => callback.val.unwrap()(r, e)),
+  )
+  let nested : Ref[LedgerIssue?] = Ref(None)
+  let report : Ref[ImportedChildLedgerIssue?] = Ref(None)
+  callback.val = Some((_, _) => {
+    match reserve_capacity(ledger, 1L, 0L) {
+      Err(issue) => nested.val = Some(issue)
+      Ok(_) => ()
+    }
+    match report_imported_child_ledger(frame) {
+      Err(issue) => report.val = Some(issue)
+      Ok(_) => ()
+    }
+    let growth = begin_shared_capacity_growth(capacity, control, 208L, 128L).unwrap()
+    complete_backed_original_child_window_after_acquisition(
+      projection, runtime, growth, 96L,
+    ).map_err(_ => ChildFundingUnavailable)
+  })
+  let read = reserve_capacity(ledger, 20L, 36L).unwrap()
+  grow_execution_reservation_capacity(ledger, read.reservation, 40L, 60L).unwrap()
+  assert_eq(nested.val, Some(ChildFundingUnavailable))
+  assert_eq(report.val, Some(Resource(ChildFundingUnavailable)))
+  assert_true(frame.pending_report is None)
+  assert_eq(ledger_usage(ledger).live_reservations, 1)
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 40L)
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 60L)
+  settle_capacity(ledger, read).unwrap()
+}
+
+///|
+test "backed acquisition callback final current observes stop and severs acquisition closure" {
+  let callback : Ref[((Int64, Int64) -> Result[Unit, LedgerIssue])?] = Ref(None)
+  let (_, capacity, control, projection, runtime, _, ledger) = backed_window_fixture(
+    acquire_window=Some((r, e) => callback.val.unwrap()(r, e)),
+  )
+  callback.val = Some((_, _) => {
+    let growth = begin_shared_capacity_growth(capacity, control, 208L, 128L).unwrap()
+    complete_backed_original_child_window_after_acquisition(
+      projection, runtime, growth, 96L,
+    ).unwrap()
+    // An actual current boundary may reenter the same original stop Owner.
+    ledger.imported_child.unwrap().current = _ => {
+      stop_backed_execution_live_child(projection.access.unwrap(), runtime).unwrap()
+      0
+    }
+    Ok(())
+  })
+  let read = reserve_capacity(ledger, 20L, 36L).unwrap()
+  let before = ledger_usage(ledger)
+  assert_eq(
+    grow_execution_reservation_capacity(ledger, read.reservation, 40L, 60L),
+    Err(ClosedReservation),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  assert_true(ledger.imported_child.unwrap().acquire_window is None)
+  assert_false(ledger.imported_child.unwrap().acquiring_window)
+  assert_eq(
+    projection.access.unwrap().ticket.unwrap().current_window.unwrap().val,
+    152L,
+  )
+  settle_capacity(ledger, read).unwrap()
+}
+
+///|
+test "backed acquisition callback is not invoked for declared policy excess" {
+  let calls = Ref(0)
+  let (_, _, _, _, _, _, ledger) = backed_window_fixture(
+    acquire_window=Some((_, _) => {
+      calls.val += 1
+      Ok(())
+    }),
+  )
+  let before = ledger_usage(ledger)
+  assert_true(reserve_capacity(ledger, 65L, 0L) is Err(RetentionLimit))
+  assert_true(reserve_capacity(ledger, 0L, 129L) is Err(ExecutionLimit))
+  assert_eq(calls.val, 0)
+  assert_eq(ledger_usage(ledger), before)
 }
 
 ///|

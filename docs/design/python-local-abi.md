@@ -3659,6 +3659,28 @@ existing closed Resource cut, before usage or serial mutation. Reporting also
 cannot claim bytes outside that window. No external current callback or I/O
 is added merely to read the window.
 
+The same physical issuer can pass `acquire_window` through
+`prepare_backed_initialization_admission` to
+`prepare_backed_original_child_ledger`. This optional callback is retained only
+on that original growable-window origin, including its later initialized
+Request continuation. The original entry envelope must cover its additional
+optional reference, acquisition-busy scalar and actual closure/captures before
+frame construction. Fixed-window and VM callers omit it and keep their existing
+behavior. It cannot issue an owner, Ledger, reservation, authority or receipt.
+
+Only a canonical child reserve/resize whose simultaneous retained-plus-execution
+demand exceeds that acquired pool invokes the callback. Common supplies the
+actual total vector after its policy checks; Native does not duplicate the
+preparation tariff. The callback acquires only pool backing, independently of
+raw contiguous constructor geometry. An `Ok` return alone grants no bytes:
+the same original/current/window and policy must still cover the demand before
+the existing reservation mutation. A child-mutation fence spans acquisition and
+its final current callback, rejecting reentrant reserve/resize/report. Original
+window observation and actual acquisition completion remain usable inside that
+boundary. Stop cuts the retained callback reference and prevents the pending
+debit. Failure leaves the old reservation unchanged and the physical issuer
+retains its original pending acquisition and cleanup; no refund or ACK follows.
+
 `read_backed_original_child_window_bytes` observes that same acquired pool
 through the original projection/runtime and the shared current/closing fence.
 It does not return a reusable current proof, grant a reservation or describe a

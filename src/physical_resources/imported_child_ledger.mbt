@@ -14,6 +14,9 @@ priv struct ImportedChildLedgerOrigin {
   mut working : (PlatformVMWorkingCapacity, Int64, Int64)?
   // Same physical owner's acquired byte window; policy remains ledger.limits.
   mut current_window : Ref[Int64]?
+  // The same backed issuer's acquisition boundary, never a byte grant.
+  mut acquire_window : ((Int64, Int64) -> Result[Unit, LedgerIssue])?
+  mut acquiring_window : Bool
   // The back-reference rejects copies without another Resource Owner.
   mut ledger : Ledger?
   mut stopping : Bool
@@ -86,6 +89,8 @@ fn prepare_imported_child_port(
       fixed_capacities,
       working: None,
       current_window: None,
+      acquire_window: None,
+      acquiring_window: false,
       ledger: None,
       stopping: false,
       unavailable: false,
@@ -139,12 +144,29 @@ fn check_imported_child_ledger(ledger : Ledger) -> Result[Unit, LedgerIssue] {
   if !(origin.ledger is Some(original) && physical_equal(original, ledger)) {
     return Err(ForeignOwner)
   }
+  // The physical callback may reenter. Never mutate a child snapshot that a
+  // canonical reserve/resize is still using across that acquisition boundary.
+  if origin.acquiring_window {
+    return Err(ChildFundingUnavailable)
+  }
+  refresh_imported_child_current(origin)
+}
+
+///|
+// Shared current observation. Acquisition keeps its local mutation fence set
+// through this final callback, then rechecks the original before any debit.
+fn refresh_imported_child_current(
+  origin : ImportedChildLedgerOrigin,
+) -> Result[Unit, LedgerIssue] {
   if origin.unavailable {
     return Err(ChildFundingUnavailable)
   }
   match (origin.current)(origin.nonce) {
     0 => ()
-    1 => origin.stopping = true
+    1 => {
+      origin.stopping = true
+      origin.acquire_window = None
+    }
     _ => {
       origin.unavailable = true
       return Err(ChildFundingUnavailable)
@@ -485,6 +507,9 @@ pub fn report_imported_child_ledger(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if value.origin.acquiring_window {
+    return Err(Resource(ChildFundingUnavailable))
+  }
   if value.pending_report is Some(_) {
     return match value.pending_report_issue {
       Some(issue) => Err(issue)
@@ -525,6 +550,7 @@ pub fn stop_imported_child_ledger(
     }
   }
   value.origin.stopping = true
+  value.origin.acquire_window = None
   value.stop_attempted = true
   let port = value.origin
   match imported_child_status((port.stop)(port.nonce)) {

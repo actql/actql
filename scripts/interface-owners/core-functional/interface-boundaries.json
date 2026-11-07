@@ -63797,7 +63797,7 @@
     },
     {
       "module": "src/physical_resources/backed_initialization_admission.mbt",
-      "sha256": "3833406856aa8b8607adc24d7a91b1993d90a311aba088b7ced95a33e9e5c355",
+      "sha256": "9658cc33de738fb6fdd68f6968f0e9a105c64c89f894e7136b4738821de64e8e",
       "exports": [],
       "operations": [
         {
@@ -63829,8 +63829,12 @@
           "declaration": "[ I ] take_backed_initialization_admission ( owner : BackedInitializationAdmission [ I ] , input : I , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
         },
         {
+          "name": "[I]take_backed_initialization_for_host",
+          "declaration": "[ I ] take_backed_initialization_for_host ( owner : BackedInitializationAdmission [ I ] , input : I , request : Bool , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
+        },
+        {
           "name": "[P,C,I]prepare_backed_initialization_admission",
-          "declaration": "[ P , C , I ] prepare_backed_initialization_admission ( projection : BackedExecutionLiveProjection [ P , C , I ] , input : I , ) - > Result [ BackedInitializationAdmission [ I ] , ImportedChildLedgerIssue ]"
+          "declaration": "[ P , C , I ] prepare_backed_initialization_admission ( projection : BackedExecutionLiveProjection [ P , C , I ] , input : I , acquire_window ? : ( ( Int64 , Int64 ) - > Result [ Unit , LedgerIssue ] ) ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -63847,7 +63851,8 @@
             "[I]cleanup_backed_initialization_admission",
             "[I]start_backed_initialization_admission",
             "[I]take_backed_initialization_admission",
-            "[P,C,I]prepare_backed_initialization_admission"
+            "[P,C,I]prepare_backed_initialization_admission",
+            "[I]take_backed_initialization_for_host"
           ],
           "exports": [],
           "attributes": {
@@ -63897,6 +63902,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -63909,6 +63918,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
@@ -63918,7 +63931,7 @@
     },
     {
       "module": "src/physical_resources/backed_live_child.mbt",
-      "sha256": "e20e81e977031c2e9b41b9976443d56f4deb617e08bf9f141fcdaeb553e5d74b",
+      "sha256": "2fc42f7ffa8fab69b47da666a58ed2da781294ce1ead76e1c4978769be992ea9",
       "exports": [],
       "operations": [
         {
@@ -64023,6 +64036,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -64035,6 +64052,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Host initialization before Source loading"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
@@ -64254,7 +64275,8 @@
             "stop_imported_child_ledger",
             "take_imported_child_ledger",
             "take_imported_original_child_ledger",
-            "check_imported_child_admission_current"
+            "check_imported_child_admission_current",
+            "refresh_imported_child_current"
           ],
           "exports": [],
           "attributes": {
@@ -64324,6 +64346,10 @@
               {
                 "path": "src/physical_resources/imported_child_ledger.mbt",
                 "anchor": "pub fn check_imported_original_child_ledger("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -64344,6 +64370,10 @@
               {
                 "path": "src/physical_resources/node_preparation_cleanup_wbtest.mbt",
                 "anchor": "test \"unavailable original preparation remains retained and cannot authorize cleanup cut\""
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
@@ -64558,7 +64588,7 @@
           }
         }
       ],
-      "sha256": "394b794854a0d5c2214a1827d4cabcbba1c4a8c5366e09f51747467eabd53948",
+      "sha256": "41ce70e467312babca3c97e3242d4c6e5e60975eb8c5d034216afe480610ad21",
       "exports": [],
       "operations": [
         {
@@ -64616,6 +64646,10 @@
         {
           "name": "prepare_imported_child_port",
           "declaration": "prepare_imported_child_port ( nonce : Int64 , admit : ( Int64 ) - > Int , current : ( Int64 ) - > Int , limit : ( Int64 , Int ) - > Int64 , capacity : ( Int64 , Int ) - > Int64 , report : ( Int64 , LedgerUsage ) - > Int , stop : ( Int64 ) - > Int , fixed_capacities ? : Bool"
+        },
+        {
+          "name": "refresh_imported_child_current",
+          "declaration": "refresh_imported_child_current ( origin : ImportedChildLedgerOrigin , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
           "name": "relocate_imported_child_cleanup_usage",
@@ -78085,6 +78119,10 @@
               {
                 "path": "src/physical_resources/backed_original_child_ledger.mbt",
                 "anchor": "fn[P, C, R] backed_original_child_ready("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -78105,12 +78143,16 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
         }
       ],
-      "sha256": "c1caeff237bc323f7b7cb857ed5f66c7ba189de4724653c547c9af03dda8a42d",
+      "sha256": "d9b602e83a17fd330ae3190099496e5849f0118a5b3539f2f44c28bef2bccbd4",
       "operations": [
         {
           "name": "[P,C,R]backed_original_child_ready",
@@ -78118,7 +78160,7 @@
         },
         {
           "name": "[P,C,R]prepare_backed_original_child_ledger",
-          "declaration": "[ P , C , R ] prepare_backed_original_child_ledger ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , ) - > Result [ ImportedChildLedger , ImportedChildLedgerIssue ]"
+          "declaration": "[ P , C , R ] prepare_backed_original_child_ledger ( projection : BackedExecutionLiveProjection [ P , C , R ] , runtime : R , acquire_window ? : ( ( Int64 , Int64 ) - > Result [ Unit , LedgerIssue ] ) ?"
         },
         {
           "name": "retire_backed_original_child_origin",
@@ -78558,7 +78600,8 @@
             "<module>",
             "[P,C]issue_platform_vm_preparation_region",
             "[P,C]platform_vm_backed_usage_fits",
-            "grow_imported_platform_working_current"
+            "grow_imported_platform_working_current",
+            "acquire_imported_child_window_current"
           ],
           "exports": [],
           "attributes": {
@@ -78640,6 +78683,10 @@
               {
                 "path": "src/physical_resources/platform_vm_preparation_region.mbt",
                 "anchor": "pub fn[P, C] issue_platform_vm_preparation_region("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The same physical issuer can pass `acquire_window` through"
               }
             ],
             "extension": [
@@ -78660,12 +78707,16 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original Request admission and demand growth"
+              },
+              {
+                "path": "src/physical_resources/backed_child_window_wbtest.mbt",
+                "anchor": "test \"backed acquisition callback covers canonical resize through original initialization\""
               }
             ]
           }
         }
       ],
-      "sha256": "b7ccdee641432b9373eed1edc46e800e4ae85b1a825baae52129356d34232594",
+      "sha256": "88643fadb611e042d270484fd7cff2e9801ae957debadd032d0fcd654d4b374f",
       "operations": [
         {
           "name": "[P,C]issue_platform_vm_preparation_region",
@@ -78674,6 +78725,10 @@
         {
           "name": "[P,C]platform_vm_backed_usage_fits",
           "declaration": "[ P , C ] platform_vm_backed_usage_fits ( region : BackedExecutionRegion [ P , C ] , usage : LedgerUsage , ) - > Bool"
+        },
+        {
+          "name": "acquire_imported_child_window_current",
+          "declaration": "acquire_imported_child_window_current ( ledger : Ledger , origin : ImportedChildLedgerOrigin , window : Ref [ Int64 ] , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
           "name": "grow_imported_platform_working_current",
