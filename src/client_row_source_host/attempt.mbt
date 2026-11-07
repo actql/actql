@@ -288,6 +288,7 @@ fn[T] fail_read(
 fn accept_row_source_page(
   read : RowSourceRead,
   bytes : Bytes,
+  parsed? : @source.Node? = None,
 ) -> Result[Int, RowSourceIssue] {
   if !read.open {
     return Err(Closed)
@@ -305,13 +306,20 @@ fn accept_row_source_page(
   // A physical page carries external DATA, not authored identifiers. Keep
   // JSON payload keys exact before their checked Value contract is known.
   // The existing row/typed-object readers still enforce the declared fields.
-  guard @source.parse_json_bytes_preserving(bytes, {
-      max_input_bytes: limits.max_bytes,
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-    })
-    is Ok(node) &&
-    @decode.admit(node, {
+  let node = match parsed {
+    Some(value) => value
+    None =>
+      match
+        @source.parse_json_bytes_preserving(bytes, {
+          max_input_bytes: limits.max_bytes,
+          max_nodes: limits.max_nodes,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(value) => value
+        Err(_) => return fail_read(read, InvalidPage)
+      }
+  }
+  guard @decode.admit(node, {
       max_nodes: limits.max_nodes,
       max_depth: limits.max_depth,
       max_string_bytes: limits.max_bytes,
@@ -588,11 +596,11 @@ pub fn declared_row_view(
 /// Admit already-typed provider values into the same input owner as JSON
 /// pages. append_admitted_input checks exact contract identity (including
 /// decimal precision/scale), width and retention limits before retaining a row.
-fn accept_row_source_values(
+fn row_source_value_indices(
   read : RowSourceRead,
   columns : Array[String],
   rows : Array[Array[@admitted.CheckedValue]],
-) -> Result[Int, RowSourceIssue] {
+) -> Result[Array[Int], RowSourceIssue] {
   if !read.open {
     return Err(Closed)
   }
@@ -616,6 +624,16 @@ fn accept_row_source_values(
     }
     indices.push(index)
   }
+  Ok(indices)
+}
+
+///|
+fn append_row_source_values(
+  read : RowSourceRead,
+  columns : Array[String],
+  rows : Array[Array[@admitted.CheckedValue]],
+  indices : Array[Int],
+) -> Result[Int, RowSourceIssue] {
   for row in rows {
     if row.length() != columns.length() {
       return fail_read(read, InvalidPage)
@@ -632,4 +650,17 @@ fn accept_row_source_values(
   read.pages += 1L
   read.rows += rows.length().to_int64()
   Ok(rows.length())
+}
+
+///|
+fn accept_row_source_values(
+  read : RowSourceRead,
+  columns : Array[String],
+  rows : Array[Array[@admitted.CheckedValue]],
+) -> Result[Int, RowSourceIssue] {
+  let indices = match row_source_value_indices(read, columns, rows) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  append_row_source_values(read, columns, rows, indices)
 }

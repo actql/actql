@@ -27,6 +27,20 @@ fn begin_input_row_capture(run : RowRun) -> Result[Unit, RowHostIssue] {
   if !input_row_capture_live(run) {
     return Err(Evidence(UnverifiedTransport))
   }
+  if run.physical is Some(_) {
+    match fund_row_input_capture(run, acquisition, rows) {
+      Ok(_) => ()
+      Err(issue) => {
+        abort_row_run(run)
+        return Err(issue)
+      }
+    }
+    guard input_row_capture_live(run) &&
+      run.attempt.state is InputAwaitingCleanup(current, _) &&
+      physical_equal(current, rows) else {
+      return Err(InvalidState)
+    }
+  }
   let original = acquisition.preparation
   let read = match
     @execution.prepare_supplied_relation_read(
