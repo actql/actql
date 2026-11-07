@@ -349,6 +349,12 @@ try {
   const [code, signal] = await once(child, 'close');
   stopProgress();
   child = undefined;
+  if (compilerDriver) {
+    // Child close drains its pipes, not our forwarded writes. Flush those
+    // before a failure assertion can terminate this owner with queued tails.
+    await Promise.all([process.stdout, process.stderr].map(stream =>
+      new Promise(resolve => stream.write('', resolve))));
+  }
   if (code !== 0 && compilerDriver) {
     let diagnostic;
     try {
