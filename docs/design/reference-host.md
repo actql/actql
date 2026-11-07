@@ -3320,3 +3320,18 @@ uncertainty, retention, consumed work, or pending physical cleanup. A repeated
 absolute return is idempotent. An unstaged operation, failed callback, unresolved
 flight, changed original or failed current boundary cannot use this completion;
 the older pure-constructor completion still refuses physical operations.
+
+### Kintone UPDATE Mapping originals
+
+The kintone UPDATE Node binding passes the original `RecordDeclaration`, bounded
+field-source inventory and declaration limits to the existing native Mapping
+constructor. It preserves the complete original Form schema, writable fields,
+`$id` identity and required approval. Mapping/request correspondence requires
+the constructor-original Mapping and request, the same physical Catalog and
+complete before/write/omit inventories. Equal copied private fields do not
+establish that correspondence. Body/ref/CID projections refuse copied Mappings.
+These are synchronous DATA checks, not current authority, a target observation,
+a claim, a provider send or a cleanup acknowledgement. The installing caller
+reserves constructor work before invocation and retains the resulting material;
+normal current, authorization, cancellation and physical cleanup duties remain
+with their existing owners. The RelA bridge is generated from the same body.

@@ -364,7 +364,7 @@ pub fn recheck_record_delete_form(
 }
 
 ///|
-fn recheck_original_record_form(
+pub fn recheck_original_record_form(
   original : FormFieldCatalog,
   bytes : Bytes,
   limits : FormFieldLimits,

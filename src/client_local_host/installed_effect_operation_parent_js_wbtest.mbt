@@ -2205,3 +2205,160 @@ test "cold inventory grows original symbolic member backing without opening or r
   )
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+// Actual original preparation/Ledger and row operation bounds. Provider
+// authorization, HTTP dispatch and physical ACK are not supplied by this case.
+test "managed row ceiling above a provider batch remains the same finite parent budget" {
+  let rows = "[" +
+    Array::makei(60, index => "{\"id\":" + index.to_string() + "}").join(",") +
+    "]"
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let effect =
+    #|{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}
+  let document =
+    #|{"version":"actql/0.1","id":"bounded-two-members","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":ROWS},"as":"seed"}],"results":{"rows":{"from":"seed","fields":["id"]}},"effects":{"first":EFFECT,"second":EFFECT}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
+  let document = document
+    .replace(old="ROWS", new=rows)
+    .replace_all(old="EFFECT", new=effect)
+  let prepared = @publication_host.prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  let request = @publication_host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "bounded-two-members",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  let contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  let metadata = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(100L, 200L).unwrap(),
+    17L,
+    true,
+  ).unwrap()
+  let send = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(300L, 500L).unwrap(),
+    13L,
+    true,
+  ).unwrap()
+  let capture = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(50L, 70L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let demands = ["first", "second"].map(effect_id => {
+    prepare_installed_effect_operation_demand(
+      prepared,
+      0,
+      effect_id,
+      [metadata],
+      [send, send, capture],
+    ).unwrap()
+  })
+  let plan = match
+    prepare_installed_effect_managed_plan(
+      prepared,
+      request,
+      [],
+      "",
+      "",
+      [],
+      [],
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      demands,
+      provider_factory=_ => [],
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      let label = match issue {
+        Unsupported => "Unsupported"
+        ForeignOriginal => "ForeignOriginal"
+        InsufficientCapacity => "InsufficientCapacity"
+        MetadataCapacityUnavailable => "MetadataCapacityUnavailable"
+        Sequence(_) => "Sequence"
+        _ => "Other"
+      }
+      fail("Original120TargetPlan: " + label)
+    }
+  }
+  assert_eq(prepared_installed_effect_managed_shape(plan).0, 60)
+  assert_eq(prepared_installed_effect_managed_shape(plan).1, 2)
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    run, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  let mut completed = 0
+  for member_index in 0..<2 {
+    for row in 0..<60 {
+      let original = borrow_installed_effect_operation(
+        run, prepared, request, plan, member_index, true, 2, row, "operation",
+      ).unwrap()
+      complete_installed_effect_operation_construction(original).unwrap()
+      assert_true(retire_installed_effect_operation(original, true).unwrap())
+      completed += 1
+    }
+  }
+  assert_eq(completed, 120)
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    borrow_installed_effect_operation(
+      run, prepared, request, plan, 0, true, 2, 60, "operation",
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_true(require_installed_managed_run(run) is Err(Retired))
+  // One missing transfer byte still refuses the actual physical extent before
+  // a Start; row count cannot create budget or turn unknown cleanup into ACK.
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[3] = 16L
+  let (input, initial, ledger, capacity) = effect_preparation_test_capacity(
+    plan, quote,
+  )
+  let run = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    run, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  assert_true(
+    borrow_installed_effect_operation(
+      run, prepared, request, plan, 0, false, 0, 0, "operation",
+    )
+    is Err(Ledger(TransferLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
