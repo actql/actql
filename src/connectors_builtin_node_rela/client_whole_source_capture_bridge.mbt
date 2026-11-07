@@ -218,6 +218,14 @@ pub fn client_program_issue_whole_source_publication_invocation(
 }
 
 ///|
+#export_name("clientProgramWholeSourceIsListing")
+pub fn client_program_whole_source_is_listing(
+  acquisition : @client_row_source_host.RowInputAcquisition,
+) -> Bool {
+  @client_row_source_host.row_input_acquisition_is_listing(acquisition)
+}
+
+///|
 #export_name("clientProgramWholeSourceFacts")
 pub fn client_program_whole_source_facts(
   acquisition : @client_row_source_host.RowInputAcquisition,

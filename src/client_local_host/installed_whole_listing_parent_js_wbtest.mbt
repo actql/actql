@@ -1,5 +1,8 @@
 ///|
-fn whole_listing_effect_declaration() -> @row_source_host.RowDeclaration raise {
+#cfg(target="js")
+fn whole_listing_effect_declaration(
+  catalog_maximum? : Int? = Some(3),
+) -> @row_source_host.RowDeclaration raise {
   let fields : Json = {
     "id": { "type": "number", "nullable": false },
     "resource": {
@@ -63,6 +66,14 @@ fn whole_listing_effect_declaration() -> @row_source_host.RowDeclaration raise {
       "maximum_path_length": 128,
     },
   }
+  guard profile is Object(facts) && facts["file_listing"] is Object(listing) else {
+    fail("fixture listing profile")
+  }
+  match catalog_maximum {
+    None => listing.remove("max_listing_items") |> ignore
+    Some(value) =>
+      listing["max_listing_items"] = Json::number(value.to_double())
+  }
   @row_source_host.generate_relation_row_declaration(
     "operation-source",
     "fixture",
@@ -73,8 +84,38 @@ fn whole_listing_effect_declaration() -> @row_source_host.RowDeclaration raise {
 }
 
 ///|
+#cfg(target="js")
+test "Whole listing without a Catalog row ceiling borrows its original checked Host policy" {
+  let declaration = whole_listing_effect_declaration(catalog_maximum=None)
+  let plan = effect_operation_source_plan_fixture(
+    whole_inputs=true,
+    source_request=Some("{\"paths\":null,\"glob\":null}"),
+    source_declaration=Some(declaration),
+    host_listing_items=Some(2),
+  )
+  let whole = plan.whole_sources[0].unwrap().1
+  assert_true(
+    @row_source_host.row_input_acquisition_is_listing(whole.acquisition),
+  )
+  // The capture allows three rows; it is not substituted for this independently
+  // selected Host ceiling. The declaration supplies no count fact or maximum.
+  assert_eq(
+    @row_source_host.row_input_acquisition_max_rows(whole.acquisition),
+    3,
+  )
+  let policy = installed_source_listing_policy(plan.graph)
+  assert_eq(
+    @capacity.ceiling_value(
+      @capacity.ceiling(policy, "max_file_listing_items").unwrap(),
+    ),
+    2L,
+  )
+}
+
+///|
 // Real Core preparation/adoption/Source/RowRun originals. Physical provider,
 // Authority and stop below are explicit fixture ports, not ordinary acceptance.
+#cfg(target="js")
 test "Effect preparation parent grows its original listing RowRun without a seeded capacity substitution" {
   let declaration = whole_listing_effect_declaration()
   let plan = effect_operation_source_plan_fixture(

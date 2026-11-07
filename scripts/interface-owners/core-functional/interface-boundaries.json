@@ -37892,7 +37892,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "f4a3b25099e74d197f27634bdfcaa0051a701f92e9bfdb28691c72f4b22de8ce",
+      "sha256": "c4f37af9a15aab839994a3f1d3131e4f32ce1e0d126f38f7e8722dedf94a994b",
       "exports": [],
       "operations": [
         {
@@ -37918,6 +37918,10 @@
         {
           "name": "installed_row_input_policy",
           "declaration": "installed_row_input_policy ( max_rows : Int , max_page_bytes : Int , max_page_nodes : Int , max_page_depth : Int , max_page_rows : Int , ) - > @ row_source_host . RowInputLimits"
+        },
+        {
+          "name": "installed_source_listing_policy",
+          "declaration": "installed_source_listing_policy ( graph : @ strategy . CheckedDAG , ) - > @ capacity . Policy"
         },
         {
           "name": "installed_whole_source_acquisition",
@@ -37985,7 +37989,8 @@
             "select_installed_effect_source_input",
             "select_installed_source_input_graph",
             "start_installed_whole_source_read_rows",
-            "installed_row_input_policy"
+            "installed_row_input_policy",
+            "installed_source_listing_policy"
           ],
           "exports": [],
           "attributes": {
@@ -60805,7 +60810,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "8a67ba7e22f933ed1aac5f5cbe7fbf34dbd2240837d60d7671d99f4234b8741f",
+      "sha256": "0f8cb11adc07a4960fec7e61a32e67f6f4d8a8820a3cbcbed66651b00ed6874f",
       "exports": [],
       "operations": [
         {
@@ -60949,6 +60954,10 @@
           "declaration": "client_program_whole_source_input_identity ( prepared : @ publication_host . PreparedClientProgram , original : @ acquisition . SourceAcquisition , ) - > Array [ String ] ?"
         },
         {
+          "name": "client_program_whole_source_is_listing",
+          "declaration": "client_program_whole_source_is_listing ( acquisition : @ client_row_source_host . RowInputAcquisition , ) - > Bool"
+        },
+        {
           "name": "client_program_whole_source_issue_source_evidence",
           "declaration": "client_program_whole_source_issue_source_evidence ( acquisition : @ client_row_source_host . RowInputAcquisition , capture : @ client_row_source_host . RowSourceCapture , identity : @ query . CapturedSourceRelationIdentity , logical : @ publication . RunEvidenceValue , scope : String , policy : String , observed : String , ) - > Result [ @ publication . RunEvidenceValue , @ client_row_source_host . RowHostIssue ]"
         },
@@ -61002,7 +61011,8 @@
             "client_program_issue_effect_whole_source_input_logical",
             "client_program_export_whole_source_capture",
             "client_program_restore_whole_source_capture",
-            "client_program_source_capture_retain_input"
+            "client_program_source_capture_retain_input",
+            "client_program_whole_source_is_listing"
           ],
           "exports": [],
           "attributes": {
@@ -61803,7 +61813,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "ab48740797692d09317157a9b1f78202344c98dbd811defe714eb5f49568a2c4",
+      "sha256": "8a6b75d95026552971f58ea7f7cd34d7647102b37e70ed3007e5fb1bd2ffe946",
       "exports": [],
       "operations": [
         {
@@ -61947,6 +61957,10 @@
           "declaration": "client_program_whole_source_input_identity ( prepared : @ publication_host . PreparedClientProgram , original : @ acquisition . SourceAcquisition , ) - > Array [ String ] ?"
         },
         {
+          "name": "client_program_whole_source_is_listing",
+          "declaration": "client_program_whole_source_is_listing ( acquisition : @ client_row_source_host . RowInputAcquisition , ) - > Bool"
+        },
+        {
           "name": "client_program_whole_source_issue_source_evidence",
           "declaration": "client_program_whole_source_issue_source_evidence ( acquisition : @ client_row_source_host . RowInputAcquisition , capture : @ client_row_source_host . RowSourceCapture , identity : @ query . CapturedSourceRelationIdentity , logical : @ publication . RunEvidenceValue , scope : String , policy : String , observed : String , ) - > Result [ @ publication . RunEvidenceValue , @ client_row_source_host . RowHostIssue ]"
         },
@@ -62000,7 +62014,8 @@
             "client_program_issue_effect_whole_source_input_logical",
             "client_program_export_whole_source_capture",
             "client_program_restore_whole_source_capture",
-            "client_program_source_capture_retain_input"
+            "client_program_source_capture_retain_input",
+            "client_program_whole_source_is_listing"
           ],
           "exports": [],
           "attributes": {

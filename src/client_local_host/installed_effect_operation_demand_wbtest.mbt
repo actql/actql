@@ -266,6 +266,7 @@ fn effect_operation_source_plan_fixture(
   source_request? : String? = None,
   source_declaration? : @row_source_host.RowDeclaration? = None,
   whole_policy? : @row_source_host.RowInputLimits? = None,
+  host_listing_items? : Int? = None,
   query_time_for? : ((
     @publication_host.PreparedClientEffectComputation,
     @publication_host.ClientRequestIdentity,
@@ -301,6 +302,13 @@ fn effect_operation_source_plan_fixture(
   let parsed = @json.parse(source_query_original_environment)
   guard parsed is Object(base) else { fail("fixture Environment object") }
   base.remove("evidence_bundle_cid")
+  if host_listing_items is Some(maximum) {
+    guard base["host_policy_profile"] is Object(profile) &&
+      profile["capacity"] is Object(capacity) else {
+      fail("fixture original Host capacity policy")
+    }
+    capacity["max_file_listing_items"] = Json::number(maximum.to_double())
+  }
   let (schemas, capabilities) = @row_source_host.row_declaration_evidence_members(
     declaration,
   )

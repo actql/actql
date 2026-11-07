@@ -3968,6 +3968,8 @@ pub fn client_program_whole_source_facts(@client_row_source_host.RowInputAcquisi
 
 pub fn client_program_whole_source_input_identity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisition) -> Array[String]?
 
+pub fn client_program_whole_source_is_listing(@client_row_source_host.RowInputAcquisition) -> Bool
+
 pub fn client_program_whole_source_issue_source_evidence(@client_row_source_host.RowInputAcquisition, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_whole_source_issue_source_evidence_wire(@client_row_source_host.RowInputAcquisition, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[String, @client_row_source_host.RowHostIssue]
