@@ -49,11 +49,19 @@ function selectHostResultStoreArguments(options, directory) {
     if (property === undefined || !own(property, 'value')) unavailable();
     selected[name] = property.value;
   }
-  // Do not silently lower public configuration or accept a caller quota as
-  // supply. These are the existing Host's exact selected support arguments.
+  // Preserve the actual installed directory/authority binding. Selected
+  // policy quantities remain DATA and never supply physical backing.
   if (selected.directory !== directory || typeof selected.storeAuthorityCid !== 'string' ||
       !/^sha256:[0-9a-f]{64}$/u.test(selected.storeAuthorityCid)) unavailable();
-  for (const name of Object.keys(store)) if (selected[name] !== store[name]) unavailable();
+  // Validate selected policy DATA, not equality with one recipe's defaults.
+  // The exact service/Journal/directory binding above remains the owner; these
+  // numbers cannot issue physical backing or replace Store admission. Contract
+  // decoding crosses Core Int; checked representation bounds remain finite.
+  if (!Number.isSafeInteger(selected.capacityBytes) || selected.capacityBytes < 0 ||
+      ['maxObjectBytes', 'maxObjects', 'maxContractNodes'].some(name =>
+        !Number.isSafeInteger(selected[name]) || selected[name] < 1 || selected[name] > 2147483647) ||
+      !Number.isSafeInteger(selected.maxContractDepth) || selected.maxContractDepth < 1 ||
+      selected.maxContractDepth > store.maxContractDepth) unavailable();
   // Key authority is independent. This ordinary no-key purpose must not copy
   // the legacy create-on-absence fallback or accept an arbitrary key buffer.
   if (selected.privateEvidenceKey !== undefined) unavailable();
@@ -75,9 +83,9 @@ function declareHostResultServiceRecipe(control, journal, sourceCompute, sourceF
     value === null || typeof value !== 'object' || isProxy(value)) || journal.sharedControl !== control) unavailable();
   return record({kind: 'selected-node-local-result-publication-service', sharedControl: control,
     journal, sourceCompute, sourceFreeCompute, store, result, phases,
-    installationAttempts: 1, runAttempts: 1, maxHostOperations: 128, maxStoreOperations: 4096,
-    conditionalWireHistory: record({publication: BigInt(result.maxResults) * BigInt(store.maxObjectBytes),
-      reads: 128n * BigInt(result.maxReadWireBytes), storeCalls: 4096n * BigInt(store.maxObjectBytes)}),
+    // These guard this single installation constructor and checked Run
+    // association. They are not Host-lifetime read/Store-operation quotas.
+    installationAttempts: 1, runAttempts: 1,
     selectStoreArguments: selectHostResultStoreArguments,
     refilledOnClose: false, numericalBackingClaim: false, allocationSuccessGuaranteed: false});
 }
