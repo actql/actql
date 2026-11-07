@@ -1931,8 +1931,11 @@ jobs:
           name: packed-resident-redelivery-${{ github.sha }}
       - name: Verify registered Native retained product path
         if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        # Keep every module checked by release-artifacts.mjs, without building unrelated entries.
         run: |
-          moon build --target js --release
+          moon build --target js --release src/benchmark_obligations src/connectors/duckdb/host_node \
+            src/connectors_builtin_node src/physical_strategy_example src/physical_task_manifest_example \
+            src/process_host_bridge src/retained_host_bridge
           moon build src/cmd/native_retained_case_probe --target native --release
           node benchmarks/retained-results/native-case-probe.mjs native-acquisition-full-validation-low-selectivity/narrow/100
           node benchmarks/retained-results/native-case-probe.mjs fixed-join-count-shrinking-intermediate/narrow/1000

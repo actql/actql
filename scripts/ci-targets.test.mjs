@@ -144,6 +144,28 @@ test('Native consumers keep all original commands and collect independent failur
     assert.equal(jobs.native.steps.find(step => step.id === id).if, condition);
 });
 
+test('Native retained verification builds exactly its checked release module inventory', () => {
+  const step = jobs.native.steps.find(step => step.name === 'Verify registered Native retained product path');
+  assert(step);
+  const source = readFileSync(new URL('../benchmarks/retained-results/release-artifacts.mjs', import.meta.url), 'utf8');
+  const inventory = /const modules = Object\.freeze\((\[[\s\S]*?\])\);/u.exec(source);
+  assert(inventory, 'the original checked release inventory must remain explicit');
+  const modules = Array.from(runInNewContext(inventory[1]));
+  assert(modules.length > 0);
+  const targets = modules.map(path => 'src/' + path.slice(0, path.lastIndexOf('/')));
+  assert.equal(new Set(targets).size, targets.length);
+  const commands = step.run.replace(/\\\n\s*/gu, ' ').trim().split('\n').map(line => line.trim().replace(/\s+/gu, ' '));
+  assert.deepEqual(commands[0].split(/\s+/u), ['moon', 'build', '--target', 'js', '--release', ...targets]);
+  assert.equal(step.if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
+  assert.deepEqual(commands.slice(1), [
+    'moon build src/cmd/native_retained_case_probe --target native --release',
+    'node benchmarks/retained-results/native-case-probe.mjs native-acquisition-full-validation-low-selectivity/narrow/100',
+    'node benchmarks/retained-results/native-case-probe.mjs fixed-join-count-shrinking-intermediate/narrow/1000',
+    'node benchmarks/retained-results/native-estimate-calibration.mjs native-acquisition-full-validation-low-selectivity/narrow/1000 native-acquisition-full-validation-low-selectivity/narrow/100 "$RUNNER_TEMP/native-retained-calibration.json"',
+    'ACTQL_NATIVE_CALIBRATION_PROFILE="$RUNNER_TEMP/native-retained-calibration.json" node scripts/test-native-direct-pair.mjs',
+  ]);
+});
+
 test('normal lint executes behavioral operation performance assessment tests', () => {
   const step = jobs.lint.steps.find(row =>
     row.name === 'Test ordinary operation performance assessment');
