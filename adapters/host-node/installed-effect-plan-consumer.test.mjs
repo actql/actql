@@ -1410,6 +1410,39 @@ test('existing whole Effect resume forwards the same restored Plan before recove
   assert.deepEqual(calls, ['prepare', 'resume', 'same-parent-capture']);
 });
 
+test('existing Effect resume diagnostics preserve the original refusal without completing or retrying its Run', async () => {
+  for (const boundary of ['continuation', 'managed-preparation']) {
+    const cause = Object.assign(new Error('original managed preparation refusal'), {code: 'MoonBitHostFailure'});
+    const key = 'original-run', view = {kind: 'effect_set', prepareAttemptId: null,
+      runDefinitionCid: key, runId: 'original-id', checkpointCid: 'original-checkpoint'};
+    const observations = [], flights = new Map(); let starts = 0;
+    const ports = {effectRun: {}, checkpoints: {journal: {
+      listRunCheckpoints: () => [view], getRunState: () => ({status: 'resuming'}),
+      currentResume: () => ({state: 'claimed'}),
+    }, async effectContinuation() {if (boundary === 'continuation') throw cause; return {};},
+    sweep() {assert.fail('A refused resuming Run cannot be restarted by diagnostic delivery');}},
+    retireIncompleteEffects: async () => {}, cancelEffectContinuation: async () => false,
+    effectResumeFlights: flights, namespaceId: 'namespace', authorityScopeCid: 'authority',
+    journal: {lookupRunDefinition: () => ({runDefinition: {identity: key}})},
+    moon: {}, control: {}, store: {}, principalId: 'principal', runContent: {}, storeAuthorityCid: 'store',
+    effectInstallation: {}, observation: undefined,
+    async restoreEffectManagedPreparation() {throw cause;},
+    dispatchOwner: {operation: () => undefined, track(ref, options) {
+      assert.equal(ref.runDefinitionCid, key); starts++; return options.run({});
+    }}, diagnostic(event, detail) {observations.push({event, detail});}};
+    const source = 'const ' + retainedRequestSourceMember('./embedded-local.mjs', 'sweepEffectRuns', 'VariableDeclarator') + ';return sweepEffectRuns;';
+    const sweep = new Function(...Object.keys(ports), source)(...Object.values(ports));
+    assert.equal(await sweep(), true);
+    await new Promise(setImmediate);
+    assert.equal(observations.length, 1);
+    assert.equal(observations[0].event, 'effect_resume_failed');
+    assert.equal(observations[0].detail.code, cause.code);
+    assert.strictEqual(observations[0].detail.cause, cause);
+    assert.equal(starts, boundary === 'continuation' ? 0 : 1);
+    assert.equal(flights.size, 0, 'Only the settled local flight is removed; the durable Run stays resuming');
+  }
+});
+
 test('bound recovery original is carried once without a second material codec or compiler', () => {
   const f = installedCaptureOriginalFixture({bound: true});
   assert.strictEqual(f.recover(), f.boundOriginal);
