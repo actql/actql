@@ -706,12 +706,18 @@ fn relation_original_run(
         "2026-11-06T00:00:00.000Z",
         "2099-01-01T00:00:00.000Z",
       ).relation_original_value("original Run definition")
-      capture
-      .record_submitted_intent_in_original_read(
+      match capture.record_submitted_intent_in_original_read(
         "machine-user", "cli", scope, reference, intent, 1001.0,
-      )
-      .relation_original_value("record original intent")
-      |> ignore
+      ) {
+        Ok(_) => ()
+        Err(original) => {
+          relation_original_submission_failure_tags(
+            original,
+            relation_original_submission_amount,
+          )
+          fail("record original intent")
+        }
+      }
       capture
       .accept_submitted_run_in_original_read(
         "machine-user", "cli", scope, reference, preparation, request, compiled,
