@@ -1268,6 +1268,7 @@ fn managed_capture_fixture_work(
   program? : String? = None,
   clock_refusal? : Int = 0,
   query? : Bool = false,
+  aborted_reader_observation? : Ref[Bool]? = None,
 ) -> @local.ClientInstalledManagedRun raise {
   let parent = @local.begin_backed_request_preparation(
     initial,
@@ -1667,7 +1668,26 @@ fn managed_capture_fixture_work(
     }
     (read, capture, unchanged.transferred_bytes)
   }
-  if clock_refusal != 0 {
+  if aborted_reader_observation is Some(_) {
+    assert_false(
+      capture_owner
+      .advance(32)
+      .managed_capture_stage("first original Reader open"),
+    )
+    assert_true(capture_owner.phase is Reading)
+    assert_true(
+      @local.retire_installed_source_read(read)
+      is Err(@local.Acquisition(@rows.Evidence(@rows.UnverifiedTransport))),
+    )
+    // The same real Reader is closed as a deterministic entry sentinel. If
+    // the next advance reaches Reader.next instead of its RowRun fence, its
+    // exact typed primary is ReaderClosed. This is not an extra-byte claim.
+    capture_owner.reader
+    .unwrap()
+    .close()
+    .managed_capture_stage("original Reader entry sentinel")
+  }
+  if clock_refusal != 0 || aborted_reader_observation is Some(_) {
     let result = if clock_refusal == 4 {
       capture_owner.advance_listing(32, 0L)
     } else {
@@ -1676,7 +1696,9 @@ fn managed_capture_fixture_work(
     guard result is Err(first) else {
       fail("clock refusal unexpectedly read a file")
     }
-    if clock_refusal == 4 {
+    if aborted_reader_observation is Some(observed) {
+      observed.val = first.issue() is Unavailable
+    } else if clock_refusal == 4 {
       assert_true(first.issue() is InvalidInput)
     } else {
       assert_true(first.issue() is Unavailable)
@@ -1871,7 +1893,13 @@ fn managed_capture_fixture_case(
   expected_transfer : Int64,
   input_name? : String = "row-source-input",
   query? : Bool = false,
+  aborted_reader? : Bool = false,
 ) -> Unit raise {
+  let aborted_reader_observation = if aborted_reader {
+    Some(Ref(false))
+  } else {
+    None
+  }
   let selection : NativeRelationFileSelection = {
     directory: @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").managed_capture_stage(
       "original stage 333",
@@ -1946,6 +1974,7 @@ fn managed_capture_fixture_case(
     expected_transfer,
     prepared_provider,
     query~,
+    aborted_reader_observation~,
   )
   match arena.close_domain_retained_execution(physical) {
     Ok(_) => ()
@@ -1988,6 +2017,9 @@ fn managed_capture_fixture_case(
   .close_domain_after_owner_ack(domain)
   .managed_capture_stage("original stage 347")
   arena.try_close().managed_capture_stage("original stage 348")
+  if aborted_reader_observation is Some(observed) {
+    assert_true(observed.val)
+  }
 }
 
 ///|
@@ -2021,4 +2053,14 @@ test "Native managed Source funds the selected Mock byte profile beyond componen
 ///|
 test "Native managed Query Source reads on the same original Request Plan and physical Ledger" {
   managed_capture_fixture_case(capture_fixture_limits(), 62L, query=true)
+}
+
+///|
+test "Native stopped Source RowRun refuses before entering its retained Reader" {
+  managed_capture_fixture_case(
+    capture_fixture_limits(),
+    62L,
+    query=true,
+    aborted_reader=true,
+  )
 }
