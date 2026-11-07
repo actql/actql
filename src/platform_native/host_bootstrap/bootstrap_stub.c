@@ -924,5 +924,6 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_control_scope_clear(void) {
 
 #include "root_control.inc"
 #include "working_origin.inc"
+#include "backed_domain_growth.inc"
 
 #include "command_platform_unavailable.h"
