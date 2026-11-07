@@ -78,6 +78,7 @@ fn native_project_mock_model_backed_read(
   private_source_field? : Bool = false,
   source_environment? : Bool = false,
   file_bindings? : Bool = false,
+  file_facts? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -132,7 +133,9 @@ fn native_project_mock_model_backed_read(
       fail("actual metadata Read pending")
   }
   host.enter_domain_original_read(read).unwrap()
-  if file_bindings {
+  if file_facts {
+    native_project_mock_file_facts_in_original_read()
+  } else if file_bindings {
     native_project_mock_file_bindings_in_original_read()
   } else if source_environment {
     native_project_mock_source_environment_in_original_read()
@@ -487,4 +490,78 @@ fn native_project_mock_file_bindings_in_original_read() -> Unit raise {
 ///|
 test "Native Project Mock actual backed Read checks original physical file roles before payload" {
   native_project_mock_model_backed_read(false, file_bindings=true)
+}
+
+///|
+fn native_project_mock_file_facts_in_original_read() -> Unit raise {
+  let original = native_project_mock_model_fixture("deal-review-missing")
+  defer original.retire()
+  match original.prepare_source_declarations() {
+    Ok(_) => ()
+    Err(Source(InvalidSpecification)) =>
+      fail("File declaration InvalidSpecification")
+    Err(Source(InvalidContracts)) => fail("File declaration InvalidContracts")
+    Err(_) => fail("File declaration original unavailable")
+  }
+  let source = original.sources[1]
+  let file = source._retained_files[0]
+  let declaration = source._retained_declaration
+  assert_eq(
+    source._retained_scope_cid,
+    @env.get_env_var("ACTQL_TEST_NATIVE_MOCK_DRIVE_SCOPE_CID").unwrap(),
+  )
+  assert_true(declaration.views.any(view => physical_equal(view, file.listing)))
+  assert_true(declaration.views.any(view => physical_equal(view, file.content)))
+  let bodies = declaration.contracts
+  let listing = bodies
+    .iter()
+    .find_first(wire => wire.contains("file_listing"))
+    .unwrap()
+  let content = bodies
+    .iter()
+    .find_first(wire => wire.contains("file_content"))
+    .unwrap()
+  assert_true(listing.contains("\"max_listing_items\":100"))
+  assert_true(listing.contains("\"max_examined_items\":100"))
+  assert_true(listing.contains("\"max_listing_pages\":1"))
+  assert_true(listing.contains("\"max_request_attempts\":1"))
+  assert_true(listing.contains("\"max_listing_bytes\":1048576"))
+  assert_true(listing.contains("\"max_listing_duration_ms\":30000"))
+  assert_true(listing.contains("\"maximum_path_length\":4096"))
+  assert_true(listing.contains(source._retained_scope_cid))
+  assert_true(listing.contains(file.listing.carrier_schema_cid))
+  assert_true(content.contains(source._retained_scope_cid))
+  assert_true(content.contains(file.content.carrier_schema_cid))
+  assert_true(content.contains("\"complete_per_requested_key\""))
+  assert_true(content.contains("\"max_rows_per_key\":1"))
+  assert_true(content.contains("\"max_pages_per_request\":1"))
+  assert_true(content.contains("\"max_response_bytes_per_page\":1048576"))
+  // The authored correlation is one, not a replacement zero-or-one fixture.
+  assert_true(
+    declaration.view_bodies.any(wire => wire.contains("\"cardinality\":\"one\"")),
+  )
+  assert_true(content.contains("\"exact_stored_bytes\""))
+  // Complete facts still go through the same Environment/publication reader.
+  original
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    local_utc_now,
+  )
+  .unwrap()
+  let source_environment = original
+    .prepare_source_environment(explain_fixture_environment())
+    .unwrap()
+  let environment = original
+    .prepare_model_environment(source_environment)
+    .unwrap()
+  original.prepare_source_publication(environment).unwrap() |> ignore
+  // Construction must not rewrite the originally admitted public catalogue.
+  let (_, wire) = original._retained_catalog.at(1).unwrap()
+  assert_false(wire.contains("max_listing_items"))
+}
+
+///|
+test "Native Project Mock actual backed Read binds File facts to original schemas and physical limits" {
+  native_project_mock_model_backed_read(false, file_facts=true)
 }

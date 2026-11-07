@@ -4,6 +4,7 @@
 priv struct LocalProjectMockSourceDeclaration {
   _retained_connection : String
   _retained_entry : Json
+  _retained_scope_cid : String
   _retained_declaration : @row_host.RowDeclaration
   _retained_files : Array[LocalProjectMockFileBinding]
 }
@@ -100,14 +101,16 @@ fn LocalProjectMockDeclarations::prepare_source_declarations(
   }
   for index in 0..<self._retained_catalog.count() {
     let (connection, wire) = self._retained_catalog.at(index).unwrap()
-    let mut selected = false
+    let mut selected = None
     for connection_index in 0..<self._retained_connections.count() {
       if self._retained_connections.at(connection_index).unwrap().0 ==
         connection {
-        selected = true
+        selected = Some(
+          self._retained_connections.at(connection_index).unwrap().1,
+        )
       }
     }
-    if !selected {
+    guard selected is Some(provider) else {
       self.model_failure = Some(ForeignOriginal)
       return Err(ForeignOriginal)
     }
@@ -128,7 +131,7 @@ fn LocalProjectMockDeclarations::prepare_source_declarations(
         return Err(Source(issue))
       }
     }
-    let declaration = match
+    let initial_declaration = match
       @row_host.restore_relation_row_declaration(
         connection,
         "declared_file",
@@ -146,8 +149,24 @@ fn LocalProjectMockDeclarations::prepare_source_declarations(
       local_project_mock_file_bindings(
         connection,
         entry,
-        declaration,
+        initial_declaration,
         self._retained_data_file,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        self.model_failure = Some(Source(issue))
+        return Err(Source(issue))
+      }
+    }
+    let (declaration, files, scope) = match
+      local_project_mock_file_declaration(
+        connection,
+        provider,
+        self._retained_catalog.original_wire(),
+        entry,
+        self._retained_data_file,
+        initial_declaration,
+        files,
       ) {
       Ok(value) => value
       Err(issue) => {
@@ -160,6 +179,7 @@ fn LocalProjectMockDeclarations::prepare_source_declarations(
     self.sources.push({
       _retained_connection: connection,
       _retained_entry: entry,
+      _retained_scope_cid: scope,
       _retained_declaration: declaration,
       _retained_files: files,
     })
