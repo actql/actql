@@ -1,6 +1,6 @@
 ///|
 /// Retained native-capable Local Values execution. The legacy constructor
-/// drives one task; the source-free graph entry retains every original task.
+/// drives one task; the graph entries retain every original Compute task.
 /// Checked strategy, resource Ledger and managed completions remain owned by
 /// their existing modules; this adapter drives only their installed operations.
 pub struct LocalValuesExecution {
@@ -31,6 +31,7 @@ pub(all) enum LocalValuesExecutionIssue {
   UnsupportedGraph
   MissingLocalModule
   Driver(@local_driver.LocalDispatchIssue)
+  Estimate(@host_driver.AdaptiveEstimateIssue[@strategy.RunIssue])
   FinalizationLimit
   MissingOutput
 }

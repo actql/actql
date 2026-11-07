@@ -2206,12 +2206,20 @@ pub fn captured_task_source_matches(
   task : Int,
   source : @query.CapturedInputSource,
 ) -> Bool {
-  task >= 0 &&
-  task < run.graph.captured_prefix_value() &&
+  guard task >= 0 &&
+    task < run.graph.captured_prefix_value() &&
+    run.lifetimes[task].live &&
+    run.original_sources[task] is Some(expected) &&
+    physical_equal(expected, source) &&
+    @query.captured_source_available(source) else {
+    return false
+  }
+  // The original verifier may retire this DAG port while its independently
+  // owned Source remains live. Recheck the same port after that callback.
+  // Stopping new work alone does not retire an original captured output.
   run.lifetimes[task].live &&
-  run.original_sources[task] is Some(expected) &&
-  physical_equal(expected, source) &&
-  @query.captured_source_available(source)
+  run.original_sources[task] is Some(current) &&
+  physical_equal(current, source)
 }
 
 ///|

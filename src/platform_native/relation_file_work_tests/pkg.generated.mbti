@@ -1,0 +1,17 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/relation_file_work_tests"
+
+import {
+  "actql/actql/platform_native/host_bootstrap",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+pub using @host_bootstrap {type NativeBackedReadScope as OriginalReadScope}
+
+// Traits

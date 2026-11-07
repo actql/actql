@@ -123,6 +123,13 @@ fn client_local_sequence_capacity_original(
   if !client_local_capacity_plan_matches(plan, sequences, max_rows) {
     return None
   }
+  if include_simultaneous {
+    guard plan.graph is Some(original) &&
+      simultaneous_graph is Some(graph) &&
+      physical_equal(original, graph) else {
+      return None
+    }
+  }
   if plan.metadata_retained_bytes > 0L && retained_inputs is None {
     return None
   }
@@ -152,10 +159,13 @@ fn client_local_sequence_capacity_original(
       // The installed dispatch selects an exact task step or prefix before
       // selecting its bounded provider. Quote that same provider's complete
       // child/scratch envelope, not only the generated outer sequence.
-      let selected = match @strategy.graph_task_selected_step(graph, index) {
+      // A captured Source prefix is absent from this Compute inventory.
+      // Its original owner keeps its separate acquisition/provider footprint.
+      let task = index + plan.graph_offset
+      let selected = match @strategy.graph_task_selected_step(graph, task) {
         Some(step) => @execution.select_generated_sequence_step(sequence, step)
         None =>
-          match @strategy.graph_task_prefix_end(graph, index) {
+          match @strategy.graph_task_prefix_end(graph, task) {
             Some(last) =>
               @execution.select_generated_sequence_prefix(sequence, last)
             None => Some(sequence)

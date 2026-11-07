@@ -13,7 +13,8 @@ import {nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-p
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture} from './native-project-configuration-fixture.mjs';
-import {nativeCoreTestSelection} from './native-core-test-selection.mjs';
+import {nativeCoreTestSelection, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
+  nativeRelationWorkTestFile} from './native-core-test-selection.mjs';
 import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
 import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
@@ -99,6 +100,11 @@ const httpLifetime = full || args.some(arg => arg.includes('cmd/native_remote_re
   ? nativeHttpLifetimeFixture(namespace) : {};
 const fixtureEnvironment = {
   ...process.env,
+  // A full selection provisions this one physical case itself. Ambient roots
+  // must not activate a different case or reuse an initialized relation Store.
+  ...(full ? Object.fromEntries(['ORIGINAL_ROOT', 'RUNTIME_ROOT', 'RUNTIME_SOURCE',
+    'RUNTIME_PLATFORM', 'RUNTIME_DIGEST', 'ORIGINAL_MODE']
+    .map(key => [`ACTQL_TEST_RELATION_${key}`, undefined])) : {}),
   ...httpLifetime,
   ...clientFiles,
   ...bundle,
@@ -188,20 +194,27 @@ if (full) {
     // provider. Raw system SQLite/OpenSSL remain the ordinary fixture inputs.
     const components = prepareNativeRuntimeBundleLibraries(root,
       join(scopedScratch.path, 'components'), {seconds: 900});
+    // Prepare only when the compiler selected the exact physical Work case.
+    // The existing producer owns current-source components. Common constructs
+    // setup data in a separate JS target; it never executes the Native query.
+    let relationRuntime, relationFixture;
+    if (selection.profiles.scoped.tests.some(test => test.source === nativeRelationWorkTestFile)) {
+      const helper = await import('./native-core-relation-work-fixture.mjs');
+      relationRuntime = await helper.prepareNativeCoreRelationRuntime(root,
+        join(scopedScratch.path, 'relation-inputs'), components, {env: compilerEnvironment});
+      relationFixture = helper.nativeRelationOriginalWorkFixture;
+    }
     // These physical cases use the SQLite/Reader fixtures above. Salesforce's
     // request/response oracle belongs to the ordinary selection and remains
     // required there; the selected cases must not pretend to execute it again.
     console.log(`Native Core scoped profile: ${selection.profiles.scoped.cases} required cases`);
     const scopedDeadline = Date.now() + 3600000;
-    const scopedReviewSources = ['src/platform_native/installed_arena_control/',
-      'src/platform_native/row_source/'];
     // Local keeps ordinary copied Moon values on the runtime. The explicitly
     // scoped Arena and file-capture diagnostics exercise Read-owned managed aliases.
     // Their existing allocation profiles must never share a compiled target.
     for (const profile of ['runtime-values', 'scoped-review-values']) {
       const tests = selection.profiles.scoped.tests.filter(test =>
-        scopedReviewSources.some(source => test.source.startsWith(source)) ===
-        (profile === 'scoped-review-values'));
+        nativeCoreScopedAllocationProfile(test.source) === profile);
       if (tests.length === 0) continue;
       const profileNamespace = join(scopedScratch.path, profile);
       mkdirSync(profileNamespace, {mode: 0o700});
@@ -216,14 +229,14 @@ if (full) {
       for (const [ordinal, test] of tests.entries()) {
         const caseNamespace = join(namespace, `scoped-${profile}-case-${ordinal}`);
         mkdirSync(caseNamespace, {mode: 0o700});
-        const physical = test.source === 'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt'
+        const physical = test.source === nativeRelationWorkTestFile
+          ? await relationFixture(caseNamespace, relationRuntime)
+          : test.source === 'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt'
           ? nativeRelationFileCaptureFixture(caseNamespace)
           : nativeCoreScopedFixture(caseNamespace, {
           cryptoLibrary: components.cryptoLibrary,
           sqliteLibrary: components.sqliteLibrary,
-          backingPages: test.source ===
-            'src/platform_native/installed_arena_control/local_host_crypto_physical_scoped_wbtest.mbt'
-            ? 8192 : 256,
+          backingPages: nativeCoreScopedBackingPages(test.source),
         });
         const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
           '--target-dir', scoped.targetDirectory];

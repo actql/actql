@@ -208,3 +208,81 @@ fn file_capture_provider_capacity(
   }
   @execution.execution_capacity(total, total)
 }
+
+///|
+/// Pure complete overlap for this exact relation-file acquisition. This quote
+/// includes the original Row attempt, parser/transport, scratch and retained
+/// metadata; it issues neither a Ledger nor permission to start. A coordinator
+/// adds the simultaneous Compute inventory before claiming the original Run.
+pub fn native_relation_file_capture_limits(
+  declaration : @rows.RowDeclaration,
+  requirement : @planning.QueryRequirement,
+  acquisition : @rows.RowAcquisition,
+  selection : NativeRelationFileSelection,
+  limits : NativeRelationFileLimits,
+) -> Result[@resources.LedgerLimits, NativeRelationFileIssue] {
+  if !native_relation_file_input_valid(selection, limits) ||
+    @rows.row_acquisition_is_listing(acquisition) {
+    return Err(InvalidInput)
+  }
+  match
+    @rows.check_row_acquisition_original(acquisition, declaration, requirement) {
+    Err(issue) => return Err(Row(issue))
+    Ok(_) => ()
+  }
+  // Borrow only the declared resource. row_source_target also copies all
+  // selected fields, which this quote does not consume and which have not yet
+  // passed the mapping construction bounds below. Preserve its exact missing
+  // view refusal without allocating that unused array before validation.
+  let source_ref = @planning.query_requirement_source(requirement).0
+  let resource = match @rows.row_declaration_view(declaration, source_ref) {
+    Some(view) => view.resource
+    None => return Err(Row(@rows.Source(UndeclaredSource)))
+  }
+  if resource != selection.resource {
+    return Err(ForeignOriginal)
+  }
+  let contract = match
+    @rows.relation_document_projection_contract(
+      declaration,
+      resource,
+      selection.primary_identity,
+      limits.page,
+    ) {
+    Err(issue) => return Err(Mapping(issue))
+    Ok(value) => value
+  }
+  guard file_capture_metadata_capacity(selection, limits) is Some(metadata) &&
+    file_capture_provider_capacity(selection, limits, contract)
+    is Some(provider) &&
+    @rows.row_acquisition_provider_capacity(acquisition, Some(provider))
+    is Some(combined) &&
+    @execution.checked_preparation_add_product(
+      metadata,
+      @execution.execution_capacity_retained_bytes(combined),
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      metadata,
+      @execution.execution_capacity_execution_bytes(combined),
+      1L,
+    )
+    is Some(executing) &&
+    @execution.checked_preparation_add_product(
+      executing,
+      limits.page.max_bytes.to_int64(),
+      1L,
+    )
+    is Some(executing) else {
+    return Err(Capacity)
+  }
+  Ok({
+    planning_work: 0,
+    attempts: 1,
+    holdings: 1,
+    transfer_bytes: limits.page.max_bytes.to_int64(),
+    retained_bytes: retained,
+    execution_bytes: executing,
+  })
+}

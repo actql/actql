@@ -101,6 +101,8 @@ pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowH
 
 pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]
 
+pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool
+
 pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]

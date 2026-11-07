@@ -19,6 +19,7 @@ import {
   "actql/actql/model_execution",
   "actql/actql/parameter_binding",
   "actql/actql/physical_cost",
+  "actql/actql/physical_host_dispatch",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy_host",
   "actql/actql/pipeline_check_context",
@@ -186,6 +187,8 @@ pub fn cancel_program_capture(ClientProgramCapture) -> Unit
 pub fn cancel_program_snapshot(ClientProgramSnapshot) -> Unit
 
 pub fn cancel_program_validation(ClientProgramValidation) -> Unit
+
+pub fn captured_local_tasks_control_capacity() -> @execution_relation.ExecutionCapacity?
 
 pub fn charge_installed_effect_operation(ClientInstalledEffectOperationBorrow, Int64) -> Result[Unit, ClientInstalledManagedRunIssue]
 
@@ -370,6 +373,8 @@ pub fn[I, P] construct_program_json_preparation(ClientProgramJsonPreparation[I, 
 pub fn[I] continue_request_effect_preparation(ClientRequestPreparation[I], I) -> Result[@run_publication_host.PreparedClientEffectComputation, ClientRequestPreparationIssue]
 
 pub fn[I] continue_request_program_preparation(ClientRequestPreparation[I], I) -> Result[@run_publication_host.PreparedClientProgram, ClientRequestPreparationIssue]
+
+pub fn execute_captured_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @client_row_source_host.RowSourceCapture, ClientLocalRequirements, Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
 pub fn execute_source_free_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
@@ -1603,6 +1608,7 @@ pub(all) enum LocalValuesExecutionIssue {
   UnsupportedGraph
   MissingLocalModule
   Driver(@driver.LocalDispatchIssue)
+  Estimate(@physical_host_dispatch.AdaptiveEstimateIssue[@physical_strategy_host.RunIssue])
   FinalizationLimit
   MissingOutput
 }
