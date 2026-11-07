@@ -31,6 +31,7 @@ test('selected physical case inputs use actual pages, exact private backing size
       ['backing',backingPages],['backing-0',256],['backing-3',256],['backing-4',256],
       ['initialization-original.backing',64],['initialization-budget-refused.backing',64],
       ['request-original.backing',64],['request-run-transfer.backing',64],['request-unstarted.backing',64],
+      ['common-request-entrance.backing',64],
       ['source-frame-original.backing',64],['source-frame-left.backing',64],['source-frame-right.backing',64],
       ['consumer-current.backing',64],['consumer-managed-graph.backing',64],
       ['consumer-alias.backing',64],['consumer-usage-alias.backing',64],

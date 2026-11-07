@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {finishSourceFreeObservations} from './test-native-cli-source-free-install.mjs';
-import {observeFreshSubmissionFailureDiagnostic, preserveOrdinaryFailureWithDiagnostic}
+import {observeFreshSubmissionFailureDiagnostic, preserveOrdinaryFailureWithDiagnostic,
+  observeNativeNumericScale, verifyNativeNumericRows}
   from './test-native-cli-source-free-install.mjs';
 
 test('fresh submission diagnostic uses one independent project and restores its environment', async t => {
@@ -131,6 +132,74 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {runCleanupConditionedConsumer} from './test-native-cli-source-free-install.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
+
+test('Native numeric oracle checks every row including the tail and rejects incomplete or extra contents', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-native-numeric-oracle-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = join(root, 'rows.jsonl');
+  await writeFile(path, '{"v0":0}\n{"v0":1}\n{"v0":2}\n');
+  assert.deepEqual(await verifyNativeNumericRows(path, 3), {rows: 3, sum: '3', squares: '5'});
+  for (const wire of ['{"v0":0}\n{"v0":1}\n',
+    '{"v0":0}\n{"v0":1}\n{"v0":1}\n',
+    '{"v0":0}\n{"v0":1}\n{"v0":2}\n{"v0":3}\n',
+    '{"v0":0}\n{"v0":1}\n{"v0":2,"extra":true}\n']) {
+    await writeFile(path, wire);
+    await assert.rejects(verifyNativeNumericRows(path, 3));
+  }
+});
+
+// These replies exercise the acceptance harness, never claim Native/runtime
+// success. The normal Linux installation below executes the real entry.
+async function numericHarness(t, {corruptSaved = false, failRun = false} = {}) {
+  const root = await mkdtemp(join(tmpdir(), 'actql-native-numeric-harness-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const calls = [], original = {version: 'actql-run-state/0.1', run_id: 'same-original', status: 'succeeded'};
+  const cli = async (args, cwd) => {
+    assert.equal(cwd, root); calls.push(args);
+    if (args[0] === 'run') {
+      assert.deepEqual(args, ['run', 'numeric-scale.json', '--format', 'json', '--json']);
+      const wire = await readFile(join(root, 'numeric-scale.json'), 'utf8');
+      assert(Buffer.byteLength(wire) > 1048576);
+      const values = JSON.parse(wire).stages[0].steps[0].values;
+      assert.equal(values.rows.length, 100000); assert.deepEqual(values.rows.at(-1), {v0: 99999});
+      if (failRun) throw new Error('OriginalNativeFailure');
+    } else {
+      assert.equal(args[1], original.run_id);
+      if (args[0] === 'status') assert.equal(existsSync(join(root, 'numeric-scale.json')), false);
+      else {
+        assert.deepEqual(args.slice(2, -1), ['--result', 'answer0', '--format', 'jsonl', '--output']);
+        const saved = args.at(-1) === join(root, 'numeric-saved.jsonl');
+        assert.equal(existsSync(join(root, 'numeric-scale.json')), !saved);
+        const rows = Array.from({length: 100000}, (_, index) => JSON.stringify({
+          v0: corruptSaved && saved && index === 99999 ? 0 : index})).join('\n') + '\n';
+        await writeFile(args.at(-1), rows, {flag: 'wx'});
+      }
+    }
+    return {code: 0, signal: null, stdout: JSON.stringify(original), stderr: ''};
+  };
+  return {root, calls, observe: () => observeNativeNumericScale({project: root, cli})};
+}
+
+test('Native numeric harness submits once and reads full original Saved only after source removal', async t => {
+  const actor = await numericHarness(t), report = await actor.observe();
+  assert.deepEqual(actor.calls.map(args => args[0]), ['run', 'result', 'status', 'result']);
+  assert.equal(report.first.rows, 100000); assert.deepEqual(report.saved, report.first);
+  assert.equal(report.inputRemovedBeforeSaved, true); assert.equal(report.independentFdInspection, false);
+});
+
+test('Native numeric Saved corruption stays failed without another submission', async t => {
+  const actor = await numericHarness(t, {corruptSaved: true});
+  await assert.rejects(actor.observe(), /Numeric Result row 99999/u);
+  assert.deepEqual(actor.calls.map(args => args[0]), ['run', 'result', 'status', 'result']);
+  assert.equal(existsSync(join(actor.root, 'numeric-saved.jsonl')), true);
+});
+
+test('Native numeric original failure is not retried or reclassified as Saved success', async t => {
+  const actor = await numericHarness(t, {failRun: true});
+  await assert.rejects(actor.observe(), /OriginalNativeFailure/u);
+  assert.deepEqual(actor.calls.map(args => args[0]), ['run']);
+  assert.equal(existsSync(join(actor.root, 'numeric-scale.json')), true);
+});
 
 async function ownedConsumer(t, mode) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-source-free-cleanup-test-'));
