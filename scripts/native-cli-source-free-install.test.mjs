@@ -132,7 +132,7 @@ test('missing observations and passing-receipt write failures are not success', 
 import {mkdtemp, readFile, readdir, rm} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 import {runCleanupConditionedConsumer} from './test-native-cli-source-free-install.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 
@@ -441,17 +441,41 @@ test('Native numeric operator retains low defaults and authors an explicit finit
   assert.deepEqual(body, expected, 'No unrelated policy quantity changes');
   assert.deepEqual(selected.configuration, ['--mode', 'local', '--config-root', project,
     '--config-file', 'operator.json']);
+  const account = JSON.parse(await readFile(join(project, 'account.json'), 'utf8'));
+  assert.deepEqual(account.entries.map(entry => entry.entry_id), ['numeric-result', 'numeric-run']);
+  assert.deepEqual(account.entries.map(entry => [entry.resource.any_of, entry.operation.any_of]),
+    [[['result/answer0'], ['read']], [['run'], ['cancel', 'publish', 'read', 'submit']]]);
   const configuration = JSON.parse(await readFile(join(project, 'operator.json'), 'utf8'));
   assert.deepEqual(configuration.native.check_environment,
     {file: 'environment.json', evidence_bundle_cid: identity});
   assert.equal(configuration.native.local.sqlite_library, inputs.libraries.sqlite);
   assert.equal(configuration.native.local.signature_library, inputs.libraries.crypto);
-  assert(configuration.native.local.installation_files.includes('runtime.json'));
+  assert.deepEqual(configuration.native.local.installation_files,
+    ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json', 'profile.json', 'file-read.json']);
+  assert.equal(configuration.native.local.run_policy_profile_file, 'profile.json');
   assert.equal(await readFile(join(project, 'runtime.json'), 'utf8'), inputs.runtimeWire);
   const run = JSON.parse(await readFile(join(project, 'run.json'), 'utf8')).native.run;
   const retention = JSON.parse(run.retention_policy_wire);
   const {effective_retention_policy_cid: retentionCid, ...retentionBody} = retention;
   verifyIdentity(retentionBody, retentionCid);
+  const profileWire = await readFile(join(project, 'profile.json'), 'utf8');
+  const profile = JSON.parse(profileWire);
+  assert.deepEqual(profile, {
+    version: 'actql-local-run-policy-profile/0.1',
+    available_for_ms: 86400000, delete_after_ms: 172800000,
+    metadata_after_ms: 604800000, read_for_ms: 86400000,
+    effective_data_policy_cid: run.source_free.result_policy_cid,
+    retention_contract_cid: retention.retention_contract_cid,
+    metadata_retention_policy_cid: retention.metadata_retention_policy_cid,
+    clock_contract_cid: retention.clock_contract_cid,
+  });
+  const read = JSON.parse(await readFile(join(project, 'read.json'), 'utf8')).native.result_read;
+  verifyIdentity(profile, read.run_policy_profile_cid);
+  assert.equal(Object.hasOwn(read, 'expires_at'), false);
+  assert.deepEqual([read.run_file, read.retention_file, read.store_file],
+    ['run.json', 'retention.json', 'store.json']);
+  const fileRead = JSON.parse(await readFile(join(project, 'file-read.json'), 'utf8')).native.result_read;
+  assert.deepEqual(fileRead, {...read, sink: 'file', purpose: 'cli-file'});
   assert.equal(run.source_free.registry, inputs.assets.registry);
   assert.equal(run.source_free.values, inputs.assets.values);
   assert.equal(run.result_payload_bytes, 16777216);
@@ -483,6 +507,8 @@ test('Native numeric operator harness uses one selected install and preserves di
       }
       if (args[0] === 'result') {
         assert.equal(args[1], original.run_id);
+        assert.equal(dirname(args.at(-1)), project + '-output');
+        assert.equal(cwd, project, 'Output placement cannot change the selected Host');
         await writeFile(args.at(-1), Array.from({length: 100000}, (_, v0) => JSON.stringify({v0})).join('\n') + '\n');
       } else if (args[0] === 'status') {
         assert.equal(args[1], original.run_id);
