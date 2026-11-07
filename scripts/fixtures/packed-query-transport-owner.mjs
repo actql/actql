@@ -107,8 +107,12 @@ async function runSubmissionCauseObserver() {
   // Emit only fixed categories and explicitly listed codes. Even a plausible
   // private code prefix or forged compiled constructor name is not evidence.
   const expression = `(()=>{const out=[],queue=[['original',error,0]],seen=new Set();
-while(queue.length&&out.length<32){const [edge,value,depth]=queue.shift();
-if(value===null||typeof value!=='object'||seen.has(value))continue;seen.add(value);
+while(queue.length&&out.length<32){const [edge,value,depth,accessor]=queue.shift();
+if(accessor){out.push({edge,type:'Accessor'});continue;}
+if(value===null){out.push({edge,type:'Null'});continue;}
+const primitiveTypes={undefined:'Undefined',string:'String',number:'Number',boolean:'Boolean',bigint:'BigInt',symbol:'Symbol',function:'Function'};
+if(typeof value!=='object'){out.push({edge,type:primitiveTypes[typeof value]});continue;}
+if(seen.has(value))continue;seen.add(value);
 const proto=Object.getPrototypeOf(value);
 const ctor=proto&&Object.getOwnPropertyDescriptor(proto,'constructor')?.value;
 const name=typeof ctor==='function'?Object.getOwnPropertyDescriptor(ctor,'name')?.value:'';
@@ -126,9 +130,15 @@ const safeCodes=[
 'ClientSubmittedIntentCustodyLost','ClientSubmittedIntentCapacity','ClientSubmittedIntentCorrupt',
 'ClientRequestJournalInspectionUnavailable','ClientRequestJournalSqlUnavailable','ClientRequestJournalSqlCleanupPending',
 'SqliteSchemaPreparationUnavailable','UnknownClientRequestJournalFormat','ClientSubmissionEpochExpired',
-'ClientSubmissionEpochNotYetValid','ForeignRequestOriginal'];
+'ClientSubmissionEpochNotYetValid','ForeignRequestOriginal',
+'MoonBitHostFailure','ForeignInstalledSourcePreparation','ForeignInstalledSourceProducer',
+'InstalledSourceProducerLimit','InstalledSourceInitializationUnavailable','InstalledSourceInitializationMethodUnavailable',
+'InstalledSourceInitializationNotSynchronous','InstalledSourcePreparationCleanupPending','InstalledSourcePreparationMismatch',
+'InstalledSourceReaderCleanupUnavailable','InstalledSourceRunCleanupPending','NodeLocalPreparationCleanupPending',
+'NodeManagedRunAdmissionUnavailable','NodeManagedRunCompilationUnavailable','NodeManagedRunPlanUnavailable',
+'NodeManagedRunRuntimeUnavailable','InvalidOriginalCheckObservation'];
 const row={edge,type},code=Object.getOwnPropertyDescriptor(value,'code');if(code){if('value'in code&&safeCodes.includes(code.value))row.code=code.value;else row.codeOmitted=true;}
-out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=Object.getOwnPropertyDescriptor(value,key);if(d&&'value'in d)queue.push([key,d.value,depth+1]);}}return out;})()`;
+out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','_2']){const d=Object.getOwnPropertyDescriptor(value,key);if(d)queue.push([key,'value'in d?d.value:undefined,depth+1,!('value'in d)]);}}return out;})()`;
   session.on('Debugger.scriptParsed', async ({params}) => {
     if (params.url !== workerData.url) return;
     try {

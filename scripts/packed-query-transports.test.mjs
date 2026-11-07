@@ -138,6 +138,7 @@ test('packed cause observer captures bounded original DATA and always resumes th
   assert.deepEqual(reports[0].originalCauseTypes[0], [
     {edge:'original',type:'TypeError',code:'ClientProgramUnsupported'},
     {edge:'cause',type:'Error',code:'ForeignRequestOriginal'},
+    {edge:'_0',type:'Accessor'},
   ]);
   assert.equal(reads, 0);
   assert.equal(enumerations, 0);
@@ -208,6 +209,28 @@ test('packed cause observer omits a plausible private code and forged MoonBit co
   assert.equal(reports[0].available, true);
   assert.deepEqual(reports[0].originalCauseTypes, [[{edge:'original',type:'MoonBit',codeOmitted:true}]]);
   assert.doesNotMatch(JSON.stringify(reports), /PrivateInputSecret|private-message/u);
+});
+
+test('packed cause observer retains exact factory codes and primitive edge types without their values', async t => {
+  const target = await diagnosticTarget(t), reports = [];
+  const primary = Object.assign(new Error('private-factory-message'), {
+    code:'MoonBitHostFailure', cause:9234567, _0:undefined, _1:null,
+    _2:{code:'NodeManagedRunAdmissionUnavailable', cause:'private-primitive-string', primaryFailure:()=> 'private-function',
+      _0:true, _1:9234568n, _2:Symbol('private-symbol')},
+  });
+  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
+    report:value=>reports.push(value)});
+  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
+  finally {await observer.close();}
+  assert.equal(reports[0].available, true);
+  assert.deepEqual(reports[0].originalCauseTypes, [[
+    {edge:'original',type:'Error',code:'MoonBitHostFailure'},
+    {edge:'cause',type:'Number'}, {edge:'_0',type:'Undefined'}, {edge:'_1',type:'Null'},
+    {edge:'_2',type:'Object',code:'NodeManagedRunAdmissionUnavailable'}, {edge:'cause',type:'String'},
+    {edge:'primaryFailure',type:'Function'}, {edge:'_0',type:'Boolean'},
+    {edge:'_1',type:'BigInt'}, {edge:'_2',type:'Symbol'},
+  ]]);
+  assert.doesNotMatch(JSON.stringify(reports), /9234567|9234568|private-/u);
 });
 
 test('complete transport inventory rejects missing, duplicate, extra and reordered identities', () => {
