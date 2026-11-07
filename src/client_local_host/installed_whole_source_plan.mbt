@@ -5,7 +5,7 @@
 struct ClientInstalledWholeSourceCapacity {
   original : @sourceviews.SourceAcquisition
   acquisition : @row_source_host.RowInputAcquisition
-  provider : @execution.ExecutionCapacity
+  provider : @execution.ExecutionCapacity?
   complete : @execution.ExecutionCapacity
 }
 
@@ -164,7 +164,8 @@ pub fn check_installed_whole_source_capacity(
   provider : @execution.ExecutionCapacity,
 ) -> Bool {
   physical_equal(value.acquisition, acquisition) &&
-  physical_equal(value.provider, provider)
+  value.provider is Some(selected) &&
+  physical_equal(selected, provider)
 }
 
 ///|
@@ -289,9 +290,10 @@ pub fn installed_whole_source_capture_capacity(
   acquisition : @row_source_host.RowInputAcquisition,
   provider : @execution.ExecutionCapacity?,
 ) -> ClientInstalledWholeSourceCapacity? {
-  guard provider is Some(provider) &&
-    @row_source_host.row_input_acquisition_matches_source(acquisition, original) &&
-    @row_source_host.row_input_acquisition_capacity(acquisition, Some(provider))
+  guard @row_source_host.row_input_acquisition_matches_source(
+      acquisition, original,
+    ) &&
+    @row_source_host.row_input_acquisition_capacity(acquisition, provider)
     is Some(complete) else {
     return None
   }
@@ -375,7 +377,7 @@ pub fn start_installed_whole_source_read_rows(
     read,
     @row_source_host.start_accounted_row_input_acquisition(
       acquisition,
-      Some(selected.provider),
+      selected.provider,
       nonce,
       original_stop,
       ledger,

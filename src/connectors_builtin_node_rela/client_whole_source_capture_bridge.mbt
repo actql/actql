@@ -481,3 +481,152 @@ pub fn client_program_whole_source_issue_source_evidence_wire(
     acquisition, capture, identity, logical, scope, policy, observed,
   ).map(value => @publication.run_evidence_value_json(value))
 }
+
+///|
+#export_name("clientProgramEffectDirectSourceCoordinates")
+pub fn client_program_effect_direct_source_coordinates(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> Result[
+  Array[(Int, Int, Int, Int)],
+  @publication_host.ClientDirectAcquisitionOccurrenceIssue,
+] {
+  @publication_host.select_client_effect_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).map(value => {
+    Array::makei(
+      @publication_host.client_direct_acquisition_occurrence_count(value),
+      slot => {
+        let (stage, input, task) = @publication_host.client_direct_acquisition_occurrence_at(
+          value, slot,
+        ).unwrap()
+        (stage, input, slot, task)
+      },
+    )
+  })
+}
+
+///|
+#export_name("clientProgramEffectWholeSourceInputIdentity")
+pub fn client_program_effect_whole_source_input_identity(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  original : @acquisition.SourceAcquisition,
+) -> Array[String]? {
+  let source = @acquisition.mode_input(
+    @acquisition.source_acquisition_mode(original),
+  )
+  let stage = @acquisition.declaration(source).stage_index
+  if !@publication_host.client_source_acquisition_matches_effect_program(
+      prepared,
+      stage,
+      @acquisition.source_acquisition_source_index(original),
+      original,
+    ) {
+    return None
+  }
+  let identity = @publication_host.prepared_client_effect_identity(prepared)
+  Some([identity.program_definition_cid, identity.parameter_values_cid])
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedPlanWholeSource")
+pub fn client_program_installed_effect_managed_plan_whole_source(
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  occurrence : Int,
+) -> Result[
+  (
+    @acquisition.SourceAcquisition,
+    @client_row_source_host.RowInputAcquisition,
+    @client_local_host.ClientInstalledWholeSourceCapacity,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepared_installed_effect_managed_whole_source(
+    plan, occurrence,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedSourceInputKind")
+pub fn client_program_installed_effect_managed_source_input_kind(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  occurrence : Int,
+) -> Result[String, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.installed_effect_managed_source_input_kind(
+    owner, prepared, request, occurrence,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedWholeSourceRead")
+pub fn client_program_installed_effect_managed_whole_source_read(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  declaration : @client_row_source_host.RowDeclaration,
+  occurrence : Int,
+) -> Result[
+  (
+    @client_local_host.ClientInstalledSourceRead,
+    @acquisition.SourceAcquisition,
+    @client_row_source_host.RowInputAcquisition,
+    @client_local_host.ClientInstalledWholeSourceCapacity,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_installed_effect_managed_whole_source_read(
+    owner, prepared, request, declaration, occurrence,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedSourcesLedger")
+pub fn client_program_installed_effect_managed_sources_ledger(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @resources.Ledger,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_effect_managed_sources_ledger(
+    owner, prepared, request,
+  )
+}
+
+///|
+#export_name("clientProgramIssueEffectWholeSourceInputLogical")
+pub fn client_program_issue_effect_whole_source_input_logical(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+) -> Result[
+  @publication.RunEvidenceValue,
+  @publication_host.ClientCapturedSourceLogicalIssue,
+] {
+  let original = @client_local_host.installed_whole_source_original(capacity)
+  let stage = @acquisition.declaration(
+      @acquisition.mode_input(@acquisition.source_acquisition_mode(original)),
+    ).stage_index
+  let graph = @strategy.checked_effect_computation_graph(
+    @publication_host.prepared_client_effect_computation_graph(prepared),
+  )
+  guard @publication_host.client_source_acquisition_matches_effect_program(
+      prepared,
+      stage,
+      @acquisition.source_acquisition_source_index(original),
+      original,
+    ) &&
+    @strategy.graph_stage_operation_task(graph, stage, 0) is Some(task) else {
+    return Err(@publication_host.ForeignPrepared)
+  }
+  @publication_host.issue_captured_whole_source_input_logical(
+    graph,
+    source,
+    identity,
+    original,
+    task~,
+  )
+}

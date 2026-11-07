@@ -197,18 +197,49 @@ fn issue_client_effect_compilation_internal(
   // edges, not the number of consumers, bind every input occurrence.
   let mut acquired = (prefix == 1 && units >= 2) || (prefix == 2 && units > 2)
   if acquired {
-    for stage in 0..<prefix {
-      if prepare_client_query_acquisition_shape(
-          client_effect_program_view(owner),
-          stage,
-          0,
-        )
-        is Err(_) {
-        acquired = false
-        break
-      }
-    }
+    // Acquisition coordinates come from the checked Direct originals. A
+    // complete Input can precede authored joins without becoming a Query Step.
+    acquired = select_client_effect_direct_acquisition_occurrences(
+        owner, 1000000,
+      )
+      .map(value => {
+        let count = client_direct_acquisition_occurrence_count(value)
+        if count == 0 {
+          return false
+        }
+        for index in 0..<count {
+          let (stage, input, _) = client_direct_acquisition_occurrence_at(
+            value, index,
+          ).unwrap()
+          guard @context.program_identity_stage_requests(
+              @checked.source_identity(@strategy.graph_program(graph)),
+              stage,
+            )
+            is Some(requests) else {
+            return false
+          }
+          match
+            @acquisition.select_source_acquisition_route(
+              requests, input, 1000000,
+            ) {
+            Ok(@acquisition.WholeInputRoute(_)) => ()
+            Ok(@acquisition.QueryRoute(_)) =>
+              if prepare_client_query_acquisition_shape(
+                  client_effect_program_view(owner),
+                  stage,
+                  input,
+                )
+                is Err(_) {
+                return false
+              }
+            Err(_) => return false
+          }
+        }
+        true
+      })
+      .unwrap_or(false)
   }
+
   if !source_free && !acquired {
     return Err(UnsupportedProgram)
   }

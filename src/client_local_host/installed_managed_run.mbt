@@ -963,15 +963,13 @@ fn new_installed_managed_run_owned(
     request,
     ledger: Some(ledger),
     reads: Array::make(
-      @strategy.graph_captured_prefix(
-        installed_managed_owner_graph(
-          match preparation {
-            PureManaged(_, prepared) => Pure(prepared)
-            PlannedEffectManaged(_, plan) => Effect(plan.prepared)
-            PreparationContentManaged(_, prepared) => Pure(prepared)
-          },
-        ),
-      ),
+      match preparation {
+        PlannedEffectManaged(_, plan) => plan.whole_sources.length()
+        PureManaged(_, prepared) | PreparationContentManaged(_, prepared) =>
+          @strategy.graph_captured_prefix(
+            @publication_host.prepared_client_graph(prepared),
+          )
+      },
       None,
     ),
     content: NoContent,

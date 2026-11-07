@@ -8662,11 +8662,13 @@ pub fn client_program_effect_publication_data_policy_cid(
 pub fn client_program_effect_acquisition_count(
   value : @publication_host.PreparedClientEffectComputation,
 ) -> Int {
-  @strategy.graph_captured_prefix(
-    @strategy.checked_effect_computation_graph(
-      @publication_host.prepared_client_effect_computation_graph(value),
-    ),
+  @publication_host.select_client_effect_direct_acquisition_occurrences(
+    value, 1000000,
   )
+  .map(value => {
+    @publication_host.client_direct_acquisition_occurrence_count(value)
+  })
+  .unwrap_or(-1)
 }
 
 ///|

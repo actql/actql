@@ -960,6 +960,8 @@ pub fn client_program_effect_definition_cid(@run_publication_host.PreparedClient
 
 pub fn client_program_effect_dependency_body_cid(@run_publication.CapturedEffectDependencyBody) -> String
 
+pub fn client_program_effect_direct_source_coordinates(@run_publication_host.PreparedClientEffectComputation) -> Result[Array[(Int, Int, Int, Int)], @run_publication_host.ClientDirectAcquisitionOccurrenceIssue]
+
 pub fn client_program_effect_environment_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
 pub fn client_program_effect_infer_occurrence(@run_publication_host.PreparedClientEffectComputation) -> @run_publication_host.ClientInferOccurrence?
@@ -1253,6 +1255,8 @@ pub fn client_program_effect_target_selection_original(@run_publication_host.Pre
 pub fn client_program_effect_target_selection_wire(@run_publication_host.ClientEffectUpdateTargetSelections) -> String
 
 pub fn client_program_effect_target_selections(@run_publication_host.PreparedClientEffectComputation) -> String?
+
+pub fn client_program_effect_whole_source_input_identity(@run_publication_host.PreparedClientEffectComputation, @sourceview_resolution.SourceAcquisition) -> Array[String]?
 
 pub fn client_program_effectful_static_plan_view(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectCompilation, Int, Int, Int) -> Result[String, @run_publication_host.ClientEffectfulStaticPlanIssue]
 
@@ -1632,6 +1636,8 @@ pub fn client_program_installed_effect_managed_plan_shape(@client_local_host.Cli
 
 pub fn client_program_installed_effect_managed_plan_source(@client_local_host.ClientInstalledEffectManagedPlan, Int) -> Result[(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, @client_local_host.ClientInstalledCaptureCapacity), @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_managed_plan_whole_source(@client_local_host.ClientInstalledEffectManagedPlan, Int) -> Result[(@sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @client_local_host.ClientInstalledWholeSourceCapacity), @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_managed_provider_plan_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_row_source_host.RowDeclaration], Array[@execution_relation.ExecutionCapacity], String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@client_local_host.ClientInstalledEffectOperationDemand]) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_managed_provider_plan_prepare_at_query_time(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientQueryTimePreparation, Array[@client_row_source_host.RowDeclaration], Array[@execution_relation.ExecutionCapacity], String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@client_local_host.ClientInstalledEffectOperationDemand]) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1646,9 +1652,15 @@ pub fn client_program_installed_effect_managed_run_prepare_ledger(@client_local_
 
 pub fn client_program_installed_effect_managed_run_requirements(@run_publication_host.PreparedClientEffectComputation, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_managed_source_input_kind(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Int) -> Result[String, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_managed_source_plan_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledEffectSourceInput], String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@client_local_host.ClientInstalledEffectOperationDemand], @run_publication_host.ClientQueryTimePreparation?, @client_local_host.ClientInstalledEffectModelDemand?, Array[@local.ManagedProvider], @client_local_host.ClientInstalledEffectContentPreparation?) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_managed_source_read(@client_local_host.ClientInstalledManagedRun, @client_row_source_host.RowDeclaration, Int) -> Result[(@client_local_host.ClientInstalledSourceRead, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, @client_local_host.ClientInstalledCaptureCapacity), @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_managed_sources_ledger(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[@physical_resources.Ledger, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_managed_whole_source_read(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_row_source_host.RowDeclaration, Int) -> Result[(@client_local_host.ClientInstalledSourceRead, @sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @client_local_host.ClientInstalledWholeSourceCapacity), @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_model_demand_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[@client_local_host.ClientInstalledEffectModelDemand, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -1971,6 +1983,8 @@ pub fn client_program_issue_effect_table_source_artifact(@physical_strategy_host
 pub fn client_program_issue_effect_target_installation(String) -> Result[(String, String), @run_publication_host.ClientEffectUpdateTargetIssue]
 
 pub fn client_program_issue_effect_values_fragment(@run_publication_host.PreparedClientEffectComputation, Int) -> Result[@run_publication_host.ClientValuesFragmentNode, @run_publication_host.ClientValuesFragmentIssue]
+
+pub fn client_program_issue_effect_whole_source_input_logical(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @client_local_host.ClientInstalledWholeSourceCapacity) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientCapturedSourceLogicalIssue]
 
 pub fn client_program_issue_empty_invocation_bindings(@run_publication_host.PreparedClientProgram) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientEmptyInvocationBindingsIssue]
 

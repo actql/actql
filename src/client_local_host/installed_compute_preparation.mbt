@@ -37,8 +37,12 @@ fn prepare_installed_compute_preparation(
     @local.ManagedProvider,
   ],
   runtime_admission? : Bool = false,
+  physical_graph? : @strategy.CheckedDAG? = None,
+  whole_sources? : Array[
+    (@row_source_host.RowDeclaration, ClientInstalledWholeSourceCapacity)?,
+  ] = [],
 ) -> Result[ClientInstalledComputePreparation, ClientInstalledManagedRunIssue] {
-  let graph = installed_managed_owner_graph(owner)
+  let graph = physical_graph.unwrap_or(installed_managed_owner_graph(owner))
   let (compute_sequences, capacity_plan, local_capacity) = match source_free {
     Some(original) =>
       (
@@ -128,16 +132,28 @@ fn prepare_installed_compute_preparation(
       actual_local_capacity.limits
     }
     None => {
-      if @strategy.graph_captured_prefix(graph) == 0 {
+      if @strategy.graph_captured_prefix(graph) == 0 && whole_sources.is_empty() {
         return Err(Unsupported)
       }
       guard multi_captured_capacity_limits_selected(
           graph,
-          captures.map(value => (value.retained_bytes, value.execution_bytes)),
+          if whole_sources.any(value => value is Some(_)) {
+            whole_sources.filter_map(value => {
+              value.map(pair => {
+                (
+                  @execution.execution_capacity_retained_bytes(pair.1.complete),
+                  @execution.execution_capacity_execution_bytes(pair.1.complete),
+                )
+              })
+            })
+          } else {
+            captures.map(value => (value.retained_bytes, value.execution_bytes))
+          },
           transport_bytes,
           transport_execution_bytes,
           sequences,
           local_capacity=Some(actual_local_capacity),
+          source_inputs=whole_sources.any(value => value is Some(_)),
         )
         is Some(limits) else {
         return Err(Unsupported)

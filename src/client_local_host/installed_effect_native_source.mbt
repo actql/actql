@@ -93,6 +93,8 @@ fn prepare_installed_effect_source_inputs(
   fragment : String?,
   ordered : String?,
   occurrences : @publication_host.ClientDirectAcquisitionOccurrences?,
+  transport_execution : Array[Int64],
+  sequences : Array[@execution.GeneratedSequence],
   invocation : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -102,17 +104,22 @@ fn prepare_installed_effect_source_inputs(
     Array[@row_source_host.RowDeclaration],
     Array[@row_source_host.RowAcquisition],
     Array[ClientInstalledCaptureCapacity],
+    Array[
+      (@row_source_host.RowDeclaration, ClientInstalledWholeSourceCapacity)?,
+    ],
   ),
   ClientInstalledManagedRunIssue,
 ] {
-  let count = @strategy.graph_captured_prefix(
-    installed_managed_owner_graph(Effect(prepared)),
-  )
-  if inputs.length() != count {
+  let count = occurrences
+    .map(value => {
+      @publication_host.client_direct_acquisition_occurrence_count(value)
+    })
+    .unwrap_or(0)
+  if inputs.length() != count || transport_execution.length() != count {
     return Err(ForeignOriginal)
   }
   if count == 0 {
-    return Ok(([], [], []))
+    return Ok(([], [], [], []))
   }
   guard occurrences is Some(selected) &&
     installed_direct_occurrences_match_owner(selected, Effect(prepared)) &&
@@ -123,14 +130,46 @@ fn prepare_installed_effect_source_inputs(
   let declarations = []
   let acquisitions = []
   let captures = []
+  let whole_sources = []
   for index, input in inputs {
     guard @publication_host.client_direct_acquisition_occurrence_at(
         selected, index,
       )
-      is Some((stage, ordinal, task)) &&
-      task == index else {
+      is Some((stage, ordinal, _)) else {
       return Err(ForeignOriginal)
     }
+    let route = match
+      select_installed_source_input_graph(
+        installed_managed_owner_graph(Effect(prepared)),
+        stage,
+        ordinal,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if route is @sourceviews.WholeInputRoute(original) {
+      guard input is InstalledEffectRowSource(declaration, provider) else {
+        return Err(Unsupported)
+      }
+      let capacity = match
+        prepare_installed_effect_whole_source_capacity(
+          prepared,
+          stage,
+          ordinal,
+          original,
+          declaration,
+          contracts,
+          provider,
+          transport_execution[index],
+          sequences,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      whole_sources.push(Some((declaration, capacity)))
+      continue
+    }
+    whole_sources.push(None)
     let requirement = match
       prepare_local_query_requirement_owned(
         Effect(prepared),
@@ -186,7 +225,7 @@ fn prepare_installed_effect_source_inputs(
       }
     }
   }
-  Ok((declarations, acquisitions, captures))
+  Ok((declarations, acquisitions, captures, whole_sources))
 }
 
 ///|
@@ -194,12 +233,14 @@ fn installed_effect_source_row_index(
   plan : ClientInstalledEffectManagedPlan,
   occurrence : Int,
 ) -> Int? {
-  guard plan.captures.get(occurrence) is Some(capacity) &&
+  guard installed_effect_source_capture_index(plan, occurrence)
+    is Some(capture_index) &&
+    plan.captures.get(capture_index) is Some(capacity) &&
     capacity.original_input else {
     return None
   }
   let mut row = 0
-  for index in 0..<occurrence {
+  for index in 0..<capture_index {
     if plan.captures[index].original_input {
       row += 1
     }
@@ -223,7 +264,9 @@ pub fn installed_effect_managed_duckdb_capture(
     physical_equal(plan.prepared, prepared) &&
     physical_equal(plan.request, request) &&
     physical_equal(owner.request, request) &&
-    plan.captures.get(occurrence) is Some(capacity) &&
+    installed_effect_source_capture_index(plan, occurrence)
+    is Some(capture_index) &&
+    plan.captures.get(capture_index) is Some(capacity) &&
     !capacity.original_input &&
     capacity.acquisition is None &&
     capacity.provider is None else {
@@ -239,4 +282,107 @@ pub fn installed_effect_managed_duckdb_capture(
     return Err(ForeignOriginal)
   }
   Ok((capacity.requirement, capacity))
+}
+
+///|
+fn prepare_installed_effect_whole_source_capacity(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  stage : Int,
+  ordinal : Int,
+  original : @sourceviews.SourceAcquisition,
+  declaration : @row_source_host.RowDeclaration,
+  contracts : ClientInstalledSequenceContracts,
+  provider : @execution.ExecutionCapacity?,
+  transport_execution : Int64,
+  sequences : Array[@execution.GeneratedSequence],
+) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue] {
+  if transport_execution <= 0L {
+    return Err(Unsupported)
+  }
+  let page_bytes = Int64::min(transport_execution, 1000000L).to_int()
+  let graph = installed_managed_owner_graph(Effect(prepared))
+  guard @publication_host.client_source_acquisition_matches_effect_program(
+      prepared, stage, ordinal, original,
+    ) &&
+    @strategy.graph_stage_operation_task(graph, stage, 0) is Some(task) &&
+    @strategy.graph_task_owner(graph, task) is Some(owner) else {
+    return Err(ForeignOriginal)
+  }
+  guard sequences.get(task) is Some(generated) &&
+    physical_equal(@execution.generated_sequence_owner(generated), owner) else {
+    return Err(ForeignOriginal)
+  }
+  let sequence = @execution.generated_prepared_sequence(generated)
+  let acquisition = match
+    @row_source_host.prepare_row_input_acquisition(
+      original,
+      @checked.source_identity(@strategy.graph_program(graph)),
+      sequence,
+      contracts.original.value.contracts,
+      declaration,
+      {
+        max_rows: 100,
+        page: {
+          max_bytes: page_bytes,
+          max_nodes: 100000,
+          max_depth: 100,
+          max_rows: 100,
+        },
+        retention: {
+          max_nodes: 100000,
+          max_text_bytes: 500000,
+          max_depth: 100,
+          max_work: 20000000,
+        },
+        wire: {
+          max_columns: 100,
+          max_order_work: 100000,
+          max_bytes: 1000000,
+          max_nodes: 100000,
+          max_depth: 100,
+        },
+      },
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Unsupported)
+  }
+  match
+    installed_whole_source_capture_capacity(original, acquisition, provider) {
+    Some(value) => Ok(value)
+    None => Err(Unsupported)
+  }
+}
+
+///|
+/// Borrow the exact retained complete input. No read/current callback occurs.
+pub fn prepared_installed_effect_managed_whole_source(
+  plan : ClientInstalledEffectManagedPlan,
+  occurrence : Int,
+) -> Result[
+  (
+    @sourceviews.SourceAcquisition,
+    @row_source_host.RowInputAcquisition,
+    ClientInstalledWholeSourceCapacity,
+  ),
+  ClientInstalledManagedRunIssue,
+] {
+  guard plan.whole_sources.get(occurrence) is Some(Some((_, source))) else {
+    return Err(ForeignOriginal)
+  }
+  Ok((source.original, source.acquisition, source))
+}
+
+///|
+fn installed_effect_source_capture_index(
+  plan : ClientInstalledEffectManagedPlan,
+  occurrence : Int,
+) -> Int? {
+  guard plan.whole_sources.get(occurrence) is Some(None) else { return None }
+  let mut index = 0
+  for slot in 0..<occurrence {
+    if plan.whole_sources[slot] is None {
+      index += 1
+    }
+  }
+  Some(index)
 }

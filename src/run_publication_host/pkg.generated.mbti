@@ -513,6 +513,8 @@ pub fn client_effect_dependency_capture_matches(ClientEffectRunMaterials, @physi
 
 pub fn client_effect_dependency_capture_matches_artifact(ClientEffectDependencyCapture, ClientEffectLocalResultArtifact) -> Bool
 
+pub fn client_effect_direct_acquisition_count(PreparedClientEffectComputation, Int) -> Result[Int, ClientDirectAcquisitionOccurrenceIssue]
+
 pub fn client_effect_imported_invocation(ClientEffectImportedEvidence) -> ClientEffectLocalInvocation
 
 pub fn client_effect_imported_relation_bodies(ClientEffectImportedEvidence) -> Array[String]

@@ -247,6 +247,7 @@ fn effect_operation_source_plan_fixture(
   second_result? : Bool = false,
   same_unit_results? : Bool = false,
   provider? : @execution.ExecutionCapacity? = None,
+  whole_inputs? : Bool = false,
   query_time_for? : ((
     @publication_host.PreparedClientEffectComputation,
     @publication_host.ClientRequestIdentity,
@@ -388,6 +389,14 @@ fn effect_operation_source_plan_fixture(
   } else {
     document
   }
+  let document = if whole_inputs {
+    document.replace(
+      old="\"inputs\":{\"remote\":{\"connector\":\"operation-source\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > 0\"},{\"select\":[\"id\"],\"as\":\"captured\"}]",
+      new="\"inputs\":{\"remote\":{\"connector\":\"operation-source\",\"resource\":\"r\"},\"other\":{\"connector\":\"operation-source\",\"resource\":\"r\"}},\"from\":\"remote\",\"steps\":[{\"join\":{\"with\":\"other\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\"}},\"as\":\"captured\"}]",
+    )
+  } else {
+    document
+  }
   let prepared = match
     @publication_host.prepare_client_effect_computation(
       document,
@@ -458,6 +467,34 @@ fn effect_operation_source_plan_fixture(
     ]
   } else {
     [demand]
+  }
+  if whole_inputs {
+    let whole_plan = prepare_installed_effect_managed_source_plan(
+      prepared,
+      request,
+      [
+        prepare_installed_effect_row_source_input(declaration, provider).unwrap(),
+        prepare_installed_effect_row_source_input(declaration, provider).unwrap(),
+      ],
+      original_row_query_contract_fixture,
+      original_row_evidence_contract_fixture,
+      [1024L, 1024L],
+      [2048L, 2048L],
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      demands,
+      provider_factory=_ => [],
+    )
+    return match whole_plan {
+      Ok(value) => value
+      Err(ForeignOriginal) => fail("WholeEffectPlan.ForeignOriginal")
+      Err(Unsupported) => fail("WholeEffectPlan.Unsupported")
+      Err(InsufficientCapacity) => fail("WholeEffectPlan.InsufficientCapacity")
+      Err(Sequence(_)) => fail("WholeEffectPlan.Sequence")
+      Err(_) => fail("WholeEffectPlan.Other")
+    }
   }
   prepare_installed_effect_managed_plan(
     prepared,
