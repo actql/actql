@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "cd8dc51a3864afe017c82ba474b31dbb5fb60c81dd50d6252586afc629c070d4",
+      "sha256": "b36f060f611c870c005863a1c20f19f0cc80535cea4eb4da2aecffd58ec2042d",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -502,6 +502,7 @@
         "pub fn row_acquisition_contracts_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?",
         "pub fn row_acquisition_execution_capacity(RowAcquisition) -> Int64",
         "pub fn row_acquisition_is_listing(RowAcquisition) -> Bool",
+        "pub fn row_acquisition_listing_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
         "pub fn row_acquisition_listing_report_bounds(RowAcquisition) -> Result[(Int64, Int64), RowSourceIssue]",
         "pub fn row_acquisition_provider_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
         "pub fn row_acquisition_request_wire(RowAcquisition) -> Result[String, RowHostIssue]",
@@ -1146,6 +1147,10 @@
           "declaration": "pub fn row_acquisition_is_listing(RowAcquisition) -> Bool"
         },
         {
+          "name": "row_acquisition_listing_capacity",
+          "declaration": "pub fn row_acquisition_listing_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?"
+        },
+        {
           "name": "row_acquisition_listing_report_bounds",
           "declaration": "pub fn row_acquisition_listing_report_bounds(RowAcquisition) -> Result[(Int64, Int64), RowSourceIssue]"
         },
@@ -1520,7 +1525,8 @@
             "start_accounted_row_acquisition",
             "start_keyed_row_acquisition",
             "start_original_accounted_keyed_row_acquisition",
-            "start_row_acquisition"
+            "start_row_acquisition",
+            "row_acquisition_listing_capacity"
           ],
           "exports": [
             "pub fn abort_row_run(RowRun) -> Unit",
@@ -1627,7 +1633,8 @@
             "pub struct RowMapping {",
             "pub struct RowRunResponseBorrow {",
             "pub fn borrow_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
-            "pub fn row_captured_inputs_borrowed_available(RowCapturedInputs, @physical_resources.Ledger) -> Bool"
+            "pub fn row_captured_inputs_borrowed_available(RowCapturedInputs, @physical_resources.Ledger) -> Bool",
+            "pub fn row_acquisition_listing_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?"
           ],
           "attributes": {
             "responsibility": [
@@ -1673,7 +1680,7 @@
               },
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
-                "anchor": "physical_equal(configuration, acquisition.configuration)"
+                "anchor": "row_response_configuration_matches("
               },
               {
                 "path": "docs/design/kintone-record-mutations.md",
@@ -2121,7 +2128,7 @@
               },
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
-                "anchor": "physical_equal(configuration, acquisition.configuration)"
+                "anchor": "row_response_configuration_matches("
               },
               {
                 "path": "docs/design/kintone-record-mutations.md",
@@ -3955,7 +3962,7 @@
               },
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
-                "anchor": "physical_equal(configuration, acquisition.configuration)"
+                "anchor": "row_response_configuration_matches("
               },
               {
                 "path": "docs/design/kintone-record-mutations.md",
@@ -4457,7 +4464,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
-      "sha256": "be9d3490399a661752c6195e97f2d4e84c2af1614b3dd3d521322d8b06139337",
+      "sha256": "2171bf3c1007e0fecb634fefddbdf40fe71c960596bdb89cb8529ce70a522ef2",
       "exports": [],
       "operations": [
         {
@@ -4497,6 +4504,10 @@
           "declaration": "retire_row_run_response_workspace ( value : RowRunResponseBorrow , ) - > Result [ Unit , RowHostIssue ]"
         },
         {
+          "name": "row_response_configuration_matches",
+          "declaration": "row_response_configuration_matches ( actual : RowHostConfiguration , original : RowHostConfiguration , ) - > Bool"
+        },
+        {
           "name": "row_response_workspace_capture_current",
           "declaration": "row_response_workspace_capture_current ( value : RowRunResponseBorrow ) - > Bool"
         },
@@ -4512,7 +4523,8 @@
             "bind_row_run_response_borrow_cleanup",
             "borrow_row_run_responses",
             "check_row_acquisition_original",
-            "check_row_run_response_borrow_current"
+            "check_row_run_response_borrow_current",
+            "row_response_configuration_matches"
           ],
           "exports": [],
           "attributes": {
@@ -5028,7 +5040,7 @@
             "identity": [
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
-                "anchor": "physical_equal(configuration, acquisition.configuration)"
+                "anchor": "row_response_configuration_matches("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -5139,7 +5151,7 @@
     },
     {
       "module": "src/client_local_host/provider_capture_capacity.mbt",
-      "sha256": "9ef6dbd18b4d059418a44d71ca730c49e13bc988d7405169a448e747f3effab8",
+      "sha256": "7dfc5df70a480ff4fffd5c2ac89d4b09109cdebb072ec9755333d8a8b0106a1c",
       "operations": [
         {
           "name": "installed_provider_row_capture_capacity",
@@ -5148,6 +5160,10 @@
         {
           "name": "installed_provider_row_capture_capacity_matches",
           "declaration": "installed_provider_row_capture_capacity_matches ( capacity : ClientInstalledCaptureCapacity , selected : @ row_source_host . RowAcquisition , declaration : @ execution . ExecutionCapacity , ) - > Bool"
+        },
+        {
+          "name": "installed_source_read_provider_matches",
+          "declaration": "installed_source_read_provider_matches ( read : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , provider : @ execution . ExecutionCapacity , ) - > Bool"
         }
       ],
       "exports": [],
@@ -5159,7 +5175,8 @@
           "operations": [
             "<module>",
             "installed_provider_row_capture_capacity",
-            "installed_provider_row_capture_capacity_matches"
+            "installed_provider_row_capture_capacity_matches",
+            "installed_source_read_provider_matches"
           ],
           "exports": [],
           "attributes": {
@@ -5182,7 +5199,7 @@
             "identity": [
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
-                "anchor": "physical_equal(configuration, acquisition.configuration)"
+                "anchor": "row_response_configuration_matches("
               },
               {
                 "path": "src/client_local_host/provider_capture_capacity.mbt",

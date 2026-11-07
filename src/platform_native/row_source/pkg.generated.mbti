@@ -31,6 +31,10 @@ pub fn prepare_native_managed_relation_file_input_capture(@installed_arena_contr
 
 pub fn prepare_native_managed_relation_file_listing_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledWholeSourceCapacity, NativeRelationFileListingProvider, String) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
+pub fn prepare_native_managed_relation_file_query_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity, String, NativeRelationFileSelection, NativeRelationFileLimits, prepared_provider? : NativeRelationFilePreparedProvider?) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
+
+pub fn prepare_native_managed_relation_file_query_listing_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_local_host.ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, NativeRelationFileListingProvider, String) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
+
 pub fn prepare_native_relation_file_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]
 
 pub fn prepare_native_relation_file_input_capture(@installed_arena_control.InstalledArenaHost, @installed_arena_control.InstalledArenaRetainedExecution, @client_row_source_host.RowDeclaration, @client_row_source_host.RowInputAcquisition, String, NativeRelationFileSelection, NativeRelationFileLimits) -> Result[NativeRelationFileCapture, NativeRelationFileFailure]

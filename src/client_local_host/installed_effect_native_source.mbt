@@ -200,7 +200,11 @@ fn prepare_installed_effect_source_inputs(
         let selected = match provider {
           None => installed_row_capture_capacity(acquisition)
           Some(_) =>
-            installed_provider_row_capture_capacity(acquisition, provider)
+            if @row_source_host.row_acquisition_is_listing(acquisition) {
+              installed_listing_row_capture_capacity(acquisition, provider)
+            } else {
+              installed_provider_row_capture_capacity(acquisition, provider)
+            }
         }
         guard selected is Some(capacity) else { return Err(Unsupported) }
         declarations.push(declaration)

@@ -304,6 +304,8 @@ pub fn row_acquisition_execution_capacity(RowAcquisition) -> Int64
 
 pub fn row_acquisition_is_listing(RowAcquisition) -> Bool
 
+pub fn row_acquisition_listing_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn row_acquisition_listing_report_bounds(RowAcquisition) -> Result[(Int64, Int64), RowSourceIssue]
 
 pub fn row_acquisition_provider_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?

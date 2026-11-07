@@ -43,10 +43,10 @@ fn listing_report_selection_fixture(
     attempts: 1,
     holdings: 1,
     transfer_bytes: body.length().to_int64(),
-    retained_bytes: retained + (if reports_selected { 7L } else { 0L }),
+    retained_bytes: retained + (if reports_selected { 7L + 40L } else { 0L }),
     execution_bytes: execution +
     4096L +
-    (if reports_selected { 9L } else { 0L }),
+    (if reports_selected { 9L + 40L } else { 0L }),
   }).unwrap()
   let run = if reports_selected {
     assert_true(accounted)

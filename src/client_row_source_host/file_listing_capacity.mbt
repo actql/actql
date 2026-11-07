@@ -1,4 +1,18 @@
 ///|
+// Existing report holder's new original-configuration field (R1) and its
+// Some carrier (H1/R1/W1). The same Row owner quotes and reserves it before
+// constructing either, independently of the supplier's unchanged report data.
+fn row_listing_original_binding_bytes() -> Int64? {
+  @execution.preparation_representation_cost({
+    record_headers: 1L,
+    reference_slots: 2L,
+    scalar_words: 1L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
 // Checked addition of the complete supplementary listing envelope to the
 // existing Source allowance. No value here is an allocation or a byte grant.
 fn row_listing_capacity_sum(
@@ -21,11 +35,40 @@ fn row_listing_capacity_sum(
     report_execution > 9223372036854775807L - execution {
     return Err(Physical(InvalidLimits))
   }
-  let total_execution = execution + report_execution
-  if scratch > 9223372036854775807L - total_execution {
+  guard row_listing_original_binding_bytes() is Some(binding) else {
     return Err(Physical(InvalidLimits))
   }
-  Ok((retained + report_retained, total_execution + scratch))
+  let total_retained = retained + report_retained
+  let total_execution = execution + report_execution
+  if binding > 9223372036854775807L - total_retained ||
+    binding > 9223372036854775807L - total_execution ||
+    scratch > 9223372036854775807L - total_execution - binding {
+    return Err(Physical(InvalidLimits))
+  }
+  Ok((total_retained + binding, total_execution + binding + scratch))
+}
+
+///|
+/// Same listing composition used by the actual reservation below. This pure
+/// projection issues no bytes, capacity grant, Source read or report evidence.
+pub fn row_acquisition_listing_capacity(
+  value : RowAcquisition,
+  declaration : @execution.ExecutionCapacity?,
+) -> @execution.ExecutionCapacity? {
+  if !row_acquisition_is_listing(value) {
+    return None
+  }
+  match
+    row_listing_capacity_sum(
+      row_acquisition_retained_capacity(value),
+      row_acquisition_execution_capacity(value),
+      0L,
+      declaration,
+    ) {
+    Ok((retained, execution)) =>
+      @execution.execution_capacity(retained, execution)
+    Err(_) => None
+  }
 }
 
 ///|
@@ -85,9 +128,11 @@ pub fn start_accounted_listing_row_acquisition(
   // The supplementary declaration includes this payload/backing, original
   // scan reference and cleanup sentinel, plus the transition overlap. None
   // of these listing-only allocations precedes the successful reservation.
+  let reports = new_row_listing_reports()
+  reports.original_configuration = Some(value.configuration)
   let configuration : RowHostConfiguration = {
     ..value.configuration,
-    listing_rows: Some(ReportListingRows(resolved, new_row_listing_reports())),
+    listing_rows: Some(ReportListingRows(resolved, reports)),
   }
   // This short-lived capsule copies only existing checked references. Include
   // its three fields and the original/configuration overlap in the declared

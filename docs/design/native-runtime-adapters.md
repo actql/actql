@@ -144,6 +144,21 @@ lower bound, retention, and grant expiry. The service returns an explicit
 session so failed sinks can record a confirmed prefix or retain cleanup
 responsibility instead of losing an active reader behind a convenience API.
 
+The Native relation-file reader consumes Query and whole-input reads issued by
+one installed managed Plan. Query capture borrows the Plan's retained original
+acquisition, declaration and selected provider; an equal provider quote cannot
+replace that original. File listings retain their original ResourceRef issuer
+and monotonic clock. Both routes use the same Native capture holder, physical
+Ledger and child-first cleanup; neither route creates an auxiliary Run or Ledger.
+
+The accounted listing constructor retains the acquisition's original
+configuration in its existing report holder before a response borrow can match
+the derived listing configuration. Row owns the additional H1/R2/W1 tariff in
+both its planner projection and actual reservation. This is one reference and
+its Some carrier, not copied Catalog/schema data. Only confirmed Row cleanup
+severs it together with report/scan backing. It supplies no read permission or
+completion evidence.
+
 ## SQLite integration
 
 The native SQLite adapter is the first integration slice for a Node-free local

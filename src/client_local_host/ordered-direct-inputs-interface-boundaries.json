@@ -2366,7 +2366,7 @@
     {
       "module": "src/client_local_host/installed_effect_native_source.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7186d728b0c45ba321383f3058580c455551aabef2501de040da5e88a237cb43",
+      "sha256": "f7b08427dc6e47aa9d9e876c31e3bac1febf2e22fde8fd2d729cf54a65b24619",
       "role": "common-semantics",
       "owner": "Existing checked Effect Plan, original Row/DuckDB capture and managed Run/Ledger owners; installation DATA is not authority",
       "exports": [],
@@ -2374,6 +2374,10 @@
         {
           "name": "installed_effect_managed_duckdb_capture",
           "declaration": "installed_effect_managed_duckdb_capture ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , occurrence : Int , ) - > Result [ ( @ planning . QueryRequirement , ClientInstalledCaptureCapacity ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "installed_effect_source_capture_index",
+          "declaration": "installed_effect_source_capture_index ( plan : ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Int ?"
         },
         {
           "name": "installed_effect_source_row_index",
@@ -2389,11 +2393,19 @@
         },
         {
           "name": "prepare_installed_effect_row_source_input",
-          "declaration": "prepare_installed_effect_row_source_input ( declaration : @ row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , ) - > Result [ ClientInstalledEffectSourceInput , ClientInstalledManagedRunIssue ]"
+          "declaration": "prepare_installed_effect_row_source_input ( declaration : @ row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , input_limits ? : @ row_source_host . RowInputLimits ?"
         },
         {
           "name": "prepare_installed_effect_source_inputs",
-          "declaration": "prepare_installed_effect_source_inputs ( prepared : @ publication_host . PreparedClientEffectComputation , inputs : Array [ ClientInstalledEffectSourceInput ] , query_contract : String , evidence_contract : String , contracts : ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , occurrences : @ publication_host . ClientDirectAcquisitionOccurrences ? , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ? , ) - > Result [ ( Array [ @ row_source_host . RowDeclaration ] , Array [ @ row_source_host . RowAcquisition ] , Array [ ClientInstalledCaptureCapacity ] , ) , ClientInstalledManagedRunIssue , ]"
+          "declaration": "prepare_installed_effect_source_inputs ( prepared : @ publication_host . PreparedClientEffectComputation , inputs : Array [ ClientInstalledEffectSourceInput ] , query_contract : String , evidence_contract : String , contracts : ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , occurrences : @ publication_host . ClientDirectAcquisitionOccurrences ? , transport_execution : Array [ Int64 ] , sequences : Array [ @ execution . GeneratedSequence ] , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ? , ) - > Result [ ( Array [ @ row_source_host . RowDeclaration ] , Array [ @ row_source_host . RowAcquisition ] , Array [ ClientInstalledCaptureCapacity ] , Array [ ( @ row_source_host . RowDeclaration , ClientInstalledWholeSourceCapacity ) ? , ] , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_whole_source_capacity",
+          "declaration": "prepare_installed_effect_whole_source_capacity ( prepared : @ publication_host . PreparedClientEffectComputation , stage : Int , ordinal : Int , original : @ sourceviews . SourceAcquisition , declaration : @ row_source_host . RowDeclaration , contracts : ClientInstalledSequenceContracts , provider : @ execution . ExecutionCapacity ? , input_limits : @ row_source_host . RowInputLimits , transport_execution : Int64 , sequences : Array [ @ execution . GeneratedSequence ] , ) - > Result [ ClientInstalledWholeSourceCapacity , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepared_installed_effect_managed_whole_source",
+          "declaration": "prepared_installed_effect_managed_whole_source ( plan : ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ ( @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
         }
       ],
       "contracts": [
@@ -2401,11 +2413,14 @@
           "operations": [
             "<module>",
             "installed_effect_managed_duckdb_capture",
+            "installed_effect_source_capture_index",
             "installed_effect_source_row_index",
             "prepare_installed_effect_duckdb_source_input",
             "prepare_installed_effect_managed_source_plan",
             "prepare_installed_effect_row_source_input",
-            "prepare_installed_effect_source_inputs"
+            "prepare_installed_effect_source_inputs",
+            "prepare_installed_effect_whole_source_capacity",
+            "prepared_installed_effect_managed_whole_source"
           ],
           "exports": [],
           "attributes": {
