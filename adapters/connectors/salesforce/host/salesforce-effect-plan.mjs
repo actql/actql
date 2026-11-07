@@ -3,7 +3,7 @@
 // The original Site still owns grants, currentness, physical children and ACK.
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {captureInstalledEffectPlanRecipe} from '../../../host-node/installed-effect-plan.mjs';
+import {captureInstalledEffectPlanRecipe, effectRecoveryPreviewBounds} from '../../../host-node/installed-effect-plan.mjs';
 import {localOutputLimits} from '../../../host-node/local-values-plan.mjs';
 import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger-implementation-bounds.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialDefaultRequestBytes,
@@ -145,7 +145,9 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
         // Same authenticated Store input bound. This quantities only a native
         // constructor; the original decoder still validates every old limit.
         if (!integer(bytes) || bytes > localOutputLimits.maxWireBytes) fail();
-        const selected = quantities(initialProfile, captureFor(profile, ...captureArguments, bytes), controlEntryBytes, previewBytes);
+        const originalPreviewBounds = effectRecoveryPreviewBounds(previewBytes, limits.preview);
+        const selected = quantities(initialProfile, captureFor(profile,
+          ...originalPreviewBounds, ...captureArguments.slice(3), bytes), controlEntryBytes, previewBytes);
         return checked(captureExtentFor(operation, selected.slice(0, 6),
           limits.preview.maxWireBytes, limits.preview.maxNodes, limits.preview.maxDepth));
       };

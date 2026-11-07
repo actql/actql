@@ -21041,6 +21041,7 @@
       "exports": [
         "captureInstalledEffectPlanRecipe",
         "captureInstalledStandardCreateLimits",
+        "effectRecoveryPreviewBounds",
         "installedEffectRecipeForControlEntryLimit",
         "installedEffectSavedControlEntryLimit",
         "prepareInstalledEffectControlConstruction",
@@ -21139,6 +21140,14 @@
           "name": "captureInstalledStandardCreateLimits",
           "parameters": [
             "providerMoon"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectRecoveryPreviewBounds",
+          "parameters": [
+            "bytes",
+            "limits"
           ],
           "async": false
         },
@@ -21818,7 +21827,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "14d78a854b9632bde6b8e82a02a332d3756e74631ffe4a1e441769c385065eae",
+      "sha256": "e6d472cc103d9c5dcd2fd97e290ec6278fb845d16fe791f1d4f959de98f3a76c",
       "contracts": [
         {
           "operations": [
@@ -22119,12 +22128,14 @@
             "prepareInstalledPhysicalWritePlanRecipe/quote/quote",
             "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
-            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected"
+            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected",
+            "effectRecoveryPreviewBounds"
           ],
           "exports": [
             "installedEffectRecipeForControlEntryLimit",
             "installedEffectSavedControlEntryLimit",
-            "prepareInstalledPhysicalWritePlanRecipe"
+            "prepareInstalledPhysicalWritePlanRecipe",
+            "effectRecoveryPreviewBounds"
           ],
           "attributes": {
             "responsibility": [
@@ -22242,6 +22253,10 @@
               {
                 "path": "adapters/host-node/mock-file-effect-plan.test.mjs",
                 "anchor": "test('owned async file request retains its same child before preparation and joins before completion'"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/effect-target-read-inventory.test.mjs",
+                "anchor": "Salesforce recovered Preview allocation uses its own wire"
               }
             ]
           }
@@ -23176,7 +23191,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-plan.mjs",
-      "sha256": "26e3257f944a253613f3f48ffc4ee21a611e4b891d4000f903d382be569fa0df",
+      "sha256": "1a7f76e350736c2a1481d88aaebbfe875469a45143a8694be92feafea6700663",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -23394,6 +23409,10 @@
               {
                 "path": "src/connectors/salesforce/host_node/effect_recipe_wbtest.mbt",
                 "anchor": "test \"current Effect metadata uses original Source geometry within the unchanged normal parent\""
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/effect-target-read-inventory.test.mjs",
+                "anchor": "Salesforce recovered Preview allocation uses its own wire"
               }
             ]
           }

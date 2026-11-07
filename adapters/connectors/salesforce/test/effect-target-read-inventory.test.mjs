@@ -85,7 +85,7 @@ function actualDriverConstructor(createDriver, limits,
 function managedRecipeFixture() {
   const profile = Object.freeze({original: 'profile Option'}), capture = Object.freeze({original: 'capture Option'});
   const capacities = Array.from({length: 8}, (_, index) => Object.freeze({originalCapacity: index}));
-  const calls = [], extents = [];
+  const calls = [], extents = [], captureInputs = [];
   const ok = value => ({$tag: 1, _0: value});
   const moon = {
     clientProgramInstalledEffectControlWireBound(outcome,maximum) {assert.equal(maximum,1000000);return ok(outcome+1510);},
@@ -118,6 +118,7 @@ function managedRecipeFixture() {
     },
     salesforceEffectInputCaptureConstructionProfile(...args) {
       assert.strictEqual(this, provider);assert.strictEqual(args[0], profile);
+      captureInputs.push(args);
       assert.equal(args[17], localOutputLimits.maxWireBytes);return capture;
     },
     salesforceEffectTargetInputConstructionProfile(original) {assert.equal(this,provider);assert.equal(original,profile);return profile;},
@@ -141,8 +142,21 @@ function managedRecipeFixture() {
   const secret = Object.freeze({scope: Object.freeze({siteKey: 'same original site'}),
     issuer: Object.freeze({authority: 'authority', keyId: 'key'}), limits: Object.freeze({maxSecretBytes: 64})});
   return {options: {moon, salesforceMoon: provider, installed, limits, catalogLimits,
-    site: {apiVersion: 'v61.0'}, credentialConstruction: secret}, calls, capacities, extents};
+    site: {apiVersion: 'v61.0'}, credentialConstruction: secret}, calls, capacities, extents, captureInputs};
 }
+
+test('Salesforce recovered Preview allocation uses its own wire rather than a larger Catalog wire', () => {
+  const f = managedRecipeFixture(), recipes = captureSalesforceEffectPlanRecipeBuilder(f.options)(f.options);
+  const preview = '{"effects":[]}', originalLimits = structuredClone(f.options.limits.preview);
+  const original = 'x'.repeat(800);
+  recipes.update.recoveryConstruction.inputExtent(preview,
+    [{memberIndex: 0, kind: 'salesforce-named-catalog', wire: original}]);
+  const selected = f.captureInputs.at(-1), bytes = Buffer.byteLength(preview);
+  assert.deepEqual(selected.slice(1, 4), [bytes, bytes, bytes]);
+  assert.equal(selected.at(-1), 800, 'the Catalog keeps its own complete recovery bound');
+  assert.equal(f.calls.at(-1).at(-1), bytes, 'the Host Preview parser sees the same original Preview');
+  assert.deepEqual(f.options.limits.preview, originalLimits, 'configured full decoder limits are unchanged');
+});
 
 test('Salesforce managed recipes retain original native profiles and distinct member/row HTTP occurrences', () => {
   const {options, calls, capacities} = managedRecipeFixture();
