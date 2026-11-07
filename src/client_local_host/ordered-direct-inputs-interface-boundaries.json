@@ -926,7 +926,7 @@
     {
       "module": "src/client_local_host/installed_source_read.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0f8c857f741a16ae1a07f540582d3fd639df28083218261c1acdf12ee33aff2e",
+      "sha256": "b5cba89a2f8368413643839b25c52dc594071827b39c2aa4507a399ad98139d7",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
