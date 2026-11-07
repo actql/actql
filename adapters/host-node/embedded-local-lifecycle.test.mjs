@@ -774,7 +774,9 @@ test('held resume adopts the same Request Plan before its original publication c
     Object.assign(moon, {
       clientProgramSerializationOccurrences(actual) {assert.equal(actual,prepared);return [];},
       clientProgramInstalledManagedPublicationLimits(actual, program, maxBytes) {
-        assert.equal(actual,run);assert.equal(program,prepared);assert.equal(maxBytes,localOutputLimits.maxWireBytes);
+        // The checked projection takes the selected Store object ceiling,
+        // independently of the smaller output limits returned by this port.
+        assert.equal(actual,run);assert.equal(program,prepared);assert.equal(maxBytes,512 * 1024 * 1024);
         return resultOutputLimitFields.map(name => localOutputLimits[name]);
       },
     });
