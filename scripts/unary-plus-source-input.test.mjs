@@ -26,7 +26,7 @@ test('signed-literal controls fix grouped values independently and retain typed 
   assert.deepEqual(cases.get('unary-plus-signed-literal-alias-receiver').expected,
     [{amount: 5}, {amount: 1}, {amount: null}]);
   assert.deepEqual(signedLiteralRefusals.map(item => item.expectedCode),
-    ['ClientProgramInvalidInput', 'ClientProgramImplementationLimit']);
+    ['ClientProgramInvalidInput', 'ClientProgramInvalidInput']);
   for (const item of [...signedLiteralSuccesses, ...signedLiteralRefusals]) {
     assert.equal(item.sourceReadSessionCount ?? 1, 1);
   }

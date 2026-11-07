@@ -101,7 +101,7 @@ export const signedLiteralRefusals = [
   {name: 'different-key', text: 'SELECT amount + +2 AS bucket, COUNT(*) AS n FROM records '
     + 'GROUP BY amount + 1', expectedCode: 'ClientProgramInvalidInput'},
   {name: 'removed-input', text: 'SELECT DISTINCT amount + +1 AS value FROM records ORDER BY id',
-    expectedCode: 'ClientProgramImplementationLimit'},
+    expectedCode: 'ClientProgramInvalidInput'},
 ].map(value => ({...value, name: 'unary-plus-signed-literal-' + value.name, format: 'sql'}));
 unaryPlusRefusals.push(...signedLiteralRefusals);
 export const unaryPlusExecutionFailures = [{
