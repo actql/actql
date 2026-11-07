@@ -259,8 +259,8 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
         },
         1,
         0,
-        222451L,
-        270469L,
+        222539L,
+        270557L,
         29346L,
       ),
       (
@@ -272,8 +272,8 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
         },
         1,
         0,
-        23075950L,
-        23123968L,
+        23076038L,
+        23124056L,
         29346L,
       ),
       (
@@ -285,8 +285,8 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
         },
         16,
         16,
-        296410702L,
-        296458720L,
+        296410790L,
+        296458808L,
         32770L,
       ),
     ] {
@@ -319,14 +319,31 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
     assert_eq(@execution.execution_capacity_retained_bytes(read), read_bytes)
     assert_eq(@execution.execution_capacity_execution_bytes(read), read_bytes)
   }
+  // A quantity quote is not standalone component admission. Managed inputs
+  // may fund a larger byte profile; the independent Read keeps its 64 KiB cap.
+  let quoted_bytes = {
+    ..fixture_limits,
+    page: { max_bytes: 65537, max_nodes: 8192, max_depth: 32, max_rows: 100, },
+  }
+  assert_false(
+    @row_file.native_relation_file_input_valid(selection, quoted_bytes),
+  )
+  assert_true(
+    @row_file.native_relation_file_caller_preparation_inventory(
+      selection, quoted_bytes,
+    )
+    is Some(_),
+  )
+  assert_true(
+    @client.native_relation_file_work_control_capacity(selection, quoted_bytes)
+    is Some(_),
+  )
+  assert_true(
+    @client.native_relation_file_entry_read_capacity(selection, quoted_bytes)
+    is None,
+  )
   for
     page in [
-      @rows.RowPageLimits::{
-        max_bytes: 65537,
-        max_nodes: 8192,
-        max_depth: 32,
-        max_rows: 100,
-      },
       @rows.RowPageLimits::{
         max_bytes: 65536,
         max_nodes: 8193,
@@ -1197,16 +1214,16 @@ test "actual original Account Journal StoreOperation captures relation and execu
     ) +
     3L * 24L +
     12256L
-  assert_eq(source_preparation, 23075950L)
+  assert_eq(source_preparation, 23076038L)
   assert_eq(@execution.execution_capacity_retained_bytes(entry_read), 29346L)
-  assert_eq(read_addition, 23170242L)
+  assert_eq(read_addition, 23170330L)
   assert_eq(outer_addition, 15170L)
   // The real no-VM domain contract requires R+E, not just E. These test-owned
   // physical partitions preserve the same 768 MiB backing and logical quotes.
   // The same compiled provider observes its control/context geometry; neither
   // observation grants capacity or substitutes for per-object construction.
   let read_payload = 113L * mib + 2L * read_addition
-  assert_eq(read_payload, 164829572L)
+  assert_eq(read_payload, 164829748L)
   let read_necessary = @bootstrap.execution_domain_necessary_bytes(
     160L * mib,
     read_payload,
