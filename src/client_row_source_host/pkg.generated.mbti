@@ -215,7 +215,7 @@ pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement,
 
 pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
-pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits) -> Result[RowInputAcquisition, RowHostIssue]
+pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]
 
 pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]
 
@@ -336,6 +336,8 @@ pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value
 pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]
 
 pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts
+
+pub fn row_input_acquisition_is_listing(RowInputAcquisition) -> Bool
 
 pub fn row_input_acquisition_matches_source(RowInputAcquisition, @sourceview_resolution.SourceAcquisition) -> Bool
 

@@ -47977,7 +47977,7 @@
     },
     {
       "module": "src/client_row_source_host/host.mbt",
-      "sha256": "bbdb8c60f8d037338b98157464cf2b2d4e2535ae474b55a1b896c93ae0a74736",
+      "sha256": "2b86e1ce1aedbd319da2ba8731fc2927d98e97312d9067cb5f5364c4bfdb5f47",
       "exports": [],
       "operations": [
         {
@@ -48266,6 +48266,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_row_source_host/file_listing.mbt",
+                "anchor": "fn clear_row_listing_tokens("
               }
             ],
             "cancellation": [
@@ -48286,6 +48290,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_row_source_host/input_listing_capacity.mbt",
+                "anchor": "fn grow_row_input_listing_phase("
               }
             ],
             "extension": [
@@ -48310,6 +48318,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "same Request acquired Model prefix"
+              },
+              {
+                "path": "src/run_publication_host/client_whole_listing_wbtest.mbt",
+                "anchor": "test \"whole listing grows only actual page demand"
+              },
+              {
+                "path": "src/client_local_host/installed_whole_listing_parent_js_wbtest.mbt",
+                "anchor": "test \"Effect preparation parent grows its original listing RowRun"
               }
             ]
           }
@@ -48428,7 +48444,7 @@
     },
     {
       "module": "src/client_row_source_host/input_acquisition.mbt",
-      "sha256": "ff59cc95bb096204e1b57a94000ba018d945f7a7f9bd74a4717c3e9ed03b718d",
+      "sha256": "35f6accc0cf5ef288f2e6690c89e47626d050bbce08ce6200baab43b2a7d6c4f",
       "exports": [],
       "operations": [
         {
@@ -48461,7 +48477,7 @@
         },
         {
           "name": "prepare_row_input_acquisition",
-          "declaration": "prepare_row_input_acquisition ( original : @ sourcequery . SourceAcquisition , program : @ context . ProgramSourceIdentity , sequence : @ lower . PreparedSequence , contracts : @ execution . RegisteredRelationContracts , declaration : RowDeclaration , limits : RowInputLimits , ) - > Result [ RowInputAcquisition , RowHostIssue ]"
+          "declaration": "prepare_row_input_acquisition ( original : @ sourcequery . SourceAcquisition , program : @ context . ProgramSourceIdentity , sequence : @ lower . PreparedSequence , contracts : @ execution . RegisteredRelationContracts , declaration : RowDeclaration , limits : RowInputLimits , listing_policy ? : @ capacity . Policy ?"
         },
         {
           "name": "row_input_acquisition_capacity",
@@ -48474,6 +48490,10 @@
         {
           "name": "row_input_acquisition_facts",
           "declaration": "row_input_acquisition_facts ( value : RowInputAcquisition , ) - > @ planning . QuerySourceEvidenceFacts"
+        },
+        {
+          "name": "row_input_acquisition_is_listing",
+          "declaration": "row_input_acquisition_is_listing ( value : RowInputAcquisition ) - > Bool"
         },
         {
           "name": "row_input_acquisition_matches_source",
@@ -48517,6 +48537,7 @@
             "row_input_acquisition_capacity",
             "row_input_acquisition_columns",
             "row_input_acquisition_facts",
+            "row_input_acquisition_is_listing",
             "row_input_acquisition_matches_source",
             "row_input_acquisition_max_rows",
             "row_input_acquisition_request_wire",
@@ -48584,6 +48605,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_row_source_host/file_listing.mbt",
+                "anchor": "fn clear_row_listing_tokens("
               }
             ],
             "cancellation": [
@@ -48604,6 +48629,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "src/client_row_source_host/input_listing_capacity.mbt",
+                "anchor": "fn grow_row_input_listing_phase("
               }
             ],
             "extension": [
@@ -48628,6 +48657,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "same Request acquired Model prefix"
+              },
+              {
+                "path": "src/run_publication_host/client_whole_listing_wbtest.mbt",
+                "anchor": "test \"whole listing grows only actual page demand"
+              },
+              {
+                "path": "src/client_local_host/installed_whole_listing_parent_js_wbtest.mbt",
+                "anchor": "test \"Effect preparation parent grows its original listing RowRun"
               }
             ]
           }
