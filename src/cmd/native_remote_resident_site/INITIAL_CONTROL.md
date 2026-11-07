@@ -28,6 +28,15 @@ this command allocation domain;
 they grant no independent process, FD, loader, Run, permission or publication
 capacity. Existing child owners and their limits remain authoritative.
 
+The enclosing constructor block belongs to one preparation phase. Allocation
+and region construction finish their original block before loan and view
+construction; physical domain construction starts after the latter block has
+also finished. Each transition reconciles the actual previous cohort and
+prepares the same fixed next block on the same capacity claim. Escaped aliases
+remain charged, and an unconfirmed finish or acquisition retains its original
+cleanup duty. The initial payload calculation already excludes this next block;
+no phase transition increases the arena or child limits.
+
 Normal command completion consumes managed failure diagnostics on stderr,
 preserving stdout for existing progress records, and lets parser and
 command aliases unwind inside that same Read. Cleanup then leaves and closes

@@ -311,3 +311,103 @@ test "actual root cohort finish reconciles retired pages while escaped controls 
   assert_true(control.closed && control.owner is None)
   assert_eq(host.usage().reserved_execution_bytes, 0L)
 }
+
+///|
+// Same bounded initial Resident assembly, without parser, Site, services or Run.
+// The original next-control allowance must remain outside the child payload.
+
+///|
+test "initial domain assembly keeps distinct control phases on the same Root" {
+  let original = { identity: 909, }
+  let capacity = 256L * 1048576L
+  let supplier = prepare_installed_arena_supplier(
+    original,
+    "0123456789012345678901234567890123456789",
+    Bytes::make(32, 17),
+    1L,
+    capacity,
+    {
+      planning_work: 64,
+      attempts: 8,
+      holdings: 4,
+      transfer_bytes: 0L,
+      retained_bytes: 0L,
+      execution_bytes: capacity,
+    },
+    16L * 1048576L,
+  ).unwrap()
+  let host = match supplier.acquire(original).unwrap() {
+    Acquired(value) => value
+    Pending(_, _) => fail("initial assembly acquisition pending")
+  }
+  host.claim(original, supplier.source, supplier.recipe, 1L).unwrap()
+  let scope = host.borrow_backing(original).unwrap()
+  host.enter_borrow_scope(original, scope).unwrap()
+  host.prepare_backed_read_control(original, scope).unwrap()
+  assert_true(host.enter_backed_read_control(original, scope))
+  let bytes = host.initial_payload_capacity(original).unwrap()
+  let allocation = host.allocate_in_process_domain(original, bytes).unwrap()
+  let region : NativeBackedExecutionRegion[
+    BootstrapTestOriginal,
+    BootstrapTestOriginal,
+  ] = host.issue_backed_region(original, allocation).unwrap()
+  let control = host.root_control.unwrap()
+  let same_claim = control.claim
+  host.leave_backed_read_control(original, scope).unwrap()
+  assert_true(control.cohort_finished && !control.active)
+  host.prepare_backed_read_control(original, scope).unwrap()
+  assert_true(physical_equal(control.claim, same_claim))
+  assert_false(control.cohort_finished)
+  assert_true(host.enter_backed_read_control(original, scope))
+  let loan = match
+    host
+    .lend_backed_region_in_process(
+      original,
+      region,
+      scope,
+      original,
+      { offset: 0L, length: bytes, payload_offset: 0L, payload_length: bytes, },
+      @resources.ExclusiveWrite,
+      {
+        planning_work: 16,
+        attempts: 1,
+        holdings: 1,
+        transfer_bytes: 0L,
+        retained_bytes: 0L,
+        execution_bytes: bytes,
+      },
+      0L,
+      0L,
+    )
+    .unwrap() {
+    Lent(value) => value
+    Pending(_, _) => fail("initial assembly loan pending")
+  }
+  let view = match
+    host.view_backed_region_in_process(original, loan, original).unwrap() {
+    Mapped(value) => value
+    PendingView(_, _) => fail("initial assembly view pending")
+  }
+  host.leave_backed_read_control(original, scope).unwrap()
+  assert_true(control.cohort_finished && !control.active)
+  host.prepare_backed_read_control(original, scope).unwrap()
+  assert_true(physical_equal(control.claim, same_claim))
+  assert_true(host.enter_backed_read_control(original, scope))
+  let domain = match
+    host.acquire_backed_domain(original, view, original).unwrap() {
+    DomainReady(value) => value
+    DomainPending(_, _) => fail("initial assembly domain pending")
+  }
+  host.transfer_backed_domain(original, domain, original).unwrap()
+  host.leave_backed_read_control(original, scope).unwrap()
+  host.leave_borrow_scope(original, scope).unwrap()
+  host.close_backed_domain(original, domain, original).unwrap()
+  host.close_backed_view(original, view, original).unwrap()
+  host
+  .settle_backed_region_after_owner_ack(original, loan, original, None)
+  .unwrap()
+  assert_true(host.close_backed_region(original, region).unwrap())
+  host.return_borrow(original, scope).unwrap()
+  host.try_close(original).unwrap()
+  assert_eq(host.usage().reserved_execution_bytes, 0L)
+}

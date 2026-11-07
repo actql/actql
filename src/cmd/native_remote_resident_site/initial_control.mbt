@@ -290,6 +290,10 @@ fn ResidentInitialControl::acquire(
     .issue_backed_region(self.original, allocation)
     .resident_initial_require("installed command region refused")
   self.region = Some(region)
+  // Region/allocation controls retain their original pages. Finish their
+  // actual cohort before constructing the separate loan/view/domain phase;
+  // initial_payload_capacity already kept this next block out of the payload.
+  self.advance_control_phase()
   let child_limits : @resources.LedgerLimits = {
     planning_work: 16,
     attempts: 1,
@@ -335,6 +339,9 @@ fn ResidentInitialControl::acquire(
     }
   }
   guard self.view is Some(view) else { stop("original command view missing") }
+  // Lending/mapping retains a separate original constructor cohort from the
+  // following physical domain carrier. No aliases or child debt are retired.
+  self.advance_control_phase()
   match
     host
     .acquire_backed_domain(self.original, view, self.original)
@@ -374,6 +381,31 @@ fn ResidentInitialControl::acquire(
     execution_ceiling=self.read_payload_bytes,
   )
   .resident_initial_require("installed command read context refused")
+}
+
+///|
+/// Finish/reconcile this phase before acquiring the same fixed next block.
+/// Every fallible step leaves its exact original cleanup state on this entry.
+fn ResidentInitialControl::advance_control_phase(
+  self : ResidentInitialControl,
+) -> Unit raise CommandStop {
+  self.require_current()
+  guard self.host is Some(host) &&
+    self.scope is Some(scope) &&
+    self.control_entered else {
+    stop("original command backing missing")
+  }
+  host
+  .leave_backed_read_control(self.original, scope)
+  .resident_initial_require("installed command control leave pending")
+  self.control_entered = false
+  host
+  .prepare_backed_read_control(self.original, scope)
+  .resident_initial_require("installed command Read control refused")
+  if !host.enter_backed_read_control(self.original, scope) {
+    stop("installed command control entry refused")
+  }
+  self.control_entered = true
 }
 
 ///|

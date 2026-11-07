@@ -88,14 +88,23 @@ pub fn[T] NativeHostBootstrap::prepare_backed_read_control(
     return Err(Unavailable)
   }
   if self.root_control is Some(control) {
-    return if control.scope is Some(selected) &&
+    guard control.scope is Some(selected) &&
       physical_equal(selected, scope) &&
       !control.closing &&
-      !control.closed {
-      Ok(())
-    } else {
-      Err(Unavailable)
+      !control.closed else {
+      return Err(Unavailable)
     }
+    if control.cohort_finished {
+      // Only the actual preceding finish can select another fixed block.
+      // Its escaped aliases remain charged on this SAME claim; capacity and
+      // physical acquisition still precede the next caller's entry.
+      let maximum = root_control_basis_maximum_ffi(self.backing)
+      return self.extend_root_control(original, scope, {
+        maximum_managed_request: maximum,
+        allocation_requests: 64L,
+      })
+    }
+    return Ok(())
   }
   if !self.children.is_empty() || !self.delegations.is_empty() {
     return Err(AlreadyConsumed)
