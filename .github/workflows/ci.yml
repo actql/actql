@@ -132,6 +132,18 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
+      - name: Check all workflows with pinned actionlint
+        run: |
+          set -euo pipefail
+          tool="$RUNNER_TEMP/actionlint-1.7.12"
+          mkdir "$tool"
+          curl --fail --location --silent --show-error --retry 3 --connect-timeout 20 --max-time 60 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            --output "$tool/original.tar.gz"
+          printf '%s  %s\n' 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 "$tool/original.tar.gz" | sha256sum --check --strict
+          tar -xzf "$tool/original.tar.gz" -C "$tool" actionlint
+          # Keep this fixed workflow checker independent of optional unpinned external tools.
+          "$tool/actionlint" -oneline -shellcheck= -pyflakes=
       - name: Reject inconsistent operation support and acceptance evidence before fan-out
         run: node --test scripts/pure-operation-inventory.test.mjs
       - name: Check Native diagnostic counter assignments before fan-out
@@ -1070,15 +1082,28 @@ jobs:
           path: ${{ runner.temp }}/actql-client-packages
       - name: Install pinned AI SDK provider test dependencies
         run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts
-      - name: Prepare source-backed distribution runtime
+      # Separate existing commands so ci-evidence/ci-timing can measure each
+      # preparation stage. The final default-success step remains the barrier.
+      - name: Build source-backed distribution runtime
+        id: distribution-runtime
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/build-runtime-packages.mjs local-node run-host-core
+      - name: Build source-backed distribution adapters
+        id: distribution-adapters
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/build-local-node-adapters.mjs
+      - name: Check publication wire freshness
+        id: distribution-publication-wire-check
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/generate-client-publication-wire.mjs
+      - name: Check Host wire freshness
         id: distribution-preparation
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: |
-          node scripts/build-runtime-packages.mjs local-node run-host-core
-          node scripts/build-local-node-adapters.mjs
-          node scripts/generate-client-publication-wire.mjs
-          node scripts/generate-client-host-wire.mjs
+        run: node scripts/generate-client-host-wire.mjs
       - name: Test source-backed distribution contracts
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
@@ -1106,15 +1131,28 @@ jobs:
           path: ${{ runner.temp }}/actql-client-packages
       - name: Install pinned AI SDK provider test dependencies
         run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts
-      - name: Prepare source-backed distribution runtime
+      # Separate existing commands so ci-evidence/ci-timing can measure each
+      # preparation stage. The final default-success step remains the barrier.
+      - name: Build source-backed distribution runtime
+        id: distribution-runtime
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/build-runtime-packages.mjs local-node run-host-core
+      - name: Build source-backed distribution adapters
+        id: distribution-adapters
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/build-local-node-adapters.mjs
+      - name: Check publication wire freshness
+        id: distribution-publication-wire-check
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/generate-client-publication-wire.mjs
+      - name: Check Host wire freshness
         id: distribution-preparation
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: |
-          node scripts/build-runtime-packages.mjs local-node run-host-core
-          node scripts/build-local-node-adapters.mjs
-          node scripts/generate-client-publication-wire.mjs
-          node scripts/generate-client-host-wire.mjs
+        run: node scripts/generate-client-host-wire.mjs
       - name: Test distribution caller client-null-context.test.mjs
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
@@ -1317,15 +1355,28 @@ jobs:
           path: ${{ runner.temp }}/actql-client-packages
       - name: Install pinned AI SDK provider test dependencies
         run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts
-      - name: Prepare source-backed distribution runtime
+      # Separate existing commands so ci-evidence/ci-timing can measure each
+      # preparation stage. The final default-success step remains the barrier.
+      - name: Build source-backed distribution runtime
+        id: distribution-runtime
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/build-runtime-packages.mjs local-node run-host-core
+      - name: Build source-backed distribution adapters
+        id: distribution-adapters
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/build-local-node-adapters.mjs
+      - name: Check publication wire freshness
+        id: distribution-publication-wire-check
+        env:
+          TMPDIR: ${{ github.workspace }}/_build
+        run: node scripts/generate-client-publication-wire.mjs
+      - name: Check Host wire freshness
         id: distribution-preparation
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: |
-          node scripts/build-runtime-packages.mjs local-node run-host-core
-          node scripts/build-local-node-adapters.mjs
-          node scripts/generate-client-publication-wire.mjs
-          node scripts/generate-client-host-wire.mjs
+        run: node scripts/generate-client-host-wire.mjs
       - name: Test check read row mutations
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
