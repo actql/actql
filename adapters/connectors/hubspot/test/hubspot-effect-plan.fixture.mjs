@@ -47,4 +47,3 @@ export function hubSpotEffectPlanFixture() {
   const build = captureHubSpotEffectPlanRecipeBuilder({moon});
   return {moon, options, quotes, compositions, build};
 }
-
