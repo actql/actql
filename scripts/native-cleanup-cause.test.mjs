@@ -70,6 +70,25 @@ test('cleanup category never serializes payloads and keeps public error code', {
             _ => "ProjectMockTaskInvalid"
           }
         Answers(original) => local_project_mock_answer_cleanup_cause(original)
+        Dependencies(original) =>
+          match original {
+            Missing(_) => "ProjectMockDependencyMissing"
+            Body(_, issue) =>
+              match issue.kind {
+                InvalidLimits => "ProjectMockDependencyInvalidLimits"
+                BodyLimit | TaskLimit | WorkLimit =>
+                  "ProjectMockDependencyLimit"
+                _ => "ProjectMockDependencyInvalid"
+              }
+            UnsupportedPolicy(_) => "ProjectMockDependencyUnsupportedPolicy"
+            MediaRole(_, _) => "ProjectMockDependencyMediaRole"
+          }
+        Provider(original) =>
+          match original {
+            ForeignDependencies => "ProjectMockProviderForeignDependencies"
+            ForeignProvider => "ProjectMockProviderForeignOriginal"
+            UnsupportedPrompt => "ProjectMockProviderUnsupportedPrompt"
+          }
         Installation(original) =>
           match original {
             ForeignOriginal => "ProjectMockInstallationForeignOriginal"
@@ -140,6 +159,8 @@ test('cleanup category never serializes payloads and keeps public error code', {
   const rowSources = enumCases('src/client_row_source_host/host.mbt', 'RowHostIssue');
   const rowDeclarations = enumCases('src/client_row_source_host/declaration.mbt', 'RowDeclarationIssue');
   const tasks = enumCases('src/check_environment/model_tasks.mbt', 'ModelTaskIssueKind');
+  const dependencies = enumCases('src/check_environment/model_dependencies.mbt', 'ModelDependencyIssue');
+  const providers = enumCases('src/model_execution/provider_admission.mbt', 'ModelProviderAdmissionIssue');
   const answers = enumCases('src/model_execution/mock_answer_originals.mbt', 'ModelMockAnswerIssue');
   const installations = enumCases('src/model_execution/mock_installation.mbt', 'ModelMockInstallationIssue');
   const projects = enumCases('src/cmd/native_client/local_project_mock.mbt', 'LocalProjectMockModelIssue');
@@ -158,12 +179,15 @@ test('cleanup category never serializes payloads and keeps public error code', {
   const taskSource = readFileSync(new URL('../src/check_environment/model_tasks.mbt', import.meta.url), 'utf8');
   assert.match(taskSource, /pub\(all\) struct ModelTaskIssue \{\s*kind : ModelTaskIssueKind\s*source : @decode.Cursor\?\s*\}/u);
   declarations.push('pub(all) struct ProbeMockTask {\n  kind : ProbeMockTaskKind\n  source : String?\n}');
+  declare('ProbeMockDependencies', dependencies, {Body: ['String', 'ProbeMockTask']});
+  declare('ProbeMockProvider', providers);
   declare('ProbeMockInstallation', installations, {Answers: ['@model.ModelMockAnswerIssue']});
   declare('ProbeCommandProjectMock', projects, {
     Publication: ['ProbeMockPublication'], Source: ['ProbeMockRowSource'], Task: ['ProbeMockTask'],
     Mapping: ['ProbeMockMapping'], Runtime: ['ProbeMockRuntime'], WriteHost: ['ProbeMockWriteHost'],
     WriteInstallation: ['ProbeMockWriteInstallation'],
     Answers: ['@model.ModelMockAnswerIssue'], Installation: ['ProbeMockInstallation'],
+    Dependencies: ['ProbeMockDependencies'], Provider: ['ProbeMockProvider'],
   });
   outer.push('  CommandProjectMock(ProbeCommandProjectMock)');
   const commands = enumCases('src/cmd/native_client/local_command_preparation.mbt', 'LocalCommandPreparationIssue');
@@ -193,6 +217,21 @@ test('cleanup category never serializes payloads and keeps public error code', {
   for (const item of tasks) project('Task({kind: ' + value(item) + ', source: Some(' + privateValue + ')})',
     item.name === 'InvalidLimits' ? 'ProjectMockTaskInvalidLimits'
       : ['BodyLimit', 'TaskLimit', 'WorkLimit'].includes(item.name) ? 'ProjectMockTaskLimit' : 'ProjectMockTaskInvalid');
+  const dependencyTags = {Missing: 'ProjectMockDependencyMissing', Body: 'ProjectMockDependencyInvalid',
+    UnsupportedPolicy: 'ProjectMockDependencyUnsupportedPolicy', MediaRole: 'ProjectMockDependencyMediaRole'};
+  assert.deepEqual(new Set(Object.keys(dependencyTags)), new Set(dependencies.map(entry => entry.name)));
+  for (const item of dependencies) {
+    if (item.name === 'Body') {
+      for (const task of tasks) project('Dependencies(Body(' + privateValue + ', {kind: ' + value(task) +
+        ', source: Some(' + privateValue + ')}))', task.name === 'InvalidLimits' ? 'ProjectMockDependencyInvalidLimits'
+        : ['BodyLimit', 'TaskLimit', 'WorkLimit'].includes(task.name) ? 'ProjectMockDependencyLimit' : dependencyTags.Body);
+    } else project('Dependencies(' + value(item) + ')', dependencyTags[item.name]);
+  }
+  const providerTags = {ForeignDependencies: 'ProjectMockProviderForeignDependencies',
+    ForeignProvider: 'ProjectMockProviderForeignOriginal', UnsupportedPrompt: 'ProjectMockProviderUnsupportedPrompt'};
+  assert.deepEqual(new Set(Object.keys(providerTags)), new Set(providers.map(entry => entry.name)));
+  assert(providers.every(entry => entry.arity === 0));
+  for (const item of providers) project('Provider(' + value(item) + ')', providerTags[item.name]);
   const answerTags = {InvalidLimits: 'ProjectMockAnswerInvalidLimits', BodyLimit: 'ProjectMockAnswerLimit',
     WorkLimit: 'ProjectMockAnswerLimit', EntryLimit: 'ProjectMockAnswerLimit', InvalidBody: 'ProjectMockAnswerInvalidBody',
     TaskIdentity: 'ProjectMockAnswerTaskIdentity', OutputValue: 'ProjectMockAnswerOutputValue',
