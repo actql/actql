@@ -150,6 +150,15 @@ quantities describe JavaScript inventory only; native wire/model recipes consume
 the retained census and native wire original respectively. No physical backing
 or actual Resource budget acceptance is established by a numeric quote alone.
 
+The composer's selector, deduplication, member-CID, body-CID and final-wire
+canonical constructors are synchronous and sequential. The quantity keeps all
+their returned encodings and digest holders, including conservative copies
+that are consumed or discarded, plus the componentwise largest single private
+canonical/hash workspace. It does not sum ended sorting, recursive-text or hash
+buffers across these calls. Shallow merge containers and complete borrowed
+originals remain separately accounted. Every original validator, current fence,
+failure prefix and Resource refusal still runs before the corresponding work.
+
 ## Extension
 
 New Environment sections, canonicalization allocation behavior or native

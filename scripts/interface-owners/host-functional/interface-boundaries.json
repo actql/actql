@@ -134793,7 +134793,7 @@
     },
     {
       "module": "adapters/host-node/installed-check-environment-construction.mjs",
-      "sha256": "22382a17cc59219be30ad718402ad4018aa1a107c9bd16d9b877dcf3c9b05d1c",
+      "sha256": "d21a32918890db8f1a95c10cb849dc9bb69447b7611e8089da21d37e7a747e3f",
       "exports": [
         "installedEnvironmentCompositionConstructionGeometry",
         "installedEnvironmentDocumentConstructionGeometry",
@@ -134804,6 +134804,17 @@
           "name": "addCanonical",
           "parameters": [
             "workspace",
+            "measured",
+            "calls",
+            "hashes"
+          ],
+          "async": false
+        },
+        {
+          "name": "addSequentialCanonical",
+          "parameters": [
+            "workspace",
+            "largest",
             "measured",
             "calls",
             "hashes"
@@ -134891,6 +134902,7 @@
           "operations": [
             "<module>",
             "addCanonical",
+            "addSequentialCanonical",
             "installedEnvironmentCompositionConstructionGeometry",
             "installedEnvironmentDocumentConstructionGeometry",
             "installedEnvironmentParseConstructionGeometry",
@@ -134965,6 +134977,14 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/installed-hubspot-returned-capacity.actual.test.mjs",
+                "anchor": "test('real-shape HubSpot Source and Effect composition"
+              },
+              {
+                "path": "adapters/host-node/installed-hubspot-returned-capacity.actual.test.mjs",
+                "anchor": "test('same-parent Environment composition still refuses"
               }
             ]
           }

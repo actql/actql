@@ -7,6 +7,7 @@ import {installedSourceConfigurationReader} from './installed-host-services.mjs'
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import * as provider from '../../_build/js/release/build/connectors/hubspot/host_node/host_node.js';
+import {composeInstalledSourceEnvironment} from './installed-funded-environment.mjs';
 
 // Actual unchanged policy/Ledger and provider constructors. No public Run,
 // real provider, credential, caller budget replacement or successful mock.
@@ -25,12 +26,19 @@ const quote = moon => {
 };
 const latestReserve = events => events.findLast(event => event.operation === 'clientProgramReserveInstalledSourceConstruction');
 
-async function wideEffectFixture(t, {maxProperties = 256, readOnly = false} = {}) {
+async function wideEffectFixture(t, {maxProperties = 256, readOnly = false, propertyNameUnits, propertyKinds} = {}) {
   const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
   const source = await f.metadataSourceProfile('hubspot');
   const metadata = JSON.parse(await readFile(source.value.metadataPath, 'utf8'));
-  const results = ['name', 'description', ...Array.from({length: 243}, (_, i) => `field_${i}`)]
-    .map(name => ({name, type: 'string', fieldType: 'text', calculated: false,
+  const variableUnits = propertyNameUnits === undefined ? undefined : propertyNameUnits - 15;
+  const names = ['name', 'description', ...Array.from({length: 243}, (_, i) => {
+    const name = `field_${i}`;
+    return variableUnits === undefined ? name : name.padEnd(Math.floor(variableUnits / 243) +
+      (i < variableUnits % 243 ? 1 : 0), 'x');
+  })];
+  if (propertyNameUnits !== undefined) assert.equal(names.reduce((sum, name) => sum + name.length, 0), propertyNameUnits);
+  const results = names
+    .map((name, index) => ({name, ...(propertyKinds?.[index] ?? {type: 'string', fieldType: 'text'}), calculated: false,
       modificationMetadata: {readOnlyValue: readOnly && name === 'name'}}));
   const properties = {results, ignored: ''};
   properties.ignored = 'x'.repeat(361489 - Buffer.byteLength(JSON.stringify(properties)));
@@ -45,8 +53,95 @@ async function wideEffectFixture(t, {maxProperties = 256, readOnly = false} = {}
     writes: [{resource: 'companies', fields: ['name'], markerProperty: 'description'}]};
   const path = join(f.root, 'wide-effect.json');
   await writeFile(path, JSON.stringify(value));
-  return {f, events, selection: {path, value, role: 'effect', registration: 'hubspot'}};
+  return {f, events, source, selection: {path, value, role: 'effect', registration: 'hubspot'}};
 }
+
+test('wide HubSpot Source and Effect compose on the same original default preparation parent', async t => {
+  const {f, events, source, selection} = await wideEffectFixture(t);
+  const installedSource = await f.load(source), installedEffect = await f.load(selection);
+  const base = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
+  let composed;
+  try {
+    composed = composeInstalledSourceEnvironment(f.services, f.moon, base,
+      installedSource.environmentWire, installedEffect.environmentWire);
+  } finally {
+    t.diagnostic(JSON.stringify({lastConstructionCalls: events.slice(-4)}, (_key, value) =>
+      typeof value === 'bigint' ? value.toString() : value));
+  }
+  assert.equal(composed.runtime, f.moon);
+  assert.equal(composed.body.schema_snapshots.length, 1);
+  assert.equal(composed.body.mapping_contracts.length, 1);
+  assert.equal(f.secretReads(), 0);
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
+
+test('real-shape HubSpot Source and Effect composition funds sequential canonical workspace and retains full originals', async t => {
+  // Same aggregate Catalog shape and name bytes as the observed metadata;
+  // only authored synthetic names and property definitions are used here.
+  const propertyKinds = [
+    ['string', 'text', 69], ['number', 'number', 68], ['datetime', 'date', 58],
+    ['enumeration', 'checkbox', 15], ['enumeration', 'select', 22],
+    ['bool', 'booleancheckbox', 9], ['date', 'date', 2], ['object_coordinates', 'text', 2],
+  ].flatMap(([type, fieldType, count]) => Array.from({length: count}, () =>
+    ({type, fieldType, ...(type === 'enumeration' ? {options: []} : {})})));
+  assert.equal(propertyKinds.length, 245);
+  const {f, events, source, selection} = await wideEffectFixture(t, {propertyNameUnits: 6001, propertyKinds});
+  const installedSource = await f.load(source), installedEffect = await f.load(selection);
+  const base = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
+  const first = events.length;
+  const composed = composeInstalledSourceEnvironment(f.services, f.moon, base,
+    installedSource.environmentWire, installedEffect.environmentWire);
+  const carrier = composed.body.contract_registry.find(value => value.kind === 'carrier_schema');
+  assert.equal(Object.keys(carrier.body.fields).length, 246);
+  assert.equal(composed.body.schema_snapshots.length, 1);
+  assert.equal(composed.body.mapping_contracts.length, 1);
+  const reservations = events.slice(first).filter(event => event.operation === 'clientProgramReserveInstalledSourceConstruction');
+  assert(reservations.length > 0 && reservations.every(event => event.accepted));
+  assert(reservations.every(event => event.retained <= 536870912n && event.peak <= 536870912n));
+  assert.equal(f.secretReads(), 0);
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
+
+test('same-parent Environment composition still refuses excessive retained input before its unfunded next stage', async t => {
+  const {f, events, source, selection} = await wideEffectFixture(t, {propertyNameUnits: 6001});
+  const installedSource = await f.load(source), installedEffect = await f.load(selection);
+  const reader = installedSourceConfigurationReader(f.services);
+  const text = 'x'.repeat(1024 * 1024);
+  for (let index = 0; index < 24; index++) {
+    const path = join(f.root, `other-retained-original-${index}.txt`);
+    await writeFile(path, text);
+    assert.equal((await reader.readText(path, {maxBytes: text.length})).length, text.length);
+  }
+  const base = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
+  t.diagnostic(JSON.stringify({retainedBeforeComposition: events.at(-1).retained.toString()}));
+  assert.throws(() => composeInstalledSourceEnvironment(f.services, f.moon, base,
+    installedSource.environmentWire, installedEffect.environmentWire), {code: 'MoonBitHostFailure'});
+  const refused = latestReserve(events);
+  assert.equal(refused.accepted, false);
+  assert(refused.retained > 536870912n || refused.peak > 536870912n);
+  assert.equal(f.secretReads(), 0);
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
+
+test('real-width HubSpot Source and Effect compose on the same original default preparation parent', async t => {
+  // The 6003-byte schema-name bound includes the original two-byte id key.
+  const {f, events, source, selection} = await wideEffectFixture(t, {propertyNameUnits: 6001});
+  const installedSource = await f.load(source), installedEffect = await f.load(selection);
+  const base = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
+  let composed;
+  try {
+    composed = composeInstalledSourceEnvironment(f.services, f.moon, base,
+      installedSource.environmentWire, installedEffect.environmentWire);
+  } finally {
+    t.diagnostic(JSON.stringify({lastConstructionCalls: events.slice(-4)}, (_key, value) =>
+      typeof value === 'bigint' ? value.toString() : value));
+  }
+  assert.equal(composed.runtime, f.moon);
+  assert.equal(composed.body.schema_snapshots.length, 1);
+  assert.equal(composed.body.mapping_contracts.length, 1);
+  assert.equal(f.secretReads(), 0);
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
 
 test('wide HubSpot Effect keeps the admitted Source Catalog limit through its actual Mapping and driver constructors', async t => {
   const {f, events, selection} = await wideEffectFixture(t);
