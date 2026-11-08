@@ -513,3 +513,34 @@ test "complete original observation keeps compiler order when the second Model o
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
   assert_eq(@resources.ledger_usage(ledger).attempts, 2)
 }
+
+///|
+test "original observation metadata quote reads the same completed row inventory without debit" {
+  let (active, ledger, _) = original_observation_test_start()
+  assert_true(
+    original_observation_issuance_metadata_bytes(active, issuance_limits())
+    is None,
+  )
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  let before = @resources.ledger_usage(ledger)
+  let uses = active.output_uses
+  assert_eq(
+    original_observation_issuance_metadata_bytes(active, issuance_limits()),
+    Some(65664L),
+  )
+  assert_true(
+    original_observation_issuance_metadata_bytes(active, {
+      ..issuance_limits(),
+      max_slots: 0,
+    })
+    is None,
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_eq(active.output_uses, uses)
+  cancel(active) |> ignore
+  assert_true(cleanup(active).unwrap())
+  assert_true(
+    original_observation_issuance_metadata_bytes(active, issuance_limits())
+    is None,
+  )
+}

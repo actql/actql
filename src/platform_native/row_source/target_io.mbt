@@ -452,6 +452,39 @@ pub fn NativeRelationFileTargetIO::snapshot(self : Self) -> (String, String)? {
 }
 
 ///|
+/// Validate the proposed changes against this SAME observed full document and
+/// original row before Preview. This constructs no Writer and performs no
+/// replacement; the original update path independently checks the version.
+pub fn NativeRelationFileTargetIO::check_update(
+  self : Self,
+  changes : String,
+) -> Result[Unit, NativeRelationFileIssue] {
+  guard self.same() &&
+    self.phase is TargetReady &&
+    self.update is None &&
+    self.issue is None &&
+    self.root is Some(root) &&
+    self.document is Some(document) &&
+    self.row is Some(row) &&
+    self.observed_row is Some((_, version)) else {
+    return Err(Unavailable)
+  }
+  match root.require_current_original_read() {
+    Err(issue) => return Err(Filesystem(issue))
+    Ok(_) => ()
+  }
+  @rows.prepare_relation_target_update(
+    document,
+    row,
+    version,
+    changes,
+    self.provider.limits.max_work,
+  )
+  .map(_ => ())
+  .map_err(issue => Document(issue))
+}
+
+///|
 fn NativeRelationFileTargetIO::retire_transport(
   self : Self,
 ) -> Unit raise FileCaptureStop {

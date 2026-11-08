@@ -161,6 +161,8 @@ pub fn original_model_resource_park_current(Execution, @run_publication_host.Cli
 
 pub fn original_model_unparked_read_capacity_available(Execution, @run_publication_host.ClientModelReadScope, Int64, Int64) -> Bool
 
+pub fn original_observation_issuance_metadata_bytes(Execution, ObservationIssuanceLimits) -> Int64?
+
 pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
 
 pub fn park_original_model_resources(Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Issue]

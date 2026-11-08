@@ -60,7 +60,15 @@ fn target_io_fixture_update_work(directory : String) -> Unit raise {
     read.byte_counts(),
     (target_io_fixture_text.length().to_int64(), 0L),
   )
+  // Preview preparation validates against the SAME complete observed target,
+  // without acquiring a Writer or changing either original observation.
+  read.check_update("{\"value\":9}").unwrap()
+  assert_true(read.check_update("{\"value\":\"bad\"}") is Err(Document(_)))
+  assert_eq(read.snapshot(), Some((before, version)))
+  assert_false(read.replacement_attempted)
+  assert_eq(read.byte_counts().1, 0L)
   assert_true(read.close().unwrap())
+  assert_true(read.check_update("{\"value\":9}") is Err(Unavailable))
   assert_true(read.close().unwrap())
   assert_eq(read.snapshot(), None)
 

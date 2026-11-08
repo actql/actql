@@ -202,6 +202,15 @@ fn LocalCommandPreparationOriginal::close_business_children(
       Ok(_) => ()
     }
     if business.effect_model is Some(state) {
+      for target in state.targets {
+        match target.close() {
+          Err(issue) => return Err(issue)
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => ()
+        }
+      }
+      state.targets.clear()
+      state.targets.shrink_to_fit()
       // Sever this caller's output alias before the original Model releases it.
       // This is no physical ACK and does not clear any child obligation.
       if state.proposals is Some(proposals) {
@@ -220,6 +229,9 @@ fn LocalCommandPreparationOriginal::close_business_children(
       state.effect_host = None
       state.effect_capture = None
       state.model_output = None
+      // The observation issuer owns its original publication backing. Cut
+      // this caller alias before Work retires that issuer and its reservation.
+      state._retained_model_observation = None
       if state.model_use is Some(held) {
         @infer.release_output(held) |> ignore
         state.model_use = None

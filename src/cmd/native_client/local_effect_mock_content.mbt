@@ -172,8 +172,16 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
     state.prefix = Some(prefix)
     keyed
   })
-  let authorize = (source_ref : String) => {
-    match work.require_source_in_original_read(self.connection, source_ref) {
+  let authorize = (
+    source : LocalProjectMockSourceDeclaration,
+    view : @row_host.RowDeclaredView,
+  ) => {
+    match
+      work.require_source_in_original_read(
+        self.connection,
+        source._retained_connection,
+        view.resource,
+      ) {
       Ok(_) => ()
       Err(issue) => {
         self.original.retain_primary(CommandBusinessModel(issue))
@@ -188,13 +196,13 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
     // Source permissions outside the bounded Core batch, not a cached Allow.
     for selected in first._retained_sources {
       match selected._retained_reader {
-        Rows(binding) => authorize(binding.view.source_ref)
+        Rows(binding) => authorize(selected._retained_source, binding.view)
         Files(file, listing) => {
           let binding = file._retained_listings
             .iter()
             .find_first(pair => physical_equal(pair.0, listing))
             .unwrap_or_else(() => stop("LocalOriginalSourceUnavailable")).1
-          authorize(binding.listing.source_ref)
+          authorize(selected._retained_source, binding.listing)
         }
       }
     }
@@ -292,7 +300,7 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
         (request, file, binding)
       },
     )
-    authorize(binding.content.source_ref)
+    authorize(file._retained_original, binding.content)
     let cached = self.original.with_business_request(self.capture, () => {
       @run_host.find_client_keyed_lookup_response(lookup, request).unwrap_or_else(() => {
           stop("LocalOriginalContentCacheUnavailable")
@@ -411,7 +419,7 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
     })
     let mut complete = false
     while !complete {
-      authorize(binding.content.source_ref)
+      authorize(file._retained_original, binding.content)
       complete = self.original.with_business_request(self.capture, () => {
         match content.advance(31) {
           Ok(value) => value

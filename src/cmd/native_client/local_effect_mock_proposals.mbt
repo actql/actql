@@ -77,6 +77,15 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       .native_effect_proposal(self.original)
     let held : LocalNativeMockEffectProposals = { inputs, members: [], }
     state.proposals = Some(held)
+    @local_values.retain_installed_effect_captured_input_inventory(
+      run,
+      state._retained_prepared,
+      state.first.request,
+      state._retained_plan,
+      inputs,
+    )
+    .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
+    .native_effect_proposal(self.original)
     for entry in 0..<@strategy.captured_effect_inputs_count(inputs) {
       let plan = @strategy.prepare_captured_effect_proposal_plan(
           inputs,

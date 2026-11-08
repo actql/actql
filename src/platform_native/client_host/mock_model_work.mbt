@@ -27,6 +27,8 @@ struct NativeClientMockModelWork {
   mut entry_recorded : Bool
   mut entry_issue : NativeLocalAdoptionIssue?
   mut settlement : NativeMockModelSettlement?
+  mut publication_capacity : @model.OriginalModelPublicationCapacity?
+  mut observation : @infer.ObservationIssuance?
   mut open_attempted : Bool
   mut advancing : Bool
   mut closing : Bool
@@ -104,6 +106,8 @@ pub fn prepare_native_client_mock_model_work(
     entry_recorded: false,
     entry_issue: None,
     settlement: None,
+    publication_capacity: None,
+    observation: None,
     open_attempted: false,
     advancing: false,
     closing: false,
@@ -167,8 +171,9 @@ pub fn NativeClientMockModelWork::claim_start_in_original_read(
 /// boundary. No Source name, checked catalogue or retained token is an Allow.
 pub fn NativeClientMockModelWork::require_source_in_original_read(
   self : Self,
-  connection : String,
-  source_ref : String,
+  control_connection : String,
+  source_connection : String,
+  resource : String,
 ) -> Result[Unit, NativeClientMockModelIssue] {
   guard self.first_start is Some(first) && !self.closing && !self.closed else {
     return Err(ForeignOriginal)
@@ -181,20 +186,25 @@ pub fn NativeClientMockModelWork::require_source_in_original_read(
     let current = () => {
       !self.closing &&
       !self.closed &&
-      self.capture.operation_scope(host, material, self.principal, connection)
+      self.capture.operation_scope(
+        host,
+        material,
+        self.principal,
+        control_connection,
+      )
       is Ok(scope) &&
       scope == @host.client_request_authority_scope_cid(self.request) &&
       self.capture.operation_account(host, material, {
         principal: self.principal,
-        connection,
+        connection: control_connection,
         resource: "run",
         operation: "submit",
       })
       is Ok(@authorization.Allow(_)) &&
       self.capture.operation_account(host, material, {
         principal: self.principal,
-        connection,
-        resource: source_ref,
+        connection: source_connection,
+        resource,
         operation: "read",
       })
       is Ok(@authorization.Allow(_))
@@ -788,6 +798,9 @@ pub fn NativeClientMockModelWork::close(
           // Model cancellation cannot acknowledge or discard either duty.
           return Err(CleanupPending)
         }
+        if !mock_model_require(self.close_observation()) {
+          return Ok(false)
+        }
         @infer.cancel(active) |> ignore
         let closed = mock_model_require(
           @infer.cleanup(active).map_err(issue => {
@@ -833,8 +846,8 @@ fn[T] mock_model_require(
 /// this through the SAME Request before preparing this existing Native Work.
 pub fn native_client_mock_model_work_construction() -> @execution.PreparationRepresentationUnits {
   {
-    record_headers: 3L,
-    reference_slots: 25L,
+    record_headers: 5L,
+    reference_slots: 27L,
     scalar_words: 8L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
