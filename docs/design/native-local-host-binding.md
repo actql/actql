@@ -34,6 +34,15 @@ suspended. A Pure operation is activated only for the actual Pure requirements.
 This handoff is preparation, not approval, Account authority or a durable Effect
 Run supplier; unsupported execution remains unavailable.
 
+Finite Policy lifetime preparation binds the original checked Effect identity
+to the same submitted intent and Request before selecting execution support.
+It does not require the legacy one-task Values execution profile. A pending
+Retention neither admits a Run nor starts Source, Model or Effect work. The
+actual material constructors and first acceptance retain their own shape,
+current-authority and custody checks, including the legacy Values guard.
+An already accepted Request instead reads its saved original Policy without
+resampling it; changed identity or lost current authority still refuses.
+
 The fixed Request's existing 4KiB internal control group covers the Native
 completed-body carrier (one header, original-borrow reference and variant word)
 after its resize has returned. Variable Program, compiler and provider bodies
