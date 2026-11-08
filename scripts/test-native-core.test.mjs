@@ -1030,7 +1030,7 @@ if (process.argv[2] === 'generate-test-driver') {
     .map(value => [require('node:path').basename(value), value.startsWith('src/fixture-empty/') ? [] :
       Array.from({length: value.endsWith('/root_control_physical_scoped_wbtest.mbt') ||
           value.endsWith('/target_io_physical_scoped_wbtest.mbt') ? 3 :
-          value.endsWith('/local_project_mock_content_physical_scoped_wbtest.mbt') ? 4 : 1},
+          value.endsWith('/local_project_mock_content_physical_scoped_wbtest.mbt') ? 14 : 1},
         (_, index) => ({index,name:'original fixture case '+index,attrs:[],line_number:index+1}))]));
   writeFileSync(metadata, JSON.stringify({tests}));
   process.exit(0);
@@ -1101,6 +1101,16 @@ if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
       contentLookups:process.env.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS,
       modelSourceClosure:process.env.ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE,
       effectPlanOnly:process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY,
+      rawSnapshot:process.env.ACTQL_TEST_NATIVE_RAW_SNAPSHOT,
+      rawSnapshotCid:process.env.ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID,
+      rawSnapshotBytes:process.env.ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES,
+      batchPlan:process.env.ACTQL_TEST_NATIVE_BATCH_PLAN,
+      activation:process.env.ACTQL_TEST_NATIVE_ACTIVATION,
+      rawStore:process.env.ACTQL_TEST_NATIVE_RAW_STORE,
+      rawStoreRefusal:process.env.ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL,
+      leftIdentity:process.env.ACTQL_TEST_NATIVE_LEFT_IDENTITY,
+      sourceArtifacts:process.env.ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS,
+      attemptUsage:process.env.ACTQL_TEST_NATIVE_ATTEMPT_USAGE,
       sqliteComponent:process.env.ACTQL_TEST_SQLITE_COMPONENT,cryptoComponent:process.env.ACTQL_TEST_CRYPTO_COMPONENT}) + '\\n');
 }
 if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE_PROFILE)) {
@@ -1126,8 +1136,20 @@ if (['runtime-values','scoped-review-values'].includes(process.env.ACTQL_FIXTURE
   if (process.argv.includes('src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt')) {
     const index = Number(process.argv[process.argv.indexOf('--index') + 1]);
     assert.equal(process.env.ACTQL_TEST_NATIVE_CONTENT_LOOKUPS, index === 0 ? '1' : '2');
-    assert.equal(process.env.ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE, index === 2 ? '1' : undefined);
-    assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, index === 3 ? '1' : undefined);
+    assert.equal(process.env.ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE, [8,9,10,12].includes(index) ? '1' : undefined);
+    assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, index === 13 ? '1' : undefined);
+    if (index >= 2 && index <= 10) {
+      assert.equal(process.env.ACTQL_TEST_NATIVE_RAW_SNAPSHOT, '1');
+      const raw = require('node:fs').readFileSync(join(process.env.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT,
+        'deal-review/mock/data.json'));
+      assert.equal(process.env.ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID,
+        'sha256:' + createHash('sha256').update(raw).digest('hex'));
+      assert.equal(process.env.ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES, String(raw.length));
+    } else {
+      assert.equal(process.env.ACTQL_TEST_NATIVE_RAW_SNAPSHOT, undefined);
+      assert.equal(process.env.ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID, undefined);
+      assert.equal(process.env.ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES, undefined);
+    }
     assert.equal(statSync(process.env.ACTQL_TEST_NATIVE_STORE_ROOT).mode & 0o777, 0o700);
   } else assert.equal(process.env.ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY, undefined);
   if (process.argv.includes('src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt')) {
@@ -2078,7 +2100,7 @@ test('Core Native prepares existing scoped producer dependencies before expensiv
   }
 });
 
-test('Native Core routes four Content and three target I/O originals with nonzero selected execution', t => {
+test('Native Core routes fourteen Content and three target I/O originals with nonzero selected execution', t => {
   const contentFile = 'src/cmd/native_client/local_project_mock_content_physical_scoped_wbtest.mbt';
   const targetFile = 'src/platform_native/row_source/target_io_physical_scoped_wbtest.mbt';
   for (const zero of [false, true]) {
@@ -2091,6 +2113,16 @@ test('Native Core routes four Content and three target I/O originals with nonzer
         ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: 'ambient-plan',
         ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: 'ambient-closure',
         ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: 'ambient-count',
+        ACTQL_TEST_NATIVE_RAW_SNAPSHOT: 'ambient-raw',
+        ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID: 'ambient-cid',
+        ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES: 'ambient-bytes',
+        ACTQL_TEST_NATIVE_BATCH_PLAN: 'ambient-batch',
+        ACTQL_TEST_NATIVE_ACTIVATION: 'ambient-activation',
+        ACTQL_TEST_NATIVE_RAW_STORE: 'ambient-store',
+        ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL: 'ambient-refusal',
+        ACTQL_TEST_NATIVE_LEFT_IDENTITY: 'ambient-left',
+        ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS: 'ambient-sources',
+        ACTQL_TEST_NATIVE_ATTEMPT_USAGE: 'ambient-usage',
         ACTQL_TEST_NATIVE_TARGET_IO_ROOT: f.parent},
     });
     assert.ifError(result.error); assert.equal(result.signal, null);
@@ -2098,11 +2130,24 @@ test('Native Core routes four Content and three target I/O originals with nonzer
     const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
     const selected = calls.filter(call => call.profile !== 'ordinary');
     const content = selected.filter(call => call.args.includes(contentFile));
-    assert.deepEqual(content.map(call => call.args[call.args.indexOf('--index') + 1]), ['0', '1', '2', '3']);
-    assert.deepEqual(content.map(call => call.effectPlanOnly), [undefined, undefined, undefined, '1']);
-    assert.deepEqual(content.map(call => call.modelSourceClosure), [undefined, undefined, '1', undefined]);
-    assert.deepEqual(content.map(call => call.contentLookups), ['1', '2', '2', '2']);
-    assert.equal(new Set(content.map(call => call.contentStore)).size, 4);
+    assert.deepEqual(content.map(call => call.args[call.args.indexOf('--index') + 1]),
+      Array.from({length: 14}, (_, index) => String(index)));
+    assert.deepEqual(content.map(call => call.contentLookups), ['1', ...Array(13).fill('2')]);
+    assert.equal(new Set(content.map(call => call.contentStore)).size, 14);
+    const roles = {
+      rawSnapshot: [2,3,4,5,6,7,8,9,10], batchPlan: [3,4,5,6,7,8,9,10],
+      activation: [4,5,6,7,8,9,10], rawStore: [5,6,7,8,9,10], rawStoreRefusal: [6,10],
+      leftIdentity: [7,8,9,10], sourceArtifacts: [8,9,10], attemptUsage: [9,10],
+      modelSourceClosure: [8,9,10,12], effectPlanOnly: [13],
+    };
+    for (const [role, selectedIndices] of Object.entries(roles)) {
+      assert.deepEqual(content.map(call => call[role]),
+        content.map((_, index) => selectedIndices.includes(index) ? '1' : undefined), role);
+      for (const call of selected.filter(call => !content.includes(call))) assert.equal(call[role], undefined, role);
+    }
+    for (const call of selected.filter(call => !content.includes(call))) {
+      assert.equal(call.rawSnapshotCid, undefined); assert.equal(call.rawSnapshotBytes, undefined);
+    }
     assert(content.every(call => call.profile === 'runtime-values'));
     const targets = selected.filter(call => call.args.includes(targetFile));
     assert.deepEqual(targets.map(call => call.args[call.args.indexOf('--index') + 1]), zero ? ['0'] : ['0', '1', '2']);
@@ -2117,8 +2162,8 @@ test('Native Core routes four Content and three target I/O originals with nonzer
     for (const call of selected.filter(call => !targets.includes(call))) assert.equal(call.targetRoot, undefined);
     for (const call of selected.filter(call => !content.includes(call))) assert.equal(call.effectPlanOnly, undefined);
     if (!zero) {
-      assert.equal(calls.length, 17, 'all existing cases remain alongside the seven newly routed originals');
-      assert.match(result.stdout, /"scoped":14,"physical":13,"repeatedGeometry":1/u);
+      assert.equal(calls.length, 27, 'all original cases remain alongside fourteen Content and three target originals');
+      assert.match(result.stdout, /"scoped":24,"physical":23,"repeatedGeometry":1/u);
     } else assert.match(result.stderr + result.stdout, /no successfully executed test cases|expected tests=1/u);
     f.verifyExternal();
   }

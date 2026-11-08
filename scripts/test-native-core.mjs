@@ -263,9 +263,15 @@ if (full) {
           backingPages: nativeCoreScopedBackingPages(test.source),
         });
         const content = test.source === nativeProjectMockContentTestFile
-          ? nativeProjectContentCaseFixture(caseNamespace, test.index)
+          ? nativeProjectContentCaseFixture(caseNamespace, test.index,
+            fixtureEnvironment.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT)
           : {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: undefined, ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: undefined,
-            ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: undefined};
+            ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: undefined, ACTQL_TEST_NATIVE_RAW_SNAPSHOT: undefined,
+            ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID: undefined, ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES: undefined,
+            ACTQL_TEST_NATIVE_BATCH_PLAN: undefined, ACTQL_TEST_NATIVE_ACTIVATION: undefined,
+            ACTQL_TEST_NATIVE_RAW_STORE: undefined, ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL: undefined,
+            ACTQL_TEST_NATIVE_LEFT_IDENTITY: undefined, ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS: undefined,
+            ACTQL_TEST_NATIVE_ATTEMPT_USAGE: undefined};
         const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
           '--target-dir', scoped.targetDirectory];
         const timeout = scopedDeadline - Date.now();

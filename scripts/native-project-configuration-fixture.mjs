@@ -113,16 +113,30 @@ export function nativeProjectConfigurationFixture(namespace) {
     ACTQL_TEST_NATIVE_MOCK_FIRST_RESOURCE_CID: 'sha256:' + createHash('sha256').update(resource).digest('hex')};
 }
 
-// All four authored cases retain distinct fresh Stores. The first three keep
-// their original lookup/Source-closure selections; only the fourth selects the
-// original file Effect Plan. Ambient flags cannot retarget another case.
-export function nativeProjectContentCaseFixture(namespace, index) {
-  assert(Number.isInteger(index) && index >= 0 && index <= 3,
+// Every compiler-selected case retains a fresh Store. Later component cases
+// require their original earlier ports too; the last two keep their separate
+// Source-closure/Effect selections. Ambient flags cannot retarget another case.
+export function nativeProjectContentCaseFixture(namespace, index, projectRoot) {
+  assert(Number.isInteger(index) && index >= 0 && index <= 13,
     'An exact original Native Content case index is required');
+  const selected = (first, last = 10) => index >= first && index <= last;
+  const raw = selected(2) ? readFileSync(join(projectRoot, 'deal-review/mock/data.json')) : undefined;
   const store = join(namespace, 'content-store');
   mkdirSync(store, {mode: 0o700});
   return {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: index === 0 ? '1' : '2',
-    ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: index === 2 ? '1' : undefined,
-    ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: index === 3 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_RAW_SNAPSHOT: selected(2) ? '1' : undefined,
+    // The actual authored input file, independently of any capture/Store output.
+    ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID: raw === undefined ? undefined :
+      'sha256:' + createHash('sha256').update(raw).digest('hex'),
+    ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES: raw === undefined ? undefined : String(raw.length),
+    ACTQL_TEST_NATIVE_BATCH_PLAN: selected(3) ? '1' : undefined,
+    ACTQL_TEST_NATIVE_ACTIVATION: selected(4) ? '1' : undefined,
+    ACTQL_TEST_NATIVE_RAW_STORE: selected(5) ? '1' : undefined,
+    ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL: index === 6 || index === 10 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_LEFT_IDENTITY: selected(7) ? '1' : undefined,
+    ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS: selected(8) ? '1' : undefined,
+    ACTQL_TEST_NATIVE_ATTEMPT_USAGE: selected(9) ? '1' : undefined,
+    ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: selected(8) || index === 12 ? '1' : undefined,
+    ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: index === 13 ? '1' : undefined,
     ACTQL_TEST_NATIVE_STORE_ROOT: store};
 }
