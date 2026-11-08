@@ -189,6 +189,27 @@ test(`packed cause observer drains original ${method} before retiring its sessio
 });
 }
 
+test('packed cause observer retains its Worker until the disconnect callback turn completes', async () => {
+  const session = new EventEmitter(), port = new EventEmitter(), calls = [];
+  let notifyClosed;
+  const closed = new Promise(resolve => {notifyClosed = resolve;});
+  session.connectToMainThread = () => {};
+  session.post = (method, parameters, callback) => queueMicrotask(() => callback(null,
+    method === 'Debugger.setBreakpointByUrl' ? {breakpointId: 'original-breakpoint'} : {}));
+  session.disconnect = () => {
+    calls.push('disconnect');
+    setImmediate(() => calls.push('disconnect.callback'));
+  };
+  port.postMessage = () => {};
+  port.close = () => {calls.push('port.close'); notifyClosed();};
+  await runSubmissionCauseObserver({session, parentPort: port,
+    workerData: {url: 'file:///original-disconnect-fixture.mjs', frame: 0, lineNumber: 0,
+      sha256: createHash('sha256').update('original disconnect fixture').digest('hex')}});
+  port.emit('message', {kind: 'close'});
+  await closed;
+  assert.deepEqual(calls, ['disconnect', 'disconnect.callback', 'port.close']);
+});
+
 test('packed cause observer captures bounded original DATA and always resumes the same throw', async t => {
   const target = await diagnosticTarget(t), reports = [];
   const original = Object.assign(new TypeError('private-message-never-reported'), {

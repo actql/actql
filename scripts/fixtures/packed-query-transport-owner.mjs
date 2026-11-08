@@ -389,7 +389,14 @@ out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','
       finally {
         await drain();
         try {session.disconnect();}
-        finally {clearInterval(alive); parentPort.close();}
+        finally {
+          // Keep the existing Worker alive through callbacks queued by
+          // disconnect before releasing its final handles. This turn is not
+          // retirement: the parent still awaits this original Worker's exit.
+          await new Promise(resolve => setImmediate(resolve));
+          clearInterval(alive);
+          parentPort.close();
+        }
       }
     })();
   });
