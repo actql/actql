@@ -70,6 +70,18 @@ async function publishedFixture(change = () => {}, reserve = () => {}, root = '/
     clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial); return ok({_0: input, _1: unit});},
     clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit); assert.equal(original, input); return ok(capacity);},
     clientProgramInstalledSourceConstructionCapacity: (...values) => ok({values}),
+    clientProgramInstalledSourceJsonConstructionCapacity(...values) {
+      assert.strictEqual(this, moon);assert.equal(values.length, 5);
+      assert(values.every(value => typeof value === 'bigint' && value >= 0n));
+      assert.equal(live.size, 1, 'the original profile FD remains held before JSON parsing');
+      return ok(Object.freeze({jsonValues: values}));
+    },
+    clientProgramInstalledProfileConstructionCapacities(...values) {
+      assert.strictEqual(this, moon);assert.equal(values.length, 2);
+      assert(values.every(value => typeof value === 'bigint' && value >= 0n));
+      assert.equal(live.size, 0, 'profile parsing/construction follows original FD cleanup');
+      return ok([Object.freeze({profileParse: values}), Object.freeze({profileConstruction: values})]);
+    },
     clientProgramInstalledSourceRetainedConstructionCapacity(original) {
       assert.strictEqual(this, moon);
       assert.equal(typeof original, 'object');
