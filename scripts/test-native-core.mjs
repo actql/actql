@@ -253,7 +253,7 @@ if (full) {
         });
         const content = test.source === nativeProjectMockContentTestFile
           ? nativeProjectContentCaseFixture(caseNamespace, test.index)
-          : {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: undefined};
+          : {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: undefined, ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: undefined};
         const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
           '--target-dir', scoped.targetDirectory];
         const timeout = scopedDeadline - Date.now();
