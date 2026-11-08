@@ -17,6 +17,7 @@ fn effect_model_plan_source(
   declaration? : @row_source_host.RowDeclaration? = None,
   lookup_policy? : Json? = None,
   plural? : Bool = false,
+  source_implementation? : (String, String)? = None,
 ) -> (@checked.CheckEnvironment, String) raise {
   let task =
     #|{"authored_model_selector":"fixture-risk-model","connector_id":"models/fixture","contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","data_handling":{"accepted_classifications":["public","internal"],"allowed_regions":["fixture-region"],"contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retention":"none","training_use":"forbidden"},"generation_config":{"max_output_tokens":32,"seed_requested":-7,"temperature":0,"top_p":1},"input_contract":{"additional_properties":false,"fields":{"text":{"nullable":true,"type":"string"}},"nullable":false,"type":"object"},"input_schema_cid":"sha256:57887e29c270383ae1e005ba3476a81c8b0012a8b566db860c75abba9c786dd7","max_items":2,"output_contract":{"additional_properties":false,"fields":{"reason":{"nullable":true,"type":"string"},"risk":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"output_schema_cid":"sha256:d67003c78c0eb8b7ab0499bbed57bc8d5895c43ed0b3ce27755b656a65fd49f3","prompt_template_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retrieval_policy":"none","schema":"actql.model_task/0.1","streaming":false,"task_id":"model-task:risk-score.v1","task_kind":"structured_generate","tool_policy":"none","version":"1"}
@@ -60,6 +61,33 @@ fn effect_model_plan_source(
     manifest["connectors"] = effect_plan_fixture_members(
       manifest["connectors"],
       [original.manifest_entry],
+    )
+  }
+  if source_implementation is Some((source_ref, cid)) {
+    guard fields["connector_capabilities"] is Array(capabilities) else {
+      fail("original Source capabilities")
+    }
+    let mut found = false
+    for capability in capabilities {
+      if capability is Object(selected) &&
+        selected.get("source_ref") == Some(Json::string(source_ref)) {
+        guard selected["capability_contract_cids"] is Array(contracts) else {
+          fail("original Source implementation contracts")
+        }
+        contracts.push(Json::string(cid))
+        contracts.sort_by((a, b) => {
+          match (a, b) {
+            (String(a), String(b)) => a.compare(b)
+            _ => 0
+          }
+        })
+        found = true
+      }
+    }
+    assert_true(found)
+    fields["connector_capabilities"] = effect_plan_fixture_members(
+      fields["connector_capabilities"],
+      [],
     )
   }
   let unsigned = @identity.stringify_value(

@@ -256,9 +256,30 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
     },
   )
   self.original.with_business_request(self.capture, () => {
-    @run_host.start_client_keyed_lookup_request_plan(lookup).unwrap_or_else(() => {
+    let facts = @run_host.client_keyed_acquisition_source_evidence_facts(keyed).unwrap_or_else(() => {
+        stop("LocalOriginalModelKeyedPlanUnavailable")
+      },
+    )
+    let mut profile = None
+    for file in files {
+      for pair in file._retained_listings {
+        let binding = pair.1
+        if binding.content.source_ref == facts.source_ref &&
+          binding.content.view_cid == facts.source_view_contract_cid {
+          guard profile is None else {
+            stop("LocalOriginalModelKeyedPlanUnavailable")
+          }
+          profile = Some(binding._retained_read_profile.contract())
+        }
+      }
+    }
+    guard profile is Some(profile) else {
       stop("LocalOriginalModelKeyedPlanUnavailable")
-    })
+    }
+    @run_host.start_client_keyed_lookup_request_plan(
+      lookup,
+      native_read_profile=Some(profile),
+    ).unwrap_or_else(() => stop("LocalOriginalModelKeyedPlanUnavailable"))
   })
   for row in 0..<rows {
     self.original.with_business_request(self.capture, () => {

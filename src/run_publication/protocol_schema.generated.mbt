@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8022)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=8059)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -22097,6 +22097,144 @@ fn generated_protocol_schema_nodes_8(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
+  nodes.push(
+    protocol_string_rule(Some("actql-lookup-transport-plan/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[81])
+  nodes.push(protocol_string_rule(Some("single"), [], 0, 0))
+  nodes.push(nodes[408])
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 8028), ("max_keys_per_batch", 8029)],
+      ["kind", "max_keys_per_batch"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[4140])
+  nodes.push(nodes[122])
+  nodes.push(nodes[408])
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 8031), ("token_contract", 8032), ("max_pages_per_batch", 8033)],
+      ["kind", "token_contract", "max_pages_per_batch"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[408])
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8036, 0, true, 0))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("max_network_attempts_per_request", 8035),
+        ("retryable_error_codes", 8037),
+      ],
+      ["max_network_attempts_per_request", "retryable_error_codes"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8022),
+        ("source_view_contract_cid", 8023),
+        ("adapter_contract_cid", 8024),
+        ("request_schema_cid", 8025),
+        ("response_schema_cid", 8026),
+        ("static_request_values", 8027),
+        ("batching", 8030),
+        ("pagination", 8034),
+        ("retry", 8038),
+      ],
+      [
+        "version", "source_view_contract_cid", "adapter_contract_cid", "request_schema_cid",
+        "response_schema_cid", "static_request_values", "batching", "pagination",
+        "retry",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[8022])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[81])
+  nodes.push(nodes[8028])
+  nodes.push(nodes[408])
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 8046), ("max_keys_per_batch", 8047)],
+      ["kind", "max_keys_per_batch"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[4140])
+  nodes.push(nodes[122])
+  nodes.push(nodes[408])
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 8049), ("token_contract", 8050), ("max_pages_per_batch", 8051)],
+      ["kind", "token_contract", "max_pages_per_batch"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[408])
+  nodes.push(nodes[1])
+  nodes.push(protocol_array_rule(8054, 0, true, 0))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("max_network_attempts_per_request", 8053),
+        ("retryable_error_codes", 8055),
+      ],
+      ["max_network_attempts_per_request", "retryable_error_codes"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 8040),
+        ("source_view_contract_cid", 8041),
+        ("adapter_contract_cid", 8042),
+        ("request_schema_cid", 8043),
+        ("response_schema_cid", 8044),
+        ("static_request_values", 8045),
+        ("batching", 8048),
+        ("pagination", 8052),
+        ("retry", 8056),
+        ("self_cid", 8057),
+      ],
+      [
+        "version", "source_view_contract_cid", "adapter_contract_cid", "request_schema_cid",
+        "response_schema_cid", "static_request_values", "batching", "pagination",
+        "retry", "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
 }
 
 ///|
@@ -22253,6 +22391,8 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("request_key_set", true) => Some(7982)
     ("native_file_content_read", false) => Some(8001)
     ("native_file_content_read", true) => Some(8021)
+    ("native_file_lookup_transport", false) => Some(8039)
+    ("native_file_lookup_transport", true) => Some(8058)
     _ => None
   }
 }

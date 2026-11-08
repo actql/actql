@@ -199,3 +199,35 @@ test "Native keyed managed caller uses one predispatch original plan through Mod
     }),
   )
 }
+
+///|
+#cfg(target="js")
+test "Native keyed transport keeps the checked implementation on its original managed plan" {
+  original_composed_keyed_consumer(
+    native_keyed=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    prepare_parent=Some((wire, selected_environment) => {
+      let (parent, child, _, input) = registration_parent_fixture(
+        text=wire,
+        environment=Some(selected_environment),
+        effect_limits=Some(
+          @publication_host.client_standard_effect_computation_limits(),
+        ),
+      )
+      finish_effect_program_check_preparation(child).unwrap() |> ignore
+      let prepared = compile_effect_program_check_preparation(child).unwrap()
+      assert_true(
+        physical_equal(
+          continue_request_effect_preparation(parent, input).unwrap(),
+          prepared,
+        ),
+      )
+      (parent, input, prepared)
+    }),
+    foreign_run=Some(() => {
+      let (prepared, _, _) = effect_operation_plan_inputs()
+      effect_parent_bound_run(prepared)
+    }),
+  )
+}

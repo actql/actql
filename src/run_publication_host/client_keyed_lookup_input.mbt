@@ -33,6 +33,9 @@ struct ClientKeyedLookupInput {
   mut known : Array[
     (String, @execution.SuppliedRelationRead?, ClientKeyedResponseHistory?),
   ]
+  mut native_read_profile : @publication.PublicationContract?
+  mut native_static_request : @encode.EncodedDocument?
+  mut native_transport : @publication.PublicationContract?
   mut planned_requests : Array[(ClientKeyedRequest, Int)]?
   mut planned_order : Array[Int]?
   mut pending_slot : Int
@@ -209,6 +212,9 @@ fn start_client_keyed_lookup_input_owned(
     rows,
     input: Some(input),
     known: [],
+    native_read_profile: None,
+    native_static_request: None,
+    native_transport: None,
     planned_requests: None,
     planned_order: None,
     pending_slot: -1,
@@ -1144,6 +1150,9 @@ pub fn cleanup_client_keyed_lookup_input(
   clear_keyed_lookup_identity_bodies(state)
   state.publication_identity = None
   state.planned_order = None
+  state.native_read_profile = None
+  state.native_static_request = None
+  state.native_transport = None
   if state.copying is Some(cursor) {
     @execution.cleanup_admitted_input_row(cursor) |> ignore
     state.copying = None

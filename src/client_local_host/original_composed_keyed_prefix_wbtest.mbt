@@ -69,6 +69,7 @@ fn original_composed_keyed_consumer(
   keyed_body_stop? : Bool = false,
   direct_effect_evidence? : Bool = false,
   pre_dispatch_plan? : Bool = false,
+  native_transport? : Bool = false,
 ) -> Unit raise {
   let publication_early = publication_early || pre_dispatch_plan
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
@@ -78,9 +79,40 @@ fn original_composed_keyed_consumer(
     fields["host_policy_profile"] is Object(policy) else {
     fail("the original finite keyed policy is required")
   }
+  let native_profile = if native_transport {
+    let view = declaration.views.filter(view => view.resource == "contents")[0]
+    let (request, response) = @row_source_host.row_declaration_keyed_read_schema_identities(
+      declaration,
+      view.source_ref,
+    ).unwrap()
+    let body = "{\"physical_source_view_contract_cid\":\"sha256:" +
+      "b".repeat(64) +
+      "\",\"projection\":{\"content_utf8_field\":\"text\",\"identity_field\":\"id\",\"items_path\":[\"items\"],\"key_path\":[\"id\"],\"media_type_field\":\"mime\",\"name_field\":\"name\",\"path_field\":null,\"version_field\":\"version\"},\"request_schema_cid\":\"" +
+      request +
+      "\",\"response_schema_cid\":\"" +
+      response +
+      "\",\"source_view_contract_cid\":\"" +
+      view.view_cid +
+      "\",\"version\":\"actql-native-file-content-read/0.1\"}"
+    Some(
+      (
+        view.source_ref,
+        @publication.seal_publication_contract(
+          "native_file_content_read", body, 16384, 1024, 20,
+        ).unwrap(),
+      ),
+    )
+  } else {
+    None
+  }
   let (environment, _) = effect_model_plan_source(
     declaration=Some(declaration),
     lookup_policy=Some(policy["lookup_execution"]),
+    source_implementation=match native_profile {
+      Some((source, profile)) =>
+        Some((source, @publication.publication_contract_identity(profile)))
+      None => None
+    },
   )
   let mut document =
     #|{"version":"actql/0.1","id":"two-direct-keyed-model","stages":[{"id":"left","inputs":{"files":{"connector":"content-fixture","resource":"files"}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["name","resource","version"]}}},{"id":"right","inputs":{"files":{"connector":"content-fixture","resource":"files"}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["name","resource","version"]}}},{"id":"classify","inputs":{"a":{"result":{"stage":"left","result":"rows"}},"b":{"result":{"stage":"right","result":"rows"}},"contents":{"connector":"content-fixture","resource":"contents"}},"steps":[{"from":"a","join":{"with":"b","kind":"inner","on":[{"left":"name","right":"name"}],"select":{"name":"left.name","resource":"left.resource","version":"left.version"}},"as":"joined"},{"from":"joined","join":{"with":"contents","kind":"inner","on":[{"left":"resource","right":"resource"},{"left":"version","right":"version"}],"select":{"name":"left.name","content":"right.content"}},"as":"captured"},{"assert_rows":{"unique_by":["name"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"classified"},{"derive":{"id":{"literal":1}},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"classify","result":"rows"}}}}
@@ -908,7 +940,41 @@ fn original_composed_keyed_consumer(
     assert_eq(@resources.ledger_usage(ledger), before)
   }
   if pre_dispatch_plan {
-    @publication_host.start_client_keyed_lookup_request_plan(lookup).unwrap()
+    assert_true(
+      @publication_host.client_keyed_lookup_native_transport(lookup) is None,
+    )
+    if native_profile is Some((_, profile)) {
+      let wire = @publication.publication_contract_json(profile)
+      let body = wire.replace(
+        old="\"content_utf8_field\":\"text\"",
+        new="\"content_utf8_field\":\"other\"",
+      )
+      // The body has a valid fresh CID but is absent from the SAME checked Source.
+      let parsed = @json.parse(body)
+      guard parsed is Object(fields) else { fail("original profile body") }
+      fields.remove("transport_cid")
+      let undeclared = @publication.seal_publication_contract(
+        "native_file_content_read",
+        parsed.stringify(),
+        16384,
+        1024,
+        20,
+      ).unwrap()
+      assert_true(
+        @publication_host.start_client_keyed_lookup_request_plan(
+          lookup,
+          native_read_profile=Some(undeclared),
+        )
+        is Err(@publication_host.Assembly("undeclared_native_read_profile")),
+      )
+    }
+    @publication_host.start_client_keyed_lookup_request_plan(
+      lookup,
+      native_read_profile=match native_profile {
+        Some((_, profile)) => Some(profile)
+        None => None
+      },
+    ).unwrap()
   }
   let preparation = @publication_host.start_client_keyed_lookup_request(
     lookup, 0,
@@ -934,6 +1000,24 @@ fn original_composed_keyed_consumer(
       lookup, 16384, 1024, 20,
     ).unwrap()
     |> ignore
+    if native_profile is Some((_, profile)) {
+      let transport = @publication_host.client_keyed_lookup_native_transport(
+        lookup,
+      ).unwrap()
+      let wire = @publication.publication_contract_json(transport)
+      assert_true(
+        wire.contains(
+          "\"adapter_contract_cid\":\"" +
+          @publication.publication_contract_identity(profile) +
+          "\"",
+        ),
+      )
+      assert_true(
+        wire.contains(
+          "\"batching\":{\"kind\":\"single\",\"max_keys_per_batch\":1}",
+        ),
+      )
+    }
     let selected = @publication_host.client_keyed_lookup_planned_request(
       lookup, 0,
     ).unwrap()
@@ -1942,6 +2026,11 @@ fn original_composed_keyed_consumer(
   assert_true(
     @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
   )
+  if native_transport {
+    assert_true(
+      @publication_host.client_keyed_lookup_native_transport(lookup) is None,
+    )
+  }
   if keyed_identity_bodies {
     assert_true(
       @publication_host.client_keyed_lookup_observation_dependency_bodies(
