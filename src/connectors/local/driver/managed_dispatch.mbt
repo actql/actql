@@ -1114,6 +1114,18 @@ pub fn[T] start_local_managed_dispatch(
       extra +
       metadata_extra.val +
       transport_extra.val
+    // This pure balance refusal precedes every grow/current/imported-window
+    // call and changes no reservation. It permits the common attachment to
+    // ask for its exact minimum instead of spare page backing. The subsequent
+    // grow still owns all original/current/stop checks; this is not authority.
+    let ledger = @strategy.captured_dag_ledger(setup.run)
+    let limits = @resources.ledger_admission_limits(ledger)
+    let usage = @resources.ledger_usage(ledger)
+    if extra - working_extra.val >
+      limits.execution_bytes - usage.reserved_execution_bytes {
+      working_failure.val = Some(Execution(Physical(ExecutionLimit)))
+      return Err(WorkspaceBudgetUnavailable)
+    }
     match
       @strategy.grow_task_execution_workspace(setup.run, execution, scratch) {
       Err(issue) => {
@@ -1127,6 +1139,7 @@ pub fn[T] start_local_managed_dispatch(
       return Err(WorkspaceUnavailable)
     }
     working_extra.val = extra
+    working_failure.val = None
     Ok(())
   }
   let export_frame_extent = fn(
