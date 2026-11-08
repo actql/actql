@@ -6026,6 +6026,24 @@ borrow's amounts and the Ledger usage unchanged. The immutable installed policy
 ceiling is not changed by this operation, and the caller still owes the exact
 constructor inventory before any allocation.
 
+Completed Relation identity scanning can retain the existing export metadata
+preparation and advance it on the same scan before traversing row values.
+Schema/order construction is therefore an observable continuation rather than
+hidden draining work in the start call. The legacy convenience entrance keeps
+its original draining behavior. Incremental preparation, schema and row work
+all consume the selected scan work limit; cancellation retires the same partial
+export while leaving the original completed producer intact.
+
+Its next-construction inventory reads actual array capacity, writer usage,
+schema-name construction history and cursor pending capacity. Text and hashing
+sinks share their original constructor/frame rules; retained fragment peaks
+cover builder backing across drain/reset. Policy byte/node/depth limits still
+validate emission but do not describe preallocated storage. Inventory projection
+emits no second schema/row identity and invokes no provider or current callback.
+The returned quantities are not resource authority: the installing caller must
+grow its original publication reservation before the next constructor and keep
+the original output/receipt custody through retirement.
+
 ### Native initialization selected for a Request
 
 The Native command retains its input and Request on the existing business

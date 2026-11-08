@@ -77,3 +77,29 @@ pub fn hash_writer_live_key_inventory(
     owned_wire_bytes: finish_wire,
   })
 }
+
+///|
+/// The original hash sink and its next bounded frame/key additions, without
+/// reserving configured node/depth ceilings. No output buffer is allocated by
+/// this sink. Current writer cells also retain earlier frame-array peaks.
+pub fn hash_writer_next_construction_inventory(
+  writer : Writer,
+  additional_nodes : Int,
+  additional_depth : Int,
+) -> HashWriterConstructionInventory? {
+  guard !writer.closed &&
+    writer.output is HashOutput(_) &&
+    additional_nodes >= 0 &&
+    additional_depth >= 0 else {
+    return None
+  }
+  let nodes = writer.max_nodes -
+    writer.remaining_nodes +
+    Int::min(additional_nodes, writer.remaining_nodes)
+  let depth = Int::max(
+    writer.peak_depth,
+    writer.frames.length() +
+    Int::min(additional_depth, writer.max_depth - writer.frames.length()),
+  )
+  hash_writer_live_key_inventory(nodes, depth)
+}

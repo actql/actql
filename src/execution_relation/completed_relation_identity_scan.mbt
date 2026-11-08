@@ -18,7 +18,8 @@ priv enum RelationIdentityPhase {
 /// value or draining nested values within one advance. This owns the existing
 /// export and receipt machinery, not a second identity or completion format.
 struct CompletedRelationIdentityScan {
-  stream : CompletedOutputExport
+  mut stream : CompletedOutputExport?
+  mut preparation : CompletedOutputExportPreparation?
   workspace : RowWorkspace
   max_work : Int
   mut work : Int
@@ -26,6 +27,7 @@ struct CompletedRelationIdentityScan {
   mut phase : RelationIdentityPhase
   mut advancing : Bool
   mut closed : Bool
+  mut fragment_peak : Int
 }
 
 ///|
@@ -45,6 +47,7 @@ pub fn start_completed_relation_identity_scan(
   schema_limits : RelationSchemaIdentityLimits,
   max_work : Int,
   max_workspace_slots : Int,
+  incremental_metadata? : Bool = false,
 ) -> Result[CompletedRelationIdentityScan, CompletedExportIssue] {
   if !completed_output_available(source) {
     return Err(Unavailable)
@@ -71,21 +74,35 @@ pub fn start_completed_relation_identity_scan(
     reserve_slots(workspace, writer_slots + width * 8) else {
     return Err(Admission(CaptureLimit))
   }
-  let stream = match
-    prepare_completed_relation_export(
+  let preparation = match
+    start_completed_export(
       source,
+      None,
       max_rows,
       values,
       payload_wire,
-      logical_wire,
-      schema_limits,
+      Some(logical_wire),
+      Some(schema_limits),
       Int::max(1, payload_wire.max_bytes),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let stream = if incremental_metadata {
+    None
+  } else {
+    match drain_completed_export_preparation(preparation) {
+      Ok(value) => Some(value)
+      Err(issue) => return Err(issue)
+    }
+  }
   Ok({
     stream,
+    preparation: if incremental_metadata {
+      Some(preparation)
+    } else {
+      None
+    },
     workspace,
     max_work,
     work: 0,
@@ -93,13 +110,15 @@ pub fn start_completed_relation_identity_scan(
     phase: BeginRow,
     advancing: false,
     closed: false,
+    fragment_peak: 0,
   })
 }
 
 ///|
 fn identity_scan_cell(value : CompletedRelationIdentityScan) -> Value {
-  let column = value.stream.order.columns[value.column].1
-  IndexedRows::read_cell(value.stream.rows, value.stream.row, column)
+  let stream = value.stream.unwrap()
+  let column = stream.order.columns[value.column].1
+  IndexedRows::read_cell(stream.rows, stream.row, column)
 }
 
 ///|
@@ -155,7 +174,13 @@ pub fn cancel_completed_relation_identity_scan(
       @encode.cancel_ordered_key(cursor)
     BeginRow | PrepareReferenceColumns | BeginColumn | Done => ()
   }
-  cancel_completed_output_export(value.stream)
+  if value.preparation is Some(preparation) {
+    cancel_completed_output_export_preparation(preparation) |> ignore
+    value.preparation = None
+  }
+  if value.stream is Some(stream) {
+    cancel_completed_output_export(stream)
+  }
   release_slots(value.workspace, value.workspace.live)
   value.closed = true
   true
@@ -165,7 +190,23 @@ pub fn cancel_completed_relation_identity_scan(
 fn advance_identity_scan_frame(
   value : CompletedRelationIdentityScan,
 ) -> Result[Unit, CompletedExportIssue] {
-  let stream = value.stream
+  if value.preparation is Some(preparation) {
+    match advance_completed_output_export_preparation(preparation, 1) {
+      Err(issue) => return Err(issue)
+      Ok((done, _)) =>
+        if done {
+          match finish_completed_output_export_preparation(preparation) {
+            Err(issue) => return Err(issue)
+            Ok(stream) => {
+              value.stream = Some(stream)
+              value.preparation = None
+            }
+          }
+        }
+    }
+    return Ok(())
+  }
+  let stream = value.stream.unwrap()
   try {
     match value.phase {
       BeginRow => {
@@ -363,7 +404,8 @@ fn advance_identity_scan_frame(
     }
     // Identity-only traversal consumes provisional bytes immediately. It
     // never materializes a whole row or exposes an unfinished payload.
-    @encode.drain_hash_output(stream.writer) |> ignore
+    let fragment = @encode.drain_hash_output(stream.writer)
+    value.fragment_peak = Int::max(value.fragment_peak, fragment.length())
     Ok(())
   } catch {
     issue => Err(Wire(Encoding(issue)))
@@ -380,8 +422,12 @@ pub fn advance_completed_relation_identity_scan(
   if value.closed || value.advancing || quantum <= 0 {
     return Err(Closed)
   }
-  guard value.stream.source is Some(source) &&
-    completed_output_available(source) else {
+  let source = match (value.preparation, value.stream) {
+    (Some(preparation), _) => preparation.source
+    (None, Some(stream)) => stream.source
+    _ => None
+  }
+  guard source is Some(source) && completed_output_available(source) else {
     cancel_completed_relation_identity_scan(value) |> ignore
     return Err(Unavailable)
   }
@@ -423,7 +469,9 @@ pub fn finish_completed_relation_identity_scan(
   if !(value.phase is Done) {
     return Err(NotFinished)
   }
-  let result = finish_completed_relation_export(value.stream).map(pair => pair.0)
+  let result = finish_completed_relation_export(value.stream.unwrap()).map(pair => {
+    pair.0
+  })
   release_slots(value.workspace, value.workspace.live)
   value.closed = true
   result

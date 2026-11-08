@@ -19,3 +19,25 @@ fn writer_frame_construction_extent(
     map_entries: live_keys.to_int64(),
   }).unwrap()
 }
+
+///|
+/// Original Writer/frame/Map controls before one bounded step. Output sinks,
+/// borrowed strings and serializer-owned cursors are separate inventories.
+pub fn writer_next_frame_construction_extent(
+  writer : Writer,
+  additional_nodes : Int,
+  additional_depth : Int,
+) -> @shape.CollectionConstructionExtent? {
+  if writer.closed || additional_nodes < 0 || additional_depth < 0 {
+    return None
+  }
+  let nodes = writer.max_nodes -
+    writer.remaining_nodes +
+    Int::min(additional_nodes, writer.remaining_nodes)
+  let depth = Int::max(
+    writer.peak_depth,
+    writer.frames.length() +
+    Int::min(additional_depth, writer.max_depth - writer.frames.length()),
+  )
+  Some(writer_frame_construction_extent(nodes, depth))
+}
