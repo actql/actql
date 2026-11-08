@@ -6,6 +6,7 @@ fn original_observation_test_start(
   source? : String = infer_fixture_program,
   provider? : @model.ModelProvider = original_funded_start_provider(Ref(0)),
   run_id? : String = "run",
+  spare_publication_slot? : Bool = false,
 ) -> (Execution, @resources.Ledger, @publication_host.ClientModelReadConsumer) {
   let prepared = fixture_prepared(source~)
   let plan = call_identity_plan(prepared)
@@ -37,11 +38,8 @@ fn original_observation_test_start(
     plan,
     ledger,
     bootstrap,
-    if producer is Some(_) {
-      5
-    } else {
-      4
-    },
+    (if producer is Some(_) { 5 } else { 4 }) +
+    (if spare_publication_slot { 1 } else { 0 }),
     if producer is Some(_) {
       3
     } else {

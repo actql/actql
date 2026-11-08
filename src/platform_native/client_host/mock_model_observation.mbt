@@ -184,6 +184,7 @@ pub fn NativeClientMockModelWork::prepare_local_observation(
       limits.identity.schema,
       limits.identity.work,
       limits.identity.workspace,
+      incremental_metadata=true,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Model(@infer.IdentityExport(issue)))

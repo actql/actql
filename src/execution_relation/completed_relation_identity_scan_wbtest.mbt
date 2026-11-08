@@ -139,12 +139,13 @@ test "completed identity yields inside both long column key streams" {
     let mut payload_keys = 0
     let mut logical_keys = 0
     for _ in 0..<24 {
-      let before = @encode.writer_progress(scan.stream.writer).0
+      let before = @encode.writer_progress(scan.stream.unwrap().writer).0
       match advance_completed_relation_identity_scan(scan, 1) {
         Ok((finished, consumed)) => {
           assert_eq(consumed, 1)
           assert_true(
-            @encode.writer_progress(scan.stream.writer).0 - before <= 68,
+            @encode.writer_progress(scan.stream.unwrap().writer).0 - before <=
+            68,
           )
           if scan.phase is EmitPayloadKey(_) {
             payload_keys += 1

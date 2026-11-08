@@ -572,6 +572,10 @@ pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelati
 
 pub fn completed_relation_export_snapshot_extent(CompletedOutputExport, CompletedRelationExportReceipt) -> Result[(Int, Int, Int, Int), CompletedExportIssue]
 
+pub fn completed_relation_identity_scan_next_construction_capacity(CompletedRelationIdentityScan) -> ExecutionCapacity?
+
+pub fn completed_relation_identity_scan_start_construction_capacity(CompletedOutput) -> ExecutionCapacity?
+
 pub fn completed_relation_identity_scan_work(CompletedRelationIdentityScan) -> Int64
 
 pub fn completed_result_export_preparation_matches_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
@@ -1452,7 +1456,7 @@ pub fn start_completed_record_guard(@bounded_execution.Control, CompletedOutput,
 
 pub fn start_completed_relation_export_snapshot(CompletedOutputExport, CompletedRelationExportReceipt, Int, Int, Int, Int) -> Result[CompletedRelationSnapshotPreparation, CompletedExportIssue]
 
-pub fn start_completed_relation_identity_scan(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int, Int) -> Result[CompletedRelationIdentityScan, CompletedExportIssue]
+pub fn start_completed_relation_identity_scan(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int, Int, incremental_metadata? : Bool) -> Result[CompletedRelationIdentityScan, CompletedExportIssue]
 
 pub fn start_completed_result_key_validation(@bounded_execution.Control, CompletedResultRelationExportPreparation, @relation_schema.Field, Int, Int, Int) -> Result[CompletedResultKeyValidation, CompletedResultKeyIssue]
 

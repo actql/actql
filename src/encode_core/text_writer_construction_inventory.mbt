@@ -49,3 +49,35 @@ pub fn text_writer_construction_inventory(
     29L,
   })
 }
+
+///|
+/// Inventory the next bounded emission on THIS open text writer. Existing
+/// bytes/nodes and retained frame depth come from its charged cells. The
+/// caller supplies the next operation's finite fragment/node/depth additions,
+/// not the output policy maxima. Writer admission still owns all refusals.
+pub fn text_writer_next_construction_inventory(
+  writer : Writer,
+  fragment_bytes : Int,
+  additional_nodes : Int,
+  additional_depth : Int,
+) -> TextWriterConstructionInventory? {
+  guard !writer.closed &&
+    writer.output is TextOutput(_) &&
+    fragment_bytes >= 0 &&
+    additional_nodes >= 0 &&
+    additional_depth >= 0 else {
+    return None
+  }
+  let bytes = writer.max_bytes -
+    writer.remaining_bytes +
+    Int::min(fragment_bytes, writer.remaining_bytes)
+  let nodes = writer.max_nodes -
+    writer.remaining_nodes +
+    Int::min(additional_nodes, writer.remaining_nodes)
+  let depth = Int::max(
+    writer.peak_depth,
+    writer.frames.length() +
+    Int::min(additional_depth, writer.max_depth - writer.frames.length()),
+  )
+  text_writer_construction_inventory(bytes, Int::max(1, nodes), depth)
+}

@@ -392,6 +392,25 @@ fn prepare_completed_export(
   schema_limits : RelationSchemaIdentityLimits?,
   max_batch_bytes : Int,
 ) -> Result[CompletedOutputExport, CompletedExportIssue] {
+  start_completed_export(
+    source, result_view, max_rows, values, wire, logical_wire, schema_limits, max_batch_bytes,
+  ).bind(drain_completed_export_preparation)
+}
+
+///|
+// Same export owner and original validation order, without hiding metadata,
+// schema or writer construction inside a draining constructor. Its caller can
+// back each next transition before advancing this original preparation.
+fn start_completed_export(
+  source : CompletedOutput,
+  result_view : (ManagedResultOccurrence, CompletedResultViewLimits)?,
+  max_rows : Int,
+  values : ValueLimits,
+  wire : RowWireLimits,
+  logical_wire : RowWireLimits?,
+  schema_limits : RelationSchemaIdentityLimits?,
+  max_batch_bytes : Int,
+) -> Result[CompletedOutputExportPreparation, CompletedExportIssue] {
   if !completed_output_available(source) {
     return Err(Unavailable)
   }
@@ -410,8 +429,13 @@ fn prepare_completed_export(
         Err(issue) => return Err(ResultView(issue))
       }
   }
-  prepare_completed_export_rows(
+  guard completed_export_preparation_workspace_slots(wire.max_columns)
+    is Some(slots) else {
+    return Err(Wire(InvalidLimits))
+  }
+  start_completed_export_rows_metadata(
     source, rows, max_rows, values, wire, logical_wire, schema_limits, max_batch_bytes,
+    slots,
   )
 }
 
