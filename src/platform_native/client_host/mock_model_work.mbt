@@ -27,6 +27,8 @@ struct NativeClientMockModelWork {
   mut entry_recorded : Bool
   mut entry_issue : NativeLocalAdoptionIssue?
   mut settlement : NativeMockModelSettlement?
+  mut publication_capacity : @model.OriginalModelPublicationCapacity?
+  mut observation : @infer.ObservationIssuance?
   mut open_attempted : Bool
   mut advancing : Bool
   mut closing : Bool
@@ -104,6 +106,8 @@ pub fn prepare_native_client_mock_model_work(
     entry_recorded: false,
     entry_issue: None,
     settlement: None,
+    publication_capacity: None,
+    observation: None,
     open_attempted: false,
     advancing: false,
     closing: false,
@@ -794,6 +798,9 @@ pub fn NativeClientMockModelWork::close(
           // Model cancellation cannot acknowledge or discard either duty.
           return Err(CleanupPending)
         }
+        if !mock_model_require(self.close_observation()) {
+          return Ok(false)
+        }
         @infer.cancel(active) |> ignore
         let closed = mock_model_require(
           @infer.cleanup(active).map_err(issue => {
@@ -839,8 +846,8 @@ fn[T] mock_model_require(
 /// this through the SAME Request before preparing this existing Native Work.
 pub fn native_client_mock_model_work_construction() -> @execution.PreparationRepresentationUnits {
   {
-    record_headers: 3L,
-    reference_slots: 25L,
+    record_headers: 5L,
+    reference_slots: 27L,
     scalar_words: 8L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,

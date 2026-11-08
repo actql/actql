@@ -283,3 +283,48 @@ fn LocalCommandBusinessPreparation::retain_mock_effect_host(
     state.effect_host = Some(host)
   })
 }
+
+///|
+fn LocalCommandBusinessPreparation::prepare_mock_effect_observation(
+  self : Self,
+) -> Unit raise ClientStop {
+  guard self.original.business is Some(business) &&
+    business.effect_model is Some(state) &&
+    state.model_output is Some(_) &&
+    business.model_work.length() == 1 else {
+    stop("LocalOriginalModelObservationUnavailable")
+  }
+  let work = business.model_work[0]
+  self.original.with_business_request(self.capture, () => {
+    match work.prepare_observation() {
+      Err(issue) => {
+        self.original.retain_primary(CommandBusinessModel(issue))
+        stop("LocalOriginalModelObservationUnavailable")
+      }
+      Ok(_) => ()
+    }
+  })
+  let mut complete = false
+  while !complete {
+    complete = self.original.with_business_request(self.capture, () => {
+      match work.advance_observation() {
+        Err(issue) => {
+          self.original.retain_primary(CommandBusinessModel(issue))
+          stop("LocalOriginalModelObservationUnavailable")
+        }
+        Ok(value) => {
+          if value {
+            state._retained_model_observation = Some(
+              work
+              .observation_original()
+              .unwrap_or_else(() => {
+                stop("LocalOriginalModelObservationUnavailable")
+              }),
+            )
+          }
+          value
+        }
+      }
+    })
+  }
+}

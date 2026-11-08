@@ -13,6 +13,10 @@ priv struct LocalNativeMockEffectPlan {
   mut lookup : @run_host.ClientKeyedLookupInput?
   mut model_read : @run_host.ClientModelReadPreparation?
   mut model_output : @execution.CompletedOutput?
+  mut _retained_model_observation : (
+    @publication.RunEvidenceValue,
+    @publication.PublicationContract,
+  )?
   mut model_use : @infer.OutputUse?
   mut effect_host : @builtin.ConfiguredComputeHost[@strategy.RunIssue]?
   mut effect_capture : @strategy.CapturedEffectRunDAG?
@@ -264,6 +268,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       lookup: None,
       model_read: None,
       model_output: None,
+      _retained_model_observation: None,
       model_use: None,
       effect_host: None,
       effect_capture: None,

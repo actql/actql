@@ -222,6 +222,9 @@ fn LocalCommandPreparationOriginal::close_business_children(
       state.effect_host = None
       state.effect_capture = None
       state.model_output = None
+      // The observation issuer owns its original publication backing. Cut
+      // this caller alias before Work retires that issuer and its reservation.
+      state._retained_model_observation = None
       if state.model_use is Some(held) {
         @infer.release_output(held) |> ignore
         state.model_use = None
