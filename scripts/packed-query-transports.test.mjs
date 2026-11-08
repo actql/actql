@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {EventEmitter} from 'node:events';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {test} from 'node:test';
-import {createTransportOwner, requireCompleteInventory, sourceFixturePaths, observePackedSubmissionCause}
+import {createTransportOwner, requireCompleteInventory, sourceFixturePaths, observePackedSubmissionCause,
+  runSubmissionCauseObserver}
   from './fixtures/packed-query-transport-owner.mjs';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import {publicQueryResultOracles} from './fixtures/public-query-input.mjs';
@@ -104,6 +107,86 @@ export function originalIngress(original) {
 `);
   const sourceURL = pathToFileURL(path);
   return {path, sourceURL, ...await import(sourceURL.href)};
+}
+
+test('packed cause observer drains the original resume acknowledgement before session retirement', {timeout: 5000}, async () => {
+  const source = 'original diagnostic fixture', url = 'file:///original-diagnostic-fixture.mjs';
+  const calls = [], messages = [], port = new EventEmitter(), session = new EventEmitter();
+  let resume, notifyResume, notifyLoaded, notifyClosed;
+  const resuming = new Promise(resolve => {notifyResume = resolve;});
+  const loaded = new Promise(resolve => {notifyLoaded = resolve;});
+  const closed = new Promise(resolve => {notifyClosed = resolve;});
+  port.postMessage = value => {messages.push(value); if (value.kind === 'loaded') notifyLoaded();};
+  port.close = () => {calls.push('port.close'); notifyClosed();};
+  session.connectToMainThread = () => calls.push('connect');
+  session.disconnect = () => calls.push('disconnect');
+  session.post = (method, parameters, callback) => {
+    calls.push(method);
+    if (method === 'Debugger.resume') {resume = () => callback(null, {}); notifyResume(); return;}
+    queueMicrotask(() => callback(null,
+      method === 'Debugger.setBreakpointByUrl' ? {breakpointId: 'original-breakpoint'} :
+      method === 'Debugger.getScriptSource' ? {scriptSource: source} :
+      method === 'Debugger.evaluateOnCallFrame' ? {result: {value: [{edge: 'original', type: 'Error'}]}} : {}));
+  };
+  await runSubmissionCauseObserver({session, parentPort: port,
+    workerData: {url, frame: 0, lineNumber: 0, sha256: createHash('sha256').update(source).digest('hex')}});
+  try {
+    session.emit('Debugger.scriptParsed', {params: {url, scriptId: 'original-script'}});
+    await loaded;
+    session.emit('Debugger.paused', {params: {callFrames: [{
+      callFrameId: 'original-frame', location: {scriptId: 'original-script'},
+    }]}});
+    await resuming;
+    port.emit('message', {kind: 'close'});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(calls.includes('Debugger.disable'), false, 'Disable cannot overlap the original resume flight');
+    assert.equal(calls.includes('disconnect'), false);
+  } finally {
+    resume?.(); port.emit('message', {kind: 'close'}); await closed;
+  }
+  assert.equal(calls.filter(value => value === 'disconnect').length, 1);
+  assert.equal(calls.filter(value => value === 'port.close').length, 1);
+  assert.equal(messages.filter(value => value.kind === 'primary').length, 1);
+});
+
+for (const method of ['Debugger.enable', 'Debugger.getScriptSource']) {
+test(`packed cause observer drains original ${method} before retiring its session once`, {timeout: 5000}, async () => {
+  const source = 'original startup fixture', url = 'file:///original-startup-fixture.mjs';
+  const calls = [], session = new EventEmitter(), port = new EventEmitter();
+  let release, notifyPending, notifyClosed;
+  const pending = new Promise(resolve => {notifyPending = resolve;});
+  const closed = new Promise(resolve => {notifyClosed = resolve;});
+  port.postMessage = () => {};
+  port.close = () => {calls.push('port.close'); notifyClosed();};
+  session.connectToMainThread = () => {};
+  session.disconnect = () => calls.push('disconnect');
+  session.post = (selected, parameters, callback) => {
+    calls.push(selected);
+    const result = selected === 'Debugger.setBreakpointByUrl' ? {breakpointId: 'original-breakpoint'} :
+      selected === 'Debugger.getScriptSource' ? {scriptSource: source} : {};
+    if (selected === method) {release = () => callback(null, result); notifyPending();}
+    else queueMicrotask(() => callback(null, result));
+  };
+  const starting = runSubmissionCauseObserver({session, parentPort: port,
+    workerData: {url, frame: 0, lineNumber: 0, sha256: createHash('sha256').update(source).digest('hex')}});
+  try {
+    if (method === 'Debugger.getScriptSource') {
+      await starting;
+      session.emit('Debugger.scriptParsed', {params: {url, scriptId: 'original-script'}});
+    }
+    await pending;
+    port.emit('message', {kind: 'close'});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(calls.includes('Debugger.disable'), false);
+    assert.equal(calls.includes('disconnect'), false);
+  } finally {
+    release?.(); port.emit('message', {kind: 'close'}); await starting; await closed;
+  }
+  assert.equal(calls.filter(value => value === 'disconnect').length, 1);
+  assert.equal(calls.filter(value => value === 'Debugger.disable').length, 1);
+  assert.equal(calls.filter(value => value === 'port.close').length, 1);
+  if (method === 'Debugger.enable') assert.equal(calls.includes('Debugger.setBreakpointByUrl'), false);
+});
 }
 
 test('packed cause observer captures bounded original DATA and always resumes the same throw', async t => {
