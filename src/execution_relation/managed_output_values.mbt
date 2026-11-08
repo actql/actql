@@ -351,6 +351,10 @@ fn append_managed_output_values_active(
   let result = append_admitted_buffer_cells(stream.buffer, width, read)
   stream.reading = false
   match result {
+    Err(ClosedCapture) => {
+      cancel_managed_output_values(stream) |> ignore
+      return Err(Closed)
+    }
     Err(issue) => {
       cancel_managed_output_values(stream) |> ignore
       return Err(

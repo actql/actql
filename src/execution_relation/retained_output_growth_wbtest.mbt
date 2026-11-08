@@ -214,3 +214,48 @@ test "retained pages grow both original resource dimensions together" {
     assert_eq(execution, retained)
   }
 }
+
+///|
+test "reference revocation before row commit cannot request output funding" {
+  let calls = Ref(0)
+  let growth = {
+    ..working_growth_fixture(_ => {
+      calls.val += 1
+      Ok(())
+    }),
+    live_ceiling: 1048576L,
+    retained_outputs: Some(0L),
+  }
+  let output = prepare_admitted_output(managed_reference_owner(), Step(0), 1, {
+    max_nodes: 100,
+    max_text_bytes: 1000,
+    max_depth: 10,
+    max_work: 1000,
+  }).unwrap()
+  output.buffer.budget.retention = Some(growth)
+  let armed = Ref(false)
+  let observed = Ref(false)
+  let wire = managed_reference_wire()
+  let checked = @admitted.issue_reference(
+    @admitted.bind_reference_issuer((_, candidate) => candidate == wire, _ => {
+      if armed.val {
+        observed.val = true
+        cancel_admitted_output(output) |> ignore
+      }
+      true
+    }),
+    @schema.field_at(output.buffer.schema, 0).unwrap().contract,
+    wire,
+    { max_bytes: 1000, max_nodes: 100, max_depth: 10, max_text_units: 1000, },
+  ).unwrap()
+  armed.val = true
+  let result = append_admitted_output(output, [checked])
+  assert_true(observed.val)
+  assert_eq(calls.val, 0)
+  assert_true(result is Err(ClosedCapture))
+  assert_eq((growth.used, growth.funded), (0L, 0L))
+  assert_eq(growth.retained_outputs, Some(0L))
+  assert_eq(output.buffer.budget.retention_funded, 0L)
+  assert_true(output.buffer.rows.is_empty())
+  assert_true(finish_admitted_output(output) is Err(ClosedCapture))
+}
