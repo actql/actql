@@ -360,101 +360,123 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_content(
       })
       continue
     }
-    let content = self.original.with_business_request(self.capture, () => {
-      let physical_provider = binding._retained_provider
-      // Keyed limits reuse the admitted file policy. The full typed catalogue
-      // still owns the exact request keys, cardinality and response schema.
-      let file_limits = local_project_mock_file_limits()
-      let read = @local_values.begin_installed_managed_model_keyed_source_read(
-        run,
-        keyed,
-        request,
-        file._retained_original._retained_declaration,
-        {
-          page: {
-            max_bytes: response_bytes,
-            max_nodes: file_limits.page.max_nodes,
-            max_depth: file_limits.page.max_depth,
-            max_rows: 1,
-          },
-          retention: {
-            max_nodes: file_limits.page.max_nodes,
-            max_depth: file_limits.page.max_depth,
-            max_text_bytes: file_limits.page.max_bytes,
-            max_work: file_limits.max_work,
-          },
-          request: {
-            max_work: file_limits.max_work,
-            max_pairs: file_limits.page.max_nodes,
-            values: {
+    let (content, activation) = self.original.with_business_request(
+      self.capture,
+      () => {
+        let physical_provider = binding._retained_provider
+        // Keyed limits reuse the admitted file policy. The full typed catalogue
+        // still owns the exact request keys, cardinality and response schema.
+        let file_limits = local_project_mock_file_limits()
+        let read = @local_values.begin_installed_managed_model_keyed_source_read(
+          run,
+          keyed,
+          request,
+          file._retained_original._retained_declaration,
+          {
+            page: {
+              max_bytes: response_bytes,
+              max_nodes: file_limits.page.max_nodes,
+              max_depth: file_limits.page.max_depth,
+              max_rows: 1,
+            },
+            retention: {
               max_nodes: file_limits.page.max_nodes,
               max_depth: file_limits.page.max_depth,
               max_text_bytes: file_limits.page.max_bytes,
+              max_work: file_limits.max_work,
+            },
+            request: {
+              max_work: file_limits.max_work,
+              max_pairs: file_limits.page.max_nodes,
+              values: {
+                max_nodes: file_limits.page.max_nodes,
+                max_depth: file_limits.page.max_depth,
+                max_text_bytes: file_limits.page.max_bytes,
+              },
+            },
+            wire: {
+              max_bytes: file_limits.page.max_bytes,
+              max_nodes: file_limits.page.max_nodes,
+              max_depth: file_limits.page.max_depth,
+              max_columns: binding.content.fields.length(),
+              max_order_work: file_limits.max_work,
             },
           },
-          wire: {
+        ).unwrap_or_else(() => stop("LocalOriginalModelKeyedReadUnavailable"))
+        state.keyed_reads.push(read)
+        let acquisition = @local_values.installed_keyed_source_read_acquisition(
+          read,
+        ).unwrap_or_else(() => stop("LocalOriginalModelKeyedReadUnavailable"))
+        let input = @row_file.prepare_native_relation_file_content_input(
+          compiled,
+          first.definition,
+          keyed,
+          request,
+          store,
+          {
+            name: binding._retained_name,
+            version: binding._retained_version,
+            media_type: binding._retained_media_type,
+            path: binding._retained_path,
+          },
+          binding._retained_content_utf8,
+          binding_wire,
+          {
             max_bytes: file_limits.page.max_bytes,
             max_nodes: file_limits.page.max_nodes,
             max_depth: file_limits.page.max_depth,
-            max_columns: binding.content.fields.length(),
-            max_order_work: file_limits.max_work,
+            max_text_units: file_limits.page.max_bytes,
           },
-        },
-      ).unwrap_or_else(() => stop("LocalOriginalModelKeyedReadUnavailable"))
-      state.keyed_reads.push(read)
-      let acquisition = @local_values.installed_keyed_source_read_acquisition(
-        read,
-      ).unwrap_or_else(() => stop("LocalOriginalModelKeyedReadUnavailable"))
-      let input = @row_file.prepare_native_relation_file_content_input(
-        compiled,
-        first.definition,
-        keyed,
-        request,
-        store,
-        {
-          name: binding._retained_name,
-          version: binding._retained_version,
-          media_type: binding._retained_media_type,
-          path: binding._retained_path,
-        },
-        binding._retained_content_utf8,
-        binding_wire,
-        {
-          max_bytes: file_limits.page.max_bytes,
-          max_nodes: file_limits.page.max_nodes,
-          max_depth: file_limits.page.max_depth,
-          max_text_units: file_limits.page.max_bytes,
-        },
-        file_limits.page.max_bytes,
-        local_status_watch_now_ffi,
-        local_utc_now,
-        reference => (file._retained_resolve_identity)(binding, reference),
-        read_profile=Some(binding._retained_read_profile),
-      ).unwrap_or_else(() => stop("LocalOriginalContentInputUnavailable"))
-      match
-        @row_file.prepare_native_managed_relation_file_keyed_capture(
-          arena,
-          physical,
-          file._retained_original._retained_declaration,
-          binding.content.source_ref,
-          read,
-          acquisition,
-          physical_provider,
-          file._retained_issuer,
-          "native-mock-content",
-          content=Some(input),
-        ) {
-        Ok(value) => {
-          state.sources.push(value)
-          value
+          file_limits.page.max_bytes,
+          local_status_watch_now_ffi,
+          local_utc_now,
+          reference => (file._retained_resolve_identity)(binding, reference),
+          read_profile=Some(binding._retained_read_profile),
+        ).unwrap_or_else(() => stop("LocalOriginalContentInputUnavailable"))
+        let content = match
+          @row_file.prepare_native_managed_relation_file_keyed_capture(
+            arena,
+            physical,
+            file._retained_original._retained_declaration,
+            binding.content.source_ref,
+            read,
+            acquisition,
+            physical_provider,
+            file._retained_issuer,
+            "native-mock-content",
+            content=Some(input),
+          ) {
+          Ok(value) => {
+            state.sources.push(value)
+            value
+          }
+          Err(issue) => {
+            state.source_failures.push(issue)
+            self.original.retain_primary(CommandBusinessSource(issue.issue()))
+            stop("LocalOriginalContentCaptureUnavailable")
+          }
         }
-        Err(issue) => {
-          state.source_failures.push(issue)
-          self.original.retain_primary(CommandBusinessSource(issue.issue()))
-          stop("LocalOriginalContentCaptureUnavailable")
-        }
+        let activation = @run_host.prepare_client_keyed_native_activation(
+          lookup,
+          request,
+          first.request,
+          self.host.adoption_cid(),
+          local_utc_now(),
+          local_status_watch_now_ffi(),
+          16384,
+          1024,
+          20,
+        ).unwrap_or_else(() => stop("LocalOriginalLookupActivationUnavailable"))
+        (content, activation)
+      },
+    )
+    match work.persist_lookup_activation_in_original_read(activation) {
+      Ok(_) => ()
+      Err(issue) => {
+        self.original.retain_primary(CommandBusinessModel(issue))
+        stop("LocalOriginalLookupActivationUnavailable")
       }
-    })
+    }
     let mut complete = false
     while !complete {
       authorize(file._retained_original, binding.content)

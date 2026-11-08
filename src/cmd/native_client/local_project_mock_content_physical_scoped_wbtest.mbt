@@ -49,6 +49,20 @@ test "Native README dispatches original keyed requests in canonical batch order"
 }
 
 ///|
+// Explicit physical Source component: these prepared originals are not
+// Journal persistence, durable admission or an ordinary dispatch qualification.
+test "Native README prepares one first activation for each original canonical key" {
+  assert_eq(@env.get_env_var("ACTQL_TEST_NATIVE_ACTIVATION"), Some("1"))
+  native_project_mock_model_backed_read(
+    false,
+    readme_request=true,
+    effect_compilation=true,
+    effect_source_inputs=true,
+    content_join=true,
+  )
+}
+
+///|
 test "Native README Source originals retain the keyed Model closure" {
   assert_eq(
     @env.get_env_var("ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE"),
@@ -688,6 +702,45 @@ fn native_mock_readme_content_join_adopt(
       -1,
     )
     let request_value = @run_host.client_keyed_request_value(request, keyed).unwrap()
+    if @env.get_env_var("ACTQL_TEST_NATIVE_ACTIVATION") == Some("1") {
+      let activation = @run_host.prepare_client_keyed_native_activation(
+        lookup,
+        request,
+        first.request,
+        "explicit-native-component-issuer",
+        "2026-10-26T00:00:00.000Z",
+        local_status_watch_now_ffi(),
+        16384,
+        1024,
+        20,
+      ).native_content_join_stage("same original Native activation")
+      assert_eq((activation.batch_index, activation.batch_count), (row, 2))
+      assert_true(
+        @run_host.client_keyed_native_activation_matches(
+          activation,
+          first.request,
+          compiled,
+          first.definition,
+          graph,
+        ),
+      )
+      let before = @run_host.client_keyed_lookup_usage(left)
+      assert_true(
+        @run_host.prepare_client_keyed_native_activation(
+          lookup,
+          request,
+          first.request,
+          "explicit-native-component-issuer",
+          "2026-10-26T00:00:00.000Z",
+          local_status_watch_now_ffi(),
+          16384,
+          1024,
+          20,
+        )
+        is Err(_),
+      )
+      assert_eq(@run_host.client_keyed_lookup_usage(left), before)
+    }
     if planned_keys is Some(keys) {
       guard @json.parse(@publication.publication_contract_json(keys))
         is Object(fields) &&

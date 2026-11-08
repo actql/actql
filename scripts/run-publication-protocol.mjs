@@ -177,6 +177,7 @@ function patternTag(schema) {
     case '^sha256:[0-9a-f]{64}$':
     case '^sha256:[a-f0-9]{64}$': return 1;
     case '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$':
+    case '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$':
       return 2;
     case '^[A-Za-z0-9][A-Za-z0-9._+:-]{0,127}$': return 3;
     case '^[0-9a-f]{64}$': return 4;
@@ -677,6 +678,13 @@ registerArtifactSchema('lookup_barrier', {
 registerArtifactSchema('native_file_lookup_batch_plan', {
   schema: 'batch_plan', identity: 'self_cid', registry: 'lookup',
 });
+for (const [name, schema] of [
+  ['native_file_lookup_request', 'request'],
+  ['native_file_lookup_call_slot', 'call_slot'],
+  ['native_file_lookup_activation', 'activation'],
+]) {
+  registerArtifactSchema(name, {schema, identity: 'self_cid', registry: 'lookup'});
+}
 const sharedNodes = shareProtocolRuleConstructors(nodes);
 
 const nodeChunks = [];
@@ -739,5 +747,5 @@ if (readFileSync(localVectors, 'utf8') !== generateEffectLocalOperationVectors()
 }
 // EffectOutcome, response profile, Native file descriptors, lookup barrier and
 // Native batch-plan descriptors are outside selected.
-console.log(`${Object.keys(selected).length + 6} Run and Effect schemas and ` +
+console.log(`${Object.keys(selected).length + 9} Run and Effect schemas and ` +
   `${Object.keys(control.schemas).length} interactive schemas verified.`);

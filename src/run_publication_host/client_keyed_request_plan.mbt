@@ -5,9 +5,9 @@
 fn keyed_lookup_plan_storage(occurrences : Int, keys : Int) -> Int64? {
   guard @shape.collection_construction_extent({
       // Per occurrence: Request1H3R4W/accounting Some1H1R1W/map tuple1H1R1W.
-      // Per key: cache tuple1H3R/history1H2R/history Some1H1R1W.
+      // Per key: cache tuple1H3R/history1H3R/history Some1H1R1W.
       records: 3L * occurrences.to_int64() + 3L * keys.to_int64(),
-      record_references: 5L * occurrences.to_int64() + 6L * keys.to_int64(),
+      record_references: 5L * occurrences.to_int64() + 7L * keys.to_int64(),
       record_words: 6L * occurrences.to_int64() + keys.to_int64(),
       reference_arrays: 2L,
       reference_items: occurrences.to_int64() + keys.to_int64(),
@@ -190,7 +190,13 @@ pub fn retain_client_keyed_lookup_planned_request(
   }
   if distinct {
     slot = state.known.length()
-    state.known.push((wire, None, Some({ request, _retained_capture: None, })))
+    state.known.push(
+      (
+        wire,
+        None,
+        Some({ request, _retained_capture: None, _retained_activation: None, }),
+      ),
+    )
   }
   requests.push((request, slot))
   state.selected_request = None

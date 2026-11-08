@@ -9,6 +9,7 @@ fn NativeLocalJournalCapture::prepare_model_entry_construction(
   nodes? : Int = 16,
   depth? : Int = 2,
   additional? : (Int, Int, Int)? = None,
+  additional_controls? : @execution.PreparationRepresentationUnits? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   guard !self.closing &&
     self.original_resources is Some(original) &&
@@ -53,6 +54,19 @@ fn NativeLocalJournalCapture::prepare_model_entry_construction(
         return Err(ConfigurationLimit)
       }
       (total_retained, total_execution, Int64::max(raw, more_raw))
+    }
+  }
+  let (retained, execution, raw) = match additional_controls {
+    None => (retained, execution, raw)
+    Some(units) => {
+      guard @execution.preparation_representation_cost(units) is Some(bytes) &&
+        @execution.checked_preparation_add_product(retained, bytes, 1L)
+        is Some(r) &&
+        @execution.checked_preparation_add_product(execution, bytes, 1L)
+        is Some(e) else {
+        return Err(ConfigurationLimit)
+      }
+      (r, e, Int64::max(raw, bytes))
     }
   }
   original.host

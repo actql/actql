@@ -70,6 +70,7 @@ fn original_composed_keyed_consumer(
   direct_effect_evidence? : Bool = false,
   pre_dispatch_plan? : Bool = false,
   native_transport? : Bool = false,
+  native_activation? : Bool = false,
   first_plan? : ((
     ClientRequestPreparation[Array[Int]],
     Array[Int],
@@ -311,7 +312,28 @@ fn original_composed_keyed_consumer(
       }),
     )
   }
-  let graphs = if following {
+  let graphs = if native_activation {
+    let occurrence = @publication_host.prepared_client_effect_infer_occurrence(
+      prepared,
+    ).unwrap()
+    let keyed = @publication_host.select_client_effect_model_keyed_acquisition(
+        prepared, occurrence,
+      )
+      .unwrap()
+      .unwrap()
+    let profile = native_profile.unwrap().1
+    [
+      @publication_host.issue_installed_client_composed_infer_plan_graph(
+        occurrence,
+        effect_model_plan_execution(occurrence),
+        @publication_host.client_standard_values_sequence_limits(),
+        1000000,
+        100000,
+        100,
+        keyed_native_read=Some((keyed, profile)),
+      ).unwrap(),
+    ]
+  } else if following {
     @publication_host.prepared_client_effect_infer_occurrences(prepared)
     .unwrap()
     .map(occurrence => {
@@ -327,11 +349,12 @@ fn original_composed_keyed_consumer(
   } else {
     []
   }
-  let (_, request, contracts, model) = effect_model_plan_for_prepared(
-    prepared,
-    acquired=true,
-    infers=graphs,
-  )
+  let (_, request, contracts, model) = if native_activation {
+    effect_model_plan_for_graph(prepared, graphs[0], acquired=true)
+  } else {
+    effect_model_plan_for_prepared(prepared, acquired=true, infers=graphs)
+  }
+  let original_request = request
   let keyed = @publication_host.select_client_effect_composed_model_keyed_acquisition(
       prepared,
       model.graph,
@@ -974,13 +997,21 @@ fn original_composed_keyed_consumer(
         1024,
         20,
       ).unwrap()
-      assert_true(
-        @publication_host.start_client_keyed_lookup_request_plan(
-          lookup,
-          native_read_profile=Some(undeclared),
-        )
-        is Err(@publication_host.Assembly("undeclared_native_read_profile")),
+      let refusal = @publication_host.start_client_keyed_lookup_request_plan(
+        lookup,
+        native_read_profile=Some(undeclared),
       )
+      if native_activation {
+        assert_true(
+          refusal
+          is Err(@publication_host.Assembly("foreign_native_read_profile")),
+        )
+      } else {
+        assert_true(
+          refusal
+          is Err(@publication_host.Assembly("undeclared_native_read_profile")),
+        )
+      }
     }
     @publication_host.start_client_keyed_lookup_request_plan(
       lookup,
@@ -1014,6 +1045,12 @@ fn original_composed_keyed_consumer(
       lookup, 16384, 1024, 20,
     ).unwrap()
     |> ignore
+    if native_activation {
+      @publication_host.prepare_client_keyed_native_batch_plan(
+        lookup, 16384, 1024, 20,
+      ).unwrap()
+      |> ignore
+    }
     if native_profile is Some((_, profile)) {
       let transport = @publication_host.client_keyed_lookup_native_transport(
         lookup,
@@ -1066,6 +1103,35 @@ fn original_composed_keyed_consumer(
   let request_value = @publication_host.client_keyed_request_value(
     request, keyed,
   ).unwrap()
+  if native_activation {
+    let activation = @publication_host.prepare_client_keyed_native_activation(
+      lookup, request, original_request, "native-component-issuer", "2026-10-26T00:00:00.000Z",
+      0L, 16384, 1024, 20,
+    ).unwrap()
+    assert_eq((activation.batch_index, activation.batch_count), (0, 1))
+    assert_true(
+      @publication_host.client_keyed_native_activation_matches(
+        activation,
+        original_request,
+        model.compiled,
+        model.definition,
+        model.graph,
+      ),
+    )
+    let before = @publication_host.client_keyed_lookup_usage(left)
+    assert_true(
+      @publication_host.prepare_client_keyed_native_activation(
+        lookup, request, original_request, "native-component-issuer", "2026-10-26T00:00:00.000Z",
+        0L, 16384, 1024, 20,
+      )
+      is Err(_),
+    )
+    assert_eq(@publication_host.client_keyed_lookup_usage(left), before)
+    let wire = @publication.publication_contract_json(activation.activation)
+    assert_true(wire.contains("\"network_attempt\":1"))
+    assert_true(wire.contains("\"previous_activation_cid\":null"))
+    assert_true(wire.contains("\"previous_attempt_event_cid\":null"))
+  }
   let (native_read, acquisition, child) = if native_keyed {
     guard managed is Some((owner, _)) else {
       fail("original managed keyed parent")

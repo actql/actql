@@ -851,6 +851,8 @@ pub fn client_keyed_lookup_request_identity_parts(ClientKeyedLookupRequestIdenti
 
 pub fn client_keyed_lookup_usage(ClientKeyedLeftRead) -> (Int64, Int64, Int64, Int64, Int64, Int64)
 
+pub fn client_keyed_native_activation_matches(ClientKeyedNativeActivation, ClientRequestIdentity, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
+
 pub fn client_keyed_request_matches_acquisition(ClientKeyedRequest, ClientKeyedAcquisition) -> Bool
 
 pub fn client_keyed_request_preparation_work(ClientKeyedRequestPreparation) -> Int
@@ -1988,6 +1990,8 @@ pub fn prepare_client_keyed_acquisition(PreparedClientProgram, Int, Int, Int, jo
 pub fn prepare_client_keyed_capture_left_read(ClientKeyedAcquisition, @execution_query.CapturedInputSource, Int, Int) -> Result[ClientKeyedLeftRead, ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_lookup_join_inputs(ClientKeyedLookupInput, @execution_relation.GeneratedSequence) -> Result[(@execution_relation.GeneratedSequence, @execution_relation.ProducerRead, @execution_relation.SuppliedRelationRead), ClientKeyedRequestIssue]
+
+pub fn prepare_client_keyed_native_activation(ClientKeyedLookupInput, ClientKeyedRequest, ClientRequestIdentity, String, String, Int64, Int, Int, Int) -> Result[ClientKeyedNativeActivation, ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_native_batch_plan(ClientKeyedLookupInput, Int, Int, Int) -> Result[@run_publication.PublicationContract, ClientKeyedRequestIssue]
 
@@ -3344,6 +3348,23 @@ type ClientKeyedLookupInput
 type ClientKeyedLookupObservation
 
 type ClientKeyedLookupRequestIdentity
+
+pub struct ClientKeyedNativeActivation {
+  batch : @run_publication.PublicationContract
+  transport : @run_publication.PublicationContract
+  keys : @run_publication.PublicationContract
+  semantic_request : @run_publication.PublicationContract
+  slot : @run_publication.PublicationContract
+  activation : @run_publication.PublicationContract
+  batch_index : Int
+  batch_count : Int
+  deadline_epoch_ms : Int64
+  issuer_id : String
+  reserved_wire_bytes : Int64
+  reserved_decoded_bytes : Int64
+  reserved_duration_ms : Int64
+  // private fields
+}
 
 type ClientKeyedRequest
 
