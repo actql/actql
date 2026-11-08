@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {gitTree, hash, packageSourceInputs, packageImports} from './inputs.mjs';
 import {currentConfigurationReviewRevision, currentPackageConfigurations,
   currentPackageConfigurationReviewFor, currentNestedFixtureConfigurations, reviewedNestedFixture,
-  packageConfigurationReview} from './package-configurations.mjs';
+  packageConfigurationReview, packageConfigurationReviewFor, reviewedPackageConfigurations} from './package-configurations.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const tree = gitTree(root, currentConfigurationReviewRevision);
@@ -66,13 +66,19 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
       }
     }
     if (path === 'src/platform_native/publication_store/moon.pkg') {
-      assert.equal(entry.revision, 'f86f409e62d39511380497cb0fe5639d5259f191');
+      assert.equal(entry.revision, '3feeecd4936fcf156d8b5293354332813913e59f');
       const successor = selectedTree.read(path).toString();
+      const deliverySelector = '    "delivery_chunk_native_wbtest.mbt": [ "native" ],\n';
+      assert.equal(successor.split(deliverySelector).length, 2);
+      const modelSuccessor = successor.replace(deliverySelector, '');
+      assert.equal(modelSuccessor,
+        gitTree(root, 'f86f409e62d39511380497cb0fe5639d5259f191').read(path).toString(),
+        'only the original Native delivery test selector extends the prior review');
       const body = gitTree(root, 'f7dfa3c3b3e61b71e63986342636039d20eaece2').read(path).toString();
       const modelSelectors = ['    "model_evidence_custody_native.mbt": [ "native" ],\n',
         '    "model_evidence_custody_native_wbtest.mbt": [ "native" ],\n',
         '    "model_evidence_custody_unsupported.mbt": [ "not", "native" ],\n'];
-      let beforeModel = successor;
+      let beforeModel = modelSuccessor;
       for (const selector of modelSelectors) {
         assert.equal(beforeModel.split(selector).length, 2);
         beforeModel = beforeModel.replace(selector, '');
@@ -664,4 +670,62 @@ test('current remote Client review binds only its Native link driver on JS', () 
     assert(selected.paths.includes(member));
     assert.equal(head.entries.get(member).mode, '100644');
   }
+});
+
+// This selector is bound as JS Source input, not Native runtime acceptance.
+test('current Store delivery chunk successor binds the exact Native selector and prior preimage', () => {
+  const directory = 'src/platform_native/publication_store', path = directory + '/moon.pkg';
+  const revision = '3feeecd4936fcf156d8b5293354332813913e59f';
+  const digest = 'dfaf6105d166e28289190c97a9aae16bf4eff037da5cbcd5fa767aeb2ebc8598';
+  const priorDigest = '14135602cf019169768a0ebcf33e59a1795c1553b672d6347d34c10fc2ff9618';
+  const selector = '    "delivery_chunk_native_wbtest.mbt": [ "native" ],\n';
+  const reviewed = gitTree(root, revision), body = reviewed.read(path).toString();
+  const prior = gitTree(root, '213f671c7ab7c0fb31c1e8a6c99407fe8e50ce69').read(path).toString();
+  assert.equal(Buffer.byteLength(body), 2695);
+  assert.equal(Buffer.byteLength(prior), 2641);
+  assert.equal(Buffer.byteLength(selector), 54);
+  assert.equal(hash(body), digest);
+  assert.equal(hash(prior), priorDigest);
+  assert.equal(body.split(selector).length, 2);
+  assert.equal(body.replace(selector, ''), prior);
+  assert.equal(prior, gitTree(root, 'f86f409e62d39511380497cb0fe5639d5259f191').read(path).toString());
+  assert.equal(prior, gitTree(root, '268d1d9bfd6bf2c97f396172a12cfa38d24b8306').read(path).toString());
+  assert.deepEqual(packageImports(body).imports, packageImports(prior).imports);
+  assert.deepEqual(currentPackageConfigurations[path], {revision, digest,
+    rule: 'literal-native-options-with-bound-source-membership'});
+  execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
+  assert.equal(currentTree.read(path).toString(), body);
+  assert.deepEqual(currentPackageConfigurationReviewFor(request(path, digest)), {
+    revision, target: 'js', toolchainDigest, moonRevision: packageConfigurationReview.moonRevision,
+    rule: 'literal-native-options-with-bound-source-membership',
+  });
+  const selected = packageSourceInputs({tree: currentTree, packages: [directory], target: 'js'});
+  assert.equal(selected.packageConfigurations.find(entry => entry.path === path)?.review.revision, revision);
+  assert(!selected.unresolved.includes('Unreviewed package configuration: ' + path));
+  const members = [...currentTree.entries.keys()].filter(member => member.startsWith(directory + '/') &&
+    !member.slice(directory.length + 1).includes('/')).sort();
+  assert(members.includes(directory + '/delivery_chunk_native_wbtest.mbt'));
+  assert(members.includes(directory + '/store_format_stub.c'));
+  assert.deepEqual(selected.directories.find(entry => entry.path === directory + '/*')?.members, members);
+  for (const member of members) {
+    assert(selected.paths.includes(member), 'Native selection cannot hide Source membership from the JS key');
+    assert.equal(currentTree.entries.get(member)?.mode, '100644');
+    assert.equal(currentTree.entries.get(member)?.kind, 'blob');
+  }
+  for (const changed of [prior,
+    body.replace(selector, selector.replace('"native"', '"js"')),
+    body.replace(selector, selector + '    "unreviewed_chunk_native_wbtest.mbt": [ "native" ],\n'),
+    body.replace('"actql/actql/sha256"', '"actql/actql/string"'),
+    body + '\noptions(pre_build: {command: "unreviewed"})\n']) {
+    assert.notEqual(changed, body);
+    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+    const altered = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
+    assert(packageSourceInputs({tree: altered, packages: [directory], target: 'js'})
+      .unresolved.includes('Unreviewed package configuration: ' + path));
+  }
+  for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)},
+    {path: './' + path}, {path: 'src/unreviewed/moon.pkg'}, {digest: priorDigest}])
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, digest), ...delta}), null);
+  assert.equal(packageConfigurationReviewFor(request(path, reviewedPackageConfigurations[path]))?.revision,
+    packageConfigurationReview.revision, 'The historical configuration keeps its own unchanged review');
 });
