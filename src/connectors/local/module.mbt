@@ -294,7 +294,7 @@ pub fn local_module_capacity_for_sequence(
 }
 
 ///|
-/// Startup DATA for the exact built-in row/CROSS JOIN chain. Its unchanged
+/// Startup DATA for an exact built-in row/Append or row/CROSS JOIN chain. Its unchanged
 /// full capacity remains the fallback and semantic bound. Persistent output
 /// DATA is charged by the same task before each buffer commit; all fixed
 /// child metadata, input/measurement/traversal and one live child scratch
@@ -306,21 +306,48 @@ pub fn local_module_metered_output_start_capacity(
 ) -> @execution.ExecutionCapacity? {
   let count = @execution.generated_sequence_step_count(sequence)
   guard installed.selected_default.get(slot) == Some(true) &&
-    count > 1 &&
+    count > 0 &&
+    // Only the existing bounded row and Append singletons attach their
+    // output budget to this same sequence's before-commit growth owner.
+    // Other single-step families keep their original full envelope.
+    (
+      count > 1 ||
+      @execution.generated_sequence_step_at(sequence, 0)
+      is Some(@lower.RowStep(_) | @lower.AppendStep(_))
+    ) &&
     relation_chain_reclaimed_prefix(sequence) == count &&
-    local_module_capacity_for_sequence(installed, slot, sequence) is Some(full) &&
+    local_module_capacity_for_sequence(installed, slot, sequence) is Some(full) else {
+    return None
+  }
+  // The selected Append constructor uses its bounded operation workspace,
+  // not the generic sequence's retained table and metadata arrays. Keep its
+  // exact input, measurement, output and frame allowances in the original
+  // bounded recipe before deferring only output DATA to the same growth owner.
+  let base = if count == 1 &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.AppendStep(_)) {
+    @execution.generated_sequence_step_index_at(sequence, 0)
+    .bind(step => @execution.select_generated_sequence_step(sequence, step))
+    .bind(selected => {
+      @execution.generated_bounded_sequence_capacity(
+        selected,
+        installed.execution,
+        installed.measurement,
+      )
+    })
+  } else {
     @execution.generated_sequence_capacity(
       sequence,
       installed.execution,
       installed.measurement,
     )
-    is Some(base) else {
-    return None
   }
+  guard base is Some(base) else { return None }
   let mut metered_retention = true
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
       Some(@lower.CrossJoinStep(_)) => ()
+      Some(@lower.AppendStep(_)) if count == 1 => ()
       Some(@lower.RowStep(kernel)) if selected_binding_rows_supported(kernel) =>
         match @lower.kernel_body(kernel) {
           @lower.Filter(_)
@@ -329,10 +356,41 @@ pub fn local_module_metered_output_start_capacity(
           | @lower.Limit(_, _, _)
           | @lower.AssertAll(_)
           | @lower.AssertUnique(_) => ()
-          // These other supported rows can use an independently retained
-          // snapshot conversion. Keep its original full R until that copy's
-          // own admission is attached to the same funding path too.
-          _ => metered_retention = false
+          _ => {
+            // Ordered bindings may convert a snapshot cell before output
+            // retention is funded. Only Number/Boolean outputs are immediate
+            // cells with no copied text/container forest. Their row arrays
+            // and logical roots use the already attached workspace owner,
+            // and CommitOutputRow funds the complete output before transfer.
+            // Every other snapshot output keeps the original full retention.
+            let schema = @execution.generated_sequence_step_index_at(
+              sequence, index,
+            ).bind(step => {
+              @lower.preparation_schema_at(
+                @lower.bound_preparation(
+                  @execution.generated_sequence_owner(sequence),
+                ),
+                @pipeline.Step(step),
+              )
+            })
+            let primitive = @lower.kernel_bindings(kernel) is Some(_) &&
+              schema
+              .map(schema => {
+                let mut immediate = true
+                for field in 0..<@schema.field_count(schema) {
+                  match
+                    @schema.field_at(schema, field).unwrap().contract.shape {
+                    @contract.Number | @contract.Boolean => ()
+                    _ => immediate = false
+                  }
+                }
+                immediate
+              })
+              .unwrap_or(false)
+            if !primitive {
+              metered_retention = false
+            }
+          }
         }
       _ => return None
     }
