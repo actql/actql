@@ -41,3 +41,27 @@ Map's actual retained bucket/entry backing. Removing an entry does not release
 its bucket allocation. This callback-free DATA permits the same Source owner to
 retain the confirmed reference while returning finished construction workspace;
 it is neither a physical acknowledgement nor a replacement current check.
+
+## Original per-call Model evidence
+
+`ModelEvidenceCustody` uses the same private evidence transaction, encryption,
+durable quota, authenticated readback and retirement tombstone as Effect
+evidence. Its address is the existing scoped Model holding: the original Run
+Definition, Store authority, invocation Scope, Slot, attempt, settled phase and
+evidence role. Typed evidence supplies its own semantic identity and exact
+canonical wire. A second constructor cannot replace existing ciphertext, and a
+different body, key or scope cannot confirm the original cell.
+
+The trusted Model caller must retain the returned child before persistence and
+fund its controls, original evidence, UTF-8, AEAD, parser/readback and failed
+child overlap before construction. This Store connection does not calculate
+that Run envelope. Nor does it authenticate a caller's Model/Scope relationship:
+the original Model owner and Journal still check their actual objects and
+complete attempt/outcome/response bindings. Store confirmation alone never
+acknowledges Model settlement or issues a successful Run/Result.
+
+Restoration reads only the exact existing cell; it never inserts missing
+evidence or treats absence as an unsent call. Retirement follows the owning
+Run's actual evidence-retention lifetime. Its durable tombstone precedes quota
+release, so a failed release remains retryable without reviving the response or
+granting another call. Cancellation or terminal status alone cannot select it.
