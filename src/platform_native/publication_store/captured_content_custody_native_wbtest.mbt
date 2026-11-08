@@ -16,8 +16,16 @@ fn native_content_store_fixture(
   library : @sqlite.Library,
   diagnostic_ceiling? : Int? = None,
 ) -> (Store, String, String) raise {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(root) else {
-    fail("Missing explicit Native Content Store fixture")
+  // The ordinary Core harness already owns a fresh SQLite namespace. Use it
+  // only as this fixture's parent; never activate a global optional Store root
+  // for unrelated packages. Explicit focused fixture selection stays first.
+  let root = match @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") {
+    Some(root) => root
+    None =>
+      match @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") {
+        Some(root) => root
+        None => fail("Missing explicit Native Content Store fixture")
+      }
   }
   let token = label + "-" + @env.now().to_string()
   let authority = native_payload_cid(token + "-authority")
