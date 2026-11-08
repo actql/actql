@@ -53,6 +53,9 @@ export async function observePackedSubmissionCause({sourceURL, boundary = 'origi
       'original-catch': {anchor: 'throw publicFailure(error);', count: 2, index: 1, frame: 0},
       'local-500': {anchor: 'const error = new ClientError(code, {status});', count: 1, index: 0,
         frame: 1, caller: 'publicFailure', condition: 'status === 500'},
+      'local-submission-500': {anchor: 'const error = new ClientError(code, {status});', count: 1, index: 0,
+        frame: 1, caller: 'publicFailure', condition: 'status === 500',
+        operationFrame: 2, operationCaller: 'perform'},
       'http-500': {anchor: "response.writeHead(status, {'content-type': 'application/json'});",
         count: 1, index: 0, frame: 0, condition: 'status === 500'},
     };
@@ -65,7 +68,8 @@ export async function observePackedSubmissionCause({sourceURL, boundary = 'origi
     const sha256 = createHash('sha256').update(bytes).digest('hex');
     worker = new Worker(new URL(import.meta.url), {execArgv: [], workerData: {
       kind: 'packed-submission-cause', url: pathToFileURL(path).href,
-      sha256, lineNumber, frame: selected.frame, caller: selected.caller, condition: selected.condition}});
+      sha256, lineNumber, frame: selected.frame, caller: selected.caller, condition: selected.condition,
+      operationFrame: selected.operationFrame, operationCaller: selected.operationCaller}});
     exited = new Promise(resolve => worker.once('exit', resolve));
     ready = new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('DiagnosticStartupUnavailable')), 3000);
@@ -163,23 +167,45 @@ out.push(row);if(depth<16)for(const key of ['cause','primaryFailure','_0','_1','
     } catch {parentPort.postMessage({kind: 'unavailable'});}
   });
   session.on('Debugger.paused', async ({params}) => {
+    let retireBreakpoint = false;
     try {
       assert.ok(!captured && originals.has(params.callFrames[0].location.scriptId));
-      captured = true;
       const frame = params.callFrames[workerData.frame];
       if (!frame || !originals.has(frame.location.scriptId) ||
           workerData.caller !== undefined && frame.functionName !== workerData.caller) {
+        retireBreakpoint = true;
         parentPort.postMessage({kind: 'unavailable', reason: 'original-caller-unavailable'});
         return;
       }
+      if (workerData.operationFrame !== undefined) {
+        const operationFrame = params.callFrames[workerData.operationFrame];
+        if (!operationFrame || !originals.has(operationFrame.location.scriptId) ||
+            operationFrame.functionName !== workerData.operationCaller) {
+          retireBreakpoint = true;
+          parentPort.postMessage({kind: 'unavailable', reason: 'original-caller-unavailable'});
+          return;
+        }
+        // Read only the original lexical operation's closed boolean category.
+        // Do not reclassify the error or inspect request data. Earlier Result
+        // or status failures must not consume the submission's diagnostic slot.
+        const selected = await post('Debugger.evaluateOnCallFrame', {
+          callFrameId: operationFrame.callFrameId,
+          expression: "operation === 'submit' || operation === 'submit-intent' || operation === 'submit-named-intent' || operation === 'restart-intent'",
+          returnByValue: true, silent: true});
+        assert.equal(selected.exceptionDetails, undefined);
+        assert.equal(selected.result.type, 'boolean');
+        if (!selected.result.value) return;
+      }
+      captured = true;
+      retireBreakpoint = true;
       const {result, exceptionDetails} = await post('Debugger.evaluateOnCallFrame', {
         callFrameId: frame.callFrameId, expression,
         returnByValue: true, silent: true});
       assert.equal(exceptionDetails, undefined);
       parentPort.postMessage({kind: 'primary', types: result.value});
-    } catch {parentPort.postMessage({kind: 'unavailable'});}
+    } catch {retireBreakpoint = true; parentPort.postMessage({kind: 'unavailable'});}
     finally {
-      await post('Debugger.removeBreakpoint', {breakpointId: breakpoint}).catch(() => {});
+      if (retireBreakpoint) await post('Debugger.removeBreakpoint', {breakpointId: breakpoint}).catch(() => {});
       await post('Debugger.resume').catch(() => session.disconnect());
     }
   });

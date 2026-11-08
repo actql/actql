@@ -1417,7 +1417,7 @@ try {
 if (transport === undefined || transport === 'local') {
 let localAcceptedRuns = 0, submissionCause;
 try {
-  submissionCause = await observePackedSubmissionCause({boundary: 'local-500', sourceURL: new URL(
+  submissionCause = await observePackedSubmissionCause({boundary: 'local-submission-500', sourceURL: new URL(
     './adapters/host-node/in-process-client.mjs', import.meta.resolve('@actql/local-node'))});
 } catch { /* A missing diagnostic cannot replace the original test outcome. */ }
 try {

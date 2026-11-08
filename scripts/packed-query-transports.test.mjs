@@ -311,10 +311,13 @@ const publicError = (code, status) => {
 };
 const ${caller} = error => localErrors.has(error) ? error
   : publicError(publicClientErrorCode(error), publicClientErrorStatus(error));
-export function originalIngress(original, status) {
+const host = {perform(operation, original, status) {
   statuses.set(original, status);
   try {throw original;}
   catch (error) {throw ${caller}(error);}
+}};
+export function originalIngress(original, status, operation = 'submit-intent') {
+  return host.perform(operation, original, status);
 }
 `;
   await writeFile(path, source);
@@ -364,6 +367,38 @@ test('packed cause observer refuses a different Local caller and still resumes i
   assert.equal(reports[0].unavailableReason, 'original-caller-unavailable');
   assert.deepEqual(reports[0].originalCauseTypes, []);
   assert.doesNotMatch(JSON.stringify(reports), /private-|foreignFailure|message|stack/u);
+});
+
+test('packed submission cause ignores earlier non-submission failures without inspecting their errors', async t => {
+  for (const operation of ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent']) {
+    const target = await statusDiagnosticTarget(t, 'local'), reports = [];
+    let reflected = 0;
+    const unrelated = new Proxy(new Error('private-unrelated'), {
+      getPrototypeOf() {reflected++; throw new Error('Unrelated error must not be inspected');},
+    });
+    const original = Object.assign(new Error('private-submission'), {code: 'RunHostOriginalPlanRejected'});
+    const observer = await observePackedSubmissionCause({sourceURL: target.sourceURL,
+      boundary: 'local-submission-500', report: value => reports.push(value)});
+    try {
+      assert.throws(() => target.originalIngress(unrelated, 422, operation),
+        {code: 'ClientProgramUnsupported', status: 422});
+      for (const prior of ['read', 'result-describe', 'private-operation']) {
+        assert.throws(() => target.originalIngress(unrelated, 500, prior),
+          {code: 'ClientHostFailure', status: 500});
+      }
+      assert.throws(() => target.originalIngress(original, 500, operation),
+        {code: 'ClientHostFailure', status: 500});
+      assert.throws(() => target.originalIngress(unrelated, 500, operation),
+        {code: 'ClientHostFailure', status: 500});
+    } finally {await observer.close();}
+    assert.equal(target.statusReads(), 6, 'Observation never repeats status classification');
+    assert.equal(reflected, 0, 'Unrelated and later errors remain uninspected');
+    assert.equal(reports.length, 1);
+    assert.equal(reports[0].available, true);
+    assert.deepEqual(reports[0].originalCauseTypes,
+      [[{edge: 'original', type: 'Error', code: 'RunHostOriginalPlanRejected'}]]);
+    assert.doesNotMatch(JSON.stringify(reports), /private-|message|stack/u);
+  }
 });
 
 test('complete transport inventory rejects missing, duplicate, extra and reordered identities', () => {
