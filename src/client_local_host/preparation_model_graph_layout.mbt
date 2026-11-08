@@ -8,6 +8,13 @@ fn model_graph_construction_cost(
   let held = [value.request, value.barrier]
   let active = [value.request, value.barrier, value.node, value.output_contract]
   let wires = [value.request, value.graph, value.node]
+  if value.lookup is Some((body, node)) {
+    // The encoded barrier document and final lookup-node String coexist at
+    // node construction, before that node enters the Graph's retained tree.
+    active.push(body)
+    wires.push(body)
+    wires.push(node)
+  }
   let mut labels = 0L
   let mut scratch : @execution.PreparationRepresentationUnits = {
     record_headers: 0L,
@@ -151,4 +158,32 @@ fn model_graph_construction_cost(
     return None
   }
   @execution.preparation_representation_cost(peak)
+}
+
+///|
+// The lookup uses the SAME target-provenance collection inventory as Content:
+// two actual target walks and the separately retained effective Request fold.
+// Each call's full collection bound stays charged; hash writers are sequential
+// and only the three generated policy CIDs remain held. No response body is
+// encoded/parsed here and no serialization occurrence or capacity is invented.
+fn model_keyed_policy_construction_cost(
+  value : @checked.SerializationPolicyConstruction,
+) -> Int64? {
+  guard serialization_policy_collection_cost(value) is Some(collections) &&
+    @encode.hash_writer_construction_inventory(
+      value.effective.1,
+      value.effective.2,
+    )
+    is Some(hash) &&
+    @execution.preparation_representation_cost({
+      record_headers: hash.record_headers + 3L,
+      reference_slots: hash.reference_slots,
+      scalar_words: hash.scalar_words,
+      owned_utf16_units: hash.owned_utf16_units + 3L * 71L,
+      owned_wire_bytes: hash.owned_wire_bytes,
+    })
+    is Some(writer) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(writer, collections, 3L)
 }

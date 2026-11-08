@@ -10,6 +10,7 @@ pub struct ClientInferGraphConstruction {
   barrier : (Int, Int, Int)
   node : (Int, Int, Int)
   output_contract : (Int, Int, Int)
+  lookup : ((Int, Int, Int), (Int, Int, Int))?
   nodes : Array[(Int, Int, Int)]
   edges : Array[(Int, Int, Int)]
   roots : Array[(Int, Int, Int)]
@@ -25,6 +26,7 @@ pub struct ClientInferGraphConstruction {
   priv mappings : @lower.PreparedInferInputs
   priv pipeline_inputs : Array[ClientTaskPipelineInput]
   priv serialization : ClientSerializationPlanGraph?
+  priv keyed : ClientKeyedPlanBarrierInput?
 }
 
 ///|
@@ -39,6 +41,10 @@ pub fn measure_installed_client_composed_infer_graph_construction(
   max_nodes : Int,
   max_depth : Int,
   serialization? : ClientSerializationPlanGraph? = None,
+  keyed_native_read? : (
+    ClientKeyedAcquisition,
+    @publication.PublicationContract,
+  )? = None,
 ) -> Result[ClientInferGraphConstruction, ClientInferPlanGraphIssue] {
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(UnsupportedProgram)
@@ -60,24 +66,75 @@ pub fn measure_installed_client_composed_infer_graph_construction(
     ) {
     return Err(ForeignExecution)
   }
-  // Preserve the ordinary constructor's original prefix-before-mapping order.
-  let ordinary_prefix = match serialization {
-    None =>
+  let keyed = match keyed_native_read {
+    None => None
+    Some((acquisition, profile)) => {
+      if serialization is Some(_) {
+        return Err(UnsupportedProgram)
+      }
       Some(
         match
-          measure_client_infer_fragment_construction(
-            occurrence,
-            step - 1,
-            sequence_limits,
+          prepare_client_keyed_plan_input(
+            occurrence, acquisition, profile, sequence_limits, max_wire_bytes, max_nodes,
+            max_depth,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        },
+      )
+    }
+  }
+  let keyed_fragments = match keyed {
+    None => None
+    Some(original) =>
+      Some(
+        match
+          measure_client_keyed_plan_fragments(
+            original.fragments,
             max_wire_bytes,
             max_nodes,
             max_depth,
           ) {
-          Err(issue) => return Err(Input(issue))
           Ok(value) => value
+          Err(issue) => return Err(issue)
         },
       )
-    Some(_) => None
+  }
+  let lookup = match keyed {
+    None => None
+    Some(original) =>
+      Some(
+        match
+          measure_client_keyed_plan_barrier(
+            original, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        },
+      )
+  }
+  // Preserve the ordinary constructor's original prefix-before-mapping order.
+  let ordinary_prefix = if keyed is Some(_) {
+    None
+  } else {
+    match serialization {
+      None =>
+        Some(
+          match
+            measure_client_infer_fragment_construction(
+              occurrence,
+              step - 1,
+              sequence_limits,
+              max_wire_bytes,
+              max_nodes,
+              max_depth,
+            ) {
+            Err(issue) => return Err(Input(issue))
+            Ok(value) => value
+          },
+        )
+      Some(_) => None
+    }
   }
   let mappings = match
     @lower.prepare_infer_inputs(
@@ -151,6 +208,38 @@ pub fn measure_installed_client_composed_infer_graph_construction(
     let results : Array[(Int, Int, Int)] = []
     let producers : Array[(Int, String, String)] = []
     match serialization {
+      None if keyed is Some(original) => {
+        let (left, joined) = keyed_fragments.unwrap()
+        fragments.push(left)
+        fragments.push(joined)
+        pipeline_inputs.push(original.fragments.left)
+        pipeline_inputs.push(original.fragments.joined)
+        nodes.push(left.fragment)
+        nodes.push(lookup.unwrap().1)
+        nodes.push(joined.fragment)
+        for
+          (from_node, from_port, to_node, to_port) in [
+            (left.node_id, left.output_port, original.barrier_id, "input_0"),
+            (left.node_id, left.output_port, joined.node_id, "input_0"),
+            (original.barrier_id, "rows", joined.node_id, "input_1"),
+          ] {
+          let writer = @encode.measuring_writer(
+            max_wire_bytes, max_nodes, max_depth,
+          )
+          emit_client_compilation_data_edge(
+            writer,
+            "relation",
+            (),
+            from_node,
+            from_port,
+            to_node,
+            to_port,
+            measure_client_fragment_cid,
+          )
+          edges.push(@encode.finish_measurement_usage(writer))
+        }
+        producers.push((step - 1, joined.node_id, joined.output_port))
+      }
       None => {
         let (prefix, input) = ordinary_prefix.unwrap()
         fragments.push(prefix)
@@ -380,11 +469,13 @@ pub fn measure_installed_client_composed_infer_graph_construction(
       mappings,
       pipeline_inputs,
       serialization,
+      keyed,
       fragments,
       request,
       barrier,
       node: barrier_node,
       output_contract,
+      lookup,
       nodes,
       edges,
       roots,

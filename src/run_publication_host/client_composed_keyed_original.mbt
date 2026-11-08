@@ -217,14 +217,34 @@ pub fn select_client_effect_composed_model_keyed_acquisition(
   guard client_infer_occurrence_matches_effect(plan.occurrence, prepared) else {
     return Err(ForeignPipeline)
   }
-  match client_composed_keyed_source_coordinates(plan.owner) {
+  if plan.keyed is Some(component) {
+    let original = component.original.fragments.acquisition
+    guard client_keyed_acquisition_matches_effect_program(original, prepared) else {
+      return Err(ForeignPipeline)
+    }
+    return Ok(Some(original))
+  }
+  select_client_effect_model_keyed_acquisition(prepared, plan.occurrence)
+}
+
+///|
+/// Select the same checked keyed occurrence before the first Model Plan. The
+/// returned original is retained by that Plan; no rows, read or grant is issued.
+pub fn select_client_effect_model_keyed_acquisition(
+  prepared : PreparedClientEffectComputation,
+  occurrence : ClientInferOccurrence,
+) -> Result[ClientKeyedAcquisition?, ClientKeyedAcquisitionIssue] {
+  guard client_infer_occurrence_matches_effect(occurrence, prepared) else {
+    return Err(ForeignPipeline)
+  }
+  match client_composed_keyed_source_coordinates(occurrence.owner) {
     Err(issue) => Err(issue)
     Ok(None) => Ok(None)
     Ok(Some((stage, input, join))) => {
-      if stage != plan.stage {
+      if stage != occurrence.stage {
         return Ok(None)
       }
-      if join >= plan.source_ordinal {
+      if join >= occurrence.step {
         return Err(ForeignPipeline)
       }
       prepare_client_effect_keyed_acquisition(
@@ -268,6 +288,40 @@ fn client_composed_keyed_source_coordinates(
     }
   }
   Ok(selected)
+}
+
+///|
+/// Immutable source identity for selecting an already-installed Native reader
+/// before the Request constructs its checked acquisition/Plan holders.
+pub fn client_infer_occurrence_keyed_source_identity(
+  occurrence : ClientInferOccurrence,
+) -> (String, String)? {
+  guard client_infer_occurrence_matches(occurrence, occurrence.owner) &&
+    client_composed_keyed_source_coordinates(occurrence.owner)
+    is Ok(Some((stage, input, step))) &&
+    stage == occurrence.stage &&
+    step < occurrence.step else {
+    return None
+  }
+  let program = @strategy.graph_program(occurrence.owner.graph)
+  for index in 0..<@checked.source_execution_count(program) {
+    let original = @checked.source_execution_at(program, index).unwrap()
+    let subject = @checked.source_execution_subject(original)
+    if subject.stage == stage &&
+      subject.input == input &&
+      @checked.source_execution_kind(original) is @checked.KeyedRequest(_) {
+      let policy = @environment.source_view_data_policy(
+        subject.response_policy.authoritative,
+      )
+      return Some(
+        (
+          @environment.data_policy_source(policy),
+          @acquisition.selected_cid(subject.source),
+        ),
+      )
+    }
+  }
+  None
 }
 
 ///|

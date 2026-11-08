@@ -267,7 +267,11 @@ fn issue_client_task_plan_graph(
       Some(infer) if task == infer.task =>
         match infer.serialization {
           Some(component) => component.input
-          None => infer.input
+          None =>
+            match infer.keyed {
+              Some(component) => component.left
+              None => infer.input
+            }
         }
       _ if content is Some(component) => component.input
       _ => fragment

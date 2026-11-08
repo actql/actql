@@ -4,7 +4,28 @@ fn check_client_keyed_native_read_profile(
   lookup : ClientKeyedLookupInput,
   profile : @publication.PublicationContract,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
-  let keyed = lookup.left.acquisition
+  if lookup.left.composed is Some(original) &&
+    original.plan.keyed is Some(component) {
+    guard physical_equal(original.keyed, lookup.left.acquisition) &&
+      physical_equal(component.original.fragments.acquisition, original.keyed) &&
+      physical_equal(component.original.profile, profile) else {
+      return Err(Assembly("foreign_native_read_profile"))
+    }
+    return Ok(())
+  }
+  check_client_keyed_native_acquisition_profile(
+    lookup.left.acquisition,
+    profile,
+  )
+}
+
+///|
+// Shared by first-Plan construction and the existing physical reader. The
+// selected original Catalog is the authority for implementation correspondence.
+fn check_client_keyed_native_acquisition_profile(
+  keyed : ClientKeyedAcquisition,
+  profile : @publication.PublicationContract,
+) -> Result[Unit, ClientKeyedRequestIssue] {
   let selected = @acquisition.keyed_request_input(
     @acquisition.parameterized_keyed_request(
       @acquisition.keyed_join_request(keyed.binding.join),

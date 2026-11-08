@@ -70,6 +70,12 @@ fn original_composed_keyed_consumer(
   direct_effect_evidence? : Bool = false,
   pre_dispatch_plan? : Bool = false,
   native_transport? : Bool = false,
+  first_plan? : ((
+    ClientRequestPreparation[Array[Int]],
+    Array[Int],
+    @publication_host.PreparedClientEffectComputation,
+    @publication.PublicationContract,
+  ) -> Unit raise)? = None,
 ) -> Unit raise {
   let publication_early = publication_early || pre_dispatch_plan
   let (declaration, keyed_environment) = original_keyed_declaration_environment(
@@ -208,6 +214,14 @@ fn original_composed_keyed_consumer(
           fail("two-Direct keyed Model static")
         Err(_) => fail("two-Direct keyed Model fixture preparation")
       }
+  }
+  if first_plan is Some(consume) {
+    guard request_parent is Some((parent, input, _)) &&
+      native_profile is Some((_, profile)) else {
+      fail("original first Plan parent/profile")
+    }
+    consume(parent, input, prepared, profile)
+    return
   }
   if whole && !following {
     let limits = @publication_host.client_standard_effect_computation_limits()
