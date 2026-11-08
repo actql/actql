@@ -258,3 +258,29 @@ pub fn keyed_row_request_wire(
     }
   }
 }
+
+///|
+/// The completed Request's own retained carriers, not its borrowed values.
+/// Static CheckedValues stay on the original Parameter/template owner; runtime
+/// payloads stay on the original left producer. Only correlation recheck
+/// wrappers are new. Moving this Request beyond a temporary constructor must
+/// retain this actual variable inventory on that caller's existing holding.
+pub fn keyed_row_request_retained_inventory(
+  value : KeyedRowRequest,
+) -> @shape.CollectionConstructionExtent? {
+  let fields = value.fields.length().to_int64()
+  let correlated = @environment.source_correlation_pair_count(
+    keyed_request_correlation(value.owner.request),
+  ).to_int64()
+  @shape.collection_construction_extent({
+    records: 1L + fields + correlated,
+    record_references: 2L + 2L * fields + 2L * correlated,
+    record_words: 3L,
+    reference_arrays: 1L,
+    reference_items: fields,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 0L,
+    map_entries: 0L,
+  })
+}

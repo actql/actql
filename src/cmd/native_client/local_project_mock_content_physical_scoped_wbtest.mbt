@@ -1212,6 +1212,7 @@ fn[T] Result::native_content_lookup_stage(
         @run_host.LookupIncomplete => "LookupIncomplete"
         @run_host.InvalidObservation => "InvalidObservation"
         @run_host.Assembly(name) => "Assembly: " + name
+        @run_host.Identity(value) => "Identity: " + @debug.to_string(value)
         @run_host.Physical(value) => "Physical: " + @debug.to_string(value)
         @run_host.Row(value) => "Row: " + @debug.to_string(value)
         @run_host.InputCapture(value) =>

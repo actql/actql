@@ -111,7 +111,15 @@ test "keyed request fragments include large authored and parameter values from o
       }
     }
     let request = completed.unwrap()
+    assert_eq(parameterized_keyed_static_request_wire(selected, 10000, 1000, 30).unwrap(),
+      "{\"tenant\":\"" + payload + "\"}")
     let expected = "{\"tenant\":\"" + payload + "\",\"id\":7}"
+    let retained = keyed_row_request_retained_inventory(request).unwrap()
+    // Two actual field pairs, one correlated CheckedValue, original Request
+    // and one fields Array. The large Text itself is borrowed, never copied.
+    assert_eq(retained.record_headers, 7L)
+    assert_eq(retained.reference_slots, 27L)
+    assert_eq(retained.scalar_words, 5L)
     assert_eq(keyed_row_request_usage(request).1, 1)
     assert_eq(keyed_row_request_usage(request).2, 0)
     check_keyed_request_wire_cursor(request, expected)

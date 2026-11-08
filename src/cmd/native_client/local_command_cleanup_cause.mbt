@@ -92,6 +92,12 @@ fn command_preparation_cleanup_cause(
       }
     CommandBusinessEffectProposals(cause) =>
       match cause {
+        Keyed(original) =>
+          match original {
+            Identity(_) => "EffectProposalsKeyedContract"
+            Wire(_) => "EffectProposalsKeyedWire"
+            _ => "EffectProposalsKeyedIdentity"
+          }
         Managed(original) =>
           match original {
             InsufficientCapacity => "EffectProposalsInsufficientCapacity"

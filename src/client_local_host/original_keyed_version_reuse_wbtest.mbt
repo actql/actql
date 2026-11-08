@@ -39,6 +39,7 @@ fn original_keyed_version_history(
   same_ledger_consumer? : Bool = false,
   one_short_census? : Bool = false,
   unknown_left_rows? : Bool = false,
+  request_retention_boundary? : Int = 0,
 ) -> Unit raise {
   let source_contracts = prepare_installed_sequence_contracts(
     source_query_original_registry,
@@ -196,7 +197,9 @@ fn original_keyed_version_history(
     (if suffix { 6 } else { 5 }) +
     // The same finite census also records byte-only read and handoff tokens.
     // These two actual roles do not change attempts/holding/byte limits.
-    (if one_short_census { 1 } else if same_ledger_consumer { 2 } else { 0 }),
+    (if one_short_census { 1 } else if same_ledger_consumer { 2 } else { 0 }) +
+    // One explicit test-only spare-capacity blocker, no new physical attempt.
+    (if request_retention_boundary != 0 { 1 } else { 0 }),
     if content {
       5
     } else {
@@ -362,6 +365,8 @@ fn original_keyed_version_history(
   let stopped = Ref(false)
   let children : Array[@row_source_host.RowRun] = []
   let requested : Array[String] = []
+  let mut first_request_retained = 0L
+  let mut retained_refusal = false
   for row in 0..<3 {
     let preparation = @publication_host.start_client_keyed_lookup_request(
       lookup, row,
@@ -476,9 +481,78 @@ fn original_keyed_version_history(
     @row_source_host.finish_row_run(child).unwrap()
     let retained = @row_source_host.retain_keyed_row_run(child).unwrap()
     @publication_host.finish_client_keyed_request_io(request, 0L).unwrap()
-    begin_client_original_keyed_lookup_response(
+    let before_transfer = @resources.ledger_usage(ledger)
+    let boundary = if row == 1 && request_retention_boundary != 0 {
+      let available = @resources.ledger_limits(ledger).retained_bytes -
+        before_transfer.held_bytes -
+        before_transfer.reserved_retention_bytes
+      assert_true(available >= first_request_retained)
+      // SAME admitted Ledger; occupy only unrelated spare retention. The
+      // second equal-shaped distinct key must fund its whole Request again.
+      Some(
+        @resources.reserve_capacity(
+          ledger,
+          available -
+          first_request_retained +
+          (if request_retention_boundary == 2 { 1L } else { 0L }),
+          0L,
+        ).unwrap(),
+      )
+    } else {
+      None
+    }
+    let transfer = begin_client_original_keyed_lookup_response(
       keyed, lookup, request, retained,
-    ).unwrap()
+    )
+    if request_retention_boundary == 2 && row == 1 {
+      assert_true(
+        transfer
+        is Err(Lookup(@publication_host.Physical(@resources.RetentionLimit))),
+      )
+      assert_true(
+        @publication_host.client_keyed_lookup_input_identity(lookup) is None,
+      )
+      retained_refusal = true
+    } else {
+      transfer.unwrap()
+      let after_transfer = @resources.ledger_usage(ledger)
+      let actual_retained = after_transfer.reserved_retention_bytes -
+        before_transfer.reserved_retention_bytes
+      // Discount the explicit test-only blocker from this observation.
+      let actual_retained = if boundary is Some(_) {
+        actual_retained -
+        (
+          @resources.ledger_limits(ledger).retained_bytes -
+          before_transfer.held_bytes -
+          before_transfer.reserved_retention_bytes -
+          first_request_retained
+        )
+      } else {
+        actual_retained
+      }
+      if row == 0 && request_retention_boundary != 0 {
+        // Actual schema has three required cells. The response/cache carrier
+        // is6H33R4W; this Request adds8H29R5W (two field pairs/two checked
+        // wrappers/fields Array/original record). Existing payloads are borrowed.
+        let expected = @execution.preparation_representation_cost({
+          record_headers: 14L,
+          reference_slots: 62L,
+          scalar_words: 9L,
+          owned_utf16_units: wire.length().to_int64(),
+          owned_wire_bytes: 0L,
+        }).unwrap()
+        assert_eq(actual_retained, expected)
+        first_request_retained = expected
+      } else if row == 1 && request_retention_boundary == 1 {
+        assert_eq(actual_retained, first_request_retained)
+      }
+    }
+    if boundary is Some(boundary) {
+      @resources.settle_capacity(ledger, boundary).unwrap()
+    }
+    if retained_refusal {
+      break
+    }
     complete = false
     for _ in 0..<10000 {
       if @publication_host.advance_client_keyed_lookup_input(lookup, 1).unwrap() {
@@ -490,48 +564,55 @@ fn original_keyed_version_history(
   }
   assert_eq(requested.length(), 2)
   assert_true(requested[0] != requested[1])
-  let read = @publication_host.finish_client_keyed_lookup_input(lookup).unwrap()
-  assert_eq(@execution.supplied_relation_read_row_count(read), 2)
-  for index in 0..<2 {
+  if !retained_refusal {
+    let read = @publication_host.finish_client_keyed_lookup_input(lookup).unwrap()
+    assert_eq(@execution.supplied_relation_read_row_count(read), 2)
+    for index in 0..<2 {
+      assert_eq(
+        @execution.supplied_relation_read_row_wire(
+          read,
+          index,
+          original_keyed_child_limits().wire,
+        ).unwrap(),
+        original_keyed_version_response(index),
+      )
+    }
     assert_eq(
-      @execution.supplied_relation_read_row_wire(
-        read,
-        index,
-        original_keyed_child_limits().wire,
-      ).unwrap(),
-      original_keyed_version_response(index),
+      @query.captured_source_row_count(
+        @row_source_host.row_capture_source(capture).unwrap(),
+      ),
+      Some(3),
     )
-  }
-  assert_eq(
-    @query.captured_source_row_count(
-      @row_source_host.row_capture_source(capture).unwrap(),
-    ),
-    Some(3),
-  )
-  if content {
-    original_keyed_version_content(
-      scope,
-      compiled,
-      definition,
-      plan,
-      prepared,
-      keyed,
-      prefixed_lookup,
-      prefix,
-      acquisition,
-      capture,
-      requirement,
-      execution,
-      measurement,
-      ledger,
-      typed_content~,
-      same_ledger_consumer~,
-      one_short_census~,
-    )
-  } else if suffix {
-    original_keyed_version_serialize(
-      scope, compiled, definition, plan, prepared, keyed, prefixed_lookup, prefix,
-      execution, measurement, workspace_capacity, ledger,
+    if content {
+      original_keyed_version_content(
+        scope,
+        compiled,
+        definition,
+        plan,
+        prepared,
+        keyed,
+        prefixed_lookup,
+        prefix,
+        acquisition,
+        capture,
+        requirement,
+        execution,
+        measurement,
+        ledger,
+        typed_content~,
+        same_ledger_consumer~,
+        one_short_census~,
+      )
+    } else if suffix {
+      original_keyed_version_serialize(
+        scope, compiled, definition, plan, prepared, keyed, prefixed_lookup, prefix,
+        execution, measurement, workspace_capacity, ledger,
+      )
+    }
+  } else {
+    // No completion, retry or third request is fabricated after refusal.
+    assert_true(
+      @publication_host.finish_client_keyed_lookup_input(lookup) is Err(_),
     )
   }
   // One Direct page and two distinct keyed provider responses are consumed.
@@ -539,7 +620,14 @@ fn original_keyed_version_history(
   assert_eq(@resources.ledger_usage(ledger).attempts, 3)
   // The Content helper has released its separate byte allocation already.
   // Direct capture, two keyed children and the lookup still retain four slots.
-  assert_eq(@resources.ledger_usage(ledger).holdings, 4)
+  assert_eq(
+    @resources.ledger_usage(ledger).holdings,
+    if retained_refusal {
+      3
+    } else {
+      4
+    },
+  )
   complete = false
   for _ in 0..<10000 {
     if @publication_host.cleanup_client_original_keyed_prefix_lookup(
@@ -646,4 +734,10 @@ test "unknown Source rows retain their original keyed JOIN multiplicity and clea
 ///|
 test "unknown Source rows feed Content through the same keyed Run without a take bound" {
   original_keyed_version_history(content=true, unknown_left_rows=true)
+}
+
+///|
+test "distinct keyed Requests retain full carriers at exact capacity and refuse one short while physical children remain pending" {
+  original_keyed_version_history(request_retention_boundary=1)
+  original_keyed_version_history(request_retention_boundary=2)
 }

@@ -7,6 +7,7 @@ priv enum LocalNativeMockEffectProposalIssue {
   Proposal(@strategy.CapturedEffectProposalIssue)
   Export(@strategy.CapturedEffectLocalResultExportIssue)
   Completed(@execution.CompletedExportIssue)
+  Keyed(@run_host.ClientKeyedRequestIssue)
 }
 
 ///|
@@ -30,6 +31,7 @@ fn[T] Result::native_effect_proposal(
 priv struct LocalNativeMockEffectProposals {
   inputs : @strategy.CapturedEffectInputs
   members : Array[LocalNativeMockEffectProposalMember]
+  mut _retained_keyed_identity : @run_host.ClientKeyedLookupRequestIdentity?
 }
 
 ///|
@@ -79,7 +81,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Capture(issue))
       .native_effect_proposal(self.original)
-    let held : LocalNativeMockEffectProposals = { inputs, members: [], }
+    let held : LocalNativeMockEffectProposals = { inputs, members: [], _retained_keyed_identity: None, }
     state.proposals = Some(held)
     @local_values.retain_installed_effect_captured_input_inventory(
       run,
@@ -127,6 +129,16 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
         .native_effect_proposal(self.original)
       current.capture_operation = Some(capture_operation)
+      if entry == 0 && state.lookup is Some(lookup) {
+        // The SAME completed lookup retains actual typed requests. Its key
+        // identity is shared by all members; no rows are checked or fetched
+        // again and no key/ref or static request is synthesized.
+        held._retained_keyed_identity = Some(
+          @run_host.client_keyed_lookup_request_identity(lookup, 16384, 1024, 20)
+            .map_err(issue => LocalNativeMockEffectProposalIssue::Keyed(issue))
+            .native_effect_proposal(self.original),
+        )
+      }
       let invocation = business.model_work[0]
         .local_effect_invocation(16384, 1024, 20)
         .unwrap_or_else(() => stop("LocalOriginalEffectInvocationUnavailable"))
@@ -238,6 +250,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
 // Retire pure Core child continuations before returning their actual Result
 // pins. No file, pending write, Store or physical owner is acknowledged here.
 fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
+  self._retained_keyed_identity = None
   for entry in self.members {
     @strategy.cancel_captured_effect_proposal_plan(entry.plan)
     if entry.receipt is Some(receipt) {

@@ -415,6 +415,38 @@ Compute stops before the borrowed lookup and Direct input are reclaimed;
 their cleanup and final parent retirement remain separate duties. The
 standalone path and Model/serialization purposes retain their own contracts.
 
+## Keyed request identity for local publication
+
+The completed keyed lookup retains each original checked Request beside its
+existing captured response. Reuse still selects that same physical response;
+the additional Request reference does not spend another attempt or authorize a
+read. Its actual fields Array, field tuples and newly checked correlation
+wrappers are included before the existing holding grows. Static checked values,
+contracts, names and runtime payloads remain borrowed from their original
+template and left producer. Lookup cleanup cuts the Request aliases with the
+response aliases before returning that holding.
+
+Publication projects the actual correlation roles and checked tuple values from
+those originals. The existing lookup-key-set contract orders role names by
+canonical UTF-16 and deduplicates tuples by the shared typed key order. Resource
+and Content references contribute only their original identity CIDs, with no
+reference reissuance or capability envelope. Static bound Request fields exclude
+correlation roles and use canonical field ordering for their separate identity;
+the provider's existing Request wire keeps its original ordering.
+
+The key-set body is a dependency, not physical Source evidence or permission.
+It retains the original SourceView and Request-schema identities. Receiving
+admission checks both its pinned schema and typed ordering; incoming bodies are
+rejected rather than sorted or repaired. The checked Catalog supplies the
+Request-schema body through the existing dependency closure.
+
+The retained publication identity also holds that exact lookup original, its
+key-set, canonical static Request and their acquisition Scope. Metadata readers
+return those same immutable values without another encoding, hash or current
+callback. Original-reference correspondence does not assert current access;
+physical lookup availability, complete response ordering/provenance and final
+Artifact/Store publication remain separate obligations.
+
 ## Salesforce response construction on the original reader
 
 The installed Salesforce reader charges and retains each original response

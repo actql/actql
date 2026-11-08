@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=7442)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=7983)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -21077,6 +21077,903 @@ fn generated_protocol_schema_nodes_7(nodes : Array[ProtocolSchemaRule]) -> Unit 
       None,
     ),
   )
+  nodes.push(protocol_string_rule(Some("actql-lookup-key-set/0.1"), [], 0, 0))
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(nodes[408])
+  nodes.push(
+    protocol_object_rule([("precision", 7446)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(1L)))
+  nodes.push(protocol_object_rule([("scale", 7448)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7447, 7449, 7450))
+  nodes.push(protocol_integer_rule(Some(2L), Some(2L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7452)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(2L)))
+  nodes.push(protocol_object_rule([("scale", 7454)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7453, 7455, 7456))
+  nodes.push(protocol_integer_rule(Some(3L), Some(3L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7458)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(3L)))
+  nodes.push(protocol_object_rule([("scale", 7460)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7459, 7461, 7462))
+  nodes.push(protocol_integer_rule(Some(4L), Some(4L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7464)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(4L)))
+  nodes.push(protocol_object_rule([("scale", 7466)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7465, 7467, 7468))
+  nodes.push(protocol_integer_rule(Some(5L), Some(5L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7470)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(5L)))
+  nodes.push(protocol_object_rule([("scale", 7472)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7471, 7473, 7474))
+  nodes.push(protocol_integer_rule(Some(6L), Some(6L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7476)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(6L)))
+  nodes.push(protocol_object_rule([("scale", 7478)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7477, 7479, 7480))
+  nodes.push(protocol_integer_rule(Some(7L), Some(7L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7482)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(7L)))
+  nodes.push(protocol_object_rule([("scale", 7484)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7483, 7485, 7486))
+  nodes.push(protocol_integer_rule(Some(8L), Some(8L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7488)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(8L)))
+  nodes.push(protocol_object_rule([("scale", 7490)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7489, 7491, 7492))
+  nodes.push(protocol_integer_rule(Some(9L), Some(9L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7494)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(9L)))
+  nodes.push(protocol_object_rule([("scale", 7496)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7495, 7497, 7498))
+  nodes.push(protocol_integer_rule(Some(10L), Some(10L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7500)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(10L)))
+  nodes.push(protocol_object_rule([("scale", 7502)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7501, 7503, 7504))
+  nodes.push(protocol_integer_rule(Some(11L), Some(11L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7506)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(11L)))
+  nodes.push(protocol_object_rule([("scale", 7508)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7507, 7509, 7510))
+  nodes.push(protocol_integer_rule(Some(12L), Some(12L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7512)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(12L)))
+  nodes.push(protocol_object_rule([("scale", 7514)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7513, 7515, 7516))
+  nodes.push(protocol_integer_rule(Some(13L), Some(13L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7518)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(13L)))
+  nodes.push(protocol_object_rule([("scale", 7520)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7519, 7521, 7522))
+  nodes.push(protocol_integer_rule(Some(14L), Some(14L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7524)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(14L)))
+  nodes.push(protocol_object_rule([("scale", 7526)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7525, 7527, 7528))
+  nodes.push(protocol_integer_rule(Some(15L), Some(15L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7530)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(15L)))
+  nodes.push(protocol_object_rule([("scale", 7532)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7531, 7533, 7534))
+  nodes.push(protocol_integer_rule(Some(16L), Some(16L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7536)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(16L)))
+  nodes.push(protocol_object_rule([("scale", 7538)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7537, 7539, 7540))
+  nodes.push(protocol_integer_rule(Some(17L), Some(17L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7542)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(17L)))
+  nodes.push(protocol_object_rule([("scale", 7544)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7543, 7545, 7546))
+  nodes.push(protocol_integer_rule(Some(18L), Some(18L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7548)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(18L)))
+  nodes.push(protocol_object_rule([("scale", 7550)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7549, 7551, 7552))
+  nodes.push(protocol_integer_rule(Some(19L), Some(19L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7554)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(19L)))
+  nodes.push(protocol_object_rule([("scale", 7556)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7555, 7557, 7558))
+  nodes.push(protocol_integer_rule(Some(20L), Some(20L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7560)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(20L)))
+  nodes.push(protocol_object_rule([("scale", 7562)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7561, 7563, 7564))
+  nodes.push(protocol_integer_rule(Some(21L), Some(21L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7566)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(21L)))
+  nodes.push(protocol_object_rule([("scale", 7568)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7567, 7569, 7570))
+  nodes.push(protocol_integer_rule(Some(22L), Some(22L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7572)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(22L)))
+  nodes.push(protocol_object_rule([("scale", 7574)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7573, 7575, 7576))
+  nodes.push(protocol_integer_rule(Some(23L), Some(23L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7578)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(23L)))
+  nodes.push(protocol_object_rule([("scale", 7580)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7579, 7581, 7582))
+  nodes.push(protocol_integer_rule(Some(24L), Some(24L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7584)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(24L)))
+  nodes.push(protocol_object_rule([("scale", 7586)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7585, 7587, 7588))
+  nodes.push(protocol_integer_rule(Some(25L), Some(25L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7590)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(25L)))
+  nodes.push(protocol_object_rule([("scale", 7592)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7591, 7593, 7594))
+  nodes.push(protocol_integer_rule(Some(26L), Some(26L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7596)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(26L)))
+  nodes.push(protocol_object_rule([("scale", 7598)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7597, 7599, 7600))
+  nodes.push(protocol_integer_rule(Some(27L), Some(27L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7602)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(27L)))
+  nodes.push(protocol_object_rule([("scale", 7604)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7603, 7605, 7606))
+  nodes.push(protocol_integer_rule(Some(28L), Some(28L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7608)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(28L)))
+  nodes.push(protocol_object_rule([("scale", 7610)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7609, 7611, 7612))
+  nodes.push(protocol_integer_rule(Some(29L), Some(29L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7614)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(29L)))
+  nodes.push(protocol_object_rule([("scale", 7616)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7615, 7617, 7618))
+  nodes.push(protocol_integer_rule(Some(30L), Some(30L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7620)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(30L)))
+  nodes.push(protocol_object_rule([("scale", 7622)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7621, 7623, 7624))
+  nodes.push(protocol_integer_rule(Some(31L), Some(31L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7626)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(31L)))
+  nodes.push(protocol_object_rule([("scale", 7628)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7627, 7629, 7630))
+  nodes.push(protocol_integer_rule(Some(32L), Some(32L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7632)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(32L)))
+  nodes.push(protocol_object_rule([("scale", 7634)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7633, 7635, 7636))
+  nodes.push(protocol_integer_rule(Some(33L), Some(33L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7638)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(33L)))
+  nodes.push(protocol_object_rule([("scale", 7640)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7639, 7641, 7642))
+  nodes.push(protocol_integer_rule(Some(34L), Some(34L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7644)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(34L)))
+  nodes.push(protocol_object_rule([("scale", 7646)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7645, 7647, 7648))
+  nodes.push(protocol_integer_rule(Some(35L), Some(35L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7650)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(35L)))
+  nodes.push(protocol_object_rule([("scale", 7652)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7651, 7653, 7654))
+  nodes.push(protocol_integer_rule(Some(36L), Some(36L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7656)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(36L)))
+  nodes.push(protocol_object_rule([("scale", 7658)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7657, 7659, 7660))
+  nodes.push(protocol_integer_rule(Some(37L), Some(37L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7662)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(37L)))
+  nodes.push(protocol_object_rule([("scale", 7664)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7663, 7665, 7666))
+  nodes.push(protocol_integer_rule(Some(38L), Some(38L)))
+  nodes.push(
+    protocol_object_rule([("precision", 7668)], ["precision"], -2, 0, None),
+  )
+  nodes.push(protocol_integer_rule(None, Some(38L)))
+  nodes.push(protocol_object_rule([("scale", 7670)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7669, 7671, 7672))
+  nodes.push(protocol_string_rule(Some("decimal"), [], 0, 0))
+  nodes.push(nodes[14])
+  nodes.push(protocol_integer_rule(Some(1L), Some(38L)))
+  nodes.push(protocol_integer_rule(Some(0L), Some(38L)))
+  nodes.push(
+    protocol_object_rule(
+      [("type", 7674), ("nullable", 7675), ("precision", 7676), ("scale", 7677)],
+      ["type", "nullable", "precision", "scale"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    AllOfRule([
+      7451, 7457, 7463, 7469, 7475, 7481, 7487, 7493, 7499, 7505, 7511, 7517, 7523,
+      7529, 7535, 7541, 7547, 7553, 7559, 7565, 7571, 7577, 7583, 7589, 7595, 7601,
+      7607, 7613, 7619, 7625, 7631, 7637, 7643, 7649, 7655, 7661, 7667, 7673, 7678,
+    ]),
+  )
+  nodes.push(protocol_string_rule(Some("string"), [], 0, 0))
+  nodes.push(nodes[14])
+  nodes.push(nodes[219])
+  nodes.push(nodes[219])
+  nodes.push(nodes[219])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("type", 7680),
+        ("nullable", 7681),
+        ("min_length", 7682),
+        ("max_codepoints", 7683),
+        ("max_utf8_bytes", 7684),
+      ],
+      ["type", "nullable"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    protocol_string_rule(
+      None,
+      ["number", "boolean", "timestamp", "date", "json"],
+      0,
+      0,
+    ),
+  )
+  nodes.push(nodes[14])
+  nodes.push(
+    protocol_object_rule(
+      [("type", 7686), ("nullable", 7687)],
+      ["type", "nullable"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("vector"), [], 0, 0))
+  nodes.push(nodes[14])
+  nodes.push(nodes[2407])
+  nodes.push(protocol_string_rule(Some("f32"), [], 0, 0))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("type", 7689),
+        ("nullable", 7690),
+        ("dimensions", 7691),
+        ("element_type", 7692),
+      ],
+      ["type", "nullable", "dimensions", "element_type"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("resource_ref"), [], 0, 0))
+  nodes.push(nodes[14])
+  nodes.push(nodes[1])
+  nodes.push(
+    protocol_object_rule(
+      [("type", 7694), ("nullable", 7695), ("resource_kind", 7696)],
+      ["type", "nullable", "resource_kind"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("content_ref"), [], 0, 0))
+  nodes.push(nodes[14])
+  nodes.push(nodes[1])
+  nodes.push(
+    protocol_object_rule(
+      [("type", 7698), ("nullable", 7699), ("media_type", 7700)],
+      ["type", "nullable"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("int64"), [], 0, 0))
+  nodes.push(nodes[14])
+  nodes.push(
+    protocol_object_rule(
+      [("type", 7702), ("nullable", 7703)],
+      ["type", "nullable"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([7679, 7685, 7688, 7693, 7697, 7701, 7704]))
+  nodes.push(
+    protocol_object_rule(
+      [("request_role", 7445), ("value_contract", 7705)],
+      ["request_role", "value_contract"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_array_rule(7706, 1, true, -1))
+  nodes.push(nodes[270])
+  nodes.push(protocol_array_rule(7708, 0, false, -1))
+  nodes.push(protocol_array_rule(7709, 0, true, -1))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 7442),
+        ("source_view_contract_cid", 7443),
+        ("request_schema_cid", 7444),
+        ("key_roles", 7707),
+        ("tuples", 7710),
+      ],
+      [
+        "version", "source_view_contract_cid", "request_schema_cid", "key_roles",
+        "tuples",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[7442])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[1])
+  nodes.push(nodes[408])
+  nodes.push(
+    protocol_object_rule([("precision", 7716)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7448])
+  nodes.push(protocol_object_rule([("scale", 7718)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7717, 7719, 7720))
+  nodes.push(nodes[7452])
+  nodes.push(
+    protocol_object_rule([("precision", 7722)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7454])
+  nodes.push(protocol_object_rule([("scale", 7724)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7723, 7725, 7726))
+  nodes.push(nodes[7458])
+  nodes.push(
+    protocol_object_rule([("precision", 7728)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7460])
+  nodes.push(protocol_object_rule([("scale", 7730)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7729, 7731, 7732))
+  nodes.push(nodes[7464])
+  nodes.push(
+    protocol_object_rule([("precision", 7734)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7466])
+  nodes.push(protocol_object_rule([("scale", 7736)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7735, 7737, 7738))
+  nodes.push(nodes[7470])
+  nodes.push(
+    protocol_object_rule([("precision", 7740)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7472])
+  nodes.push(protocol_object_rule([("scale", 7742)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7741, 7743, 7744))
+  nodes.push(nodes[7476])
+  nodes.push(
+    protocol_object_rule([("precision", 7746)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7478])
+  nodes.push(protocol_object_rule([("scale", 7748)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7747, 7749, 7750))
+  nodes.push(nodes[7482])
+  nodes.push(
+    protocol_object_rule([("precision", 7752)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7484])
+  nodes.push(protocol_object_rule([("scale", 7754)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7753, 7755, 7756))
+  nodes.push(nodes[7488])
+  nodes.push(
+    protocol_object_rule([("precision", 7758)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7490])
+  nodes.push(protocol_object_rule([("scale", 7760)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7759, 7761, 7762))
+  nodes.push(nodes[7494])
+  nodes.push(
+    protocol_object_rule([("precision", 7764)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7496])
+  nodes.push(protocol_object_rule([("scale", 7766)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7765, 7767, 7768))
+  nodes.push(nodes[7500])
+  nodes.push(
+    protocol_object_rule([("precision", 7770)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7502])
+  nodes.push(protocol_object_rule([("scale", 7772)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7771, 7773, 7774))
+  nodes.push(nodes[7506])
+  nodes.push(
+    protocol_object_rule([("precision", 7776)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7508])
+  nodes.push(protocol_object_rule([("scale", 7778)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7777, 7779, 7780))
+  nodes.push(nodes[7512])
+  nodes.push(
+    protocol_object_rule([("precision", 7782)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7514])
+  nodes.push(protocol_object_rule([("scale", 7784)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7783, 7785, 7786))
+  nodes.push(nodes[7518])
+  nodes.push(
+    protocol_object_rule([("precision", 7788)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7520])
+  nodes.push(protocol_object_rule([("scale", 7790)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7789, 7791, 7792))
+  nodes.push(nodes[7524])
+  nodes.push(
+    protocol_object_rule([("precision", 7794)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7526])
+  nodes.push(protocol_object_rule([("scale", 7796)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7795, 7797, 7798))
+  nodes.push(nodes[7530])
+  nodes.push(
+    protocol_object_rule([("precision", 7800)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7532])
+  nodes.push(protocol_object_rule([("scale", 7802)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7801, 7803, 7804))
+  nodes.push(nodes[7536])
+  nodes.push(
+    protocol_object_rule([("precision", 7806)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7538])
+  nodes.push(protocol_object_rule([("scale", 7808)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7807, 7809, 7810))
+  nodes.push(nodes[7542])
+  nodes.push(
+    protocol_object_rule([("precision", 7812)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7544])
+  nodes.push(protocol_object_rule([("scale", 7814)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7813, 7815, 7816))
+  nodes.push(nodes[7548])
+  nodes.push(
+    protocol_object_rule([("precision", 7818)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7550])
+  nodes.push(protocol_object_rule([("scale", 7820)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7819, 7821, 7822))
+  nodes.push(nodes[7554])
+  nodes.push(
+    protocol_object_rule([("precision", 7824)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7556])
+  nodes.push(protocol_object_rule([("scale", 7826)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7825, 7827, 7828))
+  nodes.push(nodes[7560])
+  nodes.push(
+    protocol_object_rule([("precision", 7830)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7562])
+  nodes.push(protocol_object_rule([("scale", 7832)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7831, 7833, 7834))
+  nodes.push(nodes[7566])
+  nodes.push(
+    protocol_object_rule([("precision", 7836)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7568])
+  nodes.push(protocol_object_rule([("scale", 7838)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7837, 7839, 7840))
+  nodes.push(nodes[7572])
+  nodes.push(
+    protocol_object_rule([("precision", 7842)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7574])
+  nodes.push(protocol_object_rule([("scale", 7844)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7843, 7845, 7846))
+  nodes.push(nodes[7578])
+  nodes.push(
+    protocol_object_rule([("precision", 7848)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7580])
+  nodes.push(protocol_object_rule([("scale", 7850)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7849, 7851, 7852))
+  nodes.push(nodes[7584])
+  nodes.push(
+    protocol_object_rule([("precision", 7854)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7586])
+  nodes.push(protocol_object_rule([("scale", 7856)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7855, 7857, 7858))
+  nodes.push(nodes[7590])
+  nodes.push(
+    protocol_object_rule([("precision", 7860)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7592])
+  nodes.push(protocol_object_rule([("scale", 7862)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7861, 7863, 7864))
+  nodes.push(nodes[7596])
+  nodes.push(
+    protocol_object_rule([("precision", 7866)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7598])
+  nodes.push(protocol_object_rule([("scale", 7868)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7867, 7869, 7870))
+  nodes.push(nodes[7602])
+  nodes.push(
+    protocol_object_rule([("precision", 7872)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7604])
+  nodes.push(protocol_object_rule([("scale", 7874)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7873, 7875, 7876))
+  nodes.push(nodes[7608])
+  nodes.push(
+    protocol_object_rule([("precision", 7878)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7610])
+  nodes.push(protocol_object_rule([("scale", 7880)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7879, 7881, 7882))
+  nodes.push(nodes[7614])
+  nodes.push(
+    protocol_object_rule([("precision", 7884)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7616])
+  nodes.push(protocol_object_rule([("scale", 7886)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7885, 7887, 7888))
+  nodes.push(nodes[7620])
+  nodes.push(
+    protocol_object_rule([("precision", 7890)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7622])
+  nodes.push(protocol_object_rule([("scale", 7892)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7891, 7893, 7894))
+  nodes.push(nodes[7626])
+  nodes.push(
+    protocol_object_rule([("precision", 7896)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7628])
+  nodes.push(protocol_object_rule([("scale", 7898)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7897, 7899, 7900))
+  nodes.push(nodes[7632])
+  nodes.push(
+    protocol_object_rule([("precision", 7902)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7634])
+  nodes.push(protocol_object_rule([("scale", 7904)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7903, 7905, 7906))
+  nodes.push(nodes[7638])
+  nodes.push(
+    protocol_object_rule([("precision", 7908)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7640])
+  nodes.push(protocol_object_rule([("scale", 7910)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7909, 7911, 7912))
+  nodes.push(nodes[7644])
+  nodes.push(
+    protocol_object_rule([("precision", 7914)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7646])
+  nodes.push(protocol_object_rule([("scale", 7916)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7915, 7917, 7918))
+  nodes.push(nodes[7650])
+  nodes.push(
+    protocol_object_rule([("precision", 7920)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7652])
+  nodes.push(protocol_object_rule([("scale", 7922)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7921, 7923, 7924))
+  nodes.push(nodes[7656])
+  nodes.push(
+    protocol_object_rule([("precision", 7926)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7658])
+  nodes.push(protocol_object_rule([("scale", 7928)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7927, 7929, 7930))
+  nodes.push(nodes[7662])
+  nodes.push(
+    protocol_object_rule([("precision", 7932)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7664])
+  nodes.push(protocol_object_rule([("scale", 7934)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7933, 7935, 7936))
+  nodes.push(nodes[7668])
+  nodes.push(
+    protocol_object_rule([("precision", 7938)], ["precision"], -2, 0, None),
+  )
+  nodes.push(nodes[7670])
+  nodes.push(protocol_object_rule([("scale", 7940)], [], -2, 0, None))
+  nodes.push(nodes[270])
+  nodes.push(ConditionalRule(7939, 7941, 7942))
+  nodes.push(nodes[7674])
+  nodes.push(nodes[14])
+  nodes.push(nodes[7676])
+  nodes.push(nodes[7677])
+  nodes.push(
+    protocol_object_rule(
+      [("type", 7944), ("nullable", 7945), ("precision", 7946), ("scale", 7947)],
+      ["type", "nullable", "precision", "scale"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    AllOfRule([
+      7721, 7727, 7733, 7739, 7745, 7751, 7757, 7763, 7769, 7775, 7781, 7787, 7793,
+      7799, 7805, 7811, 7817, 7823, 7829, 7835, 7841, 7847, 7853, 7859, 7865, 7871,
+      7877, 7883, 7889, 7895, 7901, 7907, 7913, 7919, 7925, 7931, 7937, 7943, 7948,
+    ]),
+  )
+  nodes.push(nodes[7680])
+  nodes.push(nodes[14])
+  nodes.push(nodes[219])
+  nodes.push(nodes[219])
+  nodes.push(nodes[219])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("type", 7950),
+        ("nullable", 7951),
+        ("min_length", 7952),
+        ("max_codepoints", 7953),
+        ("max_utf8_bytes", 7954),
+      ],
+      ["type", "nullable"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[7686])
+  nodes.push(nodes[14])
+  nodes.push(
+    protocol_object_rule(
+      [("type", 7956), ("nullable", 7957)],
+      ["type", "nullable"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[7689])
+  nodes.push(nodes[14])
+  nodes.push(nodes[2407])
+  nodes.push(nodes[7692])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("type", 7959),
+        ("nullable", 7960),
+        ("dimensions", 7961),
+        ("element_type", 7962),
+      ],
+      ["type", "nullable", "dimensions", "element_type"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[7694])
+  nodes.push(nodes[14])
+  nodes.push(nodes[1])
+  nodes.push(
+    protocol_object_rule(
+      [("type", 7964), ("nullable", 7965), ("resource_kind", 7966)],
+      ["type", "nullable", "resource_kind"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[7698])
+  nodes.push(nodes[14])
+  nodes.push(nodes[1])
+  nodes.push(
+    protocol_object_rule(
+      [("type", 7968), ("nullable", 7969), ("media_type", 7970)],
+      ["type", "nullable"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[7702])
+  nodes.push(nodes[14])
+  nodes.push(
+    protocol_object_rule(
+      [("type", 7972), ("nullable", 7973)],
+      ["type", "nullable"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([7949, 7955, 7958, 7963, 7967, 7971, 7974]))
+  nodes.push(
+    protocol_object_rule(
+      [("request_role", 7715), ("value_contract", 7975)],
+      ["request_role", "value_contract"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_array_rule(7976, 1, true, -1))
+  nodes.push(nodes[270])
+  nodes.push(protocol_array_rule(7978, 0, false, -1))
+  nodes.push(protocol_array_rule(7979, 0, true, -1))
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 7712),
+        ("source_view_contract_cid", 7713),
+        ("request_schema_cid", 7714),
+        ("key_roles", 7977),
+        ("tuples", 7980),
+        ("self_cid", 7981),
+      ],
+      [
+        "version", "source_view_contract_cid", "request_schema_cid", "key_roles",
+        "tuples", "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
 }
 
 ///|
@@ -21229,6 +22126,8 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("review_projection", false) => Some(7366)
     ("review_projection", true) => Some(7435)
     ("installation_publication_storage_binding", true) => Some(7441)
+    ("request_key_set", false) => Some(7711)
+    ("request_key_set", true) => Some(7982)
     _ => None
   }
 }

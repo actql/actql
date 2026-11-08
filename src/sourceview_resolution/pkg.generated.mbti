@@ -163,6 +163,8 @@ pub fn keyed_row_request_field(KeyedRowRequest, String) -> @value_admission.Chec
 
 pub fn keyed_row_request_owner(KeyedRowRequest) -> ParameterizedKeyedRequest
 
+pub fn keyed_row_request_retained_inventory(KeyedRowRequest) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn keyed_row_request_usage(KeyedRowRequest) -> (Int, Int, Int)
 
 pub fn keyed_row_request_wire(KeyedRowRequest, Int, Int, Int) -> Result[String, RequestWireIssue]
@@ -236,6 +238,8 @@ pub fn parameterized_keyed_request_host_binding_count(ParameterizedKeyedRequest)
 pub fn parameterized_keyed_request_parameters(ParameterizedKeyedRequest) -> RequestParameters
 
 pub fn parameterized_keyed_request_work(ParameterizedKeyedRequest) -> Int
+
+pub fn parameterized_keyed_static_request_wire(ParameterizedKeyedRequest, Int, Int, Int) -> Result[String, RequestWireIssue]
 
 pub fn parameterized_request(ParameterizedRequest) -> DirectRequest
 
