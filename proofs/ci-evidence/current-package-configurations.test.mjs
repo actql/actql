@@ -479,8 +479,8 @@ test('current query configuration binds both JS-only files without changing impo
 });
 
 test('single current map binds exact per-entry reviews and full literal import closure', () => {
-  assert.equal(Object.keys(currentPackageConfigurations).length, 19);
-  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 13);
+  assert.equal(Object.keys(currentPackageConfigurations).length, 20);
+  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 14);
   const head = gitTree(root, execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
   for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
     const revision = entry.revision ?? currentConfigurationReviewRevision;
@@ -499,6 +499,72 @@ test('single current map binds exact per-entry reviews and full literal import c
       assert.equal(head.entries.get(member)?.kind, 'blob', member);
       assert.equal(head.entries.get(member)?.mode, '100644', member);
     }
+  }
+});
+
+test('current JS foreign library binds only the original Whole input schema and DuckDB imports', () => {
+  const path = 'src/connectors_builtin_node/moon.pkg';
+  const revision = '6f27dfdf10aa232977277ec8580557463e44e81f';
+  const digest = 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d';
+  const prior = gitTree(root, '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c').read(path).toString();
+  const body = gitTree(root, revision).read(path).toString();
+  const imports = '  "actql/actql/relation_schema" @schema,\n' +
+    '  "actql/actql/connectors/duckdb/adapter" @duckdb_input,\n';
+  assert.equal(hash(prior), '707ebd62113403d8c1a08c3db9ea28d5e899c3c80d6ac7dc5cfadd545045ac38');
+  assert.equal(hash(body), digest);
+  assert.equal(body.split(imports).length, 2);
+  assert.equal(body.replace(imports, ''), prior, 'kind, targets, aliases and every other option remain exact');
+  assert.deepEqual(packageImports(body).imports, [...packageImports(prior).imports,
+    'actql/actql/relation_schema', 'actql/actql/connectors/duckdb/adapter'].sort());
+  assert.deepEqual(currentPackageConfigurations[path], {revision, digest,
+    rule: 'literal-js-foreign-library-with-bound-source-membership'});
+  assert.equal(currentTree.read(path).toString(), body);
+  execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
+  const selected = packageSourceInputs({tree: currentTree, packages: ['src/connectors_builtin_node'], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  for (const member of ['src/relation_schema/moon.pkg', 'src/connectors/duckdb/adapter/moon.pkg',
+    'src/connectors_builtin_node/client_whole_source_capture_bridge.mbt']) {
+    assert(selected.paths.includes(member), member);
+    assert.equal(currentTree.entries.get(member)?.kind, 'blob');
+    assert.equal(currentTree.entries.get(member)?.mode, '100644');
+  }
+  for (const changed of [prior, body.replace('@duckdb_input', '@foreign_input'),
+    body.replace('pkgtype(kind: "foreign_library")', 'pkgtype(kind: "library")'),
+    body + '\noptions(pre_build: {command: "unreviewed"})\n']) {
+    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+  }
+});
+
+test('current Text target review keeps both original sizing files and unchanged imports in the key', () => {
+  const path = 'src/execution_relation/moon.pkg';
+  const revision = '6813ab0330a17f99c8eef5c9f4a70480ecc7e96c';
+  const digest = '2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079';
+  const prior = gitTree(root, '549b54952ceae6eea91bf6ed5dacd42dfd028e14').read(path).toString();
+  const body = gitTree(root, revision).read(path).toString();
+  const selectors = '\noptions(\n  targets: {\n' +
+    '    "text_workspace_growth_js.mbt": [ "js" ],\n' +
+    '    "text_workspace_growth_nonjs.mbt": [ "not", "js" ],\n  },\n)\n';
+  assert.equal(hash(body), digest);
+  assert.equal(body.split(selectors).length, 2);
+  assert.equal(body.replace(selectors, ''), prior);
+  assert.deepEqual(packageImports(body).imports, packageImports(prior).imports);
+  assert.deepEqual(currentPackageConfigurations[path], {revision, digest,
+    rule: 'literal-target-selectors-with-bound-source-membership'});
+  assert.equal(currentTree.read(path).toString(), body);
+  execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
+  const selected = packageSourceInputs({tree: currentTree, packages: ['src/execution_relation'], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  for (const name of ['text_workspace_growth.mbt', 'text_workspace_growth_js.mbt',
+    'text_workspace_growth_nonjs.mbt', 'text_workspace_growth_wbtest.mbt']) {
+    const member = 'src/execution_relation/' + name;
+    assert(selected.paths.includes(member), 'Target routing cannot hide nonselected source or tests');
+    assert.equal(currentTree.entries.get(member)?.kind, 'blob');
+    assert.equal(currentTree.entries.get(member)?.mode, '100644');
+  }
+  for (const changed of [prior, body.replace('[ "js" ]', '[ "native" ]'),
+    body.replace('text_workspace_growth_nonjs.mbt', 'unreviewed.mbt'),
+    body + '\noptions(pre_build: {command: "unreviewed"})\n']) {
+    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
   }
 });
 
